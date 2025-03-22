@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // BaseFetcher provides common functionality for price fetchers
@@ -394,4 +394,4 @@ func (f *OKXFetcher) FetchPrice(ctx context.Context, baseToken, quoteToken strin
 	}
 
 	return price, nil
-} 
+}

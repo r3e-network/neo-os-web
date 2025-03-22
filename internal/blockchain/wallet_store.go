@@ -12,14 +12,15 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	github.com/R3E-Network/service_layerinternal/models"
 	"sync"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // WalletData represents the wallet data stored in the database
@@ -309,12 +310,12 @@ func (s *DBWalletStore) ClearCache() {
 
 // WalletStore provides functionality for managing service wallets
 type WalletStore struct {
-	db           *sqlx.DB
-	logger       *logger.Logger
-	config       *config.Config
-	encryptKey   []byte
-	walletCache  map[uuid.UUID]string
-	cacheMutex   sync.RWMutex
+	db          *sqlx.DB
+	logger      *logger.Logger
+	config      *config.Config
+	encryptKey  []byte
+	walletCache map[uuid.UUID]string
+	cacheMutex  sync.RWMutex
 }
 
 // NewWalletStore creates a new WalletStore
@@ -332,11 +333,11 @@ func NewWalletStore(config *config.Config, logger *logger.Logger, db *sqlx.DB) *
 	}
 
 	return &WalletStore{
-		db:           db,
-		logger:       logger,
-		config:       config,
-		encryptKey:   encryptKey,
-		walletCache:  make(map[uuid.UUID]string),
+		db:          db,
+		logger:      logger,
+		config:      config,
+		encryptKey:  encryptKey,
+		walletCache: make(map[uuid.UUID]string),
 	}
 }
 
@@ -362,13 +363,13 @@ func (s *WalletStore) CreateWallet(ctx context.Context, service string) (*models
 	// Create wallet record
 	id := uuid.New()
 	walletAccount := &models.WalletAccount{
-		ID:                 id,
-		Service:            service,
-		Address:            address,
+		ID:                  id,
+		Service:             service,
+		Address:             address,
 		EncryptedPrivateKey: encryptedKey,
-		PublicKey:          publicKey,
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Now(),
+		PublicKey:           publicKey,
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
 	}
 
 	// Insert into database
@@ -497,4 +498,4 @@ func (s *WalletStore) ClearCache() {
 	s.cacheMutex.Lock()
 	defer s.cacheMutex.Unlock()
 	s.walletCache = make(map[uuid.UUID]string)
-} 
+}

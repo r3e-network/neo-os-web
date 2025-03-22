@@ -5,53 +5,53 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/api/gasbank"
+	"github.com/R3E-Network/service_layer/internal/api/oracle"
+	"github.com/R3E-Network/service_layer/internal/api/pricefeed"
+	"github.com/R3E-Network/service_layer/internal/api/random"
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/core/auth"
+	"github.com/R3E-Network/service_layer/internal/core/automation"
+	"github.com/R3E-Network/service_layer/internal/core/functions"
+	"github.com/R3E-Network/service_layer/internal/core/gasbank"
+	coreGasbank "github.com/R3E-Network/service_layer/internal/core/gasbank"
+	"github.com/R3E-Network/service_layer/internal/core/oracle"
+	coreOracle "github.com/R3E-Network/service_layer/internal/core/oracle"
+	corePricefeed "github.com/R3E-Network/service_layer/internal/core/pricefeed"
+	coreRandom "github.com/R3E-Network/service_layer/internal/core/random"
+	"github.com/R3E-Network/service_layer/internal/core/secrets"
+	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/internal/database/repositories"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/internal/tee"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/willtech-services/service_layer/internal/api/gasbank"
-	"github.com/willtech-services/service_layer/internal/api/oracle"
-	"github.com/willtech-services/service_layer/internal/api/pricefeed"
-	"github.com/willtech-services/service_layer/internal/api/random"
-	"github.com/willtech-services/service_layer/internal/blockchain"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/internal/core/auth"
-	"github.com/willtech-services/service_layer/internal/core/automation"
-	"github.com/willtech-services/service_layer/internal/core/functions"
-	"github.com/willtech-services/service_layer/internal/core/gasbank" 
-	coreGasbank "github.com/willtech-services/service_layer/internal/core/gasbank"
-	"github.com/willtech-services/service_layer/internal/core/oracle"
-	coreOracle "github.com/willtech-services/service_layer/internal/core/oracle"
-	corePricefeed "github.com/willtech-services/service_layer/internal/core/pricefeed"
-	coreRandom "github.com/willtech-services/service_layer/internal/core/random"
-	"github.com/willtech-services/service_layer/internal/core/secrets"
-	"github.com/willtech-services/service_layer/internal/database"
-	"github.com/willtech-services/service_layer/internal/database/repositories"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/internal/tee"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // Server represents the HTTP server
 type Server struct {
-	router             *gin.Engine
-	httpServer         *http.Server
-	config             *config.Config
-	logger             *logger.Logger
-	db                 *database.Database
-	teeManager         *tee.Manager
-	blockchainClient   *blockchain.Client
-	
+	router           *gin.Engine
+	httpServer       *http.Server
+	config           *config.Config
+	logger           *logger.Logger
+	db               *database.Database
+	teeManager       *tee.Manager
+	blockchainClient *blockchain.Client
+
 	// Repositories
-	userRepository     models.UserRepository
-	functionRepository models.FunctionRepository
-	executionRepository models.ExecutionRepository
-	secretRepository   models.SecretRepository
-	triggerRepository  models.TriggerRepository
-	priceFeedRepository models.PriceFeedRepository
-	randomRepository   models.RandomRepository
-	oracleRepository   models.OracleRepository
-	gasBankRepository  models.GasBankRepository
+	userRepository        models.UserRepository
+	functionRepository    models.FunctionRepository
+	executionRepository   models.ExecutionRepository
+	secretRepository      models.SecretRepository
+	triggerRepository     models.TriggerRepository
+	priceFeedRepository   models.PriceFeedRepository
+	randomRepository      models.RandomRepository
+	oracleRepository      models.OracleRepository
+	gasBankRepository     models.GasBankRepository
 	transactionRepository database.TransactionRepository
-	
+
 	// Services
 	authService        *auth.Service
 	functionService    *functions.Service
@@ -168,35 +168,35 @@ func NewServer(cfg *config.Config, log *logger.Logger) (*Server, error) {
 
 	// Create server
 	server := &Server{
-		router:             router,
-		config:             cfg,
-		logger:             log,
-		db:                 db,
-		teeManager:         teeManager,
-		blockchainClient:   blockchainClient,
-		userRepository:     userRepository,
-		functionRepository: functionRepository,
-		executionRepository: executionRepository,
-		secretRepository:   secretRepository,
-		triggerRepository:  triggerRepository,
-		priceFeedRepository: priceFeedRepository,
-		randomRepository:   randomRepository,
-		oracleRepository:   oracleRepository,
-		gasBankRepository:  gasBankRepository,
+		router:                router,
+		config:                cfg,
+		logger:                log,
+		db:                    db,
+		teeManager:            teeManager,
+		blockchainClient:      blockchainClient,
+		userRepository:        userRepository,
+		functionRepository:    functionRepository,
+		executionRepository:   executionRepository,
+		secretRepository:      secretRepository,
+		triggerRepository:     triggerRepository,
+		priceFeedRepository:   priceFeedRepository,
+		randomRepository:      randomRepository,
+		oracleRepository:      oracleRepository,
+		gasBankRepository:     gasBankRepository,
 		transactionRepository: transactionRepository,
-		authService:        authService,
-		functionService:    functionService,
-		secretService:      secretService,
-		automationService:  automationService,
-		priceFeedService:   priceFeedService,
-		randomService:      randomService,
-		oracleService:      oracleService,
-		gasBankService:     gasBankService,
-		transactionService: transactionService,
-		walletStore:        walletStore,
-		transactionHandlers: transactionHandlers,
-		contractHandlers:    contractHandlers,
-		eventHandlers:       eventHandlers,
+		authService:           authService,
+		functionService:       functionService,
+		secretService:         secretService,
+		automationService:     automationService,
+		priceFeedService:      priceFeedService,
+		randomService:         randomService,
+		oracleService:         oracleService,
+		gasBankService:        gasBankService,
+		transactionService:    transactionService,
+		walletStore:           walletStore,
+		transactionHandlers:   transactionHandlers,
+		contractHandlers:      contractHandlers,
+		eventHandlers:         eventHandlers,
 	}
 
 	// Register routes
@@ -376,10 +376,10 @@ func (s *Server) registerRoutes() {
 
 	// Register transaction routes
 	s.transactionHandlers.RegisterRoutes(s.router)
-	
+
 	// Register contract routes
 	s.contractHandlers.RegisterRoutes(s.router)
-	
+
 	// Register event routes
 	s.eventHandlers.RegisterRoutes(s.router)
 }

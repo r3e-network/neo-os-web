@@ -5,22 +5,22 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/R3E-Network/service_layer/internal/core/gasbank"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/gorilla/mux"
-	"github.com/willtech-services/service_layer/internal/core/gasbank"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // GasBankHandler handles Gas Bank API requests
 type GasBankHandler struct {
-	logger          *logger.Logger
-	gasBankService  *gasbank.Service
+	logger         *logger.Logger
+	gasBankService *gasbank.Service
 }
 
 // NewGasBankHandler creates a new gas bank handler
 func NewGasBankHandler(logger *logger.Logger, gasBankService *gasbank.Service) *GasBankHandler {
 	return &GasBankHandler{
-		logger:          logger,
-		gasBankService:  gasBankService,
+		logger:         logger,
+		gasBankService: gasBankService,
 	}
 }
 
@@ -198,4 +198,4 @@ func (h *GasBankHandler) EstimateGas(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, map[string]float64{
 		"estimated_gas": estimatedGas,
 	})
-} 
+}

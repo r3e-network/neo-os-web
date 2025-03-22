@@ -2,25 +2,23 @@ package functions
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/internal/tee"
-	"github.com/willtech-services/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/internal/tee"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // Service handles JavaScript function execution
 type Service struct {
-	config             *config.Config
-	logger             *logger.Logger
-	functionRepository models.FunctionRepository
+	config              *config.Config
+	logger              *logger.Logger
+	functionRepository  models.FunctionRepository
 	executionRepository models.ExecutionRepository
-	teeManager         *tee.Manager
+	teeManager          *tee.Manager
 }
 
 // NewService creates a new functions service
@@ -32,11 +30,11 @@ func NewService(
 	teeManager *tee.Manager,
 ) *Service {
 	return &Service{
-		config:             cfg,
-		logger:             log,
-		functionRepository: functionRepository,
+		config:              cfg,
+		logger:              log,
+		functionRepository:  functionRepository,
 		executionRepository: executionRepository,
-		teeManager:         teeManager,
+		teeManager:          teeManager,
 	}
 }
 
@@ -236,12 +234,12 @@ func (s *Service) executeFunction(ctx context.Context, function *models.Function
 
 	// Execute in TEE
 	result, err := s.teeManager.ExecuteFunction(ctx, function, params, function.Secrets)
-	
+
 	// Update execution record with result
 	endTime := time.Now()
 	execution.EndTime = endTime
 	execution.Duration = int(endTime.Sub(execution.StartTime).Milliseconds())
-	
+
 	if err != nil {
 		execution.Status = "error"
 		execution.Error = err.Error()

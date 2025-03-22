@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/google/uuid"
-	"github.com/willtech-services/service_layer/internal/database"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // DefaultEventProcessor processes blockchain events and notifies subscribers
@@ -323,14 +323,14 @@ func (p *DefaultEventProcessor) getNotification(ctx context.Context, id uuid.UUI
 	// In a real implementation, this would get the notification from the database
 	// For now, we'll create a new notification with the same ID
 	return &models.EventNotification{
-		ID:              id,
-		Status:          models.NotificationStatusRetrying,
+		ID:               id,
+		Status:           models.NotificationStatusRetrying,
 		DeliveryAttempts: 0,
-		CreatedAt:       time.Now(),
+		CreatedAt:        time.Now(),
 	}, nil
 }
 
 // timePtr returns a pointer to a time
 func timePtr(t time.Time) *time.Time {
 	return &t
-} 
+}

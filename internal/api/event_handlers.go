@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/willtech-services/service_layer/internal/blockchain"
-	"github.com/willtech-services/service_layer/internal/database"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // EventHandler handles event-related API requests
@@ -399,4 +399,4 @@ func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		"events": responses,
 		"total":  totalCount,
 	})
-} 
+}

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // Prometheus metrics

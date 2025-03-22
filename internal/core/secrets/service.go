@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/internal/tee"
-	"github.com/willtech-services/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/internal/tee"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // Service handles secret management
 type Service struct {
-	config          *config.Config
-	logger          *logger.Logger
+	config           *config.Config
+	logger           *logger.Logger
 	secretRepository models.SecretRepository
-	teeManager      *tee.Manager
+	teeManager       *tee.Manager
 }
 
 // NewService creates a new secrets service
@@ -28,10 +28,10 @@ func NewService(
 	teeManager *tee.Manager,
 ) *Service {
 	return &Service{
-		config:          cfg,
-		logger:          log,
+		config:           cfg,
+		logger:           log,
 		secretRepository: secretRepository,
-		teeManager:      teeManager,
+		teeManager:       teeManager,
 	}
 }
 

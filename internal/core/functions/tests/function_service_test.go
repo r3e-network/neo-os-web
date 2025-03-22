@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"service_layer/internal/config"
-	"service_layer/internal/core/functions"
-	"service_layer/internal/models"
-	"service_layer/internal/tee"
-	"service_layer/pkg/logger"
+	github.com/R3E-Network/service_layerinternal/config"
+	github.com/R3E-Network/service_layerinternal/core/functions"
+	github.com/R3E-Network/service_layerinternal/models"
+	github.com/R3E-Network/service_layerinternal/tee"
+	github.com/R3E-Network/service_layerpkg/logger"
 )
 
 // MockFunctionRepository is a mock implementation of the FunctionRepository interface

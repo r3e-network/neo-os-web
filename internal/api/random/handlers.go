@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/R3E-Network/service_layer/internal/api/common"
+	"github.com/R3E-Network/service_layer/internal/core/random"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/willtech-services/service_layer/internal/api/common"
-	"github.com/willtech-services/service_layer/internal/core/random"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // Handler handles random number generation API endpoints
@@ -39,14 +39,14 @@ type CreateRandomRequest struct {
 
 // RandomResponse is the response body for a random number
 type RandomResponse struct {
-	ID              int     `json:"id"`
-	Status          string  `json:"status"`
-	RandomNumber    string  `json:"random_number,omitempty"`
-	CommitmentHash  string  `json:"commitment_hash,omitempty"`
-	CallbackAddress string  `json:"callback_address,omitempty"`
-	NumBytes        int     `json:"num_bytes"`
-	CreatedAt       string  `json:"created_at"`
-	RevealedAt      string  `json:"revealed_at,omitempty"`
+	ID              int    `json:"id"`
+	Status          string `json:"status"`
+	RandomNumber    string `json:"random_number,omitempty"`
+	CommitmentHash  string `json:"commitment_hash,omitempty"`
+	CallbackAddress string `json:"callback_address,omitempty"`
+	NumBytes        int    `json:"num_bytes"`
+	CreatedAt       string `json:"created_at"`
+	RevealedAt      string `json:"revealed_at,omitempty"`
 }
 
 // VerifyRequest is the request body for verifying a random number
@@ -398,13 +398,13 @@ func (h *Handler) GetRandomNumber(c *gin.Context) {
 	}
 
 	response := RandomResponse{
-		ID:              request.ID,
-		Status:          string(request.Status),
-		RandomNumber:    randomNumberStr,
-		CommitmentHash:  request.CommitmentHash,
-		NumBytes:        request.NumBytes,
-		CreatedAt:       request.CreatedAt.Format(http.TimeFormat),
-		RevealedAt:      revealedAt,
+		ID:             request.ID,
+		Status:         string(request.Status),
+		RandomNumber:   randomNumberStr,
+		CommitmentHash: request.CommitmentHash,
+		NumBytes:       request.NumBytes,
+		CreatedAt:      request.CreatedAt.Format(http.TimeFormat),
+		RevealedAt:     revealedAt,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -477,4 +477,4 @@ func getUserIDFromContext(c *gin.Context) int {
 	}
 
 	return id
-} 
+}

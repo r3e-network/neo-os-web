@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"service_layer/internal/blockchain"
-	"service_layer/internal/database"
-	"service_layer/internal/models"
+	github.com/R3E-Network/service_layerinternal/blockchain"
+	github.com/R3E-Network/service_layerinternal/database"
+	github.com/R3E-Network/service_layerinternal/models"
 )
 
 // TestTransactionIntegration performs an integration test of the transaction management system

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // Claims represents JWT claims
@@ -21,7 +21,7 @@ type Claims struct {
 
 // RefreshClaims represents JWT refresh token claims
 type RefreshClaims struct {
-	UserID int    `json:"user_id"`
+	UserID  int    `json:"user_id"`
 	TokenID string `json:"token_id"`
 	jwt.StandardClaims
 }
@@ -35,9 +35,9 @@ type Tokens struct {
 
 // Service handles user authentication
 type Service struct {
-	config          *config.Config
-	logger          *logger.Logger
-	userRepository  models.UserRepository
+	config         *config.Config
+	logger         *logger.Logger
+	userRepository models.UserRepository
 }
 
 // NewService creates a new auth service
@@ -47,9 +47,9 @@ func NewService(
 	userRepository models.UserRepository,
 ) *Service {
 	return &Service{
-		config:          cfg,
-		logger:          log,
-		userRepository:  userRepository,
+		config:         cfg,
+		logger:         log,
+		userRepository: userRepository,
 	}
 }
 
@@ -210,8 +210,8 @@ func (s *Service) generateTokens(user *models.User) (*Tokens, error) {
 	refreshTokenExpiry := time.Now().Add(time.Duration(s.config.Auth.RefreshTokenExpiry) * time.Second)
 	tokenID := uuid.New().String()
 	refreshClaims := &RefreshClaims{
-		UserID:   user.ID,
-		TokenID:  tokenID,
+		UserID:  user.ID,
+		TokenID: tokenID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: refreshTokenExpiry.Unix(),
 			IssuedAt:  time.Now().Unix(),

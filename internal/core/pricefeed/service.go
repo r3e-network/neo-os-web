@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/willtech-services/service_layer/internal/blockchain"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/internal/core/gasbank"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/internal/tee"
-	"github.com/willtech-services/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/core/gasbank"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/internal/tee"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // PriceFeedService handles price feed operations
@@ -66,16 +66,16 @@ func NewService(
 	teeManager *tee.Manager,
 ) *PriceFeedService {
 	service := &PriceFeedService{
-		config:               cfg,
-		logger:               log,
-		priceFeedRepository:  priceFeedRepository,
-		blockchainClient:     blockchainClient,
-		gasBankService:       gasBankService,
-		teeManager:           teeManager,
-		fetcherFactory:       NewDefaultFetcherFactory(cfg, log),
-		aggregator:           NewMedianAggregator(),
-		updateTriggerChan:    make(chan *models.PriceFeed, 100),
-		shutdownChan:         make(chan struct{}),
+		config:              cfg,
+		logger:              log,
+		priceFeedRepository: priceFeedRepository,
+		blockchainClient:    blockchainClient,
+		gasBankService:      gasBankService,
+		teeManager:          teeManager,
+		fetcherFactory:      NewDefaultFetcherFactory(cfg, log),
+		aggregator:          NewMedianAggregator(),
+		updateTriggerChan:   make(chan *models.PriceFeed, 100),
+		shutdownChan:        make(chan struct{}),
 	}
 
 	service.updateScheduler = NewUpdateScheduler(service.updateTriggerChan)
@@ -779,4 +779,4 @@ func (a *MedianAggregator) Aggregate(prices map[string]float64, weights map[stri
 		return (priceValues[middle-1] + priceValues[middle]) / 2, nil
 	}
 	return priceValues[middle], nil
-} 
+}

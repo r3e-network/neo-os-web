@@ -1,4 +1,4 @@
-module github.com/willtech-services/service_layer
+module github.com/R3E-Network/service_layer
 
 go 1.22
 

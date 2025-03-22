@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neo-go/pkg/smartcontract"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
-	"github.com/willtech-services/service_layer/internal/database"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // ContractService provides functionality for contract deployment and verification
@@ -72,7 +72,7 @@ func (s *ContractService) DeployContract(ctx context.Context, req *models.Contra
 
 		if err := s.processContractDeployment(deployCtx, contract, req, userID); err != nil {
 			s.logger.Errorf("Contract deployment failed: %v", err)
-			
+
 			// Update the contract status to failed
 			contract.Status = models.ContractStatusFailed
 			if err := s.contractRepo.Update(deployCtx, contract); err != nil {
@@ -141,13 +141,13 @@ func (s *ContractService) compileContract(source, compiler string, parameters ma
 
 	// In a real implementation, this would call an actual compiler service
 	// For now, we'll simulate this with mock data
-	
+
 	// Simulate bytecode
 	bytecode := []byte("simulated-bytecode")
-	
+
 	// Simulate manifest
 	manifest := []byte(`{"name":"SimulatedManifest"}`)
-	
+
 	return bytecode, manifest, nil
 }
 
@@ -157,37 +157,37 @@ func (s *ContractService) deployContractToBlockchain(ctx context.Context, byteco
 	if len(w.Accounts) == 0 {
 		return "", "", errors.New("wallet has no accounts")
 	}
-	
+
 	account := w.Accounts[0]
-	
+
 	// Create a deployment script
 	script, err := smartcontract.CreateDeploymentScript(bytecode, manifest)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create deployment script: %w", err)
 	}
-	
+
 	// Create a transaction
 	tx := transaction.NewTransaction(script)
-	
+
 	// Sign the transaction
 	if err := tx.Sign(account.PrivateKey()); err != nil {
 		return "", "", fmt.Errorf("failed to sign transaction: %w", err)
 	}
-	
+
 	// Send the transaction
 	txHash, err := s.client.SendTransaction(tx)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to send transaction: %w", err)
 	}
-	
+
 	// Calculate the contract address
 	hash, err := keys.PublicKeyFromBytes(account.PublicKey())
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get public key: %w", err)
 	}
-	
+
 	address := hash.Address()
-	
+
 	return txHash, address, nil
 }
 
@@ -248,17 +248,17 @@ func (s *ContractService) VerifyContract(ctx context.Context, req *models.Contra
 
 	// Compare the bytecode
 	bytecodeMatch := compareBytes(bytecode, contract.Bytecode)
-	
+
 	// Compare the manifest
 	var manifestMatch bool
 	if bytecodeMatch {
 		// Only compare manifest if bytecode matches
 		manifestMatch = compareBytes(manifest, contract.Manifest)
 	}
-	
+
 	// Verification result
 	verified := bytecodeMatch && manifestMatch
-	
+
 	// Create verification details
 	details := map[string]interface{}{
 		"bytecodeMatch": bytecodeMatch,
@@ -268,13 +268,13 @@ func (s *ContractService) VerifyContract(ctx context.Context, req *models.Contra
 			"parameters": req.Parameters,
 		},
 	}
-	
+
 	// Convert details to JSON
 	detailsJSON, err := json.Marshal(details)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal verification details: %w", err)
 	}
-	
+
 	// Create a verification record
 	var message string
 	if verified {
@@ -282,7 +282,7 @@ func (s *ContractService) VerifyContract(ctx context.Context, req *models.Contra
 	} else {
 		message = "Contract verification failed"
 	}
-	
+
 	verification := models.NewContractVerification(
 		contractID,
 		verified,
@@ -290,12 +290,12 @@ func (s *ContractService) VerifyContract(ctx context.Context, req *models.Contra
 		detailsJSON,
 		userID,
 	)
-	
+
 	// Store the verification
 	if err := s.contractRepo.CreateVerification(ctx, verification); err != nil {
 		return nil, fmt.Errorf("failed to create verification record: %w", err)
 	}
-	
+
 	// Return the response
 	return &models.ContractVerifyResponse{
 		Verified: verified,
@@ -309,12 +309,12 @@ func compareBytes(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	
+
 	for i := range a {
 		if a[i] != b[i] {
 			return false
 		}
 	}
-	
+
 	return true
-} 
+}

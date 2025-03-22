@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"service_layer/internal/blockchain"
-	"service_layer/internal/models"
+	github.com/R3E-Network/service_layerinternal/blockchain"
+	github.com/R3E-Network/service_layerinternal/models"
 )
 
 // BenchmarkTransactionCreation benchmarks the creation of transactions

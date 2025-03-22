@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // Database represents the database connection

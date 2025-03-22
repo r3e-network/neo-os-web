@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/models"
 	"github.com/jmoiron/sqlx"
-	"github.com/willtech-services/service_layer/internal/models"
 )
 
 // PriceFeedRepository implements the models.PriceFeedRepository interface
@@ -332,4 +332,4 @@ func (r *PriceFeedRepository) DeletePriceSource(id int) error {
 	}
 
 	return nil
-} 
+}

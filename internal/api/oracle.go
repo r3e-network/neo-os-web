@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/R3E-Network/service_layer/internal/core/oracle"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/gorilla/mux"
-	"github.com/willtech-services/service_layer/internal/core/oracle"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // OracleHandler handles Oracle API requests
@@ -91,18 +91,18 @@ func (h *OracleHandler) GetOracle(w http.ResponseWriter, r *http.Request) {
 // CreateOracle creates a new oracle
 func (h *OracleHandler) CreateOracle(w http.ResponseWriter, r *http.Request) {
 	var request struct {
-		Name        string                     `json:"name"`
-		Description string                     `json:"description"`
+		Name        string                      `json:"name"`
+		Description string                      `json:"description"`
 		SourceType  models.OracleDataSourceType `json:"source_type"`
-		URL         string                     `json:"url"`
-		Method      string                     `json:"method"`
-		Headers     map[string]interface{}     `json:"headers"`
-		Body        string                     `json:"body"`
-		AuthType    models.OracleAuthType      `json:"auth_type"`
-		AuthParams  map[string]interface{}     `json:"auth_params"`
-		Path        string                     `json:"path"`
-		Transform   string                     `json:"transform"`
-		Schedule    string                     `json:"schedule"`
+		URL         string                      `json:"url"`
+		Method      string                      `json:"method"`
+		Headers     map[string]interface{}      `json:"headers"`
+		Body        string                      `json:"body"`
+		AuthType    models.OracleAuthType       `json:"auth_type"`
+		AuthParams  map[string]interface{}      `json:"auth_params"`
+		Path        string                      `json:"path"`
+		Transform   string                      `json:"transform"`
+		Schedule    string                      `json:"schedule"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -146,19 +146,19 @@ func (h *OracleHandler) UpdateOracle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var request struct {
-		Name        string                     `json:"name"`
-		Description string                     `json:"description"`
+		Name        string                      `json:"name"`
+		Description string                      `json:"description"`
 		SourceType  models.OracleDataSourceType `json:"source_type"`
-		URL         string                     `json:"url"`
-		Method      string                     `json:"method"`
-		Headers     map[string]interface{}     `json:"headers"`
-		Body        string                     `json:"body"`
-		AuthType    models.OracleAuthType      `json:"auth_type"`
-		AuthParams  map[string]interface{}     `json:"auth_params"`
-		Path        string                     `json:"path"`
-		Transform   string                     `json:"transform"`
-		Schedule    string                     `json:"schedule"`
-		Active      bool                       `json:"active"`
+		URL         string                      `json:"url"`
+		Method      string                      `json:"method"`
+		Headers     map[string]interface{}      `json:"headers"`
+		Body        string                      `json:"body"`
+		AuthType    models.OracleAuthType       `json:"auth_type"`
+		AuthParams  map[string]interface{}      `json:"auth_params"`
+		Path        string                      `json:"path"`
+		Transform   string                      `json:"transform"`
+		Schedule    string                      `json:"schedule"`
+		Active      bool                        `json:"active"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -355,4 +355,4 @@ func (h *OracleHandler) GetOracleStatistics(w http.ResponseWriter, r *http.Reque
 	}
 
 	RespondWithJSON(w, http.StatusOK, stats)
-} 
+}

@@ -8,13 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/nspcc-dev/neo-go/pkg/core/block"
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/rpc/client"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/pkg/logger"
-	"github.com/rs/zerolog/log"
 )
 
 // NodeConfig represents a Neo N3 node configuration
@@ -70,7 +69,7 @@ func (c *Client) GetBlockHeight() (uint32, error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to get block count: %w", err)
 	}
-	
+
 	// Block count is 1-based, height is 0-based
 	return height - 1, nil
 }
@@ -122,7 +121,7 @@ func (c *Client) SubscribeToEvents(ctx context.Context, contractHash, eventName 
 	// TODO: Implement subscription to events
 	// This requires setting up a WebSocket connection to the Neo node
 	// and handling event notifications
-	
+
 	return errors.New("not implemented")
 }
 
@@ -215,28 +214,28 @@ func (c *Client) IsTransactionInMempool(ctx context.Context, hash string) (bool,
 	// Try to call each node until successful
 	for _, node := range c.getAvailableNodes() {
 		start := time.Now()
-		
+
 		// Check if this node is temporarily marked as failed
 		c.mu.RLock()
 		failTime, isFailed := c.failedNodes[node.URL]
 		c.mu.RUnlock()
-		
+
 		if isFailed && time.Since(failTime) < 5*time.Minute {
 			// Skip this node for now
 			continue
 		}
-		
+
 		// Query the node to check if transaction is in mempool
 		// TODO: Replace with actual call to Neo node RPC
 		// This is a mock implementation
 		found := hash != ""
-		
+
 		// Update node latency
 		latency := time.Since(start)
 		c.mu.Lock()
 		c.nodeLatency[node.URL] = latency
 		c.mu.Unlock()
-		
+
 		return found, nil
 	}
 
@@ -247,19 +246,19 @@ func (c *Client) IsTransactionInMempool(ctx context.Context, hash string) (bool,
 func (c *Client) CheckHealth(ctx context.Context) error {
 	// Try each node to get blockchain info
 	healthyNodeCount := 0
-	
+
 	for _, node := range c.nodes {
 		start := time.Now()
-		
+
 		// TODO: Implement actual health check against Neo node
 		// For example, query the block height
 		var isHealthy bool
-		
+
 		// This is a mock implementation
 		isHealthy = true // simulate a healthy response
-		
+
 		latency := time.Since(start)
-		
+
 		c.mu.Lock()
 		if isHealthy {
 			// Update latency and clear from failed nodes if present
@@ -272,12 +271,12 @@ func (c *Client) CheckHealth(ctx context.Context) error {
 		}
 		c.mu.Unlock()
 	}
-	
+
 	// Consider healthy if at least one node is available
 	if healthyNodeCount > 0 {
 		return nil
 	}
-	
+
 	return errors.New("no healthy nodes available")
 }
 
@@ -285,7 +284,7 @@ func (c *Client) CheckHealth(ctx context.Context) error {
 func (c *Client) ResetConnections() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	// Clear failed nodes list to allow trying all nodes again
 	c.failedNodes = make(map[string]time.Time)
 }
@@ -294,29 +293,29 @@ func (c *Client) ResetConnections() {
 func (c *Client) getAvailableNodes() []NodeConfig {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	// Create a copy of nodes for sorting
 	nodes := make([]NodeConfig, len(c.nodes))
 	copy(nodes, c.nodes)
-	
+
 	// Sort nodes by:
 	// 1. Not in failed list
 	// 2. Lower latency
 	// 3. Higher weight
-	
+
 	// For simplicity, we'll just prioritize non-failed nodes for now
 	var availableNodes []NodeConfig
-	
+
 	for _, node := range nodes {
 		if _, isFailed := c.failedNodes[node.URL]; !isFailed {
 			availableNodes = append(availableNodes, node)
 		}
 	}
-	
+
 	// If no available nodes, return all nodes
 	if len(availableNodes) == 0 {
 		availableNodes = nodes
 	}
-	
+
 	return availableNodes
 }

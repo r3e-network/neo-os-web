@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	"service_layer/internal/database"
-	"service_layer/internal/models"
+	github.com/R3E-Network/service_layerinternal/database"
+	github.com/R3E-Network/service_layerinternal/models"
 )
 
 // TransactionService provides functionality for managing blockchain transactions

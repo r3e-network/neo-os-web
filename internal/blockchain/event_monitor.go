@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/nspcc-dev/neo-go/pkg/core/block"
 	"github.com/nspcc-dev/neo-go/pkg/core/state"
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
-	"github.com/willtech-services/service_layer/internal/database"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // EventProcessor processes blockchain events and notifies subscribers
@@ -183,7 +183,7 @@ func (m *EventMonitor) syncBlocks() error {
 	for blockNum := startBlock; blockNum <= endBlock; blockNum++ {
 		if err := m.processBlock(ctx, blockNum); err != nil {
 			m.logger.Errorf("Failed to process block %d: %v", blockNum, err)
-			
+
 			// If we fail to process a block, update the block processing state and return
 			blockProcessing.IsProcessing = false
 			blockProcessing.LastProcessedAt = time.Now()
@@ -269,7 +269,7 @@ func (m *EventMonitor) createBlockchainEvent(
 		// In a production implementation, we would convert the notification.Item
 		// to a proper Go value. For now, we'll use a simplified approach.
 		parameters = map[string]interface{}{
-			"type": notification.Item.Type().String(),
+			"type":  notification.Item.Type().String(),
 			"value": fmt.Sprintf("%v", notification.Item),
 		}
 	}
@@ -291,4 +291,4 @@ func (m *EventMonitor) createBlockchainEvent(
 		blk.Hash().StringLE(),
 		timestamp,
 	), nil
-} 
+}

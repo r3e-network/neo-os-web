@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/willtech-services/service_layer/internal/api"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/internal/api"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 func main() {

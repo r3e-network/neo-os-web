@@ -2,12 +2,11 @@ package database
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/models"
 	"github.com/jmoiron/sqlx"
-	"github.com/willtech-services/service_layer/internal/models"
 )
 
 // RandomRepository implements the models.RandomRepository interface
@@ -35,7 +34,7 @@ func (r *RandomRepository) CreateRequest(req *models.RandomRequest) (*models.Ran
 	now := time.Now().UTC()
 	req.CreatedAt = now
 	req.UpdatedAt = now
-	
+
 	if req.Status == "" {
 		req.Status = models.RandomRequestStatusPending
 	}
@@ -329,4 +328,4 @@ func (r *RandomRepository) ListEntropySources() ([]*models.EntropySource, error)
 	}
 
 	return sources, nil
-} 
+}

@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/internal/core/automation"
-	"github.com/willtech-services/service_layer/internal/core/functions"
-	"github.com/willtech-services/service_layer/internal/core/oracle"
-	"github.com/willtech-services/service_layer/internal/database"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
-	"github.com/willtech-services/service_layer/test/mocks"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/core/automation"
+	"github.com/R3E-Network/service_layer/internal/core/functions"
+	"github.com/R3E-Network/service_layer/internal/core/oracle"
+	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/test/mocks"
 )
 
 // TestAutomatedOracleFunction is an integration test for the "Automated Oracle Data Function" scenario.

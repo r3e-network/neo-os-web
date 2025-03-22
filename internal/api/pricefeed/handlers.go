@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/api/common"
+	"github.com/R3E-Network/service_layer/internal/core/pricefeed"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/willtech-services/service_layer/internal/api/common"
-	"github.com/willtech-services/service_layer/internal/core/pricefeed"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // Handler handles price feed API endpoints
@@ -475,4 +475,4 @@ func (h *Handler) GetPriceHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, history)
-} 
+}

@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/willtech-services/service_layer/internal/models"
 )
 
 // CreateFunctionRequest represents a request to create a function

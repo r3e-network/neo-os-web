@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/R3E-Network/service_layer/internal/models"
 	"github.com/gin-gonic/gin"
-	"github.com/willtech-services/service_layer/internal/models"
 )
 
 // CreateTriggerRequest represents a request to create a trigger

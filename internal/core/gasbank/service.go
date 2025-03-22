@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/willtech-services/service_layer/internal/blockchain"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // Service handles gas bank operations
 type Service struct {
-	config           *config.Config
-	logger           *logger.Logger
+	config            *config.Config
+	logger            *logger.Logger
 	gasBankRepository models.GasBankRepository
-	blockchainClient *blockchain.Client
+	blockchainClient  *blockchain.Client
 }
 
 // NewService creates a new gas bank service
@@ -28,10 +28,10 @@ func NewService(
 	blockchainClient *blockchain.Client,
 ) *Service {
 	return &Service{
-		config:           cfg,
-		logger:           log,
+		config:            cfg,
+		logger:            log,
 		gasBankRepository: gasBankRepository,
-		blockchainClient: blockchainClient,
+		blockchainClient:  blockchainClient,
 	}
 }
 
@@ -76,11 +76,11 @@ func (s *Service) WithdrawGas(ctx context.Context, userID int, address string, a
 	if err != nil {
 		// Rollback the transaction if blockchain transaction fails
 		s.logger.Errorf("Withdrawal transaction failed, rolling back: %v", err)
-		
+
 		// In a real implementation, we would have a more sophisticated rollback mechanism
 		// For now, we'll update the status to failed
 		_ = s.gasBankRepository.UpdateTransactionStatus(transaction.ID, models.TransactionStatusFailed)
-		
+
 		return nil, fmt.Errorf("failed to send withdrawal transaction: %w", err)
 	}
 
@@ -175,7 +175,7 @@ func (s *Service) UseGas(ctx context.Context, userID int, address string, amount
 func (s *Service) EstimateGas(ctx context.Context, operationType string, params map[string]interface{}) (float64, error) {
 	// This would need to use the blockchain client to estimate gas cost
 	// For simplicity, we'll return fixed values based on operation type
-	
+
 	switch operationType {
 	case "function_execution":
 		return 0.01, nil
@@ -256,7 +256,7 @@ func (s *Service) verifyDepositTransaction(ctx context.Context, address, txHash 
 	// 2. Verify it's a transfer to your contract/address
 	// 3. Verify the amount matches
 	// 4. Verify it has enough confirmations
-	
+
 	// For now, we'll assume it's valid since we don't have the full Neo N3 transaction structure
 	s.logger.Infof("Transaction %s verified on Neo N3 blockchain", txHash)
 
@@ -274,10 +274,10 @@ func (s *Service) sendWithdrawalTransaction(ctx context.Context, fromAddress, ta
 	// 2. Sign it with the service's wallet
 	// 3. Send it to the Neo N3 blockchain
 	// 4. Return the transaction hash
-	
+
 	// For now, we'll return a mock transaction hash
 	mockTxHash := fmt.Sprintf("0x%032x", time.Now().Unix())
-	
+
 	return mockTxHash, nil
 }
 
@@ -287,10 +287,10 @@ func (s *Service) monitorWithdrawalTransaction(ctx context.Context, transactionI
 	// 1. Periodically check the transaction status on the blockchain
 	// 2. Update the transaction status in the database when confirmed
 	// 3. Handle cases where the transaction fails or times out
-	
+
 	// For simplicity, we'll just simulate a delay and then mark it as confirmed
 	time.Sleep(10 * time.Second)
-	
+
 	err := s.gasBankRepository.UpdateTransactionStatus(transactionID, models.TransactionStatusConfirmed)
 	if err != nil {
 		s.logger.Errorf("Failed to update transaction status for ID %d: %v", transactionID, err)

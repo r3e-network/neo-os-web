@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/willtech-services/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/internal/models"
 )
 
 // PostgresGasBankRepository is an implementation of GasBankRepository using PostgreSQL

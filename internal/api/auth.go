@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/willtech-services/service_layer/internal/core/auth"
 )
 
 // LoginRequest represents a login request

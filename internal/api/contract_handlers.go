@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/go-chi/chi/v5"
-	"github.com/willtech-services/service_layer/internal/blockchain"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // ContractHandler handles contract-related API requests
@@ -149,4 +149,4 @@ func (h *ContractHandler) VerifyContract(w http.ResponseWriter, r *http.Request)
 
 	// Return response
 	ResponseJSON(w, http.StatusOK, response)
-} 
+}

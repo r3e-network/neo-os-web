@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	"service_layer/internal/api/common"
-	"service_layer/internal/blockchain"
-	"service_layer/internal/models"
+	github.com/R3E-Network/service_layerinternal/api/common"
+	github.com/R3E-Network/service_layerinternal/blockchain"
+	github.com/R3E-Network/service_layerinternal/models"
 )
 
 // TransactionHandlers contains handlers for transaction-related endpoints

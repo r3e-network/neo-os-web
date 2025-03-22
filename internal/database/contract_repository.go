@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/models"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/willtech-services/service_layer/internal/models"
 )
 
 // ContractRepository provides access to contract storage
@@ -203,4 +203,4 @@ func JSONToDetails(data []byte) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return details, nil
-} 
+}

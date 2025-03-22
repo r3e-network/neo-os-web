@@ -7,23 +7,23 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/core/functions"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/robfig/cron/v3"
-	"github.com/willtech-services/service_layer/internal/blockchain"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/internal/core/functions"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // Service handles contract automation
 type Service struct {
-	config           *config.Config
-	logger           *logger.Logger
+	config            *config.Config
+	logger            *logger.Logger
 	triggerRepository models.TriggerRepository
-	functionService  *functions.Service
-	blockchainClient *blockchain.Client
-	scheduler        *cron.Cron
-	triggers         map[int]*models.Trigger
+	functionService   *functions.Service
+	blockchainClient  *blockchain.Client
+	scheduler         *cron.Cron
+	triggers          map[int]*models.Trigger
 }
 
 // NewService creates a new automation service
@@ -36,15 +36,15 @@ func NewService(
 ) *Service {
 	// Create scheduler with seconds precision
 	scheduler := cron.New(cron.WithSeconds())
-	
+
 	return &Service{
-		config:           cfg,
-		logger:           log,
+		config:            cfg,
+		logger:            log,
 		triggerRepository: triggerRepository,
-		functionService:  functionService,
-		blockchainClient: blockchainClient,
-		scheduler:        scheduler,
-		triggers:         make(map[int]*models.Trigger),
+		functionService:   functionService,
+		blockchainClient:  blockchainClient,
+		scheduler:         scheduler,
+		triggers:          make(map[int]*models.Trigger),
 	}
 }
 
@@ -52,13 +52,13 @@ func NewService(
 func (s *Service) Start() error {
 	// Start the scheduler
 	s.scheduler.Start()
-	
+
 	// Load active triggers
 	err := s.loadActiveTriggers()
 	if err != nil {
 		return fmt.Errorf("failed to load active triggers: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -75,14 +75,14 @@ func (s *Service) loadActiveTriggers() error {
 	if err != nil {
 		return err
 	}
-	
+
 	for _, trigger := range triggers {
 		err = s.scheduleTrigger(trigger)
 		if err != nil {
 			s.logger.Errorf("Failed to schedule trigger %d: %v", trigger.ID, err)
 		}
 	}
-	
+
 	return nil
 }
 

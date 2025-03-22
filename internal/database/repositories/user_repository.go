@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/models"
 	"github.com/google/uuid"
-	"github.com/willtech-services/service_layer/internal/models"
 )
 
 // PostgresUserRepository is an implementation of UserRepository using PostgreSQL

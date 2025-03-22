@@ -343,3 +343,30 @@ New documentation has been added to support the recent developments:
 2. Finalize testing framework
 3. Implement user management enhancements
 4. Prepare for pre-production deployment
+
+### Integration Testing Framework (In Progress)
+
+We have started implementing an integration testing framework to verify that different services work together correctly as a cohesive system. Our progress includes:
+
+1. **Integration Test Documentation**: Created comprehensive documentation outlining the integration testing strategy, key integration points between services, and end-to-end test scenarios.
+
+2. **Mock Components**: 
+   - Implemented a mock blockchain client that simulates blockchain interactions
+   - Created a mock TEE manager that provides a controlled environment for function execution
+   - Developed mocking utilities for database operations and external services
+
+3. **Integration Test Structure**: Designed and implemented a test infrastructure that allows for:
+   - Isolated test databases with automatic setup and teardown
+   - Service instantiation with proper dependency injection
+   - Test fixtures for repeatable scenarios
+   - Validation points to verify correct cross-service interactions
+
+4. **First Integration Test**:
+   - Implemented the "Automated Oracle Data Function" integration test
+   - This test verifies that a function can be triggered on a schedule, retrieve data from an oracle, and update that data on the blockchain
+   - The test exercises multiple services including Authentication, Functions, Automation, Oracle, and Transaction Management
+
+Next steps for integration testing include:
+- Implementing the remaining end-to-end test scenarios
+- Creating a CI/CD pipeline for automated integration testing
+- Expanding test coverage to include error scenarios and edge cases

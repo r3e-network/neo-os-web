@@ -5,26 +5,22 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/willtech-services/service_layer/internal/config"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // azureProvider implements the Provider interface for Azure Confidential Computing
@@ -50,10 +46,10 @@ type azureAttestation struct {
 // newAzureProvider creates a new Azure Confidential Computing provider
 func newAzureProvider(cfg config.AzureConfig, log *logger.Logger) (Provider, error) {
 	provider := &azureProvider{
-		config:    &cfg,
-		logger:    log,
-		secrets:   make(map[string]map[string]string),
-		client:    &http.Client{Timeout: 30 * time.Second},
+		config:  &cfg,
+		logger:  log,
+		secrets: make(map[string]map[string]string),
+		client:  &http.Client{Timeout: 30 * time.Second},
 	}
 
 	return provider, nil
@@ -118,7 +114,7 @@ func (p *azureProvider) ExecuteFunction(ctx context.Context, function *models.Fu
 	if _, exists := p.secrets[userIDStr]; !exists {
 		p.secrets[userIDStr] = make(map[string]string)
 	}
-	
+
 	// Add the secrets provided for this execution
 	for name, value := range secrets {
 		p.secrets[userIDStr][name] = value
@@ -154,25 +150,25 @@ func (p *azureProvider) StoreSecret(ctx context.Context, secret *models.Secret) 
 	// 1. Verify we're running in a valid SGX enclave
 	// 2. Encrypt the secret with a TEE-specific key
 	// 3. The key is derived from hardware and only available in the enclave
-	
+
 	userIDStr := fmt.Sprintf("%d", secret.UserID)
-	
+
 	// Encrypt the secret value
 	encryptedValue, err := p.encryptSecret(secret.Value)
 	if err != nil {
 		return fmt.Errorf("failed to encrypt secret: %w", err)
 	}
-	
+
 	p.secretsMu.Lock()
 	defer p.secretsMu.Unlock()
-	
+
 	if _, exists := p.secrets[userIDStr]; !exists {
 		p.secrets[userIDStr] = make(map[string]string)
 	}
-	
+
 	// Store the encrypted value
 	p.secrets[userIDStr][secret.Name] = encryptedValue
-	
+
 	return nil
 }
 
@@ -188,12 +184,12 @@ func (p *azureProvider) GetSecret(ctx context.Context, userID int, secretName st
 	// 1. Verify we're running in a valid SGX enclave
 	// 2. Retrieve the encrypted secret
 	// 3. Use the TEE-specific key to decrypt
-	
+
 	userIDStr := fmt.Sprintf("%d", userID)
-	
+
 	p.secretsMu.RLock()
 	defer p.secretsMu.RUnlock()
-	
+
 	if userSecrets, exists := p.secrets[userIDStr]; exists {
 		if encryptedValue, exists := userSecrets[secretName]; exists {
 			// Decrypt the secret value
@@ -204,7 +200,7 @@ func (p *azureProvider) GetSecret(ctx context.Context, userID int, secretName st
 			return decryptedValue, nil
 		}
 	}
-	
+
 	return "", fmt.Errorf("secret not found: %s", secretName)
 }
 
@@ -222,15 +218,15 @@ func (p *azureProvider) DeleteSecret(ctx context.Context, userID int, secretName
 
 	// For now, we'll delete from memory
 	userIDStr := fmt.Sprintf("%d", userID)
-	
+
 	p.secretsMu.Lock()
 	defer p.secretsMu.Unlock()
-	
+
 	if userSecrets, exists := p.secrets[userIDStr]; exists {
 		delete(userSecrets, secretName)
 		return nil
 	}
-	
+
 	return fmt.Errorf("secret not found: %s", secretName)
 }
 
@@ -294,14 +290,14 @@ func (p *azureProvider) generateAttestationToken() error {
 	}
 
 	// Prepare the attestation request
-	attestationURL := fmt.Sprintf("https://%s.%s.attest.azure.net/attest/sgx", 
-		p.config.Attestation.Instance, 
+	attestationURL := fmt.Sprintf("https://%s.%s.attest.azure.net/attest/sgx",
+		p.config.Attestation.Instance,
 		p.config.Attestation.Region)
-	
+
 	requestBody := map[string]string{
 		"quote": base64.StdEncoding.EncodeToString(quote),
 	}
-	
+
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
 		return fmt.Errorf("failed to marshal attestation request: %w", err)
@@ -312,7 +308,7 @@ func (p *azureProvider) generateAttestationToken() error {
 	if err != nil {
 		return fmt.Errorf("failed to create attestation request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
 
 	// Add Azure authentication
@@ -321,7 +317,7 @@ func (p *azureProvider) generateAttestationToken() error {
 	if err != nil {
 		return fmt.Errorf("failed to get Azure token: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+token.Token)
 
 	// Send the request
@@ -346,7 +342,7 @@ func (p *azureProvider) generateAttestationToken() error {
 		Token      string    `json:"token"`
 		Expiration time.Time `json:"expiration"`
 	}
-	
+
 	if err := json.Unmarshal(body, &attestationResp); err != nil {
 		return fmt.Errorf("failed to parse attestation response: %w", err)
 	}
@@ -366,17 +362,17 @@ func (p *azureProvider) generateAttestationToken() error {
 func (p *azureProvider) generateSGXQuote() ([]byte, error) {
 	// In a real SGX environment, we would use SGX SDK to generate a quote
 	// This is a placeholder implementation
-	
+
 	if !p.isSGXEnvironment() {
 		// Return mock data for non-SGX environments
 		return []byte("mock-sgx-quote-data"), nil
 	}
-	
+
 	// For a real implementation:
 	// 1. Create a report using EREPORT instruction
 	// 2. Use the quote enclave (QE) to convert the report to a quote
 	// 3. Return the quote
-	
+
 	// This would typically involve calling into C/C++ code via CGO
 	// that interfaces with the SGX SDK
 
@@ -389,7 +385,7 @@ func (p *azureProvider) isSGXEnvironment() bool {
 	// In a real implementation, we would check for SGX support
 	// This could involve checking for the existence of SGX device files
 	// or using the SGX SDK to query enclave status
-	
+
 	// For now, check for SGX_ENABLED environment variable
 	return os.Getenv("SGX_ENABLED") == "1"
 }
@@ -399,16 +395,16 @@ func (p *azureProvider) encryptSecret(value string) (string, error) {
 	// In a production TEE environment, we would:
 	// 1. Use a key derived from hardware (SGX sealing key)
 	// 2. Use authenticated encryption (e.g., AES-GCM)
-	
+
 	// For now, we'll use RSA encryption with the key pair we generated
 	// This is a simplified implementation for development
-	
+
 	// Generate a random label
 	label := make([]byte, 16)
 	if _, err := rand.Read(label); err != nil {
 		return "", fmt.Errorf("failed to generate encryption label: %w", err)
 	}
-	
+
 	// Encrypt the value
 	ciphertext, err := rsa.EncryptOAEP(
 		sha256.New(),
@@ -420,7 +416,7 @@ func (p *azureProvider) encryptSecret(value string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt: %w", err)
 	}
-	
+
 	// Encode the ciphertext and label
 	encoded := base64.StdEncoding.EncodeToString(ciphertext) + "|" + base64.StdEncoding.EncodeToString(label)
 	return encoded, nil
@@ -431,26 +427,26 @@ func (p *azureProvider) decryptSecret(encryptedValue string) (string, error) {
 	// In a production TEE environment, we would:
 	// 1. Use a key derived from hardware (SGX sealing key)
 	// 2. Use authenticated encryption (e.g., AES-GCM)
-	
+
 	// For now, we'll use RSA decryption with the key pair we generated
-	
+
 	// Split the encoded value and label
 	parts := strings.Split(encryptedValue, "|")
 	if len(parts) != 2 {
 		return "", errors.New("invalid encrypted value format")
 	}
-	
+
 	// Decode the ciphertext and label
 	ciphertext, err := base64.StdEncoding.DecodeString(parts[0])
 	if err != nil {
 		return "", fmt.Errorf("failed to decode ciphertext: %w", err)
 	}
-	
+
 	label, err := base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {
 		return "", fmt.Errorf("failed to decode label: %w", err)
 	}
-	
+
 	// Decrypt the value
 	plaintext, err := rsa.DecryptOAEP(
 		sha256.New(),
@@ -462,7 +458,7 @@ func (p *azureProvider) decryptSecret(encryptedValue string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to decrypt: %w", err)
 	}
-	
+
 	return string(plaintext), nil
 }
 

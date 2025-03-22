@@ -53,7 +53,7 @@ For a detailed view of the implementation status and next steps, see:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/willtech-services/service_layer.git
+   git clone https://github.com/R3E-Network/service_layer.git
    cd service_layer
    ```
 

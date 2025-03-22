@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/models"
 	"github.com/jmoiron/sqlx"
-	"github.com/willtech-services/service_layer/internal/models"
 )
 
 // OracleRepository implements the models.OracleRepository interface
@@ -186,7 +186,7 @@ func (r *OracleRepository) CreateOracleRequest(request *models.OracleRequest) (*
 	now := time.Now().UTC()
 	request.CreatedAt = now
 	request.UpdatedAt = now
-	
+
 	if request.Status == "" {
 		request.Status = models.OracleRequestStatusPending
 	}
@@ -237,9 +237,9 @@ func (r *OracleRepository) UpdateOracleRequest(request *models.OracleRequest) (*
 	request.UpdatedAt = now
 
 	var completedAt sql.NullTime
-	if request.Status == models.OracleRequestStatusCompleted || 
-	   request.Status == models.OracleRequestStatusCallbackSent || 
-	   request.Status == models.OracleRequestStatusFailed {
+	if request.Status == models.OracleRequestStatusCompleted ||
+		request.Status == models.OracleRequestStatusCallbackSent ||
+		request.Status == models.OracleRequestStatusFailed {
 		if request.CompletedAt.IsZero() {
 			request.CompletedAt = now
 		}
@@ -358,4 +358,4 @@ func (r *OracleRepository) GetOracleStatistics() (map[string]interface{}, error)
 	}
 
 	return resultMap, nil
-} 
+}

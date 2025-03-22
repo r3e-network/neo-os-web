@@ -4,23 +4,23 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/R3E-Network/service_layer/internal/api/common"
+	"github.com/R3E-Network/service_layer/internal/core/gasbank"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/willtech-services/service_layer/internal/api/common"
-	"github.com/willtech-services/service_layer/internal/core/gasbank"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // Handler handles Gas Bank API requests
 type Handler struct {
-	logger          *logger.Logger
-	gasBankService  *gasbank.Service
+	logger         *logger.Logger
+	gasBankService *gasbank.Service
 }
 
 // NewHandler creates a new gas bank handler
 func NewHandler(gasBankService *gasbank.Service, logger *logger.Logger) *Handler {
 	return &Handler{
-		logger:          logger,
-		gasBankService:  gasBankService,
+		logger:         logger,
+		gasBankService: gasBankService,
 	}
 }
 
@@ -190,4 +190,4 @@ func (h *Handler) EstimateGas(c *gin.Context) {
 	common.RespondWithSuccess(c, http.StatusOK, gin.H{
 		"estimated_gas": estimatedGas,
 	})
-} 
+}

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/R3E-Network/service_layer/internal/config"
 	"github.com/sirupsen/logrus"
-	"github.com/willtech-services/service_layer/internal/config"
 )
 
 // Logger is a wrapper around logrus.Logger

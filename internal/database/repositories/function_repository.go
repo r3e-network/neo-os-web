@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/willtech-services/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/internal/models"
 )
 
 // PostgresFunctionRepository is an implementation of FunctionRepository using PostgreSQL

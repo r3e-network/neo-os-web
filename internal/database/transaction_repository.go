@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"service_layer/internal/models"
+	github.com/R3E-Network/service_layerinternal/models"
 )
 
 // TransactionRepository defines the interface for transaction operations

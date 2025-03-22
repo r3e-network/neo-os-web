@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/R3E-Network/service_layer/internal/api/common"
+	"github.com/R3E-Network/service_layer/internal/core/oracle"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/willtech-services/service_layer/internal/api/common"
-	"github.com/willtech-services/service_layer/internal/core/oracle"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/pkg/logger"
 )
 
 // Handler handles Oracle API requests
@@ -89,18 +89,18 @@ func (h *Handler) GetOracle(c *gin.Context) {
 // CreateOracle creates a new oracle
 func (h *Handler) CreateOracle(c *gin.Context) {
 	var request struct {
-		Name        string                     `json:"name" binding:"required"`
-		Description string                     `json:"description"`
+		Name        string                      `json:"name" binding:"required"`
+		Description string                      `json:"description"`
 		SourceType  models.OracleDataSourceType `json:"source_type"`
-		URL         string                     `json:"url" binding:"required"`
-		Method      string                     `json:"method"`
-		Headers     map[string]interface{}     `json:"headers"`
-		Body        string                     `json:"body"`
-		AuthType    models.OracleAuthType      `json:"auth_type"`
-		AuthParams  map[string]interface{}     `json:"auth_params"`
-		Path        string                     `json:"path"`
-		Transform   string                     `json:"transform"`
-		Schedule    string                     `json:"schedule"`
+		URL         string                      `json:"url" binding:"required"`
+		Method      string                      `json:"method"`
+		Headers     map[string]interface{}      `json:"headers"`
+		Body        string                      `json:"body"`
+		AuthType    models.OracleAuthType       `json:"auth_type"`
+		AuthParams  map[string]interface{}      `json:"auth_params"`
+		Path        string                      `json:"path"`
+		Transform   string                      `json:"transform"`
+		Schedule    string                      `json:"schedule"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -143,19 +143,19 @@ func (h *Handler) UpdateOracle(c *gin.Context) {
 	}
 
 	var request struct {
-		Name        string                     `json:"name"`
-		Description string                     `json:"description"`
+		Name        string                      `json:"name"`
+		Description string                      `json:"description"`
 		SourceType  models.OracleDataSourceType `json:"source_type"`
-		URL         string                     `json:"url"`
-		Method      string                     `json:"method"`
-		Headers     map[string]interface{}     `json:"headers"`
-		Body        string                     `json:"body"`
-		AuthType    models.OracleAuthType      `json:"auth_type"`
-		AuthParams  map[string]interface{}     `json:"auth_params"`
-		Path        string                     `json:"path"`
-		Transform   string                     `json:"transform"`
-		Schedule    string                     `json:"schedule"`
-		Active      bool                       `json:"active"`
+		URL         string                      `json:"url"`
+		Method      string                      `json:"method"`
+		Headers     map[string]interface{}      `json:"headers"`
+		Body        string                      `json:"body"`
+		AuthType    models.OracleAuthType       `json:"auth_type"`
+		AuthParams  map[string]interface{}      `json:"auth_params"`
+		Path        string                      `json:"path"`
+		Transform   string                      `json:"transform"`
+		Schedule    string                      `json:"schedule"`
+		Active      bool                        `json:"active"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -347,4 +347,4 @@ func (h *Handler) GetOracleStatistics(c *gin.Context) {
 	}
 
 	common.RespondWithSuccess(c, http.StatusOK, stats)
-} 
+}

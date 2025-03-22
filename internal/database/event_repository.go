@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/models"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/willtech-services/service_layer/internal/models"
 )
 
 // EventRepository provides access to event storage
@@ -373,4 +373,4 @@ func JSONToParameters(data json.RawMessage) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return parameters, nil
-} 
+}
