@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	github.com/R3E-Network/service_layerinternal/config"
-	github.com/R3E-Network/service_layerinternal/core/automation"
-	github.com/R3E-Network/service_layerinternal/models"
-	github.com/R3E-Network/service_layerpkg/logger"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/core/automation"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // MockTriggerRepository is a mock implementation of the TriggerRepository interface

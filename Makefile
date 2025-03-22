@@ -1,4 +1,4 @@
-.PHONY: build run test clean lint migrate-up migrate-down docker-build docker-run docker-compose help
+.PHONY: build run test clean lint migrate-up migrate-down docker-build docker-run docker-compose help security-test security-gosec security-deps security-secrets security-api-scan performance-test performance-benchmark performance-load performance-system
 
 # Default target
 all: help
@@ -61,6 +61,59 @@ swagger:
 # Run the development environment
 dev: migrate-up run
 
+# Security testing commands
+security-test:
+	@echo "Running all security tests..."
+	@mkdir -p ./security-reports
+	@scripts/security/run_all_security_tests.sh
+
+security-gosec:
+	@echo "Running Gosec security scanner..."
+	@mkdir -p ./security-reports
+	@scripts/security/run_gosec.sh
+
+security-deps:
+	@echo "Scanning dependencies for vulnerabilities..."
+	@mkdir -p ./security-reports
+	@scripts/security/scan_dependencies.sh
+
+security-secrets:
+	@echo "Detecting secrets and credentials in codebase..."
+	@mkdir -p ./security-reports
+	@scripts/security/detect_secrets.sh
+
+security-api-scan:
+	@echo "Running API security scan with OWASP ZAP..."
+	@mkdir -p ./security-reports
+	@scripts/security/run_zap_scan.sh
+
+# Performance testing commands
+performance-test:
+	@echo "Running all performance tests..."
+	@mkdir -p ./performance-reports
+	@chmod +x scripts/performance/run_performance_tests.sh
+	@scripts/performance/run_performance_tests.sh
+
+performance-benchmark:
+	@echo "Running Go benchmark tests..."
+	@mkdir -p ./performance-reports
+	@go test -bench=BenchmarkFunction -run=^$ -benchmem -benchtime=5s ./test/performance/
+
+performance-load:
+	@echo "Running k6 load tests..."
+	@mkdir -p ./performance-reports
+	@if command -v k6 &> /dev/null; then \
+		k6 run ./test/performance/api_load_test.js; \
+	else \
+		echo "k6 is not installed. Please install k6 to run load tests."; \
+	fi
+
+performance-system:
+	@echo "Running full system performance test..."
+	@mkdir -p ./performance-reports
+	@chmod +x scripts/performance/run_full_system_test.sh
+	@scripts/performance/run_full_system_test.sh
+
 # Help command
 help:
 	@echo "service_layer make commands:"
@@ -76,3 +129,12 @@ help:
 	@echo "  docker-compose - Run with Docker Compose"
 	@echo "  swagger        - Generate API documentation"
 	@echo "  dev            - Run development environment"
+	@echo "  security-test  - Run all security tests"
+	@echo "  security-gosec - Run Gosec security scanner"
+	@echo "  security-deps  - Scan dependencies for vulnerabilities"
+	@echo "  security-secrets - Detect secrets in codebase"
+	@echo "  security-api-scan - Run API security scan"
+	@echo "  performance-test - Run all performance tests"
+	@echo "  performance-benchmark - Run Go benchmark tests"
+	@echo "  performance-load - Run k6 load tests"
+	@echo "  performance-system - Run full system performance test"

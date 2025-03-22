@@ -7,15 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	github.com/R3E-Network/service_layerinternal/config"
-	github.com/R3E-Network/service_layerinternal/core/functions"
-	github.com/R3E-Network/service_layerinternal/models"
-	github.com/R3E-Network/service_layerinternal/tee"
-	github.com/R3E-Network/service_layerpkg/logger"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/core/functions"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // MockFunctionRepository is a mock implementation of the FunctionRepository interface
@@ -151,32 +149,32 @@ func TestCreateFunction(t *testing.T) {
 		expectedError bool
 	}{
 		{
-			name:        "Success",
-			userID:      1,
+			name:         "Success",
+			userID:       1,
 			functionName: "test-function",
-			description: "Test function description",
-			sourceCode:  "function handler(event) { return { result: 'success' }; }",
-			timeout:     5,
-			memory:      128,
-			secrets:     []string{"API_KEY"},
+			description:  "Test function description",
+			sourceCode:   "function handler(event) { return { result: 'success' }; }",
+			timeout:      5,
+			memory:       128,
+			secrets:      []string{"API_KEY"},
 			setupMocks: func(fr *MockFunctionRepository, er *MockExecutionRepository, tm *MockTEEManager) {
 				// Setup GetByUserIDAndName - should return nil for no existing function
 				fr.On("GetByUserIDAndName", 1, "test-function").Return(nil, nil)
-				
+
 				// Setup Create - should succeed
 				fr.On("Create", mock.AnythingOfType("*models.Function")).Return(nil)
 			},
 			expectedError: false,
 		},
 		{
-			name:        "DuplicateFunctionName",
-			userID:      1,
+			name:         "DuplicateFunctionName",
+			userID:       1,
 			functionName: "existing-function",
-			description: "Test function description",
-			sourceCode:  "function handler(event) { return { result: 'success' }; }",
-			timeout:     5,
-			memory:      128,
-			secrets:     []string{"API_KEY"},
+			description:  "Test function description",
+			sourceCode:   "function handler(event) { return { result: 'success' }; }",
+			timeout:      5,
+			memory:       128,
+			secrets:      []string{"API_KEY"},
 			setupMocks: func(fr *MockFunctionRepository, er *MockExecutionRepository, tm *MockTEEManager) {
 				// Setup GetByUserIDAndName - should return an existing function
 				existingFunction := &models.Function{
@@ -192,32 +190,32 @@ func TestCreateFunction(t *testing.T) {
 			expectedError: true,
 		},
 		{
-			name:        "EmptySourceCode",
-			userID:      1,
+			name:         "EmptySourceCode",
+			userID:       1,
 			functionName: "test-function",
-			description: "Test function description",
-			sourceCode:  "", // Empty source code should fail validation
-			timeout:     5,
-			memory:      128,
-			secrets:     []string{"API_KEY"},
+			description:  "Test function description",
+			sourceCode:   "", // Empty source code should fail validation
+			timeout:      5,
+			memory:       128,
+			secrets:      []string{"API_KEY"},
 			setupMocks: func(fr *MockFunctionRepository, er *MockExecutionRepository, tm *MockTEEManager) {
 				// No mocks needed as it should fail validation
 			},
 			expectedError: true,
 		},
 		{
-			name:        "RepositoryError",
-			userID:      1,
+			name:         "RepositoryError",
+			userID:       1,
 			functionName: "test-function",
-			description: "Test function description",
-			sourceCode:  "function handler(event) { return { result: 'success' }; }",
-			timeout:     5,
-			memory:      128,
-			secrets:     []string{"API_KEY"},
+			description:  "Test function description",
+			sourceCode:   "function handler(event) { return { result: 'success' }; }",
+			timeout:      5,
+			memory:       128,
+			secrets:      []string{"API_KEY"},
 			setupMocks: func(fr *MockFunctionRepository, er *MockExecutionRepository, tm *MockTEEManager) {
 				// Setup GetByUserIDAndName - should return nil for no existing function
 				fr.On("GetByUserIDAndName", 1, "test-function").Return(nil, nil)
-				
+
 				// Setup Create - should fail
 				fr.On("Create", mock.AnythingOfType("*models.Function")).Return(errors.New("database error"))
 			},
@@ -231,7 +229,7 @@ func TestCreateFunction(t *testing.T) {
 			mockFunctionRepo := new(MockFunctionRepository)
 			mockExecutionRepo := new(MockExecutionRepository)
 			mockTEEManager := new(MockTEEManager)
-			
+
 			// Create a minimal config for testing
 			cfg := &config.Config{
 				Services: config.Services{
@@ -246,19 +244,19 @@ func TestCreateFunction(t *testing.T) {
 					},
 				},
 			}
-			
+
 			// Create a logger
 			log := logger.NewLogger("test")
-			
+
 			// Setup mocks
 			tc.setupMocks(mockFunctionRepo, mockExecutionRepo, mockTEEManager)
-			
+
 			// Create function service with mocks
 			service := functions.NewService(cfg, log, mockFunctionRepo, mockExecutionRepo, mockTEEManager)
-			
+
 			// Call method
 			function, err := service.CreateFunction(tc.userID, tc.functionName, tc.description, tc.sourceCode, tc.timeout, tc.memory, tc.secrets)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -275,7 +273,7 @@ func TestCreateFunction(t *testing.T) {
 				assert.Equal(t, tc.secrets, function.Secrets)
 				assert.Equal(t, "active", function.Status)
 			}
-			
+
 			// Verify mock expectations
 			mockFunctionRepo.AssertExpectations(t)
 			mockExecutionRepo.AssertExpectations(t)
@@ -316,14 +314,14 @@ func TestExecuteFunction(t *testing.T) {
 					Secrets:    []string{"API_KEY"},
 				}
 				fr.On("GetByID", 1).Return(function, nil)
-				
+
 				// Setup execution creation
 				er.On("Create", mock.AnythingOfType("*models.Execution")).Return(nil)
-				
+
 				// Setup execution updates
 				fr.On("IncrementExecutionCount", 1).Return(nil)
 				fr.On("UpdateLastExecution", 1, mock.AnythingOfType("time.Time")).Return(nil)
-				
+
 				// Setup TEE execution
 				result := &models.ExecutionResult{
 					ExecutionID: "1",
@@ -333,7 +331,7 @@ func TestExecuteFunction(t *testing.T) {
 					Logs:        []string{"Executing function", "Function completed"},
 				}
 				tm.On("ExecuteFunction", mock.Anything, function, mock.AnythingOfType("map[string]interface {}"), []string{"API_KEY"}).Return(result, nil)
-				
+
 				// Setup execution record update
 				er.On("Update", mock.AnythingOfType("*models.Execution")).Return(nil)
 			},
@@ -359,10 +357,10 @@ func TestExecuteFunction(t *testing.T) {
 					Secrets:    []string{"API_KEY"},
 				}
 				fr.On("GetByID", 1).Return(function, nil)
-				
+
 				// Setup execution creation
 				er.On("Create", mock.AnythingOfType("*models.Execution")).Return(nil)
-				
+
 				// We don't need to set up the rest of the mocks because the function will be executed asynchronously
 				// and we're not waiting for it to complete in this test
 			},
@@ -401,7 +399,7 @@ func TestExecuteFunction(t *testing.T) {
 					Secrets:    []string{"API_KEY"},
 				}
 				fr.On("GetByID", 1).Return(function, nil)
-				
+
 				// Setup execution creation - should fail
 				er.On("Create", mock.AnythingOfType("*models.Execution")).Return(errors.New("database error"))
 			},
@@ -427,17 +425,17 @@ func TestExecuteFunction(t *testing.T) {
 					Secrets:    []string{"API_KEY"},
 				}
 				fr.On("GetByID", 1).Return(function, nil)
-				
+
 				// Setup execution creation
 				er.On("Create", mock.AnythingOfType("*models.Execution")).Return(nil)
-				
+
 				// Setup execution updates
 				fr.On("IncrementExecutionCount", 1).Return(nil)
 				fr.On("UpdateLastExecution", 1, mock.AnythingOfType("time.Time")).Return(nil)
-				
+
 				// Setup TEE execution - should fail
 				tm.On("ExecuteFunction", mock.Anything, function, mock.AnythingOfType("map[string]interface {}"), []string{"API_KEY"}).Return(nil, errors.New("execution error"))
-				
+
 				// Setup execution record update
 				er.On("Update", mock.AnythingOfType("*models.Execution")).Return(nil)
 			},
@@ -452,7 +450,7 @@ func TestExecuteFunction(t *testing.T) {
 			mockFunctionRepo := new(MockFunctionRepository)
 			mockExecutionRepo := new(MockExecutionRepository)
 			mockTEEManager := new(MockTEEManager)
-			
+
 			// Create a minimal config for testing
 			cfg := &config.Config{
 				Services: config.Services{
@@ -467,19 +465,19 @@ func TestExecuteFunction(t *testing.T) {
 					},
 				},
 			}
-			
+
 			// Create a logger
 			log := logger.NewLogger("test")
-			
+
 			// Setup mocks
 			tc.setupMocks(mockFunctionRepo, mockExecutionRepo, mockTEEManager)
-			
+
 			// Create function service with mocks
 			service := functions.NewService(cfg, log, mockFunctionRepo, mockExecutionRepo, mockTEEManager)
-			
+
 			// Call method
 			result, err := service.ExecuteFunction(context.Background(), tc.functionID, tc.userID, tc.params, tc.async)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -488,13 +486,13 @@ func TestExecuteFunction(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NotNil(t, result)
 				assert.Equal(t, tc.functionID, result.FunctionID)
-				
+
 				// For async executions, only check that status is "running"
 				if tc.expectedAsync {
 					assert.Equal(t, "running", result.Status)
 				}
 			}
-			
+
 			// Verify mock expectations
 			mockFunctionRepo.AssertExpectations(t)
 			mockExecutionRepo.AssertExpectations(t)
@@ -579,7 +577,7 @@ func TestGetFunction(t *testing.T) {
 			mockFunctionRepo := new(MockFunctionRepository)
 			mockExecutionRepo := new(MockExecutionRepository)
 			mockTEEManager := new(MockTEEManager)
-			
+
 			// Create a minimal config for testing
 			cfg := &config.Config{
 				Services: config.Services{
@@ -594,19 +592,19 @@ func TestGetFunction(t *testing.T) {
 					},
 				},
 			}
-			
+
 			// Create a logger
 			log := logger.NewLogger("test")
-			
+
 			// Setup mocks
 			tc.setupMocks(mockFunctionRepo)
-			
+
 			// Create function service with mocks
 			service := functions.NewService(cfg, log, mockFunctionRepo, mockExecutionRepo, mockTEEManager)
-			
+
 			// Call method
 			function, err := service.GetFunction(tc.functionID, tc.userID)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -616,7 +614,7 @@ func TestGetFunction(t *testing.T) {
 				assert.Equal(t, tc.functionID, function.ID)
 				assert.Equal(t, tc.userID, function.UserID)
 			}
-			
+
 			// Verify mock expectations
 			mockFunctionRepo.AssertExpectations(t)
 		})
@@ -694,7 +692,7 @@ func TestListFunctions(t *testing.T) {
 			mockFunctionRepo := new(MockFunctionRepository)
 			mockExecutionRepo := new(MockExecutionRepository)
 			mockTEEManager := new(MockTEEManager)
-			
+
 			// Create a minimal config for testing
 			cfg := &config.Config{
 				Services: config.Services{
@@ -709,22 +707,22 @@ func TestListFunctions(t *testing.T) {
 					},
 				},
 			}
-			
+
 			// Create a logger
 			log := logger.NewLogger("test")
-			
+
 			// Calculate offset
 			offset := (tc.page - 1) * tc.limit
-			
+
 			// Setup mocks
 			tc.setupMocks(mockFunctionRepo, tc.userID, offset, tc.limit)
-			
+
 			// Create function service with mocks
 			service := functions.NewService(cfg, log, mockFunctionRepo, mockExecutionRepo, mockTEEManager)
-			
+
 			// Call method
 			functions, err := service.ListFunctions(tc.userID, tc.page, tc.limit)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -732,9 +730,9 @@ func TestListFunctions(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedCount, len(functions))
 			}
-			
+
 			// Verify mock expectations
 			mockFunctionRepo.AssertExpectations(t)
 		})
 	}
-} 
+}

@@ -24,6 +24,7 @@ import {
   FiUser,
   FiUsers,
   FiSettings,
+  FiBarChart2,
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -37,6 +38,7 @@ const navItems = [
   { name: 'Random', path: '/random', icon: FiShield },
   { name: 'Oracle', path: '/oracle', icon: FiDatabase },
   { name: 'Gas Bank', path: '/gas-bank', icon: FiServer },
+  { name: 'Analytics', path: '/analytics', icon: FiBarChart2 },
 ];
 
 // Admin navigation items

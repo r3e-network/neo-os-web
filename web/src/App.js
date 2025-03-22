@@ -14,6 +14,7 @@ import PriceFeed from './pages/PriceFeed';
 import RandomNumber from './pages/RandomNumber';
 import Oracle from './pages/Oracle';
 import GasBank from './pages/GasBank';
+import Analytics from './pages/Analytics';
 import Users from './pages/Users';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
@@ -75,6 +76,7 @@ function App() {
               <Route path="random" element={<RandomNumber />} />
               <Route path="oracle" element={<Oracle />} />
               <Route path="gas-bank" element={<GasBank />} />
+              <Route path="analytics" element={<Analytics />} />
               <Route path="profile" element={<Profile />} />
               
               {/* Admin routes */}

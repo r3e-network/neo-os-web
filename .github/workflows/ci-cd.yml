@@ -1,0 +1,473 @@
+name: Neo N3 Service Layer CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to environment'
+        required: false
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - staging
+          - production
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.go-cache.outputs.cache-key }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Cache Go modules
+        id: go-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+  lint:
+    name: Lint
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Restore Go modules cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Run golangci-lint
+        run: golangci-lint run ./... --timeout=5m
+
+  build:
+    name: Build
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Restore Go modules cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Create build artifacts
+        run: |
+          mkdir -p artifacts
+          go build -o artifacts/service_layer ./cmd/server
+          go build -o artifacts/worker ./cmd/worker
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries
+          path: artifacts/
+          retention-days: 7
+
+  unit-tests:
+    name: Unit Tests
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: service_layer_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Restore Go modules cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Run unit tests
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./... -tags=unit
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: service_layer_test
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+
+  integration-tests:
+    name: Integration Tests
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: service_layer_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Restore Go modules cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Run integration tests
+        run: go test -v ./internal/integration_tests/... -tags=integration
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: service_layer_test
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+
+  security-scan:
+    name: Security Scan
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Restore Go modules cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Install Gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Run Gosec Security Scanner
+        run: |
+          mkdir -p security_reports
+          gosec -fmt=json -out=security_reports/gosec.json ./...
+          gosec -fmt=html -out=security_reports/gosec.html ./...
+
+      - name: Install Nancy
+        run: go install github.com/sonatype-nexus-community/nancy@latest
+
+      - name: Run Dependency Vulnerability Scanner
+        run: |
+          go list -json -deps ./... | nancy sleuth --output json > security_reports/nancy.json || true
+          
+      - name: Run Secret Detection
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          path: .
+          config-path: .gitleaks.toml
+          report-format: json
+          report-path: security_reports/gitleaks.json
+          verbose: true
+        continue-on-error: true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: security_reports/
+          retention-days: 7
+
+  performance-test:
+    name: Performance Test
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: service_layer_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Restore Go modules cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Install k6
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Start server for testing
+        run: |
+          go build -o service_layer ./cmd/server
+          ./service_layer &
+          echo $! > server.pid
+          sleep 5  # Give the server time to start
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: service_layer_test
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          PORT: 8080
+
+      - name: Run API load tests
+        run: |
+          mkdir -p performance_reports
+          k6 run test/performance/api_load_test.js --summary-export=performance_reports/api_load_test.json
+
+      - name: Run benchmark tests
+        run: |
+          go test -bench=. -benchmem ./... > performance_reports/benchmark_results.txt
+
+      - name: Stop server
+        run: kill $(cat server.pid)
+        if: always()
+
+      - name: Upload performance reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-reports
+          path: performance_reports/
+          retention-days: 7
+
+  docker-build:
+    name: Docker Build
+    needs: [unit-tests, integration-tests, security-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: neo-n3-service-layer:${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          outputs: type=docker,dest=/tmp/neo-n3-service-layer.tar
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image
+          path: /tmp/neo-n3-service-layer.tar
+          retention-days: 7
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [docker-build, performance-test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop' || github.event.inputs.deploy == 'staging'
+    environment:
+      name: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download Docker image
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load --input /tmp/neo-n3-service-layer.tar
+
+      - name: Log in to container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Tag and push Docker image
+        run: |
+          docker tag neo-n3-service-layer:${{ github.sha }} ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:staging
+          docker push ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:staging
+
+      - name: Deploy to staging
+        run: |
+          # This would use a deployment script or tool to update the staging environment
+          echo "Deploying to staging environment..."
+          # Example: Using kubectl to update deployment
+          # kubectl set image deployment/neo-n3-service-layer neo-n3-service-layer=${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:staging
+
+  deploy-production:
+    name: Deploy to Production
+    needs: [docker-build, performance-test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event.inputs.deploy == 'production'
+    environment:
+      name: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download Docker image
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load --input /tmp/neo-n3-service-layer.tar
+
+      - name: Log in to container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Tag and push Docker image
+        run: |
+          docker tag neo-n3-service-layer:${{ github.sha }} ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:latest
+          docker tag neo-n3-service-layer:${{ github.sha }} ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:latest
+          docker push ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:${{ github.sha }}
+
+      - name: Deploy to production
+        run: |
+          # This would use a deployment script or tool to update the production environment
+          echo "Deploying to production environment..."
+          # Example: Using kubectl to update deployment
+          # kubectl set image deployment/neo-n3-service-layer neo-n3-service-layer=${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:latest
+
+  notify:
+    name: Notification
+    needs: [deploy-staging, deploy-production]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Send notification
+        run: |
+          # This could be a script to send notifications via email, Slack, etc.
+          echo "Workflow completed with status: ${{ job.status }}" 

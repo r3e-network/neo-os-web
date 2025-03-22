@@ -1,7 +1,6 @@
 package integration_tests
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -12,12 +11,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/R3E-Network/service_layer/internal/blockchain"
 	"github.com/R3E-Network/service_layer/internal/config"
 	"github.com/R3E-Network/service_layer/internal/core/automation"
 	"github.com/R3E-Network/service_layer/internal/core/functions"
+	"github.com/R3E-Network/service_layer/internal/core/gasbank"
 	"github.com/R3E-Network/service_layer/internal/core/oracle"
 	"github.com/R3E-Network/service_layer/internal/database"
 	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/internal/repository"
+	"github.com/R3E-Network/service_layer/internal/tee"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/R3E-Network/service_layer/test/mocks"
 )
@@ -32,49 +35,58 @@ func TestAutomatedOracleFunction(t *testing.T) {
 	}
 
 	// Setup test environment
-	ctx := context.Background()
-	log := logger.NewLogger("integration-test")
+	log := logger.New("integration-test")
 
 	// Load test configuration
-	cfg, err := config.LoadConfig("test")
-	require.NoError(t, err, "Failed to load test config")
+	cfg := &config.Config{
+		Features: config.Features{
+			Automation: true,
+		},
+	}
 
 	// Configure test database
 	db, teardown := setupTestDatabase(t)
 	defer teardown()
 
 	// Create repository instances
-	userRepo := database.NewUserRepository(db)
-	functionRepo := database.NewFunctionRepository(db)
-	executionRepo := database.NewExecutionRepository(db)
-	triggerRepo := database.NewTriggerRepository(db)
-	oracleRepo := database.NewOracleRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	functionRepo := repository.NewFunctionRepository(db)
+	executionRepo := repository.NewExecutionRepository(db)
+	triggerRepo := repository.NewTriggerRepository(db)
+	oracleRepo := repository.NewOracleRepository(db)
 
 	// Create mock blockchain client and TEE manager
 	mockBlockchain := mocks.NewMockBlockchainClient()
 	mockTEE := mocks.NewMockTEEManager()
 
+	// Create blockchain and TEE interfaces that match the required types
+	blockchainClient := &blockchain.Client{}
+	teeManager := &tee.Manager{}
+
+	// Create mock gas bank service
+	mockGasBank := &gasbank.Service{}
+
 	// Create service instances
-	functionService := functions.NewService(cfg, log, functionRepo, executionRepo, mockTEE)
-	oracleService := oracle.NewService(cfg, log, oracleRepo, mockBlockchain)
-	automationService := automation.NewService(cfg, log, triggerRepo, functionService, mockBlockchain)
+	functionService := functions.NewService(cfg, log, functionRepo, executionRepo, teeManager)
+	oracleService := oracle.NewService(cfg, log, oracleRepo, blockchainClient, mockGasBank, teeManager)
+	automationService := automation.NewService(cfg, log, triggerRepo, functionService, blockchainClient)
 
 	// Start the automation service
-	err = automationService.Start()
+	err := automationService.Start()
 	require.NoError(t, err, "Failed to start automation service")
 	defer automationService.Stop()
 
 	// 1. Create a test user
 	testUser := &models.User{
-		Username: "test-user",
-		Email:    "test@example.com",
-		Password: "secure-password",
+		Username:  "test-user",
+		Email:     "test@example.com",
+		HashedPwd: "secure-password-hash", // Using HashedPwd instead of Password
 	}
 	err = userRepo.Create(testUser)
 	require.NoError(t, err, "Failed to create test user")
 
 	// 2. Create a test oracle data source
-	oracleSource := &models.OracleSource{
+	oracleSource := &models.DataSource{
 		UserID:          testUser.ID,
 		Name:            "test-price-source",
 		Description:     "Test price data source",
@@ -85,7 +97,7 @@ func TestAutomatedOracleFunction(t *testing.T) {
 		UpdateFrequency: 60, // 60 seconds
 		Active:          true,
 	}
-	err = oracleRepo.CreateSource(oracleSource)
+	err = oracleRepo.CreateDataSource(oracleSource)
 	require.NoError(t, err, "Failed to create oracle source")
 
 	// 3. Create a test function that uses the oracle
@@ -113,7 +125,7 @@ func TestAutomatedOracleFunction(t *testing.T) {
 		UserID:      testUser.ID,
 		Name:        "price-update-function",
 		Description: "Function to update price data on-chain",
-		Code:        functionCode,
+		Source:      functionCode, // Using Source instead of Code
 		Version:     1,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
@@ -192,13 +204,13 @@ func setupTestDatabase(t *testing.T) (*sql.DB, func()) {
 	require.NoError(t, err, "Failed to connect to test database")
 
 	// Run migrations
-	err = database.MigrateDatabase(db)
+	err = database.Migrate(db)
 	require.NoError(t, err, "Failed to run migrations")
 
 	// Return the database connection and a cleanup function
 	return db, func() {
 		// Clean up the database after the test
-		_, err := db.Exec("TRUNCATE users, functions, executions, triggers, trigger_events, oracle_sources CASCADE")
+		_, err := db.Exec("TRUNCATE users, functions, executions, triggers, trigger_events, data_sources CASCADE")
 		if err != nil {
 			fmt.Printf("Error cleaning up test database: %v\n", err)
 		}

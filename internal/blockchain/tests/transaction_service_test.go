@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	github.com/R3E-Network/service_layerinternal/blockchain"
-	github.com/R3E-Network/service_layerinternal/models"
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/models"
 )
 
 // MockTransactionRepository is a mock implementation of the TransactionRepository interface
@@ -147,10 +147,10 @@ func TestCreateTransaction(t *testing.T) {
 					UpdatedAt: time.Now(),
 				}
 				repo.On("GetWalletByService", mock.Anything, "oracle").Return(wallet, nil)
-				
+
 				// Setup CreateTransaction
 				repo.On("CreateTransaction", mock.Anything, mock.AnythingOfType("*models.Transaction")).Return(nil)
-				
+
 				// Setup AddTransactionEvent
 				repo.On("AddTransactionEvent", mock.Anything, mock.AnythingOfType("*models.TransactionEvent")).Return(nil)
 			},
@@ -216,7 +216,7 @@ func TestCreateTransaction(t *testing.T) {
 					UpdatedAt: time.Now(),
 				}
 				repo.On("GetWalletByService", mock.Anything, "oracle").Return(wallet, nil)
-				
+
 				// Setup CreateTransaction to return error
 				repo.On("CreateTransaction", mock.Anything, mock.AnythingOfType("*models.Transaction")).Return(errors.New("database error"))
 			},
@@ -232,16 +232,16 @@ func TestCreateTransaction(t *testing.T) {
 			mockRepo := new(MockTransactionRepository)
 			mockClient := new(MockClient)
 			mockWalletStore := new(MockWalletStore)
-			
+
 			// Setup mocks
 			tc.setupMocks(mockRepo, mockClient, mockWalletStore)
-			
+
 			// Create transaction service with mocks
 			service := blockchain.NewTransactionService(mockRepo, mockClient, mockWalletStore, 1)
-			
+
 			// Call method
 			tx, err := service.CreateTransaction(context.Background(), tc.request)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -254,7 +254,7 @@ func TestCreateTransaction(t *testing.T) {
 				assert.Equal(t, tc.request.EntityID, *tx.EntityID)
 				assert.Equal(t, tc.request.EntityType, tx.EntityType)
 			}
-			
+
 			// Verify mock expectations
 			mockRepo.AssertExpectations(t)
 			mockClient.AssertExpectations(t)
@@ -267,7 +267,7 @@ func TestCreateTransaction(t *testing.T) {
 func TestGetTransaction(t *testing.T) {
 	// Generate a test transaction ID
 	txID := uuid.New()
-	
+
 	// Test cases
 	testCases := []struct {
 		name          string
@@ -279,13 +279,13 @@ func TestGetTransaction(t *testing.T) {
 			name: "Success",
 			setupMocks: func(repo *MockTransactionRepository) {
 				tx := &models.Transaction{
-					ID:         txID,
-					Service:    "oracle",
-					Status:     models.TransactionStatusConfirmed,
-					Hash:       "tx-hash-123",
-					Data:       json.RawMessage(`{"script":"test"}`),
-					CreatedAt:  time.Now(),
-					UpdatedAt:  time.Now(),
+					ID:        txID,
+					Service:   "oracle",
+					Status:    models.TransactionStatusConfirmed,
+					Hash:      "tx-hash-123",
+					Data:      json.RawMessage(`{"script":"test"}`),
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
 				}
 				repo.On("GetTransactionByID", mock.Anything, txID).Return(tx, nil)
 			},
@@ -306,7 +306,7 @@ func TestGetTransaction(t *testing.T) {
 			expectedTx:    nil,
 		},
 	}
-	
+
 	// Run test cases
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -314,16 +314,16 @@ func TestGetTransaction(t *testing.T) {
 			mockRepo := new(MockTransactionRepository)
 			mockClient := new(MockClient)
 			mockWalletStore := new(MockWalletStore)
-			
+
 			// Setup mocks
 			tc.setupMocks(mockRepo)
-			
+
 			// Create transaction service with mocks
 			service := blockchain.NewTransactionService(mockRepo, mockClient, mockWalletStore, 1)
-			
+
 			// Call method
 			tx, err := service.GetTransaction(context.Background(), txID)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -336,7 +336,7 @@ func TestGetTransaction(t *testing.T) {
 				assert.Equal(t, tc.expectedTx.Status, tx.Status)
 				assert.Equal(t, tc.expectedTx.Hash, tx.Hash)
 			}
-			
+
 			// Verify mock expectations
 			mockRepo.AssertExpectations(t)
 		})
@@ -376,14 +376,14 @@ func TestListTransactions(t *testing.T) {
 					Service: "oracle",
 					Status:  models.TransactionStatusConfirmed,
 				}
-				
+
 				response := &models.TransactionListResponse{
 					Total:        2,
 					Page:         1,
 					Limit:        10,
 					Transactions: []models.Transaction{tx1, tx2},
 				}
-				
+
 				repo.On("ListTransactions", mock.Anything, service, status, entityID, page, limit).Return(response, nil)
 			},
 			expectedError: false,
@@ -404,7 +404,7 @@ func TestListTransactions(t *testing.T) {
 					Limit:        10,
 					Transactions: []models.Transaction{},
 				}
-				
+
 				repo.On("ListTransactions", mock.Anything, service, status, entityID, page, limit).Return(response, nil)
 			},
 			expectedError: false,
@@ -424,7 +424,7 @@ func TestListTransactions(t *testing.T) {
 			expectedCount: 0,
 		},
 	}
-	
+
 	// Run test cases
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -432,16 +432,16 @@ func TestListTransactions(t *testing.T) {
 			mockRepo := new(MockTransactionRepository)
 			mockClient := new(MockClient)
 			mockWalletStore := new(MockWalletStore)
-			
+
 			// Setup mocks
 			tc.setupMocks(mockRepo, tc.service, tc.status, tc.entityID, tc.page, tc.limit)
-			
+
 			// Create transaction service with mocks
 			service := blockchain.NewTransactionService(mockRepo, mockClient, mockWalletStore, 1)
-			
+
 			// Call method
 			response, err := service.ListTransactions(context.Background(), tc.service, tc.status, tc.entityID, tc.page, tc.limit)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -453,9 +453,9 @@ func TestListTransactions(t *testing.T) {
 				assert.Equal(t, tc.page, response.Page)
 				assert.Equal(t, tc.limit, response.Limit)
 			}
-			
+
 			// Verify mock expectations
 			mockRepo.AssertExpectations(t)
 		})
 	}
-} 
+}

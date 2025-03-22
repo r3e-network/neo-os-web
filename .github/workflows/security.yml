@@ -1,0 +1,172 @@
+name: Security Scans
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Monday at 2:00 AM UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  gosec:
+    name: Go Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: -no-fail -fmt sarif -out results.sarif ./...
+      
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
+          category: gosec
+
+  dependency-check:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Install Nancy
+        run: |
+          go install github.com/sonatype-nexus-community/nancy@latest
+
+      - name: Run Nancy on Go Dependencies
+        run: |
+          go list -json -m all | nancy sleuth -o nancy-results.json
+      
+      - name: Check for JavaScript Dependencies
+        id: check-js
+        run: |
+          if [ -f "./web/package.json" ]; then
+            echo "js_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "js_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Node.js
+        if: steps.check-js.outputs.js_exists == 'true'
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          
+      - name: Install JS Dependencies
+        if: steps.check-js.outputs.js_exists == 'true'
+        run: |
+          cd web
+          npm ci
+          
+      - name: Run npm audit
+        if: steps.check-js.outputs.js_exists == 'true'
+        run: |
+          cd web
+          npm audit --json > ../npm-audit.json || true
+          
+      - name: Upload Vulnerability Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: vulnerability-reports
+          path: |
+            nancy-results.json
+            npm-audit.json
+            
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  code-ql:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: go, javascript
+          
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+  security-tests:
+    name: Security Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+          
+      - name: Run Security Unit Tests
+        run: |
+          mkdir -p security-reports
+          go test -v ./test/security/... -coverprofile=security-reports/security_coverage.out
+          
+      - name: Generate Coverage Report
+        run: go tool cover -html=security-reports/security_coverage.out -o security-reports/security_coverage.html
+        
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-test-results
+          path: security-reports/
+
+  summary:
+    name: Security Summary
+    needs: [gosec, dependency-check, secret-scan, code-ql, security-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Security Summary
+        run: |
+          echo "# Security Scan Summary" > $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan Type | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Go Security Scan | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Vulnerability Scan | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Detection | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| CodeQL Analysis | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Unit Tests | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "For detailed results, please check the artifacts and CodeQL alerts." >> $GITHUB_STEP_SUMMARY

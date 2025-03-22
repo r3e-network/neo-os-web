@@ -12,9 +12,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	github.com/R3E-Network/service_layerinternal/models"
 	"sync"
 	"time"
+
+	"github.com/R3E-Network/service_layer/internal/models"
 
 	"github.com/R3E-Network/service_layer/internal/config"
 	"github.com/R3E-Network/service_layer/pkg/logger"

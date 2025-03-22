@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	github.com/R3E-Network/service_layerinternal/api/common"
-	github.com/R3E-Network/service_layerinternal/blockchain"
-	github.com/R3E-Network/service_layerinternal/models"
+	"github.com/R3E-Network/service_layer/internal/api/common"
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/models"
 )
 
 // TransactionHandlers contains handlers for transaction-related endpoints
@@ -338,4 +338,4 @@ func (h *TransactionHandlers) ListServiceWallets(w http.ResponseWriter, r *http.
 	}
 
 	common.RespondWithJSON(w, http.StatusOK, wallets)
-} 
+}

@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	github.com/R3E-Network/service_layerinternal/database"
-	github.com/R3E-Network/service_layerinternal/models"
+	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/internal/models"
 )
 
 // TransactionService provides functionality for managing blockchain transactions
@@ -122,7 +122,7 @@ func (s *TransactionService) submitTransaction(ctx context.Context, tx *models.T
 		if err := json.Unmarshal(tx.Data, &data); err != nil {
 			return fmt.Errorf("failed to unmarshal invoke data: %w", err)
 		}
-		
+
 		hash, err = s.client.InvokeContract(ctx, data.Script, data.Params, data.Signers, privateKey)
 		if err != nil {
 			// Update transaction as failed
@@ -135,7 +135,7 @@ func (s *TransactionService) submitTransaction(ctx context.Context, tx *models.T
 		if err := json.Unmarshal(tx.Data, &data); err != nil {
 			return fmt.Errorf("failed to unmarshal deployment data: %w", err)
 		}
-		
+
 		hash, err = s.client.DeployContract(ctx, data.NEF, data.Manifest, data.Signers, privateKey)
 		if err != nil {
 			// Update transaction as failed
@@ -148,7 +148,7 @@ func (s *TransactionService) submitTransaction(ctx context.Context, tx *models.T
 		if err := json.Unmarshal(tx.Data, &data); err != nil {
 			return fmt.Errorf("failed to unmarshal transfer data: %w", err)
 		}
-		
+
 		hash, err = s.client.TransferAsset(ctx, data.Asset, data.Amount, data.Recipient, data.Signers, privateKey)
 		if err != nil {
 			// Update transaction as failed
@@ -352,21 +352,21 @@ func (s *TransactionService) loadPendingTransactions(ctx context.Context) error 
 	if err != nil {
 		return fmt.Errorf("failed to get pending transactions: %w", err)
 	}
-	
+
 	// Update the in-memory pending transactions map
 	s.pendingLock.Lock()
 	defer s.pendingLock.Unlock()
-	
+
 	// Clear existing pending map and reload
 	s.pending = make(map[string]models.Transaction)
-	
+
 	// Add transactions to pending map
 	for _, tx := range transactions {
 		if tx.Hash != nil && *tx.Hash != "" {
 			s.pending[*tx.Hash] = tx
 		}
 	}
-	
+
 	log.Info().Int("count", len(s.pending)).Msg("loaded pending transactions")
 	return nil
 }
@@ -382,11 +382,11 @@ func (s *TransactionService) checkPendingTransactions(ctx context.Context) {
 
 	var retryHashes []string
 	networkErrors := 0
-	
+
 	for hash, tx := range pendingTransactions {
-		if tx.Status != models.TransactionStatusPending && 
-		   tx.Status != models.TransactionStatusConfirming && 
-		   tx.Status != models.TransactionStatusSubmitted {
+		if tx.Status != models.TransactionStatusPending &&
+			tx.Status != models.TransactionStatusConfirming &&
+			tx.Status != models.TransactionStatusSubmitted {
 			continue
 		}
 
@@ -398,17 +398,17 @@ func (s *TransactionService) checkPendingTransactions(ctx context.Context) {
 				networkErrors++
 				continue
 			}
-			
+
 			if inMempool {
 				// Update status to pending if found in mempool
 				err := s.repo.UpdateTransactionStatus(
-					ctx, 
-					tx.ID, 
-					models.TransactionStatusPending, 
-					nil, 
-					nil, 
-					nil, 
-					nil, 
+					ctx,
+					tx.ID,
+					models.TransactionStatusPending,
+					nil,
+					nil,
+					nil,
+					nil,
 					"",
 				)
 				if err != nil {
@@ -419,7 +419,7 @@ func (s *TransactionService) checkPendingTransactions(ctx context.Context) {
 					tx.Status = models.TransactionStatusPending
 					s.pending[hash] = tx
 					s.pendingLock.Unlock()
-					
+
 					// Create transaction event
 					event := &models.TransactionEvent{
 						ID:            uuid.New(),
@@ -451,30 +451,30 @@ func (s *TransactionService) checkPendingTransactions(ctx context.Context) {
 		if err != nil {
 			log.Error().Err(err).Str("hash", hash).Msg("failed to get transaction receipt")
 			networkErrors++
-			
+
 			// Check if transaction has been pending for too long (1 hour)
 			if tx.Status == models.TransactionStatusPending && time.Since(tx.UpdatedAt) > time.Hour {
 				s.expireTransaction(ctx, tx.ID, "Transaction timed out after 1 hour")
-				
+
 				s.pendingLock.Lock()
 				delete(s.pending, hash)
 				s.pendingLock.Unlock()
 			}
-			
+
 			continue
 		}
 
 		if receipt.Confirmations >= s.confirmations {
 			// Transaction is confirmed
 			s.updateTransactionAsConfirmed(ctx, tx.ID, receipt.GasConsumed, receipt.BlockHeight, receipt.BlockTime, receipt.Result)
-			
+
 			s.pendingLock.Lock()
 			delete(s.pending, hash)
 			s.pendingLock.Unlock()
 		} else if receipt.Confirmations > 0 && tx.Status == models.TransactionStatusPending {
 			// Transaction is in a block but not fully confirmed
 			s.updateTransactionAsConfirming(ctx, tx.ID, receipt.BlockHeight, receipt.BlockTime)
-			
+
 			// Update the status in pending map
 			s.pendingLock.Lock()
 			tx.Status = models.TransactionStatusConfirming
@@ -482,20 +482,20 @@ func (s *TransactionService) checkPendingTransactions(ctx context.Context) {
 			s.pendingLock.Unlock()
 		}
 	}
-	
+
 	// Handle network partition detection
 	if networkErrors > 10 && len(pendingTransactions) > 0 {
 		log.Warn().Int("errors", networkErrors).Msg("possible network partition detected, forcing node reconnection")
 		s.client.ResetConnections()
 	}
-	
+
 	// Retry transactions that might have failed to be included in mempool
 	for _, hash := range retryHashes {
 		tx, exists := pendingTransactions[hash]
 		if !exists {
 			continue
 		}
-		
+
 		log.Info().Str("txID", tx.ID.String()).Msg("retrying transaction submission")
 		go func(t models.Transaction) {
 			if err := s.resubmitTransaction(context.Background(), &t); err != nil {
@@ -509,19 +509,19 @@ func (s *TransactionService) checkPendingTransactions(ctx context.Context) {
 func (s *TransactionService) resubmitTransaction(ctx context.Context, tx *models.Transaction) error {
 	// Mark transaction as being retried
 	err := s.repo.UpdateTransactionStatus(
-		ctx, 
-		tx.ID, 
-		models.TransactionStatusSubmitted, 
-		nil, 
-		nil, 
-		nil, 
-		nil, 
+		ctx,
+		tx.ID,
+		models.TransactionStatusSubmitted,
+		nil,
+		nil,
+		nil,
+		nil,
 		"Retrying transaction submission",
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update transaction status: %w", err)
 	}
-	
+
 	// Create a transaction event for retry
 	event := &models.TransactionEvent{
 		ID:            uuid.New(),
@@ -533,7 +533,7 @@ func (s *TransactionService) resubmitTransaction(ctx context.Context, tx *models
 	if err := s.repo.AddTransactionEvent(ctx, event); err != nil {
 		log.Error().Err(err).Str("txID", tx.ID.String()).Msg("failed to add transaction retry event")
 	}
-	
+
 	// Resubmit transaction
 	return s.submitTransaction(ctx, tx)
 }
@@ -546,13 +546,13 @@ func (s *TransactionService) CheckHealth(ctx context.Context) error {
 // updateTransactionAsConfirmed updates a transaction as confirmed
 func (s *TransactionService) updateTransactionAsConfirmed(ctx context.Context, id uuid.UUID, gasConsumed int64, blockHeight int64, blockTime time.Time, result json.RawMessage) {
 	err := s.repo.UpdateTransactionStatus(
-		ctx, 
-		id, 
-		models.TransactionStatusConfirmed, 
-		result, 
-		&gasConsumed, 
-		&blockHeight, 
-		&blockTime, 
+		ctx,
+		id,
+		models.TransactionStatusConfirmed,
+		result,
+		&gasConsumed,
+		&blockHeight,
+		&blockTime,
 		"",
 	)
 	if err != nil {
@@ -577,13 +577,13 @@ func (s *TransactionService) updateTransactionAsConfirmed(ctx context.Context, i
 func (s *TransactionService) updateTransactionAsConfirming(ctx context.Context, id uuid.UUID, blockHeight int64, blockTime time.Time) {
 	result := json.RawMessage(`{}`)
 	err := s.repo.UpdateTransactionStatus(
-		ctx, 
-		id, 
-		models.TransactionStatusConfirming, 
-		result, 
-		nil, 
-		&blockHeight, 
-		&blockTime, 
+		ctx,
+		id,
+		models.TransactionStatusConfirming,
+		result,
+		nil,
+		&blockHeight,
+		&blockTime,
 		"",
 	)
 	if err != nil {
@@ -608,13 +608,13 @@ func (s *TransactionService) updateTransactionAsConfirming(ctx context.Context, 
 func (s *TransactionService) updateTransactionAsFailed(ctx context.Context, id uuid.UUID, gasConsumed *int64, blockHeight *int64, blockTime *time.Time, errMsg string) {
 	result := json.RawMessage(`{}`)
 	err := s.repo.UpdateTransactionStatus(
-		ctx, 
-		id, 
-		models.TransactionStatusFailed, 
-		result, 
-		gasConsumed, 
-		blockHeight, 
-		blockTime, 
+		ctx,
+		id,
+		models.TransactionStatusFailed,
+		result,
+		gasConsumed,
+		blockHeight,
+		blockTime,
 		errMsg,
 	)
 	if err != nil {
@@ -639,13 +639,13 @@ func (s *TransactionService) updateTransactionAsFailed(ctx context.Context, id u
 func (s *TransactionService) expireTransaction(ctx context.Context, id uuid.UUID, reason string) {
 	result := json.RawMessage(`{}`)
 	err := s.repo.UpdateTransactionStatus(
-		ctx, 
-		id, 
-		models.TransactionStatusExpired, 
-		result, 
-		nil, 
-		nil, 
-		nil, 
+		ctx,
+		id,
+		models.TransactionStatusExpired,
+		result,
+		nil,
+		nil,
+		nil,
 		reason,
 	)
 	if err != nil {
@@ -691,4 +691,4 @@ func (s *TransactionService) GetServiceWallet(ctx context.Context, service strin
 // ListServiceWallets lists all wallets for a service
 func (s *TransactionService) ListServiceWallets(ctx context.Context, service string) ([]models.WalletAccount, error) {
 	return s.repo.ListWalletsByService(ctx, service)
-} 
+}

@@ -1,0 +1,151 @@
+# GitLeaks Configuration File
+# This configuration defines what patterns to look for when scanning for secrets
+
+title = "Neo N3 Service Layer GitLeaks Configuration"
+
+[allowlist]
+    description = "Global allowlist"
+    paths = [
+        '''go.sum''',
+        '''go.mod''',
+        '''.*_test\.go$''',
+        '''(.*?)(jpg|gif|doc|docx|zip|xls|pdf|bin|svg|xml)$''',
+        '''swagger-ui''',
+        '''node_modules''',
+        '''\.git/''',
+        '''\.gitleaks\.toml''',
+    ]
+    regexes = [
+        '''example\.com''',
+        '''testdata''',
+        '''test-fixtures''',
+        '''localhost''',
+        '''sqlmock''',
+        '''mock''',
+        '''example''',
+        '''TesterUser''',
+        '''TestUser''',
+    ]
+
+# Predefined rules
+[[rules]]
+    id = "aws-access-key"
+    description = "AWS Access Key"
+    regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+    tags = ["aws", "key"]
+    severity = "CRITICAL"
+
+[[rules]]
+    id = "aws-secret-key"
+    description = "AWS Secret Key"
+    regex = '''(?i)aws(.{0,20})?(?-i)['\"][0-9a-zA-Z\/+]{40}['\"]'''
+    tags = ["aws", "key"]
+    severity = "CRITICAL"
+
+[[rules]]
+    id = "azure-service-principal"
+    description = "Azure Service Principal"
+    regex = '''(?i)azure(.{0,20})?(?-i)['\"][0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}['\"]'''
+    tags = ["azure", "key"]
+    severity = "CRITICAL"
+
+[[rules]]
+    id = "neo-n3-private-key"
+    description = "Neo N3 Private Key (WIF format)"
+    regex = '''(?i)(neo|wif)(.{0,20})?['"](L|K|5)[a-zA-Z0-9]{50,51}['"]'''
+    tags = ["neo", "key"]
+    severity = "CRITICAL"
+    
+[[rules]]
+    id = "azure-storage-key"
+    description = "Azure Storage Account Key"
+    regex = '''(?i)azure(.{0,20})?(?-i)['\"][a-zA-Z0-9+\/=]{88}['\"]'''
+    tags = ["azure", "storage"]
+    severity = "CRITICAL"
+
+[[rules]]
+    id = "google-api-key"
+    description = "Google API Key"
+    regex = '''(?i)(google|gcp|youtube|drive|yt)(.{0,20})?['\"][AIza[0-9a-zA-Z_\-]{35}]['\"]'''
+    tags = ["google", "key"]
+    severity = "CRITICAL"
+
+[[rules]]
+    id = "password-in-code"
+    description = "Password in Code"
+    regex = '''(?i)(password|passwd|pwd)(.{0,20})?['"][^'"]{3,}['"]'''
+    tags = ["password"]
+    severity = "HIGH"
+    [rules.allowlist]
+        regexes = [
+            '''example''',
+            '''placeholder''',
+            '''test''',
+            '''fake''',
+            '''mock''',
+            '''dummy''',
+        ]
+
+[[rules]]
+    id = "authorization-bearer"
+    description = "Authorization Bearer Token"
+    regex = '''(?i)(auth.*bearer|bearer.*token)(.{0,20})?['"][A-Za-z0-9+/=]{8,}['"]'''
+    tags = ["token", "auth"]
+    severity = "HIGH"
+    [rules.allowlist]
+        regexes = [
+            '''example''',
+            '''placeholder''',
+            '''test''',
+            '''fake''',
+            '''mock''',
+            '''dummy''',
+        ]
+
+[[rules]]
+    id = "api-key"
+    description = "Generic API Key"
+    regex = '''(?i)(api[-_]?key)(.{0,20})?['"][a-zA-Z0-9_\-]{16,}['"]'''
+    tags = ["api", "key"]
+    severity = "HIGH"
+    [rules.allowlist]
+        regexes = [
+            '''example''',
+            '''placeholder''',
+            '''test''',
+            '''fake''',
+            '''mock''',
+            '''dummy''',
+        ]
+
+[[rules]]
+    id = "jwt-token"
+    description = "JWT Token"
+    regex = '''eyJ[a-zA-Z0-9_-]{5,}\.eyJ[a-zA-Z0-9_-]{5,}\.[a-zA-Z0-9_-]{5,}'''
+    tags = ["jwt", "token"]
+    severity = "HIGH"
+    [rules.allowlist]
+        regexes = [
+            '''example''',
+            '''placeholder''',
+            '''test''',
+            '''fake''',
+            '''mock''',
+            '''dummy''',
+        ]
+
+[[rules]]
+    id = "database-connection-string"
+    description = "Database Connection String"
+    regex = '''(?i)(connectionstring|connstr|db_conn|database_url)(.{0,20})?['"](Data Source|Server|Database|Uid|Pwd|User Id|Initial Catalog)=.*?['"]'''
+    tags = ["database", "connection"]
+    severity = "HIGH"
+    [rules.allowlist]
+        regexes = [
+            '''example''',
+            '''placeholder''',
+            '''test''',
+            '''fake''',
+            '''mock''',
+            '''dummy''',
+        ] 

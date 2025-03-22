@@ -10,11 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	github.com/R3E-Network/service_layerinternal/config"
-	github.com/R3E-Network/service_layerinternal/core/secrets"
-	github.com/R3E-Network/service_layerinternal/models"
-	github.com/R3E-Network/service_layerinternal/tee"
-	github.com/R3E-Network/service_layerpkg/logger"
+	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/core/secrets"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // MockSecretRepository is a mock implementation of the SecretRepository interface
@@ -93,16 +92,16 @@ func TestCreateSecret(t *testing.T) {
 			setupMocks: func(repo *MockSecretRepository, teeManager *MockTEEManager) {
 				// Setup GetByUserIDAndName - should return nil for no existing secret
 				repo.On("GetByUserIDAndName", 1, "API_KEY").Return(nil, nil)
-				
+
 				// Setup List - should return empty list to check secret count
 				repo.On("List", 1).Return([]*models.Secret{}, nil)
-				
+
 				// Setup Create - should succeed
 				repo.On("Create", mock.AnythingOfType("*models.Secret")).Run(func(args mock.Arguments) {
 					secret := args.Get(0).(*models.Secret)
 					secret.ID = 1 // Simulate ID assignment by database
 				}).Return(nil)
-				
+
 				// Setup StoreSecret - should succeed
 				teeManager.On("StoreSecret", mock.Anything, mock.AnythingOfType("*models.Secret")).Return(nil)
 			},
@@ -163,7 +162,7 @@ func TestCreateSecret(t *testing.T) {
 			setupMocks: func(repo *MockSecretRepository, teeManager *MockTEEManager) {
 				// Setup GetByUserIDAndName - should return nil for no existing secret
 				repo.On("GetByUserIDAndName", 1, "API_KEY").Return(nil, nil)
-				
+
 				// Setup List - should return many secrets to trigger max secrets limit
 				secrets := make([]*models.Secret, 10) // 10 existing secrets
 				for i := 0; i < 10; i++ {
@@ -187,10 +186,10 @@ func TestCreateSecret(t *testing.T) {
 			setupMocks: func(repo *MockSecretRepository, teeManager *MockTEEManager) {
 				// Setup GetByUserIDAndName - should return nil for no existing secret
 				repo.On("GetByUserIDAndName", 1, "API_KEY").Return(nil, nil)
-				
+
 				// Setup List - should return empty list to check secret count
 				repo.On("List", 1).Return([]*models.Secret{}, nil)
-				
+
 				// Setup Create - should fail
 				repo.On("Create", mock.AnythingOfType("*models.Secret")).Return(errors.New("database error"))
 			},
@@ -205,19 +204,19 @@ func TestCreateSecret(t *testing.T) {
 			setupMocks: func(repo *MockSecretRepository, teeManager *MockTEEManager) {
 				// Setup GetByUserIDAndName - should return nil for no existing secret
 				repo.On("GetByUserIDAndName", 1, "API_KEY").Return(nil, nil)
-				
+
 				// Setup List - should return empty list to check secret count
 				repo.On("List", 1).Return([]*models.Secret{}, nil)
-				
+
 				// Setup Create - should succeed
 				repo.On("Create", mock.AnythingOfType("*models.Secret")).Run(func(args mock.Arguments) {
 					secret := args.Get(0).(*models.Secret)
 					secret.ID = 1 // Simulate ID assignment by database
 				}).Return(nil)
-				
+
 				// Setup StoreSecret - should fail
 				teeManager.On("StoreSecret", mock.Anything, mock.AnythingOfType("*models.Secret")).Return(errors.New("TEE storage error"))
-				
+
 				// Setup Delete - should be called to clean up database entry after TEE failure
 				repo.On("Delete", 1).Return(nil)
 			},
@@ -231,7 +230,7 @@ func TestCreateSecret(t *testing.T) {
 			// Create mocks
 			mockRepo := new(MockSecretRepository)
 			mockTEEManager := new(MockTEEManager)
-			
+
 			// Create a minimal config for testing
 			cfg := &config.Config{
 				Services: config.Services{
@@ -241,19 +240,19 @@ func TestCreateSecret(t *testing.T) {
 					},
 				},
 			}
-			
+
 			// Create a logger
 			log := logger.NewLogger("test")
-			
+
 			// Setup mocks
 			tc.setupMocks(mockRepo, mockTEEManager)
-			
+
 			// Create secrets service with mocks
 			service := secrets.NewService(cfg, log, mockRepo, mockTEEManager)
-			
+
 			// Call method
 			secret, err := service.CreateSecret(context.Background(), tc.userID, tc.secretName, tc.secretValue)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -266,7 +265,7 @@ func TestCreateSecret(t *testing.T) {
 				assert.Equal(t, tc.expectedSecret.Name, secret.Name)
 				assert.Equal(t, tc.expectedSecret.Version, secret.Version)
 			}
-			
+
 			// Verify mock expectations
 			mockRepo.AssertExpectations(t)
 			mockTEEManager.AssertExpectations(t)
@@ -303,13 +302,13 @@ func TestUpdateSecret(t *testing.T) {
 					UpdatedAt: time.Now().Add(-24 * time.Hour),
 				}
 				repo.On("GetByID", 1).Return(secret, nil)
-				
+
 				// Setup Update - should succeed
 				repo.On("Update", mock.AnythingOfType("*models.Secret")).Run(func(args mock.Arguments) {
 					secret := args.Get(0).(*models.Secret)
 					secret.Version = 2 // Simulate version increment by database
 				}).Return(nil)
-				
+
 				// Setup StoreSecret - should succeed
 				teeManager.On("StoreSecret", mock.Anything, mock.AnythingOfType("*models.Secret")).Return(nil)
 			},
@@ -386,7 +385,7 @@ func TestUpdateSecret(t *testing.T) {
 					Version: 1,
 				}
 				repo.On("GetByID", 1).Return(secret, nil)
-				
+
 				// Setup Update - should fail
 				repo.On("Update", mock.AnythingOfType("*models.Secret")).Return(errors.New("database error"))
 			},
@@ -408,13 +407,13 @@ func TestUpdateSecret(t *testing.T) {
 					Version: 1,
 				}
 				repo.On("GetByID", 1).Return(secret, nil)
-				
+
 				// Setup Update - should succeed
 				repo.On("Update", mock.AnythingOfType("*models.Secret")).Run(func(args mock.Arguments) {
 					secret := args.Get(0).(*models.Secret)
 					secret.Version = 2 // Simulate version increment by database
 				}).Return(nil)
-				
+
 				// Setup StoreSecret - should fail
 				teeManager.On("StoreSecret", mock.Anything, mock.AnythingOfType("*models.Secret")).Return(errors.New("TEE storage error"))
 			},
@@ -428,7 +427,7 @@ func TestUpdateSecret(t *testing.T) {
 			// Create mocks
 			mockRepo := new(MockSecretRepository)
 			mockTEEManager := new(MockTEEManager)
-			
+
 			// Create a minimal config for testing
 			cfg := &config.Config{
 				Services: config.Services{
@@ -438,19 +437,19 @@ func TestUpdateSecret(t *testing.T) {
 					},
 				},
 			}
-			
+
 			// Create a logger
 			log := logger.NewLogger("test")
-			
+
 			// Setup mocks
 			tc.setupMocks(mockRepo, mockTEEManager)
-			
+
 			// Create secrets service with mocks
 			service := secrets.NewService(cfg, log, mockRepo, mockTEEManager)
-			
+
 			// Call method
 			secret, err := service.UpdateSecret(context.Background(), tc.secretID, tc.userID, tc.secretValue)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -463,7 +462,7 @@ func TestUpdateSecret(t *testing.T) {
 				assert.Equal(t, tc.expectedSecret.Name, secret.Name)
 				assert.Equal(t, tc.expectedSecret.Version, secret.Version)
 			}
-			
+
 			// Verify mock expectations
 			mockRepo.AssertExpectations(t)
 			mockTEEManager.AssertExpectations(t)
@@ -495,10 +494,10 @@ func TestDeleteSecret(t *testing.T) {
 					Version: 1,
 				}
 				repo.On("GetByID", 1).Return(secret, nil)
-				
+
 				// Setup Delete - should succeed
 				repo.On("Delete", 1).Return(nil)
-				
+
 				// Setup DeleteSecret - should succeed (but even if it fails, the operation continues)
 				teeManager.On("DeleteSecret", mock.Anything, 1, "API_KEY").Return(nil)
 			},
@@ -545,7 +544,7 @@ func TestDeleteSecret(t *testing.T) {
 					Version: 1,
 				}
 				repo.On("GetByID", 1).Return(secret, nil)
-				
+
 				// Setup Delete - should fail
 				repo.On("Delete", 1).Return(errors.New("database error"))
 			},
@@ -565,10 +564,10 @@ func TestDeleteSecret(t *testing.T) {
 					Version: 1,
 				}
 				repo.On("GetByID", 1).Return(secret, nil)
-				
+
 				// Setup Delete - should succeed
 				repo.On("Delete", 1).Return(nil)
-				
+
 				// Setup DeleteSecret - should fail but operation continues
 				teeManager.On("DeleteSecret", mock.Anything, 1, "API_KEY").Return(errors.New("TEE deletion error"))
 			},
@@ -581,7 +580,7 @@ func TestDeleteSecret(t *testing.T) {
 			// Create mocks
 			mockRepo := new(MockSecretRepository)
 			mockTEEManager := new(MockTEEManager)
-			
+
 			// Create a minimal config for testing
 			cfg := &config.Config{
 				Services: config.Services{
@@ -591,26 +590,26 @@ func TestDeleteSecret(t *testing.T) {
 					},
 				},
 			}
-			
+
 			// Create a logger
 			log := logger.NewLogger("test")
-			
+
 			// Setup mocks
 			tc.setupMocks(mockRepo, mockTEEManager)
-			
+
 			// Create secrets service with mocks
 			service := secrets.NewService(cfg, log, mockRepo, mockTEEManager)
-			
+
 			// Call method
 			err := service.DeleteSecret(context.Background(), tc.secretID, tc.userID)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			
+
 			// Verify mock expectations
 			mockRepo.AssertExpectations(t)
 			mockTEEManager.AssertExpectations(t)
@@ -681,7 +680,7 @@ func TestListSecrets(t *testing.T) {
 			// Create mocks
 			mockRepo := new(MockSecretRepository)
 			mockTEEManager := new(MockTEEManager)
-			
+
 			// Create a minimal config for testing
 			cfg := &config.Config{
 				Services: config.Services{
@@ -691,19 +690,19 @@ func TestListSecrets(t *testing.T) {
 					},
 				},
 			}
-			
+
 			// Create a logger
 			log := logger.NewLogger("test")
-			
+
 			// Setup mocks
 			tc.setupMocks(mockRepo)
-			
+
 			// Create secrets service with mocks
 			service := secrets.NewService(cfg, log, mockRepo, mockTEEManager)
-			
+
 			// Call method
 			secrets, err := service.ListSecrets(tc.userID)
-			
+
 			// Check results
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -716,9 +715,9 @@ func TestListSecrets(t *testing.T) {
 					assert.NotContains(t, secret, "Value")
 				}
 			}
-			
+
 			// Verify mock expectations
 			mockRepo.AssertExpectations(t)
 		})
 	}
-} 
+}

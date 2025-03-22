@@ -173,6 +173,23 @@ The Neo N3 Service Layer prioritizes security:
 - Regular security audits and updates
 - Secure transaction management for blockchain interactions
 
+### Security Testing Automation
+
+We have implemented comprehensive security testing automation to ensure continuous validation of security controls:
+
+- **Automated Security Scanning**: Scripts for scanning code, dependencies, and APIs for vulnerabilities
+- **CI/CD Integration**: Security testing integrated into the CI/CD pipeline via GitHub Actions
+- **Vulnerability Management**: Systematic approach to tracking and addressing security findings
+
+Run security tests with:
+```
+make security-test
+```
+
+For more details, see:
+- [Security Testing Documentation](docs/security_testing.md) - Security testing approach
+- [Security Automation Documentation](docs/security_automation.md) - Automated security testing
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.

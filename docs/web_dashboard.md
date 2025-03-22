@@ -42,6 +42,20 @@ The main dashboard provides an overview of all services with:
 - Quick access to all services
 - Recent activity log
 
+### Advanced Analytics
+
+The Analytics dashboard provides comprehensive insights into the service layer performance and usage:
+
+- **Service Usage Analytics**: Detailed breakdown of API calls by service, visualized through interactive charts
+- **Transaction Monitoring**: Real-time and historical transaction volume, status distribution, and type classification
+- **Performance Metrics**: System performance tracking with response times, error rates, and resource utilization
+- **Resource Utilization**: TEE processing, blockchain transaction, database operation, and API request metrics
+- **Gas Consumption**: Detailed tracking of gas usage over time
+- **Time-based Filtering**: Ability to filter analytics by different time ranges (24 hours, 7 days, 30 days)
+- **Interactive Visualizations**: Interactive charts for all metrics with drill-down capabilities
+- **KPI Tracking**: Key performance indicators highlighted with trends and changes over time
+- **Service Comparison**: Side-by-side comparison of performance across different services
+
 ### Service-Specific Pages
 
 The dashboard includes dedicated pages for each service:
@@ -144,6 +158,18 @@ The dashboard includes several reusable components:
 - **Charts**: Data visualization components
 - **Modals**: Reusable modal components for various actions
 
+### Data Visualization
+
+The dashboard uses a rich set of data visualization components:
+
+- **Line charts**: For time-series data like transaction volumes and performance metrics
+- **Bar charts**: For comparative data like service usage and response times
+- **Pie charts**: For distribution data like transaction status and types
+- **Doughnut charts**: For breakdown data like resource utilization
+- **Stat cards**: For key performance indicators with trend indicators
+- **Heat maps**: For event density visualization
+- **Data tables**: For detailed data viewing with sorting and filtering
+
 ### Responsive Design
 
 The dashboard is fully responsive, providing an optimal experience on:
@@ -176,13 +202,15 @@ Security is a core aspect of the dashboard with:
 
 Planned enhancements for the web dashboard include:
 
-1. Real-time updates using WebSockets
-2. Enhanced user management interface
-3. Advanced monitoring and alerting
+1. ✅ Real-time updates using WebSockets
+2. ✅ Enhanced user management interface
+3. ✅ Advanced analytics and reporting
 4. Integration with external monitoring tools
 5. Dark mode support
 6. Personalization options
-7. Expanded analytics capabilities
+7. Export capabilities for reports and analytics
+8. Customizable dashboard layouts
+9. Alert configuration interface
 
 ## User Guides
 
@@ -194,4 +222,5 @@ For detailed usage instructions, please refer to:
 - [Random Number Service Guide](./random_number_service.md)
 - [Oracle Service Guide](./oracle_service.md)
 - [Gas Bank Service Guide](./gas_bank_service.md)
-- [Contract Automation Guide](./automation_integration.md) 
+- [Contract Automation Guide](./automation_integration.md)
+- [Analytics Dashboard Guide](./analytics_dashboard.md) 

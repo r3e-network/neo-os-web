@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"testing"
 	"time"
@@ -13,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	github.com/R3E-Network/service_layerinternal/blockchain"
-	github.com/R3E-Network/service_layerinternal/database"
-	github.com/R3E-Network/service_layerinternal/models"
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/internal/models"
 )
 
 // TestTransactionIntegration performs an integration test of the transaction management system
@@ -228,4 +227,4 @@ DELETE FROM transactions;
 DELETE FROM wallet_accounts;
 	`)
 	return err
-} 
+}
