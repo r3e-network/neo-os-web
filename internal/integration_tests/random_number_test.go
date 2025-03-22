@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/willtech-services/service_layer/internal/blockchain"
-	"github.com/willtech-services/service_layer/internal/core/random"
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/test/mocks"
+	"github.com/R3E-Network/service_layer/internal/blockchain"
+	"github.com/R3E-Network/service_layer/internal/core/random"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/test/mocks"
 )
 
 // TestRandomNumberGenerationAndVerification is an integration test for the "Random Number Generation and Verification" scenario.

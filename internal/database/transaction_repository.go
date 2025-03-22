@@ -3,13 +3,12 @@ package database
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	github.com/R3E-Network/service_layerinternal/models"
+	"github.com/R3E-Network/service_layer/internal/models"
 )
 
 // TransactionRepository defines the interface for transaction operations
@@ -22,7 +21,7 @@ type TransactionRepository interface {
 	AddTransactionEvent(ctx context.Context, event *models.TransactionEvent) error
 	GetTransactionEvents(ctx context.Context, transactionID uuid.UUID) ([]models.TransactionEvent, error)
 	DeleteTransaction(ctx context.Context, id uuid.UUID) error
-	
+
 	CreateWalletAccount(ctx context.Context, wallet *models.WalletAccount) error
 	GetWalletByService(ctx context.Context, service string) (*models.WalletAccount, error)
 	GetWalletByAddress(ctx context.Context, address string) (*models.WalletAccount, error)
@@ -90,12 +89,12 @@ func (r *SQLTransactionRepository) GetTransactionByHash(ctx context.Context, has
 
 // UpdateTransactionStatus updates a transaction's status and related fields
 func (r *SQLTransactionRepository) UpdateTransactionStatus(
-	ctx context.Context, 
-	id uuid.UUID, 
-	status models.TransactionStatus, 
-	result json.RawMessage, 
-	gasConsumed *int64, 
-	blockHeight *int64, 
+	ctx context.Context,
+	id uuid.UUID,
+	status models.TransactionStatus,
+	result json.RawMessage,
+	gasConsumed *int64,
+	blockHeight *int64,
 	blockTime *time.Time,
 	err string,
 ) error {
@@ -113,14 +112,14 @@ func (r *SQLTransactionRepository) UpdateTransactionStatus(
 
 	now := time.Now()
 	_, dbErr := r.db.ExecContext(
-		ctx, 
-		query, 
-		id, 
-		status, 
-		result, 
-		gasConsumed, 
-		blockHeight, 
-		blockTime, 
+		ctx,
+		query,
+		id,
+		status,
+		result,
+		gasConsumed,
+		blockHeight,
+		blockTime,
 		err,
 		now,
 	)
@@ -129,10 +128,10 @@ func (r *SQLTransactionRepository) UpdateTransactionStatus(
 
 // ListTransactions retrieves a paginated list of transactions with filters
 func (r *SQLTransactionRepository) ListTransactions(
-	ctx context.Context, 
-	service string, 
-	status models.TransactionStatus, 
-	entityID *uuid.UUID, 
+	ctx context.Context,
+	service string,
+	status models.TransactionStatus,
+	entityID *uuid.UUID,
 	page, limit int,
 ) (*models.TransactionListResponse, error) {
 	query := `
@@ -143,46 +142,46 @@ func (r *SQLTransactionRepository) ListTransactions(
 		SELECT COUNT(*) FROM transactions
 		WHERE deleted_at IS NULL
 	`
-	
+
 	args := []interface{}{}
 	argIndex := 1
-	
+
 	if service != "" {
 		query += ` AND service = $` + string(argIndex)
 		countQuery += ` AND service = $` + string(argIndex)
 		args = append(args, service)
 		argIndex++
 	}
-	
+
 	if status != "" {
 		query += ` AND status = $` + string(argIndex)
 		countQuery += ` AND status = $` + string(argIndex)
 		args = append(args, status)
 		argIndex++
 	}
-	
+
 	if entityID != nil {
 		query += ` AND entity_id = $` + string(argIndex)
 		countQuery += ` AND entity_id = $` + string(argIndex)
 		args = append(args, entityID)
 		argIndex++
 	}
-	
+
 	query += ` ORDER BY created_at DESC LIMIT $` + string(argIndex) + ` OFFSET $` + string(argIndex+1)
 	args = append(args, limit, (page-1)*limit)
-	
+
 	var transactions []models.Transaction
 	err := r.db.SelectContext(ctx, &transactions, query, args...)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var count int
 	err = r.db.GetContext(ctx, &count, countQuery, args[:argIndex-1]...)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &models.TransactionListResponse{
 		Total:        count,
 		Page:         page,
@@ -310,4 +309,4 @@ func (r *SQLTransactionRepository) DeleteWalletAccount(ctx context.Context, id u
 	now := time.Now()
 	_, err := r.db.ExecContext(ctx, query, id, now)
 	return err
-} 
+}

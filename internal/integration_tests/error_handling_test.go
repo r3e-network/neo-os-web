@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/willtech-services/service_layer/internal/models"
-	"github.com/willtech-services/service_layer/test/mocks"
+	"github.com/R3E-Network/service_layer/internal/models"
+	"github.com/R3E-Network/service_layer/test/mocks"
 )
 
 // TestCrossServiceErrorHandling is an integration test for the "Cross-Service Error Handling" scenario.
