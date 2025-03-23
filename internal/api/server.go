@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/internal/api/gasbank"
+	"github.com/R3E-Network/service_layer/internal/api/middleware"
 	"github.com/R3E-Network/service_layer/internal/api/oracle"
 	"github.com/R3E-Network/service_layer/internal/api/pricefeed"
 	"github.com/R3E-Network/service_layer/internal/api/random"
@@ -85,6 +86,15 @@ func NewServer(cfg *config.Config, log *logger.Logger) (*Server, error) {
 	router.Use(corsMiddleware(cfg.Server.CORS))
 	router.Use(loggerMiddleware(log))
 	router.Use(prometheusMiddleware())
+
+	// Add rate limiter middleware if enabled
+	if cfg.Server.RateLimit.Enabled {
+		defaultRate := rate.Limit(float64(cfg.Server.RateLimit.RequestsPerIP) / float64(cfg.Server.RateLimit.TimeWindowSec))
+		authRate := rate.Limit(float64(cfg.Server.RateLimit.RequestsPerKey) / float64(cfg.Server.RateLimit.TimeWindowSec))
+		rateLimiter := middleware.NewDynamicRateLimiter(defaultRate, authRate, cfg.Server.RateLimit.BurstIP, cfg.Server.RateLimit.BurstKey)
+		router.Use(rateLimiter.Middleware())
+		log.Info("Rate limiting middleware enabled")
+	}
 
 	// Create database connection
 	db, err := database.New(&cfg.Database, log)

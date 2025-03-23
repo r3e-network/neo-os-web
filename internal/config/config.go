@@ -30,11 +30,15 @@ type Config struct {
 
 // ServerConfig represents the server configuration
 type ServerConfig struct {
-	Host         string        `mapstructure:"host"`
-	Port         int           `mapstructure:"port"`
-	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout time.Duration `mapstructure:"write_timeout"`
-	IdleTimeout  time.Duration `mapstructure:"idle_timeout"`
+	Host         string          `mapstructure:"host"`
+	Port         int             `mapstructure:"port"`
+	ReadTimeout  time.Duration   `mapstructure:"read_timeout"`
+	WriteTimeout time.Duration   `mapstructure:"write_timeout"`
+	IdleTimeout  time.Duration   `mapstructure:"idle_timeout"`
+	RateLimit    RateLimitConfig `mapstructure:"rate_limit"`
+	CORS         CORSConfig      `mapstructure:"cors"`
+	Mode         string          `mapstructure:"mode"`
+	Timeout      int             `mapstructure:"timeout"`
 }
 
 // DatabaseConfig represents the database configuration
@@ -106,6 +110,24 @@ type MonitoringConfig struct {
 	MetricsEndpoint string `mapstructure:"metrics_endpoint"`
 }
 
+// RateLimitConfig represents the rate limiting configuration
+type RateLimitConfig struct {
+	Enabled        bool  `mapstructure:"enabled"`
+	RequestsPerIP  int   `mapstructure:"requests_per_ip"`
+	RequestsPerKey int   `mapstructure:"requests_per_key"`
+	BurstIP        int   `mapstructure:"burst_ip"`
+	BurstKey       int   `mapstructure:"burst_key"`
+	TimeWindowSec  int64 `mapstructure:"time_window_sec"`
+}
+
+// CORSConfig represents the CORS configuration
+type CORSConfig struct {
+	AllowedOrigins []string `mapstructure:"allowed_origins"`
+	AllowedMethods []string `mapstructure:"allowed_methods"`
+	AllowedHeaders []string `mapstructure:"allowed_headers"`
+	MaxAge         int      `mapstructure:"max_age"`
+}
+
 // New creates a new config instance with default values
 func New() *Config {
 	return &Config{
@@ -116,6 +138,22 @@ func New() *Config {
 			ReadTimeout:  60 * time.Second,
 			WriteTimeout: 60 * time.Second,
 			IdleTimeout:  120 * time.Second,
+			RateLimit: RateLimitConfig{
+				Enabled:        true,
+				RequestsPerIP:  100,  // 100 requests per minute for IP-based limiting
+				RequestsPerKey: 1000, // 1000 requests per minute for API key-based limiting
+				BurstIP:        20,   // Allow bursts of up to 20 requests
+				BurstKey:       100,  // Allow bursts of up to 100 requests for API keys
+				TimeWindowSec:  60,   // 1 minute window
+			},
+			CORS: CORSConfig{
+				AllowedOrigins: []string{"*"},
+				AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+				AllowedHeaders: []string{"Origin", "Content-Type", "Authorization", "X-API-Key"},
+				MaxAge:         86400,
+			},
+			Mode:    "development",
+			Timeout: 60,
 		},
 		Database: DatabaseConfig{
 			Driver:          "postgres",
