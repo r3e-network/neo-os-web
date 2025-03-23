@@ -1,7 +1,9 @@
+import React from 'react';
+import '@/app/globals.css';
+import { Inter, Montserrat, JetBrains_Mono } from 'next/font/google';
 import type { Metadata } from "next";
-import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
   title: "Neo N3 Service Layer - A Trusted Execution Environment for Blockchain",
@@ -9,24 +11,38 @@ export const metadata: Metadata = {
   keywords: "Neo N3, blockchain, oracle, trusted execution environment, TEE, smart contracts, automation",
 };
 
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-montserrat',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-jetbrains-mono',
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${montserrat.variable} ${jetbrainsMono.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link 
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Montserrat:wght@600;700;800&display=swap" 
-          rel="stylesheet" 
-        />
+        {/* NeoLine and other wallet scripts */}
+        <script src="https://cdn.jsdelivr.net/npm/neoline@latest/dist/neoline.min.js" defer></script>
       </head>
-      <body className="flex flex-col min-h-screen">
-        <Navbar />
-        <main className="flex-grow">{children}</main>
+      <body className="min-h-screen font-sans">
+        <Header />
+        <main className="pt-16">{children}</main>
         <Footer />
       </body>
     </html>

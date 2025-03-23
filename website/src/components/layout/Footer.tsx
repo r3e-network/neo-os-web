@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -66,128 +67,125 @@ const socialLinks = [
 
 export default function Footer() {
   return (
-    <footer className="bg-secondary text-white pt-16 pb-8">
+    <footer className="bg-secondary text-white py-12">
       <div className="container mx-auto px-4">
-        {/* Footer top - logo and newsletter */}
-        <div className="flex flex-col md:flex-row justify-between items-start pb-10 border-b border-gray-700">
-          <div className="mb-10 md:mb-0 md:w-1/3">
-            <Link href="/" className="inline-block mb-6">
-              <Image 
-                src="/logo.svg" 
-                alt="Neo N3 Service Layer" 
-                width={200} 
-                height={60} 
-                className="h-10 w-auto"
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Logo and Intro */}
+          <div className="md:col-span-1">
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/images/logo.svg"
+                alt="Neo Service Layer"
+                width={40}
+                height={40}
+                className="mr-2"
               />
+              <span className="font-bold text-xl text-white">
+                Neo Service Layer
+              </span>
             </Link>
-            <p className="text-gray-300 mb-6 max-w-md">
-              A centralized oracle service providing secure function execution, contract automation, 
-              price feeds, and more for the Neo N3 ecosystem.
+            <p className="mt-4 text-gray-300 text-sm">
+              A Trusted Execution Environment (TEE) service providing secure functions, automation, and price feeds for the Neo N3 blockchain.
             </p>
-            <div className="flex space-x-4">
-              {socialLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-primary transition-colors duration-200"
-                  aria-label={link.label}
-                >
-                  {link.icon}
+          </div>
+          
+          {/* Services */}
+          <div>
+            <h3 className="text-primary font-medium mb-4">Services</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/docs/services/functions" className="text-gray-300 hover:text-primary text-sm">
+                  Functions Service
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/services/automation" className="text-gray-300 hover:text-primary text-sm">
+                  Contract Automation
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/services/price-feed" className="text-gray-300 hover:text-primary text-sm">
+                  Price Feed
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/services/gas-bank" className="text-gray-300 hover:text-primary text-sm">
+                  Gas Bank
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/services/secrets" className="text-gray-300 hover:text-primary text-sm">
+                  Secret Management
+                </Link>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Resources */}
+          <div>
+            <h3 className="text-primary font-medium mb-4">Resources</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/docs" className="text-gray-300 hover:text-primary text-sm">
+                  Documentation
+                </Link>
+              </li>
+              <li>
+                <Link href="/playground" className="text-gray-300 hover:text-primary text-sm">
+                  Playground
+                </Link>
+              </li>
+              <li>
+                <a href="https://github.com/R3E-Network/service_layer" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-primary text-sm">
+                  GitHub
                 </a>
-              ))}
-            </div>
-          </div>
-          
-          <div className="mb-10 md:mb-0 md:w-1/3">
-            <h3 className="text-lg font-semibold mb-6">Subscribe to our Newsletter</h3>
-            <form className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="bg-gray-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-              <button
-                type="submit"
-                className="btn bg-primary text-secondary hover:bg-primary/90 rounded-lg whitespace-nowrap"
-              >
-                Subscribe
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Footer links */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 py-10 border-b border-gray-700">
-          <div>
-            <h3 className="text-lg font-semibold mb-6">Product</h3>
-            <ul className="space-y-4">
-              {footerLinks.product.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-gray-300 hover:text-primary transition-colors duration-200">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+              </li>
+              <li>
+                <Link href="/docs/api" className="text-gray-300 hover:text-primary text-sm">
+                  API Reference
+                </Link>
+              </li>
             </ul>
           </div>
           
+          {/* Social */}
           <div>
-            <h3 className="text-lg font-semibold mb-6">Developers</h3>
-            <ul className="space-y-4">
-              {footerLinks.developers.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-gray-300 hover:text-primary transition-colors duration-200">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-6">Company</h3>
-            <ul className="space-y-4">
-              {footerLinks.company.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-gray-300 hover:text-primary transition-colors duration-200">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-6">Resources</h3>
-            <ul className="space-y-4">
-              {footerLinks.resources.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-gray-300 hover:text-primary transition-colors duration-200">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+            <h3 className="text-primary font-medium mb-4">Connect</h3>
+            <ul className="space-y-2">
+              <li>
+                <a href="https://discord.gg/r3e-network" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-primary text-sm">
+                  Discord
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/R3ENetwork" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-primary text-sm">
+                  Twitter
+                </a>
+              </li>
+              <li>
+                <a href="https://medium.com/@R3ENetwork" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-primary text-sm">
+                  Medium
+                </a>
+              </li>
+              <li>
+                <Link href="/contact" className="text-gray-300 hover:text-primary text-sm">
+                  Contact Us
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
         
-        {/* Footer bottom - copyright */}
-        <div className="pt-8 text-center md:flex md:justify-between md:items-center">
-          <p className="text-gray-400 mb-4 md:mb-0">
-            &copy; {new Date().getFullYear()} Neo N3 Service Layer. All rights reserved.
+        <div className="border-t border-gray-700 mt-10 pt-8 flex flex-col md:flex-row justify-between items-center">
+          <p className="text-gray-400 text-sm mb-4 md:mb-0">
+            &copy; {new Date().getFullYear()} R3E Network. All rights reserved.
           </p>
-          <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-6 justify-center">
-            <Link href="/privacy" className="text-gray-400 hover:text-primary transition-colors duration-200">
+          <div className="flex space-x-6">
+            <Link href="/privacy-policy" className="text-gray-400 hover:text-primary text-sm">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="text-gray-400 hover:text-primary transition-colors duration-200">
+            <Link href="/terms-of-service" className="text-gray-400 hover:text-primary text-sm">
               Terms of Service
-            </Link>
-            <Link href="/cookies" className="text-gray-400 hover:text-primary transition-colors duration-200">
-              Cookie Policy
             </Link>
           </div>
         </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import FunctionEditor from '@/components/playground/FunctionEditor';
+import WalletExample from './WalletExample';
 
 // Example templates
 const examples = [
@@ -133,6 +134,16 @@ export default function PlaygroundPage() {
               </button>
               <button
                 className={`px-6 py-3 font-medium text-sm ${
+                  activeTab === 'wallet'
+                    ? 'border-b-2 border-primary text-primary'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+                onClick={() => setActiveTab('wallet')}
+              >
+                Wallet Connection
+              </button>
+              <button
+                className={`px-6 py-3 font-medium text-sm ${
                   activeTab === 'examples'
                     ? 'border-b-2 border-primary text-primary'
                     : 'text-gray-600 hover:text-gray-800'
@@ -161,6 +172,15 @@ export default function PlaygroundPage() {
                     Write and test your JavaScript functions in this playground. The execution is simulated, but it represents how your code would run in the actual TEE environment.
                   </p>
                   <FunctionEditor />
+                </div>
+              )}
+
+              {activeTab === 'wallet' && (
+                <div>
+                  <p className="mb-6 text-gray-600">
+                    Connect your Neo N3 wallet to interact with the blockchain directly. This demonstrates the wallet integration capabilities of the Neo Service Layer.
+                  </p>
+                  <WalletExample />
                 </div>
               )}
 
