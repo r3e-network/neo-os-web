@@ -1,0 +1,11 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" rx="16" fill="#E8F9F3"/>
+  <!-- Bank/vault building -->
+  <rect x="12" y="28" width="40" height="24" rx="2" fill="#00E599" fill-opacity="0.6"/>
+  <!-- Bank/vault roof -->
+  <path d="M32 12L48 28H16L32 12Z" fill="#00E599"/>
+  <!-- Gas symbol -->
+  <path d="M28 36C28 34.8954 28.8954 34 30 34H34C35.1046 34 36 34.8954 36 36V44H28V36Z" fill="#0D1B2A"/>
+  <path d="M32 34V30" stroke="#0D1B2A" stroke-width="3" stroke-linecap="round"/>
+  <path d="M26 44H38" stroke="#0D1B2A" stroke-width="3" stroke-linecap="round"/>
+</svg> 

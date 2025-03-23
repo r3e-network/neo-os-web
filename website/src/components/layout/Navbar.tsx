@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -16,7 +16,21 @@ const navItems = [
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -27,29 +41,37 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50">
+    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-sm shadow-md' : 'bg-transparent'}`}>
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <span className="text-2xl font-bold text-primary mr-2">Neo N3</span>
-              <span className="text-2xl font-semibold text-secondary">Service Layer</span>
+              <Image 
+                src="/logo.svg" 
+                alt="Neo N3 Service Layer" 
+                width={200} 
+                height={60} 
+                className="h-10 w-auto"
+                priority
+              />
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
-            <div className="ml-10 flex items-center space-x-6">
+            <div className="ml-10 flex items-center space-x-8">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`${
-                    isActive(item.href)
-                      ? 'text-primary font-semibold'
-                      : 'text-secondary hover:text-primary'
-                  } transition-colors duration-200`}
+                  className={`
+                    ${isActive(item.href)
+                      ? 'text-primary font-semibold border-b-2 border-primary'
+                      : 'text-secondary hover:text-primary hover:border-b-2 hover:border-primary/50'
+                    } 
+                    transition-all duration-200 py-2 text-sm font-medium
+                  `}
                 >
                   {item.label}
                 </Link>
@@ -59,7 +81,7 @@ export default function Navbar() {
 
           {/* CTA Button */}
           <div className="hidden md:block">
-            <Link href="/contact" className="btn btn-primary">
+            <Link href="/contact" className="btn btn-primary rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all duration-300">
               Get Started
             </Link>
           </div>
@@ -68,7 +90,7 @@ export default function Navbar() {
           <div className="md:hidden">
             <button
               onClick={toggleMobileMenu}
-              className="text-secondary focus:outline-none"
+              className={`${scrolled ? 'text-secondary' : 'text-white'} focus:outline-none transition-colors`}
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
@@ -107,8 +129,8 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t">
-          <div className="container mx-auto px-4 py-4 space-y-3">
+        <div className="md:hidden bg-white/95 backdrop-blur-sm border-t shadow-xl animate-slideDown">
+          <div className="container mx-auto px-4 py-4 space-y-4">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -117,7 +139,7 @@ export default function Navbar() {
                   isActive(item.href)
                     ? 'text-primary font-semibold'
                     : 'text-secondary hover:text-primary'
-                } block transition-colors duration-200`}
+                } block transition-colors duration-200 text-lg`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {item.label}
@@ -125,7 +147,7 @@ export default function Navbar() {
             ))}
             <Link
               href="/contact"
-              className="btn btn-primary block text-center mt-4"
+              className="btn btn-primary block text-center mt-6 rounded-full shadow-lg shadow-primary/20"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Get Started
