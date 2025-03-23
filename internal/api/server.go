@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/api/gasbank"
+	apigasbank "github.com/R3E-Network/service_layer/internal/api/gasbank"
 	"github.com/R3E-Network/service_layer/internal/api/middleware"
-	"github.com/R3E-Network/service_layer/internal/api/oracle"
+	apioracle "github.com/R3E-Network/service_layer/internal/api/oracle"
 	"github.com/R3E-Network/service_layer/internal/api/pricefeed"
 	"github.com/R3E-Network/service_layer/internal/api/random"
 	"github.com/R3E-Network/service_layer/internal/blockchain"
@@ -15,10 +15,7 @@ import (
 	"github.com/R3E-Network/service_layer/internal/core/auth"
 	"github.com/R3E-Network/service_layer/internal/core/automation"
 	"github.com/R3E-Network/service_layer/internal/core/functions"
-	"github.com/R3E-Network/service_layer/internal/core/gasbank"
-	coreGasbank "github.com/R3E-Network/service_layer/internal/core/gasbank"
 	"github.com/R3E-Network/service_layer/internal/core/oracle"
-	coreOracle "github.com/R3E-Network/service_layer/internal/core/oracle"
 	corePricefeed "github.com/R3E-Network/service_layer/internal/core/pricefeed"
 	coreRandom "github.com/R3E-Network/service_layer/internal/core/random"
 	"github.com/R3E-Network/service_layer/internal/core/secrets"
@@ -29,6 +26,7 @@ import (
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/time/rate"
 )
 
 // Server represents the HTTP server
@@ -60,15 +58,15 @@ type Server struct {
 	automationService  *automation.Service
 	priceFeedService   *corePricefeed.PriceFeedService
 	randomService      *coreRandom.Service
-	oracleService      *coreOracle.Service
-	gasBankService     *coreGasbank.Service
+	oracleService      *oracle.Service
+	gasBankService     *apigasbank.Service
 	transactionService *blockchain.TransactionService
 	walletStore        *blockchain.WalletStore
 
 	// API handlers
-	transactionHandlers *TransactionHandlers
-	contractHandlers    *ContractHandlers
-	eventHandlers       *EventHandlers
+	transactionHandlers *blockchain.TransactionHandlers
+	contractHandlers    *blockchain.ContractHandlers
+	eventHandlers       *blockchain.EventHandlers
 }
 
 // NewServer creates a new HTTP server
@@ -140,7 +138,7 @@ func NewServer(cfg *config.Config, log *logger.Logger) (*Server, error) {
 	)
 
 	// Create Gas Bank service
-	gasBankService := coreGasbank.NewService(cfg, log, gasBankRepository, blockchainClient)
+	gasBankService := apigasbank.NewService(cfg, log, gasBankRepository, blockchainClient)
 
 	// Create services
 	authService := auth.NewService(cfg, log, userRepository)
@@ -162,7 +160,7 @@ func NewServer(cfg *config.Config, log *logger.Logger) (*Server, error) {
 		blockchainClient,
 		teeManager,
 	)
-	oracleService := coreOracle.NewService(
+	oracleService := oracle.NewService(
 		cfg,
 		log,
 		oracleRepository,
@@ -172,9 +170,9 @@ func NewServer(cfg *config.Config, log *logger.Logger) (*Server, error) {
 	)
 
 	// Create API handlers
-	transactionHandlers := NewTransactionHandlers(transactionService)
-	contractHandlers := NewContractHandlers(blockchainClient, walletStore, log)
-	eventHandlers := NewEventHandlers(blockchainClient, log)
+	transactionHandlers := blockchain.NewTransactionHandlers(transactionService)
+	contractHandlers := blockchain.NewContractHandlers(blockchainClient, walletStore, log)
+	eventHandlers := blockchain.NewEventHandlers(blockchainClient, log)
 
 	// Create server
 	server := &Server{
@@ -362,7 +360,7 @@ func (s *Server) registerRoutes() {
 
 	// Gas Bank routes
 	if s.config.Features.GasBank {
-		gasBankHandler := gasbank.NewHandler(s.gasBankService, s.logger)
+		gasBankHandler := apigasbank.NewHandler(s.gasBankService, s.logger)
 		gasBankHandler.Register(protected)
 	}
 
@@ -380,7 +378,7 @@ func (s *Server) registerRoutes() {
 
 	// Oracle routes
 	if s.config.Features.Oracle {
-		oracleHandler := oracle.NewHandler(s.oracleService, s.logger)
+		oracleHandler := apioracle.NewHandler(s.oracleService, s.logger)
 		oracleHandler.Register(protected)
 	}
 

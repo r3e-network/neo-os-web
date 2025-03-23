@@ -1,5 +1,11 @@
 # Neo N3 Service Layer
 
+[![Build Status](https://github.com/R3E-Network/service_layer/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/R3E-Network/service_layer/actions/workflows/ci-cd.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/R3E-Network/service_layer)](https://goreportcard.com/report/github.com/R3E-Network/service_layer)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/release/R3E-Network/service_layer.svg)](https://github.com/R3E-Network/service_layer/releases/latest)
+[![codecov](https://codecov.io/gh/R3E-Network/service_layer/branch/master/graph/badge.svg)](https://codecov.io/gh/R3E-Network/service_layer)
+
 A centralized oracle service for the Neo N3 blockchain, providing functions execution in TEE, contract automation, price feeds, and more.
 
 ## Features
@@ -212,7 +218,19 @@ For more details, see:
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+We welcome contributions from the community! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on the process for submitting pull requests to us, and our [Code of Conduct](CODE_OF_CONDUCT.md) for guidelines on community interaction.
+
+## Security
+
+See the [Security Policy](SECURITY.md) for reporting security vulnerabilities and our approach to security.
+
+## Versioning
+
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/R3E-Network/service_layer/tags).
+
+## Changelog
+
+See the [Changelog](CHANGELOG.md) for a list of notable changes for each version of the project.
 
 ## License
 
