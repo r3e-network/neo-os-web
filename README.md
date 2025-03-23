@@ -38,6 +38,26 @@ For a detailed view of the implementation status and next steps, see:
 - [Implementation Summary](docs/implementation_summary.md) - Summary of completed work
 - [Implementation Plan](docs/implementation_plan.md) - Original plan and progress
 
+## Compatibility Strategy
+
+The service layer depends on several external dependencies, including the Neo-Go SDK, which may undergo API changes between versions. To handle this, we've implemented a compatibility layer approach:
+
+1. **Isolation of External Dependencies**: All direct interactions with external SDKs are wrapped in our compatibility layers in `internal/[package]/compat/` directories.
+2. **Versioning**: The `go.mod` file explicitly defines the versions of dependencies we support.
+3. **Adaptation**: When upgrading dependencies, we update the compatibility layer rather than changing our core business logic.
+
+For more details, see [our compatibility documentation](docs/COMPATIBILITY.md).
+
+## Recent Updates
+
+- Fixed JavaScript runtime execution environment for TEE
+- Added configuration fields for Azure Confidential Computing
+- Created a compatibility layer for Neo-Go SDK
+- Fixed import path conflicts and type duplication issues
+- Added comprehensive documentation for components and their implementation status
+
+For a detailed list of issues and their solutions, see [SERVICE_LAYER_ISSUES.md](docs/SERVICE_LAYER_ISSUES.md).
+
 ## Getting Started
 
 ### Prerequisites

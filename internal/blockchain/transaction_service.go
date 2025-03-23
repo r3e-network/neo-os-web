@@ -42,6 +42,24 @@ func NewTransactionService(
 	}
 }
 
+// NewTransactionServiceWithFactory creates a new TransactionService with the repository factory
+func NewTransactionServiceWithFactory(
+	factory *database.RepositoryFactory,
+	client *Client,
+	walletStore *WalletStore,
+	confirmations int64,
+	useOptimizedRepo bool,
+) *TransactionService {
+	repo := factory.CreateTransactionRepository(useOptimizedRepo)
+	return &TransactionService{
+		repo:          repo,
+		client:        client,
+		walletStore:   walletStore,
+		confirmations: confirmations,
+		pending:       make(map[string]models.Transaction),
+	}
+}
+
 // CreateTransaction creates a new transaction and submits it to the blockchain
 func (s *TransactionService) CreateTransaction(ctx context.Context, req models.CreateTransactionRequest) (*models.Transaction, error) {
 	// Initialize the transaction model

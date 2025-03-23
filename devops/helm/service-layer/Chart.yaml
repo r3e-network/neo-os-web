@@ -1,0 +1,36 @@
+apiVersion: v2
+name: service-layer
+description: Neo N3 Service Layer providing oracle services, gasbank, functions, and more
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - neo
+  - blockchain
+  - oracle
+  - functions
+  - gasbank
+  - tee
+
+home: https://github.com/R3E-Network/service_layer
+sources:
+  - https://github.com/R3E-Network/service_layer
+
+maintainers:
+  - name: R3E Network
+    email: dev@r3e.network
+
+dependencies:
+  - name: postgresql
+    version: ~12.1.5
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: prometheus
+    version: ~15.10.1
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: prometheus.enabled
+  - name: grafana
+    version: ~6.50.0
+    repository: https://grafana.github.io/helm-charts
+    condition: grafana.enabled 

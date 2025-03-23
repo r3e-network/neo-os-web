@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/blockchain"
 	"github.com/R3E-Network/service_layer/internal/config"
 	"github.com/R3E-Network/service_layer/internal/models"
 	"github.com/R3E-Network/service_layer/pkg/logger"
@@ -53,70 +54,70 @@ func (m *MockGasBankRepository) UpdateAccountBalance(id int, balance float64) er
 	return args.Error(0)
 }
 
-func (m *MockGasBankRepository) CreateTransaction(tx *models.Transaction) error {
+func (m *MockGasBankRepository) CreateTransaction(tx *models.GasBankTransaction) error {
 	args := m.Called(tx)
 	return args.Error(0)
 }
 
-func (m *MockGasBankRepository) GetTransactionByID(id int) (*models.Transaction, error) {
+func (m *MockGasBankRepository) GetTransactionByID(id int) (*models.GasBankTransaction, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Transaction), args.Error(1)
+	return args.Get(0).(*models.GasBankTransaction), args.Error(1)
 }
 
-func (m *MockGasBankRepository) GetTransactionByTxHash(txHash string) (*models.Transaction, error) {
+func (m *MockGasBankRepository) GetTransactionByTxHash(txHash string) (*models.GasBankTransaction, error) {
 	args := m.Called(txHash)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Transaction), args.Error(1)
+	return args.Get(0).(*models.GasBankTransaction), args.Error(1)
 }
 
-func (m *MockGasBankRepository) ListTransactionsByUserID(userID int, offset, limit int) ([]*models.Transaction, error) {
+func (m *MockGasBankRepository) ListTransactionsByUserID(userID int, offset, limit int) ([]*models.GasBankTransaction, error) {
 	args := m.Called(userID, offset, limit)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*models.Transaction), args.Error(1)
+	return args.Get(0).([]*models.GasBankTransaction), args.Error(1)
 }
 
-func (m *MockGasBankRepository) ListTransactionsByAccountID(accountID int, offset, limit int) ([]*models.Transaction, error) {
+func (m *MockGasBankRepository) ListTransactionsByAccountID(accountID int, offset, limit int) ([]*models.GasBankTransaction, error) {
 	args := m.Called(accountID, offset, limit)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*models.Transaction), args.Error(1)
+	return args.Get(0).([]*models.GasBankTransaction), args.Error(1)
 }
 
-func (m *MockGasBankRepository) UpdateTransactionStatus(id int, status models.TransactionStatus) error {
+func (m *MockGasBankRepository) UpdateTransactionStatus(id int, status models.GasBankTransactionStatus) error {
 	args := m.Called(id, status)
 	return args.Error(0)
 }
 
-func (m *MockGasBankRepository) DepositGas(userID int, address string, amount float64, txHash string) (*models.Transaction, error) {
+func (m *MockGasBankRepository) DepositGas(userID int, address string, amount float64, txHash string) (*models.GasBankTransaction, error) {
 	args := m.Called(userID, address, amount, txHash)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Transaction), args.Error(1)
+	return args.Get(0).(*models.GasBankTransaction), args.Error(1)
 }
 
-func (m *MockGasBankRepository) WithdrawGas(userID int, address string, amount float64, txHash string) (*models.Transaction, error) {
+func (m *MockGasBankRepository) WithdrawGas(userID int, address string, amount float64, txHash string) (*models.GasBankTransaction, error) {
 	args := m.Called(userID, address, amount, txHash)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Transaction), args.Error(1)
+	return args.Get(0).(*models.GasBankTransaction), args.Error(1)
 }
 
-func (m *MockGasBankRepository) UseGas(userID int, address string, amount float64, txType models.TransactionType, relatedID int) (*models.Transaction, error) {
+func (m *MockGasBankRepository) UseGas(userID int, address string, amount float64, txType models.GasBankTransactionType, relatedID int) (*models.GasBankTransaction, error) {
 	args := m.Called(userID, address, amount, txType, relatedID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Transaction), args.Error(1)
+	return args.Get(0).(*models.GasBankTransaction), args.Error(1)
 }
 
 // Mock BlockchainClient
@@ -175,14 +176,14 @@ func TestDepositGas(t *testing.T) {
 		mockBlockchainClient.On("GetTransaction", "0xabc123").Return(txData, nil).Once()
 		mockBlockchainClient.On("VerifyTransaction", "0xabc123").Return(true, nil).Once()
 
-		expectedTx := &models.Transaction{
+		expectedTx := &models.GasBankTransaction{
 			ID:        1,
 			UserID:    2,
 			AccountID: 3,
-			Type:      models.TransactionTypeDeposit,
+			Type:      models.GasBankTransactionTypeDeposit,
 			Amount:    10.0,
 			TxHash:    "0xabc123",
-			Status:    models.TransactionStatusConfirmed,
+			Status:    models.GasBankTransactionStatusConfirmed,
 			CreatedAt: time.Now(),
 		}
 		mockRepo.On("DepositGas", 2, "neo1address123", 10.0, "0xabc123").Return(expectedTx, nil).Once()
@@ -337,18 +338,18 @@ func TestWithdrawGas(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		// Setup mocks
-		pendingTx := &models.Transaction{
+		pendingTx := &models.GasBankTransaction{
 			ID:        2,
 			UserID:    2,
 			AccountID: 3,
-			Type:      models.TransactionTypeWithdraw,
+			Type:      models.GasBankTransactionTypeWithdraw,
 			Amount:    10.0,
-			Status:    models.TransactionStatusPending,
+			Status:    models.GasBankTransactionStatusPending,
 			CreatedAt: time.Now(),
 		}
 		mockRepo.On("WithdrawGas", 2, "neo1address123", 10.0, "").Return(pendingTx, nil).Once()
 		mockBlockchainClient.On("SendTransaction", "neo1address123", "neo1destination456", 10.0).Return("0xdef456", nil).Once()
-		mockRepo.On("UpdateTransactionStatus", 2, models.TransactionStatusPending).Return(nil).Once()
+		mockRepo.On("UpdateTransactionStatus", 2, models.GasBankTransactionStatusPending).Return(nil).Once()
 
 		// Call service
 		tx, err := service.WithdrawGas(ctx, 2, "neo1address123", 10.0, "neo1destination456")
@@ -415,18 +416,18 @@ func TestWithdrawGas(t *testing.T) {
 
 	t.Run("BlockchainError", func(t *testing.T) {
 		// Setup mocks
-		pendingTx := &models.Transaction{
+		pendingTx := &models.GasBankTransaction{
 			ID:        2,
 			UserID:    2,
 			AccountID: 3,
-			Type:      models.TransactionTypeWithdraw,
+			Type:      models.GasBankTransactionTypeWithdraw,
 			Amount:    10.0,
-			Status:    models.TransactionStatusPending,
+			Status:    models.GasBankTransactionStatusPending,
 			CreatedAt: time.Now(),
 		}
 		mockRepo.On("WithdrawGas", 2, "neo1address123", 10.0, "").Return(pendingTx, nil).Once()
 		mockBlockchainClient.On("SendTransaction", "neo1address123", "neo1destination456", 10.0).Return("", errors.New("blockchain error")).Once()
-		mockRepo.On("UpdateTransactionStatus", 2, models.TransactionStatusFailed).Return(nil).Once()
+		mockRepo.On("UpdateTransactionStatus", 2, models.GasBankTransactionStatusFailed).Return(nil).Once()
 
 		// Call service
 		tx, err := service.WithdrawGas(ctx, 2, "neo1address123", 10.0, "neo1destination456")
@@ -446,25 +447,25 @@ func TestGetTransactions(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		// Setup mock
-		expectedTransactions := []*models.Transaction{
+		expectedTransactions := []*models.GasBankTransaction{
 			{
 				ID:        1,
 				UserID:    2,
 				AccountID: 3,
-				Type:      models.TransactionTypeDeposit,
+				Type:      models.GasBankTransactionTypeDeposit,
 				Amount:    10.0,
 				TxHash:    "0xabc123",
-				Status:    models.TransactionStatusConfirmed,
+				Status:    models.GasBankTransactionStatusConfirmed,
 				CreatedAt: time.Now().Add(-1 * time.Hour),
 			},
 			{
 				ID:        2,
 				UserID:    2,
 				AccountID: 3,
-				Type:      models.TransactionTypeWithdraw,
+				Type:      models.GasBankTransactionTypeWithdraw,
 				Amount:    5.0,
 				TxHash:    "0xdef456",
-				Status:    models.TransactionStatusPending,
+				Status:    models.GasBankTransactionStatusPending,
 				CreatedAt: time.Now(),
 			},
 		}
@@ -481,7 +482,7 @@ func TestGetTransactions(t *testing.T) {
 
 	t.Run("EmptyList", func(t *testing.T) {
 		// Setup mock
-		mockRepo.On("ListTransactionsByUserID", 3, 0, 10).Return([]*models.Transaction{}, nil).Once()
+		mockRepo.On("ListTransactionsByUserID", 3, 0, 10).Return([]*models.GasBankTransaction{}, nil).Once()
 
 		// Call service
 		transactions, err := service.GetTransactions(3, 1, 10)
@@ -639,25 +640,25 @@ func TestGetAccountTransactions(t *testing.T) {
 		}
 		mockRepo.On("GetAccountByUserIDAndAddress", 2, "neo1address123").Return(account, nil).Once()
 
-		expectedTransactions := []*models.Transaction{
+		expectedTransactions := []*models.GasBankTransaction{
 			{
 				ID:        1,
 				UserID:    2,
 				AccountID: 1,
-				Type:      models.TransactionTypeDeposit,
+				Type:      models.GasBankTransactionTypeDeposit,
 				Amount:    10.0,
 				TxHash:    "0xabc123",
-				Status:    models.TransactionStatusConfirmed,
+				Status:    models.GasBankTransactionStatusConfirmed,
 				CreatedAt: time.Now().Add(-1 * time.Hour),
 			},
 			{
 				ID:        2,
 				UserID:    2,
 				AccountID: 1,
-				Type:      models.TransactionTypeWithdraw,
+				Type:      models.GasBankTransactionTypeWithdraw,
 				Amount:    5.0,
 				TxHash:    "0xdef456",
-				Status:    models.TransactionStatusPending,
+				Status:    models.GasBankTransactionStatusPending,
 				CreatedAt: time.Now(),
 			},
 		}
@@ -722,4 +723,92 @@ func TestGetAccountTransactions(t *testing.T) {
 		assert.Contains(t, err.Error(), "database error")
 		mockRepo.AssertExpectations(t)
 	})
+}
+
+// TestGasBankService tests the gas bank service with the mock blockchain client
+func TestGasBankService(t *testing.T) {
+	// Skip the test if in short mode
+	if testing.Short() {
+		t.Skip("Skipping gas bank service test in short mode")
+	}
+
+	// Set up the mock blockchain client
+	client, cleanup := blockchain.SetupTestBlockchain(t)
+	defer cleanup()
+
+	// Set up the mock gas bank repository
+	repo := NewMockGasBankRepository()
+
+	// Create a minimal config
+	cfg := &config.Config{
+		Services: config.ServicesConfig{
+			GasBank: config.GasBankConfig{
+				MinDeposit:    1.0,
+				MaxWithdrawal: 100.0,
+				GasReserve:    10.0,
+			},
+		},
+	}
+
+	// Create the gas bank service
+	service := NewService(cfg, nil, repo, client)
+
+	// Test user data
+	testUserID := 1
+	testAddress := "NXGTSpLFfp85KiycNxNLqkqq2dampAcb1L"
+
+	// Test creating an account
+	ctx := context.Background()
+	account, err := service.CreateAccount(ctx, testUserID, testAddress)
+	require.NoError(t, err)
+	assert.Equal(t, testUserID, account.UserID)
+	assert.Equal(t, testAddress, account.Address)
+	assert.Equal(t, 0.0, account.Balance)
+
+	// Test getting account by ID
+	fetchedAccount, err := service.GetAccount(ctx, account.ID)
+	require.NoError(t, err)
+	assert.Equal(t, account.ID, fetchedAccount.ID)
+	assert.Equal(t, testAddress, fetchedAccount.Address)
+
+	// Test depositing gas
+	depositAmount := 50.0
+	tx, err := service.DepositGas(ctx, testUserID, testAddress, depositAmount)
+	require.NoError(t, err)
+	assert.Equal(t, models.GasBankTransactionTypeDeposit, tx.Type)
+	assert.Equal(t, depositAmount, tx.Amount)
+
+	// Verify account balance was updated
+	updatedAccount, err := service.GetAccount(ctx, account.ID)
+	require.NoError(t, err)
+	assert.Equal(t, depositAmount, updatedAccount.Balance)
+
+	// Test withdrawing gas
+	withdrawAmount := 20.0
+	tx, err = service.WithdrawGas(ctx, testUserID, testAddress, withdrawAmount)
+	require.NoError(t, err)
+	assert.Equal(t, models.GasBankTransactionTypeWithdraw, tx.Type)
+	assert.Equal(t, withdrawAmount, tx.Amount)
+
+	// Verify account balance was updated
+	updatedAccount, err = service.GetAccount(ctx, account.ID)
+	require.NoError(t, err)
+	assert.Equal(t, depositAmount-withdrawAmount, updatedAccount.Balance)
+
+	// Test using gas for a function
+	useAmount := 5.0
+	tx, err = service.UseGas(ctx, testUserID, testAddress, useAmount, models.GasBankTransactionTypeFunction)
+	require.NoError(t, err)
+	assert.Equal(t, models.GasBankTransactionTypeFunction, tx.Type)
+	assert.Equal(t, useAmount, tx.Amount)
+
+	// Verify account balance was updated
+	updatedAccount, err = service.GetAccount(ctx, account.ID)
+	require.NoError(t, err)
+	assert.Equal(t, depositAmount-withdrawAmount-useAmount, updatedAccount.Balance)
+
+	// Test getting transactions for account
+	transactions, err := service.GetTransactions(ctx, testUserID, 0, 10)
+	require.NoError(t, err)
+	assert.Len(t, transactions, 3) // deposit, withdraw, use
 }

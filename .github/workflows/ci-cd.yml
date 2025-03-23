@@ -72,6 +72,12 @@ jobs:
       - name: Run golangci-lint
         run: golangci-lint run ./... --timeout=5m
 
+      - name: Lint Helm Charts
+        uses: helm/chart-testing-action@v2.3.1
+        with:
+          command: lint
+          charts_dir: devops/helm
+
   build:
     name: Build
     needs: setup
@@ -255,6 +261,15 @@ jobs:
           verbose: true
         continue-on-error: true
 
+      - name: Scan Docker Image for Vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'ghcr.io/r3e-network/service_layer:latest'
+          format: 'json'
+          output: 'security_reports/trivy.json'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
       - name: Upload security reports
         uses: actions/upload-artifact@v3
         with:
@@ -381,9 +396,34 @@ jobs:
           path: /tmp/neo-n3-service-layer.tar
           retention-days: 7
 
+  helm-package:
+    name: Package Helm Chart
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.10.0'
+
+      - name: Package Helm chart
+        run: |
+          mkdir -p helm-packages
+          helm package devops/helm/service-layer -d helm-packages
+
+      - name: Upload Helm package
+        uses: actions/upload-artifact@v3
+        with:
+          name: helm-packages
+          path: helm-packages/
+          retention-days: 7
+
   deploy-staging:
     name: Deploy to Staging
-    needs: [docker-build, performance-test]
+    needs: [docker-build, performance-test, helm-package]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop' || github.event.inputs.deploy == 'staging'
     environment:
@@ -392,11 +432,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.10.0'
+
       - name: Download Docker image
         uses: actions/download-artifact@v3
         with:
           name: docker-image
           path: /tmp
+
+      - name: Download Helm package
+        uses: actions/download-artifact@v3
+        with:
+          name: helm-packages
+          path: /tmp/helm-packages
 
       - name: Load Docker image
         run: docker load --input /tmp/neo-n3-service-layer.tar
@@ -413,16 +469,31 @@ jobs:
           docker tag neo-n3-service-layer:${{ github.sha }} ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:staging
           docker push ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:staging
 
+      - name: Configure kubectl
+        uses: azure/k8s-set-context@v3
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG_STAGING }}
+
       - name: Deploy to staging
         run: |
-          # This would use a deployment script or tool to update the staging environment
-          echo "Deploying to staging environment..."
-          # Example: Using kubectl to update deployment
-          # kubectl set image deployment/neo-n3-service-layer neo-n3-service-layer=${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:staging
+          helm upgrade --install --wait service-layer /tmp/helm-packages/service-layer-*.tgz \
+            --namespace service-layer \
+            --create-namespace \
+            --set image.repository=${{ secrets.REGISTRY_URL }}/neo-n3-service-layer \
+            --set image.tag=staging \
+            --set secrets.db_password="${{ secrets.DB_PASSWORD }}" \
+            --set secrets.jwt_secret="${{ secrets.JWT_SECRET }}" \
+            --set secrets.encryption_key="${{ secrets.ENCRYPTION_KEY }}" \
+            --values devops/helm/service-layer/values.yaml \
+            --values devops/helm/service-layer/environments/staging.yaml
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/service-layer -n service-layer --timeout=180s
 
   deploy-production:
     name: Deploy to Production
-    needs: [docker-build, performance-test]
+    needs: [docker-build, performance-test, helm-package]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event.inputs.deploy == 'production'
     environment:
@@ -431,11 +502,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.10.0'
+
       - name: Download Docker image
         uses: actions/download-artifact@v3
         with:
           name: docker-image
           path: /tmp
+
+      - name: Download Helm package
+        uses: actions/download-artifact@v3
+        with:
+          name: helm-packages
+          path: /tmp/helm-packages
 
       - name: Load Docker image
         run: docker load --input /tmp/neo-n3-service-layer.tar
@@ -454,12 +541,27 @@ jobs:
           docker push ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:latest
           docker push ${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:${{ github.sha }}
 
+      - name: Configure kubectl
+        uses: azure/k8s-set-context@v3
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG_PRODUCTION }}
+
       - name: Deploy to production
         run: |
-          # This would use a deployment script or tool to update the production environment
-          echo "Deploying to production environment..."
-          # Example: Using kubectl to update deployment
-          # kubectl set image deployment/neo-n3-service-layer neo-n3-service-layer=${{ secrets.REGISTRY_URL }}/neo-n3-service-layer:latest
+          helm upgrade --install --wait service-layer /tmp/helm-packages/service-layer-*.tgz \
+            --namespace service-layer \
+            --create-namespace \
+            --set image.repository=${{ secrets.REGISTRY_URL }}/neo-n3-service-layer \
+            --set image.tag=latest \
+            --set secrets.db_password="${{ secrets.DB_PASSWORD }}" \
+            --set secrets.jwt_secret="${{ secrets.JWT_SECRET }}" \
+            --set secrets.encryption_key="${{ secrets.ENCRYPTION_KEY }}" \
+            --values devops/helm/service-layer/values.yaml \
+            --values devops/helm/service-layer/environments/production.yaml
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/service-layer -n service-layer --timeout=180s
 
   notify:
     name: Notification
@@ -468,6 +570,12 @@ jobs:
     if: always()
     steps:
       - name: Send notification
-        run: |
-          # This could be a script to send notifications via email, Slack, etc.
-          echo "Workflow completed with status: ${{ job.status }}" 
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "Deployment status: ${{ job.status }}\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\nWorkflow: ${{ github.workflow }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true 

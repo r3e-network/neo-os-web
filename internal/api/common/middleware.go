@@ -25,7 +25,7 @@ func APIKeyMiddleware() gin.HandlerFunc {
 		}
 
 		if apiKey == "" {
-			RespondWithError(c, http.StatusUnauthorized, "API key is required")
+			RespondWithErrorMessage(c, http.StatusUnauthorized, "API key is required")
 			c.Abort()
 			return
 		}
@@ -33,7 +33,7 @@ func APIKeyMiddleware() gin.HandlerFunc {
 		// In a real implementation, we would validate the API key against a database
 		// For now, we'll use a simple check (this should be replaced)
 		if !strings.HasPrefix(apiKey, "sk_") {
-			RespondWithError(c, http.StatusUnauthorized, "Invalid API key")
+			RespondWithErrorMessage(c, http.StatusUnauthorized, "Invalid API key")
 			c.Abort()
 			return
 		}
@@ -54,12 +54,12 @@ func GetUserID(c *gin.Context) int {
 	if !exists {
 		return 0
 	}
-	
+
 	id, ok := userID.(int)
 	if !ok {
 		return 0
 	}
-	
+
 	return id
 }
 
@@ -69,12 +69,12 @@ func GetAPIKeyUserID(c *gin.Context) int {
 	if !exists {
 		return 0
 	}
-	
+
 	id, ok := userID.(int)
 	if !ok {
 		return 0
 	}
-	
+
 	return id
 }
 
@@ -83,19 +83,19 @@ func GetPaginationParams(c *gin.Context) (int, int) {
 	// Default values
 	offset := 0
 	limit := 20
-	
+
 	// Try to get page number
 	page, err := getIntParam(c, "page", 1)
 	if err == nil && page > 0 {
 		offset = (page - 1) * limit
 	}
-	
+
 	// Try to get limit
 	newLimit, err := getIntParam(c, "limit", 20)
 	if err == nil && newLimit > 0 && newLimit <= 100 {
 		limit = newLimit
 	}
-	
+
 	return offset, limit
 }
 
@@ -105,11 +105,11 @@ func getIntParam(c *gin.Context, param string, defaultValue int) (int, error) {
 	if valueStr == "" {
 		return defaultValue, nil
 	}
-	
+
 	value, err := strconv.Atoi(valueStr)
 	if err != nil {
 		return defaultValue, err
 	}
-	
+
 	return value, nil
-} 
+}

@@ -30,8 +30,15 @@ require (
 )
 
 require (
+	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
+)
+
+require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.3.3 // indirect
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/PaesslerAG/gval v1.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
@@ -78,6 +85,7 @@ require (
 	github.com/prometheus/procfs v0.11.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954 // indirect
+	github.com/tidwall/gjson v1.18.0
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect

@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/blockchain/compat"
 	"github.com/R3E-Network/service_layer/internal/models"
 
 	"github.com/R3E-Network/service_layer/internal/config"
@@ -89,8 +90,8 @@ func (s *DBWalletStore) CreateWallet(ctx context.Context, userID int, name, pass
 		return "", fmt.Errorf("failed to create wallet: %w", err)
 	}
 
-	// Create a new account with the password
-	if err := w.CreateAccount(password); err != nil {
+	// Create a new account with the password using our compatibility layer
+	if err := compat.CreateAccountWithLabel(w, password, "default"); err != nil {
 		return "", fmt.Errorf("failed to create account: %w", err)
 	}
 
@@ -309,8 +310,8 @@ func (s *DBWalletStore) ClearCache() {
 	s.cacheMutex.Unlock()
 }
 
-// WalletStore provides functionality for managing service wallets
-type WalletStore struct {
+// ServiceWalletStore provides functionality for managing service wallets
+type ServiceWalletStore struct {
 	db          *sqlx.DB
 	logger      *logger.Logger
 	config      *config.Config
@@ -319,8 +320,8 @@ type WalletStore struct {
 	cacheMutex  sync.RWMutex
 }
 
-// NewWalletStore creates a new WalletStore
-func NewWalletStore(config *config.Config, logger *logger.Logger, db *sqlx.DB) *WalletStore {
+// NewServiceWalletStore creates a new wallet store
+func NewServiceWalletStore(config *config.Config, logger *logger.Logger, db *sqlx.DB) *ServiceWalletStore {
 	// Generate encryption key from config
 	encryptKey := []byte(config.Security.EncryptionKey)
 	if len(encryptKey) < 32 {
@@ -333,7 +334,7 @@ func NewWalletStore(config *config.Config, logger *logger.Logger, db *sqlx.DB) *
 		encryptKey = encryptKey[:32]
 	}
 
-	return &WalletStore{
+	return &ServiceWalletStore{
 		db:          db,
 		logger:      logger,
 		config:      config,
@@ -343,17 +344,18 @@ func NewWalletStore(config *config.Config, logger *logger.Logger, db *sqlx.DB) *
 }
 
 // CreateWallet creates a new wallet for a service
-func (s *WalletStore) CreateWallet(ctx context.Context, service string) (*models.WalletAccount, error) {
+func (s *ServiceWalletStore) CreateWallet(ctx context.Context, service string) (*models.WalletAccount, error) {
 	// Create a new Neo N3 wallet
 	account, err := wallet.NewAccount()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create account: %w", err)
 	}
 
-	// Get the address, private key, and public key
-	address := account.Address
-	privateKey := hex.EncodeToString(account.PrivateKey())
-	publicKey := hex.EncodeToString(account.PublicKey().Bytes())
+	// Use our compatibility helper to get account information
+	helper := compat.NewAccountHelper(account)
+	address := helper.GetAddress()
+	privateKey := helper.GetPrivateKeyHex()
+	publicKey := helper.GetPublicKeyHex()
 
 	// Encrypt the private key
 	encryptedKey, err := s.encryptPrivateKey(privateKey)
@@ -394,8 +396,8 @@ func (s *WalletStore) CreateWallet(ctx context.Context, service string) (*models
 	return walletAccount, nil
 }
 
-// GetPrivateKey gets the private key for a wallet
-func (s *WalletStore) GetPrivateKey(ctx context.Context, walletID uuid.UUID) (string, error) {
+// GetPrivateKey retrieves the private key for a wallet
+func (s *ServiceWalletStore) GetPrivateKey(ctx context.Context, walletID uuid.UUID) (string, error) {
 	// Check cache first
 	s.cacheMutex.RLock()
 	privateKey, exists := s.walletCache[walletID]
@@ -431,7 +433,7 @@ func (s *WalletStore) GetPrivateKey(ctx context.Context, walletID uuid.UUID) (st
 }
 
 // encryptPrivateKey encrypts a private key
-func (s *WalletStore) encryptPrivateKey(privateKey string) (string, error) {
+func (s *ServiceWalletStore) encryptPrivateKey(privateKey string) (string, error) {
 	// Create a new AES cipher
 	block, err := aes.NewCipher(s.encryptKey)
 	if err != nil {
@@ -458,7 +460,7 @@ func (s *WalletStore) encryptPrivateKey(privateKey string) (string, error) {
 }
 
 // decryptPrivateKey decrypts a private key
-func (s *WalletStore) decryptPrivateKey(encryptedKey string) (string, error) {
+func (s *ServiceWalletStore) decryptPrivateKey(encryptedKey string) (string, error) {
 	// Decode the hex string
 	ciphertext, err := hex.DecodeString(encryptedKey)
 	if err != nil {
@@ -495,7 +497,7 @@ func (s *WalletStore) decryptPrivateKey(encryptedKey string) (string, error) {
 }
 
 // ClearCache clears the wallet cache
-func (s *WalletStore) ClearCache() {
+func (s *ServiceWalletStore) ClearCache() {
 	s.cacheMutex.Lock()
 	defer s.cacheMutex.Unlock()
 	s.walletCache = make(map[uuid.UUID]string)

@@ -91,7 +91,13 @@ func (r *PostgresExecutionRepository) GetByID(id int) (*models.Execution, error)
 	if err != nil {
 		return nil, err
 	}
-	execution.Logs = logs
+
+	// Convert []*models.ExecutionLog to []models.ExecutionLog
+	executionLogs := make([]models.ExecutionLog, len(logs))
+	for i, log := range logs {
+		executionLogs[i] = *log
+	}
+	execution.Logs = executionLogs
 
 	return execution, nil
 }

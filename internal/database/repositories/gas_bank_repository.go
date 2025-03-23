@@ -145,8 +145,8 @@ func (r *PostgresGasBankRepository) UpdateAccountBalance(id int, balance float64
 	return err
 }
 
-// CreateTransaction creates a new transaction
-func (r *PostgresGasBankRepository) CreateTransaction(tx *models.Transaction) error {
+// CreateTransaction creates a new gas transaction
+func (r *PostgresGasBankRepository) CreateTransaction(tx *models.GasBankTransaction) error {
 	query := `
 		INSERT INTO transactions (user_id, account_id, type, amount, tx_hash, status, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -166,14 +166,14 @@ func (r *PostgresGasBankRepository) CreateTransaction(tx *models.Transaction) er
 	return err
 }
 
-// GetTransactionByID gets a transaction by ID
-func (r *PostgresGasBankRepository) GetTransactionByID(id int) (*models.Transaction, error) {
+// GetTransactionByID gets a gas transaction by ID
+func (r *PostgresGasBankRepository) GetTransactionByID(id int) (*models.GasBankTransaction, error) {
 	query := `
 		SELECT id, user_id, account_id, type, amount, tx_hash, status, created_at
 		FROM transactions
 		WHERE id = $1
 	`
-	tx := &models.Transaction{}
+	tx := &models.GasBankTransaction{}
 	var txHash sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
@@ -201,15 +201,15 @@ func (r *PostgresGasBankRepository) GetTransactionByID(id int) (*models.Transact
 	return tx, nil
 }
 
-// GetTransactionByTxHash gets a transaction by transaction hash
-func (r *PostgresGasBankRepository) GetTransactionByTxHash(txHash string) (*models.Transaction, error) {
+// GetTransactionByTxHash gets a gas transaction by transaction hash
+func (r *PostgresGasBankRepository) GetTransactionByTxHash(txHash string) (*models.GasBankTransaction, error) {
 	query := `
 		SELECT id, user_id, account_id, type, amount, tx_hash, status, created_at
 		FROM transactions
 		WHERE tx_hash = $1
 	`
-	tx := &models.Transaction{}
-	var dbTxHash sql.NullString
+	tx := &models.GasBankTransaction{}
+	var txHashStr sql.NullString
 
 	err := r.db.QueryRow(query, txHash).Scan(
 		&tx.ID,
@@ -217,7 +217,7 @@ func (r *PostgresGasBankRepository) GetTransactionByTxHash(txHash string) (*mode
 		&tx.AccountID,
 		&tx.Type,
 		&tx.Amount,
-		&dbTxHash,
+		&txHashStr,
 		&tx.Status,
 		&tx.CreatedAt,
 	)
@@ -229,15 +229,15 @@ func (r *PostgresGasBankRepository) GetTransactionByTxHash(txHash string) (*mode
 		return nil, err
 	}
 
-	if dbTxHash.Valid {
-		tx.TxHash = dbTxHash.String
+	if txHashStr.Valid {
+		tx.TxHash = txHashStr.String
 	}
 
 	return tx, nil
 }
 
-// ListTransactionsByUserID lists transactions for a user
-func (r *PostgresGasBankRepository) ListTransactionsByUserID(userID int, offset, limit int) ([]*models.Transaction, error) {
+// ListTransactionsByUserID lists gas transactions by user ID
+func (r *PostgresGasBankRepository) ListTransactionsByUserID(userID int, offset, limit int) ([]*models.GasBankTransaction, error) {
 	query := `
 		SELECT id, user_id, account_id, type, amount, tx_hash, status, created_at
 		FROM transactions
@@ -247,13 +247,13 @@ func (r *PostgresGasBankRepository) ListTransactionsByUserID(userID int, offset,
 	`
 	rows, err := r.db.Query(query, userID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error querying transactions by user ID: %w", err)
 	}
 	defer rows.Close()
 
-	transactions := []*models.Transaction{}
+	var transactions []*models.GasBankTransaction
 	for rows.Next() {
-		tx := &models.Transaction{}
+		tx := &models.GasBankTransaction{}
 		var txHash sql.NullString
 
 		err := rows.Scan(
@@ -284,8 +284,8 @@ func (r *PostgresGasBankRepository) ListTransactionsByUserID(userID int, offset,
 	return transactions, nil
 }
 
-// ListTransactionsByAccountID lists transactions for an account
-func (r *PostgresGasBankRepository) ListTransactionsByAccountID(accountID int, offset, limit int) ([]*models.Transaction, error) {
+// ListTransactionsByAccountID lists gas transactions by account ID
+func (r *PostgresGasBankRepository) ListTransactionsByAccountID(accountID int, offset, limit int) ([]*models.GasBankTransaction, error) {
 	query := `
 		SELECT id, user_id, account_id, type, amount, tx_hash, status, created_at
 		FROM transactions
@@ -295,13 +295,13 @@ func (r *PostgresGasBankRepository) ListTransactionsByAccountID(accountID int, o
 	`
 	rows, err := r.db.Query(query, accountID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error querying transactions by account ID: %w", err)
 	}
 	defer rows.Close()
 
-	transactions := []*models.Transaction{}
+	var transactions []*models.GasBankTransaction
 	for rows.Next() {
-		tx := &models.Transaction{}
+		tx := &models.GasBankTransaction{}
 		var txHash sql.NullString
 
 		err := rows.Scan(
@@ -332,8 +332,8 @@ func (r *PostgresGasBankRepository) ListTransactionsByAccountID(accountID int, o
 	return transactions, nil
 }
 
-// UpdateTransactionStatus updates a transaction's status
-func (r *PostgresGasBankRepository) UpdateTransactionStatus(id int, status models.TransactionStatus) error {
+// UpdateTransactionStatus updates a gas transaction status
+func (r *PostgresGasBankRepository) UpdateTransactionStatus(id int, status models.GasBankTransactionStatus) error {
 	query := `
 		UPDATE transactions
 		SET status = $1
@@ -343,14 +343,18 @@ func (r *PostgresGasBankRepository) UpdateTransactionStatus(id int, status model
 	return err
 }
 
-// DepositGas deposits gas to an account with a transaction
-func (r *PostgresGasBankRepository) DepositGas(userID int, address string, amount float64, txHash string) (*models.Transaction, error) {
-	// Start a transaction
-	dbTx, err := r.db.Begin()
+// DepositGas deposits gas to an account
+func (r *PostgresGasBankRepository) DepositGas(userID int, address string, amount float64, txHash string) (*models.GasBankTransaction, error) {
+	// Start transaction
+	tx, err := r.db.Begin()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error starting transaction: %w", err)
 	}
-	defer dbTx.Rollback()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
 	// Get the account or create it if it doesn't exist
 	account, err := r.GetAccountByUserIDAndAddress(userID, address)
@@ -375,7 +379,7 @@ func (r *PostgresGasBankRepository) DepositGas(userID int, address string, amoun
 			VALUES ($1, $2, $3, $4, $5)
 			RETURNING id
 		`
-		err = dbTx.QueryRow(
+		err = tx.QueryRow(
 			query,
 			account.UserID,
 			account.Address,
@@ -397,20 +401,20 @@ func (r *PostgresGasBankRepository) DepositGas(userID int, address string, amoun
 			SET balance = $1, updated_at = $2
 			WHERE id = $3
 		`
-		_, err = dbTx.Exec(query, account.Balance, account.UpdatedAt, account.ID)
+		_, err = tx.Exec(query, account.Balance, account.UpdatedAt, account.ID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// Create a transaction record
-	transaction := &models.Transaction{
+	// Create transaction record
+	gasTx := &models.GasBankTransaction{
 		UserID:    userID,
 		AccountID: account.ID,
-		Type:      models.TransactionTypeDeposit,
+		Type:      models.GasBankTransactionTypeDeposit,
 		Amount:    amount,
 		TxHash:    txHash,
-		Status:    models.TransactionStatusConfirmed,
+		Status:    models.GasBankTransactionStatusPending,
 		CreatedAt: now,
 	}
 
@@ -420,37 +424,41 @@ func (r *PostgresGasBankRepository) DepositGas(userID int, address string, amoun
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
-	err = dbTx.QueryRow(
+	err = tx.QueryRow(
 		query,
-		transaction.UserID,
-		transaction.AccountID,
-		transaction.Type,
-		transaction.Amount,
-		transaction.TxHash,
-		transaction.Status,
-		transaction.CreatedAt,
-	).Scan(&transaction.ID)
+		gasTx.UserID,
+		gasTx.AccountID,
+		gasTx.Type,
+		gasTx.Amount,
+		gasTx.TxHash,
+		gasTx.Status,
+		gasTx.CreatedAt,
+	).Scan(&gasTx.ID)
 
 	if err != nil {
 		return nil, err
 	}
 
 	// Commit the transaction
-	if err = dbTx.Commit(); err != nil {
+	if err = tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	return transaction, nil
+	return gasTx, nil
 }
 
-// WithdrawGas withdraws gas from an account with a transaction
-func (r *PostgresGasBankRepository) WithdrawGas(userID int, address string, amount float64, txHash string) (*models.Transaction, error) {
-	// Start a transaction
-	dbTx, err := r.db.Begin()
+// WithdrawGas withdraws gas from an account
+func (r *PostgresGasBankRepository) WithdrawGas(userID int, address string, amount float64, txHash string) (*models.GasBankTransaction, error) {
+	// Start transaction
+	tx, err := r.db.Begin()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error starting transaction: %w", err)
 	}
-	defer dbTx.Rollback()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
 	// Get the account
 	account, err := r.GetAccountByUserIDAndAddress(userID, address)
@@ -477,19 +485,19 @@ func (r *PostgresGasBankRepository) WithdrawGas(userID int, address string, amou
 		SET balance = $1, updated_at = $2
 		WHERE id = $3
 	`
-	_, err = dbTx.Exec(query, account.Balance, account.UpdatedAt, account.ID)
+	_, err = tx.Exec(query, account.Balance, account.UpdatedAt, account.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a transaction record
-	transaction := &models.Transaction{
+	// Create transaction record
+	gasTx := &models.GasBankTransaction{
 		UserID:    userID,
 		AccountID: account.ID,
-		Type:      models.TransactionTypeWithdraw,
+		Type:      models.GasBankTransactionTypeWithdraw,
 		Amount:    amount,
 		TxHash:    txHash,
-		Status:    models.TransactionStatusPending, // Initially pending until confirmed on-chain
+		Status:    models.GasBankTransactionStatusPending,
 		CreatedAt: now,
 	}
 
@@ -499,37 +507,41 @@ func (r *PostgresGasBankRepository) WithdrawGas(userID int, address string, amou
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
-	err = dbTx.QueryRow(
+	err = tx.QueryRow(
 		query,
-		transaction.UserID,
-		transaction.AccountID,
-		transaction.Type,
-		transaction.Amount,
-		transaction.TxHash,
-		transaction.Status,
-		transaction.CreatedAt,
-	).Scan(&transaction.ID)
+		gasTx.UserID,
+		gasTx.AccountID,
+		gasTx.Type,
+		gasTx.Amount,
+		gasTx.TxHash,
+		gasTx.Status,
+		gasTx.CreatedAt,
+	).Scan(&gasTx.ID)
 
 	if err != nil {
 		return nil, err
 	}
 
 	// Commit the transaction
-	if err = dbTx.Commit(); err != nil {
+	if err = tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	return transaction, nil
+	return gasTx, nil
 }
 
-// UseGas uses gas for an operation with a transaction
-func (r *PostgresGasBankRepository) UseGas(userID int, address string, amount float64, txType models.TransactionType, relatedID int) (*models.Transaction, error) {
-	// Start a transaction
-	dbTx, err := r.db.Begin()
+// UseGas uses gas for a service
+func (r *PostgresGasBankRepository) UseGas(userID int, address string, amount float64, txType models.GasBankTransactionType, relatedID int) (*models.GasBankTransaction, error) {
+	// Start transaction
+	tx, err := r.db.Begin()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error starting transaction: %w", err)
 	}
-	defer dbTx.Rollback()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
 	// Get the account
 	account, err := r.GetAccountByUserIDAndAddress(userID, address)
@@ -556,18 +568,18 @@ func (r *PostgresGasBankRepository) UseGas(userID int, address string, amount fl
 		SET balance = $1, updated_at = $2
 		WHERE id = $3
 	`
-	_, err = dbTx.Exec(query, account.Balance, account.UpdatedAt, account.ID)
+	_, err = tx.Exec(query, account.Balance, account.UpdatedAt, account.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a transaction record
-	transaction := &models.Transaction{
+	// Create transaction record
+	gasTx := &models.GasBankTransaction{
 		UserID:    userID,
 		AccountID: account.ID,
 		Type:      txType,
 		Amount:    amount,
-		Status:    models.TransactionStatusConfirmed,
+		Status:    models.GasBankTransactionStatusConfirmed,
 		CreatedAt: now,
 	}
 
@@ -577,24 +589,24 @@ func (r *PostgresGasBankRepository) UseGas(userID int, address string, amount fl
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
 	`
-	err = dbTx.QueryRow(
+	err = tx.QueryRow(
 		query,
-		transaction.UserID,
-		transaction.AccountID,
-		transaction.Type,
-		transaction.Amount,
-		transaction.Status,
-		transaction.CreatedAt,
-	).Scan(&transaction.ID)
+		gasTx.UserID,
+		gasTx.AccountID,
+		gasTx.Type,
+		gasTx.Amount,
+		gasTx.Status,
+		gasTx.CreatedAt,
+	).Scan(&gasTx.ID)
 
 	if err != nil {
 		return nil, err
 	}
 
 	// Commit the transaction
-	if err = dbTx.Commit(); err != nil {
+	if err = tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	return transaction, nil
+	return gasTx, nil
 }

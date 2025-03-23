@@ -18,9 +18,10 @@ func RespondWithSuccess(c *gin.Context, statusCode int, data interface{}) {
 	})
 }
 
-// RespondWithError is a simplified version of the error response function
-func RespondWithError(c *gin.Context, statusCode int, message string) {
+// RespondWithErrorMessage is a simplified version of the error response function
+// that only takes a message without an error object
+func RespondWithErrorMessage(c *gin.Context, statusCode int, message string) {
 	c.JSON(statusCode, ErrorResponse{
 		Error: message,
 	})
-} 
+}

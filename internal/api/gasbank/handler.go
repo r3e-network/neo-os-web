@@ -46,7 +46,7 @@ func (h *Handler) GetAccounts(c *gin.Context) {
 
 	accounts, err := h.gasBankService.GetAccounts(userID)
 	if err != nil {
-		common.RespondWithError(c, http.StatusInternalServerError, "Failed to get accounts: "+err.Error())
+		common.RespondWithError(c, http.StatusInternalServerError, "Failed to get accounts: "+err.Error(), err)
 		return
 	}
 
@@ -60,12 +60,12 @@ func (h *Handler) GetAccount(c *gin.Context) {
 
 	account, err := h.gasBankService.GetAccount(userID, address)
 	if err != nil {
-		common.RespondWithError(c, http.StatusInternalServerError, "Failed to get account: "+err.Error())
+		common.RespondWithError(c, http.StatusInternalServerError, "Failed to get account: "+err.Error(), err)
 		return
 	}
 
 	if account == nil {
-		common.RespondWithError(c, http.StatusNotFound, "Account not found")
+		common.RespondWithError(c, http.StatusNotFound, "Account not found", err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (h *Handler) GetTransactions(c *gin.Context) {
 
 	transactions, err := h.gasBankService.GetTransactions(userID, page, limit)
 	if err != nil {
-		common.RespondWithError(c, http.StatusInternalServerError, "Failed to get transactions: "+err.Error())
+		common.RespondWithError(c, http.StatusInternalServerError, "Failed to get transactions: "+err.Error(), err)
 		return
 	}
 
@@ -114,7 +114,7 @@ func (h *Handler) GetAccountTransactions(c *gin.Context) {
 
 	transactions, err := h.gasBankService.GetAccountTransactions(userID, address, page, limit)
 	if err != nil {
-		common.RespondWithError(c, http.StatusInternalServerError, "Failed to get account transactions: "+err.Error())
+		common.RespondWithError(c, http.StatusInternalServerError, "Failed to get account transactions: "+err.Error(), err, err)
 		return
 	}
 

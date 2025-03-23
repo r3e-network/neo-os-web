@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"encoding/json"
+	"strconv"
 	"sync"
 )
 
@@ -170,5 +171,5 @@ func (m *MockTEEManager) GetSecretOperations(userID int, secretName string) []st
 
 // Helper function to generate a unique key for a secret
 func getSecretKey(userID int, secretName string) string {
-	return string(userID) + ":" + secretName
+	return strconv.Itoa(userID) + ":" + secretName
 }

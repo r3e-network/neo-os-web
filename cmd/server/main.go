@@ -11,6 +11,7 @@ import (
 
 	"github.com/R3E-Network/service_layer/internal/api"
 	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/internal/monitoring"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
@@ -25,6 +26,17 @@ func main() {
 	// Initialize logger
 	log := logger.New(cfg.Monitoring.Logging)
 	log.Info("Starting Neo N3 Service Layer...")
+
+	// Initialize monitoring service
+	monitoringService, err := monitoring.NewService(&cfg.Monitoring, log)
+	if err != nil {
+		log.Warnf("Failed to initialize monitoring service: %v", err)
+	} else {
+		if err := monitoringService.Start(); err != nil {
+			log.Warnf("Failed to start monitoring service: %v", err)
+		}
+		defer monitoringService.Stop()
+	}
 
 	// Initialize API server
 	server, err := api.NewServer(cfg, log)

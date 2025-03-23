@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -147,27 +148,27 @@ func (r *SQLTransactionRepository) ListTransactions(
 	argIndex := 1
 
 	if service != "" {
-		query += ` AND service = $` + string(argIndex)
-		countQuery += ` AND service = $` + string(argIndex)
+		query += ` AND service = $` + strconv.Itoa(argIndex)
+		countQuery += ` AND service = $` + strconv.Itoa(argIndex)
 		args = append(args, service)
 		argIndex++
 	}
 
 	if status != "" {
-		query += ` AND status = $` + string(argIndex)
-		countQuery += ` AND status = $` + string(argIndex)
+		query += ` AND status = $` + strconv.Itoa(argIndex)
+		countQuery += ` AND status = $` + strconv.Itoa(argIndex)
 		args = append(args, status)
 		argIndex++
 	}
 
 	if entityID != nil {
-		query += ` AND entity_id = $` + string(argIndex)
-		countQuery += ` AND entity_id = $` + string(argIndex)
+		query += ` AND entity_id = $` + strconv.Itoa(argIndex)
+		countQuery += ` AND entity_id = $` + strconv.Itoa(argIndex)
 		args = append(args, entityID)
 		argIndex++
 	}
 
-	query += ` ORDER BY created_at DESC LIMIT $` + string(argIndex) + ` OFFSET $` + string(argIndex+1)
+	query += ` ORDER BY created_at DESC LIMIT $` + strconv.Itoa(argIndex) + ` OFFSET $` + strconv.Itoa(argIndex+1)
 	args = append(args, limit, (page-1)*limit)
 
 	var transactions []models.Transaction

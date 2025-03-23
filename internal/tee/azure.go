@@ -2,6 +2,8 @@ package tee
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -16,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/R3E-Network/service_layer/internal/config"
 	"github.com/R3E-Network/service_layer/internal/models"
@@ -146,18 +148,22 @@ func (p *azureProvider) StoreSecret(ctx context.Context, secret *models.Secret) 
 
 	p.logger.Infof("Storing secret %s in TEE", secret.Name)
 
-	// In a production TEE environment:
-	// 1. Verify we're running in a valid SGX enclave
-	// 2. Encrypt the secret with a TEE-specific key
-	// 3. The key is derived from hardware and only available in the enclave
-
-	userIDStr := fmt.Sprintf("%d", secret.UserID)
+	// Verify attestation is valid before allowing secret storage
+	if p.isSGXEnvironment() {
+		_, err := p.GetAttestation(ctx)
+		if err != nil {
+			return fmt.Errorf("attestation verification failed, cannot store secret: %w", err)
+		}
+	}
 
 	// Encrypt the secret value
 	encryptedValue, err := p.encryptSecret(secret.Value)
 	if err != nil {
 		return fmt.Errorf("failed to encrypt secret: %w", err)
 	}
+
+	// Store in memory (and would persist to sealed storage in a real implementation)
+	userIDStr := fmt.Sprintf("%d", secret.UserID)
 
 	p.secretsMu.Lock()
 	defer p.secretsMu.Unlock()
@@ -166,9 +172,7 @@ func (p *azureProvider) StoreSecret(ctx context.Context, secret *models.Secret) 
 		p.secrets[userIDStr] = make(map[string]string)
 	}
 
-	// Store the encrypted value
 	p.secrets[userIDStr][secret.Name] = encryptedValue
-
 	return nil
 }
 
@@ -180,11 +184,15 @@ func (p *azureProvider) GetSecret(ctx context.Context, userID int, secretName st
 
 	p.logger.Infof("Retrieving secret %s from TEE", secretName)
 
-	// In a production TEE environment:
-	// 1. Verify we're running in a valid SGX enclave
-	// 2. Retrieve the encrypted secret
-	// 3. Use the TEE-specific key to decrypt
+	// Verify attestation is valid before allowing secret retrieval
+	if p.isSGXEnvironment() {
+		_, err := p.GetAttestation(ctx)
+		if err != nil {
+			return "", fmt.Errorf("attestation verification failed, cannot retrieve secret: %w", err)
+		}
+	}
 
+	// Get the encrypted value
 	userIDStr := fmt.Sprintf("%d", userID)
 
 	p.secretsMu.RLock()
@@ -192,12 +200,12 @@ func (p *azureProvider) GetSecret(ctx context.Context, userID int, secretName st
 
 	if userSecrets, exists := p.secrets[userIDStr]; exists {
 		if encryptedValue, exists := userSecrets[secretName]; exists {
-			// Decrypt the secret value
-			decryptedValue, err := p.decryptSecret(encryptedValue)
+			// Decrypt the value
+			value, err := p.decryptSecret(encryptedValue)
 			if err != nil {
 				return "", fmt.Errorf("failed to decrypt secret: %w", err)
 			}
-			return decryptedValue, nil
+			return value, nil
 		}
 	}
 
@@ -212,11 +220,15 @@ func (p *azureProvider) DeleteSecret(ctx context.Context, userID int, secretName
 
 	p.logger.Infof("Deleting secret %s from TEE", secretName)
 
-	// In a real implementation, we would:
-	// 1. Verify we're running in a valid SGX enclave
-	// 2. Securely delete the secret
+	// Verify attestation is valid before allowing secret deletion
+	if p.isSGXEnvironment() {
+		_, err := p.GetAttestation(ctx)
+		if err != nil {
+			return fmt.Errorf("attestation verification failed, cannot delete secret: %w", err)
+		}
+	}
 
-	// For now, we'll delete from memory
+	// Delete from memory
 	userIDStr := fmt.Sprintf("%d", userID)
 
 	p.secretsMu.Lock()
@@ -238,24 +250,193 @@ func (p *azureProvider) GetAttestation(ctx context.Context) ([]byte, error) {
 
 	p.logger.Info("Getting attestation report from TEE")
 
-	// In a real implementation, we would:
-	// 1. Verify we're running in a valid SGX enclave
-	// 2. Request an attestation report from the SGX enclave
-	// 3. Validate the report with the Azure Attestation Service
+	// Check if our attestation has expired or needs refresh
+	var needsRefresh bool
+	if p.attestation == nil {
+		needsRefresh = true
+	} else if time.Now().After(p.attestation.expiry) {
+		p.logger.Info("Attestation token has expired, refreshing")
+		needsRefresh = true
+	} else if p.attestation.token == "mock-attestation-token" ||
+		strings.HasPrefix(p.attestation.token, "mock-attestation-token-") {
+		// In development we might have a mock token, but in production we'd verify
+		// the token's integrity here
+		if !p.isSGXEnvironment() {
+			// In development, we're fine with the mock token
+			needsRefresh = false
+		} else {
+			// In production, refresh if we somehow have a mock token
+			p.logger.Warn("Mock attestation token found in SGX environment, refreshing")
+			needsRefresh = true
+		}
+	}
 
-	// Check if our attestation has expired
-	if p.attestation == nil || time.Now().After(p.attestation.expiry) {
-		// Generate a new attestation
-		// This is a placeholder - in a real implementation, we would
-		// create a genuine attestation with the Azure Attestation Service
-		p.attestation = &azureAttestation{
-			token:       "mock-attestation-token",
-			attestation: []byte(`{"attestation": "mock-attestation-data"}`),
-			expiry:      time.Now().Add(24 * time.Hour),
+	// Refresh the attestation if needed
+	if needsRefresh {
+		if err := p.generateAttestationToken(); err != nil {
+			return nil, fmt.Errorf("failed to refresh attestation token: %w", err)
+		}
+	}
+
+	// Verify the attestation token before returning
+	if p.isSGXEnvironment() && !strings.HasPrefix(p.attestation.token, "mock-attestation-token") {
+		if err := p.verifyAttestationToken(p.attestation.token); err != nil {
+			return nil, fmt.Errorf("attestation token verification failed: %w", err)
 		}
 	}
 
 	return p.attestation.attestation, nil
+}
+
+// verifyAttestationToken validates the attestation token from Azure Attestation Service
+func (p *azureProvider) verifyAttestationToken(token string) error {
+	// In a real implementation, we would:
+	// 1. Verify the JWT signature using Azure Attestation Service's public key
+	// 2. Validate the claims (issuer, audience, expiration, etc.)
+	// 3. Verify the SGX quote embedded in the token (mrenclave, mrsigner, etc.)
+
+	p.logger.Info("Verifying attestation token")
+
+	// Basic format validation - ensure it's a JWT token (3 parts separated by dots)
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return errors.New("invalid token format: not a JWT token")
+	}
+
+	// Decode the header and payload
+	header, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return fmt.Errorf("failed to decode token header: %w", err)
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return fmt.Errorf("failed to decode token payload: %w", err)
+	}
+
+	// Parse the header
+	var headerMap map[string]interface{}
+	if err := json.Unmarshal(header, &headerMap); err != nil {
+		return fmt.Errorf("failed to parse token header: %w", err)
+	}
+
+	// Parse the payload
+	var payloadMap map[string]interface{}
+	if err := json.Unmarshal(payload, &payloadMap); err != nil {
+		return fmt.Errorf("failed to parse token payload: %w", err)
+	}
+
+	// Verify the token algorithm
+	alg, ok := headerMap["alg"].(string)
+	if !ok || (alg != "RS256" && alg != "ES256") {
+		return fmt.Errorf("unsupported token algorithm: %v", alg)
+	}
+
+	// Verify token claims
+	if err := p.verifyTokenClaims(payloadMap); err != nil {
+		return err
+	}
+
+	// Verify SGX-specific claims if present
+	if err := p.verifySGXClaims(payloadMap); err != nil {
+		return err
+	}
+
+	p.logger.Info("Attestation token verification successful")
+	return nil
+}
+
+// verifyTokenClaims verifies the standard JWT claims in the attestation token
+func (p *azureProvider) verifyTokenClaims(claims map[string]interface{}) error {
+	// Check token expiration
+	exp, ok := claims["exp"].(float64)
+	if !ok {
+		return errors.New("token missing expiration claim")
+	}
+
+	expTime := time.Unix(int64(exp), 0)
+	if time.Now().After(expTime) {
+		return errors.New("token has expired")
+	}
+
+	// Check token issuer
+	iss, ok := claims["iss"].(string)
+	if !ok {
+		return errors.New("token missing issuer claim")
+	}
+
+	// Verify the issuer is from Azure Attestation Service
+	// The issuer should contain the attestation provider URL
+	expectedIssuer := fmt.Sprintf("https://%s.%s.attest.azure.net",
+		p.config.Attestation.Instance,
+		p.config.Attestation.Region)
+
+	if !strings.Contains(iss, ".attest.azure.net") {
+		p.logger.Warnf("Invalid issuer: %s, expected: %s", iss, expectedIssuer)
+		return fmt.Errorf("invalid token issuer: %s", iss)
+	}
+
+	// In a real implementation, we would also verify:
+	// - The audience (aud) claim matches our expected value
+	// - The issued at (iat) claim is reasonable
+	// - Any additional claims required by your security policy
+
+	return nil
+}
+
+// verifySGXClaims verifies the SGX-specific claims in the attestation token
+func (p *azureProvider) verifySGXClaims(claims map[string]interface{}) error {
+	// Look for SGX-specific claims, which might be nested in the token
+	// The exact structure depends on the Azure Attestation Service response format
+
+	// Example: Check for SGX enclave quote information
+	var sgxClaims map[string]interface{}
+
+	// Check various possible locations for SGX claims
+	if x509, ok := claims["x509"].(map[string]interface{}); ok {
+		if sgx, ok := x509["sgx"].(map[string]interface{}); ok {
+			sgxClaims = sgx
+		}
+	} else if quote, ok := claims["sgx-quote"].(map[string]interface{}); ok {
+		sgxClaims = quote
+	} else if sgx, ok := claims["sgx"].(map[string]interface{}); ok {
+		sgxClaims = sgx
+	}
+
+	if sgxClaims == nil {
+		// If we're expecting SGX claims but don't find them, that's an error
+		if p.isSGXEnvironment() {
+			return errors.New("token missing SGX claims")
+		}
+		// Otherwise, we might be in development mode
+		return nil
+	}
+
+	// In a real implementation, we would verify:
+	// 1. The MRENCLAVE value matches our expected value
+	// 2. The MRSIGNER value matches our expected value
+	// 3. The security version numbers are acceptable
+	// 4. Any other SGX-specific attributes required by your security policy
+
+	// Example verification of mrenclave (if available)
+	if mrenclave, ok := sgxClaims["mrenclave"].(string); ok {
+		// In a real implementation, compare against the expected value
+		expectedMrenclave := os.Getenv("EXPECTED_MRENCLAVE")
+		if expectedMrenclave != "" && mrenclave != expectedMrenclave {
+			return fmt.Errorf("mrenclave value does not match expected value")
+		}
+	}
+
+	// Example verification of mrsigner (if available)
+	if mrsigner, ok := sgxClaims["mrsigner"].(string); ok {
+		// In a real implementation, compare against the expected value
+		expectedMrsigner := os.Getenv("EXPECTED_MRSIGNER")
+		if expectedMrsigner != "" && mrsigner != expectedMrsigner {
+			return fmt.Errorf("mrsigner value does not match expected value")
+		}
+	}
+
+	return nil
 }
 
 // generateAttestationToken generates an attestation token from the Azure Attestation Service
@@ -312,7 +493,7 @@ func (p *azureProvider) generateAttestationToken() error {
 	req.Header.Set("Content-Type", "application/json")
 
 	// Add Azure authentication
-	policies := azcore.TokenRequestOptions{Scopes: []string{p.config.Attestation.Scope}}
+	policies := policy.TokenRequestOptions{Scopes: []string{p.config.Attestation.Scope}}
 	token, err := cred.GetToken(context.Background(), policies)
 	if err != nil {
 		return fmt.Errorf("failed to get Azure token: %w", err)
@@ -392,11 +573,12 @@ func (p *azureProvider) isSGXEnvironment() bool {
 
 // encryptSecret encrypts a secret value using the provider's key
 func (p *azureProvider) encryptSecret(value string) (string, error) {
-	// In a production TEE environment, we would:
-	// 1. Use a key derived from hardware (SGX sealing key)
-	// 2. Use authenticated encryption (e.g., AES-GCM)
+	// Use SGX-specific encryption if available
+	if p.isSGXEnvironment() {
+		return p.encryptWithSGX(value)
+	}
 
-	// For now, we'll use RSA encryption with the key pair we generated
+	// For non-SGX environments, use RSA encryption with the key pair we generated
 	// This is a simplified implementation for development
 
 	// Generate a random label
@@ -422,14 +604,54 @@ func (p *azureProvider) encryptSecret(value string) (string, error) {
 	return encoded, nil
 }
 
+// encryptWithSGX encrypts data using SGX sealing functionality
+func (p *azureProvider) encryptWithSGX(value string) (string, error) {
+	// In a real SGX environment, we would:
+	// 1. Use sgx_seal_data or similar SGX SDK functions
+	// 2. Use a key derived from the enclave's sealing identity
+	// 3. Use authenticated encryption
+
+	// Mock implementation for now
+	// In a real implementation, this would call into C code via CGO
+	// that interfaces with the SGX SDK
+
+	// Generate a random IV
+	iv := make([]byte, 12) // 12 bytes for GCM
+	if _, err := rand.Read(iv); err != nil {
+		return "", fmt.Errorf("failed to generate IV: %w", err)
+	}
+
+	// For demonstration, we're using AES-GCM with a derived key
+	// In a real implementation, we would use SGX's sealing key
+	key := p.deriveSealingKey()
+
+	// Create a new AES-GCM block cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", fmt.Errorf("failed to create cipher: %w", err)
+	}
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("failed to create GCM: %w", err)
+	}
+
+	// Encrypt the value
+	ciphertext := aesGCM.Seal(nil, iv, []byte(value), nil)
+
+	// Encode the IV and ciphertext
+	encoded := "SGX|" + base64.StdEncoding.EncodeToString(iv) + "|" + base64.StdEncoding.EncodeToString(ciphertext)
+	return encoded, nil
+}
+
 // decryptSecret decrypts a secret value using the provider's key
 func (p *azureProvider) decryptSecret(encryptedValue string) (string, error) {
-	// In a production TEE environment, we would:
-	// 1. Use a key derived from hardware (SGX sealing key)
-	// 2. Use authenticated encryption (e.g., AES-GCM)
+	// Check if this is an SGX-encrypted value
+	if strings.HasPrefix(encryptedValue, "SGX|") {
+		return p.decryptWithSGX(encryptedValue)
+	}
 
-	// For now, we'll use RSA decryption with the key pair we generated
-
+	// For non-SGX encrypted values, use RSA decryption with the key pair we generated
 	// Split the encoded value and label
 	parts := strings.Split(encryptedValue, "|")
 	if len(parts) != 2 {
@@ -460,6 +682,64 @@ func (p *azureProvider) decryptSecret(encryptedValue string) (string, error) {
 	}
 
 	return string(plaintext), nil
+}
+
+// decryptWithSGX decrypts data using SGX unsealing functionality
+func (p *azureProvider) decryptWithSGX(encryptedValue string) (string, error) {
+	// In a real SGX environment, we would:
+	// 1. Use sgx_unseal_data or similar SGX SDK functions
+	// 2. Use a key derived from the enclave's sealing identity
+	// 3. Verify the authentication tag
+
+	// Parse the encrypted value
+	parts := strings.Split(encryptedValue, "|")
+	if len(parts) != 3 || parts[0] != "SGX" {
+		return "", errors.New("invalid SGX encrypted value format")
+	}
+
+	// Decode the IV and ciphertext
+	iv, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", fmt.Errorf("failed to decode IV: %w", err)
+	}
+
+	ciphertext, err := base64.StdEncoding.DecodeString(parts[2])
+	if err != nil {
+		return "", fmt.Errorf("failed to decode ciphertext: %w", err)
+	}
+
+	// For demonstration, we're using AES-GCM with a derived key
+	// In a real implementation, we would use SGX's sealing key
+	key := p.deriveSealingKey()
+
+	// Create a new AES-GCM block cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", fmt.Errorf("failed to create cipher: %w", err)
+	}
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("failed to create GCM: %w", err)
+	}
+
+	// Decrypt the value
+	plaintext, err := aesGCM.Open(nil, iv, ciphertext, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt: %w", err)
+	}
+
+	return string(plaintext), nil
+}
+
+// deriveSealingKey derives a key for sealing/unsealing secrets
+func (p *azureProvider) deriveSealingKey() []byte {
+	// In a real SGX environment, we would use the SGX SDK to get a sealing key
+	// This is a mock implementation for development
+
+	// Generate a key derived from our RSA private key for demonstration
+	keyHash := sha256.Sum256(p.keyPair.D.Bytes())
+	return keyHash[:]
 }
 
 // Close closes the Azure provider
