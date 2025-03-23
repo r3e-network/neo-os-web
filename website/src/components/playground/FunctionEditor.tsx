@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import Editor from '@monaco-editor/react';
+import { motion } from 'framer-motion';
 
 // Default function template
 const DEFAULT_FUNCTION = `// Write your JavaScript function here
@@ -237,11 +238,14 @@ const createMockStorageAPI = () => {
   };
 };
 
-export default function FunctionEditor() {
+// Create the function editor component with ref forwarding
+const FunctionEditor = forwardRef((props, ref) => {
   const [code, setCode] = useState(DEFAULT_FUNCTION);
   const [args, setArgs] = useState(DEFAULT_ARGS);
   const [result, setResult] = useState<FunctionExecutionResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [editorTheme, setEditorTheme] = useState('vs-dark');
+  const [showFullResult, setShowFullResult] = useState(false);
   
   // Load example function/args from localStorage if available
   useEffect(() => {
@@ -252,77 +256,96 @@ export default function FunctionEditor() {
     if (savedArgs) setArgs(savedArgs);
   }, []);
   
-  // Save code/args to localStorage when changed
+  // Save code/args to localStorage when they change
   useEffect(() => {
     localStorage.setItem('playground-code', code);
     localStorage.setItem('playground-args', args);
   }, [code, args]);
   
+  // Execute the function in a sandbox environment
   const executeFunction = async () => {
     setLoading(true);
     setResult(null);
     
     const logs: string[] = [];
+    
+    // Create a mock console.log for the sandbox
     const consoleLog = (...args: any[]) => {
-      logs.push(args.map(arg => 
-        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-      ).join(' '));
+      const logString = args.map(arg => {
+        if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg);
+          } catch (e) {
+            return String(arg);
+          }
+        }
+        return String(arg);
+      }).join(' ');
+      
+      logs.push(logString);
     };
     
     try {
-      // Parse the args
-      const parsedArgs = JSON.parse(args);
+      // Parse the arguments
+      let parsedArgs: any = {};
+      try {
+        parsedArgs = JSON.parse(args);
+      } catch (e: any) {
+        throw new Error(`Invalid arguments JSON: ${e.message}`);
+      }
       
-      // Create sandbox environment
+      // Create the sandbox environment
       const neo = createMockNeoAPI();
       const secrets = createMockSecretsAPI();
-      const storage = createMockStorageAPI();
       const fetch = createMockFetch(logs);
+      const storage = createMockStorageAPI();
       
-      // Prepare the function to execute
-      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+      // Set up the execution context
+      const sandbox = {
+        args: parsedArgs,
+        neo,
+        secrets,
+        fetch,
+        storage,
+        console: {
+          log: consoleLog,
+          error: consoleLog,
+          warn: consoleLog,
+          info: consoleLog
+        }
+      };
       
-      // Start timing
+      // Wrap the code in an async function
+      const wrappedCode = `
+        return (async function() {
+          ${code}
+          return await main(args);
+        })();
+      `;
+      
+      // Measure execution time
       const startTime = performance.now();
       
-      // Execute the function in a safe context
-      const sandbox = new AsyncFunction(
-        'args', 'neo', 'secrets', 'storage', 'fetch', 'console',
-        `
-          "use strict";
-          // Wrap execution to catch any errors
-          try {
-            ${code}
-            return await main(args);
-          } catch (error) {
-            throw new Error(error.message || "Unknown error");
-          }
-        `
-      );
+      // Execute the function
+      const functionFn = new Function(...Object.keys(sandbox), wrappedCode);
+      const data = await functionFn(...Object.values(sandbox));
       
-      const data = await sandbox(
-        parsedArgs, 
-        neo, 
-        secrets, 
-        storage, 
-        fetch,
-        { log: consoleLog }
-      );
-      
-      // End timing
       const endTime = performance.now();
-      const executionTime = ((endTime - startTime) / 1000).toFixed(3);
+      const executionTime = endTime - startTime;
       
+      // Return the result
       setResult({
         success: true,
         data,
-        executionTime: parseFloat(executionTime),
+        executionTime,
         logs
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Function execution error:', error);
+      
       setResult({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error.message,
         logs
       });
     } finally {
@@ -330,302 +353,222 @@ export default function FunctionEditor() {
     }
   };
   
-  // Function to load an example
-  const loadExample = (exampleCode: string, exampleArgs: string) => {
-    setCode(exampleCode);
-    setArgs(exampleArgs);
+  // Expose the loadExample method via ref
+  useImperativeHandle(ref, () => ({
+    loadExample: (exampleCode: string, exampleArgs: string) => {
+      console.log("loadExample called in FunctionEditor with code length:", exampleCode.length);
+      
+      if (!exampleCode || !exampleArgs) {
+        console.error("Invalid example code or args:", { exampleCode, exampleArgs });
+        return;
+      }
+      
+      try {
+        // Set values with a slight delay to ensure UI is ready
+        setTimeout(() => {
+          // First, set the code and args
+          setCode(exampleCode);
+          setArgs(exampleArgs);
+          
+          // Reset any previous results when loading a new example
+          setResult(null);
+          
+          // Save to localStorage for persistence
+          localStorage.setItem('playground-code', exampleCode);
+          localStorage.setItem('playground-args', exampleArgs);
+          
+          // Alert user that example was loaded
+          const messageContainer = document.createElement('div');
+          messageContainer.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+          messageContainer.textContent = 'Example loaded successfully';
+          document.body.appendChild(messageContainer);
+          
+          setTimeout(() => {
+            messageContainer.style.opacity = '0';
+            messageContainer.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => {
+              if (document.body.contains(messageContainer)) {
+                document.body.removeChild(messageContainer);
+              }
+            }, 500);
+          }, 2000);
+          
+          console.log("Example successfully loaded");
+        }, 100);
+      } catch (error) {
+        console.error("Error loading example:", error);
+      }
+    }
+  }));
+  
+  // Format JSON output
+  const formatOutput = (data: any) => {
+    try {
+      return JSON.stringify(data, null, 2);
+    } catch (e) {
+      return String(data);
+    }
+  };
+  
+  // Get a preview of the result for the collapsed view
+  const getResultPreview = (data: any) => {
+    const json = formatOutput(data);
+    if (json.length <= 300) return json;
+    return json.substring(0, 300) + '...';
   };
   
   return (
-    <div className="playground-container border rounded-lg overflow-hidden bg-white shadow-md">
-      <div className="flex flex-col md:flex-row">
-        {/* Function Editor */}
-        <div className="md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200">
-          <div className="p-4 bg-secondary text-white font-semibold">
-            <h3>Function Code</h3>
-          </div>
-          <div className="h-[400px]">
-            <Editor
-              height="100%"
-              language="javascript"
-              theme="vs-dark"
-              value={code}
-              onChange={(value) => setCode(value || '')}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-              }}
-            />
+    <div className="space-y-6">
+      {/* Function Editor */}
+      <div className="border rounded-lg overflow-hidden shadow-md">
+        <div className="flex justify-between items-center px-4 py-2 bg-gray-100 border-b">
+          <h3 className="font-medium">Function</h3>
+          <div className="flex items-center space-x-2">
+            <select 
+              className="text-sm border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+              value={editorTheme}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEditorTheme(e.target.value)}
+            >
+              <option value="vs-dark">Dark Theme</option>
+              <option value="vs-light">Light Theme</option>
+            </select>
           </div>
         </div>
-        
-        {/* Arguments & Results */}
-        <div className="md:w-1/2 flex flex-col">
-          {/* Arguments Editor */}
-          <div>
-            <div className="p-4 bg-secondary text-white font-semibold">
-              <h3>Arguments (JSON)</h3>
-            </div>
-            <div className="h-[200px]">
-              <Editor
-                height="100%"
-                language="json"
-                theme="vs-dark"
-                value={args}
-                onChange={(value) => setArgs(value || '')}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                }}
-              />
-            </div>
-          </div>
-          
-          {/* Results Section */}
-          <div className="flex-1 flex flex-col">
-            <div className="p-4 border-t border-gray-200 bg-secondary text-white font-semibold flex justify-between items-center">
-              <h3>Result</h3>
-              <button 
-                className={`px-4 py-2 rounded text-sm font-semibold transition-colors duration-200 ${
-                  loading 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-primary text-secondary hover:bg-primary/90'
-                }`}
-                onClick={executeFunction}
-                disabled={loading}
-              >
-                {loading ? 'Executing...' : 'Execute Function'}
-              </button>
-            </div>
-            <div className="flex-1 p-4 bg-gray-100 overflow-auto">
-              {result === null ? (
-                <div className="text-gray-500 italic">
-                  Click "Execute Function" to see the result
-                </div>
-              ) : result.success ? (
-                <div>
-                  <div className="text-green-500 font-semibold mb-2">
-                    ✓ Execution successful ({result.executionTime}s)
-                  </div>
-                  
-                  {/* Console logs */}
-                  {result.logs && result.logs.length > 0 && (
-                    <div className="mb-4">
-                      <div className="font-semibold text-gray-700 mb-1">Console output:</div>
-                      <div className="bg-gray-800 text-gray-200 p-3 rounded font-mono text-sm overflow-auto max-h-[100px]">
-                        {result.logs.map((log, i) => (
-                          <div key={i}>&gt; {log}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Result data */}
-                  <div className="font-semibold text-gray-700 mb-1">Return value:</div>
-                  <pre className="bg-white p-4 rounded border border-gray-200 overflow-auto">
-                    {JSON.stringify(result.data, null, 2)}
-                  </pre>
-                </div>
-              ) : (
-                <div>
-                  <div className="text-red-500 font-semibold mb-2">
-                    ✗ Execution failed
-                  </div>
-                  
-                  {/* Console logs for errors too */}
-                  {result.logs && result.logs.length > 0 && (
-                    <div className="mb-4">
-                      <div className="font-semibold text-gray-700 mb-1">Console output:</div>
-                      <div className="bg-gray-800 text-gray-200 p-3 rounded font-mono text-sm overflow-auto max-h-[100px]">
-                        {result.logs.map((log, i) => (
-                          <div key={i}>&gt; {log}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <pre className="bg-white p-4 rounded border border-red-200 text-red-600 overflow-auto">
-                    {result.error}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="h-[400px]">
+          <Editor
+            height="100%"
+            language="javascript"
+            theme={editorTheme}
+            value={code}
+            onChange={(value) => value !== undefined && setCode(value)}
+            options={{
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              fontFamily: 'JetBrains Mono, Menlo, Monaco, "Courier New", monospace',
+              fontSize: 14,
+              lineNumbers: 'on',
+              automaticLayout: true,
+              wordWrap: 'on',
+              tabSize: 2,
+              renderWhitespace: 'boundary',
+              scrollbar: {
+                vertical: 'auto',
+                horizontal: 'auto',
+              },
+              padding: { top: 10 },
+            }}
+          />
         </div>
       </div>
       
-      {/* Example buttons */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
-        <div className="flex flex-wrap gap-2">
-          <div className="text-gray-600 font-medium mr-2">Examples:</div>
-          <button 
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs"
-            onClick={() => loadExample(
-              `async function main(args) {
-  // Get current NEO price
-  const neoPrice = neo.getPrice("NEO/USD");
-  
-  // Get historical NEO price (simulated)
-  const historicalPrice = neo.getHistoricalPrice({
-    pair: "NEO/USD",
-    timestamp: new Date("2023-03-15").getTime() / 1000
-  });
-  
-  // Get multiple prices at once
-  const prices = await neo.getPrices(["NEO/USD", "GAS/USD", "BTC/USD"]);
-  
-  return {
-    currentNeoPrice: neoPrice,
-    historicalNeoPrice: historicalPrice,
-    allPrices: prices,
-    timestamp: new Date().toISOString()
-  };
-}`,
-              `{}`
-            )}
-          >
-            Price Feed
-          </button>
-          
-          <button 
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs"
-            onClick={() => loadExample(
-              `function main(args) {
-  // Get the address from args or use a default
-  const address = args.address || "NbnjKGMBJzJ6j5PHeYhjJDaQ5Vy5UYu4Fv";
-  
-  // Get NEO and GAS balances
-  const neoBalance = neo.getBalance(address, 'NEO');
-  const gasBalance = neo.getBalance(address, 'GAS');
-  
-  // Get recent transactions
-  const transactions = neo.getTransactions(address, { limit: 5 });
-  
-  return {
-    address: address,
-    balances: {
-      NEO: neoBalance,
-      GAS: gasBalance
-    },
-    recentTransactions: transactions,
-    blockHeight: neo.getBlockHeight(),
-    timestamp: new Date().toISOString()
-  };
-}`,
-              `{
-  "address": "NbnjKGMBJzJ6j5PHeYhjJDaQ5Vy5UYu4Fv"
-}`
-            )}
-          >
-            Blockchain Query
-          </button>
-          
-          <button 
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs"
-            onClick={() => loadExample(
-              `async function main(args) {
-  // Get API key from secrets
-  const apiKey = secrets.get('weather_api_key');
-  
-  // Call weather API for the requested location
-  const location = args.location || 'New York';
-  const response = await fetch(
-    \`https://api.weatherservice.com/data?location=\${location}\`,
-    { headers: { 'X-API-Key': apiKey } }
-  );
-  
-  if (!response.ok) {
-    throw new Error('Weather API request failed');
-  }
-  
-  const weatherData = await response.json();
-  
-  console.log("Weather data received:", weatherData);
-  
-  return {
-    location: location,
-    temperature: weatherData.temperature,
-    conditions: weatherData.conditions,
-    forecast: weatherData.forecast,
-    timestamp: new Date().toISOString()
-  };
-}`,
-              `{
-  "location": "San Francisco"
-}`
-            )}
-          >
-            External API
-          </button>
-          
-          <button 
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs"
-            onClick={() => loadExample(
-              `async function main(args) {
-  const { address, loanId, warningThreshold, actionThreshold } = args;
-  
-  // Get loan details (simulated contract call)
-  const loanContract = "0x8c34578c30b7e1d148c6c5f2ddb75c812e6f1991";
-  const loan = neo.call({
-    scriptHash: loanContract,
-    operation: "getLoan",
-    args: [loanId]
-  });
-  
-  console.log("Loan details:", loan);
-  
-  // Get current NEO price
-  const neoPrice = neo.getPrice("NEO/USD");
-  
-  // Calculate current collateral ratio
-  const collateralValueUSD = loan.collateralAmount * neoPrice;
-  const loanValueUSD = loan.loanAmount;
-  const collateralRatio = collateralValueUSD / loanValueUSD;
-  
-  console.log(\`Collateral ratio: \${collateralRatio}\`);
-  
-  // Determine if action is needed
-  let actionTaken = false;
-  let actionType = null;
-  
-  if (collateralRatio <= actionThreshold) {
-    actionType = "protective_action";
-    actionTaken = true;
-  } else if (collateralRatio <= warningThreshold) {
-    actionType = "warning";
-    actionTaken = true;
-  }
-  
-  return {
-    address,
-    loanId,
-    currentPrice: neoPrice,
-    collateralAmount: loan.collateralAmount,
-    loanAmount: loan.loanValueUSD,
-    collateralRatio,
-    warningThreshold,
-    actionThreshold,
-    actionTaken,
-    actionType,
-    timestamp: new Date().toISOString()
-  };
-}`,
-              `{
-  "address": "NbnjKGMBJzJ6j5PHeYhjJDaQ5Vy5UYu4Fv",
-  "loanId": "loan123",
-  "warningThreshold": 0.25,
-  "actionThreshold": 0.15
-}`
-            )}
-          >
-            Complex Example
-          </button>
+      {/* Arguments Editor */}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="px-4 py-2 bg-gray-100 border-b">
+          <h3 className="font-medium">Arguments (JSON)</h3>
+        </div>
+        <div className="h-[150px]">
+          <Editor
+            height="100%"
+            language="json"
+            theme={editorTheme}
+            value={args}
+            onChange={(value) => value !== undefined && setArgs(value)}
+            options={{
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              fontFamily: 'JetBrains Mono, Menlo, Monaco, "Courier New", monospace',
+              fontSize: 14,
+              automaticLayout: true,
+              tabSize: 2,
+            }}
+          />
         </div>
       </div>
+      
+      {/* Execute Button */}
+      <div className="flex justify-center">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`px-6 py-3 rounded-lg text-white ${loading ? 'bg-gray-500' : 'bg-primary hover:bg-primary/90'} font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors flex items-center space-x-2`}
+          onClick={executeFunction}
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Executing...</span>
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+              </svg>
+              <span>Execute Function</span>
+            </>
+          )}
+        </motion.button>
+      </div>
+      
+      {/* Result Display */}
+      {result && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`border rounded-lg overflow-hidden ${result.success ? 'border-green-300' : 'border-red-300'}`}
+        >
+          <div className={`px-4 py-2 ${result.success ? 'bg-green-50 border-b border-green-200' : 'bg-red-50 border-b border-red-200'} flex justify-between items-center`}>
+            <h3 className={`font-medium ${result.success ? 'text-green-700' : 'text-red-700'}`}>
+              {result.success ? 'Result' : 'Error'}
+              {result.executionTime && <span className="text-xs font-normal ml-2 text-gray-500">(executed in {result.executionTime.toFixed(2)}ms)</span>}
+            </h3>
+            <button 
+              className="text-gray-500 hover:text-gray-700 focus:outline-none text-sm flex items-center"
+              onClick={() => setShowFullResult(!showFullResult)}
+            >
+              {showFullResult ? 'Collapse' : 'Expand'}
+              <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transition-transform ${showFullResult ? 'transform rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div className="bg-gray-900 p-4 text-gray-200 font-mono text-sm overflow-x-auto">
+            <pre>{result.success 
+              ? (showFullResult ? formatOutput(result.data) : getResultPreview(result.data))
+              : result.error
+            }</pre>
+          </div>
+        </motion.div>
+      )}
+      
+      {/* Logs Display */}
+      {result && result.logs && result.logs.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="border rounded-lg overflow-hidden"
+        >
+          <div className="px-4 py-2 bg-gray-100 border-b flex justify-between items-center">
+            <h3 className="font-medium">Console Logs</h3>
+          </div>
+          <div className="bg-gray-900 p-4 text-gray-300 font-mono text-sm max-h-[200px] overflow-y-auto">
+            {result.logs.map((log, index) => (
+              <div key={index} className="pb-1">
+                <span className="text-gray-500 mr-2">{`>`}</span>
+                {log}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
-}
+});
+
+// Set display name for debugging
+FunctionEditor.displayName = 'FunctionEditor';
+
+export default FunctionEditor;

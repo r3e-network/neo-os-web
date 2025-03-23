@@ -11,7 +11,7 @@ const features = [
     id: 'functions',
     title: 'Functions Service',
     description: 'Execute JavaScript functions in a secure Trusted Execution Environment (TEE). The Functions Service enables developers to run custom logic that can read blockchain state, fetch external data, and make authenticated API calls, all within a secure environment.',
-    icon: '📦',
+    icon: '/features/function.svg',
     details: [
       'Secure JavaScript execution in Azure Confidential Computing TEE',
       'Memory limits and timeout enforcement',
@@ -25,7 +25,7 @@ const features = [
     id: 'secrets',
     title: 'Secret Management',
     description: 'Store sensitive data like API keys, private keys, and other credentials securely. The Secret Management service uses envelope encryption to protect your secrets, which are only accessible within the TEE during function execution.',
-    icon: '🔐',
+    icon: '/features/secrets.svg',
     details: [
       'Envelope encryption for all secrets',
       'Data key rotation mechanism',
@@ -39,7 +39,7 @@ const features = [
     id: 'automation',
     title: 'Contract Automation',
     description: 'Automate smart contract interactions based on various triggers. Set up time-based schedules, blockchain events, or price thresholds to automatically execute functions or interact with contracts.',
-    icon: '⚙️',
+    icon: '/features/automation.svg',
     details: [
       'Time-based scheduling (cron expressions)',
       'Blockchain event triggers',
@@ -53,7 +53,7 @@ const features = [
     id: 'gas-bank',
     title: 'Gas Bank',
     description: 'Efficient gas management for service operations. The Gas Bank handles the complexities of transaction fees, ensuring your contracts and automated functions always have the gas they need to execute.',
-    icon: '⛽',
+    icon: '/features/gasbank.svg',
     details: [
       'Automatic gas fee calculation',
       'Gas usage optimization',
@@ -67,7 +67,7 @@ const features = [
     id: 'random',
     title: 'Random Number Generation',
     description: 'Generate secure, verifiable random numbers for your smart contracts. The Random service uses TEE to ensure the randomness cannot be tampered with, making it ideal for games, lotteries, and fair selection processes.',
-    icon: '🎲',
+    icon: '/features/random.svg',
     details: [
       'Cryptographically secure random generation',
       'TEE-based execution for tamper resistance',
@@ -81,7 +81,7 @@ const features = [
     id: 'price-feed',
     title: 'Price Feed',
     description: 'Get reliable token price updates for your DeFi applications. The Price Feed service aggregates data from multiple sources, validates it in the TEE, and publishes it to the blockchain at regular intervals.',
-    icon: '💹',
+    icon: '/features/pricefeed.svg',
     details: [
       'Multi-source data aggregation',
       'Outlier detection and filtering',
@@ -95,7 +95,7 @@ const features = [
     id: 'oracle',
     title: 'Oracle Service',
     description: 'Bring external data to the Neo N3 blockchain. The Oracle service allows smart contracts to access real-world data from various sources, all validated and processed within the TEE for maximum security.',
-    icon: '🔮',
+    icon: '/features/oracle.svg',
     details: [
       'External API integration',
       'Data transformation capabilities',
@@ -174,7 +174,15 @@ export default function FeaturesPage() {
                       viewport={{ once: true }}
                       transition={{ duration: 0.5 }}
                     >
-                      <div className="text-5xl mb-4">{feature.icon}</div>
+                      <div className="mb-6">
+                        <Image 
+                          src={feature.icon} 
+                          alt={feature.title} 
+                          width={80} 
+                          height={80} 
+                          className="mb-4"
+                        />
+                      </div>
                       <h2 className="text-3xl font-bold mb-4">{feature.title}</h2>
                       <p className="text-lg text-gray-600 mb-6">{feature.description}</p>
                       
@@ -206,7 +214,13 @@ export default function FeaturesPage() {
                       {/* Replace with actual feature illustration */}
                       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-gray-600">
                         <div className="text-center">
-                          <div className="text-7xl mb-4">{feature.icon}</div>
+                          <Image 
+                            src={feature.icon} 
+                            alt={feature.title} 
+                            width={160} 
+                            height={160} 
+                            className="mx-auto mb-6"
+                          />
                           <div className="text-xl">{feature.title}</div>
                         </div>
                       </div>

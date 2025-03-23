@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import FunctionEditor from '@/components/playground/FunctionEditor';
 import WalletExample from './WalletExample';
+import { motion } from 'framer-motion';
+import CodeBlock from '@/components/docs/CodeBlock';
 
 // Example templates
 const examples = [
@@ -101,6 +103,29 @@ function main(args) {
 
 export default function PlaygroundPage() {
   const [activeTab, setActiveTab] = useState('editor');
+  const editorRef = useRef<any>(null);
+  
+  // Reference to the FunctionEditor component
+  const setEditorRef = (ref: any) => {
+    editorRef.current = ref;
+  };
+  
+  // Function to load an example into the editor
+  const loadExampleToEditor = (exampleIndex: number) => {
+    const example = examples[exampleIndex];
+    if (editorRef.current && example) {
+      console.log("Loading example:", example.name);
+      // Ensure the editor is visible first
+      setActiveTab('editor');
+      
+      // Use setTimeout to ensure the tab switch has completed
+      setTimeout(() => {
+        editorRef.current.loadExample(example.code, example.args);
+      }, 100);
+    } else {
+      console.error("Failed to load example:", editorRef.current, example);
+    }
+  };
   
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -123,44 +148,76 @@ export default function PlaygroundPage() {
             {/* Tabs Navigation */}
             <div className="flex border-b border-gray-200">
               <button
-                className={`px-6 py-3 font-medium text-sm ${
+                className={`px-6 py-3 font-medium text-sm relative ${
                   activeTab === 'editor'
-                    ? 'border-b-2 border-primary text-primary'
+                    ? 'text-primary'
                     : 'text-gray-600 hover:text-gray-800'
                 }`}
                 onClick={() => setActiveTab('editor')}
               >
                 Function Editor
+                {activeTab === 'editor' && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
               </button>
               <button
-                className={`px-6 py-3 font-medium text-sm ${
+                className={`px-6 py-3 font-medium text-sm relative ${
                   activeTab === 'wallet'
-                    ? 'border-b-2 border-primary text-primary'
+                    ? 'text-primary'
                     : 'text-gray-600 hover:text-gray-800'
                 }`}
                 onClick={() => setActiveTab('wallet')}
               >
                 Wallet Connection
+                {activeTab === 'wallet' && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
               </button>
               <button
-                className={`px-6 py-3 font-medium text-sm ${
+                className={`px-6 py-3 font-medium text-sm relative ${
                   activeTab === 'examples'
-                    ? 'border-b-2 border-primary text-primary'
+                    ? 'text-primary'
                     : 'text-gray-600 hover:text-gray-800'
                 }`}
                 onClick={() => setActiveTab('examples')}
               >
                 Examples
+                {activeTab === 'examples' && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
               </button>
               <button
-                className={`px-6 py-3 font-medium text-sm ${
+                className={`px-6 py-3 font-medium text-sm relative ${
                   activeTab === 'documentation'
-                    ? 'border-b-2 border-primary text-primary'
+                    ? 'text-primary'
                     : 'text-gray-600 hover:text-gray-800'
                 }`}
                 onClick={() => setActiveTab('documentation')}
               >
                 Documentation
+                {activeTab === 'documentation' && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
               </button>
             </div>
 
@@ -171,7 +228,7 @@ export default function PlaygroundPage() {
                   <p className="mb-6 text-gray-600">
                     Write and test your JavaScript functions in this playground. The execution is simulated, but it represents how your code would run in the actual TEE environment.
                   </p>
-                  <FunctionEditor />
+                  <FunctionEditor ref={setEditorRef} />
                 </div>
               )}
 
@@ -191,26 +248,40 @@ export default function PlaygroundPage() {
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {examples.map((example, index) => (
-                      <div key={index} className="border rounded-lg overflow-hidden">
+                      <motion.div 
+                        key={index} 
+                        className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                        whileHover={{ y: -5 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        onClick={() => loadExampleToEditor(index)}
+                      >
                         <div className="bg-gray-50 p-4 border-b">
                           <h3 className="font-bold text-lg">{example.name}</h3>
                           <p className="text-gray-600 text-sm">{example.description}</p>
                         </div>
-                        <div className="p-4 bg-gray-800 text-gray-200 text-sm overflow-x-auto">
-                          <pre className="whitespace-pre-wrap">{example.code.substring(0, 150)}...</pre>
+                        <div className="p-0">
+                          <CodeBlock 
+                            language="javascript" 
+                            code={example.code.substring(0, 150) + "..."} 
+                            showLineNumbers={false}
+                            className="m-0"
+                          />
                         </div>
                         <div className="p-4 flex justify-end">
                           <button
-                            className="px-4 py-2 bg-primary text-secondary rounded text-sm font-medium hover:bg-primary/90 transition-colors duration-200"
-                            onClick={() => {
-                              // In a real implementation, this would load the example into the editor
-                              setActiveTab('editor');
+                            className="px-4 py-2 bg-primary text-white rounded text-sm font-medium hover:bg-primary-dark transition-colors duration-200 flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Stop event propagation to prevent conflicts
+                              loadExampleToEditor(index);
                             }}
                           >
-                            Try this example
+                            <span>Try this example</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
                           </button>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
@@ -239,6 +310,18 @@ export default function PlaygroundPage() {
                       Your function must contain a <code>main</code> function that accepts an <code>args</code> parameter and returns a value. The value you return will be serialized as JSON and returned to the caller.
                     </p>
                     
+                    <CodeBlock
+                      language="javascript"
+                      code={`function main(args) {
+  // Your code here
+  
+  return {
+    result: "Your result"
+  };
+}`}
+                      caption="Basic function structure"
+                    />
+                    
                     <h2>Security Limitations</h2>
                     <p>
                       For security reasons, functions are executed in a sandbox with the following limitations:
@@ -248,42 +331,82 @@ export default function PlaygroundPage() {
                       <li>No access to process information or environment variables (except those explicitly provided)</li>
                       <li>Limited memory usage (default: 128MB)</li>
                       <li>Execution timeout (default: 30 seconds)</li>
-                      <li>Network access is restricted to allowed domains</li>
+                      <li>Network access is restricted to allowed domains only</li>
                     </ul>
+                    
+                    <h2>Available APIs</h2>
+                    
+                    <h3>Neo N3 Blockchain API</h3>
+                    <p>
+                      The <code>neo</code> object provides methods to interact with the Neo N3 blockchain:
+                    </p>
+                    
+                    <CodeBlock
+                      language="javascript"
+                      code={`// Get balance for an address
+const neoBalance = neo.getBalance(address, 'NEO');
+
+// Get recent transactions for an address
+const transactions = neo.getTransactions(address, { limit: 5 });
+
+// Get current block height
+const blockHeight = neo.getBlockHeight();
+
+// Get current price
+const price = neo.getPrice('NEO/USD');
+
+// Call a contract method (read-only)
+const result = neo.call({
+  scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+  operation: "getTotalStaked",
+  args: []
+});
+
+// Invoke a contract method (mutates state)
+const tx = await neo.invokeContract({
+  scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+  operation: "stake",
+  args: [
+    { type: "Integer", value: "1000" }
+  ],
+  signers: [{ account: address, scopes: "CalledByEntry" }],
+  useGasBank: true
+});`}
+                      filename="neo-api-examples.js"
+                    />
+                    
+                    <h3>Secrets API</h3>
+                    <p>
+                      The <code>secrets</code> object allows you to access your securely stored secrets:
+                    </p>
+                    
+                    <CodeBlock
+                      language="javascript"
+                      code={`// Get a stored API key
+const apiKey = secrets.get('my_api_key');
+
+// Use the API key in a request
+const response = await fetch('https://api.example.com/data', {
+  headers: {
+    'Authorization': \`Bearer \${apiKey}\`
+  }
+});`}
+                      filename="secrets-api-example.js"
+                    />
                     
                     <h2>Learn More</h2>
                     <p>
-                      For more detailed information about the Functions service, please refer to our comprehensive documentation:
+                      For more detailed documentation on the Service Layer functions, visit:
                     </p>
                     <ul>
                       <li><Link href="/docs/services/functions" className="text-primary hover:underline">Functions Service Documentation</Link></li>
-                      <li><Link href="/docs/guides/functions-guide" className="text-primary hover:underline">Functions Developer Guide</Link></li>
                       <li><Link href="/docs/api/functions-api" className="text-primary hover:underline">Functions API Reference</Link></li>
+                      <li><Link href="/docs/guides/functions-guide" className="text-primary hover:underline">Functions Development Guide</Link></li>
                     </ul>
                   </div>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6">
-            Ready to use Neo N3 Service Layer?
-          </h2>
-          <p className="text-lg mb-8 max-w-3xl mx-auto text-gray-600">
-            When you're ready to deploy your functions to production, create an account to get started with the Neo N3 Service Layer.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/contact" className="btn btn-primary">
-              Contact Us
-            </Link>
-            <Link href="/docs/getting-started" className="btn btn-outline">
-              Read the Docs
-            </Link>
           </div>
         </div>
       </section>

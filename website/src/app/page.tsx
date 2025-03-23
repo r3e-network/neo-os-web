@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Icon from '@/components/ui/Icon';
+import CodeBlock from '@/components/docs/CodeBlock';
 
 // Feature cards data
 const features = [
@@ -138,8 +139,9 @@ export default function Home() {
                         <span className="text-sm font-mono">function.js</span>
                       </div>
                       <div className="flex-grow font-mono text-sm text-gray-200 overflow-hidden">
-                        <pre className="h-full overflow-auto p-2">
-{`// Sample function to fetch token price
+                        <CodeBlock
+                          language="javascript"
+                          code={`// Sample function to fetch token price
 function getTokenPrice(symbol) {
   // In real TEE environment, this would
   // access trusted data sources
@@ -159,7 +161,9 @@ function getTokenPrice(symbol) {
 
 // Execute with secrets accessible in TEE
 return getTokenPrice(args.tokenSymbol);`}
-                        </pre>
+                          showLineNumbers={false}
+                          className="h-full rounded-md bg-transparent border-none"
+                        />
                       </div>
                     </div>
                   </div>

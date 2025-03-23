@@ -2,19 +2,18 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import CodeBlock from '@/components/docs/CodeBlock';
+import Callout from '@/components/docs/Callout';
 
 export default function GettingStartedDocs() {
   return (
     <div className="prose prose-lg max-w-none">
       <h1>Getting Started with Neo Service Layer</h1>
       
-      <div className="bg-blue-50 p-6 rounded-lg mb-8 border-l-4 border-blue-400">
-        <h2 className="text-xl font-semibold text-blue-800 mt-0">Overview</h2>
-        <p className="mb-0">
-          The Neo Service Layer provides a suite of services that enhance your Neo N3 blockchain applications.
-          This guide will help you get started with setting up and using the Service Layer.
-        </p>
-      </div>
+      <Callout type="info" title="Overview">
+        The Neo Service Layer provides a suite of services that enhance your Neo N3 blockchain applications.
+        This guide will help you get started with setting up and using the Service Layer.
+      </Callout>
 
       <h2>What You&apos;ll Need</h2>
       
@@ -41,14 +40,17 @@ export default function GettingStartedDocs() {
               <strong>Connect your wallet:</strong> Use one of the supported Neo N3 wallets to connect to the service. 
               Your wallet address will be linked to your account.
             </p>
-            <Image 
-              src="/images/docs/connect-wallet.png" 
-              alt="Connect Wallet Interface" 
-              width={400} 
-              height={250}
-              className="my-4 border rounded-lg shadow-sm"
-              style={{maxWidth: '100%', height: 'auto'}}
-            />
+            <div className="my-4 text-center">
+              <Image 
+                src="/images/docs/connect-wallet.png" 
+                alt="Connect Wallet Interface" 
+                width={500} 
+                height={300}
+                className="border rounded-lg shadow-md"
+                style={{maxWidth: '100%', height: 'auto'}}
+              />
+              <p className="text-sm text-gray-500 mt-2">Connecting your Neo N3 wallet to the Service Layer</p>
+            </div>
           </li>
           <li>
             <p>
@@ -72,8 +74,9 @@ export default function GettingStartedDocs() {
           To interact with the Neo Service Layer API, you need to authenticate using your API key:
         </p>
         
-        <pre className="bg-gray-100 p-4 rounded-md">
-{`// JavaScript example
+        <CodeBlock
+          language="javascript"
+          code={`// JavaScript example
 const headers = {
   'Content-Type': 'application/json',
   'X-API-Key': 'your-api-key-here'
@@ -86,15 +89,18 @@ fetch('https://api.neo-service-layer.io/v1/functions', {
 })
 .then(response => response.json())
 .then(data => console.log(data))
-.catch(error => console.error('Error:', error));`}</pre>
+.catch(error => console.error('Error:', error));`}
+          filename="api-authentication.js"
+        />
 
         <div className="mt-6">
           <p>
             Alternatively, use our SDK which handles authentication for you:
           </p>
           
-          <pre className="bg-gray-100 p-4 rounded-md">
-{`// Install the SDK
+          <CodeBlock
+            language="javascript"
+            code={`// Install the SDK
 npm install neo-service-layer-sdk
 
 // JavaScript example
@@ -108,7 +114,9 @@ const serviceLayer = new NeoServiceLayer({
 // Now you can access services
 const functionsService = serviceLayer.functions;
 const secretsService = serviceLayer.secrets;
-// etc.`}</pre>
+// etc.`}
+            filename="sdk-initialization.js"
+          />
         </div>
       </div>
       
@@ -117,8 +125,9 @@ const secretsService = serviceLayer.secrets;
       <div className="my-8">
         <h3>Example 1: Create and Deploy a Function</h3>
         
-        <pre className="bg-gray-100 p-4 rounded-md">
-{`// JavaScript example using the SDK
+        <CodeBlock
+          language="javascript"
+          code={`// JavaScript example using the SDK
 const { NeoServiceLayer } = require('neo-service-layer-sdk');
 
 const serviceLayer = new NeoServiceLayer({
@@ -155,14 +164,17 @@ async function deployFunction() {
   console.log('Function response:', response);
 }
 
-deployFunction().catch(console.error);`}</pre>
+deployFunction().catch(console.error);`}
+          filename="deploy-function-example.js"
+        />
       </div>
       
       <div className="my-8">
         <h3>Example 2: Store and Retrieve a Secret</h3>
         
-        <pre className="bg-gray-100 p-4 rounded-md">
-{`// JavaScript example using the SDK
+        <CodeBlock
+          language="javascript"
+          code={`// JavaScript example using the SDK
 const { NeoServiceLayer } = require('neo-service-layer-sdk');
 
 const serviceLayer = new NeoServiceLayer({
@@ -208,14 +220,17 @@ async function manageSecrets() {
   console.log('Function response:', response);
 }
 
-manageSecrets().catch(console.error);`}</pre>
+manageSecrets().catch(console.error);`}
+          filename="secrets-example.js"
+        />
       </div>
       
       <div className="my-8">
         <h3>Example 3: Set Up Contract Automation</h3>
         
-        <pre className="bg-gray-100 p-4 rounded-md">
-{`// JavaScript example using the SDK
+        <CodeBlock
+          language="javascript"
+          code={`// JavaScript example using the SDK
 const { NeoServiceLayer } = require('neo-service-layer-sdk');
 
 const serviceLayer = new NeoServiceLayer({
@@ -249,155 +264,43 @@ async function createAutomation() {
   console.log('Automation created:', automation);
 }
 
-createAutomation().catch(console.error);`}</pre>
-      </div>
-      
-      <h2>Setting Up Your Development Environment</h2>
-      
-      <div className="my-8">
-        <h3>Installing the SDK</h3>
-        
-        <pre className="bg-gray-100 p-4 rounded-md">
-{`# Using npm
-npm install neo-service-layer-sdk
-
-# Using yarn
-yarn add neo-service-layer-sdk`}</pre>
-
-        <h3 className="mt-6">Configure the SDK</h3>
-        
-        <p>
-          Create a configuration file to store your API keys and settings:
-        </p>
-        
-        <pre className="bg-gray-100 p-4 rounded-md">
-{`// config.js
-module.exports = {
-  apiKey: process.env.NEO_SERVICE_LAYER_API_KEY || 'your-api-key-here',
-  environment: process.env.NODE_ENV === 'production' ? 'production' : 'development'
-};
-
-// app.js
-const { NeoServiceLayer } = require('neo-service-layer-sdk');
-const config = require('./config');
-
-const serviceLayer = new NeoServiceLayer({
-  apiKey: config.apiKey,
-  environment: config.environment
-});
-
-// Now you can use serviceLayer in your application`}</pre>
-      </div>
-      
-      <h2>Available Services</h2>
-      
-      <div className="my-8">
-        <p>
-          The Neo Service Layer provides several services to enhance your blockchain applications:
-        </p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
-          <Link 
-            href="/docs/services/functions" 
-            className="block p-6 border rounded-lg hover:border-primary hover:shadow-md transition-all bg-white"
-          >
-            <h3 className="text-xl font-bold mb-2">Functions Service</h3>
-            <p className="text-gray-600 mb-2">
-              Run serverless functions in a secure Trusted Execution Environment (TEE).
-            </p>
-            <div className="text-primary">Learn more →</div>
-          </Link>
-          
-          <Link 
-            href="/docs/services/secrets" 
-            className="block p-6 border rounded-lg hover:border-primary hover:shadow-md transition-all bg-white"
-          >
-            <h3 className="text-xl font-bold mb-2">Secrets Management</h3>
-            <p className="text-gray-600 mb-2">
-              Securely store and manage sensitive data for your applications.
-            </p>
-            <div className="text-primary">Learn more →</div>
-          </Link>
-          
-          <Link 
-            href="/docs/services/automation" 
-            className="block p-6 border rounded-lg hover:border-primary hover:shadow-md transition-all bg-white"
-          >
-            <h3 className="text-xl font-bold mb-2">Contract Automation</h3>
-            <p className="text-gray-600 mb-2">
-              Automate smart contract interactions based on time or events.
-            </p>
-            <div className="text-primary">Learn more →</div>
-          </Link>
-          
-          <Link 
-            href="/docs/services/price-feed" 
-            className="block p-6 border rounded-lg hover:border-primary hover:shadow-md transition-all bg-white"
-          >
-            <h3 className="text-xl font-bold mb-2">Price Feed</h3>
-            <p className="text-gray-600 mb-2">
-              Get reliable token price updates for DeFi applications.
-            </p>
-            <div className="text-primary">Learn more →</div>
-          </Link>
-          
-          <Link 
-            href="/docs/services/gas-bank" 
-            className="block p-6 border rounded-lg hover:border-primary hover:shadow-md transition-all bg-white"
-          >
-            <h3 className="text-xl font-bold mb-2">Gas Bank</h3>
-            <p className="text-gray-600 mb-2">
-              Manage GAS costs for your service operations efficiently.
-            </p>
-            <div className="text-primary">Learn more →</div>
-          </Link>
-          
-          <Link 
-            href="/docs/services/random" 
-            className="block p-6 border rounded-lg hover:border-primary hover:shadow-md transition-all bg-white"
-          >
-            <h3 className="text-xl font-bold mb-2">Random Number Generation</h3>
-            <p className="text-gray-600 mb-2">
-              Generate secure, verifiable random numbers for your applications.
-            </p>
-            <div className="text-primary">Learn more →</div>
-          </Link>
-        </div>
+createAutomation().catch(console.error);`}
+          filename="automation-example.js"
+        />
       </div>
       
       <h2>Next Steps</h2>
       
-      <div className="my-8 space-y-6">
-        <div className="border-l-4 border-primary pl-4 py-1">
-          <h3 className="text-lg font-semibold mb-1">Architecture Overview</h3>
-          <p className="mb-2">
-            Learn about the architecture and security model of the Neo Service Layer.
-          </p>
-          <Link href="/docs/architecture" className="text-primary hover:underline">
-            View Architecture →
-          </Link>
-        </div>
+      <div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link href="/docs/services/functions" 
+          className="block p-6 border rounded-lg hover:shadow-md transition-shadow bg-gray-50 no-underline">
+          <h3 className="text-xl font-semibold text-primary mb-2">Functions Service</h3>
+          <p className="text-gray-600">Learn how to create, deploy, and invoke secure JavaScript functions in our TEE environment.</p>
+        </Link>
         
-        <div className="border-l-4 border-primary pl-4 py-1">
-          <h3 className="text-lg font-semibold mb-1">Setting Up Your First Project</h3>
-          <p className="mb-2">
-            Follow a detailed tutorial on setting up and deploying your first project.
-          </p>
-          <Link href="/docs/tutorials/first-project" className="text-primary hover:underline">
-            View Tutorial →
-          </Link>
-        </div>
+        <Link href="/docs/services/secrets" 
+          className="block p-6 border rounded-lg hover:shadow-md transition-shadow bg-gray-50 no-underline">
+          <h3 className="text-xl font-semibold text-primary mb-2">Secrets Management</h3>
+          <p className="text-gray-600">Store and manage sensitive data securely in our Trusted Execution Environment.</p>
+        </Link>
         
-        <div className="border-l-4 border-primary pl-4 py-1">
-          <h3 className="text-lg font-semibold mb-1">API Reference</h3>
-          <p className="mb-2">
-            Browse the complete API documentation for all services.
-          </p>
-          <Link href="/docs/api" className="text-primary hover:underline">
-            View API Documentation →
-          </Link>
-        </div>
+        <Link href="/docs/services/automation" 
+          className="block p-6 border rounded-lg hover:shadow-md transition-shadow bg-gray-50 no-underline">
+          <h3 className="text-xl font-semibold text-primary mb-2">Contract Automation</h3>
+          <p className="text-gray-600">Set up automated contract interactions triggered by time or events.</p>
+        </Link>
+        
+        <Link href="/docs/services/gas-bank" 
+          className="block p-6 border rounded-lg hover:shadow-md transition-shadow bg-gray-50 no-underline">
+          <h3 className="text-xl font-semibold text-primary mb-2">Gas Bank</h3>
+          <p className="text-gray-600">Learn how to use the Gas Bank service for optimizing transaction costs.</p>
+        </Link>
       </div>
+      
+      <Callout type="tip" title="Need Help?">
+        If you encounter any issues or have questions, please visit our <Link href="/docs/faq" className="text-primary hover:underline">FAQ</Link> or 
+        <Link href="/contact" className="text-primary hover:underline"> contact our support team</Link>.
+      </Callout>
     </div>
   );
 } 
