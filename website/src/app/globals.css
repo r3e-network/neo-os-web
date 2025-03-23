@@ -2,24 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #F8F9FA;
+  color: #333333;
+}
+
 @layer base {
-  :root {
-    --color-primary: 0 229 153;     /* #00E599 - Neo green */
-    --color-secondary: 13 27 42;    /* #0D1B2A - Deep blue */
-    --color-accent: 138 79 255;     /* #8A4FFF - Purple */
-    --color-background: 248 249 250; /* #F8F9FA - Light gray */
-    --color-text: 51 51 51;         /* #333333 - Dark gray */
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
-  body {
-    @apply bg-background text-textColor;
-    font-family: 'Inter', sans-serif;
-  }
-
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading font-bold;
   }

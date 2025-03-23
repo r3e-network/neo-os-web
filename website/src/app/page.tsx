@@ -26,7 +26,7 @@ const features = [
   },
   {
     title: 'Gas Bank',
-    description: 'Efficient gas management for all your service operations.',
+    description: 'Efficient gas management for service operations.',
     icon: '⛽',
     href: '/features#gas-bank',
   },
@@ -46,7 +46,7 @@ const features = [
 
 export default function Home() {
   return (
-    <div className="bg-background">
+    <div className="bg-gray-50">
       {/* Hero Section */}
       <section className="py-20 bg-gradient-to-r from-secondary to-secondary/90 text-white">
         <div className="container mx-auto px-4">

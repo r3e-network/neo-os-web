@@ -123,7 +123,7 @@ export default function FeaturesPage() {
   };
 
   return (
-    <div className="bg-background">
+    <div className="bg-gray-50">
       {/* Hero Section */}
       <section className="pt-20 pb-16 bg-gradient-to-r from-secondary to-secondary/90 text-white">
         <div className="container mx-auto px-4 text-center">
