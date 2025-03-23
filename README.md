@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![GitHub release](https://img.shields.io/github/release/R3E-Network/service_layer.svg)](https://github.com/R3E-Network/service_layer/releases/latest)
 [![codecov](https://codecov.io/gh/R3E-Network/service_layer/branch/master/graph/badge.svg)](https://codecov.io/gh/R3E-Network/service_layer)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/72340a18-a517-48ba-986e-49bfe9a1d0b3/deploy-status)](https://app.netlify.com/sites/servicelayer/deploys)
 
 A centralized oracle service for the Neo N3 blockchain, providing functions execution in TEE, contract automation, price feeds, and more.
 
