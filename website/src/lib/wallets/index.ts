@@ -1,6 +1,56 @@
 // Wallet connection library for Neo N3 wallets
 // Supports: NeoLine, O3, Neon, and OneGate wallets
 
+// Declare the neoWalletAdapters global object
+declare global {
+  interface Window {
+    neoWalletAdapters?: {
+      NeoLine: {
+        isInstalled: () => boolean;
+        init: () => Promise<boolean>;
+        getAccount: () => Promise<any>;
+        getBalance: (params: any) => Promise<any>;
+        getNetworks: () => Promise<any>;
+        signMessage: (params: any) => Promise<any>;
+        signTransaction: (params: any) => Promise<any>;
+        invoke: (params: any) => Promise<any>;
+      };
+      O3: {
+        isInstalled: () => boolean;
+        init: () => Promise<boolean>;
+        getAccount: () => Promise<any>;
+        getBalance: (params: any) => Promise<any>;
+        getNetworks: () => Promise<any>;
+        signMessage: (params: any) => Promise<any>;
+        invoke: (params: any) => Promise<any>;
+      };
+      Neon: {
+        isInstalled: () => boolean;
+        init: () => Promise<boolean>;
+        getAccount: () => Promise<any>;
+        getBalance: (params: any) => Promise<any>;
+        getNetworks: () => Promise<any>;
+        signMessage: (params: any) => Promise<any>;
+        invoke: (params: any) => Promise<any>;
+      };
+      OneGate: {
+        isInstalled: () => boolean;
+        init: () => Promise<boolean>;
+        getAccount: () => Promise<any>;
+        getBalance: (params: any) => Promise<any>;
+        getNetwork: () => Promise<any>;
+        signMessage: (params: any) => Promise<any>;
+        invoke: (params: any) => Promise<any>;
+      };
+      getInstalledWallets: () => any[];
+    };
+    NEOLineN3?: any;
+    NEO?: any;
+    neon?: any;
+    OneGate?: any;
+  }
+}
+
 type WalletType = 'neoline' | 'o3' | 'neon' | 'onegate';
 
 export interface WalletAccount {
@@ -61,25 +111,41 @@ interface OneGateInterface {
 // Check if NeoLine is installed
 const checkNeoLine = (): boolean => {
   return typeof window !== 'undefined' && 
-    (window as any).NEOLineN3 !== undefined;
+    (window.NEOLineN3 !== undefined || 
+    (window.neoWalletAdapters !== undefined && 
+     window.neoWalletAdapters.NeoLine !== undefined && 
+     typeof window.neoWalletAdapters.NeoLine.isInstalled === 'function' && 
+     window.neoWalletAdapters.NeoLine.isInstalled()));
 };
 
 // Check if O3 is installed
 const checkO3 = (): boolean => {
   return typeof window !== 'undefined' && 
-    (window as any).NEO && (window as any).NEO.O3 !== undefined;
+    ((window.NEO !== undefined && window.NEO.O3 !== undefined) || 
+    (window.neoWalletAdapters !== undefined && 
+     window.neoWalletAdapters.O3 !== undefined && 
+     typeof window.neoWalletAdapters.O3.isInstalled === 'function' && 
+     window.neoWalletAdapters.O3.isInstalled()));
 };
 
 // Check if Neon wallet is installed
 const checkNeon = (): boolean => {
   return typeof window !== 'undefined' && 
-    (window as any).neon !== undefined;
+    (window.neon !== undefined || 
+    (window.neoWalletAdapters !== undefined && 
+     window.neoWalletAdapters.Neon !== undefined && 
+     typeof window.neoWalletAdapters.Neon.isInstalled === 'function' && 
+     window.neoWalletAdapters.Neon.isInstalled()));
 };
 
 // Check if OneGate wallet is installed
 const checkOneGate = (): boolean => {
   return typeof window !== 'undefined' && 
-    (window as any).OneGate !== undefined;
+    (window.OneGate !== undefined || 
+    (window.neoWalletAdapters !== undefined && 
+     window.neoWalletAdapters.OneGate !== undefined && 
+     typeof window.neoWalletAdapters.OneGate.isInstalled === 'function' && 
+     window.neoWalletAdapters.OneGate.isInstalled()));
 };
 
 // NeoLine wallet provider
@@ -89,7 +155,7 @@ const getNeoLineProvider = (): WalletProvider => {
   return {
     name: 'NeoLine',
     type: 'neoline',
-    icon: '/images/wallets/neoline.png',
+    icon: '/images/wallets/neoline.svg',
     installed: isInstalled,
     
     connect: async () => {
@@ -97,8 +163,8 @@ const getNeoLineProvider = (): WalletProvider => {
         throw new Error('NeoLine is not installed');
       }
       
-      const provider = new (window as any).NEOLineN3.Init();
-      const response = await provider.getAccount();
+      await window.neoWalletAdapters?.NeoLine.init();
+      const response = await window.neoWalletAdapters?.NeoLine.getAccount();
       
       return {
         address: response.address,
@@ -112,8 +178,11 @@ const getNeoLineProvider = (): WalletProvider => {
         throw new Error('NeoLine is not installed');
       }
       
-      const provider = new (window as any).NEOLineN3.Init();
-      const response = await provider.getBalance({ address, assets: [assetId] });
+      await window.neoWalletAdapters?.NeoLine.init();
+      const response = await window.neoWalletAdapters?.NeoLine.getBalance({ 
+        address, 
+        assets: [assetId] 
+      });
       
       // Find the asset in the response
       const asset = response.find((item: any) => item.assetId === assetId);
@@ -125,8 +194,8 @@ const getNeoLineProvider = (): WalletProvider => {
         throw new Error('NeoLine is not installed');
       }
       
-      const provider = new (window as any).NEOLineN3.Init();
-      const networks = await provider.getNetworks();
+      await window.neoWalletAdapters?.NeoLine.init();
+      const networks = await window.neoWalletAdapters?.NeoLine.getNetworks();
       
       return {
         chainId: networks.chainId,
@@ -140,8 +209,8 @@ const getNeoLineProvider = (): WalletProvider => {
         throw new Error('NeoLine is not installed');
       }
       
-      const provider = new (window as any).NEOLineN3.Init();
-      const result = await provider.signMessage({ message });
+      await window.neoWalletAdapters?.NeoLine.init();
+      const result = await window.neoWalletAdapters?.NeoLine.signMessage({ message });
       
       return {
         publicKey: result.publicKey,
@@ -156,8 +225,8 @@ const getNeoLineProvider = (): WalletProvider => {
         throw new Error('NeoLine is not installed');
       }
       
-      const provider = new (window as any).NEOLineN3.Init();
-      const result = await provider.signTransaction(transaction);
+      await window.neoWalletAdapters?.NeoLine.init();
+      const result = await window.neoWalletAdapters?.NeoLine.signTransaction(transaction);
       
       return {
         txid: result.txid,
@@ -170,8 +239,8 @@ const getNeoLineProvider = (): WalletProvider => {
         throw new Error('NeoLine is not installed');
       }
       
-      const provider = new (window as any).NEOLineN3.Init();
-      const result = await provider.invoke({
+      await window.neoWalletAdapters?.NeoLine.init();
+      const result = await window.neoWalletAdapters?.NeoLine.invoke({
         scriptHash,
         operation,
         args,
@@ -193,7 +262,7 @@ const getO3Provider = (): WalletProvider => {
   return {
     name: 'O3',
     type: 'o3',
-    icon: '/images/wallets/o3.png',
+    icon: '/images/wallets/o3.svg',
     installed: isInstalled,
     
     connect: async () => {
@@ -302,7 +371,7 @@ const getNeonProvider = (): WalletProvider => {
   return {
     name: 'Neon',
     type: 'neon',
-    icon: '/images/wallets/neon.png',
+    icon: '/images/wallets/neon.svg',
     installed: isInstalled,
     
     connect: async () => {
@@ -405,7 +474,7 @@ const getOneGateProvider = (): WalletProvider => {
   return {
     name: 'OneGate',
     type: 'onegate',
-    icon: '/images/wallets/onegate.png',
+    icon: '/images/wallets/onegate.svg',
     installed: isInstalled,
     
     connect: async () => {

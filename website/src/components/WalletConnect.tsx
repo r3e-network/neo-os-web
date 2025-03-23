@@ -70,21 +70,47 @@ export default function WalletConnect({
     setIsLoading(true);
     setError(null);
 
-    try {
-      const account = await provider.connect();
-      setConnectedWallet({ provider, account });
-      setIsDropdownOpen(false);
-      localStorage.setItem('connectedWalletProvider', provider.type);
-      
-      if (onConnect) {
-        onConnect(provider, account);
+    // Maximum number of retries
+    const maxRetries = 3;
+    let retries = 0;
+    let connected = false;
+
+    while (retries < maxRetries && !connected) {
+      try {
+        if (retries > 0) {
+          console.log(`Retrying wallet connection (attempt ${retries + 1}/${maxRetries})...`);
+        }
+
+        const account = await provider.connect();
+        
+        // If we get here, the connection was successful
+        setConnectedWallet({ provider, account });
+        setIsDropdownOpen(false);
+        localStorage.setItem('connectedWalletProvider', provider.type);
+        
+        if (onConnect) {
+          onConnect(provider, account);
+        }
+        
+        connected = true;
+      } catch (err) {
+        retries++;
+        
+        if (retries >= maxRetries) {
+          console.error('Failed to connect to wallet after multiple attempts:', err);
+          const errorMessage = err instanceof Error 
+            ? err.message 
+            : 'Failed to connect to wallet. Please make sure your wallet extension is properly installed and unlocked.';
+          
+          setError(errorMessage);
+        } else {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
-    } catch (err) {
-      console.error('Failed to connect to wallet:', err);
-      setError(err instanceof Error ? err.message : 'Failed to connect to wallet');
-    } finally {
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   };
 
   const disconnectWallet = () => {
@@ -255,43 +281,58 @@ export default function WalletConnect({
                     <div className="text-xs font-medium text-gray-500 mb-1 px-2">Get a Wallet</div>
                     {notInstalledProviders.map((provider) => {
                       let walletUrl = '#';
+                      let walletInstructions = '';
                       
-                      // Add wallet download links
+                      // Add wallet download links and installation instructions
                       switch (provider.type) {
                         case 'neoline':
                           walletUrl = 'https://neoline.io/';
+                          walletInstructions = 'Install the NeoLine browser extension to use this wallet.';
                           break;
                         case 'o3':
                           walletUrl = 'https://o3.network/';
+                          walletInstructions = 'Install the O3 wallet browser extension or mobile app to use this wallet.';
                           break;
                         case 'neon':
                           walletUrl = 'https://neonwallet.com/';
+                          walletInstructions = 'Download and install the Neon desktop wallet application to use this wallet.';
                           break;
                         case 'onegate':
                           walletUrl = 'https://onegate.space/';
+                          walletInstructions = 'Install the OneGate wallet to use this wallet.';
                           break;
                       }
                       
                       return (
-                        <a
+                        <div
                           key={provider.type}
-                          href={walletUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center w-full py-2 px-3 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
+                          className="mb-2"
                         >
-                          <Image
-                            src={provider.icon}
-                            alt={provider.name}
-                            width={24}
-                            height={24}
-                            className="mr-2 rounded-full opacity-60"
-                          />
-                          <span>{provider.name}</span>
-                          <svg className="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
+                          <div className="flex items-center w-full py-2 px-3 text-gray-500 rounded-md">
+                            <Image
+                              src={provider.icon}
+                              alt={provider.name}
+                              width={24}
+                              height={24}
+                              className="mr-2 rounded-full opacity-60"
+                            />
+                            <span>{provider.name}</span>
+                          </div>
+                          <p className="px-3 text-xs text-gray-500 mb-1">{walletInstructions}</p>
+                          <div className="px-3">
+                            <a
+                              href={walletUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary text-xs hover:underline flex items-center"
+                            >
+                              <span>Install {provider.name}</span>
+                              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>

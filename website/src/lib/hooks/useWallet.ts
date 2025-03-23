@@ -72,8 +72,35 @@ export function useWallet(): [WalletState, WalletUtilities] {
         throw new Error('No compatible wallet provider found');
       }
       
-      // Connect to the wallet
-      const account = await provider.connect();
+      // Maximum number of retries
+      const maxRetries = 3;
+      let retries = 0;
+      let account: WalletAccount | null = null;
+      
+      while (retries < maxRetries && !account) {
+        try {
+          if (retries > 0) {
+            console.log(`Retrying wallet connection (attempt ${retries + 1}/${maxRetries})...`);
+          }
+          
+          // Connect to the wallet
+          account = await provider.connect();
+        } catch (error) {
+          retries++;
+          
+          if (retries >= maxRetries) {
+            console.error('Failed to connect wallet after multiple attempts:', error);
+            throw error; // Rethrow to be caught by the outer try/catch
+          } else {
+            // Wait before trying again
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      if (!account) {
+        throw new Error('Failed to connect to wallet');
+      }
       
       // Save provider type to localStorage
       localStorage.setItem('connectedWalletProvider', provider.type);

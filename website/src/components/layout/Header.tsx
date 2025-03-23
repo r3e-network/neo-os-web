@@ -53,7 +53,7 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/images/logo.svg"
+              src="/logo.svg"
               alt="Neo Service Layer"
               width={40}
               height={40}

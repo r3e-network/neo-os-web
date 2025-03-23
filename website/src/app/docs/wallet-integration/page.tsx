@@ -24,7 +24,7 @@ export default function WalletIntegrationDocs() {
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 my-8">
         <div className="flex flex-col items-center p-4 border rounded-lg">
-          <Image src="/images/wallets/neoline.png" width={64} height={64} alt="NeoLine" className="mb-2" />
+          <Image src="/images/wallets/neoline.svg" width={64} height={64} alt="NeoLine" className="mb-2" />
           <h3 className="text-lg font-medium mb-1">NeoLine</h3>
           <a href="https://neoline.io/" target="_blank" rel="noopener noreferrer" className="text-primary text-sm">
             Website →
@@ -32,7 +32,7 @@ export default function WalletIntegrationDocs() {
         </div>
         
         <div className="flex flex-col items-center p-4 border rounded-lg">
-          <Image src="/images/wallets/o3.png" width={64} height={64} alt="O3" className="mb-2" />
+          <Image src="/images/wallets/o3.svg" width={64} height={64} alt="O3" className="mb-2" />
           <h3 className="text-lg font-medium mb-1">O3</h3>
           <a href="https://o3.network/" target="_blank" rel="noopener noreferrer" className="text-primary text-sm">
             Website →
@@ -40,7 +40,7 @@ export default function WalletIntegrationDocs() {
         </div>
         
         <div className="flex flex-col items-center p-4 border rounded-lg">
-          <Image src="/images/wallets/neon.png" width={64} height={64} alt="Neon" className="mb-2" />
+          <Image src="/images/wallets/neon.svg" width={64} height={64} alt="Neon" className="mb-2" />
           <h3 className="text-lg font-medium mb-1">Neon</h3>
           <a href="https://neonwallet.com/" target="_blank" rel="noopener noreferrer" className="text-primary text-sm">
             Website →
@@ -48,7 +48,7 @@ export default function WalletIntegrationDocs() {
         </div>
         
         <div className="flex flex-col items-center p-4 border rounded-lg">
-          <Image src="/images/wallets/onegate.png" width={64} height={64} alt="OneGate" className="mb-2" />
+          <Image src="/images/wallets/onegate.svg" width={64} height={64} alt="OneGate" className="mb-2" />
           <h3 className="text-lg font-medium mb-1">OneGate</h3>
           <a href="https://onegate.space/" target="_blank" rel="noopener noreferrer" className="text-primary text-sm">
             Website →
@@ -360,6 +360,20 @@ interface WalletUtilities {
         <li><Link href="/docs/services/functions" className="text-primary hover:underline">Functions Service Documentation</Link></li>
         <li><Link href="/playground" className="text-primary hover:underline">Try the Interactive Playground</Link></li>
       </ul>
+
+      {/* Add a troubleshooting section that links to the new page */}
+      <section className="mt-10 p-6 bg-gray-50 rounded-lg border border-gray-200">
+        <h2 className="text-2xl font-bold mb-4">Troubleshooting</h2>
+        <p className="mb-4">
+          Having trouble connecting your wallet? Visit our troubleshooting guide for solutions to common wallet connection issues.
+        </p>
+        <a 
+          href="/docs/wallet-integration/troubleshooting" 
+          className="inline-block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+        >
+          View Troubleshooting Guide
+        </a>
+      </section>
     </div>
   );
 } 
