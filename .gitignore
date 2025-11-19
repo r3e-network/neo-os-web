@@ -5,6 +5,8 @@
 *.so
 *.dylib
 bin/
+appserver
+slctl
 
 # Test binary, built with `go test -c`
 *.test

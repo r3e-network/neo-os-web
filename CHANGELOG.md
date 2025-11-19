@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced `scripts/security_scan.sh` to install and run `gitleaks` alongside gosec/Nancy.
 - `scripts/run_unit_tests.sh` now covers the `cmd/slctl` package so CLI regressions show up in local runs.
 - Updated the root `docker-compose.yml` and `.env.example` to match the `service-layer` naming and credentials used elsewhere.
+- Added `appserver` and `slctl` binaries to `.gitignore` so local builds don't pollute the repo.
 
 ### Fixed
 - JavaScript runtime execution environment for TEE
