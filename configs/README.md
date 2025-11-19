@@ -12,3 +12,35 @@ environments.
 - `prometheus.yml` – example scrape config aligned with the `/metrics` surface.
 
 Always update the specification first when adding/removing configuration fields.
+
+## Runtime Block
+
+The `runtime` section consolidates what used to be scattered environment
+variables for the orchestration runtime:
+
+- `tee.mode` — selects between the mock executor (`"mock"`) and the enclave
+  executor (`"enclave"`, or leave empty).
+- `random.signing_key` — optional ed25519 private key for deterministic random
+  responses (base64 or hex encoded).
+- `pricefeed.fetch_url` / `pricefeed.fetch_key` — configure the background price
+  feed refresher HTTP fetcher.
+- `gasbank.resolver_url` / `gasbank.resolver_key` — configure the settlement
+  poller HTTP resolver.
+- `cre.http_runner` — enables the HTTP CRE runner integration.
+
+Every field still honours its corresponding environment variable, so you can
+mix-and-match config files and env overrides as needed.
+
+## Auth Block
+
+Use the `auth` section to declare static bearer tokens consumed by the HTTP
+gateway. Populate `tokens` with one or more strings. Environment variables
+(`API_TOKENS` / `API_TOKEN`) and the `-api-tokens` flag continue to override or
+supplement the list when necessary.
+
+## Security Block
+
+The `security` section holds the AES key used to encrypt secrets at rest. The
+`secret_encryption_key` accepts raw, base64, or hex encodings for 16/24/32 byte
+keys. When persistence is enabled (PostgreSQL stores), this field or the
+`SECRET_ENCRYPTION_KEY` environment variable must be set.

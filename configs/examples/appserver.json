@@ -8,5 +8,32 @@
     "max_open_conns": 20,
     "max_idle_conns": 10,
     "conn_max_lifetime": 300
+  },
+  "runtime": {
+    "tee": {
+      "mode": ""
+    },
+    "random": {
+      "signing_key": ""
+    },
+    "pricefeed": {
+      "fetch_url": "",
+      "fetch_key": ""
+    },
+    "gasbank": {
+      "resolver_url": "",
+      "resolver_key": ""
+    },
+    "cre": {
+      "http_runner": false
+    }
+  },
+  "auth": {
+    "tokens": [
+      "change-me"
+    ]
+  },
+  "security": {
+    "secret_encryption_key": ""
   }
 }

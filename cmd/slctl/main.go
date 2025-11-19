@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/R3E-Network/service_layer/internal/version"
 )
 
 func main() {
@@ -31,6 +33,7 @@ func run(ctx context.Context, args []string) error {
 	addrFlag := root.String("addr", defaultAddr, "Service Layer base URL (default env SERVICE_LAYER_ADDR)")
 	tokenFlag := root.String("token", defaultToken, "Bearer token for authentication (env SERVICE_LAYER_TOKEN)")
 	timeoutFlag := root.Duration("timeout", 15*time.Second, "HTTP request timeout")
+	showVersion := root.Bool("version", false, "Print slctl build information and exit")
 	if err := root.Parse(args); err != nil {
 		return usageError(err)
 	}
@@ -38,6 +41,10 @@ func run(ctx context.Context, args []string) error {
 	remaining := root.Args()
 	if len(remaining) == 0 {
 		return usageError(errors.New("no command specified"))
+	}
+	if *showVersion {
+		fmt.Println(version.FullVersion())
+		return nil
 	}
 
 	httpClient := &http.Client{Timeout: *timeoutFlag}
@@ -80,11 +87,12 @@ func run(ctx context.Context, args []string) error {
 		return handleConfCompute(ctx, client, remaining[1:])
 	case "workspace-wallets":
 		return handleWorkspaceWallets(ctx, client, remaining[1:])
+	case "status":
+		return handleStatus(ctx, client)
 	case "services":
 		return handleServices(ctx, client, remaining[1:])
 	case "version":
-		fmt.Println("Service Layer CLI (slctl)")
-		return nil
+		return handleVersion(ctx, client)
 	case "help", "-h", "--help":
 		printRootUsage()
 		return nil
@@ -108,6 +116,7 @@ Global Flags:
   --addr       Service Layer base URL (env SERVICE_LAYER_ADDR, default http://localhost:8080)
   --token      API bearer token (env SERVICE_LAYER_TOKEN)
   --timeout    HTTP timeout (default 15s)
+  --version    Print CLI build information and exit
 
 Commands:
   accounts     Manage accounts
@@ -127,7 +136,8 @@ Commands:
   confcompute  Inspect confidential-compute enclaves
   workspace-wallets Inspect linked signing wallets
   services     Introspect service descriptors
-  version      Show CLI version information`)
+  status       Show health/version/descriptors summary
+  version      Show CLI and server version information`)
 }
 
 type apiClient struct {
@@ -202,6 +212,63 @@ func handleServices(ctx context.Context, client *apiClient, args []string) error
 	fmt.Println(`Usage:
   slctl services list`)
 	return fmt.Errorf("unknown services subcommand %q", args[0])
+}
+
+func handleStatus(ctx context.Context, client *apiClient) error {
+	data, err := client.request(ctx, http.MethodGet, "/system/status", nil)
+	if err != nil {
+		return err
+	}
+	var payload struct {
+		Status  string `json:"status"`
+		Version struct {
+			Version   string `json:"version"`
+			Commit    string `json:"commit"`
+			BuiltAt   string `json:"built_at"`
+			GoVersion string `json:"go_version"`
+		} `json:"version"`
+		Services []map[string]any `json:"services"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return fmt.Errorf("decode status payload: %w", err)
+	}
+	fmt.Printf("Status: %s\n", payload.Status)
+	fmt.Printf("Version: %s (commit %s, built %s, %s)\n", payload.Version.Version, payload.Version.Commit, payload.Version.BuiltAt, payload.Version.GoVersion)
+	if len(payload.Services) > 0 {
+		fmt.Println("Services:")
+		for _, svc := range payload.Services {
+			name, _ := svc["Name"].(string)
+			domain, _ := svc["Domain"].(string)
+			caps, _ := svc["Capabilities"].([]any)
+			var capStrings []string
+			for _, capVal := range caps {
+				if s, ok := capVal.(string); ok {
+					capStrings = append(capStrings, s)
+				}
+			}
+			fmt.Printf("  - %s (%s) caps=%s\n", name, domain, strings.Join(capStrings, ","))
+		}
+	}
+	return nil
+}
+
+func handleVersion(ctx context.Context, client *apiClient) error {
+	fmt.Printf("slctl: %s\n", version.FullVersion())
+	data, err := client.request(ctx, http.MethodGet, "/system/version", nil)
+	if err != nil {
+		return err
+	}
+	var payload struct {
+		Version   string `json:"version"`
+		Commit    string `json:"commit"`
+		BuiltAt   string `json:"built_at"`
+		GoVersion string `json:"go_version"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return fmt.Errorf("decode server version: %w", err)
+	}
+	fmt.Printf("server[%s]: %s (commit %s, built %s, %s)\n", client.baseURL, payload.Version, payload.Commit, payload.BuiltAt, payload.GoVersion)
+	return nil
 }
 
 // ---------------------------------------------------------------------

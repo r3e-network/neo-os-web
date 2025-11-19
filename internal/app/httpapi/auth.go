@@ -9,7 +9,8 @@ import (
 )
 
 var publicPaths = map[string]struct{}{
-	"/healthz": {},
+	"/healthz":        {},
+	"/system/version": {},
 }
 
 func wrapWithAuth(next http.Handler, tokens []string, log *logger.Logger) http.Handler {

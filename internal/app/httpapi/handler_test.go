@@ -141,6 +141,32 @@ func TestHandlerLifecycle(t *testing.T) {
 		t.Fatalf("expected 200 health, got %d", resp.Code)
 	}
 
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, "/system/version", nil))
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200 version, got %d", resp.Code)
+	}
+	var versionPayload map[string]string
+	if err := json.Unmarshal(resp.Body.Bytes(), &versionPayload); err != nil {
+		t.Fatalf("unmarshal version: %v", err)
+	}
+	if versionPayload["version"] == "" {
+		t.Fatalf("expected version field")
+	}
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200 status, got %d", resp.Code)
+	}
+	var statusPayload map[string]any
+	if err := json.Unmarshal(resp.Body.Bytes(), &statusPayload); err != nil {
+		t.Fatalf("unmarshal status payload: %v", err)
+	}
+	if statusPayload["status"] != "ok" {
+		t.Fatalf("expected ok status, got %v", statusPayload["status"])
+	}
+
 	randomBody := marshal(map[string]any{"length": 16, "request_id": "req-http"})
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts/"+id+"/random", randomBody))

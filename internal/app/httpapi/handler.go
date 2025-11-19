@@ -12,6 +12,7 @@ import (
 	app "github.com/R3E-Network/service_layer/internal/app"
 	"github.com/R3E-Network/service_layer/internal/app/domain/oracle"
 	"github.com/R3E-Network/service_layer/internal/app/metrics"
+	"github.com/R3E-Network/service_layer/internal/version"
 )
 
 // handler bundles HTTP endpoints for the application services.
@@ -27,6 +28,8 @@ func NewHandler(application *app.Application) http.Handler {
 	mux.HandleFunc("/healthz", h.health)
 	mux.HandleFunc("/system/descriptors", h.systemDescriptors)
 	mux.HandleFunc("/system/descriptors.html", h.systemDescriptorsHTML)
+	mux.HandleFunc("/system/version", h.systemVersion)
+	mux.HandleFunc("/system/status", h.systemStatus)
 	mux.HandleFunc("/accounts", h.accounts)
 	mux.HandleFunc("/accounts/", h.accountResources)
 	return mux
@@ -137,6 +140,32 @@ func (h *handler) accountResources(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
+}
+
+func (h *handler) systemVersion(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{
+		"version":    version.Version,
+		"commit":     version.GitCommit,
+		"built_at":   version.BuildTime,
+		"go_version": version.GoVersion,
+	})
+}
+
+func (h *handler) systemStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status": "ok",
+		"version": map[string]string{
+			"version":    version.Version,
+			"commit":     version.GitCommit,
+			"built_at":   version.BuildTime,
+			"go_version": version.GoVersion,
+		},
+		"services": h.app.Descriptors(),
+	})
 }
 
 func (h *handler) accountOracle(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {

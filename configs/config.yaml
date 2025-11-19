@@ -18,3 +18,39 @@ logging:
   format: "text"  # text, json
   output: "stdout"
   file_prefix: "service-layer"
+
+runtime:
+  tee:
+    # Controls which executor backend the function runtime uses ("mock" to
+    # force the in-process mock TEE; any other value enables the enclave
+    # executor wiring).
+    mode: ""
+  random:
+    # Optional base64/hex encoded ed25519 private key for deterministic random
+    # signatures. Leave empty to auto-generate ephemeral keys on startup.
+    signing_key: ""
+  pricefeed:
+    # Configure the HTTP fetcher for refreshing price feeds. Leave fetch_url
+    # empty to disable the refresher.
+    fetch_url: ""
+    fetch_key: ""
+  gasbank:
+    # Configure the asynchronous gas bank settlement poller. Leave resolver_url
+    # empty to disable settlement polling.
+    resolver_url: ""
+    resolver_key: ""
+  cre:
+    # Set to true to enable the HTTP CRE runner.
+    http_runner: false
+
+auth:
+  # Static bearer tokens accepted by the HTTP API. Combine with the
+  # API_TOKENS / API_TOKEN environment variables for runtime overrides.
+  tokens:
+    - "change-me"
+
+security:
+  # Secret encryption key used for vault storage. Required when using
+  # persistent stores (e.g. PostgreSQL). Accepts raw, base64, or hex-encoded
+  # 16/24/32 byte AES keys.
+  secret_encryption_key: ""

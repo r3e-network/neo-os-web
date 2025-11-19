@@ -86,6 +86,8 @@ ensure gas accounts and submit oracle requests.
 - `slctl confcompute enclaves --account <id>` — inspect confidential-compute enclave inventory.
 - `slctl workspace-wallets list --account <id>` — inspect registered signing wallets.
 - `slctl services list` — dump `/system/descriptors` for feature discovery.
+- `slctl status` — fetch `/system/status` to inspect server health, version, and services.
+- `slctl version` — print CLI build info and query `/system/version` on the server.
 
 ### Docker
 
@@ -102,8 +104,12 @@ in-memory stores.
 
 - `DATABASE_URL` (env) or `-dsn` (flag) control persistence. When omitted, the
   runtime keeps everything in memory.
-- `API_TOKENS` (env) or `-api-tokens` (flag) configure bearer tokens for HTTP
-  authentication. All requests must present `Authorization: Bearer <token>`.
+- `auth.tokens` (config), `API_TOKENS`/`API_TOKEN` (env), or `-api-tokens` (flag)
+  configure bearer tokens for HTTP authentication. All requests must present
+  `Authorization: Bearer <token>`.
+- `security.secret_encryption_key` (config) or `SECRET_ENCRYPTION_KEY` (env)
+  provide the AES key for secret storage. A key is required when using
+  persistent stores.
 - `SECRET_ENCRYPTION_KEY` enables AES-GCM encryption for stored secrets (16/24/32
   byte raw, base64, or hex keys are supported). It is required when using
   PostgreSQL.
@@ -116,6 +122,11 @@ in-memory stores.
 - `RANDOM_SIGNING_KEY` (base64 or hex encoded ed25519 private key) enables
   deterministic signatures for the randomness API. When omitted, a fresh key is
   generated on startup and returned with each response.
+- The `runtime` block in `configs/config.yaml` mirrors the legacy environment
+  variables for TEE mode selection, random signing keys, price feed fetchers,
+  gas bank settlement resolvers, and the CRE HTTP runner toggle. Populate this
+  section (or set the corresponding env vars) to drive the new builder-based
+  application wiring. CLI flags continue to take precedence where applicable.
 - `configs/config.yaml` and `configs/examples/appserver.json` provide
   overrideable samples for the refactored runtime (see `configs/README.md` for details).
 

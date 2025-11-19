@@ -41,11 +41,24 @@ type LoggingConfig struct {
 	FilePrefix string `json:"file_prefix" env:"LOG_FILE_PREFIX"`
 }
 
+// SecurityConfig controls encryption-specific parameters.
+type SecurityConfig struct {
+	SecretEncryptionKey string `json:"secret_encryption_key" env:"SECRET_ENCRYPTION_KEY"`
+}
+
+// AuthConfig controls HTTP API authentication.
+type AuthConfig struct {
+	Tokens []string `json:"tokens"`
+}
+
 // Config is the top-level configuration structure.
 type Config struct {
 	Server   ServerConfig   `json:"server"`
 	Database DatabaseConfig `json:"database"`
 	Logging  LoggingConfig  `json:"logging"`
+	Runtime  RuntimeConfig  `json:"runtime"`
+	Security SecurityConfig `json:"security"`
+	Auth     AuthConfig     `json:"auth"`
 }
 
 // New returns a configuration populated with defaults.
@@ -67,6 +80,9 @@ func New() *Config {
 			Output:     "stdout",
 			FilePrefix: "service-layer",
 		},
+		Runtime:  RuntimeConfig{},
+		Security: SecurityConfig{},
+		Auth:     AuthConfig{},
 	}
 }
 

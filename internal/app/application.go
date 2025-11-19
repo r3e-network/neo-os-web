@@ -59,6 +59,134 @@ type Stores struct {
 	WorkspaceWallets storage.WorkspaceWalletStore
 }
 
+func (s *Stores) applyDefaults(mem *memory.Store) {
+	if s == nil || mem == nil {
+		return
+	}
+	if s.Accounts == nil {
+		s.Accounts = mem
+	}
+	if s.Functions == nil {
+		s.Functions = mem
+	}
+	if s.Triggers == nil {
+		s.Triggers = mem
+	}
+	if s.GasBank == nil {
+		s.GasBank = mem
+	}
+	if s.Automation == nil {
+		s.Automation = mem
+	}
+	if s.PriceFeeds == nil {
+		s.PriceFeeds = mem
+	}
+	if s.DataFeeds == nil {
+		s.DataFeeds = mem
+	}
+	if s.DataStreams == nil {
+		s.DataStreams = mem
+	}
+	if s.DataLink == nil {
+		s.DataLink = mem
+	}
+	if s.DTA == nil {
+		s.DTA = mem
+	}
+	if s.Confidential == nil {
+		s.Confidential = mem
+	}
+	if s.Oracle == nil {
+		s.Oracle = mem
+	}
+	if s.Secrets == nil {
+		s.Secrets = mem
+	}
+	if s.CRE == nil {
+		s.CRE = mem
+	}
+	if s.CCIP == nil {
+		s.CCIP = mem
+	}
+	if s.VRF == nil {
+		s.VRF = mem
+	}
+	if s.WorkspaceWallets == nil {
+		s.WorkspaceWallets = mem
+	}
+}
+
+// RuntimeConfig captures environment-dependent wiring that was previously
+// sourced directly from OS variables. It allows callers to supply explicit
+// configuration when embedding the application or running tests.
+type RuntimeConfig struct {
+	TEEMode            string
+	RandomSigningKey   string
+	CREHTTPRunner      bool
+	PriceFeedFetchURL  string
+	PriceFeedFetchKey  string
+	GasBankResolverURL string
+	GasBankResolverKey string
+}
+
+// Option customises the application runtime.
+type Option func(*builderConfig)
+
+// Environment exposes a simple lookup mechanism which callers can implement to
+// inject custom environment sources (for example when testing).
+type Environment interface {
+	Lookup(key string) string
+}
+
+type builderConfig struct {
+	httpClient     *http.Client
+	environment    Environment
+	runtime        RuntimeConfig
+	runtimeDefined bool
+}
+
+type resolvedBuilder struct {
+	httpClient *http.Client
+	runtime    runtimeSettings
+}
+
+type runtimeSettings struct {
+	teeMode            string
+	randomSigningKey   string
+	creHTTPRunner      bool
+	priceFeedFetchURL  string
+	priceFeedFetchKey  string
+	gasBankResolverURL string
+	gasBankResolverKey string
+}
+
+// WithRuntimeConfig overrides the runtime configuration used when wiring
+// services. When omitted, environment variables are consulted.
+func WithRuntimeConfig(cfg RuntimeConfig) Option {
+	return func(b *builderConfig) {
+		b.runtime = cfg
+		b.runtimeDefined = true
+	}
+}
+
+// WithHTTPClient injects a shared HTTP client used by background services. A
+// nil client falls back to the default 10-second timeout client.
+func WithHTTPClient(client *http.Client) Option {
+	return func(b *builderConfig) {
+		b.httpClient = client
+	}
+}
+
+// WithEnvironment provides a custom environment lookup used when no explicit
+// runtime configuration was supplied. Passing nil retains the default.
+func WithEnvironment(env Environment) Option {
+	return func(b *builderConfig) {
+		if env != nil {
+			b.environment = env
+		}
+	}
+}
+
 // Application ties domain services together and manages their lifecycle.
 type Application struct {
 	manager *system.Manager
@@ -87,74 +215,24 @@ type Application struct {
 }
 
 // New builds a fully initialised application with the provided stores.
-func New(stores Stores, log *logger.Logger) (*Application, error) {
+func New(stores Stores, log *logger.Logger, opts ...Option) (*Application, error) {
+	options := resolveBuilderOptions(opts...)
 	if log == nil {
 		log = logger.NewDefault("app")
 	}
 
 	mem := memory.New()
-	if stores.Accounts == nil {
-		stores.Accounts = mem
-	}
-	if stores.Functions == nil {
-		stores.Functions = mem
-	}
-	if stores.Triggers == nil {
-		stores.Triggers = mem
-	}
-	if stores.GasBank == nil {
-		stores.GasBank = mem
-	}
-	if stores.Automation == nil {
-		stores.Automation = mem
-	}
-	if stores.PriceFeeds == nil {
-		stores.PriceFeeds = mem
-	}
-	if stores.DataFeeds == nil {
-		stores.DataFeeds = mem
-	}
-	if stores.DataStreams == nil {
-		stores.DataStreams = mem
-	}
-	if stores.DataLink == nil {
-		stores.DataLink = mem
-	}
-	if stores.DTA == nil {
-		stores.DTA = mem
-	}
-	if stores.Confidential == nil {
-		stores.Confidential = mem
-	}
-	if stores.Oracle == nil {
-		stores.Oracle = mem
-	}
-	if stores.Secrets == nil {
-		stores.Secrets = mem
-	}
-	if stores.CRE == nil {
-		stores.CRE = mem
-	}
-	if stores.CCIP == nil {
-		stores.CCIP = mem
-	}
-	if stores.VRF == nil {
-		stores.VRF = mem
-	}
-	if stores.WorkspaceWallets == nil {
-		stores.WorkspaceWallets = mem
-	}
+	stores.applyDefaults(mem)
 
 	manager := system.NewManager()
 
 	acctService := accounts.New(stores.Accounts, log)
 	funcService := functions.New(stores.Accounts, stores.Functions, log)
 	secretsService := secrets.New(stores.Accounts, stores.Secrets, log)
-	teeMode := strings.ToLower(strings.TrimSpace(os.Getenv("TEE_MODE")))
 	var executor functions.FunctionExecutor
-	switch teeMode {
+	switch options.runtime.teeMode {
 	case "mock", "disabled", "off":
-		log.Warn("TEE_MODE set to mock; using mock TEE executor")
+		log.Warn("TEE mode set to mock; using mock TEE executor")
 		executor = functions.NewMockTEEExecutor()
 	default:
 		executor = functions.NewTEEExecutor(secretsService)
@@ -190,7 +268,7 @@ func New(stores Stores, log *logger.Logger) (*Application, error) {
 	vrfService.WithDispatcherHooks(metrics.VRFDispatchHooks())
 
 	var randomOpts []randomsvc.Option
-	if key := strings.TrimSpace(os.Getenv("RANDOM_SIGNING_KEY")); key != "" {
+	if key := options.runtime.randomSigningKey; key != "" {
 		if decoded, err := decodeSigningKey(key); err != nil {
 			log.WithError(err).Warn("configure random signing key")
 		} else {
@@ -199,11 +277,11 @@ func New(stores Stores, log *logger.Logger) (*Application, error) {
 	}
 	randomService := randomsvc.New(stores.Accounts, log, randomOpts...)
 
-	httpClient := &http.Client{Timeout: 10 * time.Second}
+	httpClient := options.httpClient
 
 	funcService.AttachDependencies(trigService, automationService, priceFeedService, oracleService, gasService)
 
-	if enabled := strings.ToLower(strings.TrimSpace(os.Getenv("CRE_HTTP_RUNNER"))); enabled == "1" || enabled == "true" || enabled == "yes" {
+	if options.runtime.creHTTPRunner {
 		creService.WithRunner(cresvc.NewHTTPRunner(httpClient, log))
 	}
 
@@ -219,23 +297,23 @@ func New(stores Stores, log *logger.Logger) (*Application, error) {
 	}), automationService, log))
 	priceRunner := pricefeedsvc.NewRefresher(priceFeedService, log)
 	priceRunner.WithObservationHooks(metrics.PriceFeedRefreshHooks())
-	if endpoint := strings.TrimSpace(os.Getenv("PRICEFEED_FETCH_URL")); endpoint != "" {
-		fetcher, err := pricefeedsvc.NewHTTPFetcher(httpClient, endpoint, os.Getenv("PRICEFEED_FETCH_KEY"), log)
+	if endpoint := options.runtime.priceFeedFetchURL; endpoint != "" {
+		fetcher, err := pricefeedsvc.NewHTTPFetcher(httpClient, endpoint, options.runtime.priceFeedFetchKey, log)
 		if err != nil {
 			log.WithError(err).Warn("configure price feed fetcher")
 		} else {
 			priceRunner.WithFetcher(fetcher)
 		}
 	} else {
-		log.Warn("PRICEFEED_FETCH_URL not set; price feed refresher disabled")
+		log.Warn("price feed fetch URL not configured; price feed refresher disabled")
 	}
 
 	oracleRunner := oraclesvc.NewDispatcher(oracleService, log)
 	oracleRunner.WithResolver(oraclesvc.NewHTTPResolver(oracleService, httpClient, log))
 
 	var settlement system.Service
-	if endpoint := strings.TrimSpace(os.Getenv("GASBANK_RESOLVER_URL")); endpoint != "" {
-		resolver, err := gasbanksvc.NewHTTPWithdrawalResolver(httpClient, endpoint, os.Getenv("GASBANK_RESOLVER_KEY"), log)
+	if endpoint := options.runtime.gasBankResolverURL; endpoint != "" {
+		resolver, err := gasbanksvc.NewHTTPWithdrawalResolver(httpClient, endpoint, options.runtime.gasBankResolverKey, log)
 		if err != nil {
 			log.WithError(err).Warn("configure gas bank resolver")
 		} else {
@@ -244,7 +322,7 @@ func New(stores Stores, log *logger.Logger) (*Application, error) {
 			settlement = poller
 		}
 	} else {
-		log.Warn("GASBANK_RESOLVER_URL not set; gas bank settlement disabled")
+		log.Warn("gas bank resolver URL not configured; gas bank settlement disabled")
 	}
 
 	services := []system.Service{autoRunner, priceRunner, oracleRunner}
@@ -306,6 +384,75 @@ func (a *Application) Descriptors() []core.Descriptor {
 	out := make([]core.Descriptor, len(a.descriptors))
 	copy(out, a.descriptors)
 	return out
+}
+
+func resolveBuilderOptions(opts ...Option) resolvedBuilder {
+	cfg := builderConfig{environment: osEnvironment{}}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&cfg)
+		}
+	}
+	if cfg.environment == nil {
+		cfg.environment = osEnvironment{}
+	}
+	if cfg.httpClient == nil {
+		cfg.httpClient = defaultHTTPClient()
+	}
+	runtimeCfg := cfg.runtime
+	if !cfg.runtimeDefined {
+		runtimeCfg = runtimeConfigFromEnv(cfg.environment)
+	}
+	return resolvedBuilder{
+		httpClient: cfg.httpClient,
+		runtime:    normalizeRuntimeConfig(runtimeCfg),
+	}
+}
+
+func runtimeConfigFromEnv(env Environment) RuntimeConfig {
+	if env == nil {
+		env = osEnvironment{}
+	}
+	return RuntimeConfig{
+		TEEMode:            env.Lookup("TEE_MODE"),
+		RandomSigningKey:   env.Lookup("RANDOM_SIGNING_KEY"),
+		PriceFeedFetchURL:  env.Lookup("PRICEFEED_FETCH_URL"),
+		PriceFeedFetchKey:  env.Lookup("PRICEFEED_FETCH_KEY"),
+		GasBankResolverURL: env.Lookup("GASBANK_RESOLVER_URL"),
+		GasBankResolverKey: env.Lookup("GASBANK_RESOLVER_KEY"),
+		CREHTTPRunner:      parseBool(env.Lookup("CRE_HTTP_RUNNER")),
+	}
+}
+
+func normalizeRuntimeConfig(cfg RuntimeConfig) runtimeSettings {
+	return runtimeSettings{
+		teeMode:            strings.ToLower(strings.TrimSpace(cfg.TEEMode)),
+		randomSigningKey:   strings.TrimSpace(cfg.RandomSigningKey),
+		priceFeedFetchURL:  strings.TrimSpace(cfg.PriceFeedFetchURL),
+		priceFeedFetchKey:  strings.TrimSpace(cfg.PriceFeedFetchKey),
+		gasBankResolverURL: strings.TrimSpace(cfg.GasBankResolverURL),
+		gasBankResolverKey: strings.TrimSpace(cfg.GasBankResolverKey),
+		creHTTPRunner:      cfg.CREHTTPRunner,
+	}
+}
+
+func parseBool(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+func defaultHTTPClient() *http.Client {
+	return &http.Client{Timeout: 10 * time.Second}
+}
+
+type osEnvironment struct{}
+
+func (osEnvironment) Lookup(key string) string {
+	return os.Getenv(key)
 }
 
 func decodeSigningKey(value string) ([]byte, error) {

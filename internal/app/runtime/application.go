@@ -29,11 +29,89 @@ type Application struct {
 	db         *sql.DB
 }
 
+// Option customises how the runtime application is constructed.
+type Option func(*builderOptions)
+
+type builderOptions struct {
+	cfg           *config.Config
+	tokens        []string
+	listenAddr    string
+	runMigrations *bool
+}
+
+func defaultBuilderOptions() builderOptions {
+	val := true
+	return builderOptions{runMigrations: &val}
+}
+
+// WithConfig injects an explicit configuration object.
+func WithConfig(cfg *config.Config) Option {
+	return func(opts *builderOptions) {
+		if cfg != nil {
+			opts.cfg = cfg
+		}
+	}
+}
+
+// WithAPITokens overrides the API tokens used by the HTTP service.
+func WithAPITokens(tokens []string) Option {
+	return func(opts *builderOptions) {
+		clean := make([]string, 0, len(tokens))
+		for _, token := range tokens {
+			t := strings.TrimSpace(token)
+			if t != "" {
+				clean = append(clean, t)
+			}
+		}
+		if len(clean) > 0 {
+			opts.tokens = clean
+		}
+	}
+}
+
+// WithListenAddr sets the HTTP listen address explicitly.
+func WithListenAddr(addr string) Option {
+	return func(opts *builderOptions) {
+		addr = strings.TrimSpace(addr)
+		if addr != "" {
+			opts.listenAddr = addr
+		}
+	}
+}
+
+// WithRunMigrations controls whether embedded migrations run on startup.
+func WithRunMigrations(enabled bool) Option {
+	return func(opts *builderOptions) {
+		opts.runMigrations = boolPtr(enabled)
+	}
+}
+
+func boolPtr(v bool) *bool {
+	value := v
+	return &value
+}
+
 // NewApplication constructs a new application instance with default wiring.
-func NewApplication() (*Application, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, fmt.Errorf("load config: %w", err)
+func NewApplication(options ...Option) (*Application, error) {
+	builder := defaultBuilderOptions()
+	for _, opt := range options {
+		if opt != nil {
+			opt(&builder)
+		}
+	}
+
+	cfg := builder.cfg
+	if cfg == nil {
+		loaded, err := config.Load()
+		if err != nil {
+			return nil, fmt.Errorf("load config: %w", err)
+		}
+		cfg = loaded
+	}
+
+	runMigrations := true
+	if builder.runMigrations != nil {
+		runMigrations = *builder.runMigrations
 	}
 
 	logCfg := logger.LoggingConfig{
@@ -44,12 +122,12 @@ func NewApplication() (*Application, error) {
 	}
 	log := logger.New(logCfg)
 
-	stores, db, err := buildStores(context.Background(), cfg)
+	stores, db, err := buildStores(context.Background(), cfg, runMigrations)
 	if err != nil {
 		return nil, fmt.Errorf("configure stores: %w", err)
 	}
 
-	application, err := app.New(stores, log)
+	application, err := app.New(stores, log, app.WithRuntimeConfig(AppRuntimeConfig(cfg)))
 	if err != nil {
 		if db != nil {
 			_ = db.Close()
@@ -57,14 +135,36 @@ func NewApplication() (*Application, error) {
 		return nil, fmt.Errorf("initialise application: %w", err)
 	}
 
-	if cipher, err := loadSecretsCipher(); err != nil {
+	persistent := db != nil
+	secretKey := resolveSecretEncryptionKey(cfg)
+	if persistent && secretKey == "" {
+		if db != nil {
+			_ = db.Close()
+		}
+		return nil, fmt.Errorf("secret encryption key must be configured when persistence is enabled")
+	}
+
+	if cipher, err := loadSecretsCipher(secretKey); err != nil {
 		log.Warnf("failed to initialise secret cipher: %v", err)
 	} else if cipher != nil && application.Secrets != nil {
 		application.Secrets.SetCipher(cipher)
+	} else if !persistent {
+		log.Warn("secret encryption key not configured; storing secrets without encryption")
 	}
 
-	listenAddr := determineListenAddr(cfg)
-	httpSvc := httpapi.NewService(application, listenAddr, loadAPITokens(cfg), log)
+	listenAddr := builder.listenAddr
+	if listenAddr == "" {
+		listenAddr = determineListenAddr(cfg)
+	}
+	tokens := builder.tokens
+	if len(tokens) == 0 {
+		tokens = resolveAPITokens(cfg)
+	}
+	if len(tokens) == 0 {
+		log.Warn("no API tokens configured; HTTP API will reject requests")
+	}
+
+	httpSvc := httpapi.NewService(application, listenAddr, tokens, log)
 	if err := application.Attach(httpSvc); err != nil {
 		if db != nil {
 			_ = db.Close()
@@ -109,7 +209,7 @@ func (a *Application) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func buildStores(ctx context.Context, cfg *config.Config) (app.Stores, *sql.DB, error) {
+func buildStores(ctx context.Context, cfg *config.Config, runMigrations bool) (app.Stores, *sql.DB, error) {
 	driver := strings.TrimSpace(cfg.Database.Driver)
 	dsn := strings.TrimSpace(cfg.Database.DSN)
 
@@ -128,9 +228,11 @@ func buildStores(ctx context.Context, cfg *config.Config) (app.Stores, *sql.DB, 
 
 	configurePool(db, cfg.Database)
 
-	if err := migrations.Apply(ctx, db); err != nil {
-		db.Close()
-		return app.Stores{}, nil, fmt.Errorf("apply migrations: %w", err)
+	if runMigrations {
+		if err := migrations.Apply(ctx, db); err != nil {
+			db.Close()
+			return app.Stores{}, nil, fmt.Errorf("apply migrations: %w", err)
+		}
 	}
 
 	store := postgres.New(db)
@@ -172,9 +274,16 @@ func determineListenAddr(cfg *config.Config) string {
 	return fmt.Sprintf("%s:%d", host, port)
 }
 
-func loadAPITokens(cfg *config.Config) []string {
-	_ = cfg
-	tokens := splitAndTrim(os.Getenv("API_TOKENS"))
+func resolveAPITokens(cfg *config.Config) []string {
+	var tokens []string
+	if cfg != nil {
+		for _, token := range cfg.Auth.Tokens {
+			if t := strings.TrimSpace(token); t != "" {
+				tokens = append(tokens, t)
+			}
+		}
+	}
+	tokens = append(tokens, splitAndTrim(os.Getenv("API_TOKENS"))...)
 	if token := strings.TrimSpace(os.Getenv("API_TOKEN")); token != "" {
 		tokens = append(tokens, token)
 	}
@@ -195,4 +304,14 @@ func splitAndTrim(value string) []string {
 		}
 	}
 	return trimmed
+}
+
+func resolveSecretEncryptionKey(cfg *config.Config) string {
+	if value := strings.TrimSpace(os.Getenv("SECRET_ENCRYPTION_KEY")); value != "" {
+		return value
+	}
+	if cfg != nil {
+		return strings.TrimSpace(cfg.Security.SecretEncryptionKey)
+	}
+	return ""
 }
