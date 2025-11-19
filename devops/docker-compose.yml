@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # Service Layer API
+  service-layer:
+    build:
+      context: ..
+      dockerfile: devops/Dockerfile
+      args:
+        VERSION: ${VERSION:-0.1.0}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    ports:
+      - "8080:8080"
+    environment:
+      - CONFIG_FILE=/app/config/config.yaml
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=console
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=service_layer
+      - NEO_URLS=http://neo-node:10333
+      - AUTH_JWT_SECRET=***REMOVED***
+    volumes:
+      - ../configs:/app/config
+      - ../data:/app/data
+      - ../logs:/app/logs
+    depends_on:
+      - postgres
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - service-layer-network
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=service_layer
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - service-layer-network
+
+  # Neo N3 node for development
+  neo-node:
+    image: cityofzion/neo-go:latest
+    command: node --privnet
+    volumes:
+      - neo_data:/neo-go
+    ports:
+      - "10333:10333"
+      - "10334:10334"
+    restart: unless-stopped
+    networks:
+      - service-layer-network
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ../devops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - service-layer-network
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../devops/grafana/provisioning:/etc/grafana/provisioning
+      - ../devops/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - service-layer-network
+
+volumes:
+  postgres_data:
+  neo_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  service-layer-network:
+    driver: bridge

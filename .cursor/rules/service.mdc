@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- you are an expert in blockchain, golang, chainlink, and neo n3, 
+- you know how chainlink works, the service it provides.
+- now i need you to help me create a service layer for neo n3 blockchain.
+- the service layer project is like a centralized chainlink, it provices gasbank, functions, contract automation, random number, price feed, oracle. but unlike chainlink, we are centralized, and use TEE to protect our node, we use Azure confidential computing TEE solution.
+- we are also golang based, and only need to build for neo n3 blockchain.
+- we only support js functions, and functions run in TEE.
+- we allow user to store secrets in our service, and use the secrets to compute in TEE via functions.
+- we allow user to deploy functions that can be triggered by various events, including time, date, token price, and more.
+- we provide price feed service that will regularly update the onchain token price.
+- you must follow a document driven development style, and use document to trace your progress.
+- you must write production ready code.
+- keep in mind we only need a centralized solution, no p2p module is needed.

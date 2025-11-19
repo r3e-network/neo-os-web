@@ -1,0 +1,12 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+  "database": {
+    "dsn": "postgres://service_layer:service_layer@localhost:5432/service_layer?sslmode=disable",
+    "max_open_conns": 20,
+    "max_idle_conns": 10,
+    "conn_max_lifetime": 300
+  }
+}
