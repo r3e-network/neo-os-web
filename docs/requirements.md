@@ -48,8 +48,9 @@
 
 #### Oracle Adapter
 - Manage oracle data sources, queue requests, and accept resolver callbacks/webhook updates.
-- Support multiple sources per feed for redundancy and track request lifecycle states (pending, running, succeeded, failed) with idempotent updates.
-- Allow per-source authentication headers and enforce rate limits per account/source combination.
+- Support multiple sources per feed with configurable aggregation (e.g., threshold/median), and track request lifecycle states (pending, running, succeeded, failed) with idempotent updates.
+- Allow per-source authentication headers, outbound host allowlisting, and per-account/source rate limits. Runners/resolvers must authenticate when marking requests running/complete, and requests carry TTL/backoff/DLQ metadata so zombie requests are cleaned up.
+- Attach schema/versioning to request payloads and constraints on result size; expose latency/success metrics and SLA windows.
 
 #### Price Feed Service
 - Create/edit price feed definitions, store historical snapshots, and run periodic refreshers that fetch external data via `PRICEFEED_FETCH_URL` (with optional API keys).
@@ -81,7 +82,8 @@
 
 #### Data Feeds
 - Manage the feed registry, signer sets, decimals, and update submission metadata.
-- Enforce wallet-gated permissions for submissions and store historic rounds + signatures for auditing.
+- Enforce wallet-gated permissions for submissions and store historic rounds + signatures for auditing. Submissions must validate cryptographic signatures against the configured signer set, enforce minimum signer thresholds, and aggregate (e.g., median) multiple submissions per round.
+- Apply price/decimals validation, heartbeat/deviation enforcement, and replay protection per signer/round. Expose metrics for stale feeds, under-signed rounds, and submission latency.
 
 #### Data Streams
 - Configure high-frequency ingestion, frame publication, SLAs, and retention enforcement parameters.
