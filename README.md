@@ -36,11 +36,13 @@ experimentation, or wire itself to PostgreSQL when a DSN is supplied.
 git clone https://github.com/R3E-Network/service_layer.git
 cd service_layer
 
+export API_TOKENS=dev-token   # required for authenticated API access
+
 # In-memory mode (no external dependencies)
 go run ./cmd/appserver
 
 # Interact with a running instance via CLI (defaults to http://localhost:8080)
-go run ./cmd/slctl --token <api-token> accounts list
+go run ./cmd/slctl --token "$API_TOKENS" accounts list
 ```
 
 To use PostgreSQL, supply a DSN via flag or environment variable. Migrations are
@@ -89,6 +91,7 @@ ensure gas accounts and submit oracle requests.
 - `slctl status` — fetch `/system/status` to inspect server health, version, and services.
 - `slctl version` — print CLI build info and query `/system/version` on the server.
 - `slctl gasbank summary --account <id>` — view balances, pending withdrawals, and recent gas bank activity.
+- See `docs/gasbank-workflows.md` for a full ensure → deposit → scheduled/multi-sig withdraw walkthrough (CLI + HTTP) plus settlement retry/DLQ commands embraced by both Devpack and the dashboard.
 
 ### Docker
 
@@ -106,8 +109,15 @@ in-memory stores.
 - `DATABASE_URL` (env) or `-dsn` (flag) control persistence. When omitted, the
   runtime keeps everything in memory.
 - `auth.tokens` (config), `API_TOKENS`/`API_TOKEN` (env), or `-api-tokens` (flag)
-  configure bearer tokens for HTTP authentication. All requests must present
-  `Authorization: Bearer <token>`.
+  configure bearer tokens for HTTP authentication. All protected requests must
+  present `Authorization: Bearer <token>`; `/healthz` and `/system/version` stay
+  public. When no tokens are configured, protected endpoints return 401 and the
+  server logs a warning. Always set tokens for any deployment.
+- Gas bank settlement requires `GASBANK_RESOLVER_URL` (+ optional
+  `GASBANK_RESOLVER_KEY`). Tuning knobs include `GASBANK_POLL_INTERVAL`
+  (duration string, default 15s) and `GASBANK_MAX_ATTEMPTS` (default 5) for
+  retry/DLQ behaviour (or `runtime.gasbank.poll_interval` / `runtime.gasbank.max_attempts`
+  in `configs/config.yaml`).
 - `security.secret_encryption_key` (config) or `SECRET_ENCRYPTION_KEY` (env)
   provide the AES key for secret storage. A key is required when using
   persistent stores.

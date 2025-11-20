@@ -73,6 +73,12 @@
     withdraw(options) {
       return recordAction("gasbank.withdraw", ensureObject(options));
     },
+    balance(options) {
+      return recordAction("gasbank.balance", ensureObject(options));
+    },
+    listTransactions(options) {
+      return recordAction("gasbank.listTransactions", ensureObject(options));
+    },
   };
 
   const oracle = {

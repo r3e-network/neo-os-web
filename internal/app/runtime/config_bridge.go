@@ -12,12 +12,14 @@ func AppRuntimeConfig(cfg *config.Config) app.RuntimeConfig {
 		return app.RuntimeConfig{}
 	}
 	return app.RuntimeConfig{
-		TEEMode:            cfg.Runtime.TEE.Mode,
-		RandomSigningKey:   cfg.Runtime.Random.SigningKey,
-		PriceFeedFetchURL:  cfg.Runtime.PriceFeed.FetchURL,
-		PriceFeedFetchKey:  cfg.Runtime.PriceFeed.FetchKey,
-		GasBankResolverURL: cfg.Runtime.GasBank.ResolverURL,
-		GasBankResolverKey: cfg.Runtime.GasBank.ResolverKey,
-		CREHTTPRunner:      cfg.Runtime.CRE.HTTPRunner,
+		TEEMode:             cfg.Runtime.TEE.Mode,
+		RandomSigningKey:    cfg.Runtime.Random.SigningKey,
+		PriceFeedFetchURL:   cfg.Runtime.PriceFeed.FetchURL,
+		PriceFeedFetchKey:   cfg.Runtime.PriceFeed.FetchKey,
+		GasBankResolverURL:  cfg.Runtime.GasBank.ResolverURL,
+		GasBankResolverKey:  cfg.Runtime.GasBank.ResolverKey,
+		GasBankPollInterval: cfg.Runtime.GasBank.PollInterval,
+		GasBankMaxAttempts:  cfg.Runtime.GasBank.MaxAttempts,
+		CREHTTPRunner:       cfg.Runtime.CRE.HTTPRunner,
 	}
 }

@@ -25,7 +25,8 @@ variables for the orchestration runtime:
 - `pricefeed.fetch_url` / `pricefeed.fetch_key` — configure the background price
   feed refresher HTTP fetcher.
 - `gasbank.resolver_url` / `gasbank.resolver_key` — configure the settlement
-  poller HTTP resolver.
+  poller HTTP resolver, with `gasbank.poll_interval` and `gasbank.max_attempts`
+  controlling retry cadence.
 - `cre.http_runner` — enables the HTTP CRE runner integration.
 
 Every field still honours its corresponding environment variable, so you can
@@ -36,7 +37,9 @@ mix-and-match config files and env overrides as needed.
 Use the `auth` section to declare static bearer tokens consumed by the HTTP
 gateway. Populate `tokens` with one or more strings. Environment variables
 (`API_TOKENS` / `API_TOKEN`) and the `-api-tokens` flag continue to override or
-supplement the list when necessary.
+supplement the list when necessary. If no tokens are configured, all protected
+endpoints return 401; only `/healthz` and `/system/version` remain public for
+probes/discovery.
 
 ## Security Block
 

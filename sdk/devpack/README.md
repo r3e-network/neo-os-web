@@ -56,7 +56,9 @@ The emitted execution record will include the queued actions (`gasbank.ensureAcc
 | Helper | Description |
 | ------ | ----------- |
 | `ensureGasAccount(params)` | Queue `gasbank.ensureAccount`. |
-| `withdrawGas(params)` | Queue `gasbank.withdraw`. |
+| `withdrawGas(params)` | Queue `gasbank.withdraw` (supports `scheduleAt` RFC3339 timestamps; cron is not supported). |
+| `balanceGasAccount(params)` | Queue `gasbank.balance`. |
+| `listGasTransactions(params)` | Queue `gasbank.listTransactions`. |
 | `createOracleRequest(params)` | Queue `oracle.createRequest`. |
 | `registerTrigger(params)` | Queue `triggers.register`. |
 | `scheduleAutomation(params)` | Queue `automation.schedule`. |

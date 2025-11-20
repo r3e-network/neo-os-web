@@ -11,14 +11,14 @@
 - **GasAccount**: add `MinBalance`, `DailyLimit`, `NotificationThreshold`, `RequiredApprovals` fields.
 - **GasTransaction**: extend with `Type` (deposit, withdraw, refund), `State` (pending, scheduled, approved, dispatched, settled, failed, dead_letter), `ApprovalSet`, `ScheduleAt`, `ResolvedAt`, `ResolverError`, `OnChainTxID`.
 - **WithdrawalApproval** (new table): `TransactionID`, `Approver`, `SignedAt`, `Signature`, `Status`.
-- **WithdrawalSchedule** (new table or embedded JSON): cron-like or timestamp-based scheduling metadata.
+- **WithdrawalSchedule** (new table or embedded JSON): timestamp-based scheduling metadata. Cron rules are not supported in the current implementation and should be rejected until a scheduler is added.
 
 ### Workflows
 1. **Account Ensure**: existing behavior + ability to set thresholds/limits. API accepts optional `min_balance`, `daily_limit`, `required_approvals`, `notification_threshold`.
 2. **Deposit**: record metadata (source wallet, tx hash, confirmations). CLI/API returns pending status until confirmations met.
 3. **Withdraw**:
    - **Immediate**: default path. Requires approvals based on `RequiredApprovals` (multi-sig). Auto-schedules settlement when approvals complete.
-   - **Scheduled**: user supplies `schedule_at` timestamp or cron rule. Settlement poller enqueues once due.
+   - **Scheduled**: user supplies a future `schedule_at` timestamp. Cron rules are not supported yet. Settlement poller enqueues once due.
    - **On-chain Transfer**: optional path to call external resolver for actual blockchain transfer (needs `destination_chain`, `gas_limit`, `payload`).
 4. **Approvals**: API to request approval, list approvals, approve/deny. CLI command `slctl gasbank approvals`.
 5. **Retry & Dead-letter**: Poller automatically retries with exponential backoff. After N attempts, transaction marked `dead_letter` and operators can requeue or cancel.
@@ -51,7 +51,7 @@ Subcommands:
 - `slctl gasbank deposits create|list`
 - `slctl gasbank withdrawals create|approve|list|retry`
 - `slctl gasbank approvals list|approve|reject`
-Flags for pagination (`--limit`, `--cursor`), filters (`--status`, `--type`), scheduling (`--schedule-at`, `--cron`), approvals (`--approver`, `--note`).
+Flags for pagination (`--limit`, `--cursor`), filters (`--status`, `--type`), scheduling (`--schedule-at` only), approvals (`--approver`, `--note`).
 
 ### Dashboard / UI
 React view (apps/dashboard):
@@ -93,4 +93,3 @@ React view (apps/dashboard):
    - Unit tests for new workflows.
    - Integration tests with resolver mock.
    - Documentation review.
-

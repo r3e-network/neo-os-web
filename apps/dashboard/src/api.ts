@@ -8,6 +8,8 @@ export type Descriptor = {
 export type HealthCheck = {
   status: string;
   version?: string;
+  // Legacy field; prefer fetchVersion for build metadata.
+  commit?: string;
 };
 
 export type Account = {
@@ -188,6 +190,50 @@ export type GasTransaction = {
   Status: string;
   ToAddress: string;
   FromAddress: string;
+  CreatedAt?: string;
+  Type?: string;
+  Error?: string;
+};
+
+export type GasbankAccountSummary = {
+  account: GasAccount;
+  pending_withdrawals: number;
+  pending_amount: number;
+};
+
+export type GasbankTransactionBrief = {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  completed_at?: string;
+  from_address?: string;
+  to_address?: string;
+  error?: string;
+};
+
+export type GasbankSummary = {
+  accounts: GasbankAccountSummary[];
+  pending_withdrawals: number;
+  pending_amount: number;
+  total_balance: number;
+  total_available: number;
+  total_locked: number;
+  last_deposit?: GasbankTransactionBrief;
+  last_withdrawal?: GasbankTransactionBrief;
+  generated_at: string;
+};
+
+export type GasbankDeadLetter = {
+  TransactionID: string;
+  AccountID: string;
+  Reason: string;
+  LastError?: string;
+  LastAttemptAt?: string;
+  Retries: number;
+  CreatedAt?: string;
+  UpdatedAt?: string;
 };
 
 export type Enclave = {
@@ -328,8 +374,20 @@ export async function fetchDescriptors(config: ClientConfig): Promise<Descriptor
 }
 
 export async function fetchHealth(config: ClientConfig): Promise<HealthCheck> {
-  const url = `${config.baseUrl}/system/health`;
+  const url = `${config.baseUrl}/healthz`;
   return fetchJSON<HealthCheck>(url, config);
+}
+
+export type SystemVersion = {
+  version: string;
+  commit: string;
+  built_at: string;
+  go_version: string;
+};
+
+export async function fetchVersion(config: ClientConfig): Promise<SystemVersion> {
+  const url = `${config.baseUrl}/system/version`;
+  return fetchJSON<SystemVersion>(url, config);
 }
 
 export async function fetchAccounts(config: ClientConfig, limit = 50): Promise<Account[]> {
@@ -422,6 +480,31 @@ export async function fetchGasTransactions(config: ClientConfig, accountID: stri
   const param = gasAccountID ? `?gas_account_id=${encodeURIComponent(gasAccountID)}&limit=${limit}` : `?limit=${limit}`;
   const url = `${config.baseUrl}/accounts/${accountID}/gasbank/transactions${param}`;
   return fetchJSON<GasTransaction[]>(url, config);
+}
+
+export async function fetchGasbankSummary(config: ClientConfig, accountID: string): Promise<GasbankSummary> {
+  const url = `${config.baseUrl}/accounts/${accountID}/gasbank/summary`;
+  return fetchJSON<GasbankSummary>(url, config);
+}
+
+export async function fetchGasWithdrawals(
+  config: ClientConfig,
+  accountID: string,
+  gasAccountID: string,
+  status?: string,
+  limit = 25,
+): Promise<GasTransaction[]> {
+  const params = new URLSearchParams({ gas_account_id: gasAccountID, limit: String(limit) });
+  if (status) {
+    params.set("status", status);
+  }
+  const url = `${config.baseUrl}/accounts/${accountID}/gasbank/withdrawals?${params.toString()}`;
+  return fetchJSON<GasTransaction[]>(url, config);
+}
+
+export async function fetchGasDeadLetters(config: ClientConfig, accountID: string, limit = 25): Promise<GasbankDeadLetter[]> {
+  const url = `${config.baseUrl}/accounts/${accountID}/gasbank/deadletters?limit=${limit}`;
+  return fetchJSON<GasbankDeadLetter[]>(url, config);
 }
 
 export async function fetchEnclaves(config: ClientConfig, accountID: string, limit = 50): Promise<Enclave[]> {

@@ -39,6 +39,9 @@ runtime:
     # empty to disable settlement polling.
     resolver_url: ""
     resolver_key: ""
+    # Tuning knobs for settlement retries and polling cadence.
+    poll_interval: "15s"
+    max_attempts: 5
   cre:
     # Set to true to enable the HTTP CRE runner.
     http_runner: false

@@ -22,7 +22,9 @@
     },
     "gasbank": {
       "resolver_url": "",
-      "resolver_key": ""
+      "resolver_key": "",
+      "poll_interval": "15s",
+      "max_attempts": 5
     },
     "cre": {
       "http_runner": false

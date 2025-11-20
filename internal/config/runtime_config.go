@@ -26,6 +26,8 @@ type PriceFeedConfig struct {
 type GasBankConfig struct {
 	ResolverURL string `json:"resolver_url" env:"GASBANK_RESOLVER_URL"`
 	ResolverKey string `json:"resolver_key" env:"GASBANK_RESOLVER_KEY"`
+	PollInterval string `json:"poll_interval" env:"GASBANK_POLL_INTERVAL"`
+	MaxAttempts  int    `json:"max_attempts" env:"GASBANK_MAX_ATTEMPTS"`
 }
 
 type CREConfig struct {

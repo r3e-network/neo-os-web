@@ -29,6 +29,8 @@ type Action struct {
 const (
 	ActionTypeGasBankEnsureAccount = "gasbank.ensureAccount"
 	ActionTypeGasBankWithdraw      = "gasbank.withdraw"
+	ActionTypeGasBankBalance       = "gasbank.balance"
+	ActionTypeGasBankListTx        = "gasbank.listTransactions"
 	ActionTypeOracleCreateRequest  = "oracle.createRequest"
 	ActionTypeTriggerRegister      = "triggers.register"
 	ActionTypeAutomationSchedule   = "automation.schedule"

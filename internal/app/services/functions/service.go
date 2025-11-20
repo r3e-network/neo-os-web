@@ -350,6 +350,22 @@ func (s *Service) processActions(ctx context.Context, def function.Definition, a
 			} else {
 				res.Result = withdrawResult
 			}
+		case function.ActionTypeGasBankBalance:
+			balanceResult, err := s.handleGasBankBalance(ctx, def, action.Params)
+			if err != nil {
+				res.Status = function.ActionStatusFailed
+				res.Error = err.Error()
+			} else {
+				res.Result = balanceResult
+			}
+		case function.ActionTypeGasBankListTx:
+			listResult, err := s.handleGasBankListTransactions(ctx, def, action.Params)
+			if err != nil {
+				res.Status = function.ActionStatusFailed
+				res.Error = err.Error()
+			} else {
+				res.Result = listResult
+			}
 		case function.ActionTypeOracleCreateRequest:
 			oracleResult, err := s.handleOracleCreateRequest(ctx, def, action.Params)
 			if err != nil {
@@ -445,6 +461,80 @@ func (s *Service) handleGasBankWithdraw(ctx context.Context, def function.Defini
 	return map[string]any{
 		"account":     structToMap(updated),
 		"transaction": structToMap(tx),
+	}, nil
+}
+
+func (s *Service) handleGasBankBalance(ctx context.Context, def function.Definition, params map[string]any) (map[string]any, error) {
+	if s.gasBank == nil {
+		return nil, fmt.Errorf("gas bank: %w", errDependencyUnavailable)
+	}
+	gasAccountID := stringParam(params, "gasAccountId", "")
+	wallet := stringParam(params, "wallet", "")
+	if gasAccountID == "" && wallet == "" {
+		return nil, errors.New("gasbank.balance requires gasAccountId or wallet")
+	}
+	var acct gasbank.Account
+	var err error
+	if gasAccountID != "" {
+		acct, err = s.gasBank.GetAccount(ctx, gasAccountID)
+		if err != nil {
+			return nil, err
+		}
+		if acct.AccountID != def.AccountID {
+			return nil, fmt.Errorf("gas account %s does not belong to account %s", gasAccountID, def.AccountID)
+		}
+	} else {
+		acct, err = s.gasBank.EnsureAccount(ctx, def.AccountID, wallet)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return map[string]any{
+		"account": structToMap(acct),
+	}, nil
+}
+
+func (s *Service) handleGasBankListTransactions(ctx context.Context, def function.Definition, params map[string]any) (map[string]any, error) {
+	if s.gasBank == nil {
+		return nil, fmt.Errorf("gas bank: %w", errDependencyUnavailable)
+	}
+	gasAccountID := stringParam(params, "gasAccountId", "")
+	wallet := stringParam(params, "wallet", "")
+	if gasAccountID == "" && wallet == "" {
+		return nil, errors.New("gasbank.listTransactions requires gasAccountId or wallet")
+	}
+	var acct gasbank.Account
+	var err error
+	if gasAccountID != "" {
+		acct, err = s.gasBank.GetAccount(ctx, gasAccountID)
+		if err != nil {
+			return nil, err
+		}
+		if acct.AccountID != def.AccountID {
+			return nil, fmt.Errorf("gas account %s does not belong to account %s", gasAccountID, def.AccountID)
+		}
+	} else {
+		acct, err = s.gasBank.EnsureAccount(ctx, def.AccountID, wallet)
+		if err != nil {
+			return nil, err
+		}
+	}
+	status := stringParam(params, "status", "")
+	txType := stringParam(params, "type", "")
+	limit := intParam(params, "limit", core.DefaultListLimit)
+	if limit <= 0 {
+		limit = core.DefaultListLimit
+	}
+	txs, err := s.gasBank.ListTransactionsFiltered(ctx, acct.ID, txType, status, limit)
+	if err != nil {
+		return nil, err
+	}
+	serialized := make([]map[string]any, len(txs))
+	for i, tx := range txs {
+		serialized[i] = structToMap(tx)
+	}
+	return map[string]any{
+		"transactions": serialized,
 	}, nil
 }
 
@@ -699,6 +789,33 @@ func boolParam(params map[string]any, key string, fallback bool) bool {
 	default:
 		return fallback
 	}
+}
+
+func intParam(params map[string]any, key string, fallback int) int {
+	if params == nil {
+		return fallback
+	}
+	value, ok := params[key]
+	if !ok {
+		return fallback
+	}
+	switch v := value.(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	case json.Number:
+		if parsed, err := v.Int64(); err == nil {
+			return int(parsed)
+		}
+	case string:
+		if parsed, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			return parsed
+		}
+	}
+	return fallback
 }
 
 func mapStringStringParam(params map[string]any, key string) (map[string]string, error) {

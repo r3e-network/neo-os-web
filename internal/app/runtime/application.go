@@ -145,6 +145,12 @@ func NewApplication(options ...Option) (*Application, error) {
 	}
 
 	if cipher, err := loadSecretsCipher(secretKey); err != nil {
+		if persistent && db != nil {
+			_ = db.Close()
+		}
+		if persistent {
+			return nil, fmt.Errorf("initialise secret cipher: %w", err)
+		}
 		log.Warnf("failed to initialise secret cipher: %v", err)
 	} else if cipher != nil && application.Secrets != nil {
 		application.Secrets.SetCipher(cipher)
@@ -238,13 +244,23 @@ func buildStores(ctx context.Context, cfg *config.Config, runMigrations bool) (a
 	store := postgres.New(db)
 
 	return app.Stores{
-		Accounts:   store,
-		Functions:  store,
-		Triggers:   store,
-		GasBank:    store,
-		Automation: store,
-		PriceFeeds: store,
-		Oracle:     store,
+		Accounts:         store,
+		Functions:        store,
+		Triggers:         store,
+		GasBank:          store,
+		Automation:       store,
+		PriceFeeds:       store,
+		DataFeeds:        store,
+		DataStreams:      store,
+		DataLink:         store,
+		DTA:              store,
+		Confidential:     store,
+		Oracle:           store,
+		Secrets:          store,
+		CRE:              store,
+		CCIP:             store,
+		VRF:              store,
+		WorkspaceWallets: store,
 	}, db, nil
 }
 

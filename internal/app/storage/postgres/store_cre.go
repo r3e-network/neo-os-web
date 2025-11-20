@@ -363,10 +363,30 @@ func scanGasAccount(scanner rowScanner) (gasbank.Account, error) {
 		acct         gasbank.Account
 		wallet       sql.NullString
 		lastWithdraw sql.NullTime
+		flagsJSON    []byte
+		metaJSON     []byte
 		createdAt    time.Time
 		updatedAt    time.Time
 	)
-	if err := scanner.Scan(&acct.ID, &acct.AccountID, &wallet, &acct.Balance, &acct.Available, &acct.Pending, &acct.DailyWithdrawal, &lastWithdraw, &createdAt, &updatedAt); err != nil {
+	if err := scanner.Scan(
+		&acct.ID,
+		&acct.AccountID,
+		&wallet,
+		&acct.Balance,
+		&acct.Available,
+		&acct.Pending,
+		&acct.Locked,
+		&acct.MinBalance,
+		&acct.DailyLimit,
+		&acct.DailyWithdrawal,
+		&acct.NotificationThreshold,
+		&acct.RequiredApprovals,
+		&flagsJSON,
+		&metaJSON,
+		&lastWithdraw,
+		&createdAt,
+		&updatedAt,
+	); err != nil {
 		return gasbank.Account{}, err
 	}
 	if wallet.Valid {
@@ -374,6 +394,18 @@ func scanGasAccount(scanner rowScanner) (gasbank.Account, error) {
 	}
 	if lastWithdraw.Valid {
 		acct.LastWithdrawal = lastWithdraw.Time.UTC()
+	}
+	if len(flagsJSON) > 0 {
+		var flags map[string]bool
+		if err := json.Unmarshal(flagsJSON, &flags); err == nil {
+			acct.Flags = flags
+		}
+	}
+	if len(metaJSON) > 0 {
+		var metadata map[string]string
+		if err := json.Unmarshal(metaJSON, &metadata); err == nil {
+			acct.Metadata = metadata
+		}
 	}
 	acct.CreatedAt = createdAt.UTC()
 	acct.UpdatedAt = updatedAt.UTC()
@@ -389,11 +421,48 @@ func scanGasTransaction(scanner rowScanner) (gasbank.Transaction, error) {
 		toAddr       sql.NullString
 		notes        sql.NullString
 		errMsg       sql.NullString
+		scheduleAt   sql.NullTime
+		cronExpr     sql.NullString
+		approvalJSON []byte
+		resolverErr  sql.NullString
+		lastAttempt  sql.NullTime
+		nextAttempt  sql.NullTime
+		deadLetter   sql.NullString
+		metadataJSON []byte
+		dispatchedAt sql.NullTime
+		resolvedAt   sql.NullTime
 		completedAt  sql.NullTime
 		createdAt    time.Time
 		updatedAt    time.Time
 	)
-	if err := scanner.Scan(&tx.ID, &tx.AccountID, &userAccount, &tx.Type, &tx.Amount, &tx.NetAmount, &tx.Status, &blockchainID, &fromAddr, &toAddr, &notes, &errMsg, &completedAt, &createdAt, &updatedAt); err != nil {
+	if err := scanner.Scan(
+		&tx.ID,
+		&tx.AccountID,
+		&userAccount,
+		&tx.Type,
+		&tx.Amount,
+		&tx.NetAmount,
+		&tx.Status,
+		&blockchainID,
+		&fromAddr,
+		&toAddr,
+		&notes,
+		&errMsg,
+		&scheduleAt,
+		&cronExpr,
+		&approvalJSON,
+		&tx.ResolverAttempt,
+		&resolverErr,
+		&lastAttempt,
+		&nextAttempt,
+		&deadLetter,
+		&metadataJSON,
+		&dispatchedAt,
+		&resolvedAt,
+		&completedAt,
+		&createdAt,
+		&updatedAt,
+	); err != nil {
 		return gasbank.Transaction{}, err
 	}
 	if userAccount.Valid {
@@ -413,6 +482,42 @@ func scanGasTransaction(scanner rowScanner) (gasbank.Transaction, error) {
 	}
 	if errMsg.Valid {
 		tx.Error = errMsg.String
+	}
+	if scheduleAt.Valid {
+		tx.ScheduleAt = scheduleAt.Time.UTC()
+	}
+	if cronExpr.Valid {
+		tx.CronExpression = cronExpr.String
+	}
+	if len(approvalJSON) > 0 {
+		var policy gasbank.ApprovalPolicy
+		if err := json.Unmarshal(approvalJSON, &policy); err == nil {
+			tx.ApprovalPolicy = policy
+		}
+	}
+	if resolverErr.Valid {
+		tx.ResolverError = resolverErr.String
+	}
+	if lastAttempt.Valid {
+		tx.LastAttemptAt = lastAttempt.Time.UTC()
+	}
+	if nextAttempt.Valid {
+		tx.NextAttemptAt = nextAttempt.Time.UTC()
+	}
+	if deadLetter.Valid {
+		tx.DeadLetterReason = deadLetter.String
+	}
+	if len(metadataJSON) > 0 {
+		var metadata map[string]string
+		if err := json.Unmarshal(metadataJSON, &metadata); err == nil {
+			tx.Metadata = metadata
+		}
+	}
+	if dispatchedAt.Valid {
+		tx.DispatchedAt = dispatchedAt.Time.UTC()
+	}
+	if resolvedAt.Valid {
+		tx.ResolvedAt = resolvedAt.Time.UTC()
 	}
 	if completedAt.Valid {
 		tx.CompletedAt = completedAt.Time.UTC()

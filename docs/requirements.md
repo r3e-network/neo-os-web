@@ -18,14 +18,14 @@
 - `cmd/slctl` is the CLI wrapper over the HTTP API. It honours `SERVICE_LAYER_ADDR` and `SERVICE_LAYER_TOKEN` for pointing at different environments.
 - `apps/dashboard` hosts the React + Vite front-end surface that consumes the same HTTP API for operator workflows. Additional surfaces must be documented here before landing in the repo.
 - `sdk/devpack` plus `examples/functions/devpack` provide the TypeScript toolchain used to author functions locally. Devpack helpers let functions queue automation, oracle, price feed, gas bank, and trigger actions that execute after the JavaScript runtime completes.
-- Persistence defaults to in-memory stores. Supplying a PostgreSQL DSN (via `-dsn`, `DATABASE_URL`, or config files under `configs/`) switches all services to the Postgres adapters and enables migrations embedded in `internal/platform/migrations` (0001–0016).
+- Persistence defaults to in-memory stores. Supplying a PostgreSQL DSN (via `-dsn`, `DATABASE_URL`, or config files under `configs/`) switches all services to the Postgres adapters and enables migrations embedded in `internal/platform/migrations` (0001–0017).
 - Optional TEE execution paths use the Goja JavaScript runtime today and can be swapped with Azure Confidential Computing-backed executors when runners are provisioned (see Confidential Compute sections for expectations).
 
 ## Functional Requirements
 ### Service Catalogue
 #### Accounts & Authentication
 - Manage account/workspace records, metadata, and lifecycle through `/accounts` endpoints and enforce per-account ownership across dependent services.
-- Enforce HTTP authentication via static bearer tokens configured through `API_TOKENS` or the `-api-tokens` flag. All endpoints except `/healthz` require a valid `Authorization: Bearer <token>` header.
+- Enforce HTTP authentication via static bearer tokens configured through `API_TOKENS` or the `-api-tokens` flag. All endpoints except `/healthz` and `/system/version` require a valid `Authorization: Bearer <token>` header.
 - Provide workspace-level capability descriptors via `/system/descriptors` for dashboards/CLI discovery.
 
 #### Workspace Wallets
@@ -57,6 +57,8 @@
 
 #### Gas Bank
 - Manage gas accounts, deposits, withdrawals, and settlement polling. Integrate with external withdrawal resolvers defined by `GASBANK_RESOLVER_URL` and optional bearer tokens.
+- Expose retry cadence and polling interval tuning via `GASBANK_POLL_INTERVAL` and `GASBANK_MAX_ATTEMPTS` (or `runtime.gasbank.poll_interval` / `runtime.gasbank.max_attempts` in config files).
+- Support scheduled withdrawals via a future `schedule_at` timestamp; cron expressions are not yet supported and must be rejected.
 - Enforce transactional safety (rollbacks on resolver failures), provide transaction history listings, and expose balances via the HTTP API.
 
 #### Randomness Service
@@ -65,7 +67,7 @@
 - Expose `/accounts/{id}/random` for generation requests and `/accounts/{id}/random/requests` for retrieving recent history.
 
 #### Observability & System Services
-- Expose `/metrics` for Prometheus scraping and `/healthz` for readiness probes. `/metrics` requires authentication; `/healthz` remains unauthenticated for orchestrators.
+- Expose `/metrics` for Prometheus scraping and `/healthz` for readiness probes. `/metrics` requires authentication; `/healthz` and `/system/version` remain unauthenticated for orchestrators/discovery.
 - Emit structured logs annotated with account/service identifiers. Provide hooks for tracing/metrics per service (see `internal/app/metrics`).
 - Enforce pagination limits via `limit` parameters to protect the API, returning cursors/tokens where applicable.
 
@@ -146,6 +148,7 @@
 - All database mutations go through versioned migrations under `internal/platform/migrations`; the server auto-applies them when `-migrate` is enabled (default true) in Postgres mode.
 - In-memory adapters (under `internal/app/storage/memory`) provide a dependency-free option for tests and local experimentation.
 - Secrets are encrypted before persistence; other sensitive blobs (sealed keys, attestations) follow the same cipher utilities.
+- When Postgres is enabled, startup must fail if the configured secret encryption key is missing or invalid to avoid persisting plaintext values.
 - No external cache is required; any caching remains in-process. When future Redis integrations are added, they must remain optional and feature-flagged.
 
 ## Non-Functional Requirements

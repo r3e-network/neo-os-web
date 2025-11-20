@@ -30,44 +30,48 @@ import (
 // Store is an in-memory implementation of the storage interfaces. It is safe
 // for concurrent use and is primarily intended for tests and local development.
 type Store struct {
-	mu                   sync.RWMutex
-	nextID               int64
-	accounts             map[string]account.Account
-	functions            map[string]function.Definition
-	functionExecutions   map[string]function.Execution
-	triggers             map[string]trigger.Trigger
-	gasAccounts          map[string]gasbank.Account
-	gasAccountsByWallet  map[string]string
-	gasTransactions      map[string][]gasbank.Transaction
-	gasTransactionsByID  map[string]gasbank.Transaction
-	automationJobs       map[string]automation.Job
-	priceFeeds           map[string]pricefeed.Feed
-	priceSnapshots       map[string][]pricefeed.Snapshot
-	priceRounds          map[string][]pricefeed.Round
-	priceObservations    map[string][]pricefeed.Observation
-	oracleSources        map[string]oracle.DataSource
-	oracleRequests       map[string]oracle.Request
-	secrets              map[string]secret.Secret
-	playbooks            map[string]cre.Playbook
-	runs                 map[string]cre.Run
-	executors            map[string]cre.Executor
-	ccipLanes            map[string]ccip.Lane
-	ccipMessages         map[string]ccip.Message
-	dataFeeds            map[string]datafeeds.Feed
-	dataFeedUpdates      map[string][]datafeeds.Update
-	vrfKeys              map[string]vrf.Key
-	vrfRequests          map[string]vrf.Request
-	dataStreams          map[string]datastreams.Stream
-	dataStreamFrames     map[string][]datastreams.Frame
-	dataLinkChannels     map[string]datalink.Channel
-	dataLinkDeliveries   map[string]datalink.Delivery
-	dtaProducts          map[string]dta.Product
-	dtaOrders            map[string]dta.Order
-	confEnclaves         map[string]confidential.Enclave
-	confSealedKeys       map[string][]confidential.SealedKey
-	confAttestations     map[string][]confidential.Attestation
-	workspaceWallets     map[string]account.WorkspaceWallet
-	workspaceWalletsByWS map[string][]string
+	mu                    sync.RWMutex
+	nextID                int64
+	accounts              map[string]account.Account
+	functions             map[string]function.Definition
+	functionExecutions    map[string]function.Execution
+	triggers              map[string]trigger.Trigger
+	gasAccounts           map[string]gasbank.Account
+	gasAccountsByWallet   map[string]string
+	gasTransactions       map[string][]gasbank.Transaction
+	gasTransactionsByID   map[string]gasbank.Transaction
+	gasApprovals          map[string]map[string]gasbank.WithdrawalApproval
+	gasSchedules          map[string]gasbank.WithdrawalSchedule
+	gasSettlementAttempts map[string][]gasbank.SettlementAttempt
+	gasDeadLetters        map[string]gasbank.DeadLetter
+	automationJobs        map[string]automation.Job
+	priceFeeds            map[string]pricefeed.Feed
+	priceSnapshots        map[string][]pricefeed.Snapshot
+	priceRounds           map[string][]pricefeed.Round
+	priceObservations     map[string][]pricefeed.Observation
+	oracleSources         map[string]oracle.DataSource
+	oracleRequests        map[string]oracle.Request
+	secrets               map[string]secret.Secret
+	playbooks             map[string]cre.Playbook
+	runs                  map[string]cre.Run
+	executors             map[string]cre.Executor
+	ccipLanes             map[string]ccip.Lane
+	ccipMessages          map[string]ccip.Message
+	dataFeeds             map[string]datafeeds.Feed
+	dataFeedUpdates       map[string][]datafeeds.Update
+	vrfKeys               map[string]vrf.Key
+	vrfRequests           map[string]vrf.Request
+	dataStreams           map[string]datastreams.Stream
+	dataStreamFrames      map[string][]datastreams.Frame
+	dataLinkChannels      map[string]datalink.Channel
+	dataLinkDeliveries    map[string]datalink.Delivery
+	dtaProducts           map[string]dta.Product
+	dtaOrders             map[string]dta.Order
+	confEnclaves          map[string]confidential.Enclave
+	confSealedKeys        map[string][]confidential.SealedKey
+	confAttestations      map[string][]confidential.Attestation
+	workspaceWallets      map[string]account.WorkspaceWallet
+	workspaceWalletsByWS  map[string][]string
 }
 
 var _ storage.AccountStore = (*Store)(nil)
@@ -92,43 +96,47 @@ var _ storage.ConfidentialStore = (*Store)(nil)
 // New creates an empty store.
 func New() *Store {
 	return &Store{
-		nextID:               1,
-		accounts:             make(map[string]account.Account),
-		functions:            make(map[string]function.Definition),
-		functionExecutions:   make(map[string]function.Execution),
-		triggers:             make(map[string]trigger.Trigger),
-		gasAccounts:          make(map[string]gasbank.Account),
-		gasAccountsByWallet:  make(map[string]string),
-		gasTransactions:      make(map[string][]gasbank.Transaction),
-		gasTransactionsByID:  make(map[string]gasbank.Transaction),
-		automationJobs:       make(map[string]automation.Job),
-		priceFeeds:           make(map[string]pricefeed.Feed),
-		priceSnapshots:       make(map[string][]pricefeed.Snapshot),
-		priceRounds:          make(map[string][]pricefeed.Round),
-		priceObservations:    make(map[string][]pricefeed.Observation),
-		oracleSources:        make(map[string]oracle.DataSource),
-		oracleRequests:       make(map[string]oracle.Request),
-		secrets:              make(map[string]secret.Secret),
-		playbooks:            make(map[string]cre.Playbook),
-		runs:                 make(map[string]cre.Run),
-		executors:            make(map[string]cre.Executor),
-		ccipLanes:            make(map[string]ccip.Lane),
-		ccipMessages:         make(map[string]ccip.Message),
-		dataFeeds:            make(map[string]datafeeds.Feed),
-		dataFeedUpdates:      make(map[string][]datafeeds.Update),
-		vrfKeys:              make(map[string]vrf.Key),
-		vrfRequests:          make(map[string]vrf.Request),
-		workspaceWallets:     make(map[string]account.WorkspaceWallet),
-		workspaceWalletsByWS: make(map[string][]string),
-		dataStreams:          make(map[string]datastreams.Stream),
-		dataStreamFrames:     make(map[string][]datastreams.Frame),
-		dataLinkChannels:     make(map[string]datalink.Channel),
-		dataLinkDeliveries:   make(map[string]datalink.Delivery),
-		dtaProducts:          make(map[string]dta.Product),
-		dtaOrders:            make(map[string]dta.Order),
-		confEnclaves:         make(map[string]confidential.Enclave),
-		confSealedKeys:       make(map[string][]confidential.SealedKey),
-		confAttestations:     make(map[string][]confidential.Attestation),
+		nextID:                1,
+		accounts:              make(map[string]account.Account),
+		functions:             make(map[string]function.Definition),
+		functionExecutions:    make(map[string]function.Execution),
+		triggers:              make(map[string]trigger.Trigger),
+		gasAccounts:           make(map[string]gasbank.Account),
+		gasAccountsByWallet:   make(map[string]string),
+		gasTransactions:       make(map[string][]gasbank.Transaction),
+		gasTransactionsByID:   make(map[string]gasbank.Transaction),
+		gasApprovals:          make(map[string]map[string]gasbank.WithdrawalApproval),
+		gasSchedules:          make(map[string]gasbank.WithdrawalSchedule),
+		gasSettlementAttempts: make(map[string][]gasbank.SettlementAttempt),
+		gasDeadLetters:        make(map[string]gasbank.DeadLetter),
+		automationJobs:        make(map[string]automation.Job),
+		priceFeeds:            make(map[string]pricefeed.Feed),
+		priceSnapshots:        make(map[string][]pricefeed.Snapshot),
+		priceRounds:           make(map[string][]pricefeed.Round),
+		priceObservations:     make(map[string][]pricefeed.Observation),
+		oracleSources:         make(map[string]oracle.DataSource),
+		oracleRequests:        make(map[string]oracle.Request),
+		secrets:               make(map[string]secret.Secret),
+		playbooks:             make(map[string]cre.Playbook),
+		runs:                  make(map[string]cre.Run),
+		executors:             make(map[string]cre.Executor),
+		ccipLanes:             make(map[string]ccip.Lane),
+		ccipMessages:          make(map[string]ccip.Message),
+		dataFeeds:             make(map[string]datafeeds.Feed),
+		dataFeedUpdates:       make(map[string][]datafeeds.Update),
+		vrfKeys:               make(map[string]vrf.Key),
+		vrfRequests:           make(map[string]vrf.Request),
+		workspaceWallets:      make(map[string]account.WorkspaceWallet),
+		workspaceWalletsByWS:  make(map[string][]string),
+		dataStreams:           make(map[string]datastreams.Stream),
+		dataStreamFrames:      make(map[string][]datastreams.Frame),
+		dataLinkChannels:      make(map[string]datalink.Channel),
+		dataLinkDeliveries:    make(map[string]datalink.Delivery),
+		dtaProducts:           make(map[string]dta.Product),
+		dtaOrders:             make(map[string]dta.Order),
+		confEnclaves:          make(map[string]confidential.Enclave),
+		confSealedKeys:        make(map[string][]confidential.SealedKey),
+		confAttestations:      make(map[string][]confidential.Attestation),
 	}
 }
 
@@ -405,6 +413,77 @@ func cloneMap(src map[string]string) map[string]string {
 	return dst
 }
 
+func cloneBoolMap(src map[string]bool) map[string]bool {
+	if len(src) == 0 {
+		return nil
+	}
+	dst := make(map[string]bool, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
+func cloneGasAccount(acct gasbank.Account) gasbank.Account {
+	acct.Flags = cloneBoolMap(acct.Flags)
+	acct.Metadata = cloneMap(acct.Metadata)
+	return acct
+}
+
+func cloneApprovalPolicy(policy gasbank.ApprovalPolicy) gasbank.ApprovalPolicy {
+	policy.Approvers = append([]string(nil), policy.Approvers...)
+	return policy
+}
+
+func cloneWithdrawalApprovals(items []gasbank.WithdrawalApproval) []gasbank.WithdrawalApproval {
+	if len(items) == 0 {
+		return nil
+	}
+	cloned := make([]gasbank.WithdrawalApproval, len(items))
+	copy(cloned, items)
+	return cloned
+}
+
+func cloneWithdrawalApproval(approval gasbank.WithdrawalApproval) gasbank.WithdrawalApproval {
+	return approval
+}
+
+func cloneWithdrawalSchedule(schedule gasbank.WithdrawalSchedule) gasbank.WithdrawalSchedule {
+	return schedule
+}
+
+func cloneSettlementAttempt(attempt gasbank.SettlementAttempt) gasbank.SettlementAttempt {
+	return attempt
+}
+
+func cloneDeadLetter(entry gasbank.DeadLetter) gasbank.DeadLetter {
+	return entry
+}
+
+func cloneGasTransaction(tx gasbank.Transaction) gasbank.Transaction {
+	tx.ApprovalPolicy = cloneApprovalPolicy(tx.ApprovalPolicy)
+	tx.Approvals = cloneWithdrawalApprovals(tx.Approvals)
+	tx.Metadata = cloneMap(tx.Metadata)
+	return tx
+}
+
+func (s *Store) cloneAndHydrateTransactionLocked(tx gasbank.Transaction) gasbank.Transaction {
+	cloned := cloneGasTransaction(tx)
+	if approvals := s.gasApprovals[tx.ID]; len(approvals) > 0 {
+		list := make([]gasbank.WithdrawalApproval, 0, len(approvals))
+		for _, approval := range approvals {
+			list = append(list, cloneWithdrawalApproval(approval))
+		}
+		sort.Slice(list, func(i, j int) bool {
+			return list[i].UpdatedAt.After(list[j].UpdatedAt)
+		})
+		cloned.Approvals = list
+	} else {
+		cloned.Approvals = nil
+	}
+	return cloned
+}
+
 func cloneAccount(acct account.Account) account.Account {
 	acct.Metadata = cloneMap(acct.Metadata)
 	return acct
@@ -492,6 +571,8 @@ func (s *Store) CreateGasAccount(_ context.Context, acct gasbank.Account) (gasba
 		}
 	}
 
+	acct.Flags = cloneBoolMap(acct.Flags)
+	acct.Metadata = cloneMap(acct.Metadata)
 	acct.CreatedAt = time.Now().UTC()
 	acct.UpdatedAt = acct.CreatedAt
 
@@ -499,7 +580,7 @@ func (s *Store) CreateGasAccount(_ context.Context, acct gasbank.Account) (gasba
 	if walletKey != "" {
 		s.gasAccountsByWallet[walletKey] = acct.ID
 	}
-	return acct, nil
+	return cloneGasAccount(acct), nil
 }
 
 func (s *Store) UpdateGasAccount(_ context.Context, acct gasbank.Account) (gasbank.Account, error) {
@@ -522,6 +603,8 @@ func (s *Store) UpdateGasAccount(_ context.Context, acct gasbank.Account) (gasba
 
 	acct.CreatedAt = original.CreatedAt
 	acct.UpdatedAt = time.Now().UTC()
+	acct.Flags = cloneBoolMap(acct.Flags)
+	acct.Metadata = cloneMap(acct.Metadata)
 
 	s.gasAccounts[acct.ID] = acct
 	if oldKey != "" && oldKey != newKey {
@@ -532,7 +615,7 @@ func (s *Store) UpdateGasAccount(_ context.Context, acct gasbank.Account) (gasba
 	} else if oldKey != "" {
 		delete(s.gasAccountsByWallet, oldKey)
 	}
-	return acct, nil
+	return cloneGasAccount(acct), nil
 }
 
 func (s *Store) GetGasAccount(_ context.Context, id string) (gasbank.Account, error) {
@@ -543,7 +626,7 @@ func (s *Store) GetGasAccount(_ context.Context, id string) (gasbank.Account, er
 	if !ok {
 		return gasbank.Account{}, fmt.Errorf("gas account %s not found", id)
 	}
-	return acct, nil
+	return cloneGasAccount(acct), nil
 }
 
 func (s *Store) GetGasAccountByWallet(_ context.Context, wallet string) (gasbank.Account, error) {
@@ -551,7 +634,7 @@ func (s *Store) GetGasAccountByWallet(_ context.Context, wallet string) (gasbank
 	defer s.mu.RUnlock()
 
 	if id, ok := s.gasAccountsByWallet[strings.ToLower(wallet)]; ok {
-		return s.gasAccounts[id], nil
+		return cloneGasAccount(s.gasAccounts[id]), nil
 	}
 	return gasbank.Account{}, fmt.Errorf("gas account for wallet %s not found", wallet)
 }
@@ -563,7 +646,7 @@ func (s *Store) ListGasAccounts(_ context.Context, accountID string) ([]gasbank.
 	result := make([]gasbank.Account, 0)
 	for _, acct := range s.gasAccounts {
 		if accountID == "" || acct.AccountID == accountID {
-			result = append(result, acct)
+			result = append(result, cloneGasAccount(acct))
 		}
 	}
 	return result, nil
@@ -576,23 +659,31 @@ func (s *Store) CreateGasTransaction(_ context.Context, tx gasbank.Transaction) 
 	if tx.ID == "" {
 		tx.ID = s.nextIDLocked()
 	}
+	tx.ApprovalPolicy = cloneApprovalPolicy(tx.ApprovalPolicy)
+	tx.Approvals = cloneWithdrawalApprovals(tx.Approvals)
+	tx.Metadata = cloneMap(tx.Metadata)
 	tx.CreatedAt = time.Now().UTC()
 	tx.UpdatedAt = tx.CreatedAt
 
-	s.gasTransactions[tx.AccountID] = append(s.gasTransactions[tx.AccountID], tx)
-	s.gasTransactionsByID[tx.ID] = tx
-	return tx, nil
+	stored := cloneGasTransaction(tx)
+	s.gasTransactions[tx.AccountID] = append(s.gasTransactions[tx.AccountID], stored)
+	s.gasTransactionsByID[tx.ID] = stored
+	return s.cloneAndHydrateTransactionLocked(stored), nil
 }
 
 func (s *Store) ListGasTransactions(_ context.Context, gasAccountID string, limit int) ([]gasbank.Transaction, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	items := append([]gasbank.Transaction(nil), s.gasTransactions[gasAccountID]...)
-	if limit > 0 && len(items) > limit {
-		items = items[:limit]
+	entries := s.gasTransactions[gasAccountID]
+	if limit > 0 && len(entries) > limit {
+		entries = entries[:limit]
 	}
-	return items, nil
+	result := make([]gasbank.Transaction, 0, len(entries))
+	for _, tx := range entries {
+		result = append(result, s.cloneAndHydrateTransactionLocked(tx))
+	}
+	return result, nil
 }
 
 func (s *Store) UpdateGasTransaction(_ context.Context, tx gasbank.Transaction) (gasbank.Transaction, error) {
@@ -604,19 +695,23 @@ func (s *Store) UpdateGasTransaction(_ context.Context, tx gasbank.Transaction) 
 		return gasbank.Transaction{}, fmt.Errorf("transaction %s not found", tx.ID)
 	}
 
+	tx.ApprovalPolicy = cloneApprovalPolicy(tx.ApprovalPolicy)
+	tx.Approvals = cloneWithdrawalApprovals(tx.Approvals)
+	tx.Metadata = cloneMap(tx.Metadata)
 	tx.CreatedAt = original.CreatedAt
 	tx.UpdatedAt = time.Now().UTC()
-	s.gasTransactionsByID[tx.ID] = tx
+	stored := cloneGasTransaction(tx)
+	s.gasTransactionsByID[tx.ID] = stored
 	entries := s.gasTransactions[tx.AccountID]
 	for i := range entries {
 		if entries[i].ID == tx.ID {
-			entries[i] = tx
+			entries[i] = stored
 			s.gasTransactions[tx.AccountID] = entries
 			break
 		}
 	}
 
-	return tx, nil
+	return s.cloneAndHydrateTransactionLocked(stored), nil
 }
 
 func (s *Store) GetGasTransaction(_ context.Context, id string) (gasbank.Transaction, error) {
@@ -627,7 +722,7 @@ func (s *Store) GetGasTransaction(_ context.Context, id string) (gasbank.Transac
 	if !ok {
 		return gasbank.Transaction{}, fmt.Errorf("transaction %s not found", id)
 	}
-	return tx, nil
+	return s.cloneAndHydrateTransactionLocked(tx), nil
 }
 
 func (s *Store) ListPendingWithdrawals(_ context.Context) ([]gasbank.Transaction, error) {
@@ -638,11 +733,212 @@ func (s *Store) ListPendingWithdrawals(_ context.Context) ([]gasbank.Transaction
 	for _, entries := range s.gasTransactions {
 		for _, tx := range entries {
 			if tx.Type == gasbank.TransactionWithdrawal && tx.Status == gasbank.StatusPending {
-				result = append(result, tx)
+				result = append(result, s.cloneAndHydrateTransactionLocked(tx))
 			}
 		}
 	}
 	return result, nil
+}
+
+func (s *Store) UpsertWithdrawalApproval(_ context.Context, approval gasbank.WithdrawalApproval) (gasbank.WithdrawalApproval, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if approval.TransactionID == "" || strings.TrimSpace(approval.Approver) == "" {
+		return gasbank.WithdrawalApproval{}, fmt.Errorf("transaction_id and approver required")
+	}
+	now := time.Now().UTC()
+	if approval.CreatedAt.IsZero() {
+		approval.CreatedAt = now
+	}
+	approval.UpdatedAt = now
+	approvals := s.gasApprovals[approval.TransactionID]
+	if approvals == nil {
+		approvals = make(map[string]gasbank.WithdrawalApproval)
+	}
+	if existing, ok := approvals[approval.Approver]; ok && !existing.CreatedAt.IsZero() {
+		approval.CreatedAt = existing.CreatedAt
+	}
+	approvals[approval.Approver] = cloneWithdrawalApproval(approval)
+	s.gasApprovals[approval.TransactionID] = approvals
+	return cloneWithdrawalApproval(approval), nil
+}
+
+func (s *Store) ListWithdrawalApprovals(_ context.Context, transactionID string) ([]gasbank.WithdrawalApproval, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	approvals := s.gasApprovals[transactionID]
+	if len(approvals) == 0 {
+		return nil, nil
+	}
+	result := make([]gasbank.WithdrawalApproval, 0, len(approvals))
+	for _, approval := range approvals {
+		result = append(result, cloneWithdrawalApproval(approval))
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].UpdatedAt.After(result[j].UpdatedAt)
+	})
+	return result, nil
+}
+
+func (s *Store) SaveWithdrawalSchedule(_ context.Context, schedule gasbank.WithdrawalSchedule) (gasbank.WithdrawalSchedule, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if schedule.TransactionID == "" {
+		return gasbank.WithdrawalSchedule{}, fmt.Errorf("transaction_id required")
+	}
+	now := time.Now().UTC()
+	if schedule.CreatedAt.IsZero() {
+		schedule.CreatedAt = now
+	}
+	schedule.UpdatedAt = now
+	s.gasSchedules[schedule.TransactionID] = cloneWithdrawalSchedule(schedule)
+	return cloneWithdrawalSchedule(schedule), nil
+}
+
+func (s *Store) GetWithdrawalSchedule(_ context.Context, transactionID string) (gasbank.WithdrawalSchedule, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	schedule, ok := s.gasSchedules[transactionID]
+	if !ok {
+		return gasbank.WithdrawalSchedule{}, fmt.Errorf("withdrawal schedule for %s not found", transactionID)
+	}
+	return cloneWithdrawalSchedule(schedule), nil
+}
+
+func (s *Store) DeleteWithdrawalSchedule(_ context.Context, transactionID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.gasSchedules, transactionID)
+	return nil
+}
+
+func (s *Store) ListDueWithdrawalSchedules(_ context.Context, before time.Time, limit int) ([]gasbank.WithdrawalSchedule, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]gasbank.WithdrawalSchedule, 0)
+	for _, schedule := range s.gasSchedules {
+		if !schedule.ScheduleAt.IsZero() && !schedule.ScheduleAt.After(before) {
+			result = append(result, cloneWithdrawalSchedule(schedule))
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ScheduleAt.Before(result[j].ScheduleAt)
+	})
+	if limit > 0 && len(result) > limit {
+		result = result[:limit]
+	}
+	return result, nil
+}
+
+func (s *Store) RecordSettlementAttempt(_ context.Context, attempt gasbank.SettlementAttempt) (gasbank.SettlementAttempt, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if attempt.TransactionID == "" {
+		return gasbank.SettlementAttempt{}, fmt.Errorf("transaction_id required")
+	}
+	if attempt.Attempt <= 0 {
+		attempt.Attempt = len(s.gasSettlementAttempts[attempt.TransactionID]) + 1
+	}
+	now := time.Now().UTC()
+	if attempt.StartedAt.IsZero() {
+		attempt.StartedAt = now
+	}
+	if attempt.CompletedAt.IsZero() {
+		attempt.CompletedAt = now
+	}
+	if attempt.Latency == 0 && !attempt.CompletedAt.IsZero() {
+		attempt.Latency = attempt.CompletedAt.Sub(attempt.StartedAt)
+	}
+	list := s.gasSettlementAttempts[attempt.TransactionID]
+	if attempt.Attempt-1 < len(list) {
+		list[attempt.Attempt-1] = cloneSettlementAttempt(attempt)
+	} else {
+		list = append(list, cloneSettlementAttempt(attempt))
+	}
+	s.gasSettlementAttempts[attempt.TransactionID] = list
+	return cloneSettlementAttempt(attempt), nil
+}
+
+func (s *Store) ListSettlementAttempts(_ context.Context, transactionID string, limit int) ([]gasbank.SettlementAttempt, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	attempts := s.gasSettlementAttempts[transactionID]
+	if len(attempts) == 0 {
+		return nil, nil
+	}
+	result := make([]gasbank.SettlementAttempt, len(attempts))
+	for i, attempt := range attempts {
+		result[i] = cloneSettlementAttempt(attempt)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Attempt > result[j].Attempt
+	})
+	if limit > 0 && len(result) > limit {
+		result = result[:limit]
+	}
+	return result, nil
+}
+
+func (s *Store) UpsertDeadLetter(_ context.Context, entry gasbank.DeadLetter) (gasbank.DeadLetter, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if entry.TransactionID == "" {
+		return gasbank.DeadLetter{}, fmt.Errorf("transaction_id required")
+	}
+	now := time.Now().UTC()
+	if entry.CreatedAt.IsZero() {
+		entry.CreatedAt = now
+	}
+	entry.UpdatedAt = now
+	s.gasDeadLetters[entry.TransactionID] = cloneDeadLetter(entry)
+	return cloneDeadLetter(entry), nil
+}
+
+func (s *Store) GetDeadLetter(_ context.Context, transactionID string) (gasbank.DeadLetter, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	entry, ok := s.gasDeadLetters[transactionID]
+	if !ok {
+		return gasbank.DeadLetter{}, fmt.Errorf("dead letter %s not found", transactionID)
+	}
+	return cloneDeadLetter(entry), nil
+}
+
+func (s *Store) ListDeadLetters(_ context.Context, accountID string, limit int) ([]gasbank.DeadLetter, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]gasbank.DeadLetter, 0, len(s.gasDeadLetters))
+	for _, entry := range s.gasDeadLetters {
+		if accountID == "" || entry.AccountID == accountID {
+			result = append(result, cloneDeadLetter(entry))
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].UpdatedAt.After(result[j].UpdatedAt)
+	})
+	if limit > 0 && len(result) > limit {
+		result = result[:limit]
+	}
+	return result, nil
+}
+
+func (s *Store) RemoveDeadLetter(_ context.Context, transactionID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.gasDeadLetters, transactionID)
+	return nil
 }
 
 // AutomationStore implementation --------------------------------------------

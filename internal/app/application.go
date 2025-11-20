@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -120,13 +121,15 @@ func (s *Stores) applyDefaults(mem *memory.Store) {
 // sourced directly from OS variables. It allows callers to supply explicit
 // configuration when embedding the application or running tests.
 type RuntimeConfig struct {
-	TEEMode            string
-	RandomSigningKey   string
-	CREHTTPRunner      bool
-	PriceFeedFetchURL  string
-	PriceFeedFetchKey  string
-	GasBankResolverURL string
-	GasBankResolverKey string
+	TEEMode             string
+	RandomSigningKey    string
+	CREHTTPRunner       bool
+	PriceFeedFetchURL   string
+	PriceFeedFetchKey   string
+	GasBankResolverURL  string
+	GasBankResolverKey  string
+	GasBankPollInterval string
+	GasBankMaxAttempts  int
 }
 
 // Option customises the application runtime.
@@ -151,13 +154,15 @@ type resolvedBuilder struct {
 }
 
 type runtimeSettings struct {
-	teeMode            string
-	randomSigningKey   string
-	creHTTPRunner      bool
-	priceFeedFetchURL  string
-	priceFeedFetchKey  string
-	gasBankResolverURL string
-	gasBankResolverKey string
+	teeMode             string
+	randomSigningKey    string
+	creHTTPRunner       bool
+	priceFeedFetchURL   string
+	priceFeedFetchKey   string
+	gasBankResolverURL  string
+	gasBankResolverKey  string
+	gasBankPollInterval time.Duration
+	gasBankMaxAttempts  int
 }
 
 // WithRuntimeConfig overrides the runtime configuration used when wiring
@@ -319,6 +324,7 @@ func New(stores Stores, log *logger.Logger, opts ...Option) (*Application, error
 		} else {
 			poller := gasbanksvc.NewSettlementPoller(stores.GasBank, gasService, resolver, log)
 			poller.WithObservationHooks(metrics.GasBankSettlementHooks())
+			poller.WithRetryPolicy(options.runtime.gasBankMaxAttempts, options.runtime.gasBankPollInterval)
 			settlement = poller
 		}
 	} else {
@@ -413,26 +419,44 @@ func runtimeConfigFromEnv(env Environment) RuntimeConfig {
 	if env == nil {
 		env = osEnvironment{}
 	}
+	maxAttempts := 0
+	if parsed, ok := parseInt(env.Lookup("GASBANK_MAX_ATTEMPTS")); ok {
+		maxAttempts = parsed
+	}
 	return RuntimeConfig{
-		TEEMode:            env.Lookup("TEE_MODE"),
-		RandomSigningKey:   env.Lookup("RANDOM_SIGNING_KEY"),
-		PriceFeedFetchURL:  env.Lookup("PRICEFEED_FETCH_URL"),
-		PriceFeedFetchKey:  env.Lookup("PRICEFEED_FETCH_KEY"),
-		GasBankResolverURL: env.Lookup("GASBANK_RESOLVER_URL"),
-		GasBankResolverKey: env.Lookup("GASBANK_RESOLVER_KEY"),
-		CREHTTPRunner:      parseBool(env.Lookup("CRE_HTTP_RUNNER")),
+		TEEMode:             env.Lookup("TEE_MODE"),
+		RandomSigningKey:    env.Lookup("RANDOM_SIGNING_KEY"),
+		PriceFeedFetchURL:   env.Lookup("PRICEFEED_FETCH_URL"),
+		PriceFeedFetchKey:   env.Lookup("PRICEFEED_FETCH_KEY"),
+		GasBankResolverURL:  env.Lookup("GASBANK_RESOLVER_URL"),
+		GasBankResolverKey:  env.Lookup("GASBANK_RESOLVER_KEY"),
+		GasBankPollInterval: env.Lookup("GASBANK_POLL_INTERVAL"),
+		GasBankMaxAttempts:  maxAttempts,
+		CREHTTPRunner:       parseBool(env.Lookup("CRE_HTTP_RUNNER")),
 	}
 }
 
 func normalizeRuntimeConfig(cfg RuntimeConfig) runtimeSettings {
+	pollInterval := 15 * time.Second
+	if trimmed := strings.TrimSpace(cfg.GasBankPollInterval); trimmed != "" {
+		if parsed, err := time.ParseDuration(trimmed); err == nil && parsed > 0 {
+			pollInterval = parsed
+		}
+	}
+	maxAttempts := cfg.GasBankMaxAttempts
+	if maxAttempts <= 0 {
+		maxAttempts = 5
+	}
 	return runtimeSettings{
-		teeMode:            strings.ToLower(strings.TrimSpace(cfg.TEEMode)),
-		randomSigningKey:   strings.TrimSpace(cfg.RandomSigningKey),
-		priceFeedFetchURL:  strings.TrimSpace(cfg.PriceFeedFetchURL),
-		priceFeedFetchKey:  strings.TrimSpace(cfg.PriceFeedFetchKey),
-		gasBankResolverURL: strings.TrimSpace(cfg.GasBankResolverURL),
-		gasBankResolverKey: strings.TrimSpace(cfg.GasBankResolverKey),
-		creHTTPRunner:      cfg.CREHTTPRunner,
+		teeMode:             strings.ToLower(strings.TrimSpace(cfg.TEEMode)),
+		randomSigningKey:    strings.TrimSpace(cfg.RandomSigningKey),
+		priceFeedFetchURL:   strings.TrimSpace(cfg.PriceFeedFetchURL),
+		priceFeedFetchKey:   strings.TrimSpace(cfg.PriceFeedFetchKey),
+		gasBankResolverURL:  strings.TrimSpace(cfg.GasBankResolverURL),
+		gasBankResolverKey:  strings.TrimSpace(cfg.GasBankResolverKey),
+		creHTTPRunner:       cfg.CREHTTPRunner,
+		gasBankPollInterval: pollInterval,
+		gasBankMaxAttempts:  maxAttempts,
 	}
 }
 
@@ -443,6 +467,18 @@ func parseBool(value string) bool {
 	default:
 		return false
 	}
+}
+
+func parseInt(value string) (int, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, false
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, false
+	}
+	return parsed, true
 }
 
 func defaultHTTPClient() *http.Client {

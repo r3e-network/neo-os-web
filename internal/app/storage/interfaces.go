@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	"github.com/R3E-Network/service_layer/internal/app/domain/automation"
@@ -62,6 +63,22 @@ type GasBankStore interface {
 	GetGasTransaction(ctx context.Context, id string) (gasbank.Transaction, error)
 	ListGasTransactions(ctx context.Context, gasAccountID string, limit int) ([]gasbank.Transaction, error)
 	ListPendingWithdrawals(ctx context.Context) ([]gasbank.Transaction, error)
+
+	UpsertWithdrawalApproval(ctx context.Context, approval gasbank.WithdrawalApproval) (gasbank.WithdrawalApproval, error)
+	ListWithdrawalApprovals(ctx context.Context, transactionID string) ([]gasbank.WithdrawalApproval, error)
+
+	SaveWithdrawalSchedule(ctx context.Context, schedule gasbank.WithdrawalSchedule) (gasbank.WithdrawalSchedule, error)
+	GetWithdrawalSchedule(ctx context.Context, transactionID string) (gasbank.WithdrawalSchedule, error)
+	DeleteWithdrawalSchedule(ctx context.Context, transactionID string) error
+	ListDueWithdrawalSchedules(ctx context.Context, before time.Time, limit int) ([]gasbank.WithdrawalSchedule, error)
+
+	RecordSettlementAttempt(ctx context.Context, attempt gasbank.SettlementAttempt) (gasbank.SettlementAttempt, error)
+	ListSettlementAttempts(ctx context.Context, transactionID string, limit int) ([]gasbank.SettlementAttempt, error)
+
+	UpsertDeadLetter(ctx context.Context, entry gasbank.DeadLetter) (gasbank.DeadLetter, error)
+	GetDeadLetter(ctx context.Context, transactionID string) (gasbank.DeadLetter, error)
+	ListDeadLetters(ctx context.Context, accountID string, limit int) ([]gasbank.DeadLetter, error)
+	RemoveDeadLetter(ctx context.Context, transactionID string) error
 }
 
 // AutomationStore persists automation jobs.

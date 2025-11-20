@@ -37,6 +37,8 @@ export type DevpackResponse<T = unknown, TMeta = unknown> =
 export interface GasBankModule {
   ensureAccount(params: GasBankEnsureParams): ActionHandle;
   withdraw(params: GasBankWithdrawParams): ActionHandle;
+  balance(params?: GasBankBalanceParams): ActionHandle;
+  listTransactions(params: GasBankListTransactionsParams): ActionHandle;
 }
 
 export interface OracleModule {
@@ -74,6 +76,22 @@ export interface GasBankWithdrawParams {
   wallet?: string;
   amount: number;
   to?: string;
+  /**
+   * RFC3339 timestamp for deferred execution. Cron expressions are not supported yet.
+   */
+  scheduleAt?: string;
+}
+
+export interface GasBankBalanceParams {
+  gasAccountId?: string;
+  wallet?: string;
+}
+
+export interface GasBankListTransactionsParams {
+  gasAccountId: string;
+  status?: string;
+  type?: string;
+  limit?: number;
 }
 
 export interface OracleRequestParams {
@@ -114,6 +132,14 @@ export function ensureGasAccount(params: GasBankEnsureParams = {}): ActionHandle
 
 export function withdrawGas(params: GasBankWithdrawParams): ActionHandle {
   return runtime().gasBank.withdraw(params);
+}
+
+export function balanceGasAccount(params: GasBankBalanceParams = {}): ActionHandle {
+  return runtime().gasBank.balance(params);
+}
+
+export function listGasTransactions(params: GasBankListTransactionsParams): ActionHandle {
+  return runtime().gasBank.listTransactions(params);
 }
 
 export function createOracleRequest(params: OracleRequestParams): ActionHandle {

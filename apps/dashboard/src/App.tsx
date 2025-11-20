@@ -20,6 +20,8 @@ import {
   FunctionSummary,
   GasAccount,
   GasTransaction,
+  GasbankSummary,
+  GasbankDeadLetter,
   PriceFeed,
   PriceSnapshot,
   Lane,
@@ -50,6 +52,9 @@ import {
   fetchFunctions,
   fetchGasAccounts,
   fetchGasTransactions,
+  fetchGasbankSummary,
+  fetchGasWithdrawals,
+  fetchGasDeadLetters,
   fetchPriceFeeds,
   fetchPriceSnapshots,
   fetchHealth,
@@ -68,6 +73,27 @@ import {
 import { useLocalStorage } from "./useLocalStorage";
 import { MetricSample, MetricsConfig, promQuery, promQueryRange, TimeSeries } from "./metrics";
 import { Chart } from "./components/Chart";
+
+const amountFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 });
+const timeFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+function formatAmount(value: number | undefined): string {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "0";
+  }
+  return amountFormatter.format(value);
+}
+
+function formatTimestamp(value?: string): string {
+  if (!value) {
+    return "—";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return timeFormatter.format(date);
+}
 
 type State =
   | { status: "idle" }
@@ -135,7 +161,14 @@ type DTAState =
 type GasbankState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "ready"; accounts: GasAccount[]; transactions: GasTransaction[] }
+  | {
+      status: "ready";
+      summary: GasbankSummary;
+      accounts: GasAccount[];
+      transactions: GasTransaction[];
+      withdrawals: GasTransaction[];
+      deadletters: GasbankDeadLetter[];
+    }
   | { status: "error"; message: string };
 
 type ConfState =
@@ -224,6 +257,7 @@ export function App() {
   const [functionsState, setFunctionsState] = useState<Record<string, FunctionsState>>({});
   const [oracle, setOracle] = useState<Record<string, OracleState>>({});
   const [random, setRandom] = useState<Record<string, RandomState>>({});
+  const [systemVersion, setSystemVersion] = useState<string>("");
 
   const canQuery = config.baseUrl.length > 0 && config.token.length > 0;
 
@@ -234,7 +268,12 @@ export function App() {
     }
     setState({ status: "loading" });
     try {
-      const [health, descriptors, accounts] = await Promise.all([fetchHealth(config), fetchDescriptors(config), fetchAccounts(config)]);
+      const [health, descriptors, accounts, version] = await Promise.all([
+        fetchHealth(config),
+        fetchDescriptors(config),
+        fetchAccounts(config),
+        fetchVersion(config),
+      ]);
       let metrics: { rps?: MetricSample[]; duration?: TimeSeries[] } | undefined;
       if (promConfig.prometheusBaseUrl) {
         try {
@@ -247,7 +286,8 @@ export function App() {
           metrics = undefined;
         }
       }
-      setState({ status: "ready", descriptors, accounts, version: health.version, metrics });
+      setState({ status: "ready", descriptors, accounts, version: health.version ?? version.version, metrics });
+      setSystemVersion(version.version);
       setWallets({});
       setVRF({});
       setCCIP({});
@@ -384,9 +424,24 @@ export function App() {
   async function loadGasbank(accountID: string) {
     setGasbank((prev) => ({ ...prev, [accountID]: { status: "loading" } }));
     try {
-      const accounts = await fetchGasAccounts(config, accountID);
-      const transactions = await fetchGasTransactions(config, accountID, undefined, 20);
-      setGasbank((prev) => ({ ...prev, [accountID]: { status: "ready", accounts, transactions } }));
+      const [summary, accounts, deadletters] = await Promise.all([
+        fetchGasbankSummary(config, accountID),
+        fetchGasAccounts(config, accountID),
+        fetchGasDeadLetters(config, accountID, 10),
+      ]);
+      let transactions: GasTransaction[] = [];
+      let withdrawals: GasTransaction[] = [];
+      const primaryAccountID = accounts[0]?.ID;
+      if (primaryAccountID) {
+        [transactions, withdrawals] = await Promise.all([
+          fetchGasTransactions(config, accountID, primaryAccountID, 20),
+          fetchGasWithdrawals(config, accountID, primaryAccountID, undefined, 15),
+        ]);
+      }
+      setGasbank((prev) => ({
+        ...prev,
+        [accountID]: { status: "ready", summary, accounts, transactions, withdrawals, deadletters },
+      }));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setGasbank((prev) => ({ ...prev, [accountID]: { status: "error", message } }));
@@ -590,6 +645,7 @@ export function App() {
                   const vrfState = vrf[acct.ID] ?? { status: "idle" };
                   const ccipState = ccip[acct.ID] ?? { status: "idle" };
                   const pricefeedState = pricefeeds[acct.ID] ?? { status: "idle" };
+                  const gasbankState = gasbank[acct.ID] ?? { status: "idle" };
                   return (
                     <li key={acct.ID} className="account">
                       <div className="row">
@@ -623,8 +679,8 @@ export function App() {
                           <button type="button" onClick={() => loadDTA(acct.ID)} disabled={dta[acct.ID]?.status === "loading"}>
                             {dta[acct.ID]?.status === "loading" ? "Loading DTA..." : "DTA"}
                           </button>
-                          <button type="button" onClick={() => loadGasbank(acct.ID)} disabled={gasbank[acct.ID]?.status === "loading"}>
-                            {gasbank[acct.ID]?.status === "loading" ? "Loading gasbank..." : "Gasbank"}
+                          <button type="button" onClick={() => loadGasbank(acct.ID)} disabled={gasbankState.status === "loading"}>
+                            {gasbankState.status === "loading" ? "Loading gasbank..." : "Gasbank"}
                           </button>
                           <button type="button" onClick={() => loadConf(acct.ID)} disabled={conf[acct.ID]?.status === "loading"}>
                             {conf[acct.ID]?.status === "loading" ? "Loading TEE..." : "Confidential"}
@@ -916,43 +972,179 @@ export function App() {
                           </ul>
                         </div>
                       )}
-                      {gasbank[acct.ID]?.status === "error" && <p className="error">Gasbank: {gasbank[acct.ID]?.message}</p>}
-                      {gasbank[acct.ID]?.status === "ready" && (
-                        <div className="vrf">
-                          <div className="row">
-                            <h4 className="tight">Gas Accounts</h4>
-                            <span className="tag subdued">{gasbank[acct.ID]?.accounts.length ?? 0}</span>
+                      {gasbankState.status === "error" && <p className="error">Gasbank: {gasbankState.message}</p>}
+                      {gasbankState.status === "ready" && (
+                        <div className="card inner gasbank-panel">
+                          <div className="section-header">
+                            <div>
+                              <h4 className="tight">Gasbank Overview</h4>
+                              <p className="muted">Updated {formatTimestamp(gasbankState.summary.generated_at)}</p>
+                            </div>
                           </div>
-                          <ul className="wallets">
-                            {gasbank[acct.ID]?.accounts.map((g) => (
-                              <li key={g.ID}>
-                                <div className="row">
-                                  <div className="mono">{g.WalletAddress}</div>
-                                  <span className="tag subdued">Avail {g.Available.toFixed(3)}</span>
-                                </div>
-                                <div className="muted mono">
-                                  Pending {g.Pending.toFixed(3)} • Locked {g.Locked.toFixed(3)}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                          <div className="row">
-                            <h4 className="tight">Gas Transactions</h4>
-                            <span className="tag subdued">{gasbank[acct.ID]?.transactions.length ?? 0}</span>
+                          <div className="metrics-grid">
+                            <div className="metric-card">
+                              <p>Total Balance</p>
+                              <strong>{formatAmount(gasbankState.summary.total_balance)}</strong>
+                            </div>
+                            <div className="metric-card">
+                              <p>Available</p>
+                              <strong>{formatAmount(gasbankState.summary.total_available)}</strong>
+                            </div>
+                            <div className="metric-card">
+                              <p>Locked</p>
+                              <strong>{formatAmount(gasbankState.summary.total_locked)}</strong>
+                            </div>
+                            <div className="metric-card">
+                              <p>Pending Withdrawals</p>
+                              <strong>{gasbankState.summary.pending_withdrawals}</strong>
+                              <span className="muted">({formatAmount(gasbankState.summary.pending_amount)})</span>
+                            </div>
                           </div>
-                          <ul className="wallets">
-                            {gasbank[acct.ID]?.transactions.map((t) => (
-                              <li key={t.ID}>
-                                <div className="row">
-                                  <div className="mono">{t.ID}</div>
-                                  <span className="tag subdued">{t.Status}</span>
-                                </div>
-                                <div className="muted mono">
-                                  {t.Amount} {t.FromAddress} → {t.ToAddress}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
+                          <div className="timeline">
+                            <div>
+                              <p className="muted">Last Deposit</p>
+                              {gasbankState.summary.last_deposit ? (
+                                <>
+                                  <div className="mono">{gasbankState.summary.last_deposit.id}</div>
+                                  <div className="muted mono">
+                                    {formatAmount(gasbankState.summary.last_deposit.amount)} →{" "}
+                                    {gasbankState.summary.last_deposit.to_address ?? "n/a"}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="muted">No deposits recorded.</div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="muted">Last Withdrawal</p>
+                              {gasbankState.summary.last_withdrawal ? (
+                                <>
+                                  <div className="mono">{gasbankState.summary.last_withdrawal.id}</div>
+                                  <div className="muted mono">
+                                    {formatAmount(gasbankState.summary.last_withdrawal.amount)} →{" "}
+                                    {gasbankState.summary.last_withdrawal.to_address ?? "n/a"}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="muted">No withdrawals recorded.</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="section">
+                            <div className="row">
+                              <h5 className="tight">Accounts</h5>
+                              <span className="tag subdued">{gasbankState.accounts.length}</span>
+                            </div>
+                            {gasbankState.accounts.length ? (
+                              <table className="data-table">
+                                <thead>
+                                  <tr>
+                                    <th>Wallet</th>
+                                    <th>Available</th>
+                                    <th>Pending</th>
+                                    <th>Locked</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {gasbankState.accounts.map((account) => (
+                                    <tr key={account.ID}>
+                                      <td className="mono">{account.WalletAddress || account.ID}</td>
+                                      <td>{formatAmount(account.Available)}</td>
+                                      <td>{formatAmount(account.Pending)}</td>
+                                      <td>{formatAmount(account.Locked)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <p className="muted">No gas accounts yet.</p>
+                            )}
+                          </div>
+                          <div className="two-column">
+                            <div>
+                              <div className="row">
+                                <h5 className="tight">Recent Transactions</h5>
+                                <span className="tag subdued">{gasbankState.transactions.length}</span>
+                              </div>
+                              {gasbankState.transactions.length ? (
+                                <table className="data-table">
+                                  <thead>
+                                    <tr>
+                                      <th>ID</th>
+                                      <th>Amount</th>
+                                      <th>Status</th>
+                                      <th>To</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {gasbankState.transactions.map((tx) => (
+                                      <tr key={tx.ID}>
+                                        <td className="mono">{tx.ID}</td>
+                                        <td>{formatAmount(tx.Amount)}</td>
+                                        <td>{tx.Status}</td>
+                                        <td>{tx.ToAddress || "—"}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <p className="muted">No transactions recorded.</p>
+                              )}
+                            </div>
+                            <div>
+                              <div className="row">
+                                <h5 className="tight">Recent Withdrawals</h5>
+                                <span className="tag subdued">{gasbankState.withdrawals.length}</span>
+                              </div>
+                              {gasbankState.withdrawals.length ? (
+                                <table className="data-table">
+                                  <thead>
+                                    <tr>
+                                      <th>ID</th>
+                                      <th>Status</th>
+                                      <th>Amount</th>
+                                      <th>Created</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {gasbankState.withdrawals.map((withdrawal) => (
+                                      <tr key={withdrawal.ID}>
+                                        <td className="mono">{withdrawal.ID}</td>
+                                        <td>{withdrawal.Status}</td>
+                                        <td>{formatAmount(withdrawal.Amount)}</td>
+                                        <td>{formatTimestamp(withdrawal.CreatedAt)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <p className="muted">No pending withdrawals.</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="section">
+                            <div className="row">
+                              <h5 className="tight">Dead Letters</h5>
+                              <span className="tag subdued">{gasbankState.deadletters.length}</span>
+                            </div>
+                            {gasbankState.deadletters.length ? (
+                              <ul className="wallets deadletters">
+                                {gasbankState.deadletters.map((entry) => (
+                                  <li key={entry.TransactionID}>
+                                    <div className="row">
+                                      <div className="mono">{entry.TransactionID}</div>
+                                      <span className="tag subdued">{entry.Reason}</span>
+                                    </div>
+                                    <div className="muted mono">
+                                      Retries {entry.Retries} • Last error {entry.LastError || "n/a"}
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="muted">No dead-letter entries.</p>
+                            )}
+                          </div>
                         </div>
                       )}
                       {conf[acct.ID]?.status === "error" && <p className="error">Confidential: {conf[acct.ID]?.message}</p>}

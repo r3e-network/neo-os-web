@@ -229,11 +229,67 @@ func TestHandlerLifecycle(t *testing.T) {
 	if resp.Code != http.StatusOK {
 		t.Fatalf("expected 200 withdraw, got %d", resp.Code)
 	}
+	var withdrawPayload struct {
+		Transaction map[string]any `json:"transaction"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &withdrawPayload); err != nil {
+		t.Fatalf("unmarshal withdraw: %v", err)
+	}
+	txID := withdrawPayload.Transaction["ID"].(string)
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/gasbank/deposits?gas_account_id="+gasID, nil))
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200 deposits list, got %d", resp.Code)
+	}
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/gasbank/withdrawals?gas_account_id="+gasID, nil))
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200 withdrawals list, got %d", resp.Code)
+	}
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/gasbank/deadletters", nil))
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200 deadletters list, got %d", resp.Code)
+	}
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts/"+id+"/gasbank/deadletters/nonexistent/retry", nil))
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 retry deadletter, got %d", resp.Code)
+	}
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodDelete, "/accounts/"+id+"/gasbank/deadletters/nonexistent", nil))
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 delete deadletter, got %d", resp.Code)
+	}
 
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/gasbank/transactions?gas_account_id="+gasID, nil))
 	if resp.Code != http.StatusOK {
 		t.Fatalf("expected 200 transactions, got %d", resp.Code)
+	}
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/gasbank/withdrawals/"+txID, nil))
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200 get withdrawal, got %d", resp.Code)
+	}
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/gasbank/withdrawals/"+txID+"/attempts", nil))
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200 get attempts, got %d", resp.Code)
+	}
+
+	cancelBody := marshal(map[string]any{"action": "cancel", "reason": "test"})
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPatch, "/accounts/"+id+"/gasbank/withdrawals/"+txID, cancelBody))
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200 cancel withdrawal, got %d", resp.Code)
 	}
 
 	summaryResp := httptest.NewRecorder()

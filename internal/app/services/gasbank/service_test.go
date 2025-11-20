@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	domain "github.com/R3E-Network/service_layer/internal/app/domain/gasbank"
@@ -205,6 +206,235 @@ func TestService_Summary(t *testing.T) {
 	}
 	if summary.LastWithdrawal == nil || summary.LastWithdrawal.ID == "" {
 		t.Fatalf("expected last withdrawal info")
+	}
+}
+
+func TestService_SubmitApproval(t *testing.T) {
+	store := memory.New()
+	acct, err := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	if err != nil {
+		t.Fatalf("create account: %v", err)
+	}
+
+	svc := New(store, store, nil)
+	gasAcct, err := svc.EnsureAccount(context.Background(), acct.ID, "wallet-approval")
+	if err != nil {
+		t.Fatalf("ensure gas account: %v", err)
+	}
+	gasAcct.RequiredApprovals = 2
+	if _, err := store.UpdateGasAccount(context.Background(), gasAcct); err != nil {
+		t.Fatalf("update gas account: %v", err)
+	}
+	if _, _, err := svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-deposit", "", ""); err != nil {
+		t.Fatalf("deposit: %v", err)
+	}
+
+	updated, tx, err := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 4, "dest")
+	if err != nil {
+		t.Fatalf("withdraw: %v", err)
+	}
+	if tx.Status != domain.StatusAwaitingApproval {
+		t.Fatalf("expected awaiting approval status, got %s", tx.Status)
+	}
+	if math.Abs(updated.Available-6) > 1e-6 {
+		t.Fatalf("unexpected available balance: %v", updated.Available)
+	}
+
+	if _, _, err := svc.SubmitApproval(context.Background(), tx.ID, "approver-1", "", "", true); err != nil {
+		t.Fatalf("submit first approval: %v", err)
+	}
+	txAfterFirst, err := store.GetGasTransaction(context.Background(), tx.ID)
+	if err != nil {
+		t.Fatalf("get transaction: %v", err)
+	}
+	if txAfterFirst.Status != domain.StatusAwaitingApproval {
+		t.Fatalf("expected awaiting approval after first approval, got %s", txAfterFirst.Status)
+	}
+
+	if _, _, err := svc.SubmitApproval(context.Background(), tx.ID, "approver-2", "", "", true); err != nil {
+		t.Fatalf("submit second approval: %v", err)
+	}
+	txAfterSecond, err := store.GetGasTransaction(context.Background(), tx.ID)
+	if err != nil {
+		t.Fatalf("get transaction after second approval: %v", err)
+	}
+	if txAfterSecond.Status != domain.StatusPending {
+		t.Fatalf("expected pending status after threshold met, got %s", txAfterSecond.Status)
+	}
+	approvals, err := svc.ListApprovals(context.Background(), tx.ID)
+	if err != nil {
+		t.Fatalf("list approvals: %v", err)
+	}
+	if len(approvals) != 2 {
+		t.Fatalf("expected 2 approvals, got %d", len(approvals))
+	}
+
+	cancelAcct, newTx, err := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 2, "dest")
+	if err != nil {
+		t.Fatalf("withdraw for rejection: %v", err)
+	}
+	if _, _, err := svc.SubmitApproval(context.Background(), newTx.ID, "approver-3", "", "", false); err != nil {
+		t.Fatalf("reject approval: %v", err)
+	}
+	finalAcct, err := store.GetGasAccount(context.Background(), cancelAcct.ID)
+	if err != nil {
+		t.Fatalf("get gas account: %v", err)
+	}
+	if math.Abs(finalAcct.Available-6) > 1e-6 {
+		t.Fatalf("expected available balance restored after rejection, got %v", finalAcct.Available)
+	}
+	rejectedTx, err := store.GetGasTransaction(context.Background(), newTx.ID)
+	if err != nil {
+		t.Fatalf("get rejected transaction: %v", err)
+	}
+	if rejectedTx.Status != domain.StatusCancelled {
+		t.Fatalf("expected cancelled status, got %s", rejectedTx.Status)
+	}
+}
+
+func TestService_EnsureAccountWithOptions(t *testing.T) {
+	store := memory.New()
+	acct, err := store.CreateAccount(context.Background(), account.Account{Owner: "opt-owner"})
+	if err != nil {
+		t.Fatalf("create account: %v", err)
+	}
+	svc := New(store, store, nil)
+	minBalance := 10.0
+	dailyLimit := 25.0
+	notify := 5.0
+	required := 3
+	ensured, err := svc.EnsureAccountWithOptions(context.Background(), acct.ID, EnsureAccountOptions{
+		WalletAddress:         "WALLET",
+		MinBalance:            &minBalance,
+		DailyLimit:            &dailyLimit,
+		NotificationThreshold: &notify,
+		RequiredApprovals:     &required,
+	})
+	if err != nil {
+		t.Fatalf("ensure with options: %v", err)
+	}
+	if ensured.MinBalance != minBalance {
+		t.Fatalf("expected min balance %.1f, got %.1f", minBalance, ensured.MinBalance)
+	}
+	if ensured.DailyLimit != dailyLimit {
+		t.Fatalf("expected daily limit %.1f, got %.1f", dailyLimit, ensured.DailyLimit)
+	}
+	if ensured.NotificationThreshold != notify {
+		t.Fatalf("expected notification threshold %.1f, got %.1f", notify, ensured.NotificationThreshold)
+	}
+	if ensured.RequiredApprovals != required {
+		t.Fatalf("expected required approvals %d, got %d", required, ensured.RequiredApprovals)
+	}
+
+	zero := 0.0
+	reqZero := 0
+	updated, err := svc.EnsureAccountWithOptions(context.Background(), acct.ID, EnsureAccountOptions{
+		MinBalance:        &zero,
+		RequiredApprovals: &reqZero,
+	})
+	if err != nil {
+		t.Fatalf("update ensure options: %v", err)
+	}
+	if updated.MinBalance != 0 {
+		t.Fatalf("expected min balance reset to 0, got %.2f", updated.MinBalance)
+	}
+	if updated.RequiredApprovals != 0 {
+		t.Fatalf("expected required approvals 0, got %d", updated.RequiredApprovals)
+	}
+}
+
+func TestService_WithdrawWithScheduleAndLimits(t *testing.T) {
+	store := memory.New()
+	acct, err := store.CreateAccount(context.Background(), account.Account{Owner: "limits"})
+	if err != nil {
+		t.Fatalf("create account: %v", err)
+	}
+	svc := New(store, store, nil)
+	gasAcct, err := svc.EnsureAccount(context.Background(), acct.ID, "wallet-limits")
+	if err != nil {
+		t.Fatalf("ensure account: %v", err)
+	}
+	gasAcct.MinBalance = 3
+	gasAcct.DailyLimit = 5
+	if _, err := store.UpdateGasAccount(context.Background(), gasAcct); err != nil {
+		t.Fatalf("update account: %v", err)
+	}
+	if _, _, err := svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-limit", "", ""); err != nil {
+		t.Fatalf("deposit: %v", err)
+	}
+
+	// Min balance violation
+	if _, _, err := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 8, "dest"); !errors.Is(err, errMinBalance) {
+		t.Fatalf("expected min balance error, got %v", err)
+	}
+
+	// Valid withdraw within daily limit
+	if _, _, err := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 2, "dest"); err != nil {
+		t.Fatalf("withdraw: %v", err)
+	}
+
+	// Exceed daily limit
+	if _, _, err := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 4, "dest"); !errors.Is(err, errDailyLimit) {
+		t.Fatalf("expected daily limit error, got %v", err)
+	}
+
+	// Schedule future withdrawal
+	future := time.Now().Add(time.Hour)
+	opts := WithdrawOptions{
+		Amount:     1,
+		ToAddress:  "dest",
+		ScheduleAt: &future,
+	}
+	_, scheduledTx, err := svc.WithdrawWithOptions(context.Background(), acct.ID, gasAcct.ID, opts)
+	if err != nil {
+		t.Fatalf("scheduled withdraw: %v", err)
+	}
+	if scheduledTx.Status != domain.StatusScheduled {
+		t.Fatalf("expected scheduled status, got %s", scheduledTx.Status)
+	}
+
+	// Force schedule due and activate
+	due := time.Now().Add(-time.Minute)
+	if _, err := store.SaveWithdrawalSchedule(context.Background(), domain.WithdrawalSchedule{
+		TransactionID: scheduledTx.ID,
+		ScheduleAt:    due,
+		NextRunAt:     due,
+		CreatedAt:     due,
+		UpdatedAt:     due,
+	}); err != nil {
+		t.Fatalf("save due schedule: %v", err)
+	}
+
+	if err := svc.ActivateDueSchedules(context.Background(), 10); err != nil {
+		t.Fatalf("activate schedules: %v", err)
+	}
+	tx, err := store.GetGasTransaction(context.Background(), scheduledTx.ID)
+	if err != nil {
+		t.Fatalf("get activated transaction: %v", err)
+	}
+	if tx.Status != domain.StatusPending {
+		t.Fatalf("expected pending status after activation, got %s", tx.Status)
+	}
+}
+
+func TestService_WithdrawRejectsCronExpressions(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	gasAcct, _ := store.CreateGasAccount(context.Background(), domain.Account{AccountID: acct.ID})
+
+	svc := New(store, store, nil)
+	_, _, err := svc.Deposit(context.Background(), gasAcct.ID, 10, "tx", "", "")
+	if err != nil {
+		t.Fatalf("deposit: %v", err)
+	}
+
+	_, _, err = svc.WithdrawWithOptions(context.Background(), acct.ID, gasAcct.ID, WithdrawOptions{
+		Amount:         1,
+		ToAddress:      "dest",
+		CronExpression: "0 * * * *",
+	})
+	if err == nil || !errors.Is(err, errCronUnsupported) {
+		t.Fatalf("expected cron unsupported error, got %v", err)
 	}
 }
 

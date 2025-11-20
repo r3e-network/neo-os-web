@@ -17,9 +17,15 @@ func wrapWithAuth(next http.Handler, tokens []string, log *logger.Logger) http.H
 	tokenSet := normaliseTokens(tokens)
 	if len(tokenSet) == 0 {
 		if log != nil {
-			log.Warn("API auth tokens not configured; serving endpoints without authentication")
+			log.Warn("API auth tokens not configured; rejecting authenticated endpoints")
 		}
-		return next
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if _, ok := publicPaths[r.URL.Path]; ok {
+				next.ServeHTTP(w, r)
+				return
+			}
+			unauthorised(w)
+		})
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

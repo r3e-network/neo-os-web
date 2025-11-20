@@ -26,6 +26,8 @@ vendor/
 # Environment files
 .env
 .venv/
+.pytest_cache/
+package-lock.json
 
 # Log files
 logs/
