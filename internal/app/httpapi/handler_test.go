@@ -236,6 +236,22 @@ func TestHandlerLifecycle(t *testing.T) {
 		t.Fatalf("expected 200 transactions, got %d", resp.Code)
 	}
 
+	summaryResp := httptest.NewRecorder()
+	handler.ServeHTTP(summaryResp, authedRequest(http.MethodGet, "/accounts/"+id+"/gasbank/summary", nil))
+	if summaryResp.Code != http.StatusOK {
+		t.Fatalf("expected 200 summary, got %d", summaryResp.Code)
+	}
+	var summary struct {
+		PendingWithdrawals int `json:"pending_withdrawals"`
+		Accounts           []map[string]any
+	}
+	if err := json.Unmarshal(summaryResp.Body.Bytes(), &summary); err != nil {
+		t.Fatalf("unmarshal summary: %v", err)
+	}
+	if len(summary.Accounts) != 1 {
+		t.Fatalf("expected 1 account in summary, got %d", len(summary.Accounts))
+	}
+
 	jobBody := marshal(map[string]any{"function_id": fnID, "name": "daily", "schedule": "@daily"})
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts/"+id+"/automation/jobs", jobBody))

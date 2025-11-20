@@ -22,6 +22,38 @@ type Service struct {
 	log   *logger.Logger
 }
 
+// Summary aggregates balances and pending withdrawals for an account.
+type Summary struct {
+	Accounts           []AccountSummary  `json:"accounts"`
+	PendingWithdrawals int               `json:"pending_withdrawals"`
+	PendingAmount      float64           `json:"pending_amount"`
+	TotalBalance       float64           `json:"total_balance"`
+	TotalAvailable     float64           `json:"total_available"`
+	LastDeposit        *TransactionBrief `json:"last_deposit,omitempty"`
+	LastWithdrawal     *TransactionBrief `json:"last_withdrawal,omitempty"`
+	GeneratedAt        time.Time         `json:"generated_at"`
+}
+
+// AccountSummary provides per-gas-account rollups.
+type AccountSummary struct {
+	Account            gasbank.Account `json:"account"`
+	PendingWithdrawals int             `json:"pending_withdrawals"`
+	PendingAmount      float64         `json:"pending_amount"`
+}
+
+// TransactionBrief captures high-level transaction information for dashboards.
+type TransactionBrief struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	Amount      float64   `json:"amount"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+	CompletedAt time.Time `json:"completed_at"`
+	FromAddress string    `json:"from_address,omitempty"`
+	ToAddress   string    `json:"to_address,omitempty"`
+	Error       string    `json:"error,omitempty"`
+}
+
 // New constructs a gas bank service.
 func New(accounts storage.AccountStore, store storage.GasBankStore, log *logger.Logger) *Service {
 	if log == nil {
@@ -222,6 +254,55 @@ func (s *Service) ListAccounts(ctx context.Context, ownerAccountID string) ([]ga
 	return s.store.ListGasAccounts(ctx, ownerAccountID)
 }
 
+// Summary aggregates balances and activity for the specified owner account.
+func (s *Service) Summary(ctx context.Context, ownerAccountID string) (Summary, error) {
+	ownerAccountID = strings.TrimSpace(ownerAccountID)
+	if ownerAccountID == "" {
+		return Summary{}, fmt.Errorf("account_id required")
+	}
+	if err := s.base.EnsureAccount(ctx, ownerAccountID); err != nil {
+		return Summary{}, err
+	}
+
+	accts, err := s.store.ListGasAccounts(ctx, ownerAccountID)
+	if err != nil {
+		return Summary{}, err
+	}
+
+	summary := Summary{
+		Accounts:    make([]AccountSummary, 0, len(accts)),
+		GeneratedAt: time.Now().UTC(),
+	}
+
+	for _, acct := range accts {
+		acctSummary := AccountSummary{Account: acct}
+		summary.TotalBalance += acct.Balance
+		summary.TotalAvailable += acct.Available
+
+		txs, err := s.store.ListGasTransactions(ctx, acct.ID, core.DefaultListLimit)
+		if err != nil {
+			return Summary{}, err
+		}
+		for _, tx := range txs {
+			if tx.Type == gasbank.TransactionWithdrawal && tx.Status == gasbank.StatusPending {
+				summary.PendingWithdrawals++
+				summary.PendingAmount += tx.Amount
+				acctSummary.PendingWithdrawals++
+				acctSummary.PendingAmount += tx.Amount
+			}
+			if tx.Type == gasbank.TransactionDeposit {
+				summary.LastDeposit = latestBrief(summary.LastDeposit, tx)
+			}
+			if tx.Type == gasbank.TransactionWithdrawal {
+				summary.LastWithdrawal = latestBrief(summary.LastWithdrawal, tx)
+			}
+		}
+		summary.Accounts = append(summary.Accounts, acctSummary)
+	}
+
+	return summary, nil
+}
+
 // ListTransactions returns transactions for a gas account.
 func (s *Service) ListTransactions(ctx context.Context, gasAccountID string, limit int) ([]gasbank.Transaction, error) {
 	clamped := core.ClampLimit(limit, core.DefaultListLimit, core.MaxListLimit)
@@ -296,4 +377,26 @@ func (s *Service) CompleteWithdrawal(ctx context.Context, txID string, success b
 		WithField("success", success).
 		Info("gas withdrawal settled")
 	return acct, tx, nil
+}
+
+func latestBrief(current *TransactionBrief, tx gasbank.Transaction) *TransactionBrief {
+	brief := transactionToBrief(tx)
+	if current == nil || brief.CreatedAt.After(current.CreatedAt) {
+		return &brief
+	}
+	return current
+}
+
+func transactionToBrief(tx gasbank.Transaction) TransactionBrief {
+	return TransactionBrief{
+		ID:          tx.ID,
+		Type:        tx.Type,
+		Amount:      tx.Amount,
+		Status:      tx.Status,
+		CreatedAt:   tx.CreatedAt,
+		CompletedAt: tx.CompletedAt,
+		FromAddress: tx.FromAddress,
+		ToAddress:   tx.ToAddress,
+		Error:       tx.Error,
+	}
 }

@@ -88,6 +88,7 @@ ensure gas accounts and submit oracle requests.
 - `slctl services list` — dump `/system/descriptors` for feature discovery.
 - `slctl status` — fetch `/system/status` to inspect server health, version, and services.
 - `slctl version` — print CLI build info and query `/system/version` on the server.
+- `slctl gasbank summary --account <id>` — view balances, pending withdrawals, and recent gas bank activity.
 
 ### Docker
 

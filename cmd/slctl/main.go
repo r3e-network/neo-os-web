@@ -629,6 +629,7 @@ func handleSecrets(ctx context.Context, client *apiClient, args []string) error 
 func handleGasBank(ctx context.Context, client *apiClient, args []string) error {
 	if len(args) == 0 {
 		fmt.Println(`Usage:
+  slctl gasbank summary --account <id>
   slctl gasbank ensure --account <id> [--wallet address]
   slctl gasbank list --account <id>
   slctl gasbank deposit --account <id> --gas-account <id> --amount <float> [--tx-id id] [--from addr] [--to addr]
@@ -637,6 +638,23 @@ func handleGasBank(ctx context.Context, client *apiClient, args []string) error 
 		return nil
 	}
 	switch args[0] {
+	case "summary":
+		fs := flag.NewFlagSet("gasbank summary", flag.ContinueOnError)
+		fs.SetOutput(io.Discard)
+		var accountID string
+		fs.StringVar(&accountID, "account", "", "Account ID (required)")
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+		if accountID == "" {
+			return errors.New("account is required")
+		}
+		data, err := client.request(ctx, http.MethodGet, "/accounts/"+accountID+"/gasbank/summary", nil)
+		if err != nil {
+			return err
+		}
+		prettyPrint(data)
+		return nil
 	case "ensure":
 		fs := flag.NewFlagSet("gasbank ensure", flag.ContinueOnError)
 		fs.SetOutput(io.Discard)

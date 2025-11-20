@@ -165,6 +165,49 @@ func TestService_DepositRollsBackOnTransactionFailure(t *testing.T) {
 	}
 }
 
+func TestService_Summary(t *testing.T) {
+	store := memory.New()
+	acct, err := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	if err != nil {
+		t.Fatalf("create account: %v", err)
+	}
+
+	svc := New(store, store, logger.NewDefault("test"))
+	gasAcct, err := svc.EnsureAccount(context.Background(), acct.ID, "wallet-summary")
+	if err != nil {
+		t.Fatalf("ensure gas account: %v", err)
+	}
+	if _, _, err := svc.Deposit(context.Background(), gasAcct.ID, 25, "tx-summary", "from", "to"); err != nil {
+		t.Fatalf("deposit: %v", err)
+	}
+	if _, _, err := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 5, "dest"); err != nil {
+		t.Fatalf("withdraw: %v", err)
+	}
+
+	summary, err := svc.Summary(context.Background(), acct.ID)
+	if err != nil {
+		t.Fatalf("summary: %v", err)
+	}
+	if len(summary.Accounts) != 1 {
+		t.Fatalf("expected 1 account in summary, got %d", len(summary.Accounts))
+	}
+	if summary.TotalBalance < 24.999 || summary.TotalBalance > 25.001 {
+		t.Fatalf("unexpected total balance: %v", summary.TotalBalance)
+	}
+	if summary.PendingWithdrawals != 1 {
+		t.Fatalf("expected 1 pending withdrawal, got %d", summary.PendingWithdrawals)
+	}
+	if summary.PendingAmount < 4.999 || summary.PendingAmount > 5.001 {
+		t.Fatalf("unexpected pending amount: %v", summary.PendingAmount)
+	}
+	if summary.LastDeposit == nil || summary.LastDeposit.ID == "" {
+		t.Fatalf("expected last deposit info")
+	}
+	if summary.LastWithdrawal == nil || summary.LastWithdrawal.ID == "" {
+		t.Fatalf("expected last withdrawal info")
+	}
+}
+
 func TestService_WithdrawRollsBackOnTransactionFailure(t *testing.T) {
 	store := &failingGasBankStore{Store: memory.New()}
 	acct, err := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})

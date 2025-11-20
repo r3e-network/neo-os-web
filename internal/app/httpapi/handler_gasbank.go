@@ -61,6 +61,24 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 		}
 	default:
 		action := rest[0]
+		if action == "summary" {
+			if r.Method != http.MethodGet {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
+			summary, err := h.app.GasBank.Summary(r.Context(), accountID)
+			if err != nil {
+				status := http.StatusInternalServerError
+				if strings.Contains(err.Error(), "account_id") {
+					status = http.StatusBadRequest
+				}
+				writeError(w, status, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, summary)
+			return
+		}
+
 		switch action {
 		case "deposit":
 			if r.Method != http.MethodPost {
