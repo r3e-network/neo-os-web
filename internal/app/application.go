@@ -130,6 +130,11 @@ type RuntimeConfig struct {
 	GasBankResolverKey  string
 	GasBankPollInterval string
 	GasBankMaxAttempts  int
+	OracleTTLSeconds    int
+	OracleMaxAttempts   int
+	OracleBackoff       string
+	DataFeedMinSigners  int
+	DataFeedAggregation string
 }
 
 // Option customises the application runtime.
@@ -163,6 +168,11 @@ type runtimeSettings struct {
 	gasBankResolverKey  string
 	gasBankPollInterval time.Duration
 	gasBankMaxAttempts  int
+	oracleTTL           time.Duration
+	oracleMaxAttempts   int
+	oracleBackoff       time.Duration
+	dataFeedMinSigners  int
+	dataFeedAggregation string
 }
 
 // WithRuntimeConfig overrides the runtime configuration used when wiring
@@ -423,6 +433,10 @@ func runtimeConfigFromEnv(env Environment) RuntimeConfig {
 	if parsed, ok := parseInt(env.Lookup("GASBANK_MAX_ATTEMPTS")); ok {
 		maxAttempts = parsed
 	}
+	oracleAttempts := 0
+	if parsed, ok := parseInt(env.Lookup("ORACLE_MAX_ATTEMPTS")); ok {
+		oracleAttempts = parsed
+	}
 	return RuntimeConfig{
 		TEEMode:             env.Lookup("TEE_MODE"),
 		RandomSigningKey:    env.Lookup("RANDOM_SIGNING_KEY"),
@@ -433,6 +447,11 @@ func runtimeConfigFromEnv(env Environment) RuntimeConfig {
 		GasBankPollInterval: env.Lookup("GASBANK_POLL_INTERVAL"),
 		GasBankMaxAttempts:  maxAttempts,
 		CREHTTPRunner:       parseBool(env.Lookup("CRE_HTTP_RUNNER")),
+		OracleTTLSeconds:    parseIntOrZero(env.Lookup("ORACLE_TTL_SECONDS")),
+		OracleMaxAttempts:   oracleAttempts,
+		OracleBackoff:       env.Lookup("ORACLE_BACKOFF"),
+		DataFeedMinSigners:  parseIntOrZero(env.Lookup("DATAFEEDS_MIN_SIGNERS")),
+		DataFeedAggregation: env.Lookup("DATAFEEDS_AGGREGATION"),
 	}
 }
 
@@ -447,6 +466,28 @@ func normalizeRuntimeConfig(cfg RuntimeConfig) runtimeSettings {
 	if maxAttempts <= 0 {
 		maxAttempts = 5
 	}
+	oracleTTL := cfg.OracleTTLSeconds
+	if oracleTTL < 0 {
+		oracleTTL = 0
+	}
+	oracleAttempts := cfg.OracleMaxAttempts
+	if oracleAttempts <= 0 {
+		oracleAttempts = 3
+	}
+	oracleBackoff := 10 * time.Second
+	if trimmed := strings.TrimSpace(cfg.OracleBackoff); trimmed != "" {
+		if parsed, err := time.ParseDuration(trimmed); err == nil && parsed > 0 {
+			oracleBackoff = parsed
+		}
+	}
+	agg := strings.ToLower(strings.TrimSpace(cfg.DataFeedAggregation))
+	if agg == "" {
+		agg = "median"
+	}
+	minSigners := cfg.DataFeedMinSigners
+	if minSigners < 0 {
+		minSigners = 0
+	}
 	return runtimeSettings{
 		teeMode:             strings.ToLower(strings.TrimSpace(cfg.TEEMode)),
 		randomSigningKey:    strings.TrimSpace(cfg.RandomSigningKey),
@@ -457,6 +498,11 @@ func normalizeRuntimeConfig(cfg RuntimeConfig) runtimeSettings {
 		creHTTPRunner:       cfg.CREHTTPRunner,
 		gasBankPollInterval: pollInterval,
 		gasBankMaxAttempts:  maxAttempts,
+		oracleTTL:           time.Duration(oracleTTL) * time.Second,
+		oracleMaxAttempts:   oracleAttempts,
+		oracleBackoff:       oracleBackoff,
+		dataFeedMinSigners:  minSigners,
+		dataFeedAggregation: agg,
 	}
 }
 
@@ -479,6 +525,13 @@ func parseInt(value string) (int, bool) {
 		return 0, false
 	}
 	return parsed, true
+}
+
+func parseIntOrZero(value string) int {
+	if parsed, ok := parseInt(value); ok {
+		return parsed
+	}
+	return 0
 }
 
 func defaultHTTPClient() *http.Client {

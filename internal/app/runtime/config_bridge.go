@@ -21,5 +21,10 @@ func AppRuntimeConfig(cfg *config.Config) app.RuntimeConfig {
 		GasBankPollInterval: cfg.Runtime.GasBank.PollInterval,
 		GasBankMaxAttempts:  cfg.Runtime.GasBank.MaxAttempts,
 		CREHTTPRunner:       cfg.Runtime.CRE.HTTPRunner,
+		OracleTTLSeconds:    cfg.Runtime.Oracle.TTLSeconds,
+		OracleMaxAttempts:   cfg.Runtime.Oracle.MaxAttempts,
+		OracleBackoff:       cfg.Runtime.Oracle.Backoff,
+		DataFeedMinSigners:  cfg.Runtime.DataFeeds.MinSigners,
+		DataFeedAggregation: cfg.Runtime.DataFeeds.Aggregation,
 	}
 }
