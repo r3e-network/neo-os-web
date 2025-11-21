@@ -58,7 +58,7 @@ go run ./cmd/appserver \
 
 (You may also omit `-config` entirely and only pass `-dsn`.)
 
-Examples for Devpack usage live under `examples/functions/devpack`.
+Examples for Devpack usage live under `examples/functions/devpack`. API examples for all services are in `docs/examples/services.md`.
 
 Check `examples/functions/devpack` for a TypeScript project that uses the SDK to
 ensure gas accounts and submit oracle requests.
