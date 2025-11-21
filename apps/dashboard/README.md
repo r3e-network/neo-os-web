@@ -16,6 +16,12 @@ docker run -p 8081:80 service-layer-dashboard
 
 Then open `http://localhost:8081` and configure API + Prometheus URLs in the UI.
 
+## Project structure (UI)
+- `src/App.tsx` stays lean and composes domain hooks + panel components.
+- Hooks are domain-scoped (`src/hooks/use*Resources.ts`) and re-exported via `src/hooks/index.ts`.
+- Components live in `src/components` and re-export via `src/components/index.ts` for concise imports.
+- Shared formatting helpers live in `src/utils/formatters.ts`; prefer those over ad-hoc date/number formatting.
+
 ## Local Development
 
 ```bash

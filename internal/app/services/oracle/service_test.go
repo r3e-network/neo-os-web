@@ -56,7 +56,7 @@ func TestService_SourceAndRequestLifecycle(t *testing.T) {
 		t.Fatalf("expected error failing completed request")
 	}
 
-	requests, err := svc.ListRequests(context.Background(), acct.ID)
+	requests, err := svc.ListRequests(context.Background(), acct.ID, 10, "")
 	if err != nil {
 		t.Fatalf("list requests: %v", err)
 	}
@@ -93,10 +93,6 @@ func TestService_RequestStatusValidation(t *testing.T) {
 		t.Fatalf("create request: %v", err)
 	}
 
-	if _, err := svc.FailRequest(context.Background(), req.ID, "boom"); err == nil {
-		t.Fatalf("expected error failing pending request")
-	}
-
 	if _, err := svc.MarkRunning(context.Background(), req.ID); err != nil {
 		t.Fatalf("mark running: %v", err)
 	}
@@ -111,6 +107,21 @@ func TestService_RequestStatusValidation(t *testing.T) {
 
 	if _, err := svc.CompleteRequest(context.Background(), req.ID, `{}`); err == nil {
 		t.Fatalf("expected error completing failed request")
+	}
+
+	// retry should only work from failed -> pending
+	if _, err := svc.RetryRequest(context.Background(), req.ID); err != nil {
+		t.Fatalf("retry failed request: %v", err)
+	}
+	retried, _ := svc.GetRequest(context.Background(), req.ID)
+	if retried.Status != domain.StatusPending || retried.Attempts != 0 || retried.Error != "" {
+		t.Fatalf("expected reset pending state, got %+v", retried)
+	}
+	if _, err := svc.MarkRunning(context.Background(), req.ID); err != nil {
+		t.Fatalf("mark running after retry: %v", err)
+	}
+	if _, err := svc.RetryRequest(context.Background(), req.ID); err == nil {
+		t.Fatalf("expected retry to fail when status=running")
 	}
 }
 

@@ -465,6 +465,60 @@ func TestHandlerLifecycle(t *testing.T) {
 		t.Fatalf("expected 200 list requests, got %d", resp.Code)
 	}
 
+	// create a failed request and exercise status filter + retry using a fresh source
+	retrySourceBody := marshal(map[string]any{
+		"name":   "retry-source",
+		"url":    "https://api.example.com/retry",
+		"method": "GET",
+	})
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts/"+id+"/oracle/sources", retrySourceBody))
+	assertStatus(t, resp, http.StatusCreated)
+	var retrySource map[string]any
+	_ = json.Unmarshal(resp.Body.Bytes(), &retrySource)
+	retrySourceID := retrySource["ID"].(string)
+	failureBody := marshal(map[string]any{"data_source_id": retrySourceID, "payload": "{}"})
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts/"+id+"/oracle/requests", failureBody))
+	assertStatus(t, resp, http.StatusCreated)
+	var failedReq map[string]any
+	_ = json.Unmarshal(resp.Body.Bytes(), &failedReq)
+	failureID := failedReq["ID"].(string)
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPatch, "/accounts/"+id+"/oracle/requests/"+failureID, marshal(map[string]any{"status": "failed", "error": "boom"})))
+	assertStatus(t, resp, http.StatusOK)
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/oracle/requests?status=failed", nil))
+	assertStatus(t, resp, http.StatusOK)
+	var filtered []map[string]any
+	_ = json.Unmarshal(resp.Body.Bytes(), &filtered)
+	if len(filtered) != 1 || filtered[0]["ID"].(string) != failureID {
+		t.Fatalf("expected filtered failed request list")
+	}
+
+	// pagination
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/oracle/requests?limit=1", nil))
+	assertStatus(t, resp, http.StatusOK)
+	var pageOne []map[string]any
+	_ = json.Unmarshal(resp.Body.Bytes(), &pageOne)
+	nextCursor := resp.Header().Get("X-Next-Cursor")
+	if len(pageOne) != 1 || nextCursor == "" {
+		t.Fatalf("expected paginated response with next cursor")
+	}
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/oracle/requests?limit=1&cursor="+nextCursor, nil))
+	assertStatus(t, resp, http.StatusOK)
+	var pageTwo []map[string]any
+	_ = json.Unmarshal(resp.Body.Bytes(), &pageTwo)
+	if len(pageTwo) == 0 {
+		t.Fatalf("expected second page of oracle requests")
+	}
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPatch, "/accounts/"+id+"/oracle/requests/"+failureID, marshal(map[string]any{"status": "retry"})))
+	assertStatus(t, resp, http.StatusOK)
+
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id+"/gasbank", nil))
 	if resp.Code != http.StatusOK {
@@ -481,6 +535,60 @@ func TestHandlerLifecycle(t *testing.T) {
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/accounts/"+id, nil))
 	if resp.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 after delete, got %d", resp.Code)
+	}
+
+	// Oracle runner auth + retry path
+	application.OracleRunnerTokens = []string{"runner-secret"}
+	handler = wrapWithAuth(NewHandler(application), []string{testAuthToken}, nil)
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts", marshal(map[string]any{"owner": "runner-auth"})))
+	assertStatus(t, resp, http.StatusCreated)
+	runnerAccount := decodeResponse[map[string]any](t, resp)
+	runnerAccountID := runnerAccount["ID"].(string)
+
+	runnerSourceBody := marshal(map[string]any{"name": "prices", "url": "https://api.example.com", "method": "GET"})
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts/"+runnerAccountID+"/oracle/sources", runnerSourceBody))
+	assertStatus(t, resp, http.StatusCreated)
+	runnerSource := decodeResponse[map[string]any](t, resp)
+	runnerSourceID := runnerSource["ID"].(string)
+
+	runnerReqBody := marshal(map[string]any{"data_source_id": runnerSourceID, "payload": "{}"})
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts/"+runnerAccountID+"/oracle/requests", runnerReqBody))
+	assertStatus(t, resp, http.StatusCreated)
+	runnerRequest := decodeResponse[map[string]any](t, resp)
+	runnerRequestID := runnerRequest["ID"].(string)
+
+	runnerRunning := marshal(map[string]any{"status": "running"})
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPatch, "/accounts/"+runnerAccountID+"/oracle/requests/"+runnerRequestID, runnerRunning))
+	assertStatus(t, resp, http.StatusUnauthorized)
+
+	runnerReq := authedRequest(http.MethodPatch, "/accounts/"+runnerAccountID+"/oracle/requests/"+runnerRequestID, runnerRunning)
+	runnerReq.Header.Set("X-Oracle-Runner-Token", "runner-secret")
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, runnerReq)
+	assertStatus(t, resp, http.StatusOK)
+	updated := decodeResponse[map[string]any](t, resp)
+	if updated["Status"] != "running" {
+		t.Fatalf("expected status running, got %v", updated["Status"])
+	}
+
+	failPayload := marshal(map[string]any{"status": "failed", "error": "boom"})
+	failReq := authedRequest(http.MethodPatch, "/accounts/"+runnerAccountID+"/oracle/requests/"+runnerRequestID, failPayload)
+	failReq.Header.Set("X-Oracle-Runner-Token", "runner-secret")
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, failReq)
+	assertStatus(t, resp, http.StatusOK)
+
+	retryPayload := marshal(map[string]any{"status": "retry"})
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPatch, "/accounts/"+runnerAccountID+"/oracle/requests/"+runnerRequestID, retryPayload))
+	assertStatus(t, resp, http.StatusOK)
+	retried := decodeResponse[map[string]any](t, resp)
+	if retried["Status"] == "failed" {
+		t.Fatalf("expected retried request not to be failed")
 	}
 
 	// Workspace wallet + DTA flow
@@ -725,6 +833,7 @@ func TestDataFeedsWalletGatedHTTP(t *testing.T) {
 		"round_id":  1,
 		"price":     "123.45",
 		"timestamp": time.Now().UTC(),
+		"signer":    testWalletFeed,
 		"signature": "sig",
 	})
 	assertStatus(t, updateResp, http.StatusCreated)
