@@ -6,11 +6,18 @@ creates an oracle request, and returns a structured response. Companion SDKs in
 Go, Rust, and Python expose the same Devpack action surface if you prefer a
 different language runtime.
 
-See `js/pricefeed_snapshot.js` for a Devpack example that records price feed
-snapshots from a function, `js/random_generate.js` for randomness, and
-`js/data_pipeline.js` for coordinating data feeds, data streams, and DataLink
-from a single function. TypeScript equivalents live under `src/pricefeed.ts`
-and `src/random.ts` if you prefer typed authoring.
+JS examples:
+- `js/gasbank_*` – account ensure/withdraw flows
+- `js/oracle_*` – request/response flows
+- `js/pricefeed_snapshot.js` – record price snapshots
+- `js/random_generate.js` – randomness helper
+- `js/trigger_webhook_forward.js` – trigger/automation wiring
+- `js/datafeed_update.js` – submit data feed update
+- `js/datastream_publish.js` – publish a datastream frame
+- `js/datalink_delivery.js` – enqueue a DataLink delivery
+- `js/data_pipeline.js` – combined datafeeds + datastream + datalink example
+
+TypeScript equivalents live under `src/` for common workflows (pricefeed and randomness) if you prefer typed authoring.
 
 Refer to [`docs/requirements.md`](../../../docs/requirements.md) for the full API
 contract (inputs, outputs, Devpack action semantics) before modifying or extending
