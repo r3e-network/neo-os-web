@@ -15,3 +15,5 @@ Included stubs so far:
 - DataFeedHub
 - SecretsVault
 - AccountManager
+
+See `DEPLOY.md` for a high-level deploy/wiring outline (register module hashes in Manager, grant roles, and resolve module hashes from Manager in clients).
