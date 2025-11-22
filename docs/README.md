@@ -12,6 +12,7 @@ have been consolidated into that specification.
   - [Polkadot JAM-inspired integration](polkadot-jam-integration-design.md)
   - [JAM accumulator & receipt plan](jam-accumulator-plan.md)
   - [JAM receipts and roots](jam-receipts-and-roots.md)
+  - [JAM status fields](jam-status-fields.md)
   - [JAM hardening and auth/quotas](jam-hardening.md), [jam-auth-and-quotas.md](jam-auth-and-quotas.md), [jam-hardening-implementation.md](jam-hardening-implementation.md)
 
 All other documents have been retired to avoid drift. Update the specification
