@@ -56,6 +56,8 @@ Scope: document the current JAM prototype endpoints, payloads, and expectations 
   - Response: `200 OK` with package, `404` if not found.
 
 ### Reports
+- `GET /jam/reports?service_id=<id>&limit=50&offset=0`
+  - Lists reports, optionally filtered by service. Response matches package list shape (envelope with `items`/`next_offset` or raw array in legacy mode).
 - `GET /jam/packages/{id}/report`
   - Returns the refined report (if any) and attestations.
   - Response shape:

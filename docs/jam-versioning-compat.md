@@ -35,6 +35,7 @@ Purpose: define how JAM evolves without breaking clients, covering API versionin
   - `jam.enabled`, `store`
   - `jam.legacy_list_response`
   - `jam.rate_limit_per_min`, `jam.max_preimage_bytes`, `jam.max_pending_packages`
+  - (new) consider surfacing `jam.list_envelope=true|false` once reports/packages adopt envelope by default.
 - `slctl status` should render these to help operators know which behaviours are active.
 
 ## Implementation Steps
