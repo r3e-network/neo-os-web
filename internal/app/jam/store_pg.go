@@ -504,3 +504,23 @@ func (s *PGStore) HashAlgorithm() string {
 	}
 	return s.hashAlg
 }
+
+// Receipt returns a receipt by hash.
+func (s *PGStore) Receipt(ctx context.Context, hash string) (Receipt, error) {
+	if !s.accumEnabled {
+		return Receipt{}, ErrNotFound
+	}
+	var rcpt Receipt
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT hash, service_id, entry_type, seq, prev_root, new_root, status, processed_at, metadata_hash, extra
+		FROM jam_receipts
+		WHERE hash = $1
+	`, hash).Scan(&rcpt.Hash, &rcpt.ServiceID, &rcpt.EntryType, &rcpt.Seq, &rcpt.PrevRoot, &rcpt.NewRoot, &rcpt.Status, &rcpt.ProcessedAt, &rcpt.MetadataHash, &rcpt.Extra)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Receipt{}, ErrNotFound
+		}
+		return Receipt{}, err
+	}
+	return rcpt, nil
+}

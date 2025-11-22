@@ -84,34 +84,48 @@ func (h *httpHandler) statusHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *httpHandler) appendReceiptIfNeeded(ctx context.Context, obj any) (Receipt, error) {
+func (h *httpHandler) receiptFor(ctx context.Context, obj any, allowCreate bool) (Receipt, error) {
 	if !h.cfg.AccumulatorsEnabled {
 		return Receipt{}, nil
 	}
 	recorder, ok := h.store.(interface {
 		AppendReceipt(context.Context, ReceiptInput) (Receipt, error)
+		Receipt(context.Context, string) (Receipt, error)
 	})
 	if !ok {
 		return Receipt{}, nil
 	}
+	hashAlg := accumulatorHash(h.store)
 	switch v := obj.(type) {
 	case WorkPackage:
+		if rcpt, err := recorder.Receipt(ctx, v.ID); err == nil && rcpt.Hash != "" {
+			return rcpt, nil
+		}
+		if !allowCreate {
+			return Receipt{}, nil
+		}
 		return recorder.AppendReceipt(ctx, ReceiptInput{
 			Hash:         v.ID,
 			ServiceID:    v.ServiceID,
 			EntryType:    ReceiptTypePackage,
 			Status:       string(v.Status),
 			ProcessedAt:  time.Now().UTC(),
-			MetadataHash: packageMetadataHash(v, accumulatorHash(h.store)),
+			MetadataHash: packageMetadataHash(v, hashAlg),
 		})
 	case WorkReport:
+		if rcpt, err := recorder.Receipt(ctx, v.RefineOutputHash); err == nil && rcpt.Hash != "" {
+			return rcpt, nil
+		}
+		if !allowCreate {
+			return Receipt{}, nil
+		}
 		return recorder.AppendReceipt(ctx, ReceiptInput{
 			Hash:         v.RefineOutputHash,
 			ServiceID:    v.ServiceID,
 			EntryType:    ReceiptTypeReport,
 			Status:       string(PackageStatusApplied),
 			ProcessedAt:  v.CreatedAt,
-			MetadataHash: reportMetadataHash(v, accumulatorHash(h.store)),
+			MetadataHash: reportMetadataHash(v, hashAlg),
 		})
 	default:
 		return Receipt{}, nil
@@ -258,7 +272,7 @@ func (h *httpHandler) packagesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if includeReceipt := strings.EqualFold(r.URL.Query().Get("include_receipt"), "true"); includeReceipt {
 			resp := map[string]any{"package": pkg}
-			if rcpt, err := h.appendReceiptIfNeeded(r.Context(), pkg); err == nil && rcpt.Hash != "" {
+			if rcpt, err := h.receiptFor(r.Context(), pkg, true); err == nil && rcpt.Hash != "" {
 				resp["receipt"] = rcpt
 			}
 			writeJSON(w, http.StatusCreated, resp)
@@ -292,19 +306,19 @@ func (h *httpHandler) packagesHandler(w http.ResponseWriter, r *http.Request) {
 			"items": pkgs,
 		}
 		if includeReceipt := strings.EqualFold(r.URL.Query().Get("include_receipt"), "true"); includeReceipt {
+			var rcpts []Receipt
 			for i := range pkgs {
-				rcpt, err := h.appendReceiptIfNeeded(r.Context(), pkgs[i])
+				rcpt, err := h.receiptFor(r.Context(), pkgs[i], false)
 				if err != nil {
 					writeError(w, http.StatusInternalServerError, err)
 					return
 				}
 				if rcpt.Hash != "" {
-					if resp["receipts"] == nil {
-						resp["receipts"] = []Receipt{rcpt}
-					} else {
-						resp["receipts"] = append(resp["receipts"].([]Receipt), rcpt)
-					}
+					rcpts = append(rcpts, rcpt)
 				}
+			}
+			if len(rcpts) > 0 {
+				resp["receipts"] = rcpts
 			}
 		}
 		if !h.cfg.LegacyListResponse {
@@ -349,7 +363,7 @@ func (h *httpHandler) packageResource(w http.ResponseWriter, r *http.Request) {
 		}
 		if includeReceipt := strings.EqualFold(r.URL.Query().Get("include_receipt"), "true"); includeReceipt {
 			resp := map[string]any{"package": pkg}
-			if rcpt, err := h.appendReceiptIfNeeded(r.Context(), pkg); err == nil && rcpt.Hash != "" {
+			if rcpt, err := h.receiptFor(r.Context(), pkg, false); err == nil && rcpt.Hash != "" {
 				resp["receipt"] = rcpt
 			}
 			writeJSON(w, http.StatusOK, resp)
@@ -367,6 +381,17 @@ func (h *httpHandler) packageResource(w http.ResponseWriter, r *http.Request) {
 				status = http.StatusNotFound
 			}
 			writeError(w, status, err)
+			return
+		}
+		if includeReceipt := strings.EqualFold(r.URL.Query().Get("include_receipt"), "true"); includeReceipt {
+			resp := map[string]any{
+				"report":       report,
+				"attestations": attns,
+			}
+			if rcpt, err := h.receiptFor(r.Context(), report, false); err == nil && rcpt.Hash != "" {
+				resp["receipt"] = rcpt
+			}
+			writeJSON(w, http.StatusOK, resp)
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -438,7 +463,7 @@ func (h *httpHandler) reportsHandler(w http.ResponseWriter, r *http.Request) {
 	if includeReceipt := strings.EqualFold(r.URL.Query().Get("include_receipt"), "true"); includeReceipt {
 		var rcpts []Receipt
 		for _, rpt := range reports {
-			rcpt, err := h.appendReceiptIfNeeded(r.Context(), rpt)
+			rcpt, err := h.receiptFor(r.Context(), rpt, false)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return

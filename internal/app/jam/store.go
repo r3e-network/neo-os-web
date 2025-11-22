@@ -20,6 +20,7 @@ type PackageStore interface {
 	GetReportByPackage(ctx context.Context, pkgID string) (WorkReport, []Attestation, error)
 	AppendReceipt(ctx context.Context, in ReceiptInput) (Receipt, error)
 	AccumulatorRoot(ctx context.Context, serviceID string) (AccumulatorRoot, error)
+	Receipt(ctx context.Context, hash string) (Receipt, error)
 }
 
 // PackageFilter controls list queries.
@@ -279,6 +280,20 @@ func (s *InMemoryStore) AccumulatorRoot(_ context.Context, serviceID string) (Ac
 		return AccumulatorRoot{ServiceID: serviceID}, nil
 	}
 	return root, nil
+}
+
+// Receipt returns a stored receipt by hash.
+func (s *InMemoryStore) Receipt(_ context.Context, hash string) (Receipt, error) {
+	if !s.accumEnable {
+		return Receipt{}, ErrNotFound
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	rcpt, ok := s.receipts[hash]
+	if !ok {
+		return Receipt{}, ErrNotFound
+	}
+	return rcpt, nil
 }
 
 // SetAccumulatorHash overrides the hash algorithm used for roots/metadata.
