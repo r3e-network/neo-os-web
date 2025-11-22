@@ -2,6 +2,8 @@
 
 Design notes for borrowing Join-Accumulate Machine (JAM) patterns and applying them to Service Layer without copying protocol-level details.
 
+Code scaffolding for the core types/interfaces lives in `internal/app/jam`.
+
 ## Goals
 - Add a structured “work package” pipeline that separates preprocessing from state mutation, with attestations before commit.
 - Model deployable units as permissionless services (code + state + balance) instead of only individual functions.
