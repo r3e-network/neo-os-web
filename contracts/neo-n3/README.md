@@ -5,3 +5,12 @@ Early scaffolding for a modular contract set:
 - `JAMInbox.cs`: records JAM receipts and accumulator roots per service.
 
 These stubs show storage layout, events, and method signatures. Wire role checks to your chosen admin/multisig, and extend with remaining modules (`AccountManager`, `DataFeedHub`, `SecretsVault`) as needed.
+Included stubs so far:
+- Manager (module hashes, roles, pause flags)
+- ServiceRegistry
+- OracleHub
+- JAMInbox
+- AutomationScheduler
+- RandomnessHub
+- DataFeedHub
+- SecretsVault
