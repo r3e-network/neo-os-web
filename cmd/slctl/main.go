@@ -91,6 +91,8 @@ func run(ctx context.Context, args []string) error {
 		return handleConfCompute(ctx, client, remaining[1:])
 	case "workspace-wallets":
 		return handleWorkspaceWallets(ctx, client, remaining[1:])
+	case "jam":
+		return handleJAM(ctx, client, remaining[1:])
 	case "status":
 		return handleStatus(ctx, client)
 	case "services":
@@ -140,6 +142,7 @@ Commands:
   datastreams  Inspect stream configurations and frames
   confcompute  Inspect confidential-compute enclaves
   workspace-wallets Inspect linked signing wallets
+  jam          Interact with JAM prototype (preimages, packages, reports)
   services     Introspect service descriptors
   status       Show health/version/descriptors summary (uses /system/status; health at /healthz is unauthenticated)
   version      Show CLI and server version information`)
@@ -154,6 +157,33 @@ type apiClient struct {
 func (c *apiClient) request(ctx context.Context, method, path string, payload any) ([]byte, error) {
 	data, _, err := c.requestWithHeaders(ctx, method, path, payload)
 	return data, err
+}
+
+// requestRaw sends a request with an arbitrary body and content type.
+func (c *apiClient) requestRaw(ctx context.Context, method, path string, body []byte, contentType string) ([]byte, http.Header, error) {
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bytes.NewReader(body))
+	if err != nil {
+		return nil, nil, err
+	}
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp.Header, err
+	}
+	if resp.StatusCode >= 300 {
+		return nil, resp.Header, fmt.Errorf("%s %s: %s (status %d)", method, path, strings.TrimSpace(string(data)), resp.StatusCode)
+	}
+	return data, resp.Header, nil
 }
 
 func (c *apiClient) requestWithHeaders(ctx context.Context, method, path string, payload any) ([]byte, http.Header, error) {
