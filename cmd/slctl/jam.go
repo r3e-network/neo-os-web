@@ -30,7 +30,7 @@ func handleJAM(ctx context.Context, client *apiClient, args []string) error {
 	case "report":
 		return handleJAMReport(ctx, client, args[1:])
 	case "status":
-		return handleJAMStatus(ctx, client)
+		return handleJAMStatus(ctx, client, args[1:])
 	case "reports":
 		return handleJAMReports(ctx, client, args[1:])
 	default:
@@ -98,6 +98,7 @@ func handleJAMPackage(ctx context.Context, client *apiClient, args []string) err
 	itemKind := fs.String("kind", "", "work item kind")
 	paramsHash := fs.String("params-hash", "", "hash of item parameters")
 	preimages := fs.String("preimages", "", "comma-separated preimage hashes for package")
+	includeReceipt := fs.Bool("include-receipt", false, "include accumulator receipt in response")
 	if err := fs.Parse(args); err != nil {
 		return usageError(err)
 	}
@@ -115,7 +116,11 @@ func handleJAMPackage(ctx context.Context, client *apiClient, args []string) err
 	if hashes := splitList(*preimages); len(hashes) > 0 {
 		pkg["preimage_hashes"] = hashes
 	}
-	data, err := client.request(ctx, "POST", "/jam/packages", pkg)
+	path := "/jam/packages"
+	if *includeReceipt {
+		path += "?include_receipt=true"
+	}
+	data, err := client.request(ctx, "POST", path, pkg)
 	if err != nil {
 		return err
 	}
@@ -129,6 +134,7 @@ func handleJAMPackagesList(ctx context.Context, client *apiClient, args []string
 	service := fs.String("service", "", "filter by service id")
 	limit := fs.Int("limit", 50, "max packages to return")
 	offset := fs.Int("offset", 0, "offset for pagination")
+	includeReceipt := fs.Bool("include-receipt", false, "include receipts in response")
 	if err := fs.Parse(args); err != nil {
 		return usageError(err)
 	}
@@ -138,6 +144,9 @@ func handleJAMPackagesList(ctx context.Context, client *apiClient, args []string
 	}
 	if strings.TrimSpace(*service) != "" {
 		query += "&service_id=" + url.QueryEscape(*service)
+	}
+	if *includeReceipt {
+		query += "&include_receipt=true"
 	}
 	data, err := client.request(ctx, "GET", query, nil)
 	if err != nil {
@@ -161,12 +170,16 @@ func handleJAMReports(ctx context.Context, client *apiClient, args []string) err
 	service := fs.String("service", "", "filter by service id")
 	limit := fs.Int("limit", 50, "max reports to return")
 	offset := fs.Int("offset", 0, "offset for pagination")
+	includeReceipt := fs.Bool("include-receipt", false, "include receipts in response")
 	if err := fs.Parse(args); err != nil {
 		return usageError(err)
 	}
 	query := fmt.Sprintf("/jam/reports?limit=%d&offset=%d", *limit, *offset)
 	if strings.TrimSpace(*service) != "" {
 		query += "&service_id=" + url.QueryEscape(*service)
+	}
+	if *includeReceipt {
+		query += "&include_receipt=true"
 	}
 	data, err := client.request(ctx, "GET", query, nil)
 	if err != nil {
@@ -201,13 +214,18 @@ func handleJAMProcess(ctx context.Context, client *apiClient) error {
 func handleJAMReport(ctx context.Context, client *apiClient, args []string) error {
 	fs := flag.NewFlagSet("jam report", flag.ContinueOnError)
 	pkgID := fs.String("package", "", "package id")
+	includeReceipt := fs.Bool("include-receipt", false, "include receipt in response (if available)")
 	if err := fs.Parse(args); err != nil {
 		return usageError(err)
 	}
 	if *pkgID == "" {
 		return usageError(errors.New("package id is required"))
 	}
-	data, err := client.request(ctx, "GET", "/jam/packages/"+*pkgID+"/report", nil)
+	path := "/jam/packages/" + *pkgID + "/report"
+	if *includeReceipt {
+		path += "?include_receipt=true"
+	}
+	data, err := client.request(ctx, "GET", path, nil)
 	if err != nil {
 		return err
 	}
@@ -221,23 +239,49 @@ func handleJAMReport(ctx context.Context, client *apiClient, args []string) erro
 	return nil
 }
 
-func handleJAMStatus(ctx context.Context, client *apiClient) error {
-	data, err := client.request(ctx, "GET", "/system/status", nil)
+func handleJAMStatus(ctx context.Context, client *apiClient, args []string) error {
+	fs := flag.NewFlagSet("jam status", flag.ContinueOnError)
+	service := fs.String("service", "", "service id to include accumulator root (optional)")
+	if err := fs.Parse(args); err != nil {
+		return usageError(err)
+	}
+	path := "/jam/status"
+	if strings.TrimSpace(*service) != "" {
+		path += "?service_id=" + url.QueryEscape(*service)
+	}
+	data, err := client.request(ctx, "GET", path, nil)
 	if err != nil {
 		return err
 	}
 	var payload struct {
-		JAM map[string]any `json:"jam"`
+		Enabled             bool           `json:"enabled"`
+		Store               string         `json:"store"`
+		RateLimitPerMinute  int            `json:"rate_limit_per_min"`
+		MaxPreimageBytes    int64          `json:"max_preimage_bytes"`
+		MaxPendingPackages  int            `json:"max_pending_packages"`
+		AuthRequired        bool           `json:"auth_required"`
+		LegacyListResponse  bool           `json:"legacy_list_response"`
+		AccumulatorsEnabled bool           `json:"accumulators_enabled"`
+		AccumulatorHash     string         `json:"accumulator_hash"`
+		AccumulatorRoot     map[string]any `json:"accumulator_root"`
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return fmt.Errorf("decode status: %w", err)
 	}
-	enabled, _ := payload.JAM["enabled"].(bool)
-	store, _ := payload.JAM["store"].(string)
-	fmt.Printf("JAM enabled=%t", enabled)
-	if store != "" {
-		fmt.Printf(" store=%s", store)
+	fmt.Printf("JAM enabled=%t", payload.Enabled)
+	if payload.Store != "" {
+		fmt.Printf(" store=%s", payload.Store)
+	}
+	if payload.AccumulatorsEnabled {
+		fmt.Printf(" accumulators_enabled=%t", payload.AccumulatorsEnabled)
+	}
+	if payload.AccumulatorHash != "" {
+		fmt.Printf(" accumulator_hash=%s", payload.AccumulatorHash)
 	}
 	fmt.Println()
+	if len(payload.AccumulatorRoot) > 0 {
+		pretty, _ := json.MarshalIndent(payload.AccumulatorRoot, "", "  ")
+		fmt.Printf("Accumulator root:\n%s\n", string(pretty))
+	}
 	return nil
 }
