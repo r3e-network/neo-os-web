@@ -2,7 +2,9 @@ package jam
 
 import (
 	"context"
+	"strings"
 	"sync"
+	"time"
 )
 
 // PackageStore defines persistence for work packages and reports.
@@ -16,6 +18,8 @@ type PackageStore interface {
 	UpdatePackageStatus(ctx context.Context, pkgID string, status PackageStatus) error
 	GetPackage(ctx context.Context, pkgID string) (WorkPackage, error)
 	GetReportByPackage(ctx context.Context, pkgID string) (WorkReport, []Attestation, error)
+	AppendReceipt(ctx context.Context, in ReceiptInput) (Receipt, error)
+	AccumulatorRoot(ctx context.Context, serviceID string) (AccumulatorRoot, error)
 }
 
 // PackageFilter controls list queries.
@@ -35,10 +39,14 @@ type ReportFilter struct {
 
 // InMemoryStore is a simple, non-durable store for tests and prototyping.
 type InMemoryStore struct {
-	mu       sync.Mutex
-	pkgs     map[string]WorkPackage
-	reports  map[string]WorkReport
-	attnList map[string][]Attestation
+	mu          sync.Mutex
+	pkgs        map[string]WorkPackage
+	reports     map[string]WorkReport
+	attnList    map[string][]Attestation
+	receipts    map[string]Receipt
+	roots       map[string]AccumulatorRoot
+	hashAlg     string
+	accumEnable bool
 }
 
 // NewInMemoryStore constructs an empty store.
@@ -47,6 +55,9 @@ func NewInMemoryStore() *InMemoryStore {
 		pkgs:     make(map[string]WorkPackage),
 		reports:  make(map[string]WorkReport),
 		attnList: make(map[string][]Attestation),
+		receipts: make(map[string]Receipt),
+		roots:    make(map[string]AccumulatorRoot),
+		hashAlg:  "blake3-256",
 	}
 }
 
@@ -213,4 +224,87 @@ func (s *InMemoryStore) ListReports(_ context.Context, filter ReportFilter) ([]W
 		}
 	}
 	return out, nil
+}
+
+// AppendReceipt records a receipt and updates the accumulator root.
+func (s *InMemoryStore) AppendReceipt(_ context.Context, in ReceiptInput) (Receipt, error) {
+	if !s.accumEnable {
+		return Receipt{}, nil
+	}
+	if in.Hash == "" || in.ServiceID == "" || in.EntryType == "" {
+		return Receipt{}, Err("missing receipt fields")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	root := s.roots[in.ServiceID]
+	seq := root.Seq + 1
+	if in.ProcessedAt.IsZero() {
+		in.ProcessedAt = time.Now().UTC()
+	}
+	if in.MetadataHash == "" {
+		in.MetadataHash = reportMetadataHash(WorkReport{RefineOutputHash: in.Hash, ServiceID: in.ServiceID}, s.hashAlg)
+	}
+	newRoot, _ := deriveRoot(root.Root, in, seq, s.hashAlg)
+	rcpt := Receipt{
+		Hash:         in.Hash,
+		ServiceID:    in.ServiceID,
+		EntryType:    in.EntryType,
+		Seq:          seq,
+		PrevRoot:     root.Root,
+		NewRoot:      newRoot,
+		Status:       in.Status,
+		ProcessedAt:  in.ProcessedAt,
+		MetadataHash: in.MetadataHash,
+		Extra:        in.Extra,
+	}
+	s.roots[in.ServiceID] = AccumulatorRoot{
+		ServiceID: in.ServiceID,
+		Seq:       seq,
+		Root:      newRoot,
+		UpdatedAt: in.ProcessedAt,
+	}
+	s.receipts[in.Hash] = rcpt
+	return rcpt, nil
+}
+
+// AccumulatorRoot returns the current root for a service.
+func (s *InMemoryStore) AccumulatorRoot(_ context.Context, serviceID string) (AccumulatorRoot, error) {
+	if !s.accumEnable {
+		return AccumulatorRoot{ServiceID: serviceID}, nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	root, ok := s.roots[serviceID]
+	if !ok {
+		return AccumulatorRoot{ServiceID: serviceID}, nil
+	}
+	return root, nil
+}
+
+// SetAccumulatorHash overrides the hash algorithm used for roots/metadata.
+func (s *InMemoryStore) SetAccumulatorHash(algo string) {
+	algo = strings.TrimSpace(strings.ToLower(algo))
+	if algo == "" {
+		return
+	}
+	s.mu.Lock()
+	s.hashAlg = algo
+	s.mu.Unlock()
+}
+
+// SetAccumulatorsEnabled toggles accumulator persistence.
+func (s *InMemoryStore) SetAccumulatorsEnabled(enabled bool) {
+	s.mu.Lock()
+	s.accumEnable = enabled
+	s.mu.Unlock()
+}
+
+// HashAlgorithm returns the configured accumulator hash algorithm.
+func (s *InMemoryStore) HashAlgorithm() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.hashAlg == "" {
+		return "blake3-256"
+	}
+	return s.hashAlg
 }

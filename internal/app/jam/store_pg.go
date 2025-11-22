@@ -13,12 +13,14 @@ import (
 
 // PGStore implements PackageStore on PostgreSQL tables.
 type PGStore struct {
-	DB *sql.DB
+	DB           *sql.DB
+	hashAlg      string
+	accumEnabled bool
 }
 
 // NewPGStore constructs a PostgreSQL-backed package store.
 func NewPGStore(db *sql.DB) *PGStore {
-	return &PGStore{DB: db}
+	return &PGStore{DB: db, hashAlg: "blake3-256"}
 }
 
 // EnqueuePackage inserts a work package and its items atomically.
@@ -386,4 +388,119 @@ func (s *PGStore) ListReports(ctx context.Context, filter ReportFilter) ([]WorkR
 		return nil, err
 	}
 	return reports, nil
+}
+
+// AppendReceipt records a receipt and advances the accumulator root.
+func (s *PGStore) AppendReceipt(ctx context.Context, in ReceiptInput) (Receipt, error) {
+	if !s.accumEnabled {
+		return Receipt{}, nil
+	}
+	if in.Hash == "" || in.ServiceID == "" || in.EntryType == "" {
+		return Receipt{}, Err("missing receipt fields")
+	}
+	if in.ProcessedAt.IsZero() {
+		in.ProcessedAt = time.Now().UTC()
+	}
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return Receipt{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var prevSeq int64
+	var prevRoot string
+	row := tx.QueryRowContext(ctx, `
+		SELECT seq, root FROM jam_accumulators WHERE service_id = $1 FOR UPDATE
+	`, in.ServiceID)
+	switch err := row.Scan(&prevSeq, &prevRoot); err {
+	case nil:
+	case sql.ErrNoRows:
+		prevSeq = 0
+		prevRoot = ""
+	default:
+		return Receipt{}, err
+	}
+
+	seq := prevSeq + 1
+	if in.MetadataHash == "" {
+		in.MetadataHash = reportMetadataHash(WorkReport{RefineOutputHash: in.Hash, ServiceID: in.ServiceID}, s.hashAlg)
+	}
+	newRoot, _ := deriveRoot(prevRoot, in, seq, s.hashAlg)
+	rcpt := Receipt{
+		Hash:         in.Hash,
+		ServiceID:    in.ServiceID,
+		EntryType:    in.EntryType,
+		Seq:          seq,
+		PrevRoot:     prevRoot,
+		NewRoot:      newRoot,
+		Status:       in.Status,
+		ProcessedAt:  in.ProcessedAt,
+		MetadataHash: in.MetadataHash,
+		Extra:        in.Extra,
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO jam_receipts
+			(hash, service_id, entry_type, seq, prev_root, new_root, status, processed_at, metadata_hash, extra)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		ON CONFLICT (hash) DO NOTHING
+	`, rcpt.Hash, rcpt.ServiceID, rcpt.EntryType, rcpt.Seq, rcpt.PrevRoot, rcpt.NewRoot, rcpt.Status, rcpt.ProcessedAt, rcpt.MetadataHash, rcpt.Extra); err != nil {
+		return Receipt{}, err
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO jam_accumulators (service_id, seq, root, updated_at)
+		VALUES ($1,$2,$3,NOW())
+		ON CONFLICT (service_id) DO UPDATE
+		SET seq = EXCLUDED.seq, root = EXCLUDED.root, updated_at = NOW()
+	`, rcpt.ServiceID, rcpt.Seq, rcpt.NewRoot); err != nil {
+		return Receipt{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return Receipt{}, err
+	}
+	return rcpt, nil
+}
+
+// AccumulatorRoot returns the latest root for a service.
+func (s *PGStore) AccumulatorRoot(ctx context.Context, serviceID string) (AccumulatorRoot, error) {
+	if !s.accumEnabled {
+		return AccumulatorRoot{ServiceID: serviceID}, nil
+	}
+	var root AccumulatorRoot
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT service_id, seq, root, updated_at
+		FROM jam_accumulators
+		WHERE service_id = $1
+	`, serviceID).Scan(&root.ServiceID, &root.Seq, &root.Root, &root.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return AccumulatorRoot{ServiceID: serviceID}, nil
+		}
+		return AccumulatorRoot{}, err
+	}
+	return root, nil
+}
+
+// SetAccumulatorHash sets the hash algorithm used for roots.
+func (s *PGStore) SetAccumulatorHash(algo string) {
+	algo = strings.TrimSpace(strings.ToLower(algo))
+	if algo == "" {
+		return
+	}
+	s.hashAlg = algo
+}
+
+// SetAccumulatorsEnabled toggles accumulator persistence.
+func (s *PGStore) SetAccumulatorsEnabled(enabled bool) {
+	s.accumEnabled = enabled
+}
+
+// HashAlgorithm returns the configured accumulator hash algorithm.
+func (s *PGStore) HashAlgorithm() string {
+	if s.hashAlg == "" {
+		return "blake3-256"
+	}
+	return s.hashAlg
 }

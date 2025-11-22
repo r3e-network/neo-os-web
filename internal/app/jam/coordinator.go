@@ -2,12 +2,14 @@ package jam
 
 import (
 	"context"
+	"time"
 )
 
 // Coordinator pulls pending packages from a store and processes them via Engine.
 type Coordinator struct {
-	Store  PackageStore
-	Engine Engine
+	Store               PackageStore
+	Engine              Engine
+	AccumulatorsEnabled bool
 }
 
 // ProcessNext fetches the next pending package (if any) and runs it through the engine.
@@ -36,6 +38,24 @@ func (c Coordinator) ProcessNext(ctx context.Context) (ok bool, err error) {
 	if err := c.Store.UpdatePackageStatus(ctx, pkg.ID, PackageStatusApplied); err != nil {
 		return true, err
 	}
+	if c.AccumulatorsEnabled {
+		if recorder, ok := c.Store.(interface {
+			AppendReceipt(context.Context, ReceiptInput) (Receipt, error)
+		}); ok {
+			hashAlg := accumulatorHash(c.Store)
+			input := ReceiptInput{
+				Hash:         report.RefineOutputHash,
+				ServiceID:    report.ServiceID,
+				EntryType:    ReceiptTypeReport,
+				Status:       string(PackageStatusApplied),
+				ProcessedAt:  time.Now().UTC(),
+				MetadataHash: reportMetadataHash(report, hashAlg),
+			}
+			if _, err := recorder.AppendReceipt(ctx, input); err != nil {
+				return true, err
+			}
+		}
+	}
 	return true, nil
 }
 
@@ -46,3 +66,12 @@ var ErrInvalidCoordinator = Err("coordinator is missing store or engine")
 type Err string
 
 func (e Err) Error() string { return string(e) }
+
+func accumulatorHash(store any) string {
+	if h, ok := store.(interface{ HashAlgorithm() string }); ok {
+		if alg := h.HashAlgorithm(); alg != "" {
+			return alg
+		}
+	}
+	return "blake3-256"
+}

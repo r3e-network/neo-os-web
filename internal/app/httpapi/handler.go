@@ -86,6 +86,15 @@ func (h *handler) maybeMountJAM(mux *http.ServeMux) {
 		allowedTokens = h.jamAuth
 	}
 
+	if memStore, ok := pkgStore.(*jam.InMemoryStore); ok {
+		memStore.SetAccumulatorHash(h.jamCfg.AccumulatorHash)
+		memStore.SetAccumulatorsEnabled(h.jamCfg.AccumulatorsEnabled)
+	}
+	if pgStore, ok := pkgStore.(*jam.PGStore); ok {
+		pgStore.SetAccumulatorHash(h.jamCfg.AccumulatorHash)
+		pgStore.SetAccumulatorsEnabled(h.jamCfg.AccumulatorsEnabled)
+	}
+
 	engine := jam.Engine{
 		Preimages:   blobStore,
 		Refiner:     jam.HashRefiner{},
@@ -93,7 +102,11 @@ func (h *handler) maybeMountJAM(mux *http.ServeMux) {
 		Accumulator: jam.NoopAccumulator{},
 		Threshold:   1,
 	}
-	coord := jam.Coordinator{Store: pkgStore, Engine: engine}
+	coord := jam.Coordinator{
+		Store:               pkgStore,
+		Engine:              engine,
+		AccumulatorsEnabled: h.jamCfg.AccumulatorsEnabled,
+	}
 	mux.Handle("/jam/", jam.NewHTTPHandler(pkgStore, blobStore, coord, h.jamCfg, allowedTokens))
 }
 
