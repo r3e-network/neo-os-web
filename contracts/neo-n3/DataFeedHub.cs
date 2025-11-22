@@ -12,6 +12,9 @@ namespace ServiceLayer.Contracts
     {
         private static readonly StorageMap Feeds = new(Storage.CurrentContext, "feed:");
         private static readonly StorageMap Latest = new(Storage.CurrentContext, "latest:");
+        private static readonly StorageMap Config = new(Storage.CurrentContext, "cfg:");
+
+        private const byte RoleDataFeedSigner = 0x20;
 
         public static event Action<ByteString, ByteString> FeedDefined;
         public static event Action<ByteString, ByteString> FeedUpdated;
@@ -81,6 +84,11 @@ namespace ServiceLayer.Contracts
 
         private static bool VerifySigner(UInt160[] signers, ByteString signature, ByteString message)
         {
+            var signerAddr = (UInt160)CryptoLib.Hash160(signature);
+            if (!HasRole(signerAddr, RoleDataFeedSigner) && !Runtime.CheckWitness(signerAddr))
+            {
+                return false;
+            }
             foreach (var s in signers)
             {
                 if (CryptoLib.VerifyWithECDsa(message, signature, s, NamedCurve.Secp256r1))
@@ -97,6 +105,27 @@ namespace ServiceLayer.Contracts
             {
                 throw new Exception("owner required");
             }
+        }
+
+        public static void SetManager(UInt160 hash)
+        {
+            if (hash is null || !hash.IsValid) throw new Exception("invalid manager");
+            if (!Runtime.CheckWitness(hash)) throw new Exception("manager auth required");
+            Config.Put("manager", hash);
+        }
+
+        private static bool HasRole(UInt160 account, byte role)
+        {
+            var mgr = GetManager();
+            if (mgr == UInt160.Zero) return Runtime.CheckWitness(account);
+            return (bool)Contract.Call(mgr, "HasRole", CallFlags.ReadOnly, account, role);
+        }
+
+        private static UInt160 GetManager()
+        {
+            var data = Config.Get("manager");
+            if (data is null || data.Length == 0) return UInt160.Zero;
+            return (UInt160)data;
         }
     }
 }

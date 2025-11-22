@@ -10,6 +10,9 @@ namespace ServiceLayer.Contracts
     public class RandomnessHub : SmartContract
     {
         private static readonly StorageMap Requests = new(Storage.CurrentContext, "rnd:");
+        private static readonly StorageMap Config = new(Storage.CurrentContext, "cfg:");
+
+        private const byte RoleRandomnessRunner = 0x08;
 
         public static event Action<ByteString, ByteString> RandomnessRequested;
         public static event Action<ByteString, ByteString> RandomnessFulfilled;
@@ -63,10 +66,32 @@ namespace ServiceLayer.Contracts
 
         private static void RequireRunner()
         {
-            if (!Runtime.CheckWitness((UInt160)Runtime.CallingScriptHash))
+            var sender = (UInt160)Runtime.CallingScriptHash;
+            if (!HasRole(sender, RoleRandomnessRunner) && !Runtime.CheckWitness(sender))
             {
                 throw new Exception("runner required");
             }
+        }
+
+        public static void SetManager(UInt160 hash)
+        {
+            if (hash is null || !hash.IsValid) throw new Exception("invalid manager");
+            if (!Runtime.CheckWitness(hash)) throw new Exception("manager auth required");
+            Config.Put("manager", hash);
+        }
+
+        private static bool HasRole(UInt160 account, byte role)
+        {
+            var mgr = GetManager();
+            if (mgr == UInt160.Zero) return Runtime.CheckWitness(account);
+            return (bool)Contract.Call(mgr, "HasRole", CallFlags.ReadOnly, account, role);
+        }
+
+        private static UInt160 GetManager()
+        {
+            var data = Config.Get("manager");
+            if (data is null || data.Length == 0) return UInt160.Zero;
+            return (UInt160)data;
         }
     }
 }

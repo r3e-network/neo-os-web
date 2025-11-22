@@ -12,9 +12,11 @@ namespace ServiceLayer.Contracts
         private static readonly StorageMap Receipts = new(Storage.CurrentContext, "rcpt:");
         private static readonly StorageMap Roots = new(Storage.CurrentContext, "root:");
         private static readonly StorageMap Seq = new(Storage.CurrentContext, "seq:");
+        private static readonly StorageMap Config = new(Storage.CurrentContext, "cfg:");
 
         public const byte EntryTypePackage = 0x01;
         public const byte EntryTypeReport = 0x02;
+        public const byte RoleJamRunner = 0x10;
 
         public static event Action<ByteString, ByteString, BigInteger, ByteString> ReceiptAppended;
 
@@ -52,6 +54,13 @@ namespace ServiceLayer.Contracts
             return Roots.Get(serviceId);
         }
 
+        public static void SetManager(UInt160 hash)
+        {
+            if (hash is null || !hash.IsValid) throw new Exception("invalid manager");
+            if (!Runtime.CheckWitness(hash)) throw new Exception("manager auth required");
+            Config.Put("manager", hash);
+        }
+
         private static BigInteger NextSeq(ByteString serviceId)
         {
             var existing = Seq.Get(serviceId);
@@ -67,11 +76,25 @@ namespace ServiceLayer.Contracts
 
         private static void RequireRunner()
         {
-            // Use Manager role gate: this assumes Manager is calling with caller script hash == runner.
-            if (!Runtime.CheckWitness((UInt160)Runtime.CallingScriptHash))
+            var sender = (UInt160)Runtime.CallingScriptHash;
+            if (!HasRole(sender, RoleJamRunner) && !Runtime.CheckWitness(sender))
             {
                 throw new Exception("runner required");
             }
+        }
+
+        private static bool HasRole(UInt160 account, byte role)
+        {
+            var mgr = GetManager();
+            if (mgr == UInt160.Zero) return Runtime.CheckWitness(account);
+            return (bool)Contract.Call(mgr, "HasRole", CallFlags.ReadOnly, account, role);
+        }
+
+        private static UInt160 GetManager()
+        {
+            var data = Config.Get("manager");
+            if (data is null || data.Length == 0) return UInt160.Zero;
+            return (UInt160)data;
         }
     }
 

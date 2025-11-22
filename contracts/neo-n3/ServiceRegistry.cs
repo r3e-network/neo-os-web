@@ -9,6 +9,9 @@ namespace ServiceLayer.Contracts
     public class ServiceRegistry : SmartContract
     {
         private static readonly StorageMap Services = new(Storage.CurrentContext, "svc:");
+        private static readonly StorageMap Config = new(Storage.CurrentContext, "cfg:");
+
+        private const byte RoleAdmin = 0x01;
 
         public static event Action<ByteString, UInt160, byte> ServiceRegistered;
         public static event Action<ByteString, byte> ServiceUpdated;
@@ -79,10 +82,31 @@ namespace ServiceLayer.Contracts
 
         private static void RequireOwner(UInt160 owner)
         {
-            if (owner is null || !owner.IsValid || !Runtime.CheckWitness(owner))
+            if (owner is null || !owner.IsValid || (!Runtime.CheckWitness(owner) && !HasRole(owner, RoleAdmin)))
             {
                 throw new Exception("owner required");
             }
+        }
+
+        public static void SetManager(UInt160 hash)
+        {
+            if (hash is null || !hash.IsValid) throw new Exception("invalid manager");
+            if (!Runtime.CheckWitness(hash)) throw new Exception("manager auth required");
+            Config.Put("manager", hash);
+        }
+
+        private static bool HasRole(UInt160 account, byte role)
+        {
+            var mgr = GetManager();
+            if (mgr == UInt160.Zero) return Runtime.CheckWitness(account);
+            return (bool)Contract.Call(mgr, "HasRole", CallFlags.ReadOnly, account, role);
+        }
+
+        private static UInt160 GetManager()
+        {
+            var data = Config.Get("manager");
+            if (data is null || data.Length == 0) return UInt160.Zero;
+            return (UInt160)data;
         }
     }
 }
