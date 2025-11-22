@@ -1,0 +1,171 @@
+package jam
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"time"
+
+	"github.com/lib/pq"
+)
+
+// PGStore implements PackageStore on PostgreSQL tables.
+type PGStore struct {
+	DB *sql.DB
+}
+
+// NewPGStore constructs a PostgreSQL-backed package store.
+func NewPGStore(db *sql.DB) *PGStore {
+	return &PGStore{DB: db}
+}
+
+// EnqueuePackage inserts a work package and its items atomically.
+func (s *PGStore) EnqueuePackage(ctx context.Context, pkg WorkPackage) error {
+	if err := pkg.ValidateBasic(); err != nil {
+		return err
+	}
+	if pkg.CreatedAt.IsZero() {
+		pkg.CreatedAt = time.Now().UTC()
+	}
+	if pkg.Status == "" {
+		pkg.Status = PackageStatusPending
+	}
+
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO jam_work_packages
+			(id, service_id, created_by, nonce, expiry, signature, preimage_hashes, status, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+	`, pkg.ID, pkg.ServiceID, pkg.CreatedBy, pkg.Nonce, pkg.Expiry, pkg.Signature, pq.Array(pkg.PreimageHashes), pkg.Status, pkg.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range pkg.Items {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO jam_work_items
+				(id, package_id, kind, params_hash, preimage_hashes, max_fee, memo)
+			VALUES ($1,$2,$3,$4,$5,$6,$7)
+		`, item.ID, item.PackageID, item.Kind, item.ParamsHash, pq.Array(item.PreimageHashes), item.MaxFee, item.Memo)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// NextPending returns the next pending package and locks it using SKIP LOCKED.
+func (s *PGStore) NextPending(ctx context.Context) (WorkPackage, bool, error) {
+	tx, err := s.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return WorkPackage{}, false, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var pkg WorkPackage
+	var preimageHashes []string
+	row := tx.QueryRowContext(ctx, `
+		SELECT id, service_id, created_by, nonce, expiry, signature, preimage_hashes, status, created_at
+		FROM jam_work_packages
+		WHERE status = $1
+		ORDER BY created_at
+		LIMIT 1
+		FOR UPDATE SKIP LOCKED
+	`, PackageStatusPending)
+	if err := row.Scan(&pkg.ID, &pkg.ServiceID, &pkg.CreatedBy, &pkg.Nonce, &pkg.Expiry, &pkg.Signature, pq.Array(&preimageHashes), &pkg.Status, &pkg.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return WorkPackage{}, false, tx.Commit()
+		}
+		return WorkPackage{}, false, err
+	}
+	pkg.PreimageHashes = preimageHashes
+
+	itemRows, err := tx.QueryContext(ctx, `
+		SELECT id, package_id, kind, params_hash, preimage_hashes, max_fee, memo
+		FROM jam_work_items
+		WHERE package_id = $1
+	`, pkg.ID)
+	if err != nil {
+		return WorkPackage{}, false, err
+	}
+	defer itemRows.Close()
+
+	for itemRows.Next() {
+		var it WorkItem
+		var ph []string
+		if err := itemRows.Scan(&it.ID, &it.PackageID, &it.Kind, &it.ParamsHash, pq.Array(&ph), &it.MaxFee, &it.Memo); err != nil {
+			return WorkPackage{}, false, err
+		}
+		it.PreimageHashes = ph
+		pkg.Items = append(pkg.Items, it)
+	}
+	if err := itemRows.Err(); err != nil {
+		return WorkPackage{}, false, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return WorkPackage{}, false, err
+	}
+	return pkg, true, nil
+}
+
+// SaveReport stores a work report and associated attestations.
+func (s *PGStore) SaveReport(ctx context.Context, report WorkReport, attns []Attestation) error {
+	if err := report.ValidateBasic(); err != nil {
+		return err
+	}
+	if report.CreatedAt.IsZero() {
+		report.CreatedAt = time.Now().UTC()
+	}
+
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO jam_work_reports
+			(id, package_id, service_id, refine_output_hash, refine_output_compact, traces, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7)
+	`, report.ID, report.PackageID, report.ServiceID, report.RefineOutputHash, report.RefineOutputCompact, report.Traces, report.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	for _, attn := range attns {
+		if attn.CreatedAt.IsZero() {
+			attn.CreatedAt = time.Now().UTC()
+		}
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO jam_attestations
+				(report_id, worker_id, signature, weight, created_at, engine, engine_version)
+			VALUES ($1,$2,$3,$4,$5,$6,$7)
+			ON CONFLICT (report_id, worker_id) DO UPDATE
+			SET signature = EXCLUDED.signature,
+			    weight = EXCLUDED.weight,
+			    created_at = EXCLUDED.created_at,
+			    engine = EXCLUDED.engine,
+			    engine_version = EXCLUDED.engine_version
+		`, attn.ReportID, attn.WorkerID, attn.Signature, attn.Weight, attn.CreatedAt, attn.Engine, attn.EngineVersion)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// UpdatePackageStatus updates the status of a package.
+func (s *PGStore) UpdatePackageStatus(ctx context.Context, pkgID string, status PackageStatus) error {
+	_, err := s.DB.ExecContext(ctx, `
+		UPDATE jam_work_packages SET status = $1 WHERE id = $2
+	`, status, pkgID)
+	return err
+}
