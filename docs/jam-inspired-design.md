@@ -67,6 +67,7 @@ Hashing: default SHA-256 over canonical JSON or protobuf; keep CBOR option open 
 - Content-addressed store (sha256) for code and large payloads.
 - API: `PUT /preimages/{hash}` to upload blob; `HEAD/GET` to retrieve. Packages carry hashes; refine fetches blobs on demand.
 - Enables deduplication, smaller packages, and late binding of code/data.
+- Implementations: in-memory and Postgres-backed stores in `internal/app/jam` (see `preimage_store.go`) plus `jam_preimages` table migration.
 
 ### Compute Sandbox
 - Keep Wasm executor for compatibility; prototype a RISC-V sandbox (e.g., rvemu or wasmtime-riscv) for better continuation support and metering.
