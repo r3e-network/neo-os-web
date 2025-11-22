@@ -35,6 +35,8 @@ func handleJAM(ctx context.Context, client *apiClient, args []string) error {
 		return handleJAMReports(ctx, client, args[1:])
 	case "receipt":
 		return handleJAMReceipt(ctx, client, args[1:])
+	case "receipts":
+		return handleJAMReceipts(ctx, client, args[1:])
 	default:
 		return usageError(fmt.Errorf("unknown jam command %q", args[0]))
 	}
@@ -304,6 +306,26 @@ func handleJAMReceipt(ctx context.Context, client *apiClient, args []string) err
 	}
 	path := "/jam/receipts/" + url.PathEscape(strings.TrimSpace(*hash))
 	data, err := client.request(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return err
+	}
+	prettyPrint(data)
+	return nil
+}
+
+func handleJAMReceipts(ctx context.Context, client *apiClient, args []string) error {
+	fs := flag.NewFlagSet("jam receipts", flag.ContinueOnError)
+	service := fs.String("service", "", "filter by service id")
+	limit := fs.Int("limit", 50, "limit results")
+	offset := fs.Int("offset", 0, "offset for pagination")
+	if err := fs.Parse(args); err != nil {
+		return usageError(err)
+	}
+	query := fmt.Sprintf("/jam/receipts?limit=%d&offset=%d", *limit, *offset)
+	if strings.TrimSpace(*service) != "" {
+		query += "&service_id=" + url.QueryEscape(strings.TrimSpace(*service))
+	}
+	data, err := client.request(ctx, http.MethodGet, query, nil)
 	if err != nil {
 		return err
 	}
