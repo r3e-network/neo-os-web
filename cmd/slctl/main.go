@@ -295,12 +295,22 @@ func handleStatus(ctx context.Context, client *apiClient) error {
 			GoVersion string `json:"go_version"`
 		} `json:"version"`
 		Services []map[string]any `json:"services"`
+		JAM      map[string]any   `json:"jam"`
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return fmt.Errorf("decode status payload: %w", err)
 	}
 	fmt.Printf("Status: %s\n", payload.Status)
 	fmt.Printf("Version: %s (commit %s, built %s, %s)\n", payload.Version.Version, payload.Version.Commit, payload.Version.BuiltAt, payload.Version.GoVersion)
+	if len(payload.JAM) > 0 {
+		enabled, _ := payload.JAM["enabled"].(bool)
+		store, _ := payload.JAM["store"].(string)
+		fmt.Printf("JAM: enabled=%t", enabled)
+		if store != "" {
+			fmt.Printf(" store=%s", store)
+		}
+		fmt.Println()
+	}
 	if len(payload.Services) > 0 {
 		fmt.Println("Services:")
 		for _, svc := range payload.Services {
