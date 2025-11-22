@@ -26,5 +26,8 @@ func AppRuntimeConfig(cfg *config.Config) app.RuntimeConfig {
 		OracleBackoff:       cfg.Runtime.Oracle.Backoff,
 		DataFeedMinSigners:  cfg.Runtime.DataFeeds.MinSigners,
 		DataFeedAggregation: cfg.Runtime.DataFeeds.Aggregation,
+		JAMEnabled:          cfg.Runtime.JAM.Enabled,
+		JAMStore:            cfg.Runtime.JAM.Store,
+		JAMPGDSN:            cfg.Runtime.JAM.PGDSN,
 	}
 }

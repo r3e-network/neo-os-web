@@ -6,6 +6,7 @@ import (
 	"time"
 
 	app "github.com/R3E-Network/service_layer/internal/app"
+	"github.com/R3E-Network/service_layer/internal/app/jam"
 	"github.com/R3E-Network/service_layer/internal/app/metrics"
 	"github.com/R3E-Network/service_layer/internal/app/system"
 	"github.com/R3E-Network/service_layer/pkg/logger"
@@ -19,11 +20,11 @@ type Service struct {
 	log     *logger.Logger
 }
 
-func NewService(application *app.Application, addr string, tokens []string, log *logger.Logger) *Service {
+func NewService(application *app.Application, addr string, tokens []string, jamCfg jam.Config, log *logger.Logger) *Service {
 	if log == nil {
 		log = logger.NewDefault("http")
 	}
-	handler := NewHandler(application)
+	handler := NewHandler(application, jamCfg)
 	handler = wrapWithAuth(handler, tokens, log)
 	handler = metrics.InstrumentHandler(handler)
 	return &Service{

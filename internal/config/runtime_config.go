@@ -10,6 +10,7 @@ type RuntimeConfig struct {
 	CRE       CREConfig        `json:"cre"`
 	Oracle    OracleConfig     `json:"oracle"`
 	DataFeeds DataFeedDefaults `json:"datafeeds"`
+	JAM       JAMConfig        `json:"jam"`
 }
 
 type TEEConfig struct {
@@ -38,10 +39,10 @@ type CREConfig struct {
 
 // OracleConfig tunes request lifecycle handling.
 type OracleConfig struct {
-	TTLSeconds  int    `json:"ttl_seconds" env:"ORACLE_TTL_SECONDS"`
-	MaxAttempts int    `json:"max_attempts" env:"ORACLE_MAX_ATTEMPTS"`
-	Backoff     string `json:"backoff" env:"ORACLE_BACKOFF"` // duration string
-	DLQEnabled  bool   `json:"dlq_enabled" env:"ORACLE_DLQ_ENABLED"`
+	TTLSeconds   int    `json:"ttl_seconds" env:"ORACLE_TTL_SECONDS"`
+	MaxAttempts  int    `json:"max_attempts" env:"ORACLE_MAX_ATTEMPTS"`
+	Backoff      string `json:"backoff" env:"ORACLE_BACKOFF"` // duration string
+	DLQEnabled   bool   `json:"dlq_enabled" env:"ORACLE_DLQ_ENABLED"`
 	RunnerTokens string `json:"runner_tokens" env:"ORACLE_RUNNER_TOKENS"` // comma separated
 }
 
@@ -49,4 +50,11 @@ type OracleConfig struct {
 type DataFeedDefaults struct {
 	MinSigners  int    `json:"min_signers" env:"DATAFEEDS_MIN_SIGNERS"`
 	Aggregation string `json:"aggregation" env:"DATAFEEDS_AGGREGATION"` // e.g. "median"
+}
+
+// JAMConfig controls the experimental JAM HTTP API.
+type JAMConfig struct {
+	Enabled bool   `json:"enabled" env:"JAM_ENABLED"`
+	Store   string `json:"store" env:"JAM_STORE"`   // memory (default) or postgres
+	PGDSN   string `json:"pg_dsn" env:"JAM_PG_DSN"` // optional; falls back to DATABASE_DSN
 }

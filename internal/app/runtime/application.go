@@ -12,6 +12,7 @@ import (
 
 	app "github.com/R3E-Network/service_layer/internal/app"
 	"github.com/R3E-Network/service_layer/internal/app/httpapi"
+	"github.com/R3E-Network/service_layer/internal/app/jam"
 	"github.com/R3E-Network/service_layer/internal/app/storage/postgres"
 	"github.com/R3E-Network/service_layer/internal/config"
 	"github.com/R3E-Network/service_layer/internal/platform/database"
@@ -170,7 +171,13 @@ func NewApplication(options ...Option) (*Application, error) {
 		log.Warn("no API tokens configured; HTTP API will reject requests")
 	}
 
-	httpSvc := httpapi.NewService(application, listenAddr, tokens, log)
+	jamCfg := jam.Config{
+		Enabled: cfg.Runtime.JAM.Enabled,
+		Store:   cfg.Runtime.JAM.Store,
+		PGDSN:   cfg.Runtime.JAM.PGDSN,
+	}
+
+	httpSvc := httpapi.NewService(application, listenAddr, tokens, jamCfg, log)
 	if err := application.Attach(httpSvc); err != nil {
 		if db != nil {
 			_ = db.Close()

@@ -24,12 +24,13 @@ import (
 
 // handler bundles HTTP endpoints for the application services.
 type handler struct {
-	app *app.Application
+	app    *app.Application
+	jamCfg jam.Config
 }
 
 // NewHandler returns a mux exposing the core REST API.
-func NewHandler(application *app.Application) http.Handler {
-	h := &handler{app: application}
+func NewHandler(application *app.Application, jamCfg jam.Config) http.Handler {
+	h := &handler{app: application, jamCfg: jamCfg}
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", metrics.Handler())
 	mux.HandleFunc("/healthz", h.health)
@@ -40,25 +41,25 @@ func NewHandler(application *app.Application) http.Handler {
 	mux.HandleFunc("/accounts", h.accounts)
 	mux.HandleFunc("/accounts/", h.accountResources)
 
-	maybeMountJAM(mux)
+	h.maybeMountJAM(mux)
 	return mux
 }
 
-func maybeMountJAM(mux *http.ServeMux) {
-	if !isEnabled(getenv("JAM_ENABLED")) {
+func (h *handler) maybeMountJAM(mux *http.ServeMux) {
+	if !h.jamCfg.Enabled {
 		return
 	}
 
-	storeChoice := strings.ToLower(getenv("JAM_STORE"))
+	storeChoice := strings.ToLower(strings.TrimSpace(h.jamCfg.Store))
 	var (
 		pkgStore  jam.PackageStore  = jam.NewInMemoryStore()
 		blobStore jam.PreimageStore = jam.NewMemPreimageStore()
 	)
 
 	if storeChoice == "postgres" {
-		dsn := getenv("JAM_PG_DSN")
+		dsn := strings.TrimSpace(h.jamCfg.PGDSN)
 		if dsn == "" {
-			dsn = getenv("DATABASE_URL")
+			dsn = strings.TrimSpace(os.Getenv("DATABASE_URL"))
 		}
 		if dsn != "" {
 			db, err := database.Open(context.Background(), dsn)
@@ -87,19 +88,6 @@ func maybeMountJAM(mux *http.ServeMux) {
 	}
 	coord := jam.Coordinator{Store: pkgStore, Engine: engine}
 	mux.Handle("/jam/", jam.NewHTTPHandler(pkgStore, blobStore, coord))
-}
-
-func isEnabled(val string) bool {
-	switch strings.ToLower(strings.TrimSpace(val)) {
-	case "1", "true", "yes", "on":
-		return true
-	default:
-		return false
-	}
-}
-
-func getenv(key string) string {
-	return strings.TrimSpace(os.Getenv(key))
 }
 
 func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {

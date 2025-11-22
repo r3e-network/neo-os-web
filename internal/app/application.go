@@ -137,6 +137,9 @@ type RuntimeConfig struct {
 	OracleRunnerTokens  string
 	DataFeedMinSigners  int
 	DataFeedAggregation string
+	JAMEnabled          bool
+	JAMStore            string
+	JAMPGDSN            string
 }
 
 // Option customises the application runtime.
