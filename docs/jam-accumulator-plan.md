@@ -30,7 +30,7 @@ Add accumulator-backed receipts for JAM packages/reports so clients can verify o
   - Query param `include_receipt=true` to return `{receipt: {...}}` alongside package.
   - `legacy_list_response` remains default; envelopes already supported.
 - **Reports**: same `include_receipt` and envelope shape.
-- **Receipts endpoint**: `GET /jam/receipts/{hash}` returns receipt if stored.
+- **Receipts endpoint**: `GET /jam/receipts/{hash}` returns receipt if stored (auth/rate-limited). Consider later: list/paginate with `service_id`, `limit`, `offset`.
 - **CLI (`slctl`)**:
   - `jam status` prints accumulator roots when present.
   - `jam packages --include-receipt`, `jam reports --include-receipt` to surface roots/seq.
