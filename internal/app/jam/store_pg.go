@@ -169,3 +169,81 @@ func (s *PGStore) UpdatePackageStatus(ctx context.Context, pkgID string, status 
 	`, status, pkgID)
 	return err
 }
+
+// GetPackage fetches a package and its items.
+func (s *PGStore) GetPackage(ctx context.Context, pkgID string) (WorkPackage, error) {
+	var pkg WorkPackage
+	var preimageHashes []string
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT id, service_id, created_by, nonce, expiry, signature, preimage_hashes, status, created_at
+		FROM jam_work_packages
+		WHERE id = $1
+	`, pkgID).Scan(&pkg.ID, &pkg.ServiceID, &pkg.CreatedBy, &pkg.Nonce, &pkg.Expiry, &pkg.Signature, pq.Array(&preimageHashes), &pkg.Status, &pkg.CreatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return WorkPackage{}, ErrNotFound
+		}
+		return WorkPackage{}, err
+	}
+	pkg.PreimageHashes = preimageHashes
+
+	rows, err := s.DB.QueryContext(ctx, `
+		SELECT id, package_id, kind, params_hash, preimage_hashes, max_fee, memo
+		FROM jam_work_items
+		WHERE package_id = $1
+	`, pkg.ID)
+	if err != nil {
+		return WorkPackage{}, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var it WorkItem
+		var ph []string
+		if err := rows.Scan(&it.ID, &it.PackageID, &it.Kind, &it.ParamsHash, pq.Array(&ph), &it.MaxFee, &it.Memo); err != nil {
+			return WorkPackage{}, err
+		}
+		it.PreimageHashes = ph
+		pkg.Items = append(pkg.Items, it)
+	}
+	if err := rows.Err(); err != nil {
+		return WorkPackage{}, err
+	}
+	return pkg, nil
+}
+
+// GetReportByPackage returns the report and attestations for a package id.
+func (s *PGStore) GetReportByPackage(ctx context.Context, pkgID string) (WorkReport, []Attestation, error) {
+	var report WorkReport
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT id, package_id, service_id, refine_output_hash, refine_output_compact, traces, created_at
+		FROM jam_work_reports
+		WHERE package_id = $1
+	`, pkgID).Scan(&report.ID, &report.PackageID, &report.ServiceID, &report.RefineOutputHash, &report.RefineOutputCompact, &report.Traces, &report.CreatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return WorkReport{}, nil, ErrNotFound
+		}
+		return WorkReport{}, nil, err
+	}
+	rows, err := s.DB.QueryContext(ctx, `
+		SELECT report_id, worker_id, signature, weight, created_at, engine, engine_version
+		FROM jam_attestations
+		WHERE report_id = $1
+	`, report.ID)
+	if err != nil {
+		return WorkReport{}, nil, err
+	}
+	defer rows.Close()
+	var attns []Attestation
+	for rows.Next() {
+		var a Attestation
+		if err := rows.Scan(&a.ReportID, &a.WorkerID, &a.Signature, &a.Weight, &a.CreatedAt, &a.Engine, &a.EngineVersion); err != nil {
+			return WorkReport{}, nil, err
+		}
+		attns = append(attns, a)
+	}
+	if err := rows.Err(); err != nil {
+		return WorkReport{}, nil, err
+	}
+	return report, attns, nil
+}

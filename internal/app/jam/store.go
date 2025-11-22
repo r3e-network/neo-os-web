@@ -2,7 +2,6 @@ package jam
 
 import (
 	"context"
-	"errors"
 	"sync"
 )
 
@@ -12,6 +11,8 @@ type PackageStore interface {
 	NextPending(ctx context.Context) (WorkPackage, bool, error)
 	SaveReport(ctx context.Context, report WorkReport, attns []Attestation) error
 	UpdatePackageStatus(ctx context.Context, pkgID string, status PackageStatus) error
+	GetPackage(ctx context.Context, pkgID string) (WorkPackage, error)
+	GetReportByPackage(ctx context.Context, pkgID string) (WorkReport, []Attestation, error)
 }
 
 // InMemoryStore is a simple, non-durable store for tests and prototyping.
@@ -71,11 +72,42 @@ func (s *InMemoryStore) UpdatePackageStatus(_ context.Context, pkgID string, sta
 	defer s.mu.Unlock()
 	pkg, ok := s.pkgs[pkgID]
 	if !ok {
-		return errors.New("package not found")
+		return ErrNotFound
 	}
 	pkg.Status = status
 	s.pkgs[pkgID] = pkg
 	return nil
+}
+
+// GetPackage fetches a package by id.
+func (s *InMemoryStore) GetPackage(_ context.Context, pkgID string) (WorkPackage, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	pkg, ok := s.pkgs[pkgID]
+	if !ok {
+		return WorkPackage{}, ErrNotFound
+	}
+	return pkg, nil
+}
+
+// GetReportByPackage returns a report and attestations for a package id.
+func (s *InMemoryStore) GetReportByPackage(_ context.Context, pkgID string) (WorkReport, []Attestation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var report WorkReport
+	var found bool
+	for _, r := range s.reports {
+		if r.PackageID == pkgID {
+			report = r
+			found = true
+			break
+		}
+	}
+	if !found {
+		return WorkReport{}, nil, ErrNotFound
+	}
+	attns := append([]Attestation(nil), s.attnList[report.ID]...)
+	return report, attns, nil
 }
 
 // ReportFor returns a stored report for convenience in tests.
