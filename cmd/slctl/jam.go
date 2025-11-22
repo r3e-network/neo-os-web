@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -23,7 +24,7 @@ func handleJAM(ctx context.Context, client *apiClient, args []string) error {
 	case "package":
 		return handleJAMPackage(ctx, client, args[1:])
 	case "packages":
-		return handleJAMPackagesList(ctx, client)
+		return handleJAMPackagesList(ctx, client, args[1:])
 	case "process":
 		return handleJAMProcess(ctx, client)
 	case "report":
@@ -120,10 +121,34 @@ func handleJAMPackage(ctx context.Context, client *apiClient, args []string) err
 	return nil
 }
 
-func handleJAMPackagesList(ctx context.Context, client *apiClient) error {
-	data, err := client.request(ctx, "GET", "/jam/packages", nil)
+func handleJAMPackagesList(ctx context.Context, client *apiClient, args []string) error {
+	fs := flag.NewFlagSet("jam packages", flag.ContinueOnError)
+	status := fs.String("status", "", "filter by status (pending|applied|disputed)")
+	service := fs.String("service", "", "filter by service id")
+	limit := fs.Int("limit", 50, "max packages to return")
+	offset := fs.Int("offset", 0, "offset for pagination")
+	if err := fs.Parse(args); err != nil {
+		return usageError(err)
+	}
+	query := fmt.Sprintf("/jam/packages?limit=%d&offset=%d", *limit, *offset)
+	if strings.TrimSpace(*status) != "" {
+		query += "&status=" + url.QueryEscape(*status)
+	}
+	if strings.TrimSpace(*service) != "" {
+		query += "&service_id=" + url.QueryEscape(*service)
+	}
+	data, err := client.request(ctx, "GET", query, nil)
 	if err != nil {
 		return err
+	}
+	var envelope struct {
+		Items      []any `json:"items"`
+		NextOffset any   `json:"next_offset"`
+	}
+	if err := json.Unmarshal(data, &envelope); err == nil && len(envelope.Items) > 0 {
+		pretty, _ := json.MarshalIndent(envelope, "", "  ")
+		fmt.Println(string(pretty))
+		return nil
 	}
 	prettyPrint(data)
 	return nil

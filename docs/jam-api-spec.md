@@ -7,7 +7,7 @@ Scope: document the current JAM prototype endpoints, payloads, and expectations 
 - Auth: same bearer token model as the rest of the API; no extra scopes yet.
 - Stores: memory (default) or Postgres (`runtime.jam.store: postgres`, `runtime.jam.pg_dsn` or `DATABASE_URL`).
 
-## Endpoints
+## Endpoints (current prototype)
 
 ### Preimages
 - `PUT /jam/preimages/{hash}`
@@ -44,9 +44,12 @@ Scope: document the current JAM prototype endpoints, payloads, and expectations 
   - Server assigns `id`, `status=pending`, timestamps, and item IDs if absent.
   - Responses: `201 Created` with the stored package, or `400` on validation error.
 
-- `GET /jam/packages?limit=50`
-  - Lists recent packages (default limit 50). Unfiltered in the prototype; filters/pagination are planned.
-  - Response: `200 OK` with array of packages (envelope/pagination planned).
+- `GET /jam/packages?limit=50&offset=0&status=pending|applied|disputed&service_id=<id>`
+  - Lists recent packages. Supports `status`, `service_id`, `limit`, `offset`.
+  - Response: `200 OK` with either raw array (legacy mode) or envelope:
+    ```json
+    {"items": [...], "next_offset": 50}
+    ```
 
 - `GET /jam/packages/{id}`
   - Fetch a single package by ID.

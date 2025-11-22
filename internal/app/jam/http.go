@@ -190,18 +190,34 @@ func (h *httpHandler) packagesHandler(w http.ResponseWriter, r *http.Request) {
 		if !h.checkRate(w, r) {
 			return
 		}
-		limit := 50
+		filter := PackageFilter{
+			Status:    PackageStatus(r.URL.Query().Get("status")),
+			ServiceID: r.URL.Query().Get("service_id"),
+		}
 		if l := r.URL.Query().Get("limit"); l != "" {
 			if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-				limit = parsed
+				filter.Limit = parsed
 			}
 		}
-		pkgs, err := h.store.ListPackages(r.Context(), limit)
+		if o := r.URL.Query().Get("offset"); o != "" {
+			if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
+				filter.Offset = parsed
+			}
+		}
+		pkgs, err := h.store.ListPackages(r.Context(), filter)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, pkgs)
+		resp := map[string]any{
+			"items": pkgs,
+		}
+		if !h.cfg.LegacyListResponse {
+			resp["next_offset"] = filter.Offset + len(pkgs)
+			writeJSON(w, http.StatusOK, resp)
+		} else {
+			writeJSON(w, http.StatusOK, pkgs)
+		}
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

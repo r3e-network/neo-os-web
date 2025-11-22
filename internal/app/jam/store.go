@@ -9,12 +9,20 @@ import (
 type PackageStore interface {
 	EnqueuePackage(ctx context.Context, pkg WorkPackage) error
 	PendingCount(ctx context.Context) (int, error)
-	ListPackages(ctx context.Context, limit int) ([]WorkPackage, error)
+	ListPackages(ctx context.Context, filter PackageFilter) ([]WorkPackage, error)
 	NextPending(ctx context.Context) (WorkPackage, bool, error)
 	SaveReport(ctx context.Context, report WorkReport, attns []Attestation) error
 	UpdatePackageStatus(ctx context.Context, pkgID string, status PackageStatus) error
 	GetPackage(ctx context.Context, pkgID string) (WorkPackage, error)
 	GetReportByPackage(ctx context.Context, pkgID string) (WorkReport, []Attestation, error)
+}
+
+// PackageFilter controls list queries.
+type PackageFilter struct {
+	Status    PackageStatus
+	ServiceID string
+	Limit     int
+	Offset    int
 }
 
 // InMemoryStore is a simple, non-durable store for tests and prototyping.
@@ -92,15 +100,27 @@ func (s *InMemoryStore) GetPackage(_ context.Context, pkgID string) (WorkPackage
 	return pkg, nil
 }
 
-// ListPackages returns up to limit packages (unsorted).
-func (s *InMemoryStore) ListPackages(_ context.Context, limit int) ([]WorkPackage, error) {
+// ListPackages returns packages matching the filter (unsorted).
+func (s *InMemoryStore) ListPackages(_ context.Context, filter PackageFilter) ([]WorkPackage, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	limit := filter.Limit
 	if limit <= 0 || limit > len(s.pkgs) {
 		limit = len(s.pkgs)
 	}
 	out := make([]WorkPackage, 0, limit)
+	offset := filter.Offset
 	for _, pkg := range s.pkgs {
+		if filter.Status != "" && pkg.Status != filter.Status {
+			continue
+		}
+		if filter.ServiceID != "" && pkg.ServiceID != filter.ServiceID {
+			continue
+		}
+		if offset > 0 {
+			offset--
+			continue
+		}
 		out = append(out, pkg)
 		if len(out) >= limit {
 			break

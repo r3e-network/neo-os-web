@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/lib/pq"
+	"strings"
 )
 
 // PGStore implements PackageStore on PostgreSQL tables.
@@ -255,17 +257,35 @@ func (s *PGStore) GetReportByPackage(ctx context.Context, pkgID string) (WorkRep
 	return report, attns, nil
 }
 
-// ListPackages returns recent packages up to the provided limit.
-func (s *PGStore) ListPackages(ctx context.Context, limit int) ([]WorkPackage, error) {
+// ListPackages returns recent packages matching the filter.
+func (s *PGStore) ListPackages(ctx context.Context, filter PackageFilter) ([]WorkPackage, error) {
+	limit := filter.Limit
 	if limit <= 0 {
 		limit = 50
 	}
-	rows, err := s.DB.QueryContext(ctx, `
+	var args []any
+	clauses := []string{"1=1"}
+	if filter.Status != "" {
+		args = append(args, filter.Status)
+		clauses = append(clauses, fmt.Sprintf("status = $%d", len(args)))
+	}
+	if filter.ServiceID != "" {
+		args = append(args, filter.ServiceID)
+		clauses = append(clauses, fmt.Sprintf("service_id = $%d", len(args)))
+	}
+	args = append(args, limit)
+	args = append(args, filter.Offset)
+	limitIdx := len(args) - 1
+	offsetIdx := len(args)
+	query := fmt.Sprintf(`
 		SELECT id, service_id, created_by, nonce, expiry, signature, preimage_hashes, status, created_at
 		FROM jam_work_packages
+		WHERE %s
 		ORDER BY created_at DESC
-		LIMIT $1
-	`, limit)
+		LIMIT $%d OFFSET $%d
+	`, strings.Join(clauses, " AND "), limitIdx, offsetIdx)
+
+	rows, err := s.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -293,12 +313,12 @@ func (s *PGStore) ListPackages(ctx context.Context, limit int) ([]WorkPackage, e
 	for i, pkg := range pkgs {
 		ids[i] = pkg.ID
 	}
-	query := `
+	itemsQuery := `
 		SELECT package_id, id, kind, params_hash, preimage_hashes, max_fee, memo
 		FROM jam_work_items
 		WHERE package_id = ANY($1)
 	`
-	itemRows, err := s.DB.QueryContext(ctx, query, pq.Array(ids))
+	itemRows, err := s.DB.QueryContext(ctx, itemsQuery, pq.Array(ids))
 	if err != nil {
 		return nil, err
 	}

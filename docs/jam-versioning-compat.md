@@ -34,7 +34,7 @@ Purpose: define how JAM evolves without breaking clients, covering API versionin
 - `/system/status` should expose:
   - `jam.enabled`, `store`
   - `jam.legacy_list_response`
-  - (future) `jam.error_codes_enabled`, `jam.report_fields`
+  - `jam.rate_limit_per_min`, `jam.max_preimage_bytes`, `jam.max_pending_packages`
 - `slctl status` should render these to help operators know which behaviours are active.
 
 ## Implementation Steps
