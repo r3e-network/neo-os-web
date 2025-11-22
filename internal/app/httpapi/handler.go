@@ -1,19 +1,24 @@
 package httpapi
 
 import (
+	"context"
 	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	app "github.com/R3E-Network/service_layer/internal/app"
 	"github.com/R3E-Network/service_layer/internal/app/domain/oracle"
 	"github.com/R3E-Network/service_layer/internal/app/jam"
 	"github.com/R3E-Network/service_layer/internal/app/metrics"
+	"github.com/R3E-Network/service_layer/internal/platform/database"
+	"github.com/R3E-Network/service_layer/internal/platform/migrations"
 	"github.com/R3E-Network/service_layer/internal/version"
 )
 
@@ -35,20 +40,66 @@ func NewHandler(application *app.Application) http.Handler {
 	mux.HandleFunc("/accounts", h.accounts)
 	mux.HandleFunc("/accounts/", h.accountResources)
 
-	// Experimental JAM endpoints (prototype, in-memory backing).
-	jamStore := jam.NewInMemoryStore()
-	jamPreimages := jam.NewMemPreimageStore()
-	jamEngine := jam.Engine{
-		Preimages:   jamPreimages,
+	maybeMountJAM(mux)
+	return mux
+}
+
+func maybeMountJAM(mux *http.ServeMux) {
+	if !isEnabled(getenv("JAM_ENABLED")) {
+		return
+	}
+
+	storeChoice := strings.ToLower(getenv("JAM_STORE"))
+	var (
+		pkgStore  jam.PackageStore  = jam.NewInMemoryStore()
+		blobStore jam.PreimageStore = jam.NewMemPreimageStore()
+	)
+
+	if storeChoice == "postgres" {
+		dsn := getenv("JAM_PG_DSN")
+		if dsn == "" {
+			dsn = getenv("DATABASE_URL")
+		}
+		if dsn != "" {
+			db, err := database.Open(context.Background(), dsn)
+			if err != nil {
+				log.Printf("jam: postgres open failed, falling back to memory: %v", err)
+			} else {
+				if err := migrations.Apply(context.Background(), db); err != nil {
+					log.Printf("jam: migration failed, falling back to memory: %v", err)
+					db.Close()
+				} else {
+					pkgStore = jam.NewPGStore(db)
+					blobStore = jam.NewPGPreimageStore(db)
+				}
+			}
+		} else {
+			log.Printf("jam: JAM_STORE=postgres set but no JAM_PG_DSN or DATABASE_URL; using memory")
+		}
+	}
+
+	engine := jam.Engine{
+		Preimages:   blobStore,
 		Refiner:     jam.HashRefiner{},
 		Attestors:   []jam.Attestor{jam.StaticAttestor{WorkerID: "local", Weight: 1}},
 		Accumulator: jam.NoopAccumulator{},
 		Threshold:   1,
 	}
-	jamCoordinator := jam.Coordinator{Store: jamStore, Engine: jamEngine}
-	jamHandler := jam.NewHTTPHandler(jamStore, jamPreimages, jamCoordinator)
-	mux.Handle("/jam/", jamHandler)
-	return mux
+	coord := jam.Coordinator{Store: pkgStore, Engine: engine}
+	mux.Handle("/jam/", jam.NewHTTPHandler(pkgStore, blobStore, coord))
+}
+
+func isEnabled(val string) bool {
+	switch strings.ToLower(strings.TrimSpace(val)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+func getenv(key string) string {
+	return strings.TrimSpace(os.Getenv(key))
 }
 
 func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {

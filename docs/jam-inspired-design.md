@@ -70,6 +70,11 @@ Hashing: default SHA-256 over canonical JSON or protobuf; keep CBOR option open 
 - Implementations: in-memory and Postgres-backed stores in `internal/app/jam` (see `preimage_store.go`) plus `jam_preimages` table migration.
 - Prototype HTTP mux for JAM submission/processing lives in `internal/app/jam/http.go` (enqueue package, upload preimage, process next, fetch report).
 
+### Enabling the prototype HTTP API
+- Set `JAM_ENABLED=1` to mount `/jam/*` endpoints on the main HTTP server. By default they stay disabled.
+- Optional: `JAM_STORE=postgres` to back work packages/preimages with Postgres instead of memory. Supply `JAM_PG_DSN` or `DATABASE_URL` for the connection; migrations run automatically.
+- Endpoints: `PUT/GET /jam/preimages/{hash}`, `POST /jam/packages`, `POST /jam/process`, `GET /jam/packages/{id}`, `GET /jam/packages/{id}/report`.
+
 ### Compute Sandbox
 - Keep Wasm executor for compatibility; prototype a RISC-V sandbox (e.g., rvemu or wasmtime-riscv) for better continuation support and metering.
 - Enforce per-phase gas/time: `refine` (longer, e.g., seconds), `accumulate` (tens of ms), `on_transfer` (similar to accumulate).

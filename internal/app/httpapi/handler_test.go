@@ -3,6 +3,8 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,6 +21,7 @@ import (
 	domaindta "github.com/R3E-Network/service_layer/internal/app/domain/dta"
 	"github.com/R3E-Network/service_layer/internal/app/domain/function"
 	domainvrf "github.com/R3E-Network/service_layer/internal/app/domain/vrf"
+	"github.com/R3E-Network/service_layer/internal/app/jam"
 )
 
 const testAuthToken = "test-token"
@@ -35,6 +38,95 @@ const (
 	testWalletDTA         = "0x4444444444444444444444444444444444444444"
 	testWalletFace        = "0x5555555555555555555555555555555555555555"
 )
+
+func TestJAMEndpointsEnabled(t *testing.T) {
+	t.Setenv("JAM_ENABLED", "1")
+
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+
+	handler := wrapWithAuth(NewHandler(application), []string{testAuthToken}, nil)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	// Upload preimage
+	content := []byte("hello-jam")
+	sum := sha256.Sum256(content)
+	hash := hex.EncodeToString(sum[:])
+	req, _ := http.NewRequest(http.MethodPut, server.URL+"/jam/preimages/"+hash, bytes.NewReader(content))
+	req.Header.Set("Authorization", "Bearer "+testAuthToken)
+	req.Header.Set("Content-Type", "text/plain")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("preimage put: %v", err)
+	}
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("preimage status %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// Submit package
+	body := marshal(map[string]any{
+		"service_id": "svc-1",
+		"items": []map[string]any{
+			{"kind": "demo", "params_hash": "abc"},
+		},
+	})
+	req, _ = http.NewRequest(http.MethodPost, server.URL+"/jam/packages", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+testAuthToken)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("package post: %v", err)
+	}
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("package status %d", resp.StatusCode)
+	}
+	var pkg jam.WorkPackage
+	if err := json.NewDecoder(resp.Body).Decode(&pkg); err != nil {
+		t.Fatalf("decode package: %v", err)
+	}
+	resp.Body.Close()
+
+	// Process next
+	req, _ = http.NewRequest(http.MethodPost, server.URL+"/jam/process", nil)
+	req.Header.Set("Authorization", "Bearer "+testAuthToken)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("process: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("process status %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// Fetch report
+	req, _ = http.NewRequest(http.MethodGet, server.URL+"/jam/packages/"+pkg.ID+"/report", nil)
+	req.Header.Set("Authorization", "Bearer "+testAuthToken)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("get report: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("report status %d", resp.StatusCode)
+	}
+	var payload struct {
+		Report       jam.WorkReport    `json:"report"`
+		Attestations []jam.Attestation `json:"attestations"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode report: %v", err)
+	}
+	resp.Body.Close()
+	if payload.Report.PackageID != pkg.ID {
+		t.Fatalf("report package mismatch")
+	}
+	if len(payload.Attestations) != 1 {
+		t.Fatalf("expected 1 attestation, got %d", len(payload.Attestations))
+	}
+}
 
 func TestHandlerLifecycle(t *testing.T) {
 	application, err := app.New(app.Stores{}, nil)
