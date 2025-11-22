@@ -4,15 +4,17 @@ import "strings"
 
 // Config governs whether the JAM HTTP API is mounted and which stores to use.
 type Config struct {
-	Enabled            bool
-	Store              string // "memory" (default) or "postgres"
-	PGDSN              string
-	AuthRequired       bool
-	AllowedTokens      []string
-	RateLimitPerMinute int
-	MaxPreimageBytes   int64
-	MaxPendingPackages int
-	LegacyListResponse bool
+	Enabled             bool
+	Store               string // "memory" (default) or "postgres"
+	PGDSN               string
+	AuthRequired        bool
+	AllowedTokens       []string
+	RateLimitPerMinute  int
+	MaxPreimageBytes    int64
+	MaxPendingPackages  int
+	LegacyListResponse  bool
+	AccumulatorsEnabled bool
+	AccumulatorHash     string
 }
 
 // Normalize fills defaults and trims whitespace.
@@ -31,6 +33,10 @@ func (c *Config) Normalize() {
 	}
 	if c.MaxPendingPackages == 0 {
 		c.MaxPendingPackages = 100
+	}
+	c.AccumulatorHash = strings.TrimSpace(strings.ToLower(c.AccumulatorHash))
+	if c.AccumulatorHash == "" {
+		c.AccumulatorHash = "blake3-256"
 	}
 }
 

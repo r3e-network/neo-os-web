@@ -121,31 +121,33 @@ func (s *Stores) applyDefaults(mem *memory.Store) {
 // sourced directly from OS variables. It allows callers to supply explicit
 // configuration when embedding the application or running tests.
 type RuntimeConfig struct {
-	TEEMode             string
-	RandomSigningKey    string
-	CREHTTPRunner       bool
-	PriceFeedFetchURL   string
-	PriceFeedFetchKey   string
-	GasBankResolverURL  string
-	GasBankResolverKey  string
-	GasBankPollInterval string
-	GasBankMaxAttempts  int
-	OracleTTLSeconds    int
-	OracleMaxAttempts   int
-	OracleBackoff       string
-	OracleDLQEnabled    bool
-	OracleRunnerTokens  string
-	DataFeedMinSigners  int
-	DataFeedAggregation string
-	JAMEnabled          bool
-	JAMStore            string
-	JAMPGDSN            string
-	JAMAuthRequired     bool
-	JAMAllowedTokens    []string
-	JAMRateLimitPerMin  int
-	JAMMaxPreimageBytes int64
-	JAMMaxPendingPkgs   int
-	JAMLegacyList       bool
+	TEEMode                string
+	RandomSigningKey       string
+	CREHTTPRunner          bool
+	PriceFeedFetchURL      string
+	PriceFeedFetchKey      string
+	GasBankResolverURL     string
+	GasBankResolverKey     string
+	GasBankPollInterval    string
+	GasBankMaxAttempts     int
+	OracleTTLSeconds       int
+	OracleMaxAttempts      int
+	OracleBackoff          string
+	OracleDLQEnabled       bool
+	OracleRunnerTokens     string
+	DataFeedMinSigners     int
+	DataFeedAggregation    string
+	JAMEnabled             bool
+	JAMStore               string
+	JAMPGDSN               string
+	JAMAuthRequired        bool
+	JAMAllowedTokens       []string
+	JAMRateLimitPerMin     int
+	JAMMaxPreimageBytes    int64
+	JAMMaxPendingPkgs      int
+	JAMLegacyList          bool
+	JAMAccumulatorsEnabled bool
+	JAMAccumulatorHash     string
 }
 
 // Option customises the application runtime.

@@ -54,13 +54,15 @@ type DataFeedDefaults struct {
 
 // JAMConfig controls the experimental JAM HTTP API.
 type JAMConfig struct {
-	Enabled            bool     `json:"enabled" env:"JAM_ENABLED"`
-	Store              string   `json:"store" env:"JAM_STORE"`   // memory (default) or postgres
-	PGDSN              string   `json:"pg_dsn" env:"JAM_PG_DSN"` // optional; falls back to DATABASE_DSN
-	AuthRequired       bool     `json:"auth_required" env:"JAM_AUTH_REQUIRED"`
-	AllowedTokens      []string `json:"allowed_tokens" env:"JAM_ALLOWED_TOKENS"`
-	RateLimitPerMinute int      `json:"rate_limit_per_minute" env:"JAM_RATE_LIMIT_PER_MINUTE"`
-	MaxPreimageBytes   int64    `json:"max_preimage_bytes" env:"JAM_MAX_PREIMAGE_BYTES"`
-	MaxPendingPackages int      `json:"max_pending_packages" env:"JAM_MAX_PENDING_PACKAGES"`
-	LegacyListResponse bool     `json:"legacy_list_response" env:"JAM_LEGACY_LIST_RESPONSE"`
+	Enabled             bool     `json:"enabled" env:"JAM_ENABLED"`
+	Store               string   `json:"store" env:"JAM_STORE"`   // memory (default) or postgres
+	PGDSN               string   `json:"pg_dsn" env:"JAM_PG_DSN"` // optional; falls back to DATABASE_DSN
+	AuthRequired        bool     `json:"auth_required" env:"JAM_AUTH_REQUIRED"`
+	AllowedTokens       []string `json:"allowed_tokens" env:"JAM_ALLOWED_TOKENS"`
+	RateLimitPerMinute  int      `json:"rate_limit_per_minute" env:"JAM_RATE_LIMIT_PER_MINUTE"`
+	MaxPreimageBytes    int64    `json:"max_preimage_bytes" env:"JAM_MAX_PREIMAGE_BYTES"`
+	MaxPendingPackages  int      `json:"max_pending_packages" env:"JAM_MAX_PENDING_PACKAGES"`
+	LegacyListResponse  bool     `json:"legacy_list_response" env:"JAM_LEGACY_LIST_RESPONSE"`
+	AccumulatorsEnabled bool     `json:"accumulators_enabled" env:"JAM_ACCUMULATORS_ENABLED"`
+	AccumulatorHash     string   `json:"accumulator_hash" env:"JAM_ACCUMULATOR_HASH"`
 }

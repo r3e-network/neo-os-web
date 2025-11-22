@@ -172,9 +172,17 @@ func NewApplication(options ...Option) (*Application, error) {
 	}
 
 	jamCfg := jam.Config{
-		Enabled: cfg.Runtime.JAM.Enabled,
-		Store:   cfg.Runtime.JAM.Store,
-		PGDSN:   cfg.Runtime.JAM.PGDSN,
+		Enabled:             cfg.Runtime.JAM.Enabled,
+		Store:               cfg.Runtime.JAM.Store,
+		PGDSN:               cfg.Runtime.JAM.PGDSN,
+		AuthRequired:        cfg.Runtime.JAM.AuthRequired,
+		AllowedTokens:       cfg.Runtime.JAM.AllowedTokens,
+		RateLimitPerMinute:  cfg.Runtime.JAM.RateLimitPerMinute,
+		MaxPreimageBytes:    cfg.Runtime.JAM.MaxPreimageBytes,
+		MaxPendingPackages:  cfg.Runtime.JAM.MaxPendingPackages,
+		LegacyListResponse:  cfg.Runtime.JAM.LegacyListResponse,
+		AccumulatorsEnabled: cfg.Runtime.JAM.AccumulatorsEnabled,
+		AccumulatorHash:     cfg.Runtime.JAM.AccumulatorHash,
 	}
 	jamCfg.Normalize()
 	if jamCfg.Enabled {

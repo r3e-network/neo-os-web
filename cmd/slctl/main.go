@@ -346,6 +346,8 @@ func handleStatus(ctx context.Context, client *apiClient) error {
 		pendingMax, _ := toInt(payload.JAM["max_pending_packages"])
 		authReq, _ := payload.JAM["auth_required"].(bool)
 		legacyList, _ := payload.JAM["legacy_list_response"].(bool)
+		accumEnabled, _ := payload.JAM["accumulators_enabled"].(bool)
+		accumHash, _ := payload.JAM["accumulator_hash"].(string)
 		fmt.Printf("JAM: enabled=%t", enabled)
 		if store != "" {
 			fmt.Printf(" store=%s", store)
@@ -364,6 +366,12 @@ func handleStatus(ctx context.Context, client *apiClient) error {
 		}
 		if legacyList {
 			fmt.Printf(" legacy_list_response=%t", legacyList)
+		}
+		if accumEnabled {
+			fmt.Printf(" accumulators_enabled=%t", accumEnabled)
+		}
+		if accumHash != "" {
+			fmt.Printf(" accumulator_hash=%s", accumHash)
 		}
 		fmt.Println()
 	}
