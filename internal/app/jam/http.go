@@ -80,8 +80,43 @@ func (h *httpHandler) preimagesHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusCreated, meta)
+	case http.MethodHead:
+		if !h.checkRate(w, r) {
+			return
+		}
+		meta, err := h.preimages.Stat(r.Context(), hash)
+		if err != nil {
+			status := http.StatusInternalServerError
+			if err == ErrNotFound {
+				status = http.StatusNotFound
+			}
+			writeError(w, status, err)
+			return
+		}
+		w.Header().Set("Content-Type", meta.MediaType)
+		if meta.Size > 0 {
+			w.Header().Set("Content-Length", strconv.FormatInt(meta.Size, 10))
+		}
+		w.Header().Set("X-Preimage-Hash", meta.Hash)
+		w.Header().Set("X-Preimage-Size", strconv.FormatInt(meta.Size, 10))
+		w.Header().Set("X-Preimage-Media-Type", meta.MediaType)
+		w.WriteHeader(http.StatusOK)
 	case http.MethodGet:
 		if !h.checkRate(w, r) {
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, "/meta") {
+			hash = strings.TrimSuffix(hash, "/meta")
+			meta, err := h.preimages.Stat(r.Context(), hash)
+			if err != nil {
+				status := http.StatusInternalServerError
+				if err == ErrNotFound {
+					status = http.StatusNotFound
+				}
+				writeError(w, status, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, meta)
 			return
 		}
 		meta, err := h.preimages.Stat(r.Context(), hash)
@@ -106,27 +141,6 @@ func (h *httpHandler) preimagesHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", meta.MediaType)
 		w.WriteHeader(http.StatusOK)
 		_, _ = io.Copy(w, rc)
-	case http.MethodHead:
-		if !h.checkRate(w, r) {
-			return
-		}
-		meta, err := h.preimages.Stat(r.Context(), hash)
-		if err != nil {
-			status := http.StatusInternalServerError
-			if err == ErrNotFound {
-				status = http.StatusNotFound
-			}
-			writeError(w, status, err)
-			return
-		}
-		w.Header().Set("Content-Type", meta.MediaType)
-		if meta.Size > 0 {
-			w.Header().Set("Content-Length", strconv.FormatInt(meta.Size, 10))
-		}
-		w.Header().Set("X-Preimage-Hash", meta.Hash)
-		w.Header().Set("X-Preimage-Size", strconv.FormatInt(meta.Size, 10))
-		w.Header().Set("X-Preimage-Media-Type", meta.MediaType)
-		w.WriteHeader(http.StatusOK)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

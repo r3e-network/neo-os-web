@@ -15,6 +15,8 @@ Scope: document the current JAM prototype endpoints, payloads, and expectations 
   - Headers: `Content-Type` optional (defaults to `application/octet-stream`).
   - Hash must be sha256 of the body; size enforced client-side for now.
   - Responses: `201 Created` with JSON metadata `{hash,size,media_type,created_at,...}` or `400` on hash mismatch.
+- `GET /jam/preimages/{hash}/meta`
+  - Returns JSON metadata (hash, size, media type, created_at).
 
 - `HEAD /jam/preimages/{hash}`
   - Returns headers: `X-Preimage-Hash`, `X-Preimage-Size`, `X-Preimage-Media-Type`; `200` if exists, `404` if missing.
