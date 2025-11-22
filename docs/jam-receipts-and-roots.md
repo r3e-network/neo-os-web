@@ -16,6 +16,7 @@ Accumulator roots track the head of each service’s chain and can be listed via
 ## API
 - `GET /jam/status?service_id=<id>`: returns `accumulator_root` for the service; without service param, `accumulator_roots` (all) are returned when enabled.
 - `/system/status`: when accumulators are enabled, includes `jam.accumulator_roots` alongside config values.
+- Fields on `/system/status` under `jam`: `accumulators_enabled`, `accumulator_hash`, `accumulator_roots` (array of `{service_id, seq, root, updated_at}`).
 - `GET /jam/receipts/{hash}`: fetch a specific receipt (auth + rate limit).
 - `GET /jam/receipts?service_id=&limit=&offset=`: list receipts, optionally filtered by service; returns `items` and `next_offset`.
 - Package/report endpoints: `include_receipt=true` returns receipts without mutating the accumulator.
