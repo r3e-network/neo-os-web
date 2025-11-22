@@ -291,7 +291,24 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 }
 
 func writeError(w http.ResponseWriter, status int, err error) {
-	writeJSON(w, status, map[string]string{"error": err.Error()})
+	code := "jam_internal"
+	switch status {
+	case http.StatusBadRequest:
+		code = "jam_bad_request"
+	case http.StatusUnauthorized:
+		code = "jam_auth_missing"
+	case http.StatusForbidden:
+		code = "jam_auth_forbidden"
+	case http.StatusNotFound:
+		code = "jam_not_found"
+	case http.StatusConflict:
+		code = "jam_pending_limit"
+	case http.StatusRequestEntityTooLarge:
+		code = "jam_preimage_too_large"
+	case http.StatusTooManyRequests:
+		code = "jam_rate_limit"
+	}
+	writeJSON(w, status, map[string]string{"error": err.Error(), "code": code})
 }
 
 // authorize enforces JAM-specific auth if configured.

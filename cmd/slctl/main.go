@@ -181,7 +181,19 @@ func (c *apiClient) requestRaw(ctx context.Context, method, path string, body []
 		return nil, resp.Header, err
 	}
 	if resp.StatusCode >= 300 {
-		return nil, resp.Header, fmt.Errorf("%s %s: %s (status %d)", method, path, strings.TrimSpace(string(data)), resp.StatusCode)
+		msg := strings.TrimSpace(string(data))
+		if len(msg) > 0 {
+			var parsed map[string]any
+			if err := json.Unmarshal(data, &parsed); err == nil {
+				if errStr, ok := parsed["error"].(string); ok && errStr != "" {
+					msg = errStr
+				}
+				if code, ok := parsed["code"].(string); ok && code != "" {
+					msg = fmt.Sprintf("%s (%s)", msg, code)
+				}
+			}
+		}
+		return nil, resp.Header, fmt.Errorf("%s %s: %s (status %d)", method, path, msg, resp.StatusCode)
 	}
 	return data, resp.Header, nil
 }
