@@ -282,7 +282,7 @@ func (s *PGStore) ListPackages(ctx context.Context, limit int) ([]WorkPackage, e
 	if len(pkgs) == 0 {
 		return pkgs, nil
 	}
-	ids := make([]any, len(pkgs))
+	ids := make([]string, len(pkgs))
 	for i, pkg := range pkgs {
 		ids[i] = pkg.ID
 	}
