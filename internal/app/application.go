@@ -140,6 +140,12 @@ type RuntimeConfig struct {
 	JAMEnabled          bool
 	JAMStore            string
 	JAMPGDSN            string
+	JAMAuthRequired     bool
+	JAMAllowedTokens    []string
+	JAMRateLimitPerMin  int
+	JAMMaxPreimageBytes int64
+	JAMMaxPendingPkgs   int
+	JAMLegacyList       bool
 }
 
 // Option customises the application runtime.

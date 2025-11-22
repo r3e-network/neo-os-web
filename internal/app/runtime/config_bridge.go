@@ -29,5 +29,11 @@ func AppRuntimeConfig(cfg *config.Config) app.RuntimeConfig {
 		JAMEnabled:          cfg.Runtime.JAM.Enabled,
 		JAMStore:            cfg.Runtime.JAM.Store,
 		JAMPGDSN:            cfg.Runtime.JAM.PGDSN,
+		JAMAuthRequired:     cfg.Runtime.JAM.AuthRequired,
+		JAMAllowedTokens:    cfg.Runtime.JAM.AllowedTokens,
+		JAMRateLimitPerMin:  cfg.Runtime.JAM.RateLimitPerMinute,
+		JAMMaxPreimageBytes: cfg.Runtime.JAM.MaxPreimageBytes,
+		JAMMaxPendingPkgs:   cfg.Runtime.JAM.MaxPendingPackages,
+		JAMLegacyList:       cfg.Runtime.JAM.LegacyListResponse,
 	}
 }

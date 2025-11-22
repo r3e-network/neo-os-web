@@ -8,6 +8,7 @@ import (
 // PackageStore defines persistence for work packages and reports.
 type PackageStore interface {
 	EnqueuePackage(ctx context.Context, pkg WorkPackage) error
+	PendingCount(ctx context.Context) (int, error)
 	ListPackages(ctx context.Context, limit int) ([]WorkPackage, error)
 	NextPending(ctx context.Context) (WorkPackage, bool, error)
 	SaveReport(ctx context.Context, report WorkReport, attns []Attestation) error
@@ -145,4 +146,17 @@ func (s *InMemoryStore) AttestationsFor(reportID string) []Attestation {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return append([]Attestation(nil), s.attnList[reportID]...)
+}
+
+// PendingCount returns number of pending packages.
+func (s *InMemoryStore) PendingCount(_ context.Context) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	count := 0
+	for _, pkg := range s.pkgs {
+		if pkg.Status == "" || pkg.Status == PackageStatusPending {
+			count++
+		}
+	}
+	return count, nil
 }

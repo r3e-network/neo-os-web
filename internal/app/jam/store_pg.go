@@ -170,6 +170,13 @@ func (s *PGStore) UpdatePackageStatus(ctx context.Context, pkgID string, status 
 	return err
 }
 
+// PendingCount returns the count of pending packages.
+func (s *PGStore) PendingCount(ctx context.Context) (int, error) {
+	var count int
+	err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM jam_work_packages WHERE status = $1`, PackageStatusPending).Scan(&count)
+	return count, err
+}
+
 // GetPackage fetches a package and its items.
 func (s *PGStore) GetPackage(ctx context.Context, pkgID string) (WorkPackage, error) {
 	var pkg WorkPackage

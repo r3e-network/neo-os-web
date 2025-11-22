@@ -24,14 +24,15 @@ import (
 
 // handler bundles HTTP endpoints for the application services.
 type handler struct {
-	app    *app.Application
-	jamCfg jam.Config
+	app     *app.Application
+	jamCfg  jam.Config
+	jamAuth []string
 }
 
 // NewHandler returns a mux exposing the core REST API.
-func NewHandler(application *app.Application, jamCfg jam.Config) http.Handler {
+func NewHandler(application *app.Application, jamCfg jam.Config, tokens []string) http.Handler {
 	jamCfg.Normalize()
-	h := &handler{app: application, jamCfg: jamCfg}
+	h := &handler{app: application, jamCfg: jamCfg, jamAuth: tokens}
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", metrics.Handler())
 	mux.HandleFunc("/healthz", h.health)
@@ -80,6 +81,11 @@ func (h *handler) maybeMountJAM(mux *http.ServeMux) {
 		}
 	}
 
+	allowedTokens := h.jamCfg.AllowedTokens
+	if len(allowedTokens) == 0 {
+		allowedTokens = h.jamAuth
+	}
+
 	engine := jam.Engine{
 		Preimages:   blobStore,
 		Refiner:     jam.HashRefiner{},
@@ -88,7 +94,7 @@ func (h *handler) maybeMountJAM(mux *http.ServeMux) {
 		Threshold:   1,
 	}
 	coord := jam.Coordinator{Store: pkgStore, Engine: engine}
-	mux.Handle("/jam/", jam.NewHTTPHandler(pkgStore, blobStore, coord))
+	mux.Handle("/jam/", jam.NewHTTPHandler(pkgStore, blobStore, coord, h.jamCfg, allowedTokens))
 }
 
 func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
@@ -222,8 +228,12 @@ func (h *handler) systemStatus(w http.ResponseWriter, r *http.Request) {
 		},
 		"services": h.app.Descriptors(),
 		"jam": map[string]any{
-			"enabled": h.jamCfg.Enabled,
-			"store":   h.jamCfg.Store,
+			"enabled":              h.jamCfg.Enabled,
+			"store":                h.jamCfg.Store,
+			"rate_limit_per_min":   h.jamCfg.RateLimitPerMinute,
+			"max_preimage_bytes":   h.jamCfg.MaxPreimageBytes,
+			"max_pending_packages": h.jamCfg.MaxPendingPackages,
+			"auth_required":        h.jamCfg.AuthRequired,
 		},
 	})
 }

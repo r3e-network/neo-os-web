@@ -3,21 +3,31 @@ package jam
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 // NewHTTPHandler returns a ServeMux exposing minimal JAM endpoints.
-func NewHTTPHandler(store PackageStore, preimages PreimageStore, coord Coordinator) http.Handler {
+func NewHTTPHandler(store PackageStore, preimages PreimageStore, coord Coordinator, cfg Config, allowedTokens []string) http.Handler {
+	cfg.Normalize()
 	h := &httpHandler{
-		store:     store,
-		preimages: preimages,
-		coord:     coord,
+		store:        store,
+		preimages:    preimages,
+		coord:        coord,
+		cfg:          cfg,
+		allowed:      make(map[string]struct{}),
+		rateLimiter:  newTokenLimiter(cfg.RateLimitPerMinute),
+		pendingLimit: cfg.MaxPendingPackages,
+	}
+	for _, t := range allowedTokens {
+		h.allowed[t] = struct{}{}
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/jam/preimages/", h.preimagesHandler)
@@ -28,12 +38,19 @@ func NewHTTPHandler(store PackageStore, preimages PreimageStore, coord Coordinat
 }
 
 type httpHandler struct {
-	store     PackageStore
-	preimages PreimageStore
-	coord     Coordinator
+	store        PackageStore
+	preimages    PreimageStore
+	coord        Coordinator
+	cfg          Config
+	allowed      map[string]struct{}
+	rateLimiter  *tokenLimiter
+	pendingLimit int
 }
 
 func (h *httpHandler) preimagesHandler(w http.ResponseWriter, r *http.Request) {
+	if !h.authorize(w, r) {
+		return
+	}
 	hash := strings.TrimPrefix(r.URL.Path, "/jam/preimages/")
 	if hash == "" {
 		writeError(w, http.StatusBadRequest, Err("missing preimage hash"))
@@ -41,9 +58,16 @@ func (h *httpHandler) preimagesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.Method {
 	case http.MethodPut:
+		if !h.checkRate(w, r) {
+			return
+		}
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		if h.cfg.MaxPreimageBytes > 0 && int64(len(data)) > h.cfg.MaxPreimageBytes {
+			writeError(w, http.StatusRequestEntityTooLarge, errors.New("preimage too large"))
 			return
 		}
 		mediaType := r.Header.Get("Content-Type")
@@ -57,6 +81,9 @@ func (h *httpHandler) preimagesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, http.StatusCreated, meta)
 	case http.MethodGet:
+		if !h.checkRate(w, r) {
+			return
+		}
 		meta, err := h.preimages.Stat(r.Context(), hash)
 		if err != nil {
 			status := http.StatusInternalServerError
@@ -80,6 +107,9 @@ func (h *httpHandler) preimagesHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = io.Copy(w, rc)
 	case http.MethodHead:
+		if !h.checkRate(w, r) {
+			return
+		}
 		meta, err := h.preimages.Stat(r.Context(), hash)
 		if err != nil {
 			status := http.StatusInternalServerError
@@ -103,8 +133,14 @@ func (h *httpHandler) preimagesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *httpHandler) packagesHandler(w http.ResponseWriter, r *http.Request) {
+	if !h.authorize(w, r) {
+		return
+	}
 	switch r.Method {
 	case http.MethodPost:
+		if !h.checkRate(w, r) {
+			return
+		}
 		var pkg WorkPackage
 		if err := json.NewDecoder(r.Body).Decode(&pkg); err != nil {
 			writeError(w, http.StatusBadRequest, err)
@@ -125,12 +161,21 @@ func (h *httpHandler) packagesHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			pkg.Items[i].PackageID = pkg.ID
 		}
+		if h.pendingLimit > 0 {
+			if count, err := h.store.PendingCount(r.Context()); err == nil && count >= h.pendingLimit {
+				writeError(w, http.StatusConflict, errors.New("pending package limit reached"))
+				return
+			}
+		}
 		if err := h.store.EnqueuePackage(r.Context(), pkg); err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, pkg)
 	case http.MethodGet:
+		if !h.checkRate(w, r) {
+			return
+		}
 		limit := 50
 		if l := r.URL.Query().Get("limit"); l != "" {
 			if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
@@ -149,6 +194,12 @@ func (h *httpHandler) packagesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *httpHandler) packageResource(w http.ResponseWriter, r *http.Request) {
+	if !h.authorize(w, r) {
+		return
+	}
+	if !h.checkRate(w, r) {
+		return
+	}
 	trimmed := strings.TrimPrefix(r.URL.Path, "/jam/packages/")
 	parts := strings.Split(trimmed, "/")
 	if len(parts) == 0 || parts[0] == "" {
@@ -196,6 +247,12 @@ func (h *httpHandler) packageResource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *httpHandler) processHandler(w http.ResponseWriter, r *http.Request) {
+	if !h.authorize(w, r) {
+		return
+	}
+	if !h.checkRate(w, r) {
+		return
+	}
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -221,4 +278,97 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 
 func writeError(w http.ResponseWriter, status int, err error) {
 	writeJSON(w, status, map[string]string{"error": err.Error()})
+}
+
+// authorize enforces JAM-specific auth if configured.
+func (h *httpHandler) authorize(w http.ResponseWriter, r *http.Request) bool {
+	if !h.cfg.AuthRequired {
+		return true
+	}
+	token := bearerToken(r.Header.Get("Authorization"))
+	if token == "" {
+		writeError(w, http.StatusUnauthorized, errors.New("missing bearer token"))
+		return false
+	}
+	if len(h.allowed) > 0 {
+		if _, ok := h.allowed[token]; !ok {
+			writeError(w, http.StatusForbidden, errors.New("token not allowed for JAM"))
+			return false
+		}
+	}
+	return true
+}
+
+// checkRate enforces per-token rate limiting when configured.
+func (h *httpHandler) checkRate(w http.ResponseWriter, r *http.Request) bool {
+	if h.rateLimiter == nil {
+		return true
+	}
+	token := bearerToken(r.Header.Get("Authorization"))
+	if token == "" {
+		token = r.RemoteAddr
+	}
+	allowed, retry := h.rateLimiter.Allow(token)
+	if !allowed {
+		if retry > 0 {
+			w.Header().Set("Retry-After", strconv.Itoa(int(retry.Seconds())))
+		}
+		writeError(w, http.StatusTooManyRequests, errors.New("rate limit exceeded"))
+		return false
+	}
+	return true
+}
+
+func bearerToken(header string) string {
+	if header == "" {
+		return ""
+	}
+	parts := strings.Fields(header)
+	if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+		return parts[1]
+	}
+	return ""
+}
+
+type tokenLimiter struct {
+	limit   int
+	mu      sync.Mutex
+	buckets map[string]bucket
+}
+
+type bucket struct {
+	count int
+	start time.Time
+}
+
+func newTokenLimiter(limit int) *tokenLimiter {
+	if limit <= 0 {
+		return nil
+	}
+	return &tokenLimiter{limit: limit, buckets: make(map[string]bucket)}
+}
+
+// Allow returns whether a token may proceed and the retry-after duration if limited.
+func (t *tokenLimiter) Allow(key string) (bool, time.Duration) {
+	if t == nil {
+		return true, 0
+	}
+	now := time.Now()
+	window := now.Truncate(time.Minute)
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	b := t.buckets[key]
+	if b.start.Before(window) {
+		b = bucket{start: window, count: 0}
+	}
+	if b.count >= t.limit {
+		retry := b.start.Add(time.Minute).Sub(now)
+		t.buckets[key] = b
+		return false, retry
+	}
+	b.count++
+	t.buckets[key] = b
+	return true, 0
 }

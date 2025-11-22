@@ -51,7 +51,7 @@ func TestHTTPHandlerEndToEnd(t *testing.T) {
 		Threshold:   1,
 	}
 	coord := Coordinator{Store: store, Engine: engine}
-	handler := NewHTTPHandler(store, preimages, coord)
+	handler := NewHTTPHandler(store, preimages, coord, Config{Enabled: true, AuthRequired: false}, nil)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 

@@ -45,7 +45,7 @@ func TestJAMEndpointsEnabled(t *testing.T) {
 		t.Fatalf("new application: %v", err)
 	}
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{Enabled: true}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{Enabled: true}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -137,7 +137,7 @@ func TestHandlerLifecycle(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 
 	body := marshal(map[string]any{"owner": "alice"})
 	req := authedRequest(http.MethodPost, "/accounts", body)
@@ -634,7 +634,7 @@ func TestHandlerLifecycle(t *testing.T) {
 
 	// Oracle runner auth + retry path
 	application.OracleRunnerTokens = []string{"runner-secret"}
-	handler = wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler = wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts", marshal(map[string]any{"owner": "runner-auth"})))
 	assertStatus(t, resp, http.StatusCreated)
@@ -687,7 +687,7 @@ func TestHandlerLifecycle(t *testing.T) {
 	}
 
 	// Workspace wallet + DTA flow
-	handler = wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler = wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts", marshal(map[string]any{"owner": "dta-owner"})))
 	if resp.Code != http.StatusCreated {
@@ -751,7 +751,7 @@ func TestSystemDescriptors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
-	handler := NewHandler(application, jam.Config{})
+	handler := NewHandler(application, jam.Config{}, []string{})
 
 	req := httptest.NewRequest(http.MethodGet, "/system/descriptors", nil)
 	resp := httptest.NewRecorder()
@@ -779,7 +779,7 @@ func TestWorkspaceWallets(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 
 	acctBody := marshal(map[string]any{"owner": "wallet-owner"})
 	resp := httptest.NewRecorder()
@@ -842,7 +842,7 @@ func TestCREPlaybooksAndRunsHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	accountID := createAccount(t, handler, "cre-owner")
 
 	execResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/cre/executors", map[string]any{
@@ -900,7 +900,7 @@ func TestDataFeedsWalletGatedHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	accountID := createAccount(t, handler, "datafeeds-owner")
 
 	// register wallet for signer_set
@@ -959,7 +959,7 @@ func TestVRFWalletGatedHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	accountID := createAccount(t, handler, "vrf-owner")
 
 	// register wallet required for keys
@@ -1010,7 +1010,7 @@ func TestDataLinkChannelAndDeliveryHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	accountID := createAccount(t, handler, "datalink-owner")
 
 	assertStatus(t, doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/workspace-wallets", map[string]any{
@@ -1056,7 +1056,7 @@ func TestCCIPLaneAndMessageHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	accountID := createAccount(t, handler, "ccip-owner")
 
 	assertStatus(t, doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/workspace-wallets", map[string]any{
@@ -1109,7 +1109,7 @@ func TestDataStreamsHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	accountID := createAccount(t, handler, "streams-owner")
 
 	streamResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/datastreams", map[string]any{
@@ -1145,7 +1145,7 @@ func TestConfidentialComputeHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	accountID := createAccount(t, handler, "conf-owner")
 
 	enclaveResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/confcompute/enclaves", map[string]any{
@@ -1186,7 +1186,7 @@ func TestDTAWalletGatedHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 	accountID := createAccount(t, handler, "dta-owner-http")
 
 	assertStatus(t, doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/workspace-wallets", map[string]any{
@@ -1231,7 +1231,7 @@ func TestCCIPLanesRequireRegisteredSigner(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 
 	// Create account
 	acctBody := marshal(map[string]any{"owner": "lane-owner"})
@@ -1284,7 +1284,7 @@ func TestHandlerAuthRequired(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/accounts", nil)
 	resp := httptest.NewRecorder()
@@ -1304,7 +1304,7 @@ func TestHandler_PreventCrossAccountExecution(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 
 	createAccount := func(owner string) string {
 		reqBody := marshal(map[string]any{"owner": owner})
@@ -1353,7 +1353,7 @@ func TestIntegration_AutomationExecutesFunction(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}), []string{testAuthToken}, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, []string{testAuthToken}), []string{testAuthToken}, nil)
 
 	accountID := createAccount(t, handler, "integration-owner")
 

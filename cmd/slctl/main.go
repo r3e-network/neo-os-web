@@ -264,6 +264,30 @@ func splitList(input string) []string {
 	return out
 }
 
+func toInt(v any) (int, bool) {
+	switch val := v.(type) {
+	case float64:
+		return int(val), true
+	case int:
+		return val, true
+	case int64:
+		return int(val), true
+	}
+	return 0, false
+}
+
+func toInt64(v any) (int64, bool) {
+	switch val := v.(type) {
+	case float64:
+		return int64(val), true
+	case int:
+		return int64(val), true
+	case int64:
+		return val, true
+	}
+	return 0, false
+}
+
 // ---------------------------------------------------------------------
 // Services (introspection)
 
@@ -305,9 +329,25 @@ func handleStatus(ctx context.Context, client *apiClient) error {
 	if len(payload.JAM) > 0 {
 		enabled, _ := payload.JAM["enabled"].(bool)
 		store, _ := payload.JAM["store"].(string)
+		rate, _ := toInt(payload.JAM["rate_limit_per_min"])
+		preimageMax, _ := toInt64(payload.JAM["max_preimage_bytes"])
+		pendingMax, _ := toInt(payload.JAM["max_pending_packages"])
+		authReq, _ := payload.JAM["auth_required"].(bool)
 		fmt.Printf("JAM: enabled=%t", enabled)
 		if store != "" {
 			fmt.Printf(" store=%s", store)
+		}
+		if rate > 0 {
+			fmt.Printf(" rate_limit_per_min=%d", rate)
+		}
+		if preimageMax > 0 {
+			fmt.Printf(" max_preimage_bytes=%d", preimageMax)
+		}
+		if pendingMax > 0 {
+			fmt.Printf(" max_pending_packages=%d", pendingMax)
+		}
+		if authReq {
+			fmt.Printf(" auth_required=%t", authReq)
 		}
 		fmt.Println()
 	}

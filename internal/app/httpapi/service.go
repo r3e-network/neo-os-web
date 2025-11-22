@@ -24,7 +24,7 @@ func NewService(application *app.Application, addr string, tokens []string, jamC
 	if log == nil {
 		log = logger.NewDefault("http")
 	}
-	handler := NewHandler(application, jamCfg)
+	handler := NewHandler(application, jamCfg, tokens)
 	handler = wrapWithAuth(handler, tokens, log)
 	handler = metrics.InstrumentHandler(handler)
 	return &Service{
