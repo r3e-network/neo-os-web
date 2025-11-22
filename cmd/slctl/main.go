@@ -348,6 +348,7 @@ func handleStatus(ctx context.Context, client *apiClient) error {
 		legacyList, _ := payload.JAM["legacy_list_response"].(bool)
 		accumEnabled, _ := payload.JAM["accumulators_enabled"].(bool)
 		accumHash, _ := payload.JAM["accumulator_hash"].(string)
+		accumRoots, _ := payload.JAM["accumulator_roots"].([]any)
 		fmt.Printf("JAM: enabled=%t", enabled)
 		if store != "" {
 			fmt.Printf(" store=%s", store)
@@ -374,6 +375,16 @@ func handleStatus(ctx context.Context, client *apiClient) error {
 			fmt.Printf(" accumulator_hash=%s", accumHash)
 		}
 		fmt.Println()
+		if len(accumRoots) > 0 {
+			fmt.Println("JAM accumulator_roots:")
+			for _, rootVal := range accumRoots {
+				root, _ := rootVal.(map[string]any)
+				svc, _ := root["service_id"].(string)
+				seq, _ := toInt64(root["seq"])
+				r, _ := root["root"].(string)
+				fmt.Printf("  - %s seq=%d root=%s\n", svc, seq, r)
+			}
+		}
 	}
 	if len(payload.Services) > 0 {
 		fmt.Println("Services:")
