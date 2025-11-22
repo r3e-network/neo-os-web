@@ -24,9 +24,10 @@ import (
 
 // handler bundles HTTP endpoints for the application services.
 type handler struct {
-	app     *app.Application
-	jamCfg  jam.Config
-	jamAuth []string
+	app      *app.Application
+	jamCfg   jam.Config
+	jamAuth  []string
+	jamStore jam.PackageStore
 }
 
 // NewHandler returns a mux exposing the core REST API.
@@ -94,6 +95,8 @@ func (h *handler) maybeMountJAM(mux *http.ServeMux) {
 		pgStore.SetAccumulatorHash(h.jamCfg.AccumulatorHash)
 		pgStore.SetAccumulatorsEnabled(h.jamCfg.AccumulatorsEnabled)
 	}
+
+	h.jamStore = pkgStore
 
 	engine := jam.Engine{
 		Preimages:   blobStore,
@@ -231,6 +234,26 @@ func (h *handler) systemStatus(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+	jamStatus := map[string]any{
+		"enabled":              h.jamCfg.Enabled,
+		"store":                h.jamCfg.Store,
+		"rate_limit_per_min":   h.jamCfg.RateLimitPerMinute,
+		"max_preimage_bytes":   h.jamCfg.MaxPreimageBytes,
+		"max_pending_packages": h.jamCfg.MaxPendingPackages,
+		"auth_required":        h.jamCfg.AuthRequired,
+		"legacy_list_response": h.jamCfg.LegacyListResponse,
+		"accumulators_enabled": h.jamCfg.AccumulatorsEnabled,
+		"accumulator_hash":     h.jamCfg.AccumulatorHash,
+	}
+	if h.jamCfg.AccumulatorsEnabled && h.jamStore != nil {
+		if lister, ok := h.jamStore.(interface {
+			AccumulatorRoots(context.Context) ([]jam.AccumulatorRoot, error)
+		}); ok {
+			if roots, err := lister.AccumulatorRoots(r.Context()); err == nil && len(roots) > 0 {
+				jamStatus["accumulator_roots"] = roots
+			}
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status": "ok",
 		"version": map[string]string{
@@ -240,17 +263,7 @@ func (h *handler) systemStatus(w http.ResponseWriter, r *http.Request) {
 			"go_version": version.GoVersion,
 		},
 		"services": h.app.Descriptors(),
-		"jam": map[string]any{
-			"enabled":              h.jamCfg.Enabled,
-			"store":                h.jamCfg.Store,
-			"rate_limit_per_min":   h.jamCfg.RateLimitPerMinute,
-			"max_preimage_bytes":   h.jamCfg.MaxPreimageBytes,
-			"max_pending_packages": h.jamCfg.MaxPendingPackages,
-			"auth_required":        h.jamCfg.AuthRequired,
-			"legacy_list_response": h.jamCfg.LegacyListResponse,
-			"accumulators_enabled": h.jamCfg.AccumulatorsEnabled,
-			"accumulator_hash":     h.jamCfg.AccumulatorHash,
-		},
+		"jam":      jamStatus,
 	})
 }
 
