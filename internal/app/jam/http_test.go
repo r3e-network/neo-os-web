@@ -408,12 +408,38 @@ func TestJAMReceiptList(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
-	var payload map[string]any
+	var payload struct {
+		Items      []map[string]any `json:"items"`
+		NextOffset int              `json:"next_offset"`
+	}
 	if err := json.Unmarshal(rr.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("decode list: %v", err)
 	}
-	items, ok := payload["items"].([]any)
-	if !ok || len(items) != 2 {
-		t.Fatalf("expected 2 items, got %v", payload)
+	if len(payload.Items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(payload.Items))
+	}
+	if payload.NextOffset != 2 {
+		t.Fatalf("expected next_offset 2, got %d", payload.NextOffset)
+	}
+
+	// second page
+	req = httptest.NewRequest(http.MethodGet, "/jam/receipts?service_id=svc-list&limit=2&offset=2", nil)
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	var page2 struct {
+		Items      []map[string]any `json:"items"`
+		NextOffset int              `json:"next_offset"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &page2); err != nil {
+		t.Fatalf("decode page2: %v", err)
+	}
+	if len(page2.Items) != 1 {
+		t.Fatalf("expected 1 item on page2, got %d", len(page2.Items))
+	}
+	if page2.NextOffset != 3 {
+		t.Fatalf("expected next_offset 3, got %d", page2.NextOffset)
 	}
 }
