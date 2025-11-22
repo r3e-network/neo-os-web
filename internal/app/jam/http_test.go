@@ -262,3 +262,60 @@ func TestHTTPHandler_AuthRateLimitAndQuotas(t *testing.T) {
 	}
 	resp.Body.Close()
 }
+
+func TestJAMStatusReportsAccumulatorRoot(t *testing.T) {
+	store := NewInMemoryStore()
+	store.SetAccumulatorsEnabled(true)
+	store.SetAccumulatorHash("blake3-256")
+	now := time.Now().UTC()
+	if _, err := store.AppendReceipt(context.Background(), ReceiptInput{
+		Hash:        "hash-1",
+		ServiceID:   "svc-accum",
+		EntryType:   ReceiptTypeReport,
+		Status:      string(PackageStatusApplied),
+		ProcessedAt: now,
+	}); err != nil {
+		t.Fatalf("append receipt: %v", err)
+	}
+	preimages := NewMemPreimageStore()
+	coord := Coordinator{Store: store, Engine: Engine{
+		Preimages:   preimages,
+		Refiner:     autoRefiner{},
+		Attestors:   []Attestor{autoAttestor{}},
+		Accumulator: &countingAccumulator{},
+		Threshold:   1,
+	}}
+	cfg := Config{
+		Enabled:             true,
+		AccumulatorsEnabled: true,
+		AccumulatorHash:     "blake3-256",
+	}
+	handler := NewHTTPHandler(store, preimages, coord, cfg, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/jam/status?service_id=svc-accum", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(rr.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode status: %v", err)
+	}
+	if enabled, _ := payload["accumulators_enabled"].(bool); !enabled {
+		t.Fatalf("expected accumulators_enabled true")
+	}
+	if alg, _ := payload["accumulator_hash"].(string); alg != "blake3-256" {
+		t.Fatalf("unexpected accumulator_hash %q", alg)
+	}
+	rootPayload, ok := payload["accumulator_root"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected accumulator_root")
+	}
+	if svc, _ := rootPayload["service_id"].(string); svc != "svc-accum" {
+		t.Fatalf("service_id mismatch: %q", svc)
+	}
+	if seq, _ := rootPayload["seq"].(float64); seq < 1 {
+		t.Fatalf("expected seq >= 1, got %v", seq)
+	}
+}

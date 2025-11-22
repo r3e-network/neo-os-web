@@ -30,6 +30,7 @@ func NewHTTPHandler(store PackageStore, preimages PreimageStore, coord Coordinat
 		h.allowed[t] = struct{}{}
 	}
 	mux := http.NewServeMux()
+	mux.HandleFunc("/jam/status", h.statusHandler)
 	mux.HandleFunc("/jam/preimages/", h.preimagesHandler)
 	mux.HandleFunc("/jam/packages", h.packagesHandler)
 	mux.HandleFunc("/jam/packages/", h.packageResource)
@@ -46,6 +47,40 @@ type httpHandler struct {
 	allowed      map[string]struct{}
 	rateLimiter  *tokenLimiter
 	pendingLimit int
+}
+
+func (h *httpHandler) statusHandler(w http.ResponseWriter, r *http.Request) {
+	if !h.authorize(w, r) {
+		return
+	}
+	if !h.checkRate(w, r) {
+		return
+	}
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	serviceID := strings.TrimSpace(r.URL.Query().Get("service_id"))
+	resp := map[string]any{
+		"enabled":              h.cfg.Enabled,
+		"store":                h.cfg.Store,
+		"rate_limit_per_min":   h.cfg.RateLimitPerMinute,
+		"max_preimage_bytes":   h.cfg.MaxPreimageBytes,
+		"max_pending_packages": h.cfg.MaxPendingPackages,
+		"auth_required":        h.cfg.AuthRequired,
+		"legacy_list_response": h.cfg.LegacyListResponse,
+		"accumulators_enabled": h.cfg.AccumulatorsEnabled,
+		"accumulator_hash":     h.cfg.AccumulatorHash,
+	}
+	if serviceID != "" {
+		root, err := h.store.AccumulatorRoot(r.Context(), serviceID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
+		resp["accumulator_root"] = root
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (h *httpHandler) preimagesHandler(w http.ResponseWriter, r *http.Request) {
