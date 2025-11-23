@@ -42,9 +42,9 @@ export function SettingsForm({
         <span className="hint">Use the same bearer token you send to the API.</span>
       </label>
       <label>
-        Tenant (optional)
+        Tenant (required for scoped accounts)
         <input value={tenant} onChange={(e) => onTenantChange(e.target.value)} placeholder="tenant id" />
-        <span className="hint">If your account is tenant-scoped, include the tenant ID for all requests.</span>
+        <span className="hint warning">Set the tenant for all requests; leaving it blank will cause 403s for tenant-scoped accounts.</span>
       </label>
       <label>
         Prometheus URL
