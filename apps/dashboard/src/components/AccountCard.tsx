@@ -272,7 +272,7 @@ export function AccountCard({
       <ConfPanel confState={confState} />
       <CREPanel creState={creState} />
       <AutomationPanel automationState={automationState} />
-      <SecretsPanel secretState={secretState} formatTimestamp={formatTimestamp} />
+      <SecretsPanel secretState={secretState} formatTimestamp={formatTimestamp} onNotify={onNotify} />
       <FunctionsPanel functionsState={funcState} />
       <OraclePanel
         accountID={account.ID}

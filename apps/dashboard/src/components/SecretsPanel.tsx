@@ -9,9 +9,10 @@ export type SecretsState =
 type Props = {
   secretState: SecretsState | undefined;
   formatTimestamp: (value?: string) => string;
+  onNotify: (type: "success" | "error", message: string) => void;
 };
 
-export function SecretsPanel({ secretState, formatTimestamp }: Props) {
+export function SecretsPanel({ secretState, formatTimestamp, onNotify }: Props) {
   if (!secretState || secretState.status === "idle") return null;
   if (secretState.status === "error") return <p className="error">Secrets: {secretState.message}</p>;
   if (secretState.status === "loading") return <p className="muted">Loading secrets...</p>;
