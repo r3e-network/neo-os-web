@@ -393,6 +393,62 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if noTenantAutomation.Code != http.StatusForbidden {
 		t.Fatalf("expected forbidden for automation without tenant, got %d", noTenantAutomation.Code)
 	}
+	// CCIP must enforce tenant.
+	wrongTenantCCIP := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/ccip/lanes", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantCCIP.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for ccip with wrong tenant, got %d", wrongTenantCCIP.Code)
+	}
+	noTenantCCIP := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/ccip/lanes", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantCCIP.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for ccip without tenant, got %d", noTenantCCIP.Code)
+	}
+	// VRF must enforce tenant.
+	wrongTenantVRF := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/vrf/keys", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantVRF.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for vrf with wrong tenant, got %d", wrongTenantVRF.Code)
+	}
+	noTenantVRF := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/vrf/keys", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantVRF.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for vrf without tenant, got %d", noTenantVRF.Code)
+	}
+	// Datastreams must enforce tenant.
+	wrongTenantStreams := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/datastreams", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantStreams.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for datastreams with wrong tenant, got %d", wrongTenantStreams.Code)
+	}
+	noTenantStreams := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/datastreams", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantStreams.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for datastreams without tenant, got %d", noTenantStreams.Code)
+	}
+	// DTA must enforce tenant.
+	wrongTenantDTA := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/dta/products", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantDTA.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for dta with wrong tenant, got %d", wrongTenantDTA.Code)
+	}
+	noTenantDTA := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/dta/products", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantDTA.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for dta without tenant, got %d", noTenantDTA.Code)
+	}
 
 	// Pricefeed create/list
 	pfResp := do(t, client, server.URL+"/accounts/"+accountID+"/pricefeeds", http.MethodPost, marshalBody(t, map[string]any{
