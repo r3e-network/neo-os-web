@@ -12,6 +12,7 @@ type Props = {
   accountID: string;
   oracleState: OracleState | undefined;
   banner: Banner;
+  tenant?: string;
   cursor?: string;
   failedCursor?: string;
   loadingCursor?: boolean;
@@ -89,6 +90,7 @@ export function OraclePanel({
   formatSnippet,
   formatTimestamp,
   formatDuration,
+  tenant,
 }: Props) {
   if (!oracleState || oracleState.status === "idle") return null;
   if (oracleState.status === "error") return <p className="error">Oracle: {oracleState.message}</p>;
@@ -124,6 +126,7 @@ export function OraclePanel({
       <div className="row">
         <h4 className="tight">Oracle Sources</h4>
         <span className="tag subdued">{oracleState.sources.length}</span>
+        {tenant && <span className="tag subtle">Tenant: {tenant}</span>}
       </div>
       {oracleState.sources.length ? (
         <table className="data-table">
