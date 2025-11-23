@@ -138,6 +138,24 @@ export function AccountCard({
 }: Props) {
   const accountTenant = account.Metadata?.tenant;
   const tenantMismatch = accountTenant && accountTenant !== activeTenant;
+  const tenantBadge = accountTenant ? (
+    <span className="tag" title="Tenant recorded on this account">
+      Tenant: {accountTenant}
+    </span>
+  ) : (
+    <span className="tag subdued" title="No tenant recorded; access may be blocked by server policy">
+      Unscoped
+    </span>
+  );
+  const activeBadge = activeTenant ? (
+    <span className="tag subtle" title="Tenant applied to all requests">
+      Active tenant: {activeTenant}
+    </span>
+  ) : (
+    <span className="tag subtle warning" title="Set a tenant in settings to avoid 403 responses">
+      Active tenant: none
+    </span>
+  );
   const deepLinkBase = linkBase || window.location.origin + window.location.pathname;
   const qs = new URLSearchParams();
   if (linkBase?.includes("?")) {
@@ -156,8 +174,8 @@ export function AccountCard({
           <strong>{account.Owner || "Unlabelled"}</strong>
           <div className="muted mono">{account.ID}</div>
           <div className="row gap">
-            {account.Metadata?.tenant && <span className="tag">Tenant: {account.Metadata.tenant}</span>}
-            {!account.Metadata?.tenant && <span className="tag subdued">Unscoped</span>}
+            {tenantBadge}
+            {activeBadge}
             <a className="tag subtle" href={accountLink} target="_blank" rel="noreferrer" title="Prefills base URL and tenant only (token not included)">
               Deep link
             </a>
