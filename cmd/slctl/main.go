@@ -99,6 +99,8 @@ func run(ctx context.Context, args []string) error {
 		return handleStatus(ctx, client)
 	case "services":
 		return handleServices(ctx, client, remaining[1:])
+	case "audit":
+		return handleAudit(ctx, client, remaining[1:])
 	case "version":
 		return handleVersion(ctx, client)
 	case "help", "-h", "--help":
@@ -147,6 +149,7 @@ Commands:
   workspace-wallets Inspect linked signing wallets
   jam          Interact with JAM prototype (preimages, packages, reports)
   services     Introspect service descriptors
+  audit        Fetch recent audit entries (admin JWT required)
   status       Show health/version/descriptors summary (uses /system/status; health at /healthz is unauthenticated)
   version      Show CLI and server version information`)
 }
@@ -342,6 +345,53 @@ func handleServices(ctx context.Context, client *apiClient, args []string) error
 	fmt.Println(`Usage:
   slctl services list`)
 	return fmt.Errorf("unknown services subcommand %q", args[0])
+}
+
+func handleAudit(ctx context.Context, client *apiClient, args []string) error {
+	fs := flag.NewFlagSet("audit", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	limit := fs.Int("limit", 50, "max entries to return")
+	user := fs.String("user", "", "filter by user")
+	role := fs.String("role", "", "filter by role")
+	tenant := fs.String("tenant", "", "filter by tenant")
+	method := fs.String("method", "", "filter by HTTP method (get/post/...)")
+	contains := fs.String("contains", "", "path contains substring")
+	status := fs.Int("status", 0, "filter by status code")
+	if err := fs.Parse(args); err != nil {
+		return usageError(err)
+	}
+	params := url.Values{}
+	if *limit > 0 {
+		params.Set("limit", strconv.Itoa(*limit))
+	}
+	if v := strings.TrimSpace(*user); v != "" {
+		params.Set("user", v)
+	}
+	if v := strings.TrimSpace(*role); v != "" {
+		params.Set("role", v)
+	}
+	if v := strings.TrimSpace(*tenant); v != "" {
+		params.Set("tenant", v)
+	}
+	if v := strings.TrimSpace(*method); v != "" {
+		params.Set("method", v)
+	}
+	if v := strings.TrimSpace(*contains); v != "" {
+		params.Set("contains", v)
+	}
+	if *status > 0 {
+		params.Set("status", strconv.Itoa(*status))
+	}
+	path := "/admin/audit"
+	if enc := params.Encode(); enc != "" {
+		path += "?" + enc
+	}
+	data, err := client.request(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return err
+	}
+	prettyPrint(data)
+	return nil
 }
 
 func handleStatus(ctx context.Context, client *apiClient) error {
