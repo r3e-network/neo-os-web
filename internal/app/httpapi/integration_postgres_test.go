@@ -372,4 +372,30 @@ func TestIntegrationPostgres(t *testing.T) {
 	if noTenantDTA.Code != http.StatusForbidden {
 		t.Fatalf("expected forbidden for dta without tenant, got %d", noTenantDTA.Code)
 	}
+	wrongTenantConf := doWithHeaders(t, client, server.URL+"/accounts/"+acctID+"/confcompute/enclaves", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "other-tenant",
+	})
+	if wrongTenantConf.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for confcompute with wrong tenant, got %d", wrongTenantConf.Code)
+	}
+	noTenantConf := doWithHeaders(t, client, server.URL+"/accounts/"+acctID+"/confcompute/enclaves", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantConf.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for confcompute without tenant, got %d", noTenantConf.Code)
+	}
+	wrongTenantCRE := doWithHeaders(t, client, server.URL+"/accounts/"+acctID+"/cre/playbooks", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "other-tenant",
+	})
+	if wrongTenantCRE.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for CRE with wrong tenant, got %d", wrongTenantCRE.Code)
+	}
+	noTenantCRE := doWithHeaders(t, client, server.URL+"/accounts/"+acctID+"/cre/playbooks", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantCRE.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for CRE without tenant, got %d", noTenantCRE.Code)
+	}
 }

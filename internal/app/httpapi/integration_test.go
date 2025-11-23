@@ -475,6 +475,34 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if noTenantDTA.Code != http.StatusForbidden {
 		t.Fatalf("expected forbidden for dta without tenant, got %d", noTenantDTA.Code)
 	}
+	// Confidential compute must enforce tenant.
+	wrongTenantConf := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/confcompute/enclaves", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantConf.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for confcompute with wrong tenant, got %d", wrongTenantConf.Code)
+	}
+	noTenantConf := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/confcompute/enclaves", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantConf.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for confcompute without tenant, got %d", noTenantConf.Code)
+	}
+	// CRE must enforce tenant.
+	wrongTenantCRE := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/cre/playbooks", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantCRE.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for CRE with wrong tenant, got %d", wrongTenantCRE.Code)
+	}
+	noTenantCRE := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/cre/playbooks", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantCRE.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for CRE without tenant, got %d", noTenantCRE.Code)
+	}
 
 	// Pricefeed create/list
 	pfResp := do(t, client, server.URL+"/accounts/"+accountID+"/pricefeeds", http.MethodPost, marshalBody(t, map[string]any{
