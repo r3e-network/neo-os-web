@@ -245,6 +245,7 @@ treated with equal priority.
 - Go modules are vendored for offline Docker builds; run `go mod vendor` after
   updating dependencies.
 - `make neo-up` / `make neo-down` start/stop optional neo-cli mainnet/testnet nodes (compose profile `neo`).
+- NEO tooling: `cmd/neo-indexer` (persists blocks/tx/notifications via RPC + Postgres), `cmd/neo-snapshot` (state root + contract KV bundle). Compose profile `neo` brings up mainnet/testnet nodes (off by default).
 
 ### Tenant quickstart
 - See `docs/tenant-quickstart.md` for headers, dashboard deep links, CLI flags, and common 403 fixes when running with tenants locally.
