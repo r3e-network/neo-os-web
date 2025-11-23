@@ -23,6 +23,7 @@ func (s *Store) CreateDataFeed(ctx context.Context, feed domaindf.Feed) (domaind
 	now := time.Now().UTC()
 	feed.CreatedAt = now
 	feed.UpdatedAt = now
+	tenant := s.accountTenant(ctx, feed.AccountID)
 
 	metaJSON, err := json.Marshal(feed.Metadata)
 	if err != nil {
@@ -39,10 +40,10 @@ func (s *Store) CreateDataFeed(ctx context.Context, feed domaindf.Feed) (domaind
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO chainlink_data_feeds
-			(id, account_id, pair, description, decimals, heartbeat_seconds, threshold_ppm, signer_set, aggregation, metadata, tags, created_at, updated_at)
+			(id, account_id, pair, description, decimals, heartbeat_seconds, threshold_ppm, signer_set, aggregation, metadata, tags, tenant, created_at, updated_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-	`, feed.ID, feed.AccountID, feed.Pair, feed.Description, feed.Decimals, int64(feed.Heartbeat/time.Second), feed.ThresholdPPM, signerJSON, feed.Aggregation, metaJSON, tagsJSON, feed.CreatedAt, feed.UpdatedAt)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`, feed.ID, feed.AccountID, feed.Pair, feed.Description, feed.Decimals, int64(feed.Heartbeat/time.Second), feed.ThresholdPPM, signerJSON, feed.Aggregation, metaJSON, tagsJSON, tenant, feed.CreatedAt, feed.UpdatedAt)
 	if err != nil {
 		return domaindf.Feed{}, err
 	}
@@ -72,12 +73,13 @@ func (s *Store) UpdateDataFeed(ctx context.Context, feed domaindf.Feed) (domaind
 	if err != nil {
 		return domaindf.Feed{}, err
 	}
+	tenant := s.accountTenant(ctx, feed.AccountID)
 
 	result, err := s.db.ExecContext(ctx, `
 		UPDATE chainlink_data_feeds
-		SET pair = $2, description = $3, decimals = $4, heartbeat_seconds = $5, threshold_ppm = $6, signer_set = $7, aggregation = $8, metadata = $9, tags = $10, updated_at = $11
+		SET pair = $2, description = $3, decimals = $4, heartbeat_seconds = $5, threshold_ppm = $6, signer_set = $7, aggregation = $8, metadata = $9, tags = $10, tenant = $11, updated_at = $12
 		WHERE id = $1
-	`, feed.ID, feed.Pair, feed.Description, feed.Decimals, int64(feed.Heartbeat/time.Second), feed.ThresholdPPM, signerJSON, feed.Aggregation, metaJSON, tagsJSON, feed.UpdatedAt)
+	`, feed.ID, feed.Pair, feed.Description, feed.Decimals, int64(feed.Heartbeat/time.Second), feed.ThresholdPPM, signerJSON, feed.Aggregation, metaJSON, tagsJSON, tenant, feed.UpdatedAt)
 	if err != nil {
 		return domaindf.Feed{}, err
 	}
@@ -126,6 +128,7 @@ func (s *Store) CreateDataFeedUpdate(ctx context.Context, upd domaindf.Update) (
 	now := time.Now().UTC()
 	upd.CreatedAt = now
 	upd.UpdatedAt = now
+	tenant := s.accountTenant(ctx, upd.AccountID)
 
 	metaJSON, err := json.Marshal(upd.Metadata)
 	if err != nil {
@@ -134,10 +137,10 @@ func (s *Store) CreateDataFeedUpdate(ctx context.Context, upd domaindf.Update) (
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO chainlink_data_feed_updates
-			(id, feed_id, account_id, round_id, price, signer, ts, signature, status, error, metadata, created_at, updated_at)
+			(id, feed_id, account_id, round_id, price, signer, ts, signature, status, error, metadata, tenant, created_at, updated_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-	`, upd.ID, upd.FeedID, upd.AccountID, upd.RoundID, upd.Price, upd.Signer, upd.Timestamp, upd.Signature, upd.Status, upd.Error, metaJSON, upd.CreatedAt, upd.UpdatedAt)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`, upd.ID, upd.FeedID, upd.AccountID, upd.RoundID, upd.Price, upd.Signer, upd.Timestamp, upd.Signature, upd.Status, upd.Error, metaJSON, tenant, upd.CreatedAt, upd.UpdatedAt)
 	if err != nil {
 		return domaindf.Update{}, err
 	}

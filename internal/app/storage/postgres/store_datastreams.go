@@ -19,6 +19,7 @@ func (s *Store) CreateStream(ctx context.Context, stream domainds.Stream) (domai
 	now := time.Now().UTC()
 	stream.CreatedAt = now
 	stream.UpdatedAt = now
+	tenant := s.accountTenant(ctx, stream.AccountID)
 
 	metaJSON, err := json.Marshal(stream.Metadata)
 	if err != nil {
@@ -27,10 +28,10 @@ func (s *Store) CreateStream(ctx context.Context, stream domainds.Stream) (domai
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO chainlink_datastreams
-			(id, account_id, name, symbol, description, frequency, sla_ms, status, metadata, created_at, updated_at)
+			(id, account_id, name, symbol, description, frequency, sla_ms, status, metadata, tenant, created_at, updated_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`, stream.ID, stream.AccountID, stream.Name, stream.Symbol, stream.Description, stream.Frequency, stream.SLAms, stream.Status, metaJSON, stream.CreatedAt, stream.UpdatedAt)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	`, stream.ID, stream.AccountID, stream.Name, stream.Symbol, stream.Description, stream.Frequency, stream.SLAms, stream.Status, metaJSON, tenant, stream.CreatedAt, stream.UpdatedAt)
 	if err != nil {
 		return domainds.Stream{}, err
 	}
@@ -49,12 +50,13 @@ func (s *Store) UpdateStream(ctx context.Context, stream domainds.Stream) (domai
 	if err != nil {
 		return domainds.Stream{}, err
 	}
+	tenant := s.accountTenant(ctx, stream.AccountID)
 
 	result, err := s.db.ExecContext(ctx, `
 		UPDATE chainlink_datastreams
-		SET name = $2, symbol = $3, description = $4, frequency = $5, sla_ms = $6, status = $7, metadata = $8, updated_at = $9
+		SET name = $2, symbol = $3, description = $4, frequency = $5, sla_ms = $6, status = $7, metadata = $8, tenant = $9, updated_at = $10
 		WHERE id = $1
-	`, stream.ID, stream.Name, stream.Symbol, stream.Description, stream.Frequency, stream.SLAms, stream.Status, metaJSON, stream.UpdatedAt)
+	`, stream.ID, stream.Name, stream.Symbol, stream.Description, stream.Frequency, stream.SLAms, stream.Status, metaJSON, tenant, stream.UpdatedAt)
 	if err != nil {
 		return domainds.Stream{}, err
 	}
@@ -102,6 +104,7 @@ func (s *Store) CreateFrame(ctx context.Context, frame domainds.Frame) (domainds
 	}
 	now := time.Now().UTC()
 	frame.CreatedAt = now
+	tenant := s.accountTenant(ctx, frame.AccountID)
 
 	payloadJSON, err := json.Marshal(frame.Payload)
 	if err != nil {
@@ -114,10 +117,10 @@ func (s *Store) CreateFrame(ctx context.Context, frame domainds.Frame) (domainds
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO chainlink_datastream_frames
-			(id, account_id, stream_id, sequence, payload, latency_ms, status, metadata, created_at, updated_at)
+			(id, account_id, stream_id, sequence, payload, latency_ms, status, metadata, tenant, created_at, updated_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`, frame.ID, frame.AccountID, frame.StreamID, frame.Sequence, payloadJSON, frame.LatencyMS, frame.Status, metaJSON, frame.CreatedAt, now)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`, frame.ID, frame.AccountID, frame.StreamID, frame.Sequence, payloadJSON, frame.LatencyMS, frame.Status, metaJSON, tenant, frame.CreatedAt, now)
 	if err != nil {
 		return domainds.Frame{}, err
 	}

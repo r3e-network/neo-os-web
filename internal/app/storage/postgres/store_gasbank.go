@@ -32,21 +32,22 @@ func (s *Store) CreateGasAccount(ctx context.Context, acct gasbank.Account) (gas
 	now := time.Now().UTC()
 	acct.CreatedAt = now
 	acct.UpdatedAt = now
+	tenant := s.accountTenant(ctx, acct.AccountID)
 
 	if _, err := s.db.ExecContext(ctx, `
 		INSERT INTO app_gas_accounts (
 			id, account_id, wallet_address, balance, available, pending, locked,
 			min_balance, daily_limit, daily_withdrawal, notification_threshold,
-			required_approvals, flags, metadata, last_withdrawal, created_at, updated_at
+			required_approvals, flags, metadata, tenant, last_withdrawal, created_at, updated_at
 		)
 		VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
 			$8, $9, $10, $11,
-			$12, $13, $14, $15, $16, $17
+			$12, $13, $14, $15, $16, $17, $18
 		)
 	`, acct.ID, acct.AccountID, toNullString(acct.WalletAddress), acct.Balance, acct.Available, acct.Pending, acct.Locked,
 		acct.MinBalance, acct.DailyLimit, acct.DailyWithdrawal, acct.NotificationThreshold,
-		acct.RequiredApprovals, flagsJSON, metaJSON, toNullTime(acct.LastWithdrawal), acct.CreatedAt, acct.UpdatedAt); err != nil {
+		acct.RequiredApprovals, flagsJSON, metaJSON, tenant, toNullTime(acct.LastWithdrawal), acct.CreatedAt, acct.UpdatedAt); err != nil {
 		return gasbank.Account{}, err
 	}
 	return acct, nil
@@ -65,6 +66,7 @@ func (s *Store) UpdateGasAccount(ctx context.Context, acct gasbank.Account) (gas
 	acct.WalletAddress = normalizeWallet(acct.WalletAddress)
 	acct.CreatedAt = existing.CreatedAt
 	acct.UpdatedAt = time.Now().UTC()
+	tenant := s.accountTenant(ctx, acct.AccountID)
 
 	flagsJSON, err := json.Marshal(mapOrEmptyBool(acct.Flags))
 	if err != nil {
@@ -89,10 +91,11 @@ func (s *Store) UpdateGasAccount(ctx context.Context, acct gasbank.Account) (gas
 		    required_approvals = $11,
 		    flags = $12,
 		    metadata = $13,
-		    last_withdrawal = $14,
-		    updated_at = $15
+		    tenant = $14,
+		    last_withdrawal = $15,
+		    updated_at = $16
 		WHERE id = $1
-	`, acct.ID, toNullString(acct.WalletAddress), acct.Balance, acct.Available, acct.Pending, acct.Locked, acct.MinBalance, acct.DailyLimit, acct.DailyWithdrawal, acct.NotificationThreshold, acct.RequiredApprovals, flagsJSON, metaJSON, toNullTime(acct.LastWithdrawal), acct.UpdatedAt)
+	`, acct.ID, toNullString(acct.WalletAddress), acct.Balance, acct.Available, acct.Pending, acct.Locked, acct.MinBalance, acct.DailyLimit, acct.DailyWithdrawal, acct.NotificationThreshold, acct.RequiredApprovals, flagsJSON, metaJSON, tenant, toNullTime(acct.LastWithdrawal), acct.UpdatedAt)
 	if err != nil {
 		return gasbank.Account{}, err
 	}
@@ -183,6 +186,7 @@ func (s *Store) CreateGasTransaction(ctx context.Context, tx gasbank.Transaction
 	now := time.Now().UTC()
 	tx.CreatedAt = now
 	tx.UpdatedAt = now
+	tenant := s.accountTenant(ctx, tx.AccountID)
 
 	if _, err := s.db.ExecContext(ctx, `
 		INSERT INTO app_gas_transactions (
@@ -190,20 +194,20 @@ func (s *Store) CreateGasTransaction(ctx context.Context, tx gasbank.Transaction
 			blockchain_tx_id, from_address, to_address, notes, error,
 			schedule_at, cron_expression, approval_policy, resolver_attempt,
 			resolver_error, last_attempt_at, next_attempt_at, dead_letter_reason,
-			metadata, dispatched_at, resolved_at, completed_at, created_at, updated_at
+			metadata, tenant, dispatched_at, resolved_at, completed_at, created_at, updated_at
 		)
 		VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
 			$8, $9, $10, $11, $12,
 			$13, $14, $15, $16,
 			$17, $18, $19, $20,
-			$21, $22, $23, $24, $25, $26
+			$21, $22, $23, $24, $25, $26, $27
 		)
 	`, tx.ID, tx.AccountID, toNullString(tx.UserAccountID), tx.Type, tx.Amount, tx.NetAmount, tx.Status,
 		toNullString(tx.BlockchainTxID), toNullString(tx.FromAddress), toNullString(tx.ToAddress), toNullString(tx.Notes), toNullString(tx.Error),
 		toNullTime(tx.ScheduleAt), toNullString(tx.CronExpression), approvalJSON, tx.ResolverAttempt,
 		toNullString(tx.ResolverError), toNullTime(tx.LastAttemptAt), toNullTime(tx.NextAttemptAt), toNullString(tx.DeadLetterReason),
-		metaJSON, toNullTime(tx.DispatchedAt), toNullTime(tx.ResolvedAt), toNullTime(tx.CompletedAt), tx.CreatedAt, tx.UpdatedAt); err != nil {
+		metaJSON, tenant, toNullTime(tx.DispatchedAt), toNullTime(tx.ResolvedAt), toNullTime(tx.CompletedAt), tx.CreatedAt, tx.UpdatedAt); err != nil {
 		return gasbank.Transaction{}, err
 	}
 	return tx, nil
@@ -236,6 +240,7 @@ func (s *Store) UpdateGasTransaction(ctx context.Context, tx gasbank.Transaction
 	}
 	tx.CreatedAt = existing.CreatedAt
 	tx.UpdatedAt = time.Now().UTC()
+	tenant := s.accountTenant(ctx, tx.AccountID)
 
 	_, err = s.db.ExecContext(ctx, `
 		UPDATE app_gas_transactions
@@ -257,12 +262,13 @@ func (s *Store) UpdateGasTransaction(ctx context.Context, tx gasbank.Transaction
 		    next_attempt_at = $17,
 		    dead_letter_reason = $18,
 		    metadata = $19,
-		    dispatched_at = $20,
-		    resolved_at = $21,
-		    completed_at = $22,
-		    updated_at = $23
+		    tenant = $20,
+		    dispatched_at = $21,
+		    resolved_at = $22,
+		    completed_at = $23,
+		    updated_at = $24
 		WHERE id = $1
-	`, tx.ID, tx.Type, tx.Amount, tx.NetAmount, tx.Status, toNullString(tx.BlockchainTxID), toNullString(tx.FromAddress), toNullString(tx.ToAddress), toNullString(tx.Notes), toNullString(tx.Error), toNullTime(tx.ScheduleAt), toNullString(tx.CronExpression), approvalJSON, tx.ResolverAttempt, toNullString(tx.ResolverError), toNullTime(tx.LastAttemptAt), toNullTime(tx.NextAttemptAt), toNullString(tx.DeadLetterReason), metaJSON, toNullTime(tx.DispatchedAt), toNullTime(tx.ResolvedAt), toNullTime(tx.CompletedAt), tx.UpdatedAt)
+	`, tx.ID, tx.Type, tx.Amount, tx.NetAmount, tx.Status, toNullString(tx.BlockchainTxID), toNullString(tx.FromAddress), toNullString(tx.ToAddress), toNullString(tx.Notes), toNullString(tx.Error), toNullTime(tx.ScheduleAt), toNullString(tx.CronExpression), approvalJSON, tx.ResolverAttempt, toNullString(tx.ResolverError), toNullTime(tx.LastAttemptAt), toNullTime(tx.NextAttemptAt), toNullString(tx.DeadLetterReason), metaJSON, tenant, toNullTime(tx.DispatchedAt), toNullTime(tx.ResolvedAt), toNullTime(tx.CompletedAt), tx.UpdatedAt)
 	if err != nil {
 		return gasbank.Transaction{}, err
 	}
@@ -357,19 +363,21 @@ func (s *Store) UpsertWithdrawalApproval(ctx context.Context, approval gasbank.W
 		approval.CreatedAt = now
 	}
 	approval.UpdatedAt = now
+	tenant := s.gasTransactionTenant(ctx, approval.TransactionID)
 
 	var createdAt time.Time
 	err := s.db.QueryRowContext(ctx, `
-		INSERT INTO app_gas_withdrawal_approvals (transaction_id, approver, status, signature, note, decided_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO app_gas_withdrawal_approvals (transaction_id, approver, status, signature, note, decided_at, tenant, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		ON CONFLICT (transaction_id, approver)
 		DO UPDATE SET status = EXCLUDED.status,
 		               signature = EXCLUDED.signature,
 		               note = EXCLUDED.note,
 		               decided_at = EXCLUDED.decided_at,
+		               tenant = EXCLUDED.tenant,
 		               updated_at = EXCLUDED.updated_at
 		RETURNING created_at
-	`, approval.TransactionID, approval.Approver, approval.Status, toNullString(approval.Signature), toNullString(approval.Note), toNullTime(approval.DecidedAt), approval.CreatedAt, approval.UpdatedAt).Scan(&createdAt)
+	`, approval.TransactionID, approval.Approver, approval.Status, toNullString(approval.Signature), toNullString(approval.Note), toNullTime(approval.DecidedAt), tenant, approval.CreatedAt, approval.UpdatedAt).Scan(&createdAt)
 	if err != nil {
 		return gasbank.WithdrawalApproval{}, err
 	}
@@ -406,19 +414,21 @@ func (s *Store) SaveWithdrawalSchedule(ctx context.Context, schedule gasbank.Wit
 		schedule.CreatedAt = now
 	}
 	schedule.UpdatedAt = now
+	tenant := s.gasTransactionTenant(ctx, schedule.TransactionID)
 
 	var createdAt time.Time
 	err := s.db.QueryRowContext(ctx, `
-		INSERT INTO app_gas_withdrawal_schedules (transaction_id, schedule_at, cron_expression, next_run_at, last_run_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO app_gas_withdrawal_schedules (transaction_id, schedule_at, cron_expression, next_run_at, last_run_at, tenant, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (transaction_id)
 		DO UPDATE SET schedule_at = EXCLUDED.schedule_at,
 		               cron_expression = EXCLUDED.cron_expression,
 		               next_run_at = EXCLUDED.next_run_at,
 		               last_run_at = EXCLUDED.last_run_at,
+		               tenant = EXCLUDED.tenant,
 		               updated_at = EXCLUDED.updated_at
 		RETURNING created_at
-	`, schedule.TransactionID, toNullTime(schedule.ScheduleAt), toNullString(schedule.CronExpression), toNullTime(schedule.NextRunAt), toNullTime(schedule.LastRunAt), schedule.CreatedAt, schedule.UpdatedAt).Scan(&createdAt)
+	`, schedule.TransactionID, toNullTime(schedule.ScheduleAt), toNullString(schedule.CronExpression), toNullTime(schedule.NextRunAt), toNullTime(schedule.LastRunAt), tenant, schedule.CreatedAt, schedule.UpdatedAt).Scan(&createdAt)
 	if err != nil {
 		return gasbank.WithdrawalSchedule{}, err
 	}
@@ -486,16 +496,18 @@ func (s *Store) RecordSettlementAttempt(ctx context.Context, attempt gasbank.Set
 	if latency == 0 && !attempt.CompletedAt.IsZero() {
 		latency = attempt.CompletedAt.Sub(attempt.StartedAt)
 	}
+	tenant := s.gasTransactionTenant(ctx, attempt.TransactionID)
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO app_gas_settlement_attempts (transaction_id, attempt, started_at, completed_at, latency_ms, status, error)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO app_gas_settlement_attempts (transaction_id, attempt, started_at, completed_at, latency_ms, status, error, tenant)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (transaction_id, attempt)
 		DO UPDATE SET started_at = EXCLUDED.started_at,
 		               completed_at = EXCLUDED.completed_at,
 		               latency_ms = EXCLUDED.latency_ms,
 		               status = EXCLUDED.status,
-		               error = EXCLUDED.error
-	`, attempt.TransactionID, attempt.Attempt, attempt.StartedAt, attempt.CompletedAt, durationToMillis(latency), toNullString(attempt.Status), toNullString(attempt.Error))
+		               error = EXCLUDED.error,
+		               tenant = EXCLUDED.tenant
+	`, attempt.TransactionID, attempt.Attempt, attempt.StartedAt, attempt.CompletedAt, durationToMillis(latency), toNullString(attempt.Status), toNullString(attempt.Error), tenant)
 	if err != nil {
 		return gasbank.SettlementAttempt{}, err
 	}
@@ -536,20 +548,22 @@ func (s *Store) UpsertDeadLetter(ctx context.Context, entry gasbank.DeadLetter) 
 		entry.CreatedAt = now
 	}
 	entry.UpdatedAt = now
+	tenant := s.accountTenant(ctx, entry.AccountID)
 
 	var createdAt time.Time
 	err := s.db.QueryRowContext(ctx, `
-		INSERT INTO app_gas_dead_letters (transaction_id, account_id, reason, last_error, last_attempt_at, retries, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO app_gas_dead_letters (transaction_id, account_id, reason, last_error, last_attempt_at, retries, tenant, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		ON CONFLICT (transaction_id)
 		DO UPDATE SET account_id = EXCLUDED.account_id,
 		               reason = EXCLUDED.reason,
 		               last_error = EXCLUDED.last_error,
 		               last_attempt_at = EXCLUDED.last_attempt_at,
 		               retries = EXCLUDED.retries,
+		               tenant = EXCLUDED.tenant,
 		               updated_at = EXCLUDED.updated_at
 		RETURNING created_at
-	`, entry.TransactionID, entry.AccountID, entry.Reason, toNullString(entry.LastError), toNullTime(entry.LastAttemptAt), entry.Retries, entry.CreatedAt, entry.UpdatedAt).Scan(&createdAt)
+	`, entry.TransactionID, entry.AccountID, entry.Reason, toNullString(entry.LastError), toNullTime(entry.LastAttemptAt), entry.Retries, tenant, entry.CreatedAt, entry.UpdatedAt).Scan(&createdAt)
 	if err != nil {
 		return gasbank.DeadLetter{}, err
 	}
@@ -596,6 +610,18 @@ func (s *Store) ListDeadLetters(ctx context.Context, accountID string, limit int
 func (s *Store) RemoveDeadLetter(ctx context.Context, transactionID string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM app_gas_dead_letters WHERE transaction_id = $1`, transactionID)
 	return err
+}
+
+// gasTransactionTenant returns the tenant for the account that owns the transaction ID.
+func (s *Store) gasTransactionTenant(ctx context.Context, txID string) string {
+	var accountID sql.NullString
+	_ = s.db.QueryRowContext(ctx, `
+		SELECT account_id FROM app_gas_transactions WHERE id = $1
+	`, txID).Scan(&accountID)
+	if accountID.Valid {
+		return s.accountTenant(ctx, accountID.String)
+	}
+	return ""
 }
 
 func mapOrEmptyBool(m map[string]bool) map[string]bool {

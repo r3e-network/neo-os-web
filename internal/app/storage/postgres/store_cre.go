@@ -25,6 +25,7 @@ func (s *Store) CreatePlaybook(ctx context.Context, pb cre.Playbook) (cre.Playbo
 	now := time.Now().UTC()
 	pb.CreatedAt = now
 	pb.UpdatedAt = now
+	tenant := s.accountTenant(ctx, pb.AccountID)
 
 	stepsJSON, err := json.Marshal(pb.Steps)
 	if err != nil {
@@ -41,8 +42,8 @@ func (s *Store) CreatePlaybook(ctx context.Context, pb cre.Playbook) (cre.Playbo
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO app_cre_playbooks (id, account_id, name, description, steps, tags, metadata, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-	`, pb.ID, pb.AccountID, pb.Name, pb.Description, stepsJSON, tagsJSON, metaJSON, pb.CreatedAt, pb.UpdatedAt)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`, pb.ID, pb.AccountID, pb.Name, pb.Description, stepsJSON, tagsJSON, metaJSON, tenant, pb.CreatedAt, pb.UpdatedAt)
 	if err != nil {
 		return cre.Playbook{}, err
 	}
@@ -56,6 +57,7 @@ func (s *Store) UpdatePlaybook(ctx context.Context, pb cre.Playbook) (cre.Playbo
 	}
 	pb.CreatedAt = existing.CreatedAt
 	pb.UpdatedAt = time.Now().UTC()
+	tenant := s.accountTenant(ctx, pb.AccountID)
 
 	stepsJSON, err := json.Marshal(pb.Steps)
 	if err != nil {
@@ -72,9 +74,9 @@ func (s *Store) UpdatePlaybook(ctx context.Context, pb cre.Playbook) (cre.Playbo
 
 	result, err := s.db.ExecContext(ctx, `
 		UPDATE app_cre_playbooks
-		SET name = $2, description = $3, steps = $4, tags = $5, metadata = $6, updated_at = $7
+		SET name = $2, description = $3, steps = $4, tags = $5, metadata = $6, tenant = $7, updated_at = $8
 		WHERE id = $1
-	`, pb.ID, pb.Name, pb.Description, stepsJSON, tagsJSON, metaJSON, pb.UpdatedAt)
+	`, pb.ID, pb.Name, pb.Description, stepsJSON, tagsJSON, metaJSON, tenant, pb.UpdatedAt)
 	if err != nil {
 		return cre.Playbook{}, err
 	}
@@ -124,6 +126,7 @@ func (s *Store) CreateRun(ctx context.Context, run cre.Run) (cre.Run, error) {
 	now := time.Now().UTC()
 	run.CreatedAt = now
 	run.UpdatedAt = now
+	tenant := s.accountTenant(ctx, run.AccountID)
 
 	paramsJSON, err := json.Marshal(run.Parameters)
 	if err != nil {
@@ -144,8 +147,8 @@ func (s *Store) CreateRun(ctx context.Context, run cre.Run) (cre.Run, error) {
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO app_cre_runs (id, account_id, playbook_id, executor_id, status, parameters, tags, results, metadata, created_at, updated_at, completed_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-	`, run.ID, run.AccountID, run.PlaybookID, toNullString(run.ExecutorID), run.Status, paramsJSON, tagsJSON, resultsJSON, metaJSON, run.CreatedAt, run.UpdatedAt, toNullTime(ptrTime(run.CompletedAt)))
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	`, run.ID, run.AccountID, run.PlaybookID, toNullString(run.ExecutorID), run.Status, paramsJSON, tagsJSON, resultsJSON, metaJSON, tenant, run.CreatedAt, run.UpdatedAt, toNullTime(ptrTime(run.CompletedAt)))
 	if err != nil {
 		return cre.Run{}, err
 	}
@@ -159,6 +162,7 @@ func (s *Store) UpdateRun(ctx context.Context, run cre.Run) (cre.Run, error) {
 	}
 	run.CreatedAt = existing.CreatedAt
 	run.UpdatedAt = time.Now().UTC()
+	tenant := s.accountTenant(ctx, run.AccountID)
 
 	paramsJSON, err := json.Marshal(run.Parameters)
 	if err != nil {
@@ -179,9 +183,9 @@ func (s *Store) UpdateRun(ctx context.Context, run cre.Run) (cre.Run, error) {
 
 	result, err := s.db.ExecContext(ctx, `
 		UPDATE app_cre_runs
-		SET status = $2, executor_id = $3, parameters = $4, tags = $5, results = $6, metadata = $7, updated_at = $8, completed_at = $9
+		SET status = $2, executor_id = $3, parameters = $4, tags = $5, results = $6, metadata = $7, tenant = $8, updated_at = $9, completed_at = $10
 		WHERE id = $1
-	`, run.ID, run.Status, toNullString(run.ExecutorID), paramsJSON, tagsJSON, resultsJSON, metaJSON, run.UpdatedAt, toNullTime(ptrTime(run.CompletedAt)))
+	`, run.ID, run.Status, toNullString(run.ExecutorID), paramsJSON, tagsJSON, resultsJSON, metaJSON, tenant, run.UpdatedAt, toNullTime(ptrTime(run.CompletedAt)))
 	if err != nil {
 		return cre.Run{}, err
 	}

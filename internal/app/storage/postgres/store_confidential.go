@@ -19,6 +19,7 @@ func (s *Store) CreateEnclave(ctx context.Context, enclave domainconf.Enclave) (
 	now := time.Now().UTC()
 	enclave.CreatedAt = now
 	enclave.UpdatedAt = now
+	tenant := s.accountTenant(ctx, enclave.AccountID)
 
 	metaJSON, err := json.Marshal(enclave.Metadata)
 	if err != nil {
@@ -27,10 +28,10 @@ func (s *Store) CreateEnclave(ctx context.Context, enclave domainconf.Enclave) (
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO confidential_enclaves
-			(id, account_id, name, endpoint, attestation, status, metadata, created_at, updated_at)
+			(id, account_id, name, endpoint, attestation, status, metadata, tenant, created_at, updated_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9)
-	`, enclave.ID, enclave.AccountID, enclave.Name, enclave.Endpoint, enclave.Attestation, enclave.Status, metaJSON, enclave.CreatedAt, enclave.UpdatedAt)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`, enclave.ID, enclave.AccountID, enclave.Name, enclave.Endpoint, enclave.Attestation, enclave.Status, metaJSON, tenant, enclave.CreatedAt, enclave.UpdatedAt)
 	if err != nil {
 		return domainconf.Enclave{}, err
 	}
@@ -44,6 +45,7 @@ func (s *Store) UpdateEnclave(ctx context.Context, enclave domainconf.Enclave) (
 	}
 	enclave.CreatedAt = existing.CreatedAt
 	enclave.UpdatedAt = time.Now().UTC()
+	tenant := s.accountTenant(ctx, enclave.AccountID)
 
 	metaJSON, err := json.Marshal(enclave.Metadata)
 	if err != nil {
@@ -52,9 +54,9 @@ func (s *Store) UpdateEnclave(ctx context.Context, enclave domainconf.Enclave) (
 
 	result, err := s.db.ExecContext(ctx, `
 		UPDATE confidential_enclaves
-		SET name = $2, endpoint = $3, attestation = $4, status = $5, metadata = $6, updated_at = $7
+		SET name = $2, endpoint = $3, attestation = $4, status = $5, metadata = $6, tenant = $7, updated_at = $8
 		WHERE id = $1
-	`, enclave.ID, enclave.Name, enclave.Endpoint, enclave.Attestation, enclave.Status, metaJSON, enclave.UpdatedAt)
+	`, enclave.ID, enclave.Name, enclave.Endpoint, enclave.Attestation, enclave.Status, metaJSON, tenant, enclave.UpdatedAt)
 	if err != nil {
 		return domainconf.Enclave{}, err
 	}
@@ -102,6 +104,7 @@ func (s *Store) CreateSealedKey(ctx context.Context, key domainconf.SealedKey) (
 	}
 	now := time.Now().UTC()
 	key.CreatedAt = now
+	tenant := s.accountTenant(ctx, key.AccountID)
 
 	metaJSON, err := json.Marshal(key.Metadata)
 	if err != nil {
@@ -110,10 +113,10 @@ func (s *Store) CreateSealedKey(ctx context.Context, key domainconf.SealedKey) (
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO confidential_sealed_keys
-			(id, account_id, enclave_id, name, blob, metadata, created_at)
+			(id, account_id, enclave_id, name, blob, metadata, tenant, created_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7)
-	`, key.ID, key.AccountID, key.EnclaveID, key.Name, key.Blob, metaJSON, key.CreatedAt)
+			($1, $2, $3, $4, $5, $6, $7, $8)
+	`, key.ID, key.AccountID, key.EnclaveID, key.Name, key.Blob, metaJSON, tenant, key.CreatedAt)
 	if err != nil {
 		return domainconf.SealedKey{}, err
 	}
@@ -150,6 +153,7 @@ func (s *Store) CreateAttestation(ctx context.Context, att domainconf.Attestatio
 	}
 	now := time.Now().UTC()
 	att.CreatedAt = now
+	tenant := s.accountTenant(ctx, att.AccountID)
 
 	metaJSON, err := json.Marshal(att.Metadata)
 	if err != nil {
@@ -158,10 +162,10 @@ func (s *Store) CreateAttestation(ctx context.Context, att domainconf.Attestatio
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO confidential_attestations
-			(id, account_id, enclave_id, report, valid_until, status, metadata, created_at)
+			(id, account_id, enclave_id, report, valid_until, status, metadata, tenant, created_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8)
-	`, att.ID, att.AccountID, att.EnclaveID, att.Report, att.ValidUntil, att.Status, metaJSON, att.CreatedAt)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`, att.ID, att.AccountID, att.EnclaveID, att.Report, att.ValidUntil, att.Status, metaJSON, tenant, att.CreatedAt)
 	if err != nil {
 		return domainconf.Attestation{}, err
 	}

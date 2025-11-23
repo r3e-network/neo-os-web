@@ -19,6 +19,7 @@ func (s *Store) CreateProduct(ctx context.Context, product domaindta.Product) (d
 	now := time.Now().UTC()
 	product.CreatedAt = now
 	product.UpdatedAt = now
+	tenant := s.accountTenant(ctx, product.AccountID)
 
 	metaJSON, err := json.Marshal(product.Metadata)
 	if err != nil {
@@ -27,10 +28,10 @@ func (s *Store) CreateProduct(ctx context.Context, product domaindta.Product) (d
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO chainlink_dta_products
-			(id, account_id, name, symbol, type, status, settlement_terms, metadata, created_at, updated_at)
+			(id, account_id, name, symbol, type, status, settlement_terms, metadata, tenant, created_at, updated_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`, product.ID, product.AccountID, product.Name, product.Symbol, product.Type, product.Status, product.SettlementTerms, metaJSON, product.CreatedAt, product.UpdatedAt)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`, product.ID, product.AccountID, product.Name, product.Symbol, product.Type, product.Status, product.SettlementTerms, metaJSON, tenant, product.CreatedAt, product.UpdatedAt)
 	if err != nil {
 		return domaindta.Product{}, err
 	}
@@ -49,12 +50,13 @@ func (s *Store) UpdateProduct(ctx context.Context, product domaindta.Product) (d
 	if err != nil {
 		return domaindta.Product{}, err
 	}
+	tenant := s.accountTenant(ctx, product.AccountID)
 
 	result, err := s.db.ExecContext(ctx, `
 		UPDATE chainlink_dta_products
-		SET name = $2, symbol = $3, type = $4, status = $5, settlement_terms = $6, metadata = $7, updated_at = $8
+		SET name = $2, symbol = $3, type = $4, status = $5, settlement_terms = $6, metadata = $7, tenant = $8, updated_at = $9
 		WHERE id = $1
-	`, product.ID, product.Name, product.Symbol, product.Type, product.Status, product.SettlementTerms, metaJSON, product.UpdatedAt)
+	`, product.ID, product.Name, product.Symbol, product.Type, product.Status, product.SettlementTerms, metaJSON, tenant, product.UpdatedAt)
 	if err != nil {
 		return domaindta.Product{}, err
 	}
@@ -103,6 +105,7 @@ func (s *Store) CreateOrder(ctx context.Context, order domaindta.Order) (domaind
 	now := time.Now().UTC()
 	order.CreatedAt = now
 	order.UpdatedAt = now
+	tenant := s.accountTenant(ctx, order.AccountID)
 
 	metaJSON, err := json.Marshal(order.Metadata)
 	if err != nil {
@@ -111,10 +114,10 @@ func (s *Store) CreateOrder(ctx context.Context, order domaindta.Order) (domaind
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO chainlink_dta_orders
-			(id, account_id, product_id, type, amount, wallet_address, status, metadata, created_at, updated_at)
+			(id, account_id, product_id, type, amount, wallet_address, status, metadata, tenant, created_at, updated_at)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`, order.ID, order.AccountID, order.ProductID, order.Type, order.Amount, order.Wallet, order.Status, metaJSON, order.CreatedAt, order.UpdatedAt)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`, order.ID, order.AccountID, order.ProductID, order.Type, order.Amount, order.Wallet, order.Status, metaJSON, tenant, order.CreatedAt, order.UpdatedAt)
 	if err != nil {
 		return domaindta.Order{}, err
 	}
