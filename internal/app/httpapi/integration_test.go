@@ -118,6 +118,13 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if auditOK.Code != http.StatusOK {
 		t.Fatalf("expected 200 with tenant, got %d", auditOK.Code)
 	}
+	var audits []auditEntry
+	if err := json.Unmarshal(auditOK.Body.Bytes(), &audits); err != nil {
+		t.Fatalf("decode audit: %v", err)
+	}
+	if len(audits) == 0 {
+		t.Fatalf("expected audit entries")
+	}
 
 	// Secret create/list
 	secretResp := do(t, client, server.URL+"/accounts/"+accountID+"/secrets", http.MethodPost, marshalBody(t, map[string]any{
