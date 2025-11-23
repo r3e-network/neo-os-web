@@ -244,3 +244,6 @@ treated with equal priority.
 - Run **all** tests: `go test ./...`
 - Go modules are vendored for offline Docker builds; run `go mod vendor` after
   updating dependencies.
+
+### Tenant quickstart
+- See `docs/tenant-quickstart.md` for headers, dashboard deep links, CLI flags, and common 403 fixes when running with tenants locally.
