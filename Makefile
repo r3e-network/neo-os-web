@@ -74,6 +74,7 @@ help:
 	@echo "make run-local         - Run appserver locally (requires Postgres available)"
 	@echo "make test              - Run Go tests"
 	@echo "make typecheck         - Run dashboard typecheck (npm required)"
+	@echo "make smoke             - Run Go tests + dashboard typecheck"
 	@echo "make clean             - Remove build artifacts"
 	@echo "make build-dashboard   - Build the React dashboard (needs npm)"
 	@echo "make docker            - Build appserver and dashboard Docker images"
@@ -87,3 +88,6 @@ help:
 typecheck:
 	@echo "Running dashboard typecheck..."
 	@cd apps/dashboard && npm install && npm run typecheck
+
+smoke: test typecheck
+	@echo "Smoke checks complete."
