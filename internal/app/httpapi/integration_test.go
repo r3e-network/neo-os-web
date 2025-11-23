@@ -247,6 +247,34 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if noTenantPricefeeds.Code != http.StatusForbidden {
 		t.Fatalf("expected forbidden for pricefeeds without tenant, got %d", noTenantPricefeeds.Code)
 	}
+	// Gasbank must also enforce tenant.
+	wrongTenantGasbank := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/gasbank", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantGasbank.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for gasbank with wrong tenant, got %d", wrongTenantGasbank.Code)
+	}
+	noTenantGasbank := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/gasbank", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantGasbank.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for gasbank without tenant, got %d", noTenantGasbank.Code)
+	}
+	// Datalink must enforce tenant.
+	wrongTenantDatalink := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/datalink/channels", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantDatalink.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for datalink with wrong tenant, got %d", wrongTenantDatalink.Code)
+	}
+	noTenantDatalink := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/datalink/channels", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantDatalink.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for datalink without tenant, got %d", noTenantDatalink.Code)
+	}
 
 	// Oracle source + request
 	srcResp := do(t, client, server.URL+"/accounts/"+accountID+"/oracle/sources", http.MethodPost, marshalBody(t, map[string]any{

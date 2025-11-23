@@ -242,4 +242,30 @@ func TestIntegrationPostgres(t *testing.T) {
 	if noTenantPricefeeds.Code != http.StatusForbidden {
 		t.Fatalf("expected forbidden for pricefeeds without tenant, got %d", noTenantPricefeeds.Code)
 	}
+	wrongTenantGasbank := doWithHeaders(t, client, server.URL+"/accounts/"+acctID+"/gasbank", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "other-tenant",
+	})
+	if wrongTenantGasbank.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for gasbank with wrong tenant, got %d", wrongTenantGasbank.Code)
+	}
+	noTenantGasbank := doWithHeaders(t, client, server.URL+"/accounts/"+acctID+"/gasbank", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantGasbank.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for gasbank without tenant, got %d", noTenantGasbank.Code)
+	}
+	wrongTenantDatalink := doWithHeaders(t, client, server.URL+"/accounts/"+acctID+"/datalink/channels", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "other-tenant",
+	})
+	if wrongTenantDatalink.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for datalink with wrong tenant, got %d", wrongTenantDatalink.Code)
+	}
+	noTenantDatalink := doWithHeaders(t, client, server.URL+"/accounts/"+acctID+"/datalink/channels", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantDatalink.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for datalink without tenant, got %d", noTenantDatalink.Code)
+	}
 }
