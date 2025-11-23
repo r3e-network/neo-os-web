@@ -153,9 +153,41 @@ export function App() {
       if (!state || state.status !== "ready") return;
       const feed = state.feeds.find((f) => f.ID === feedID);
       if (!feed) return;
-      await setAggregation(accountID, feed, aggregation);
+      try {
+        await setAggregation(accountID, feed, aggregation);
+        notify("success", `Updated aggregation to ${aggregation} for ${feed.Pair}`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        notify("error", `Failed to update aggregation: ${msg}`);
+      }
     },
-    [datafeeds, setAggregation],
+    [datafeeds, notify, setAggregation],
+  );
+
+  const handleCreateChannel = useCallback(
+    async (accountID: string, payload: { name: string; endpoint: string; signers: string[]; status?: string; metadata?: Record<string, string> }) => {
+      try {
+        await createChannel(accountID, payload);
+        notify("success", `Channel ${payload.name} created`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        notify("error", `Create channel failed: ${msg}`);
+      }
+    },
+    [createChannel, notify],
+  );
+
+  const handleCreateDelivery = useCallback(
+    async (accountID: string, payload: { channelId: string; body: Record<string, any>; metadata?: Record<string, string> }) => {
+      try {
+        await createDelivery(accountID, payload.channelId, { body: payload.body, metadata: payload.metadata });
+        notify("success", "Delivery queued");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        notify("error", `Create delivery failed: ${msg}`);
+      }
+    },
+    [createDelivery, notify],
   );
 
   return (
@@ -268,8 +300,8 @@ export function App() {
                 onRetryOracle={retryOracle}
                 onCopyCursor={copyCursor}
                 onSetAggregation={handleSetAggregation}
-                onCreateChannel={(accountID, payload) => createChannel(accountID, payload)}
-                onCreateDelivery={(accountID, payload) => createDelivery(accountID, payload.channelId, { body: payload.body, metadata: payload.metadata })}
+                onCreateChannel={(accountID, payload) => handleCreateChannel(accountID, payload)}
+                onCreateDelivery={(accountID, payload) => handleCreateDelivery(accountID, payload)}
                 onNotify={notify}
                 setFilter={(accountID, value) => setOracleFilters((prev) => ({ ...prev, [accountID]: value }))}
                 formatSnippet={formatSnippet}
