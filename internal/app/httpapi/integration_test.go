@@ -132,6 +132,14 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if filtered.Code != http.StatusOK {
 		t.Fatalf("expected 200 for filtered audit, got %d", filtered.Code)
 	}
+	// Token-only (non-admin) should be forbidden on admin paths even with tenant header.
+	tokenAudit := doWithHeaders(t, client, server.URL+"/admin/audit?limit=1", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-a",
+	})
+	if tokenAudit.Code != http.StatusForbidden && tokenAudit.Code != http.StatusUnauthorized {
+		t.Fatalf("expected forbidden/unauthorized for token auth on admin, got %d", tokenAudit.Code)
+	}
 
 	// Secret create/list
 	secretResp := do(t, client, server.URL+"/accounts/"+accountID+"/secrets", http.MethodPost, marshalBody(t, map[string]any{
@@ -185,6 +193,22 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	}), "dev-token")
 	if delResp.Code != http.StatusCreated {
 		t.Fatalf("create datalink delivery status: %d", delResp.Code)
+	}
+	delList := do(t, client, server.URL+"/accounts/"+accountID+"/datalink/deliveries?limit=5", http.MethodGet, nil, "dev-token")
+	if delList.Code != http.StatusOK {
+		t.Fatalf("list datalink deliveries status: %d", delList.Code)
+	}
+
+	// Random generation
+	randResp := do(t, client, server.URL+"/accounts/"+accountID+"/random", http.MethodPost, marshalBody(t, map[string]any{
+		"length": 8,
+	}), "dev-token")
+	if randResp.Code != http.StatusOK {
+		t.Fatalf("random generate status: %d", randResp.Code)
+	}
+	randList := do(t, client, server.URL+"/accounts/"+accountID+"/random/requests?limit=5", http.MethodGet, nil, "dev-token")
+	if randList.Code != http.StatusOK {
+		t.Fatalf("random list status: %d", randList.Code)
 	}
 }
 
