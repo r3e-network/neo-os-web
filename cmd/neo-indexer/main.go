@@ -174,12 +174,18 @@ type txVerbose struct {
 
 type appLog struct {
 	Executions []struct {
-		Notifications []struct {
-			Contract string      `json:"contract"`
-			Event    string      `json:"eventname"`
-			State    interface{} `json:"state"`
-		} `json:"notifications"`
+		VMState       string        `json:"vmstate"`
+		Exception     string        `json:"exception"`
+		GasConsumed   string        `json:"gasconsumed"`
+		Stack         interface{}   `json:"stack"`
+		Notifications []notification `json:"notifications"`
 	} `json:"executions"`
+}
+
+type notification struct {
+	Contract string      `json:"contract"`
+	Event    string      `json:"eventname"`
+	State    interface{} `json:"state"`
 }
 
 func (c *rpcClient) do(ctx context.Context, method string, params []interface{}, out interface{}) error {
@@ -234,7 +240,7 @@ func (c *rpcClient) getBlock(ctx context.Context, hash string) (blockHeader, err
 
 func (c *rpcClient) getApplicationLog(ctx context.Context, hash string) (appLog, error) {
 	var logResp appLog
-	if err := c.do(ctx, "getapplicationlog", []interface{}{hash}, &logResp); err != nil {
+	if err := c.do(ctx, "getapplicationlog", []interface{}{hash, "verbose"}, &logResp); err != nil {
 		return appLog{}, err
 	}
 	return logResp, nil
@@ -245,6 +251,7 @@ func ensureSchema(ctx context.Context, db *sql.DB) error {
 		CREATE TABLE IF NOT EXISTS neo_blocks (
 			height BIGINT PRIMARY KEY,
 			hash TEXT NOT NULL,
+			state_root TEXT,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
 	`)
@@ -283,10 +290,10 @@ func ensureSchema(ctx context.Context, db *sql.DB) error {
 
 func upsertBlock(ctx context.Context, db *sql.DB, height int64, hash string) error {
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO neo_blocks (height, hash)
-		VALUES ($1, $2)
-		ON CONFLICT (height) DO UPDATE SET hash = EXCLUDED.hash
-	`, height, hash)
+		INSERT INTO neo_blocks (height, hash, state_root)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (height) DO UPDATE SET hash = EXCLUDED.hash, state_root = EXCLUDED.state_root
+	`, height, hash, nil)
 	return err
 }
 
