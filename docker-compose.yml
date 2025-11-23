@@ -34,6 +34,32 @@ services:
     depends_on:
       - service-layer
 
+  neo-mainnet:
+    image: ngdenterprise/neo-cli:3.6.0
+    profiles: ["neo"]
+    command: [ "dotnet", "neo-cli.dll", "/mainnet", "/log", "/rpc" ]
+    environment:
+      - NEO_NETWORK=mainnet
+    volumes:
+      - neo-mainnet-chain:/neo-cli/Chains/MainNet
+      - neo-plugins:/neo-cli/Plugins
+    ports:
+      - "10332:10332" # RPC
+    restart: unless-stopped
+
+  neo-testnet:
+    image: ngdenterprise/neo-cli:3.6.0
+    profiles: ["neo"]
+    command: [ "dotnet", "neo-cli.dll", "/testnet", "/log", "/rpc" ]
+    environment:
+      - NEO_NETWORK=testnet
+    volumes:
+      - neo-testnet-chain:/neo-cli/Chains/TestNet
+      - neo-plugins:/neo-cli/Plugins
+    ports:
+      - "10342:10332" # RPC forwarded for testnet
+    restart: unless-stopped
+
   postgres:
     image: postgres:14-alpine
     ports:
@@ -52,3 +78,6 @@ services:
 
 volumes:
   postgres-data:
+  neo-mainnet-chain:
+  neo-testnet-chain:
+  neo-plugins:
