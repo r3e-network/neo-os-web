@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 // Config controls the indexer polling loop.
@@ -19,6 +22,7 @@ type Config struct {
 	Network     string
 	StartHeight int64
 	PollInterval time.Duration
+	DSN         string
 }
 
 func main() {
@@ -27,6 +31,7 @@ func main() {
 	flag.StringVar(&cfg.Network, "network", envDefault("NEO_NETWORK", "mainnet"), "network label (mainnet|testnet)")
 	flag.Int64Var(&cfg.StartHeight, "start-height", 0, "height to start indexing from (0 means current height)")
 	flag.DurationVar(&cfg.PollInterval, "poll", durationEnv("NEO_POLL_INTERVAL", 5*time.Second), "poll interval for new blocks")
+	flag.StringVar(&cfg.DSN, "dsn", envDefault("NEO_INDEXER_DSN", ""), "Postgres DSN for persisting chain data (optional)")
 	flag.Parse()
 
 	log.Printf("neo-indexer (network=%s rpc=%s start=%d poll=%s)", cfg.Network, cfg.RPCURL, cfg.StartHeight, cfg.PollInterval)
@@ -36,19 +41,57 @@ func main() {
 
 	client := newRPCClient(cfg.RPCURL)
 
-	// TODO: wire Postgres store and proper block processing.
+	var db *sql.DB
+	if cfg.DSN != "" {
+		var err error
+		db, err = sql.Open("postgres", cfg.DSN)
+		if err != nil {
+			log.Fatalf("open db: %v", err)
+		}
+		if err := db.PingContext(ctx); err != nil {
+			log.Fatalf("ping db: %v", err)
+		}
+		if err := ensureSchema(ctx, db); err != nil {
+			log.Fatalf("ensure schema: %v", err)
+		}
+		defer db.Close()
+	}
+
+	height := cfg.StartHeight
+	if height == 0 {
+		chainHeight, err := client.getBlockCount(ctx)
+		if err != nil {
+			log.Fatalf("fetch chain height: %v", err)
+		}
+		height = chainHeight - 1
+	}
+
 	ticker := time.NewTicker(cfg.PollInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			height, err := client.getBlockCount(ctx)
+			chainHeight, err := client.getBlockCount(ctx)
 			if err != nil {
 				log.Printf("neo-indexer: failed to fetch height: %v", err)
 				continue
 			}
-			log.Printf("neo-indexer tick: chain height=%d (stub; persist not implemented)", height)
+			for height < chainHeight {
+				hash, err := client.getBlockHash(ctx, height)
+				if err != nil {
+					log.Printf("get block hash height=%d: %v", height, err)
+					break
+				}
+				log.Printf("indexed height=%d hash=%s", height, hash)
+				if db != nil {
+					if err := upsertBlock(ctx, db, height, hash); err != nil {
+						log.Printf("persist block height=%d: %v", height, err)
+						break
+					}
+				}
+				height++
+			}
 		case <-ctx.Done():
 			return
 		}
@@ -126,4 +169,32 @@ func (c *rpcClient) getBlockCount(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+func (c *rpcClient) getBlockHash(ctx context.Context, height int64) (string, error) {
+	var hash string
+	if err := c.do(ctx, "getblockhash", []interface{}{height}, &hash); err != nil {
+		return "", err
+	}
+	return hash, nil
+}
+
+func ensureSchema(ctx context.Context, db *sql.DB) error {
+	_, err := db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS neo_blocks (
+			height BIGINT PRIMARY KEY,
+			hash TEXT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`)
+	return err
+}
+
+func upsertBlock(ctx context.Context, db *sql.DB, height int64, hash string) error {
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO neo_blocks (height, hash)
+		VALUES ($1, $2)
+		ON CONFLICT (height) DO UPDATE SET hash = EXCLUDED.hash
+	`, height, hash)
+	return err
 }
