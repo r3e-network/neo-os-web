@@ -199,7 +199,7 @@ func NewApplication(options ...Option) (*Application, error) {
 		log.Info("login enabled via /auth/login (JWT); API tokens also supported")
 	}
 
-	httpSvc := httpapi.NewService(application, listenAddr, tokens, jamCfg, authMgr, log)
+	httpSvc := httpapi.NewService(application, listenAddr, tokens, jamCfg, authMgr, log, db)
 	if err := application.Attach(httpSvc); err != nil {
 		if db != nil {
 			_ = db.Close()

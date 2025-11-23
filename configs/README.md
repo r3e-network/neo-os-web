@@ -59,7 +59,7 @@ for any shared environment. JWT tokens and static tokens can be supplied via
 
 ## Auditing
 - The HTTP layer keeps a rolling in-memory audit buffer (latest 300 entries).
-- To persist audits, set `AUDIT_LOG_PATH=/var/log/service-layer-audit.jsonl` (JSONL output).
+- To persist audits, set `AUDIT_LOG_PATH=/var/log/service-layer-audit.jsonl` (JSONL output). When PostgreSQL is configured, audits are also written to the `http_audit_log` table automatically.
 - Admin-only `/admin/audit?limit=200` returns recent entries; the dashboard Admin panel renders the most recent 20. Admin JWT is required (token-only auth is not admin).
 
 ## Security Block

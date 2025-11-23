@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"os"
 	"sync"
@@ -97,5 +99,32 @@ func (s *fileAuditSink) Write(entry auditEntry) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_, err = s.file.Write(append(b, '\n'))
+	return err
+}
+
+// postgresAuditSink writes audit entries to the http_audit_log table when Postgres is configured.
+type postgresAuditSink struct {
+	db *sql.DB
+}
+
+func newPostgresAuditSink(db *sql.DB) auditSink {
+	if db == nil {
+		return nil
+	}
+	return &postgresAuditSink{db: db}
+}
+
+func (s *postgresAuditSink) Write(entry auditEntry) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO http_audit_log
+			(occurred_at, user_name, role_name, tenant, path, method, status, remote_addr, user_agent)
+		VALUES
+			($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`, entry.Time, entry.User, entry.Role, entry.Tenant, entry.Path, entry.Method, entry.Status, entry.RemoteAddr, entry.UserAgent)
 	return err
 }

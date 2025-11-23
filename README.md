@@ -33,6 +33,7 @@ experimentation, or wire itself to PostgreSQL when a DSN is supplied.
 - HTTP API located in `internal/app/httpapi`, exposing the new surface under
   `/accounts/...`
 - Auditing: in-memory by default, with optional JSONL persistence via `AUDIT_LOG_PATH` and an admin-only `/admin/audit` endpoint (dashboard viewer included).
+  When PostgreSQL is configured, audits also persist to the `http_audit_log` table automatically.
 
 ## Quick Start
 
@@ -67,6 +68,7 @@ go run ./cmd/appserver -dsn "postgres://user:pass@localhost:5432/service_layer?s
 Auditing (optional):
 - Set `AUDIT_LOG_PATH=/var/log/service-layer-audit.jsonl` to persist audit events (JSONL) in addition to the in-memory buffer.
 - View recent audit entries via `GET /admin/audit?limit=200` (admin JWT required) or the dashboard Admin panel. Token-only auth is not admin.
+ - When running with PostgreSQL, audit entries are also stored in `http_audit_log`.
 
 Examples for Devpack usage live under `examples/functions/devpack` (JS + TS samples for price feeds, randomness, gasbank/oracle orchestration). API examples for all services are in `docs/examples/services.md`. Polyglot SDKs mirroring the Devpack surface live under `sdk/go`, `sdk/rust`, and `sdk/python`.
 

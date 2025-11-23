@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"os"
 	"strings"
@@ -22,7 +23,7 @@ type Service struct {
 	log     *logger.Logger
 }
 
-func NewService(application *app.Application, addr string, tokens []string, jamCfg jam.Config, authMgr authManager, log *logger.Logger) *Service {
+func NewService(application *app.Application, addr string, tokens []string, jamCfg jam.Config, authMgr authManager, log *logger.Logger, db *sql.DB) *Service {
 	if log == nil {
 		log = logger.NewDefault("http")
 	}
@@ -34,6 +35,8 @@ func NewService(application *app.Application, addr string, tokens []string, jamC
 		} else {
 			log.Warnf("audit log file not configured: %v", err)
 		}
+	} else if db != nil {
+		auditSink = newPostgresAuditSink(db)
 	}
 	audit := newAuditLog(300, auditSink)
 	handler := NewHandler(application, jamCfg, tokens, authMgr, audit)
