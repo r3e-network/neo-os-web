@@ -234,6 +234,19 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if noTenantFeeds.Code != http.StatusForbidden {
 		t.Fatalf("expected forbidden for datafeeds without tenant, got %d", noTenantFeeds.Code)
 	}
+	wrongTenantPricefeeds := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/pricefeeds", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantPricefeeds.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for pricefeeds with wrong tenant, got %d", wrongTenantPricefeeds.Code)
+	}
+	noTenantPricefeeds := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/pricefeeds", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantPricefeeds.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for pricefeeds without tenant, got %d", noTenantPricefeeds.Code)
+	}
 
 	// Oracle source + request
 	srcResp := do(t, client, server.URL+"/accounts/"+accountID+"/oracle/sources", http.MethodPost, marshalBody(t, map[string]any{
