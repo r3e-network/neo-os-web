@@ -23,6 +23,7 @@ type Config struct {
 	StartHeight int64
 	PollInterval time.Duration
 	DSN         string
+	BatchSize   int64
 }
 
 func main() {
@@ -32,9 +33,10 @@ func main() {
 	flag.Int64Var(&cfg.StartHeight, "start-height", 0, "height to start indexing from (0 means current height)")
 	flag.DurationVar(&cfg.PollInterval, "poll", durationEnv("NEO_POLL_INTERVAL", 5*time.Second), "poll interval for new blocks")
 	flag.StringVar(&cfg.DSN, "dsn", envDefault("NEO_INDEXER_DSN", ""), "Postgres DSN for persisting chain data (optional)")
+	flag.Int64Var(&cfg.BatchSize, "batch", 50, "max blocks to process per tick")
 	flag.Parse()
 
-	log.Printf("neo-indexer (network=%s rpc=%s start=%d poll=%s)", cfg.Network, cfg.RPCURL, cfg.StartHeight, cfg.PollInterval)
+	log.Printf("neo-indexer (network=%s rpc=%s start=%d poll=%s batch=%d)", cfg.Network, cfg.RPCURL, cfg.StartHeight, cfg.PollInterval, cfg.BatchSize)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -74,10 +76,14 @@ func main() {
 		case <-ticker.C:
 			chainHeight, err := client.getBlockCount(ctx)
 			if err != nil {
-				log.Printf("neo-indexer: failed to fetch height: %v", err)
-				continue
+			log.Printf("neo-indexer: failed to fetch height: %v", err)
+			continue
+		}
+			maxHeight := chainHeight
+			if cfg.BatchSize > 0 && (height+cfg.BatchSize) < chainHeight {
+				maxHeight = height + cfg.BatchSize
 			}
-			for height < chainHeight {
+			for height < maxHeight {
 				hash, err := client.getBlockHash(ctx, height)
 				if err != nil {
 					log.Printf("get block hash height=%d: %v", height, err)
