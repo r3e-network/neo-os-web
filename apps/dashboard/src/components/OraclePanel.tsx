@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { OracleRequest, OracleSource } from "../api";
 
 export type OracleState =
@@ -28,6 +29,7 @@ type Props = {
   formatSnippet: (value: string, limit?: number) => string;
   formatTimestamp: (value?: string) => string;
   formatDuration: (ms?: number) => string;
+  onNotify?: (type: "success" | "error", message: string) => void;
 };
 
 function summarizeOracleRequests(requests: OracleRequest[]) {
@@ -91,6 +93,7 @@ export function OraclePanel({
   formatTimestamp,
   formatDuration,
   tenant,
+  onNotify,
 }: Props) {
   if (!oracleState || oracleState.status === "idle") return null;
   if (oracleState.status === "error") return <p className="error">Oracle: {oracleState.message}</p>;
@@ -105,6 +108,12 @@ export function OraclePanel({
       : filterValue === "all"
         ? oracleState.requests
         : oracleState.requests.filter((req) => req.Status === filterValue);
+
+  useEffect(() => {
+    if (banner && onNotify) {
+      onNotify(banner.tone, banner.message);
+    }
+  }, [banner, onNotify]);
 
   return (
     <div className="vrf">

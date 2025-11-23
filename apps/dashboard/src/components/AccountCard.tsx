@@ -294,6 +294,7 @@ export function AccountCard({
         formatTimestamp={formatTimestamp}
         formatDuration={formatDuration}
         tenant={activeTenant}
+        onNotify={onNotify}
       />
       <RandomPanel randomState={randomState} formatSnippet={formatSnippet} formatTimestamp={formatTimestamp} />
     </li>
