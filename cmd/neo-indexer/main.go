@@ -39,10 +39,10 @@ func main() {
 
 	log.Printf("neo-indexer (network=%s rpc=%s start=%d poll=%s batch=%d)", cfg.Network, cfg.RPCURL, cfg.StartHeight, cfg.PollInterval, cfg.BatchSize)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
-	client := newRPCClient(cfg.RPCURL)
+		client := newRPCClient(cfg.RPCURL)
 
 	var db *sql.DB
 	if cfg.DSN != "" {
