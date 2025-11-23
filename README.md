@@ -79,7 +79,7 @@ ensure gas accounts and submit oracle requests.
 ## Operator Interfaces
 
 - **CLI (`cmd/slctl`)** — wraps the HTTP API for scripting. Honours `SERVICE_LAYER_ADDR`
-  and `SERVICE_LAYER_TOKEN` like the server. Use it to create accounts, register functions,
+  and `SERVICE_LAYER_TOKEN` like the server; set `--tenant` / `SERVICE_LAYER_TENANT` to send `X-Tenant-ID` when needed. Use it to create accounts, register functions,
   request randomness (`slctl random generate --account <id> --length 64`) or inspect recent draws (`slctl random list --account <id>`), and inspect automation/oracle history from a terminal.
 - **Dashboard (`apps/dashboard`)** — React + Vite SPA for day-to-day operations. See
   `apps/dashboard/README.md` for Docker/local instructions. Configure API and Prometheus
