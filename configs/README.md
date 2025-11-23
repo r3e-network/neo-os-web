@@ -55,7 +55,7 @@ protected endpoints return 401 and only `/healthz` + `/system/version` remain
 public for probes/discovery. Local defaults set `API_TOKENS=dev-token` and
 `AUTH_USERS=admin:changeme:admin` for a quick compose experience—override both
 for any shared environment. JWT tokens and static tokens can be supplied via
-`Authorization: Bearer ...` or `?token=` query parameters.
+`Authorization: Bearer ...` headers. Avoid query parameters for tokens.
 
 ## Auditing
 - The HTTP layer keeps a rolling in-memory audit buffer (latest 300 entries).

@@ -145,7 +145,6 @@ export function AccountCard({
     new URLSearchParams(existing).forEach((v, k) => qs.set(k, v));
   }
   qs.set("baseUrl", window.localStorage.getItem("sl-ui.baseUrl") || "");
-  qs.set("token", window.localStorage.getItem("sl-ui.token") || "");
   if (accountTenant) {
     qs.set("tenant", accountTenant);
   }
@@ -159,7 +158,7 @@ export function AccountCard({
           <div className="row gap">
             {account.Metadata?.tenant && <span className="tag">Tenant: {account.Metadata.tenant}</span>}
             {!account.Metadata?.tenant && <span className="tag subdued">Unscoped</span>}
-            <a className="tag subtle" href={accountLink} target="_blank" rel="noreferrer">
+            <a className="tag subtle" href={accountLink} target="_blank" rel="noreferrer" title="Prefills base URL and tenant only (token not included)">
               Deep link
             </a>
           </div>

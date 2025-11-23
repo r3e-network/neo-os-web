@@ -135,6 +135,10 @@ func (h *handler) maybeMountJAM(mux *http.ServeMux) {
 
 func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 	tenant := tenantFromCtx(r.Context())
+	if tenant == "" {
+		writeError(w, http.StatusForbidden, fmt.Errorf("tenant required"))
+		return
+	}
 	switch r.Method {
 	case http.MethodPost:
 		var payload struct {
@@ -171,14 +175,7 @@ func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 		filtered := make([]domainaccount.Account, 0, len(accts))
 		for _, a := range accts {
 			accountTenant := strings.TrimSpace(tenantFromMetadata(a.Metadata))
-			if tenant != "" {
-				if accountTenant == tenant {
-					filtered = append(filtered, a)
-				}
-				continue
-			}
-			// Without a tenant header, only return unscoped accounts to avoid leakage.
-			if accountTenant == "" {
+			if accountTenant == tenant {
 				filtered = append(filtered, a)
 			}
 		}
@@ -207,6 +204,10 @@ func (h *handler) accountResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	requestTenant := strings.TrimSpace(tenantFromCtx(r.Context()))
+	if requestTenant == "" {
+		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: tenant required"))
+		return
+	}
 	if accountTenant != "" && accountTenant != requestTenant {
 		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: tenant mismatch"))
 		return

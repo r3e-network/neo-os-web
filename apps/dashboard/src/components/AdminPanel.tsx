@@ -46,9 +46,9 @@ export function AdminPanel({ systemState, baseUrl, token, tenant }: Props) {
   if (systemState.status !== "ready") return null;
   const { descriptors, version, jam, accounts } = systemState;
   const services = descriptors ?? [];
-  const statusUrl = `${baseUrl}/system/status?token=${encodeURIComponent(token)}`;
+  const statusUrl = `${baseUrl}/system/status`;
   const metricsUrl = `${baseUrl}/metrics`;
-  const versionUrl = `${baseUrl}/system/version?token=${encodeURIComponent(token)}`;
+  const versionUrl = `${baseUrl}/system/version`;
 
   return (
     <section className="card inner">

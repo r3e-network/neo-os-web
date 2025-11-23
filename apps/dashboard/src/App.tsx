@@ -47,18 +47,14 @@ export function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const qsBase = params.get("api") || params.get("base") || params.get("baseUrl") || params.get("endpoint");
-    const qsToken = params.get("token") || params.get("api_token");
     const qsTenant = params.get("tenant");
     if (qsBase) {
       setBaseUrl(normaliseUrl(qsBase));
     }
-    if (qsToken) {
-      setToken(qsToken);
-    }
     if (qsTenant) {
       setTenant(qsTenant);
     }
-  }, [setBaseUrl, setTenant, setToken]);
+  }, [setBaseUrl, setTenant]);
 
   const {
     wallets,

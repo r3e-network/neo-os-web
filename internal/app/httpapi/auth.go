@@ -120,12 +120,6 @@ func extractToken(r *http.Request) string {
 	if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
 		return strings.TrimSpace(parts[1])
 	}
-	if t := strings.TrimSpace(r.URL.Query().Get("token")); t != "" {
-		return t
-	}
-	if t := strings.TrimSpace(r.URL.Query().Get("api_token")); t != "" {
-		return t
-	}
 	return ""
 }
 

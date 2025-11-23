@@ -192,20 +192,12 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if noTenant.Code != http.StatusForbidden {
 		t.Fatalf("expected forbidden without tenant when account is tenant-scoped, got %d", noTenant.Code)
 	}
-	// List without tenant should not leak tenant-tagged accounts.
+	// List without tenant should be forbidden.
 	publicList := doWithHeaders(t, client, server.URL+"/accounts", http.MethodGet, nil, map[string]string{
 		"Authorization": "Bearer dev-token",
 	})
-	if publicList.Code != http.StatusOK {
+	if publicList.Code != http.StatusForbidden {
 		t.Fatalf("public list status: %d", publicList.Code)
-	}
-	var publicAccounts []map[string]any
-	_ = json.Unmarshal(publicList.Body.Bytes(), &publicAccounts)
-	for _, acc := range publicAccounts {
-		meta, _ := acc["Metadata"].(map[string]any)
-		if meta != nil && meta["tenant"] != nil && meta["tenant"] != "" {
-			t.Fatalf("public list should not include tenant-scoped accounts")
-		}
 	}
 	// Access tenant-scoped resources should fail without or with mismatched tenant, succeed with correct tenant.
 	noTenantSecret := doWithHeaders(t, client, server.URL+"/accounts/"+tenantBAccount+"/secrets", http.MethodGet, nil, map[string]string{
@@ -351,6 +343,7 @@ func do(t *testing.T, client *http.Client, url, method string, body io.Reader, t
 	}
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("X-Tenant-ID", "tenant-a")
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")

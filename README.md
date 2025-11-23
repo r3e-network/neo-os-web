@@ -48,7 +48,7 @@ make run  # copies .env.example if missing, then docker compose up -d --build
 
 Once up:
 - API: http://localhost:8080 (auth: `Authorization: Bearer dev-token` or JWT via `/auth/login` using admin/changeme)
-- Dashboard: http://localhost:8081 (prefills when opened as `http://localhost:8081/?baseUrl=http://localhost:8080&token=dev-token`)
+- Dashboard: http://localhost:8081 (prefills when opened as `http://localhost:8081/?baseUrl=http://localhost:8080`; configure token in settings)
 - Public site: http://localhost:8082
 - Multi-tenant note: if you include `X-Tenant-ID` (or `?tenant=`/`--tenant` in CLI) when creating an account, all subsequent access to that account and its resources must use the same tenant header. Listing without a tenant shows only unscoped accounts; admin endpoints always require both an admin JWT and a tenant header.
 - Dashboard settings include an optional Tenant field that will be sent as `X-Tenant-ID` for all API calls when populated.
@@ -132,14 +132,13 @@ everything is persisted. The compose stack waits for Postgres health
 (`pg_isready`) before starting the appserver.
 Compose will read a `.env` file automatically if present; copy `.env.example`
 to `.env` when you want to override the defaults.
-- Any endpoint also accepts a query token for convenience, e.g.
-  `http://localhost:8080/system/status?token=dev-token`.
+- Authenticate with the `Authorization: Bearer <token>` header; query tokens are disabled for production safety.
 
 Once running:
 - API: `http://localhost:8080` (use `Authorization: Bearer <jwt>`; obtain via `/auth/login` or wallet login)
 - Dashboard: `http://localhost:8081` (configure API URL/token in settings)
 - Public site: `http://localhost:8082` (marketing/docs entry)
-- Login (JWT): `POST /auth/login` with configured `AUTH_USERS` and `AUTH_JWT_SECRET`; all endpoints also accept `?token=<API_TOKEN>`.
+- Login (JWT): `POST /auth/login` with configured `AUTH_USERS` and `AUTH_JWT_SECRET`; endpoints require the `Authorization` header (no query tokens).
 - **Production:** override `API_TOKENS`, `AUTH_USERS`, and `AUTH_JWT_SECRET` (the repo defaults are for local compose only).
 
 ## Configuration Notes

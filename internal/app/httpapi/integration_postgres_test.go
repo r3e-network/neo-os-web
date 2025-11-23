@@ -189,16 +189,8 @@ func TestIntegrationPostgres(t *testing.T) {
 	publicList := doWithHeaders(t, client, server.URL+"/accounts", http.MethodGet, nil, map[string]string{
 		"Authorization": "Bearer dev-token",
 	})
-	if publicList.Code != http.StatusOK {
+	if publicList.Code != http.StatusForbidden {
 		t.Fatalf("public list status: %d", publicList.Code)
-	}
-	var publicAccounts []map[string]any
-	_ = json.Unmarshal(publicList.Body.Bytes(), &publicAccounts)
-	for _, acc := range publicAccounts {
-		meta, _ := acc["Metadata"].(map[string]any)
-		if meta != nil && meta["tenant"] != nil && meta["tenant"] != "" {
-			t.Fatalf("public list should not include tenant-scoped accounts")
-		}
 	}
 
 	// Tenant-scoped resources should reject missing tenant and accept correct tenant.

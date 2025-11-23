@@ -14,7 +14,7 @@
       <p class="subtitle">Feeds, DataLink, streams, JAM, gas bank, oracle, automation — unified under one API, one console, one control plane.</p>
       <div class="cta">
         <a class="btn primary" href="http://localhost:8081/?baseUrl=http://localhost:8080&token=dev-token" target="_blank" rel="noreferrer">Open Console</a>
-        <a class="btn ghost" href="http://localhost:8080/system/status?token=dev-token" target="_blank" rel="noreferrer">Live Status</a>
+        <a class="btn ghost" href="http://localhost:8080/system/status" target="_blank" rel="noreferrer">Live Status (requires auth header)</a>
       </div>
       <div class="tagline">Connect wallet or token-based auth. Multi-tenant ready. Local defaults: dev-token or admin/changeme via /auth/login.</div>
     </div>
@@ -80,7 +80,7 @@
       <div class="panel">
         <h3>Developer quick links</h3>
         <ul class="links">
-          <li><a href="http://localhost:8080/system/status?token=dev-token" target="_blank" rel="noreferrer">System status (API)</a></li>
+          <li><a href="http://localhost:8080/system/status" target="_blank" rel="noreferrer">System status (API, auth header required)</a></li>
           <li><a href="http://localhost:8081" target="_blank" rel="noreferrer">Operator console (dashboard)</a></li>
           <li><a href="https://github.com/R3E-Network/service_layer" target="_blank" rel="noreferrer">Source repo</a></li>
           <li><a href="../docs/examples/datafeeds.md" target="_blank" rel="noreferrer">Data Feeds quickstart</a></li>
@@ -111,7 +111,7 @@
     <div>Neo Service Layer • Built for operators and developers</div>
     <div class="footer-links">
       <a href="http://localhost:8081" target="_blank" rel="noreferrer">Console</a>
-      <a href="http://localhost:8080/system/status?token=dev-token" target="_blank" rel="noreferrer">Status</a>
+      <a href="http://localhost:8080/system/status" target="_blank" rel="noreferrer">Status (auth header required)</a>
       <a href="https://github.com/R3E-Network/service_layer" target="_blank" rel="noreferrer">GitHub</a>
     </div>
   </footer>

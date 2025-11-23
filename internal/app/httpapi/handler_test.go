@@ -1457,6 +1457,7 @@ func authedRequest(method, url string, body []byte) *http.Request {
 	}
 	req := httptest.NewRequest(method, url, reader)
 	req.Header.Set("Authorization", "Bearer "+testAuthToken)
+	req.Header.Set("X-Tenant-ID", "tenant-a")
 	return req
 }
 
