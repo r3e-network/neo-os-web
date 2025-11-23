@@ -1,6 +1,6 @@
 # DataLink Quickstart (CLI)
 
-Send an off-chain payload through a DataLink channel with retryable deliveries.
+Send an off-chain payload through a DataLink channel with retryable deliveries. Use `--tenant <TENANT>` (or `SERVICE_LAYER_TENANT`) when accounts are tenant-scoped.
 
 ## Prerequisites
 - Service Layer running (e.g., `go run ./cmd/appserver`).
@@ -9,14 +9,14 @@ Send an off-chain payload through a DataLink channel with retryable deliveries.
 
 ## 1) Create an account
 ```bash
-acct=$(slctl accounts create --owner you | jq -r .id)
+acct=$(slctl accounts create --owner you --metadata '{"tenant":"tenant-a"}' --tenant tenant-a | jq -r .id)
 ```
 
 ## 2) Register a signer wallet
 DataLink channels are gated by workspace wallets.
 ```bash
 signer=0xabc123abc123abc123abc123abc123abc123abcd
-slctl workspace-wallets create --account "$acct" --wallet "$signer" --label link --status active
+slctl workspace-wallets create --account "$acct" --wallet "$signer" --label link --status active --tenant tenant-a
 ```
 
 ## 3) Create a channel
