@@ -14,7 +14,7 @@ import (
 	"github.com/R3E-Network/service_layer/internal/app/jam"
 )
 
-// Basic HTTP integration smoke test covering health, auth, accounts, wallets, datafeeds, secrets, oracle, audit.
+// Basic HTTP integration smoke test covering health, auth, accounts, wallets, datafeeds, secrets, oracle, audit, random, datalink.
 func TestIntegrationHTTPAPI(t *testing.T) {
 	application, err := app.New(app.Stores{}, nil)
 	if err != nil {
