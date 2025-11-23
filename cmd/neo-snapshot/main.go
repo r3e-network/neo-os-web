@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,8 +41,14 @@ func main() {
 	manifestPath := filepath.Join(cfg.OutputDir, fmt.Sprintf("block-%d.json", cfg.Height))
 	kvPath := filepath.Join(cfg.OutputDir, fmt.Sprintf("block-%d-kv.tar.gz", cfg.Height))
 
-	// TODO: implement RPC fetch of state root + storage. For now, emit placeholder manifest.
-	manifest := fmt.Sprintf(`{"network":"%s","height":%d,"state_root":"TODO","kv_path":"%s","generated_at":"%s"}`, cfg.Network, cfg.Height, kvPath, time.Now().UTC().Format(time.RFC3339))
+	stateRoot, err := fetchStateRoot(context.Background(), cfg.RPCURL, cfg.Height)
+	if err != nil {
+		log.Printf("warning: failed to fetch state root (stub placeholder used): %v", err)
+		stateRoot = "TODO"
+	}
+
+	// TODO: implement KV bundle generation.
+	manifest := fmt.Sprintf(`{"network":"%s","height":%d,"state_root":"%s","kv_path":"%s","generated_at":"%s"}`, cfg.Network, cfg.Height, stateRoot, kvPath, time.Now().UTC().Format(time.RFC3339))
 	if err := os.WriteFile(manifestPath, []byte(manifest), 0o644); err != nil {
 		log.Fatalf("write manifest: %v", err)
 	}
@@ -53,4 +63,51 @@ func envDefault(key, def string) string {
 		return v
 	}
 	return def
+}
+
+type rpcRequest struct {
+	JSONRPC string        `json:"jsonrpc"`
+	Method  string        `json:"method"`
+	Params  []interface{} `json:"params"`
+	ID      int           `json:"id"`
+}
+
+type rpcResponse struct {
+	Result json.RawMessage `json:"result"`
+	Error  *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
+type stateRoot struct {
+	Hash string `json:"hash"`
+}
+
+func fetchStateRoot(ctx context.Context, rpcURL string, height int64) (string, error) {
+	body, _ := json.Marshal(rpcRequest{JSONRPC: "2.0", Method: "getstateroot", Params: []interface{}{height}, ID: 1})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, rpcURL, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var rpcResp rpcResponse
+	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
+		return "", err
+	}
+	if rpcResp.Error != nil {
+		return "", fmt.Errorf("rpc error %d: %s", rpcResp.Error.Code, rpcResp.Error.Message)
+	}
+
+	var sr stateRoot
+	if err := json.Unmarshal(rpcResp.Result, &sr); err != nil {
+		return "", err
+	}
+	return sr.Hash, nil
 }
