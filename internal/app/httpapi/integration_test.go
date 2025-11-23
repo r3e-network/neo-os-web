@@ -347,6 +347,19 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if delList.Code != http.StatusOK {
 		t.Fatalf("list datalink deliveries status: %d", delList.Code)
 	}
+	wrongTenantDeliveries := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/datalink/deliveries", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantDeliveries.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for deliveries with wrong tenant, got %d", wrongTenantDeliveries.Code)
+	}
+	noTenantDeliveries := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/datalink/deliveries", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantDeliveries.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for deliveries without tenant, got %d", noTenantDeliveries.Code)
+	}
 
 	// Random generation
 	randResp := do(t, client, server.URL+"/accounts/"+accountID+"/random", http.MethodPost, marshalBody(t, map[string]any{
@@ -358,6 +371,19 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	randList := do(t, client, server.URL+"/accounts/"+accountID+"/random/requests?limit=5", http.MethodGet, nil, "dev-token")
 	if randList.Code != http.StatusOK {
 		t.Fatalf("random list status: %d", randList.Code)
+	}
+	wrongTenantRandom := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/random/requests", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantRandom.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for random list with wrong tenant, got %d", wrongTenantRandom.Code)
+	}
+	noTenantRandom := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/random/requests", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantRandom.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for random list without tenant, got %d", noTenantRandom.Code)
 	}
 
 	// Function + automation job
