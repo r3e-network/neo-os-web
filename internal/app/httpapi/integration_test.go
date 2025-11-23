@@ -289,6 +289,19 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if noTenantOracle.Code != http.StatusForbidden {
 		t.Fatalf("expected forbidden for oracle sources without tenant, got %d", noTenantOracle.Code)
 	}
+	wrongTenantOracleReqs := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/oracle/requests", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantOracleReqs.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for oracle requests with wrong tenant, got %d", wrongTenantOracleReqs.Code)
+	}
+	noTenantOracleReqs := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/oracle/requests", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantOracleReqs.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for oracle requests without tenant, got %d", noTenantOracleReqs.Code)
+	}
 
 	// Oracle source + request
 	srcResp := do(t, client, server.URL+"/accounts/"+accountID+"/oracle/sources", http.MethodPost, marshalBody(t, map[string]any{
@@ -366,6 +379,19 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	}), "dev-token")
 	if jobResp.Code != http.StatusCreated {
 		t.Fatalf("create automation job status: %d", jobResp.Code)
+	}
+	wrongTenantAutomation := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/automation/jobs", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantAutomation.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for automation with wrong tenant, got %d", wrongTenantAutomation.Code)
+	}
+	noTenantAutomation := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/automation/jobs", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantAutomation.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for automation without tenant, got %d", noTenantAutomation.Code)
 	}
 
 	// Pricefeed create/list
