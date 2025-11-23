@@ -235,11 +235,12 @@ treated with equal priority.
 
 - Quick targets:
   - `make build` / `make test` (build outputs land in `./bin`)
-  - `make run` brings up Postgres + appserver + dashboard via docker compose (detached) and prints port info.
-  - `make run-local` runs the appserver binary directly; export `DATABASE_URL` to point at Postgres.
-  - `make build-dashboard` builds the React UI (Node 20+, npm).
-  - `make docker` builds the appserver + dashboard images.
-  - `make docker-compose` (or `make docker-compose-run`) brings up Postgres + appserver + dashboard with sensible defaults.
+- `make run` brings up Postgres + appserver + dashboard via docker compose (detached) and prints port info.
+- `make run-local` runs the appserver binary directly; export `DATABASE_URL` to point at Postgres.
+- `make build-dashboard` builds the React UI (Node 20+, npm).
+- `make typecheck` runs the dashboard TypeScript check; `make smoke` runs Go tests plus dashboard typecheck.
+- `make docker` builds the appserver + dashboard images.
+- `make docker-compose` (or `make docker-compose-run`) brings up Postgres + appserver + dashboard with sensible defaults.
 - Run **all** tests: `go test ./...`
 - Go modules are vendored for offline Docker builds; run `go mod vendor` after
   updating dependencies.
