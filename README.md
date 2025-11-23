@@ -247,3 +247,12 @@ treated with equal priority.
 
 ### Tenant quickstart
 - See `docs/tenant-quickstart.md` for headers, dashboard deep links, CLI flags, and common 403 fixes when running with tenants locally.
+- Fast API smoke (tenant-scoped):
+```bash
+curl -X POST http://localhost:8080/accounts \
+  -H "Authorization: Bearer dev-token" \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-ID: tenant-a" \
+  -d '{"owner":"demo","metadata":{"tenant":"tenant-a"}}'
+curl -H "Authorization: Bearer dev-token" -H "X-Tenant-ID: tenant-a" http://localhost:8080/accounts
+```
