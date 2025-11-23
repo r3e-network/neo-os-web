@@ -12,6 +12,7 @@ type Props = {
   onTokenChange: (value: string) => void;
   onTenantChange: (value: string) => void;
   onPromChange: (value: string) => void;
+  onClear?: () => void;
 };
 
 export function SettingsForm({
@@ -26,6 +27,7 @@ export function SettingsForm({
   onTokenChange,
   onTenantChange,
   onPromChange,
+  onClear,
 }: Props) {
   return (
     <form className="settings" onSubmit={onSubmit}>
@@ -52,6 +54,11 @@ export function SettingsForm({
       <button type="submit" disabled={!canQuery || status === "loading"}>
         {status === "loading" ? "Loading..." : "Connect"}
       </button>
+      {onClear && (
+        <button type="button" className="ghost" onClick={onClear}>
+          Clear session (base URL, token, tenant)
+        </button>
+      )}
     </form>
   );
 }

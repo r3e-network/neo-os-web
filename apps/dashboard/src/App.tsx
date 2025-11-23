@@ -120,6 +120,14 @@ export function App() {
     void load();
   }
 
+  const handleClearSession = useCallback(() => {
+    setToken("");
+    setTenant("");
+    setBaseUrl("http://localhost:8080");
+    setPromBase("http://localhost:9090");
+    resetAccounts();
+  }, [resetAccounts, setBaseUrl, setPromBase, setTenant, setToken]);
+
   const docsLinks = [
     { label: "Data Feeds Quickstart", href: "https://github.com/R3E-Network/service_layer/blob/master/docs/examples/datafeeds.md" },
     { label: "DataLink Quickstart", href: "https://github.com/R3E-Network/service_layer/blob/master/docs/examples/datalink.md" },
@@ -192,6 +200,7 @@ export function App() {
           onTokenChange={setToken}
           onTenantChange={setTenant}
           onPromChange={setPromBase}
+          onClear={handleClearSession}
         />
         {state.status === "error" && <p className="error">Failed to load: {state.message}</p>}
         {state.status === "ready" && (
