@@ -150,6 +150,10 @@ Once running:
   present `Authorization: Bearer <token>`; `/healthz` and `/system/version` stay
   public. When no tokens are configured, protected endpoints return 401 and the
   server logs a warning. Always set tokens for any deployment.
+- Startup safety: when using PostgreSQL, the server validates that all tenant
+  columns exist (as added in migrations `0024`/`0025`). If a legacy schema
+  without tenants is detected, startup fails early with an actionable error so
+  tenant enforcement is never bypassed silently.
 - Oracle dispatcher settings honour the runtime config or `ORACLE_*` env vars:
   `ORACLE_TTL_SECONDS`, `ORACLE_MAX_ATTEMPTS`, `ORACLE_BACKOFF`, and
   `ORACLE_DLQ_ENABLED` control retry/backoff/expiry. `ORACLE_RUNNER_TOKENS`
