@@ -1,0 +1,125 @@
+package httpapi
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	app "github.com/R3E-Network/service_layer/internal/app"
+	"github.com/R3E-Network/service_layer/internal/app/jam"
+)
+
+// Basic HTTP integration smoke test covering health, auth, accounts, wallets, and datafeeds.
+func TestIntegrationHTTPAPI(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	if err := application.Start(context.Background()); err != nil {
+		t.Fatalf("start application: %v", err)
+	}
+	t.Cleanup(func() { _ = application.Stop(context.Background()) })
+
+	tokens := []string{"dev-token"}
+	auditBuf := newAuditLog(100, nil)
+	handler := NewHandler(application, jam.Config{}, tokens, nil, auditBuf)
+	handler = wrapWithAuth(handler, tokens, nil, nil)
+	handler = wrapWithAudit(handler, auditBuf)
+	handler = wrapWithCORS(handler)
+
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	client := server.Client()
+
+	// /healthz should be public
+	if resp, err := client.Get(server.URL + "/healthz"); err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("healthz failed: %v status %d", err, resp.StatusCode)
+	}
+
+	// Unauthorized on protected endpoint
+	if resp, err := client.Get(server.URL + "/accounts"); err != nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated accounts, got %v status %d", err, resp.StatusCode)
+	}
+
+	// Create account
+	acctBody := map[string]any{"owner": "integration"}
+	acctData := marshalBody(t, acctBody)
+	acctResp := do(t, client, server.URL+"/accounts", http.MethodPost, acctData, "dev-token")
+	if acctResp.Code != http.StatusCreated {
+		t.Fatalf("create account status: %d", acctResp.Code)
+	}
+	var acct map[string]any
+	_ = json.Unmarshal(acctResp.Body.Bytes(), &acct)
+	accountID := acct["ID"].(string)
+
+	// Register wallet for signer enforcement
+	walletResp := do(t, client, server.URL+"/accounts/"+accountID+"/workspace-wallets", http.MethodPost, marshalBody(t, map[string]any{
+		"wallet_address": testWalletFeed,
+		"label":          "signer",
+		"status":         "active",
+	}), "dev-token")
+	if walletResp.Code != http.StatusCreated {
+		t.Fatalf("create wallet status: %d", walletResp.Code)
+	}
+
+	// Create datafeed (requires signer)
+	dfResp := do(t, client, server.URL+"/accounts/"+accountID+"/datafeeds", http.MethodPost, marshalBody(t, map[string]any{
+		"pair":              "neo/usd",
+		"decimals":          8,
+		"heartbeat_seconds": 30,
+		"threshold_ppm":     0,
+		"signer_set":        []string{testWalletFeed},
+	}), "dev-token")
+	if dfResp.Code != http.StatusCreated {
+		t.Fatalf("create datafeed status: %d", dfResp.Code)
+	}
+
+	// List accounts
+	listResp := do(t, client, server.URL+"/accounts", http.MethodGet, nil, "dev-token")
+	if listResp.Code != http.StatusOK {
+		t.Fatalf("list accounts status: %d", listResp.Code)
+	}
+	var accounts []map[string]any
+	_ = json.Unmarshal(listResp.Body.Bytes(), &accounts)
+	if len(accounts) == 0 {
+		t.Fatalf("expected at least one account")
+	}
+}
+
+func marshalBody(t *testing.T, v any) *bytes.Reader {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	return bytes.NewReader(b)
+}
+
+func do(t *testing.T, client *http.Client, url, method string, body io.Reader, token string) *httptest.ResponseRecorder {
+	t.Helper()
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	rec := httptest.NewRecorder()
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer resp.Body.Close()
+	rec.Code = resp.StatusCode
+	b, _ := io.ReadAll(resp.Body)
+	rec.Body.Write(b)
+	return rec
+}
