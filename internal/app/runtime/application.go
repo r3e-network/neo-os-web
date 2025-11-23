@@ -129,6 +129,13 @@ func NewApplication(options ...Option) (*Application, error) {
 		return nil, fmt.Errorf("configure stores: %w", err)
 	}
 
+	if db != nil {
+		if err := assertTenantColumns(context.Background(), db); err != nil {
+			_ = db.Close()
+			return nil, fmt.Errorf("schema validation: %w", err)
+		}
+	}
+
 	application, err := app.New(stores, log, app.WithRuntimeConfig(AppRuntimeConfig(cfg)))
 	if err != nil {
 		if db != nil {
@@ -308,6 +315,62 @@ func configurePool(db *sql.DB, cfg config.DatabaseConfig) {
 	if cfg.ConnMaxLifetime > 0 {
 		db.SetConnMaxLifetime(time.Duration(cfg.ConnMaxLifetime) * time.Second)
 	}
+}
+
+// assertTenantColumns ensures the current schema includes tenant columns on critical tables.
+// This prevents accidental launches against older databases that would bypass tenant scoping.
+func assertTenantColumns(ctx context.Context, db *sql.DB) error {
+	type check struct {
+		table string
+		col   string
+	}
+	tables := []check{
+		{"app_accounts", "tenant"},
+		{"app_functions", "tenant"},
+		{"app_triggers", "tenant"},
+		{"app_automation_jobs", "tenant"},
+		{"app_price_feeds", "tenant"},
+		{"app_oracle_sources", "tenant"},
+		{"app_oracle_requests", "tenant"},
+		{"app_vrf_keys", "tenant"},
+		{"app_vrf_requests", "tenant"},
+		{"app_ccip_lanes", "tenant"},
+		{"app_ccip_messages", "tenant"},
+		{"chainlink_datalink_channels", "tenant"},
+		{"chainlink_datalink_deliveries", "tenant"},
+		{"chainlink_data_feeds", "tenant"},
+		{"chainlink_data_feed_updates", "tenant"},
+		{"chainlink_datastreams", "tenant"},
+		{"chainlink_datastream_frames", "tenant"},
+		{"chainlink_dta_products", "tenant"},
+		{"chainlink_dta_orders", "tenant"},
+		{"confidential_enclaves", "tenant"},
+		{"confidential_sealed_keys", "tenant"},
+		{"confidential_attestations", "tenant"},
+		{"app_cre_playbooks", "tenant"},
+		{"app_cre_runs", "tenant"},
+		{"app_gas_accounts", "tenant"},
+		{"app_gas_transactions", "tenant"},
+		{"app_gas_dead_letters", "tenant"},
+		{"app_gas_withdrawal_approvals", "tenant"},
+		{"app_gas_withdrawal_schedules", "tenant"},
+		{"app_gas_settlement_attempts", "tenant"},
+	}
+	for _, tc := range tables {
+		var exists bool
+		if err := db.QueryRowContext(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = $1 AND column_name = $2
+			)
+		`, tc.table, tc.col).Scan(&exists); err != nil {
+			return fmt.Errorf("check column %s.%s: %w", tc.table, tc.col, err)
+		}
+		if !exists {
+			return fmt.Errorf("database missing required column %s.%s for multi-tenant enforcement; run migrations", tc.table, tc.col)
+		}
+	}
+	return nil
 }
 
 func determineListenAddr(cfg *config.Config) string {
