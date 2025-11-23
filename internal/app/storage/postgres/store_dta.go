@@ -76,12 +76,13 @@ func (s *Store) GetProduct(ctx context.Context, id string) (domaindta.Product, e
 }
 
 func (s *Store) ListProducts(ctx context.Context, accountID string) ([]domaindta.Product, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, name, symbol, type, status, settlement_terms, metadata, created_at, updated_at
 		FROM chainlink_dta_products
-		WHERE account_id = $1
+		WHERE account_id = $1 AND ($2 = '' OR tenant = $2)
 		ORDER BY created_at DESC
-	`, accountID)
+	`, accountID, tenant)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +135,14 @@ func (s *Store) GetOrder(ctx context.Context, id string) (domaindta.Order, error
 }
 
 func (s *Store) ListOrders(ctx context.Context, accountID string, limit int) ([]domaindta.Order, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, product_id, type, amount, wallet_address, status, metadata, created_at, updated_at
 		FROM chainlink_dta_orders
-		WHERE account_id = $1
+		WHERE account_id = $1 AND ($2 = '' OR tenant = $2)
 		ORDER BY created_at DESC
-		LIMIT $2
-	`, accountID, limit)
+		LIMIT $3
+	`, accountID, tenant, limit)
 	if err != nil {
 		return nil, err
 	}

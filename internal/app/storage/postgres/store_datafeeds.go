@@ -99,12 +99,13 @@ func (s *Store) GetDataFeed(ctx context.Context, id string) (domaindf.Feed, erro
 }
 
 func (s *Store) ListDataFeeds(ctx context.Context, accountID string) ([]domaindf.Feed, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, pair, description, decimals, heartbeat_seconds, threshold_ppm, signer_set, aggregation, metadata, tags, created_at, updated_at
 		FROM chainlink_data_feeds
-		WHERE account_id = $1
+		WHERE account_id = $1 AND ($2 = '' OR tenant = $2)
 		ORDER BY created_at DESC
-	`, accountID)
+	`, accountID, tenant)
 	if err != nil {
 		return nil, err
 	}

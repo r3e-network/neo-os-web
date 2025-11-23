@@ -76,12 +76,13 @@ func (s *Store) GetStream(ctx context.Context, id string) (domainds.Stream, erro
 }
 
 func (s *Store) ListStreams(ctx context.Context, accountID string) ([]domainds.Stream, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, name, symbol, description, frequency, sla_ms, status, metadata, created_at, updated_at
 		FROM chainlink_datastreams
-		WHERE account_id = $1
+		WHERE account_id = $1 AND ($2 = '' OR tenant = $2)
 		ORDER BY created_at DESC
-	`, accountID)
+	`, accountID, tenant)
 	if err != nil {
 		return nil, err
 	}

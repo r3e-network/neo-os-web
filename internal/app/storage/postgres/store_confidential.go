@@ -76,12 +76,13 @@ func (s *Store) GetEnclave(ctx context.Context, id string) (domainconf.Enclave, 
 }
 
 func (s *Store) ListEnclaves(ctx context.Context, accountID string) ([]domainconf.Enclave, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, name, endpoint, attestation, status, metadata, created_at, updated_at
 		FROM confidential_enclaves
-		WHERE account_id = $1
+		WHERE account_id = $1 AND ($2 = '' OR tenant = $2)
 		ORDER BY created_at DESC
-	`, accountID)
+	`, accountID, tenant)
 	if err != nil {
 		return nil, err
 	}
@@ -124,13 +125,14 @@ func (s *Store) CreateSealedKey(ctx context.Context, key domainconf.SealedKey) (
 }
 
 func (s *Store) ListSealedKeys(ctx context.Context, accountID, enclaveID string, limit int) ([]domainconf.SealedKey, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, enclave_id, name, blob, metadata, created_at
 		FROM confidential_sealed_keys
-		WHERE account_id = $1 AND enclave_id = $2
+		WHERE account_id = $1 AND enclave_id = $2 AND ($3 = '' OR tenant = $3)
 		ORDER BY created_at DESC
-		LIMIT $3
-	`, accountID, enclaveID, limit)
+		LIMIT $4
+	`, accountID, enclaveID, tenant, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -173,13 +175,14 @@ func (s *Store) CreateAttestation(ctx context.Context, att domainconf.Attestatio
 }
 
 func (s *Store) ListAttestations(ctx context.Context, accountID, enclaveID string, limit int) ([]domainconf.Attestation, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, enclave_id, report, valid_until, status, metadata, created_at
 		FROM confidential_attestations
-		WHERE account_id = $1 AND enclave_id = $2
+		WHERE account_id = $1 AND enclave_id = $2 AND ($3 = '' OR tenant = $3)
 		ORDER BY created_at DESC
-		LIMIT $3
-	`, accountID, enclaveID, limit)
+		LIMIT $4
+	`, accountID, enclaveID, tenant, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -197,13 +200,14 @@ func (s *Store) ListAttestations(ctx context.Context, accountID, enclaveID strin
 }
 
 func (s *Store) ListAccountAttestations(ctx context.Context, accountID string, limit int) ([]domainconf.Attestation, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, enclave_id, report, valid_until, status, metadata, created_at
 		FROM confidential_attestations
-		WHERE account_id = $1
+		WHERE account_id = $1 AND ($2 = '' OR tenant = $2)
 		ORDER BY created_at DESC
-		LIMIT $2
-	`, accountID, limit)
+		LIMIT $3
+	`, accountID, tenant, limit)
 	if err != nil {
 		return nil, err
 	}

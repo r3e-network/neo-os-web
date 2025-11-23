@@ -97,12 +97,13 @@ func (s *Store) GetPlaybook(ctx context.Context, id string) (cre.Playbook, error
 }
 
 func (s *Store) ListPlaybooks(ctx context.Context, accountID string) ([]cre.Playbook, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, name, description, steps, tags, metadata, created_at, updated_at
 		FROM app_cre_playbooks
-		WHERE account_id = $1
+		WHERE account_id = $1 AND ($2 = '' OR tenant = $2)
 		ORDER BY created_at DESC
-	`, accountID)
+	`, accountID, tenant)
 	if err != nil {
 		return nil, err
 	}
@@ -205,13 +206,14 @@ func (s *Store) GetRun(ctx context.Context, id string) (cre.Run, error) {
 }
 
 func (s *Store) ListRuns(ctx context.Context, accountID string, limit int) ([]cre.Run, error) {
+	tenant := s.accountTenant(ctx, accountID)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, account_id, playbook_id, executor_id, status, parameters, tags, results, metadata, created_at, updated_at, completed_at
 		FROM app_cre_runs
-		WHERE account_id = $1
+		WHERE account_id = $1 AND ($2 = '' OR tenant = $2)
 		ORDER BY created_at DESC
-		LIMIT $2
-	`, accountID, limit)
+		LIMIT $3
+	`, accountID, tenant, limit)
 	if err != nil {
 		return nil, err
 	}
