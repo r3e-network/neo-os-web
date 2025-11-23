@@ -220,6 +220,20 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if okTenantSecret.Code != http.StatusOK {
 		t.Fatalf("expected ok for tenant-scoped secret list with correct tenant, got %d", okTenantSecret.Code)
 	}
+	// Other tenant-scoped resources should reject missing/wrong tenant.
+	wrongTenantFeeds := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/datafeeds", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+		"X-Tenant-ID":   "tenant-b",
+	})
+	if wrongTenantFeeds.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for datafeeds with wrong tenant, got %d", wrongTenantFeeds.Code)
+	}
+	noTenantFeeds := doWithHeaders(t, client, server.URL+"/accounts/"+accountID+"/datafeeds", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer dev-token",
+	})
+	if noTenantFeeds.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for datafeeds without tenant, got %d", noTenantFeeds.Code)
+	}
 
 	// Oracle source + request
 	srcResp := do(t, client, server.URL+"/accounts/"+accountID+"/oracle/sources", http.MethodPost, marshalBody(t, map[string]any{
