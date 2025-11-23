@@ -1,6 +1,6 @@
 # Data Feeds Quickstart (CLI)
 
-This walkthrough shows how to define a data feed, choose an aggregation strategy, and submit signed rounds via `slctl`.
+This walkthrough shows how to define a data feed, choose an aggregation strategy, and submit signed rounds via `slctl`. All steps assume you pass `--tenant <TENANT>` (or `SERVICE_LAYER_TENANT`) when the account is tenant-scoped.
 
 ## Prerequisites
 - Service Layer running (e.g., `go run ./cmd/appserver`).
@@ -9,7 +9,7 @@ This walkthrough shows how to define a data feed, choose an aggregation strategy
 
 ## 1) Create an account
 ```bash
-acct=$(slctl accounts create --owner you | jq -r .id)
+acct=$(slctl accounts create --owner you --metadata '{"tenant":"tenant-a"}' --tenant tenant-a | jq -r .id)
 ```
 
 ## 2) Register signer wallets
@@ -18,8 +18,8 @@ Data feed submissions are gated by workspace wallets.
 signer1=0xabc123abc123abc123abc123abc123abc123abcd
 signer2=0xdef456def456def456def456def456def456def0
 
-slctl workspace-wallets create --account "$acct" --wallet "$signer1" --label primary --status active
-slctl workspace-wallets create --account "$acct" --wallet "$signer2" --label backup  --status active
+slctl workspace-wallets create --account "$acct" --wallet "$signer1" --label primary --status active --tenant tenant-a
+slctl workspace-wallets create --account "$acct" --wallet "$signer2" --label backup  --status active --tenant tenant-a
 ```
 
 ## 3) Create the feed
@@ -33,7 +33,7 @@ feed=$(slctl datafeeds create \
   --threshold-ppm 0 \
   --aggregation mean \
   --signer-set "$signer1,$signer2" \
-  --metadata '{"env":"dev"}' \
+  --metadata '{"env":"dev"}' --tenant tenant-a \
   | jq -r .id)
 ```
 
