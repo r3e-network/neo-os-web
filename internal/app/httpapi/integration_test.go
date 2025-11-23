@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	app "github.com/R3E-Network/service_layer/internal/app"
+	"github.com/R3E-Network/service_layer/internal/app/auth"
 	"github.com/R3E-Network/service_layer/internal/app/jam"
 )
 
@@ -25,9 +26,10 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	t.Cleanup(func() { _ = application.Stop(context.Background()) })
 
 	tokens := []string{"dev-token"}
+	authMgr := auth.NewManager("integration-secret", []auth.User{{Username: "admin", Password: "pass", Role: "admin"}})
 	auditBuf := newAuditLog(100, nil)
-	handler := NewHandler(application, jam.Config{}, tokens, nil, auditBuf)
-	handler = wrapWithAuth(handler, tokens, nil, nil)
+	handler := NewHandler(application, jam.Config{}, tokens, authMgr, auditBuf)
+	handler = wrapWithAuth(handler, tokens, nil, authMgr)
 	handler = wrapWithAudit(handler, auditBuf)
 	handler = wrapWithCORS(handler)
 
@@ -89,6 +91,33 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	if len(accounts) == 0 {
 		t.Fatalf("expected at least one account")
 	}
+
+	// Admin login to fetch JWT
+	loginResp := do(t, client, server.URL+"/auth/login", http.MethodPost, marshalBody(t, map[string]any{
+		"username": "admin",
+		"password": "pass",
+	}), "")
+	if loginResp.Code != http.StatusOK {
+		t.Fatalf("login status: %d", loginResp.Code)
+	}
+	var login map[string]any
+	_ = json.Unmarshal(loginResp.Body.Bytes(), &login)
+	jwtToken := login["token"].(string)
+
+	// Admin audit requires tenant
+	auditNoTenant := doWithHeaders(t, client, server.URL+"/admin/audit", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer " + jwtToken,
+	})
+	if auditNoTenant.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 without tenant, got %d", auditNoTenant.Code)
+	}
+	auditOK := doWithHeaders(t, client, server.URL+"/admin/audit?limit=10", http.MethodGet, nil, map[string]string{
+		"Authorization": "Bearer " + jwtToken,
+		"X-Tenant-ID":   "tenant-a",
+	})
+	if auditOK.Code != http.StatusOK {
+		t.Fatalf("expected 200 with tenant, got %d", auditOK.Code)
+	}
 }
 
 func marshalBody(t *testing.T, v any) *bytes.Reader {
@@ -111,6 +140,27 @@ func do(t *testing.T, client *http.Client, url, method string, body io.Reader, t
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
+	}
+	rec := httptest.NewRecorder()
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer resp.Body.Close()
+	rec.Code = resp.StatusCode
+	b, _ := io.ReadAll(resp.Body)
+	rec.Body.Write(b)
+	return rec
+}
+
+func doWithHeaders(t *testing.T, client *http.Client, url, method string, body io.Reader, headers map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 	rec := httptest.NewRecorder()
 	resp, err := client.Do(req)

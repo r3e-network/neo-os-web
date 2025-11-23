@@ -91,11 +91,12 @@ func withTenant(ctx context.Context, r *http.Request) context.Context {
 func enforceRole(w http.ResponseWriter, r *http.Request, ctx context.Context) bool {
 	path := r.URL.Path
 	role, _ := ctx.Value(ctxRoleKey).(string)
+	tenant, _ := ctx.Value(ctxTenantKey).(string)
 	if isAdminPath(path) && role != "admin" {
 		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: admin only"))
 		return false
 	}
-	if l := ctx.Value(ctxTenantKey); isAdminPath(path) && l == "" {
+	if isAdminPath(path) && strings.TrimSpace(tenant) == "" {
 		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: tenant required"))
 		return false
 	}
