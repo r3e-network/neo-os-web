@@ -1,17 +1,21 @@
 # Service Layer API Examples
 
-Pragmatic, copy-pasteable examples for each major service. Replace `<TOKEN>` with a valid bearer and `<ACCOUNT_ID>` with your account ID.
+Pragmatic, copy-pasteable examples for each major service. Replace `<TOKEN>` with a valid bearer, `<TENANT>` with your tenant ID, and `<ACCOUNT_ID>` with your account ID.
 
-All commands assume the appserver is running at `http://localhost:8080` and that you set `export TOKEN=<TOKEN>`.
+All commands assume the appserver is running at `http://localhost:8080` and that you set:
+```bash
+export TOKEN=<TOKEN>
+export TENANT=<TENANT_ID>   # omit only if your account is unscoped
+```
 
 ## Accounts
 ```bash
 curl -s -X POST http://localhost:8080/accounts \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $TOKEN" -H "X-Tenant-ID: ${TENANT:-}" \
   -H "Content-Type: application/json" \
-  -d '{"owner":"alice"}'
+  -d '{"owner":"alice","metadata":{"tenant":"'"${TENANT:-}"'"}}'
 
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/accounts
+curl -s -H "Authorization: Bearer $TOKEN" -H "X-Tenant-ID: ${TENANT:-}" http://localhost:8080/accounts
 ```
 
 ## Secrets
