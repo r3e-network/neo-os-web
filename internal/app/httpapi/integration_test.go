@@ -186,7 +186,7 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	}
 	var channel map[string]any
 	_ = json.Unmarshal(channelResp.Body.Bytes(), &channel)
-	channelID := channel["id"].(string)
+	channelID := getID(channel)
 
 	delResp := do(t, client, server.URL+"/accounts/"+accountID+"/datalink/channels/"+channelID+"/deliveries", http.MethodPost, marshalBody(t, map[string]any{
 		"payload": map[string]any{"hello": "world"},
@@ -209,6 +209,53 @@ func TestIntegrationHTTPAPI(t *testing.T) {
 	randList := do(t, client, server.URL+"/accounts/"+accountID+"/random/requests?limit=5", http.MethodGet, nil, "dev-token")
 	if randList.Code != http.StatusOK {
 		t.Fatalf("random list status: %d", randList.Code)
+	}
+
+	// Function + automation job
+	fnResp := do(t, client, server.URL+"/accounts/"+accountID+"/functions", http.MethodPost, marshalBody(t, map[string]any{
+		"name":   "hello",
+		"source": "() => ({ ok: true })",
+	}), "dev-token")
+	if fnResp.Code != http.StatusCreated {
+		t.Fatalf("create function status: %d", fnResp.Code)
+	}
+	var fn map[string]any
+	_ = json.Unmarshal(fnResp.Body.Bytes(), &fn)
+	fnID := getID(fn)
+
+	jobResp := do(t, client, server.URL+"/accounts/"+accountID+"/automation/jobs", http.MethodPost, marshalBody(t, map[string]any{
+		"function_id": fnID,
+		"name":        "job-1",
+		"schedule":    "@every 1m",
+	}), "dev-token")
+	if jobResp.Code != http.StatusCreated {
+		t.Fatalf("create automation job status: %d", jobResp.Code)
+	}
+
+	// Pricefeed create/list
+	pfResp := do(t, client, server.URL+"/accounts/"+accountID+"/pricefeeds", http.MethodPost, marshalBody(t, map[string]any{
+		"base_asset":         "NEO",
+		"quote_asset":        "USD",
+		"update_interval":    "1m",
+		"heartbeat_interval": "2m",
+		"deviation_percent":  1.0,
+	}), "dev-token")
+	if pfResp.Code != http.StatusCreated {
+		t.Fatalf("create pricefeed status: %d", pfResp.Code)
+	}
+	pfList := do(t, client, server.URL+"/accounts/"+accountID+"/pricefeeds", http.MethodGet, nil, "dev-token")
+	if pfList.Code != http.StatusOK {
+		t.Fatalf("list pricefeeds status: %d", pfList.Code)
+	}
+
+	// System status/descriptors
+	statusResp := do(t, client, server.URL+"/system/status", http.MethodGet, nil, "dev-token")
+	if statusResp.Code != http.StatusOK {
+		t.Fatalf("system status status: %d", statusResp.Code)
+	}
+	descrResp := do(t, client, server.URL+"/system/descriptors", http.MethodGet, nil, "dev-token")
+	if descrResp.Code != http.StatusOK {
+		t.Fatalf("system descriptors status: %d", descrResp.Code)
 	}
 }
 
@@ -264,4 +311,18 @@ func doWithHeaders(t *testing.T, client *http.Client, url, method string, body i
 	b, _ := io.ReadAll(resp.Body)
 	rec.Body.Write(b)
 	return rec
+}
+
+func getID(m map[string]any) string {
+	if v, ok := m["id"]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	if v, ok := m["ID"]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
 }
