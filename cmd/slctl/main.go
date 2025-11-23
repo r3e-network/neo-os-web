@@ -30,11 +30,13 @@ func main() {
 func run(ctx context.Context, args []string) error {
 	defaultAddr := getenv("SERVICE_LAYER_ADDR", "http://localhost:8080")
 	defaultToken := os.Getenv("SERVICE_LAYER_TOKEN")
+	defaultTenant := os.Getenv("SERVICE_LAYER_TENANT")
 
 	root := flag.NewFlagSet("slctl", flag.ContinueOnError)
 	root.SetOutput(io.Discard)
 	addrFlag := root.String("addr", defaultAddr, "Service Layer base URL (default env SERVICE_LAYER_ADDR)")
 	tokenFlag := root.String("token", defaultToken, "Bearer token for authentication (env SERVICE_LAYER_TOKEN)")
+	tenantFlag := root.String("tenant", defaultTenant, "Tenant identifier for multi-tenant headers (env SERVICE_LAYER_TENANT)")
 	timeoutFlag := root.Duration("timeout", 15*time.Second, "HTTP request timeout")
 	showVersion := root.Bool("version", false, "Print slctl build information and exit")
 	if err := root.Parse(args); err != nil {
@@ -54,6 +56,7 @@ func run(ctx context.Context, args []string) error {
 	client := &apiClient{
 		baseURL: strings.TrimRight(*addrFlag, "/"),
 		token:   strings.TrimSpace(*tokenFlag),
+		tenant:  strings.TrimSpace(*tenantFlag),
 		http:    httpClient,
 	}
 
@@ -126,6 +129,7 @@ Usage:
 Global Flags:
   --addr       Service Layer base URL (env SERVICE_LAYER_ADDR, default http://localhost:8080)
   --token      API bearer token (env SERVICE_LAYER_TOKEN)
+  --tenant     Tenant identifier (sets X-Tenant-ID; env SERVICE_LAYER_TENANT)
   --timeout    HTTP timeout (default 15s)
   --version    Print CLI build information and exit
 
@@ -158,6 +162,7 @@ Commands:
 type apiClient struct {
 	baseURL string
 	token   string
+	tenant  string
 	http    *http.Client
 }
 
@@ -177,6 +182,9 @@ func (c *apiClient) requestRaw(ctx context.Context, method, path string, body []
 	}
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+	if c.tenant != "" {
+		req.Header.Set("X-Tenant-ID", c.tenant)
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
