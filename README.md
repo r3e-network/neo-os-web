@@ -34,6 +34,7 @@ experimentation, or wire itself to PostgreSQL when a DSN is supplied.
   `/accounts/...`
 - Auditing: in-memory by default, with optional JSONL persistence via `AUDIT_LOG_PATH` and an admin-only `/admin/audit` endpoint (dashboard viewer included).
   When PostgreSQL is configured, audits also persist to the `http_audit_log` table automatically.
+  See `docs/security-hardening.md` for production setup guidance (tokens/tenants/TLS/logging/branch protection).
 
 ## Quick Start
 
