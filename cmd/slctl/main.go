@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -100,13 +102,21 @@ func run(ctx context.Context, args []string) error {
 	case "jam":
 		return handleJAM(ctx, client, remaining[1:])
 	case "status":
-		return handleStatus(ctx, client)
+		return handleStatus(ctx, client, remaining[1:])
 	case "services":
 		return handleServices(ctx, client, remaining[1:])
 	case "audit":
 		return handleAudit(ctx, client, remaining[1:])
 	case "version":
 		return handleVersion(ctx, client)
+	case "neo":
+		return handleNeo(ctx, client, remaining[1:])
+	case "dashboard-link":
+		return handleDashboardLink(client, remaining[1:])
+	case "manifest":
+		return handleManifest(ctx, client, remaining[1:])
+	case "bus":
+		return handleBus(ctx, client, remaining[1:])
 	case "help", "-h", "--help":
 		printRootUsage()
 		return nil
@@ -118,6 +128,14 @@ func run(ctx context.Context, args []string) error {
 func usageError(err error) error {
 	printRootUsage()
 	return err
+}
+
+func prettyJSON(data []byte) string {
+	var out bytes.Buffer
+	if err := json.Indent(&out, data, "", "  "); err != nil {
+		return string(data)
+	}
+	return out.String()
 }
 
 func printRootUsage() {
@@ -154,8 +172,13 @@ Commands:
   workspace-wallets Inspect linked signing wallets
   jam          Interact with JAM prototype (preimages, packages, reports)
   services     Introspect service descriptors
+  bus          Publish events, push data, and invoke compute fan-out
   audit        Fetch recent audit entries (admin JWT required)
-  status       Show health/version/descriptors summary (uses /system/status; health at /healthz is unauthenticated)
+  status       Show health/version/engine status (modules, APIs, descriptors via /system/status; supports --surface and --export; /healthz is unauthenticated)
+  neo          Inspect Neo indexed data (status, checkpoint, blocks, snapshots)
+               Subcommands: status|checkpoint|blocks|block|snapshots|storage|storage-diff|storage-summary|download|verify|verify-manifest|verify-all
+  manifest     Fetch a snapshot manifest, verify hashes and signature, and report results
+  dashboard-link Emit a ready-to-use dashboard URL with api/token/tenant query params
   version      Show CLI and server version information`)
 }
 
@@ -164,6 +187,132 @@ type apiClient struct {
 	token   string
 	tenant  string
 	http    *http.Client
+}
+
+type promSample struct {
+	metric map[string]string
+	value  string
+}
+
+// queryPrometheus executes an instant query and returns samples (string-valued).
+func queryPrometheus(ctx context.Context, promURL, token, query string) ([]promSample, error) {
+	trimmed := strings.TrimSpace(promURL)
+	if trimmed == "" {
+		return nil, errors.New("prom URL required")
+	}
+	if !regexp.MustCompile(`^https?://`).MatchString(trimmed) {
+		trimmed = "http://" + trimmed
+	}
+	u, err := url.Parse(trimmed)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = "/api/v1/query"
+	q := u.Query()
+	q.Set("query", query)
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(token) != "" {
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(token))
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("prom query %s: %s", u.String(), strings.TrimSpace(string(body)))
+	}
+	var payload struct {
+		Status string `json:"status"`
+		Data   struct {
+			Result []struct {
+				Metric map[string]string `json:"metric"`
+				Value  [2]any            `json:"value"`
+			} `json:"result"`
+		} `json:"data"`
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+	if payload.Status != "success" {
+		return nil, fmt.Errorf("prom query failed: %s", payload.Error)
+	}
+	var out []promSample
+	for _, r := range payload.Data.Result {
+		valStr := ""
+		if len(r.Value) == 2 {
+			if s, ok := r.Value[1].(string); ok {
+				valStr = s
+			}
+		}
+		out = append(out, promSample{metric: r.Metric, value: valStr})
+	}
+	return out, nil
+}
+
+func reduceFanoutSamples(samples []promSample) map[string]struct {
+	OK  float64
+	Err float64
+} {
+	type bucket struct {
+		ok  float64
+		err float64
+	}
+	byKind := map[string]*bucket{}
+	for _, s := range samples {
+		kind := s.metric["kind"]
+		if kind == "" {
+			kind = "unknown"
+		}
+		result := s.metric["result"]
+		val, _ := strconv.ParseFloat(s.value, 64)
+		b, ok := byKind[kind]
+		if !ok {
+			b = &bucket{}
+			byKind[kind] = b
+		}
+		if strings.EqualFold(result, "error") {
+			b.err += val
+		} else {
+			b.ok += val
+		}
+	}
+	out := make(map[string]struct {
+		OK  float64
+		Err float64
+	}, len(byKind))
+	for k, v := range byKind {
+		out[k] = struct {
+			OK  float64
+			Err float64
+		}{OK: v.ok, Err: v.err}
+	}
+	return out
+}
+
+func printBusFanoutTable(byKind map[string]struct {
+	OK  float64
+	Err float64
+}) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	fmt.Fprintln(w, "KIND\tOK\tERROR")
+	kinds := make([]string, 0, len(byKind))
+	for k := range byKind {
+		kinds = append(kinds, k)
+	}
+	sort.Strings(kinds)
+	for _, k := range kinds {
+		val := byKind[k]
+		fmt.Fprintf(w, "%s\t%.0f\t%.0f\n", k, val.OK, val.Err)
+	}
+	_ = w.Flush()
 }
 
 func (c *apiClient) request(ctx context.Context, method, path string, payload any) ([]byte, error) {
@@ -213,6 +362,28 @@ func (c *apiClient) requestRaw(ctx context.Context, method, path string, body []
 	return data, resp.Header, nil
 }
 
+func handleDashboardLink(client *apiClient, args []string) error {
+	fs := flag.NewFlagSet("dashboard-link", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	dashboard := fs.String("dashboard", "http://localhost:8081", "Dashboard base URL")
+	if err := fs.Parse(args); err != nil {
+		return usageError(err)
+	}
+	base := strings.TrimRight(*dashboard, "/")
+	api := client.baseURL
+	values := url.Values{}
+	values.Set("api", api)
+	if client.token != "" {
+		values.Set("token", client.token)
+	}
+	if client.tenant != "" {
+		values.Set("tenant", client.tenant)
+	}
+	link := fmt.Sprintf("%s/?%s", base, values.Encode())
+	fmt.Println(link)
+	return nil
+}
+
 func (c *apiClient) requestWithHeaders(ctx context.Context, method, path string, payload any) ([]byte, http.Header, error) {
 	var body io.Reader
 	if payload != nil {
@@ -249,6 +420,39 @@ func (c *apiClient) requestWithHeaders(ctx context.Context, method, path string,
 		return nil, resp.Header, fmt.Errorf("%s %s: %s (status %d)", method, path, strings.TrimSpace(string(data)), resp.StatusCode)
 	}
 	return data, resp.Header, nil
+}
+
+// downloadToFile streams the response body into destPath honoring auth headers.
+func (c *apiClient) downloadToFile(ctx context.Context, path string, destPath string) (int64, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
+	if err != nil {
+		return 0, err
+	}
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return 0, fmt.Errorf("GET %s: %s (status %d)", path, strings.TrimSpace(string(body)), resp.StatusCode)
+	}
+	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
+		return 0, fmt.Errorf("prepare path: %w", err)
+	}
+	out, err := os.Create(destPath)
+	if err != nil {
+		return 0, err
+	}
+	defer out.Close()
+	n, err := io.Copy(out, resp.Body)
+	if err != nil {
+		return n, err
+	}
+	return n, nil
 }
 
 func prettyPrint(data []byte) {
@@ -356,6 +560,190 @@ func handleServices(ctx context.Context, client *apiClient, args []string) error
 	return fmt.Errorf("unknown services subcommand %q", args[0])
 }
 
+// ---------------------------------------------------------------------
+// Bus (event/data/compute fan-out)
+
+func handleBus(ctx context.Context, client *apiClient, args []string) error {
+	if len(args) == 0 {
+		fmt.Println(`Usage:
+  slctl bus events --event <name> [--payload JSON] [--payload-file path]
+  slctl bus data --topic <topic> [--payload JSON] [--payload-file path]
+  slctl bus compute [--payload JSON] [--payload-file path]
+  slctl bus stats --prom-url <http://prom:9090> [--token <prom-token>] [--range 5m]`)
+		return nil
+	}
+
+	switch args[0] {
+	case "events":
+		fs := flag.NewFlagSet("bus events", flag.ContinueOnError)
+		fs.SetOutput(io.Discard)
+		var event, payloadRaw, payloadFile string
+		fs.StringVar(&event, "event", "", "Event name (required)")
+		fs.StringVar(&payloadRaw, "payload", "", "Inline JSON payload")
+		fs.StringVar(&payloadFile, "payload-file", "", "Path to JSON payload file")
+		if err := fs.Parse(args[1:]); err != nil {
+			return usageError(err)
+		}
+		if strings.TrimSpace(event) == "" {
+			return errors.New("event is required")
+		}
+		payload, err := loadJSONPayload(payloadRaw, payloadFile)
+		if err != nil {
+			return err
+		}
+		body := map[string]any{"event": event}
+		if payload != nil {
+			body["payload"] = payload
+		}
+		data, err := client.request(ctx, http.MethodPost, "/system/events", body)
+		if err != nil {
+			return err
+		}
+		prettyPrint(data)
+		return nil
+
+	case "data":
+		fs := flag.NewFlagSet("bus data", flag.ContinueOnError)
+		fs.SetOutput(io.Discard)
+		var topic, payloadRaw, payloadFile string
+		fs.StringVar(&topic, "topic", "", "Topic (stream/channel identifier) (required)")
+		fs.StringVar(&payloadRaw, "payload", "", "Inline JSON payload")
+		fs.StringVar(&payloadFile, "payload-file", "", "Path to JSON payload file")
+		if err := fs.Parse(args[1:]); err != nil {
+			return usageError(err)
+		}
+		if strings.TrimSpace(topic) == "" {
+			return errors.New("topic is required")
+		}
+		payload, err := loadJSONPayload(payloadRaw, payloadFile)
+		if err != nil {
+			return err
+		}
+		body := map[string]any{"topic": topic}
+		if payload != nil {
+			body["payload"] = payload
+		}
+		data, err := client.request(ctx, http.MethodPost, "/system/data", body)
+		if err != nil {
+			return err
+		}
+		prettyPrint(data)
+		return nil
+
+	case "compute":
+		fs := flag.NewFlagSet("bus compute", flag.ContinueOnError)
+		fs.SetOutput(io.Discard)
+		var payloadRaw, payloadFile string
+		fs.StringVar(&payloadRaw, "payload", "", "Inline JSON payload")
+		fs.StringVar(&payloadFile, "payload-file", "", "Path to JSON payload file")
+		if err := fs.Parse(args[1:]); err != nil {
+			return usageError(err)
+		}
+		payload, err := loadJSONPayload(payloadRaw, payloadFile)
+		if err != nil {
+			return err
+		}
+		if payload == nil {
+			return errors.New("payload is required")
+		}
+		data, err := client.request(ctx, http.MethodPost, "/system/compute", map[string]any{"payload": payload})
+		if err != nil {
+			return err
+		}
+		prettyPrint(data)
+		return nil
+
+	case "stats":
+		fs := flag.NewFlagSet("bus stats", flag.ContinueOnError)
+		fs.SetOutput(io.Discard)
+		promURL := fs.String("prom-url", "", "Prometheus base URL (e.g., http://localhost:9090). When empty, uses /system/status bus_fanout totals.")
+		promToken := fs.String("token", "", "Prometheus bearer token (optional)")
+		rng := fs.String("range", "5m", "Lookback window for fan-out counts (Prom duration, e.g., 5m)")
+		if err := fs.Parse(args[1:]); err != nil {
+			return usageError(err)
+		}
+		if strings.TrimSpace(*promURL) == "" {
+			statusData, err := client.request(ctx, http.MethodGet, "/system/status", nil)
+			if err != nil {
+				return fmt.Errorf("fetch system status: %w", err)
+			}
+			var payload struct {
+				BusFanout map[string]struct {
+					OK    float64 `json:"ok"`
+					Error float64 `json:"error"`
+				} `json:"bus_fanout"`
+				BusFanoutRecent map[string]struct {
+					OK    float64 `json:"ok"`
+					Error float64 `json:"error"`
+				} `json:"bus_fanout_recent"`
+				BusFanoutRecentWindow float64 `json:"bus_fanout_recent_window_seconds"`
+			}
+			if err := json.Unmarshal(statusData, &payload); err != nil {
+				return fmt.Errorf("decode status: %w", err)
+			}
+			if len(payload.BusFanout) == 0 {
+				fmt.Println("Bus fan-out totals not available (bus_fanout missing in /system/status).")
+				return nil
+			}
+			fmt.Println("Bus fan-out totals (since process start):")
+			statusMap := make(map[string]struct {
+				OK  float64
+				Err float64
+			}, len(payload.BusFanout))
+			for k, v := range payload.BusFanout {
+				statusMap[k] = struct {
+					OK  float64
+					Err float64
+				}{OK: v.OK, Err: v.Error}
+			}
+			printBusFanoutTable(statusMap)
+			if len(payload.BusFanoutRecent) > 0 {
+				window := payload.BusFanoutRecentWindow
+				if window <= 0 {
+					window = 300
+				}
+				recent := make(map[string]struct {
+					OK  float64
+					Err float64
+				}, len(payload.BusFanoutRecent))
+				for k, v := range payload.BusFanoutRecent {
+					recent[k] = struct {
+						OK  float64
+						Err float64
+					}{OK: v.OK, Err: v.Error}
+				}
+				fmt.Printf("Bus fan-out (last %.0fs):\n", window)
+				printBusFanoutTable(recent)
+			}
+			return nil
+		}
+		dur := strings.TrimSpace(*rng)
+		if dur == "" {
+			dur = "5m"
+		}
+		query := fmt.Sprintf("sum(increase(service_layer_engine_bus_fanout_total[%s])) by (kind,result)", dur)
+		samples, err := queryPrometheus(ctx, strings.TrimSpace(*promURL), strings.TrimSpace(*promToken), query)
+		if err != nil {
+			return fmt.Errorf("query prom: %w", err)
+		}
+		if len(samples) == 0 {
+			fmt.Println("No fan-out metrics found.")
+			return nil
+		}
+		byKind := reduceFanoutSamples(samples)
+		fmt.Printf("Bus fan-out counts over %s (Prom: %s)\n", dur, *promURL)
+		printBusFanoutTable(byKind)
+		return nil
+	}
+
+	fmt.Println(`Usage:
+  slctl bus events --event <name> [--payload JSON] [--payload-file path]
+  slctl bus data --topic <topic> [--payload JSON] [--payload-file path]
+  slctl bus compute [--payload JSON] [--payload-file path]
+  slctl bus stats --prom-url <http://prom:9090> [--token <prom-token>] [--range 5m]`)
+	return fmt.Errorf("unknown bus subcommand %q", args[0])
+}
+
 func handleAudit(ctx context.Context, client *apiClient, args []string) error {
 	fs := flag.NewFlagSet("audit", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
@@ -432,7 +820,18 @@ func handleAudit(ctx context.Context, client *apiClient, args []string) error {
 	return nil
 }
 
-func handleStatus(ctx context.Context, client *apiClient) error {
+func handleStatus(ctx context.Context, client *apiClient, args []string) error {
+	fs := flag.NewFlagSet("status", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	surfaceFilter := fs.String("surface", "", "Filter modules by API surface (compute|data|event|store|account|lifecycle|readiness or custom)")
+	exportFlag := fs.String("export", "", "Export modules list to file (json|csv|yaml)")
+	if err := fs.Parse(args); err != nil {
+		return usageError(err)
+	}
+	if fs.NArg() > 0 {
+		return usageError(fmt.Errorf("unexpected args: %v", fs.Args()))
+	}
+
 	data, err := client.request(ctx, http.MethodGet, "/system/status", nil)
 	if err != nil {
 		return err
@@ -445,14 +844,120 @@ func handleStatus(ctx context.Context, client *apiClient) error {
 			BuiltAt   string `json:"built_at"`
 			GoVersion string `json:"go_version"`
 		} `json:"version"`
-		Services []map[string]any `json:"services"`
-		JAM      map[string]any   `json:"jam"`
+		ListenAddr string           `json:"listen_addr"`
+		Services   []map[string]any `json:"services"`
+		JAM        map[string]any   `json:"jam"`
+		BusFanout  map[string]struct {
+			OK    float64 `json:"ok"`
+			Error float64 `json:"error"`
+		} `json:"bus_fanout"`
+		Modules []struct {
+			Name        string   `json:"name"`
+			Domain      string   `json:"domain"`
+			Category    string   `json:"category"`
+			Interfaces  []string `json:"interfaces"`
+			Permissions []string `json:"permissions"`
+			Notes       []string `json:"notes"`
+			DependsOn   []string `json:"depends_on"`
+			Status      string   `json:"status"`
+			Error       string   `json:"error"`
+			Ready       string   `json:"ready_status"`
+			ReadyErr    string   `json:"ready_error"`
+			Started     string   `json:"started_at"`
+			Stopped     string   `json:"stopped_at"`
+			Updated     string   `json:"updated_at"`
+			StartNanos  int64    `json:"start_nanos"`
+			StopNanos   int64    `json:"stop_nanos"`
+			APIs        []struct {
+				Name      string `json:"name"`
+				Surface   string `json:"surface"`
+				Stability string `json:"stability"`
+				Summary   string `json:"summary"`
+			} `json:"apis"`
+		} `json:"modules"`
+		ModulesSummary map[string][]string       `json:"modules_summary"`
+		ModulesAPISum  map[string][]string       `json:"modules_api_summary"`
+		ModulesAPIMeta map[string]map[string]int `json:"modules_api_meta"`
+		ModulesMeta    map[string]int            `json:"modules_meta"`
+		ModulesTimings map[string]struct {
+			StartMS float64 `json:"start_ms"`
+			StopMS  float64 `json:"stop_ms"`
+		} `json:"modules_timings"`
+		ModulesUptime         map[string]float64 `json:"modules_uptime"`
+		ModulesSlow           []string           `json:"modules_slow"`
+		SlowThreshold         float64            `json:"modules_slow_threshold_ms"`
+		ModulesWaitingDeps    []string           `json:"modules_waiting_deps"`
+		ModulesWaitingReasons map[string]string  `json:"modules_waiting_reasons"`
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return fmt.Errorf("decode status payload: %w", err)
 	}
+	filterSurface := strings.ToLower(strings.TrimSpace(*surfaceFilter))
+	exportPath := strings.TrimSpace(*exportFlag)
+	filteredModules := make([]struct {
+		Name        string   `json:"name"`
+		Domain      string   `json:"domain"`
+		Category    string   `json:"category"`
+		Interfaces  []string `json:"interfaces"`
+		Permissions []string `json:"permissions"`
+		Notes       []string `json:"notes"`
+		DependsOn   []string `json:"depends_on"`
+		Status      string   `json:"status"`
+		Error       string   `json:"error"`
+		Ready       string   `json:"ready_status"`
+		ReadyErr    string   `json:"ready_error"`
+		Started     string   `json:"started_at"`
+		Stopped     string   `json:"stopped_at"`
+		Updated     string   `json:"updated_at"`
+		StartNanos  int64    `json:"start_nanos"`
+		StopNanos   int64    `json:"stop_nanos"`
+		APIs        []struct {
+			Name      string `json:"name"`
+			Surface   string `json:"surface"`
+			Stability string `json:"stability"`
+			Summary   string `json:"summary"`
+		} `json:"apis"`
+	}, 0, len(payload.Modules))
+	for _, m := range payload.Modules {
+		if filterSurface == "" {
+			filteredModules = append(filteredModules, m)
+			continue
+		}
+		match := false
+		for _, api := range m.APIs {
+			surface := strings.ToLower(strings.TrimSpace(api.Surface))
+			if surface == "" {
+				surface = strings.ToLower(strings.TrimSpace(api.Name))
+			}
+			if surface == filterSurface {
+				match = true
+				break
+			}
+		}
+		if match {
+			filteredModules = append(filteredModules, m)
+		}
+	}
+	if exportPath != "" {
+		if err := exportModules(filteredModules, exportPath); err != nil {
+			return fmt.Errorf("export modules: %w", err)
+		}
+		if exportPath != "-" {
+			fmt.Printf("Exported %d modules to %s\n", len(filteredModules), exportPath)
+		}
+	}
+	hasModuleNotes := false
+	for _, m := range filteredModules {
+		if len(m.Notes) > 0 {
+			hasModuleNotes = true
+			break
+		}
+	}
 	fmt.Printf("Status: %s\n", payload.Status)
 	fmt.Printf("Version: %s (commit %s, built %s, %s)\n", payload.Version.Version, payload.Version.Commit, payload.Version.BuiltAt, payload.Version.GoVersion)
+	if strings.TrimSpace(payload.ListenAddr) != "" {
+		fmt.Printf("Listen Address: %s\n", payload.ListenAddr)
+	}
 	if len(payload.JAM) > 0 {
 		enabled, _ := payload.JAM["enabled"].(bool)
 		store, _ := payload.JAM["store"].(string)
@@ -501,6 +1006,21 @@ func handleStatus(ctx context.Context, client *apiClient) error {
 			}
 		}
 	}
+	if len(payload.BusFanout) > 0 {
+		fmt.Println("Bus fan-out totals (since start):")
+		w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+		fmt.Fprintln(w, "KIND\tOK\tERROR")
+		kinds := make([]string, 0, len(payload.BusFanout))
+		for k := range payload.BusFanout {
+			kinds = append(kinds, k)
+		}
+		sort.Strings(kinds)
+		for _, k := range kinds {
+			f := payload.BusFanout[k]
+			fmt.Fprintf(w, "%s\t%.0f\t%.0f\n", k, f.OK, f.Error)
+		}
+		_ = w.Flush()
+	}
 	if len(payload.Services) > 0 {
 		fmt.Println("Services:")
 		for _, svc := range payload.Services {
@@ -516,7 +1036,424 @@ func handleStatus(ctx context.Context, client *apiClient) error {
 			fmt.Printf("  - %s (%s) caps=%s\n", name, domain, strings.Join(capStrings, ","))
 		}
 	}
+	hasPerms := false
+	hasAPIs := false
+	if len(filteredModules) > 0 {
+		for _, m := range filteredModules {
+			if len(m.Permissions) > 0 {
+				hasPerms = true
+			}
+			if len(m.APIs) > 0 {
+				hasAPIs = true
+			}
+		}
+		fmt.Println("Modules:")
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		switch {
+		case hasModuleNotes && hasPerms && hasAPIs:
+			fmt.Fprintln(w, "NAME\tDOMAIN\tCATEGORY\tINTERFACES\tAPIS\tPERMS\tSTATUS\tREADY\tERROR\tNOTES")
+		case hasModuleNotes && hasPerms:
+			fmt.Fprintln(w, "NAME\tDOMAIN\tCATEGORY\tINTERFACES\tPERMS\tSTATUS\tREADY\tERROR\tNOTES")
+		case hasModuleNotes && hasAPIs:
+			fmt.Fprintln(w, "NAME\tDOMAIN\tCATEGORY\tINTERFACES\tAPIS\tSTATUS\tREADY\tERROR\tNOTES")
+		case hasModuleNotes:
+			fmt.Fprintln(w, "NAME\tDOMAIN\tCATEGORY\tINTERFACES\tSTATUS\tREADY\tERROR\tNOTES")
+		case hasPerms && hasAPIs:
+			fmt.Fprintln(w, "NAME\tDOMAIN\tCATEGORY\tINTERFACES\tAPIS\tPERMS\tSTATUS\tREADY\tERROR")
+		case hasPerms:
+			fmt.Fprintln(w, "NAME\tDOMAIN\tCATEGORY\tINTERFACES\tPERMS\tSTATUS\tREADY\tERROR")
+		case hasAPIs:
+			fmt.Fprintln(w, "NAME\tDOMAIN\tCATEGORY\tINTERFACES\tAPIS\tSTATUS\tREADY\tERROR")
+		default:
+			fmt.Fprintln(w, "NAME\tDOMAIN\tCATEGORY\tINTERFACES\tSTATUS\tREADY\tERROR")
+		}
+		slowSet := map[string]bool{}
+		for _, name := range payload.ModulesSlow {
+			slowSet[name] = true
+		}
+		for _, m := range filteredModules {
+			ifaces := strings.Join(m.Interfaces, ",")
+			apiLabels := func() string {
+				if len(m.APIs) == 0 {
+					return ""
+				}
+				out := make([]string, 0, len(m.APIs))
+				for _, api := range m.APIs {
+					label := api.Surface
+					if label == "" {
+						label = api.Name
+					}
+					if api.Stability != "" && api.Stability != "stable" {
+						label = label + "(" + api.Stability + ")"
+					}
+					out = append(out, label)
+				}
+				return strings.Join(out, ",")
+			}()
+			perms := strings.Join(m.Permissions, ",")
+			status := m.Status
+			if slowSet[m.Name] {
+				status = status + " (slow)"
+			}
+			notes := strings.Join(m.Notes, "|")
+			switch {
+			case hasModuleNotes && hasPerms && hasAPIs:
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					m.Name, m.Domain, m.Category, ifaces, apiLabels, perms, status, m.Ready, m.Error, notes)
+			case hasModuleNotes && hasPerms:
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					m.Name, m.Domain, m.Category, ifaces, perms, status, m.Ready, m.Error, notes)
+			case hasModuleNotes && hasAPIs:
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					m.Name, m.Domain, m.Category, ifaces, apiLabels, status, m.Ready, m.Error, notes)
+			case hasModuleNotes:
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					m.Name, m.Domain, m.Category, ifaces, status, m.Ready, m.Error, notes)
+			case hasPerms && hasAPIs:
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					m.Name, m.Domain, m.Category, ifaces, apiLabels, perms, status, m.Ready, m.Error)
+			case hasPerms:
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					m.Name, m.Domain, m.Category, ifaces, perms, status, m.Ready, m.Error)
+			case hasAPIs:
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					m.Name, m.Domain, m.Category, ifaces, apiLabels, status, m.Ready, m.Error)
+			default:
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					m.Name, m.Domain, m.Category, ifaces, status, m.Ready, m.Error)
+			}
+		}
+		_ = w.Flush()
+	}
+	if len(payload.ModulesMeta) > 0 {
+		fmt.Printf("Module summary: total=%d started=%d failed=%d stop_error=%d not_ready=%d\n",
+			payload.ModulesMeta["total"], payload.ModulesMeta["started"], payload.ModulesMeta["failed"], payload.ModulesMeta["stop_error"], payload.ModulesMeta["not_ready"])
+	}
+	if len(payload.ModulesWaitingDeps) > 0 {
+		if len(payload.ModulesWaitingReasons) > 0 {
+			fmt.Println("Modules waiting for dependencies:")
+			for _, name := range payload.ModulesWaitingDeps {
+				reason := payload.ModulesWaitingReasons[name]
+				if reason == "" {
+					reason = "waiting for dependencies"
+				}
+				fmt.Printf("  - %s: %s\n", name, reason)
+			}
+		} else {
+			fmt.Printf("Modules waiting for dependencies: %s\n", strings.Join(payload.ModulesWaitingDeps, ", "))
+		}
+	}
+	if len(payload.ModulesSlow) > 0 {
+		threshold := payload.SlowThreshold
+		if threshold <= 0 {
+			threshold = 1000
+		}
+		fmt.Printf("Slow modules (>%.0fms start/stop): %s\n", threshold, strings.Join(payload.ModulesSlow, ", "))
+	}
+	if len(payload.ModulesTimings) > 0 || len(payload.ModulesUptime) > 0 {
+		fmt.Println("Module timings:")
+		keys := make([]string, 0, len(payload.ModulesTimings)+len(payload.ModulesUptime))
+		seen := map[string]bool{}
+		for name := range payload.ModulesTimings {
+			keys = append(keys, name)
+			seen[name] = true
+		}
+		for name := range payload.ModulesUptime {
+			if !seen[name] {
+				keys = append(keys, name)
+			}
+		}
+		sort.Strings(keys)
+		for _, name := range keys {
+			t := payload.ModulesTimings[name]
+			up := payload.ModulesUptime[name]
+			line := fmt.Sprintf("  %s:", name)
+			if t.StartMS > 0 {
+				line += fmt.Sprintf(" start=%.2fms", t.StartMS)
+			}
+			if t.StopMS > 0 {
+				line += fmt.Sprintf(" stop=%.2fms", t.StopMS)
+			}
+			if up > 0 {
+				line += fmt.Sprintf(" uptime=%s", formatSeconds(up))
+			}
+			fmt.Println(line)
+		}
+	}
+	if len(payload.ModulesSummary) > 0 {
+		fmt.Println("Modules summary:")
+		for k, v := range payload.ModulesSummary {
+			fmt.Printf("  %s: %s\n", k, strings.Join(v, ","))
+		}
+	}
+	if filterSurface != "" {
+		fmt.Printf("Module filter: api surface=%s (modules list and degraded view)\n", filterSurface)
+	}
+	if len(payload.ModulesAPISum) > 0 {
+		fmt.Println("Modules by system API:")
+		keys := make([]string, 0, len(payload.ModulesAPISum))
+		for k := range payload.ModulesAPISum {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			if len(payload.ModulesAPISum[k]) == 0 {
+				continue
+			}
+			line := fmt.Sprintf("  %s: %s", k, strings.Join(payload.ModulesAPISum[k], ","))
+			if meta := payload.ModulesAPIMeta[k]; len(meta) > 0 {
+				if meta["slow"] > 0 {
+					line += fmt.Sprintf(" (slow=%d)", meta["slow"])
+				}
+			}
+			fmt.Println(line)
+		}
+	}
+	if len(filteredModules) > 0 {
+		fmt.Println("Modules:")
+		for _, mod := range filteredModules {
+			status := mod.Status
+			if status == "" {
+				status = "unknown"
+			}
+			line := fmt.Sprintf("  - %s", mod.Name)
+			if mod.Domain != "" {
+				line += fmt.Sprintf(" (%s)", mod.Domain)
+			}
+			if mod.Category != "" {
+				line += fmt.Sprintf(" [%s]", mod.Category)
+			}
+			if len(mod.Interfaces) > 0 {
+				line += fmt.Sprintf(" interfaces=%s", strings.Join(mod.Interfaces, ","))
+			}
+			if len(mod.Permissions) > 0 {
+				line += fmt.Sprintf(" perms=%s", strings.Join(mod.Permissions, ","))
+			}
+			if len(mod.APIs) > 0 {
+				var apiLabels []string
+				for _, api := range mod.APIs {
+					label := api.Surface
+					if label == "" {
+						label = api.Name
+					}
+					if api.Stability != "" && api.Stability != "stable" {
+						label = fmt.Sprintf("%s(%s)", label, api.Stability)
+					}
+					apiLabels = append(apiLabels, label)
+				}
+				line += fmt.Sprintf(" apis=%s", strings.Join(apiLabels, ","))
+			}
+			if len(mod.DependsOn) > 0 {
+				line += fmt.Sprintf(" deps=%s", strings.Join(mod.DependsOn, ","))
+			}
+			line += fmt.Sprintf(" status=%s", status)
+			if mod.Started != "" {
+				line += fmt.Sprintf(" started=%s", mod.Started)
+				if up := humanUptime(mod.Started, mod.Stopped, mod.Status); up != "" {
+					line += fmt.Sprintf(" uptime=%s", up)
+				}
+			}
+			if len(mod.Notes) > 0 {
+				line += fmt.Sprintf(" notes=%s", strings.Join(mod.Notes, "|"))
+			}
+			if mod.Ready != "" {
+				line += fmt.Sprintf(" ready=%s", mod.Ready)
+				if mod.ReadyErr != "" {
+					line += fmt.Sprintf(" ready_err=%s", mod.ReadyErr)
+				}
+			}
+			if mod.Updated != "" {
+				line += fmt.Sprintf(" updated=%s", mod.Updated)
+			}
+			if mod.Error != "" {
+				line += fmt.Sprintf(" err=%s", mod.Error)
+			}
+			fmt.Println(line)
+		}
+	}
 	return nil
+}
+
+func humanUptime(start, stop, status string) string {
+	startTime, err := time.Parse(time.RFC3339, start)
+	if err != nil {
+		return ""
+	}
+	var end time.Time
+	if stop != "" {
+		if t, err := time.Parse(time.RFC3339, stop); err == nil {
+			end = t
+		}
+	}
+	if end.IsZero() {
+		end = time.Now().UTC()
+	}
+	dur := end.Sub(startTime)
+	if dur < 0 {
+		return ""
+	}
+	return dur.Truncate(time.Second).String()
+}
+
+func formatSeconds(sec float64) string {
+	if sec <= 0 {
+		return "0s"
+	}
+	d := time.Duration(sec * float64(time.Second))
+	return d.Truncate(time.Second).String()
+}
+
+func exportModules(mods []struct {
+	Name        string   `json:"name"`
+	Domain      string   `json:"domain"`
+	Category    string   `json:"category"`
+	Interfaces  []string `json:"interfaces"`
+	Permissions []string `json:"permissions"`
+	Notes       []string `json:"notes"`
+	DependsOn   []string `json:"depends_on"`
+	Status      string   `json:"status"`
+	Error       string   `json:"error"`
+	Ready       string   `json:"ready_status"`
+	ReadyErr    string   `json:"ready_error"`
+	Started     string   `json:"started_at"`
+	Stopped     string   `json:"stopped_at"`
+	Updated     string   `json:"updated_at"`
+	StartNanos  int64    `json:"start_nanos"`
+	StopNanos   int64    `json:"stop_nanos"`
+	APIs        []struct {
+		Name      string `json:"name"`
+		Surface   string `json:"surface"`
+		Stability string `json:"stability"`
+		Summary   string `json:"summary"`
+	} `json:"apis"`
+}, path string) error {
+	if len(mods) == 0 {
+		return fmt.Errorf("no modules to export")
+	}
+	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
+	if path == "-" {
+		ext = "json"
+	}
+	if ext == "" {
+		ext = "json"
+	}
+	switch ext {
+	case "json":
+		b, err := json.MarshalIndent(mods, "", "  ")
+		if err != nil {
+			return err
+		}
+		if path == "-" {
+			_, err := os.Stdout.Write(b)
+			return err
+		}
+		return os.WriteFile(path, b, 0o644)
+	case "yaml", "yml":
+		var buf strings.Builder
+		buf.WriteString("---\n")
+		for _, m := range mods {
+			buf.WriteString("- name: " + m.Name + "\n")
+			if m.Domain != "" {
+				buf.WriteString("  domain: " + m.Domain + "\n")
+			}
+			if m.Category != "" {
+				buf.WriteString("  category: " + m.Category + "\n")
+			}
+			if len(m.Interfaces) > 0 {
+				buf.WriteString("  interfaces: [" + strings.Join(m.Interfaces, ", ") + "]\n")
+			}
+			if len(m.APIs) > 0 {
+				buf.WriteString("  apis:\n")
+				for _, api := range m.APIs {
+					buf.WriteString("    - name: " + api.Name + "\n")
+					if api.Surface != "" {
+						buf.WriteString("      surface: " + api.Surface + "\n")
+					}
+					if api.Stability != "" {
+						buf.WriteString("      stability: " + api.Stability + "\n")
+					}
+					if api.Summary != "" {
+						buf.WriteString("      summary: " + api.Summary + "\n")
+					}
+				}
+			}
+			if len(m.Permissions) > 0 {
+				buf.WriteString("  permissions: [" + strings.Join(m.Permissions, ", ") + "]\n")
+			}
+			if len(m.DependsOn) > 0 {
+				buf.WriteString("  depends_on: [" + strings.Join(m.DependsOn, ", ") + "]\n")
+			}
+			if m.Status != "" {
+				buf.WriteString("  status: " + m.Status + "\n")
+			}
+			if m.Ready != "" {
+				buf.WriteString("  ready: " + m.Ready + "\n")
+			}
+			if m.Error != "" {
+				buf.WriteString("  error: " + m.Error + "\n")
+			}
+			if m.ReadyErr != "" {
+				buf.WriteString("  ready_error: " + m.ReadyErr + "\n")
+			}
+			if m.Started != "" {
+				buf.WriteString("  started_at: " + m.Started + "\n")
+			}
+			if m.Stopped != "" {
+				buf.WriteString("  stopped_at: " + m.Stopped + "\n")
+			}
+			if m.Updated != "" {
+				buf.WriteString("  updated_at: " + m.Updated + "\n")
+			}
+		}
+		if path == "-" {
+			_, err := os.Stdout.Write([]byte(buf.String()))
+			return err
+		}
+		return os.WriteFile(path, []byte(buf.String()), 0o644)
+	case "csv":
+		var b strings.Builder
+		// name,domain,category,status,ready,interfaces,apis,perms,depends_on
+		b.WriteString("name,domain,category,status,ready,interfaces,apis,permissions,depends_on\n")
+		for _, m := range mods {
+			apis := make([]string, 0, len(m.APIs))
+			for _, api := range m.APIs {
+				label := api.Surface
+				if label == "" {
+					label = api.Name
+				}
+				if api.Stability != "" && api.Stability != "stable" {
+					label = label + "(" + api.Stability + ")"
+				}
+				apis = append(apis, label)
+			}
+			row := []string{
+				csvEscape(m.Name),
+				csvEscape(m.Domain),
+				csvEscape(m.Category),
+				csvEscape(m.Status),
+				csvEscape(m.Ready),
+				csvEscape(strings.Join(m.Interfaces, "|")),
+				csvEscape(strings.Join(apis, "|")),
+				csvEscape(strings.Join(m.Permissions, "|")),
+				csvEscape(strings.Join(m.DependsOn, "|")),
+			}
+			b.WriteString(strings.Join(row, ",") + "\n")
+		}
+		if path == "-" {
+			_, err := os.Stdout.Write([]byte(b.String()))
+			return err
+		}
+		return os.WriteFile(path, []byte(b.String()), 0o644)
+	default:
+		return fmt.Errorf("unsupported export format %q (use .json, .yaml, .yml, or .csv)", ext)
+	}
+}
+
+func csvEscape(val string) string {
+	if strings.ContainsAny(val, ",\"\n") {
+		return "\"" + strings.ReplaceAll(val, "\"", "\"\"") + "\""
+	}
+	return val
 }
 
 // handleHealth inspects oracle/datafeed health for an account.

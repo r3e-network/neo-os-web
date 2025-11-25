@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	appruntime "github.com/R3E-Network/service_layer/internal/app/runtime"
 	"github.com/R3E-Network/service_layer/internal/config"
+	engineRuntime "github.com/R3E-Network/service_layer/internal/engine/runtime"
 	"github.com/R3E-Network/service_layer/internal/version"
 )
 
@@ -23,6 +23,7 @@ func main() {
 	configPath := flag.String("config", "", "Path to configuration file (JSON or YAML)")
 	runMigrations := flag.Bool("migrate", true, "run embedded database migrations on startup (ignored for in-memory)")
 	apiTokensFlag := flag.String("api-tokens", "", "comma-separated API tokens for HTTP authentication")
+	slowThreshold := flag.Int("slow-ms", 0, "override slow module threshold in milliseconds (defaults to MODULE_SLOW_MS or 1000)")
 	showVersion := flag.Bool("version", false, "print build information and exit")
 	flag.Parse()
 
@@ -48,19 +49,22 @@ func main() {
 	dsnVal := resolveDSN(*dsn, cfg)
 	cfg.Database.DSN = dsnVal
 
-	options := []appruntime.Option{
-		appruntime.WithConfig(cfg),
-		appruntime.WithRunMigrations(*runMigrations),
+	options := []engineRuntime.Option{
+		engineRuntime.WithConfig(cfg),
+		engineRuntime.WithRunMigrations(*runMigrations),
 	}
 	if trimmed := strings.TrimSpace(*addr); trimmed != "" {
-		options = append(options, appruntime.WithListenAddr(trimmed))
+		options = append(options, engineRuntime.WithListenAddr(trimmed))
 	}
 	if tokens := splitTokens(*apiTokensFlag); len(tokens) > 0 {
-		options = append(options, appruntime.WithAPITokens(tokens))
+		options = append(options, engineRuntime.WithAPITokens(tokens))
+	}
+	if *slowThreshold > 0 {
+		options = append(options, engineRuntime.WithSlowThresholdMS(*slowThreshold))
 	}
 
 	log.Printf("Service Layer %s starting", version.FullVersion())
-	application, err := appruntime.NewApplication(options...)
+	application, err := engineRuntime.NewApplication(options...)
 	if err != nil {
 		log.Fatalf("initialise runtime: %v", err)
 	}
@@ -71,6 +75,11 @@ func main() {
 	go func() {
 		runErr <- application.Run(ctx)
 	}()
+
+	// Surface the bound address (resolved when using :0) for operators.
+	if addr := application.ListenAddr(); strings.TrimSpace(addr) != "" {
+		log.Printf("HTTP listening on %s", addr)
+	}
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
