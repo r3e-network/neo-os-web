@@ -20,11 +20,17 @@ logging:
   file_prefix: "service-layer"
 
 runtime:
+  bus_permissions: {}
+  module_deps: {}
+  unknown_modules_strict: true
+  require_apis_strict: false
   tee:
     # Controls which executor backend the function runtime uses ("mock" to
     # force the in-process mock TEE; any other value enables the enclave
     # executor wiring).
     mode: ""
+  # Threshold (milliseconds) for flagging slow module start/stop in /system/status, CLI, and dashboard.
+  slow_module_threshold_ms: 1000
   random:
     # Optional base64/hex encoded ed25519 private key for deterministic random
     # signatures. Leave empty to auto-generate ephemeral keys on startup.
@@ -61,6 +67,56 @@ runtime:
   cre:
     # Set to true to enable the HTTP CRE runner.
     http_runner: false
+  neo:
+    # Enable the Neo node/indexer modules (neo-go RPC + indexer HTTP).
+    enabled: false
+    rpc_url: "http://localhost:10332"
+    network: "testnet"
+    indexer_url: "http://localhost:8080/neo/status"
+  chains:
+    # Enable the multi-chain RPC hub (btc/eth/neox/etc.).
+    enabled: false
+    # Enforce tenancy and rate limits on /system/rpc.
+    require_tenant: false
+    per_tenant_per_minute: 0
+    per_token_per_minute: 0
+    burst: 3
+    allowed_methods:
+      eth: ["eth_blockNumber", "eth_getBalance"]
+    endpoints:
+      eth: "https://sepolia.infura.io/v3/<key>"
+      btc: "https://mempool.space/testnet/api/v1/blocks"
+      neox: "http://localhost:1234"
+  data_sources:
+    # Enable shared data source hub (feeds/oracle/trigger sources).
+    enabled: false
+    sources:
+      coingecko: "https://api.coingecko.com/api/v3/ping"
+      example: "https://example.com/healthz"
+  contracts:
+    # Enable contract deployment/invocation module.
+    enabled: false
+    network: "neo-testnet"
+  crypto:
+    # Enable crypto engine (ZKP/FHE/MPC helpers).
+    enabled: false
+    endpoint: ""
+    capabilities: ["zkp", "fhe", "mpc"]
+  rocketmq:
+    # Enable RocketMQ-backed event bus.
+    enabled: false
+    name_servers: ["127.0.0.1:9876"]
+    access_key: ""
+    secret_key: ""
+    topic_prefix: "sl"
+    consumer_group: "sl-consumers"
+    namespace: ""
+    max_reconsume_times: 16
+    consume_batch: 1
+    consume_from: "latest" # latest|first
+  service_bank:
+    # Enable service-layer-owned GAS bank controller.
+    enabled: false
 
 auth:
   # Static bearer tokens accepted by the HTTP API. Combine with the

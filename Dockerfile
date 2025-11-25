@@ -9,7 +9,10 @@ ENV GOFLAGS=-mod=vendor
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o appserver ./cmd/appserver
+# Build core binaries. We keep vendor for reproducibility.
+RUN CGO_ENABLED=0 GOOS=linux go build -o appserver ./cmd/appserver && \
+    CGO_ENABLED=0 GOOS=linux go build -o neo-indexer ./cmd/neo-indexer && \
+    CGO_ENABLED=0 GOOS=linux go build -o neo-snapshot ./cmd/neo-snapshot
 
 # Stage 2: Minimal runtime image
 FROM alpine:3.19
@@ -19,6 +22,8 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app
 
 COPY --from=builder /app/appserver ./appserver
+COPY --from=builder /app/neo-indexer ./neo-indexer
+COPY --from=builder /app/neo-snapshot ./neo-snapshot
 COPY configs/config.yaml ./config.yaml
 
 ENV CONFIG_FILE=/app/config.yaml

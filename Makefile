@@ -28,6 +28,16 @@ run-local:
 	@echo "Running appserver locally (expects Postgres via DATABASE_URL or config)..."
 	@go run ./cmd/appserver
 
+run-neo:
+	@echo "Starting full stack with NEO profile (appserver + postgres + dashboard + site + neo-indexer + nodes)..."
+	@echo "API:       http://localhost:8080"
+	@echo "Dashboard: http://localhost:8081"
+	@echo "NEO RPC:   http://localhost:10332 (mainnet), http://localhost:10342 (testnet)"
+	@[ -f .env ] || (cp .env.example .env && echo "  > created .env from .env.example")
+	@docker compose --profile neo down --remove-orphans >/dev/null 2>&1 || true
+	@docker compose --profile neo up -d --build
+	@docker compose --profile neo ps
+
 test:
 	@echo "Running tests..."
 	@go test ./...
@@ -71,6 +81,7 @@ logs:
 help:
 	@echo "make build             - Build appserver and CLI binaries into $(BIN_DIR)"
 	@echo "make run               - Start the stack with docker compose (detached; uses .env)"
+	@echo "make run-neo           - Start the stack plus NEO nodes + indexer (compose profile 'neo')"
 	@echo "make run-local         - Run appserver locally (requires Postgres available)"
 	@echo "make test              - Run Go tests"
 	@echo "make typecheck         - Run dashboard typecheck (npm required)"
@@ -95,9 +106,9 @@ smoke: test typecheck
 	@echo "Smoke checks complete."
 
 neo-up:
-	@echo "Starting NEO mainnet/testnet nodes (profile: neo)..."
-	@docker compose --profile neo up -d neo-mainnet neo-testnet
+	@echo "Starting NEO mainnet/testnet nodes + indexer (profile: neo)..."
+	@docker compose --profile neo up -d neo-mainnet neo-testnet neo-indexer
 
 neo-down:
-	@echo "Stopping NEO nodes (profile: neo)..."
+	@echo "Stopping NEO nodes + indexer (profile: neo)..."
 	@docker compose --profile neo down --remove-orphans

@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    volumes:
+      - ./snapshots:/app/snapshots
     environment:
       # Defaults for local compose; override via .env
       - DATABASE_URL=${DATABASE_URL:-postgres://service_layer:service_layer@postgres:5432/service_layer?sslmode=disable}
@@ -10,11 +12,20 @@ services:
       - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY:-***REMOVED***}
       - AUTH_JWT_SECRET=${AUTH_JWT_SECRET:-***REMOVED***}
       - AUTH_USERS=${AUTH_USERS:-admin:changeme:admin}
+      - NEO_SNAPSHOT_DIR=${NEO_SNAPSHOT_DIR:-/app/snapshots}
+      - NEO_RPC_STATUS_URL=${NEO_RPC_STATUS_URL:-http://neo-mainnet:10332}
+      - NEO_STABLE_BUFFER=${NEO_STABLE_BUFFER:-12}
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --header='Authorization: Bearer ${API_TOKENS:-dev-token}' http://localhost:8080/healthz | grep ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   dashboard:
     build:
@@ -33,6 +44,22 @@ services:
       - "8082:80"
     depends_on:
       - service-layer
+
+  neo-indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/neo-indexer"]
+    environment:
+      - NEO_RPC_URL=${NEO_RPC_URL:-http://neo-mainnet:10332}
+      - NEO_NETWORK=${NEO_NETWORK:-mainnet}
+      - NEO_INDEXER_DSN=${NEO_INDEXER_DSN:-postgres://service_layer:service_layer@postgres:5432/service_layer?sslmode=disable}
+      - NEO_POLL_INTERVAL=${NEO_POLL_INTERVAL:-5s}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["neo"]
+    restart: unless-stopped
 
   neo-mainnet:
     image: ngdenterprise/neo-cli:3.6.0

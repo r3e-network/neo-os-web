@@ -30,11 +30,46 @@ experimentation, or wire itself to PostgreSQL when a DSN is supplied.
 - Cryptographically secure random number generation per account
 - Workspace wallets gate data feeds and DataLink channels; signer sets are enforced per account.
 - Modular service manager that wires the domain services together
+- Optional RocketMQ-backed event bus (`svc-rocketmq`) as an infra module
 - HTTP API located in `internal/app/httpapi`, exposing the new surface under
   `/accounts/...`
 - Auditing: in-memory by default, with optional JSONL persistence via `AUDIT_LOG_PATH` and an admin-only `/admin/audit` endpoint (dashboard viewer included).
   When PostgreSQL is configured, audits also persist to the `http_audit_log` table automatically.
   See `docs/security-hardening.md` for production setup guidance (tokens/tenants/TLS/logging/branch protection).
+
+## Architecture
+
+The Service Layer follows a clean layered architecture inspired by operating system design:
+
+```
+┌─────────────────────────────────────────────────┐
+│     Services Layer (Applications)               │
+│     internal/services/ - Business services      │
+├─────────────────────────────────────────────────┤
+│     Engine Layer (OS Kernel)                    │
+│     internal/engine/ - Lifecycle, Bus, Health   │
+├─────────────────────────────────────────────────┤
+│     Framework Layer (SDK)                       │
+│     internal/framework/ - ServiceBase, Builder  │
+├─────────────────────────────────────────────────┤
+│     Platform Layer (Drivers)                    │
+│     internal/platform/ - RPC, Storage, Cache    │
+└─────────────────────────────────────────────────┘
+```
+
+- **Platform**: Hardware abstraction layer with drivers for databases, blockchain RPC, caching
+- **Framework**: Developer tools including ServiceBase, ServiceBuilder, and testing utilities
+- **Engine**: Service orchestration with lifecycle management, event bus, and health monitoring
+- **Services**: Domain services (accounts, functions, oracle, VRF, etc.)
+
+See [Architecture Documentation](docs/architecture-layers.md) for details.
+
+## Repo Layout (Engine vs Services)
+- `internal/engine` — the Android-style service engine (OS): lifecycle, readiness, buses, and module registry.
+- `internal/engine/runtime` — runtime builder that wires the engine to storage, HTTP, and domain modules.
+- `internal/services` — domain services (apps) such as accounts, functions, gasbank, oracle, feeds, datastreams, VRF, etc.
+- `internal/services/core` — shared service helpers (base validation, dispatch, retry/observe wrappers).
+- `internal/app/httpapi` — HTTP transport that exposes the engine/ services via REST and the system bus endpoints.
 
 ## Quick Start
 
@@ -48,11 +83,27 @@ make run  # copies .env.example if missing, then docker compose up -d --build
 
 Once up:
 - API: http://localhost:8080 (auth: `Authorization: Bearer dev-token` or JWT via `/auth/login` using admin/changeme)
-- Dashboard: http://localhost:8081 (prefills when opened as `http://localhost:8081/?baseUrl=http://localhost:8080`; configure token in settings)
+- Dashboard: http://localhost:8081 (prefills when opened as `http://localhost:8081/?api=http://localhost:8080&token=dev-token&tenant=<id>`)
 - Public site: http://localhost:8082
 - Multi-tenant note: include `X-Tenant-ID` (or `--tenant` in CLI) when creating an account; all subsequent access to that account and its resources must use the same tenant header. Tenant is mandatory; admin endpoints always require both an admin JWT and a tenant header.
 - Dashboard settings include an optional Tenant field that will be sent as `X-Tenant-ID` for all API calls when populated.
 - Each account card includes a “Deep link” that pre-fills the dashboard base URL, token, and the account’s tenant for quick sharing (local storage values are reused for base URL/token).
+- NEO observability: `/neo/status` reports the latest indexed height/hash/state root from the Postgres-backed indexer, `/neo/blocks` and `/neo/blocks/{height}` expose normalized blocks/txs/notifications/VM state, and `/neo/snapshots` reads manifests produced by `cmd/neo-snapshot` (from `NEO_SNAPSHOT_DIR`, default `./snapshots`).
+- NEO storage: `/neo/storage/{height}` returns per-contract KV blobs captured for that block to support stateless execution; use `slctl neo storage <height>` or the dashboard NEO panel to inspect.
+- NEO storage summary: `/neo/storage-summary/{height}` (and `slctl neo storage-summary <height>`) returns per-contract counts of KV and diff entries without streaming full blobs.
+- NEO storage diffs: `/neo/storage-diff/{height}` returns only changed keys vs the prior stored height; snapshots include optional diff bundles when stored diffs are available.
+- Snapshot manifests include hashes (and optional signatures) for full + diff bundles when generated via `cmd/neo-snapshot`; supply `NEO_SNAPSHOT_DSN` to reuse captured storage/diffs instead of hitting RPC. The dashboard “Verify” button validates bundle hashes and the manifest signature when provided.
+- Snapshot bundles can be downloaded directly via `/neo/snapshots/{height}/kv` (and `/kv-diff` when present) — manifests automatically include relative `kv_url`/`kv_diff_url` pointing at these endpoints when URLs are not provided at generation time.
+- NEO node health: set `NEO_RPC_STATUS_URL` so `/neo/status` reports node height/lag relative to the indexer.
+- Stable view: `NEO_STABLE_BUFFER` (default 12) subtracts a safety window from `latest_height` to derive `stable_height/hash/state_root` in `/neo/status`/`/neo/checkpoint`.
+- CLI helpers: `slctl neo download --height <h> [--diff] [--sha <sha>]` to pull bundles; the dashboard snapshot list now includes download + verify actions for KV and diff bundles with relative URL support.
+- End-to-end verify: `slctl neo verify-all --height <h>` (or `--manifest http://localhost:8080/neo/snapshots/<h>` / `--heights h1,h2`) downloads manifest + bundles, verifies hashes/signature, and writes outputs.
+- Ops shortcut: `/neo/checkpoint` and `slctl neo checkpoint` return a concise view of indexer height/hash/node lag. Dashboard snapshot verification results are persisted per API endpoint and can be re-run with the “Verify all” button.
+- CI/branch protection: keep the `neo-smoke` workflow required on `master` (see `docs/branch-protection.md`); it runs Go tests, dashboard typecheck, and a mocked NEO smoke curl.
+- Operations runbook: see `docs/ops-runbook.md` for start/stop, health, logging, NEO nodes, and hardening pointers.
+- Snapshots directory: compose mounts `./snapshots` into `/app/snapshots` so the appserver can serve locally generated manifests/bundles (`NEO_SNAPSHOT_DIR` defaults to `/app/snapshots`).
+- Engine modules: `/system/status` now includes the list of registered modules (store/app/services/runners) with name, domain, category, lifecycle status, readiness, timestamps, and supported interfaces. It also returns a summary of data/event/compute modules. The dashboard auto-refreshes this every 30s and surfaces warnings/toasts if modules fail/stop or report not-ready. Start/stop timings, uptime, and slow modules (threshold configurable via `MODULE_SLOW_MS`, `runtime.slow_module_threshold_ms` in config, or `appserver -slow-ms`) are surfaced in status, CLI, and dashboard.
+- Module slow/uptime: `/system/status`/`slctl`/dashboard surface start/stop timings, uptimes, and slow modules. Tune the slow threshold via `MODULE_SLOW_MS` (ms); the value is echoed as `modules_slow_threshold_ms` in status responses for observability.
 
 CLI or manual server (in-memory):
 
@@ -86,7 +137,8 @@ ensure gas accounts and submit oracle requests.
   request randomness (`slctl random generate --account <id> --length 64`) or inspect recent draws (`slctl random list --account <id>`), and inspect automation/oracle history from a terminal.
 - **Dashboard (`apps/dashboard`)** — React + Vite SPA for day-to-day operations. See
   `apps/dashboard/README.md` for Docker/local instructions. Configure API and Prometheus
-  endpoints in the UI once the server is running.
+  endpoints in the UI once the server is running. The NEO panel (if enabled server-side) shows
+  indexed blocks/state roots and available stateless snapshots with download links.
 
 ### CLI Quick Reference
 - `slctl accounts list|get|create|delete` — manage account records.
@@ -97,7 +149,7 @@ ensure gas accounts and submit oracle requests.
 - `slctl datastreams ...` — list/create streams or publish frames.
 - `slctl datalink ...` — list/create channels and queue deliveries.
 - `slctl datafeeds ...` — manage data feed definitions and submit/list rounds (with per-feed aggregation).
-- `slctl pricefeeds list|create|get|snapshots` — define asset pairs and monitor submissions.
+- `slctl pricefeeds list|create|get|update|delete|snapshots` — define asset pairs with deviation-based publishing and monitor submissions. Supports `--deviation`, `--interval`, `--heartbeat` flags.
 - `slctl jam ...` — upload preimages and submit/list packages/reports.
 - `slctl random generate --account <id> --length <n>` — request deterministic bytes.
 - `slctl random list --account <id> [--limit n]` — fetch recent `/random/requests` history.
@@ -111,7 +163,17 @@ ensure gas accounts and submit oracle requests.
 - `slctl jam status|packages|reports|receipt|receipts` — inspect JAM status, packages/reports, and accumulator receipts/roots.
 - `slctl workspace-wallets list --account <id>` — inspect registered signing wallets.
 - `slctl services list` — dump `/system/descriptors` for feature discovery.
-- `slctl status` — fetch `/system/status` to inspect server health, version, and services.
+- `slctl bus events|data|compute ...` — publish to the engine bus (`/system/events|data|compute`) for cross-service fan-out.
+- `slctl status` — fetch `/system/status` with a modules table, JAM config, and service descriptors.
+- `slctl neo status|blocks|block|snapshots` — inspect NEO indexed data and snapshot manifests served by the API.
+- `slctl neo storage <height>` — fetch per-contract storage blobs captured for a block.
+- `slctl neo storage-diff <height>` — fetch per-contract storage diffs for a block.
+- `slctl neo storage-summary <height>` — quick per-contract counts of KV and diff entries for a block.
+- `slctl neo verify --url <bundle> --sha <sha256>` — download a KV bundle and verify its SHA256 (or use `--file` for a local path).
+- `slctl neo verify-manifest --url <manifest>` — verify an ed25519 signature on a snapshot manifest (payload: `network|height|state_root|kv_sha256|kv_diff_sha256`).
+- `slctl dashboard-link [--dashboard http://localhost:8081]` — emit a ready-to-open dashboard URL with `api`, `token`, and `tenant` query params prefilled from your CLI flags/env.
+- `slctl manifest --url <manifest>` — fetch a snapshot manifest, verify KV and diff bundle hashes, and validate the manifest signature in one step.
+- `slctl status` — fetch `/system/status` to inspect server health, readiness, version, and services.
 - `slctl version` — print CLI build info and query `/system/version` on the server.
 - `slctl gasbank summary --account <id>` — view balances, pending withdrawals, and recent gas bank activity.
 - See `docs/gasbank-workflows.md` for a full ensure → deposit → scheduled/multi-sig withdraw walkthrough (CLI + HTTP) plus settlement retry/DLQ commands embraced by both Devpack and the dashboard.
@@ -134,12 +196,19 @@ Compose will read a `.env` file automatically if present; copy `.env.example`
 to `.env` when you want to override the defaults.
 - Authenticate with the `Authorization: Bearer <token>` header; query tokens are disabled for production safety.
 
+For a full NEO-enabled stack (appserver + dashboard + site + Postgres + `neo-indexer` + NEO mainnet/testnet nodes), use:
+
+```bash
+make run-neo   # uses compose profile "neo", exposes RPC on 10332 (mainnet) and 10342 (testnet)
+```
+
 Once running:
 - API: `http://localhost:8080` (use `Authorization: Bearer <jwt>`; obtain via `/auth/login` or wallet login)
 - Dashboard: `http://localhost:8081` (configure API URL/token in settings)
 - Public site: `http://localhost:8082` (marketing/docs entry)
 - Login (JWT): `POST /auth/login` with configured `AUTH_USERS` and `AUTH_JWT_SECRET`; endpoints require the `Authorization` header (no query tokens).
 - **Production:** override `API_TOKENS`, `AUTH_USERS`, and `AUTH_JWT_SECRET` (the repo defaults are for local compose only).
+- Health: `/livez` (liveness) and `/readyz` (readiness; same as `/healthz`); `/metrics` for Prometheus.
 
 ## Configuration Notes
 
@@ -147,7 +216,7 @@ Once running:
   runtime keeps everything in memory.
 - `auth.tokens` (config), `API_TOKENS`/`API_TOKEN` (env), or `-api-tokens` (flag)
   configure bearer tokens for HTTP authentication. All protected requests must
-  present `Authorization: Bearer <token>`; `/healthz` and `/system/version` stay
+  present `Authorization: Bearer <token>`; `/readyz` (`/healthz`) and `/system/version` stay
   public. When no tokens are configured, protected endpoints return 401 and the
   server logs a warning. Always set tokens for any deployment.
 - Startup safety: when using PostgreSQL, the server validates that all tenant
@@ -218,18 +287,50 @@ scripts/               - automation helpers (see scripts/README.md)
 ## Documentation
 
 All project documentation lives under `docs/`. Start with [`docs/README.md`](docs/README.md)
-for navigation and context, then update the [`Neo Service Layer Specification`](docs/requirements.md)
-whenever behaviour, APIs, or operations change. The retired LaTeX/PDF spec has been
-fully removed—keep the Markdown specification as the single source of truth. Run
-the [Service Layer Review Checklist](docs/review-checklist.md) before merging to
-confirm the documentation, CLI, and dashboard remain in lockstep. Service
-descriptors all advertise the same `platform` layer so every capability is
-treated with equal priority.
+for navigation and context.
 
-### Tutorials
-- Data Feeds: `docs/examples/datafeeds.md`
-- DataLink: `docs/examples/datalink.md`
-- JAM: `docs/examples/jam.md`
+### Getting Started
+
+| Document | Description |
+|----------|-------------|
+| [Quickstart Tutorial](docs/quickstart-tutorial.md) | **Start here** - Zero to running in 15 minutes |
+| [Service Catalog](docs/service-catalog.md) | Complete reference for all 17 services |
+| [Developer Guide](docs/developer-guide.md) | Building and extending the Service Layer |
+
+### Architecture
+
+| Document | Description |
+|----------|-------------|
+| [Architecture Layers](docs/architecture-layers.md) | 4-layer design (Platform → Framework → Engine → Services) |
+| [Framework Guide](docs/framework-guide.md) | ServiceBase, Builder, Manifest, Testing utilities |
+| [Engine Guide](docs/engine-guide.md) | Registry, Lifecycle, Bus, Health monitoring |
+
+### Operations & Deployment
+
+| Document | Description |
+|----------|-------------|
+| [Deployment Guide](docs/deployment-guide.md) | Production deployment with Docker/Kubernetes |
+| [Operations Runbook](docs/ops-runbook.md) | Start/stop, monitoring, troubleshooting |
+| [Security Hardening](docs/security-hardening.md) | Production security configuration |
+
+### Service Tutorials
+
+| Service | Tutorial |
+|---------|----------|
+| Price Feeds | [docs/examples/pricefeeds.md](docs/examples/pricefeeds.md) - Deviation-based oracle aggregation |
+| Data Feeds | [docs/examples/datafeeds.md](docs/examples/datafeeds.md) - Chainlink-style signed feeds |
+| DataLink | [docs/examples/datalink.md](docs/examples/datalink.md) - Data delivery channels |
+| Automation | [docs/examples/automation.md](docs/examples/automation.md) - Cron-style job scheduling |
+| Secrets | [docs/examples/secrets.md](docs/examples/secrets.md) - Encrypted secret storage |
+| Randomness | [docs/examples/randomness.md](docs/examples/randomness.md) - VRF and signed random |
+| Event Bus | [docs/examples/bus.md](docs/examples/bus.md) - Pub/sub messaging |
+| NEO | [docs/neo-api.md](docs/neo-api.md) - Indexer and snapshot APIs |
+
+### Code Examples
+
+Working code examples are available in `examples/`:
+- `examples/custom-service/` - Complete custom service implementation
+- `examples/functions/devpack/` - TypeScript Devpack SDK examples
 
 ## Development
 

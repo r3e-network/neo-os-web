@@ -8,7 +8,8 @@ This project ships multiple artifacts: the Go backend binaries (`cmd/appserver`,
   - Rust SDK: `sdk/rust/devpack/Cargo.toml` (and regenerate `Cargo.lock`).
   - Python SDK: `sdk/python/devpack/pyproject.toml`.
   - Go module: tag in git; no embedded version string.
-  - Devpack runtime version: `internal/app/services/functions/devpack/runtime.js` `VERSION` constant (should match SDK versions).
+  - Devpack runtime version: `internal/services/functions/devpack/runtime.js` `VERSION` constant (should match SDK versions).
+  - Engine/services layout: engine lives in `internal/engine` (`internal/engine/runtime` for wiring); domain services live in `internal/services` (`internal/services/core` for shared helpers).
 - Update changelogs:
   - Root `CHANGELOG.md` (Unreleased → release section).
   - SDK changelogs under `sdk/*/devpack/CHANGELOG.md`.

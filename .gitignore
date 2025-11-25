@@ -52,3 +52,4 @@ Thumbs.db
 **/tmp/**
 **/.next/**
 **/__pycache__/**
+**/test-results/**
