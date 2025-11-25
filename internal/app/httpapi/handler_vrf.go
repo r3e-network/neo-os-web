@@ -65,7 +65,7 @@ func (h *handler) accountVRFKeys(w http.ResponseWriter, r *http.Request, account
 			}
 			writeJSON(w, http.StatusCreated, created)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		}
 		return
 	}
@@ -115,14 +115,14 @@ func (h *handler) accountVRFKeys(w http.ResponseWriter, r *http.Request, account
 			}
 			writeJSON(w, http.StatusOK, updated)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPut)
 		}
 		return
 	}
 
 	if rest[1] == "requests" {
 		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodPost)
 			return
 		}
 		var payload struct {
@@ -154,7 +154,7 @@ func (h *handler) accountVRFRequests(w http.ResponseWriter, r *http.Request, acc
 	switch len(rest) {
 	case 0:
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet)
 			return
 		}
 		limit, err := parseLimitParam(r.URL.Query().Get("limit"), 25)
@@ -170,7 +170,7 @@ func (h *handler) accountVRFRequests(w http.ResponseWriter, r *http.Request, acc
 		writeJSON(w, http.StatusOK, reqs)
 	default:
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet)
 			return
 		}
 		requestID := rest[0]

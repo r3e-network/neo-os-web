@@ -18,3 +18,12 @@ func tenantFromCtx(ctx context.Context) string {
 	tenant, _ := ctx.Value(ctxTenantKey).(string)
 	return tenant
 }
+
+// tokenFromCtx extracts the auth token/user identifier from context.
+func tokenFromCtx(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	token, _ := ctx.Value(ctxTokenKey).(string)
+	return token
+}

@@ -74,7 +74,7 @@ func TestIntegrationPostgres(t *testing.T) {
 	tokens := []string{"dev-token"}
 	authMgr := auth.NewManager("integration-secret", []auth.User{{Username: "admin", Password: "pass", Role: "admin"}})
 	auditBuf := newAuditLog(100, newPostgresAuditSink(db))
-	handler := NewHandler(appInstance, jam.Config{}, tokens, authMgr, auditBuf)
+	handler := NewHandler(appInstance, jam.Config{}, tokens, authMgr, auditBuf, nil, nil)
 	handler = wrapWithAuth(handler, tokens, nil, authMgr)
 	handler = wrapWithAudit(handler, auditBuf)
 	handler = wrapWithCORS(handler)

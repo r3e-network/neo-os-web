@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/R3E-Network/service_layer/internal/app/domain/function"
 	domainvrf "github.com/R3E-Network/service_layer/internal/app/domain/vrf"
 	"github.com/R3E-Network/service_layer/internal/app/jam"
+	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
@@ -52,7 +54,7 @@ func TestJAMEndpointsEnabled(t *testing.T) {
 	}
 
 	audit := newAuditLog(50, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{Enabled: true}, authTokens, nil, audit), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{Enabled: true}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -145,7 +147,7 @@ func TestHandlerLifecycle(t *testing.T) {
 	t.Cleanup(func() { stopApplication(t, application) })
 
 	audit := newAuditLog(50, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
 
 	body := marshal(map[string]any{"owner": "alice"})
 	req := authedRequest(http.MethodPost, "/accounts", body)
@@ -642,7 +644,7 @@ func TestHandlerLifecycle(t *testing.T) {
 
 	// Oracle runner auth + retry path
 	application.OracleRunnerTokens = []string{"runner-secret"}
-	handler = wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler = wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts", marshal(map[string]any{"owner": "runner-auth"})))
 	assertStatus(t, resp, http.StatusCreated)
@@ -695,7 +697,7 @@ func TestHandlerLifecycle(t *testing.T) {
 	}
 
 	// Workspace wallet + DTA flow
-	handler = wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler = wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts", marshal(map[string]any{"owner": "dta-owner"})))
 	if resp.Code != http.StatusCreated {
@@ -759,7 +761,7 @@ func TestSystemDescriptors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
-	handler := NewHandler(application, jam.Config{}, []string{}, nil, newAuditLog(50, nil))
+	handler := NewHandler(application, jam.Config{}, []string{}, nil, newAuditLog(50, nil), nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/system/descriptors", nil)
 	resp := httptest.NewRecorder()
@@ -787,7 +789,7 @@ func TestWorkspaceWallets(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	acctBody := marshal(map[string]any{"owner": "wallet-owner"})
 	resp := httptest.NewRecorder()
@@ -850,7 +852,7 @@ func TestCREPlaybooksAndRunsHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "cre-owner")
 
 	execResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/cre/executors", map[string]any{
@@ -908,7 +910,7 @@ func TestTenantIsolationEnforced(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	accountA := createAccountWithTenant(t, handler, "alice", "tenant-a")
 	accountB := createAccountWithTenant(t, handler, "bob", "tenant-b")
@@ -940,7 +942,7 @@ func TestDataFeedsWalletGatedHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "datafeeds-owner")
 
 	// register wallet for signer_set
@@ -1003,7 +1005,7 @@ func TestVRFWalletGatedHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "vrf-owner")
 
 	// register wallet required for keys
@@ -1054,7 +1056,7 @@ func TestDataLinkChannelAndDeliveryHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "datalink-owner")
 
 	assertStatus(t, doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/workspace-wallets", map[string]any{
@@ -1107,7 +1109,7 @@ func TestCCIPLaneAndMessageHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "ccip-owner")
 
 	assertStatus(t, doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/workspace-wallets", map[string]any{
@@ -1160,7 +1162,7 @@ func TestDataStreamsHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "streams-owner")
 
 	streamResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/datastreams", map[string]any{
@@ -1196,7 +1198,7 @@ func TestConfidentialComputeHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "conf-owner")
 
 	enclaveResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/confcompute/enclaves", map[string]any{
@@ -1237,7 +1239,7 @@ func TestDTAWalletGatedHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "dta-owner-http")
 
 	assertStatus(t, doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/workspace-wallets", map[string]any{
@@ -1282,7 +1284,7 @@ func TestCCIPLanesRequireRegisteredSigner(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	// Create account
 	acctBody := marshal(map[string]any{"owner": "lane-owner"})
@@ -1335,7 +1337,7 @@ func TestHandlerAuthRequired(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/accounts", nil)
 	resp := httptest.NewRecorder()
@@ -1355,7 +1357,7 @@ func TestHandler_PreventCrossAccountExecution(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	createAccount := func(owner string) string {
 		reqBody := marshal(map[string]any{"owner": owner})
@@ -1404,7 +1406,7 @@ func TestIntegration_AutomationExecutesFunction(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	accountID := createAccount(t, handler, "integration-owner")
 
@@ -1521,6 +1523,501 @@ func createAccountWithTenant(t *testing.T, handler http.Handler, owner, tenant s
 	}
 	id, _ := acct["ID"].(string)
 	return id
+}
+
+func TestSystemStatusModules(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	modulesFn := func() []ModuleStatus {
+		return []ModuleStatus{
+			{Name: "store-postgres", Domain: "store", Category: "store", Status: "started"},
+			{Name: "svc-automation", Domain: "automation", Category: "data", Status: "failed", Error: "boom"},
+		}
+	}
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
+	assertStatus(t, resp, http.StatusOK)
+
+	var payload struct {
+		Modules []ModuleStatus `json:"modules"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal modules: %v", err)
+	}
+	if len(payload.Modules) != 2 {
+		t.Fatalf("expected 2 modules, got %d", len(payload.Modules))
+	}
+	if payload.Modules[1].Status != "failed" || payload.Modules[1].Error == "" {
+		t.Fatalf("expected failed module with error, got %+v", payload.Modules[1])
+	}
+}
+
+func TestSystemStatusModuleSummaryUsesInterfaces(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	modulesFn := func() []ModuleStatus {
+		return []ModuleStatus{
+			{
+				Name:       "svc-multi",
+				Domain:     "multi",
+				Category:   "compute",
+				Interfaces: []string{"compute", "data", "event"},
+				Status:     "started",
+			},
+			{
+				Name:     "svc-data",
+				Domain:   "data",
+				Category: "data",
+				Status:   "started",
+			},
+			{
+				Name:   "svc-phantom",
+				Domain: "phantom",
+				Status: "started",
+			},
+		}
+	}
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
+	assertStatus(t, resp, http.StatusOK)
+
+	var payload struct {
+		ModulesSummary map[string][]string       `json:"modules_summary"`
+		ModulesAPIMeta map[string]map[string]int `json:"modules_api_meta"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal modules summary: %v", err)
+	}
+
+	if !slices.Equal(payload.ModulesSummary["data"], []string{"svc-multi", "svc-data"}) {
+		t.Fatalf("expected data summary to include both modules, got %v", payload.ModulesSummary["data"])
+	}
+	if !slices.Equal(payload.ModulesSummary["event"], []string{"svc-multi"}) {
+		t.Fatalf("expected event summary to include svc-multi, got %v", payload.ModulesSummary["event"])
+	}
+	if !slices.Equal(payload.ModulesSummary["compute"], []string{"svc-multi"}) {
+		t.Fatalf("expected compute summary to include svc-multi, got %v", payload.ModulesSummary["compute"])
+	}
+	if _, ok := payload.ModulesSummary[""]; ok {
+		t.Fatalf("expected modules without interfaces to be excluded from summary")
+	}
+
+	if len(payload.ModulesAPIMeta) > 0 {
+		if meta := payload.ModulesAPIMeta["compute"]; meta["total"] != 1 {
+			t.Fatalf("expected compute api meta total=1, got %+v", meta)
+		}
+	}
+}
+
+func TestSystemStatusAPISummary(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	modulesFn := func() []ModuleStatus {
+		return []ModuleStatus{
+			{
+				Name: "svc-one",
+				APIs: []engine.APIDescriptor{
+					{Name: "compute", Surface: engine.APISurfaceCompute},
+					{Name: "telemetry", Surface: "telemetry"},
+				},
+			},
+			{
+				Name: "svc-two",
+				APIs: []engine.APIDescriptor{
+					{Name: "compute", Surface: engine.APISurfaceCompute},
+				},
+			},
+		}
+	}
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
+	assertStatus(t, resp, http.StatusOK)
+
+	var payload struct {
+		APIs map[string][]string `json:"modules_api_summary"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal apis: %v", err)
+	}
+	if !slices.Equal(payload.APIs["compute"], []string{"svc-one", "svc-two"}) {
+		t.Fatalf("expected compute api summary, got %v", payload.APIs["compute"])
+	}
+	if !slices.Equal(payload.APIs["telemetry"], []string{"svc-one"}) {
+		t.Fatalf("expected telemetry api summary, got %v", payload.APIs["telemetry"])
+	}
+}
+
+type eventCapableModule struct {
+	name    string
+	enabled bool
+}
+
+func (e eventCapableModule) Name() string   { return e.name }
+func (e eventCapableModule) Domain() string { return "events" }
+func (e eventCapableModule) Start(ctx context.Context) error {
+	_ = ctx
+	return nil
+}
+func (e eventCapableModule) Stop(ctx context.Context) error {
+	_ = ctx
+	return nil
+}
+func (e eventCapableModule) Publish(ctx context.Context, event string, payload any) error {
+	_ = ctx
+	_ = event
+	_ = payload
+	return nil
+}
+func (e eventCapableModule) Subscribe(ctx context.Context, event string, handler func(context.Context, any) error) error {
+	_ = ctx
+	_ = event
+	if handler != nil {
+		return handler(context.Background(), nil)
+	}
+	return nil
+}
+func (e eventCapableModule) HasEvent() bool { return e.enabled }
+
+func TestSystemStatusRespectsEngineCapabilities(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+
+	eng := engine.New(engine.WithOrder("events-off", "events-on"))
+	if err := eng.Register(eventCapableModule{name: "events-off", enabled: false}); err != nil {
+		t.Fatalf("register events-off: %v", err)
+	}
+	if err := eng.Register(eventCapableModule{name: "events-on", enabled: true}); err != nil {
+		t.Fatalf("register events-on: %v", err)
+	}
+
+	modulesFn := EngineModuleProvider(eng)
+
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
+	assertStatus(t, resp, http.StatusOK)
+
+	var payload struct {
+		Modules        []ModuleStatus      `json:"modules"`
+		ModulesSummary map[string][]string `json:"modules_summary"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal modules: %v", err)
+	}
+	if len(payload.Modules) != 2 {
+		t.Fatalf("expected 2 modules, got %d", len(payload.Modules))
+	}
+	if !slices.Equal(payload.ModulesSummary["event"], []string{"events-on"}) {
+		t.Fatalf("expected only enabled event module in summary, got %v", payload.ModulesSummary["event"])
+	}
+}
+
+func TestSystemStatusModuleMeta(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	start := time.Now().Add(-5 * time.Second)
+	stop := start.Add(4 * time.Second)
+	modulesFn := func() []ModuleStatus {
+		return []ModuleStatus{
+			{Name: "svc-ok", Status: "started", Ready: "ready", StartNanos: 2_500_000_000, StopNanos: 2_000_000, StartedAt: &start},
+			{Name: "svc-fail", Status: "failed", Ready: "not-ready", StartNanos: 3_000_000, StartedAt: &start},
+			{Name: "svc-stop", Status: "stop-error", Ready: "ready", StopNanos: 4_000_000, StartedAt: &start, StoppedAt: &stop},
+		}
+	}
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
+	assertStatus(t, resp, http.StatusOK)
+
+	var payload struct {
+		ModulesMeta    map[string]int                `json:"modules_meta"`
+		ModulesTimings map[string]map[string]float64 `json:"modules_timings"`
+		ModulesUptime  map[string]float64            `json:"modules_uptime"`
+		ModulesSlow    []string                      `json:"modules_slow"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal modules_meta: %v", err)
+	}
+	if payload.ModulesMeta["total"] != 3 || payload.ModulesMeta["started"] != 1 || payload.ModulesMeta["failed"] != 1 || payload.ModulesMeta["stop_error"] != 1 || payload.ModulesMeta["not_ready"] != 1 {
+		t.Fatalf("unexpected modules_meta counts: %+v", payload.ModulesMeta)
+	}
+	if len(payload.ModulesTimings) != 3 {
+		t.Fatalf("expected timings for 3 modules, got %d", len(payload.ModulesTimings))
+	}
+	if tt := payload.ModulesTimings["svc-ok"]; tt["start_ms"] < 1.0 || tt["stop_ms"] < 2.0 {
+		t.Fatalf("unexpected timings for svc-ok: %+v", tt)
+	}
+	if tt := payload.ModulesTimings["svc-stop"]; tt["stop_ms"] < 4.0 {
+		t.Fatalf("unexpected stop timing for svc-stop: %+v", tt)
+	}
+	if uptime := payload.ModulesUptime["svc-stop"]; uptime < 3.9 || uptime > 4.1 {
+		t.Fatalf("unexpected uptime for svc-stop: %f", uptime)
+	}
+	if len(payload.ModulesSlow) == 0 || payload.ModulesSlow[0] != "svc-ok" {
+		t.Fatalf("expected slow modules to include svc-ok, got %v", payload.ModulesSlow)
+	}
+}
+
+// Ensures slow threshold can be overridden via env.
+func TestSystemStatusSlowThresholdEnv(t *testing.T) {
+	t.Setenv("MODULE_SLOW_MS", "5000")
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	modulesFn := func() []ModuleStatus {
+		start := time.Now()
+		return []ModuleStatus{
+			{Name: "svc-ok", Status: "started", Ready: "ready", StartNanos: 2_500_000_000, StartedAt: &start},
+		}
+	}
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
+	assertStatus(t, resp, http.StatusOK)
+
+	var payload struct {
+		ModulesSlow    []string                      `json:"modules_slow"`
+		SlowThreshold  float64                       `json:"modules_slow_threshold_ms"`
+		ModulesTimings map[string]map[string]float64 `json:"modules_timings"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal status: %v", err)
+	}
+	if len(payload.ModulesSlow) != 0 {
+		t.Fatalf("expected no slow modules with higher threshold, got %v", payload.ModulesSlow)
+	}
+	if payload.SlowThreshold != 5000 {
+		t.Fatalf("expected threshold 5000, got %v", payload.SlowThreshold)
+	}
+	if tms := payload.ModulesTimings["svc-ok"]; tms["start_ms"] < 2500 {
+		t.Fatalf("expected timings preserved, got %+v", tms)
+	}
+}
+
+func TestSystemStatusIncludesListenAddr(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil,
+		WithListenAddrProvider(func() string { return "127.0.0.1:1234" })),
+		authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
+	assertStatus(t, resp, http.StatusOK)
+
+	var payload map[string]any
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal status: %v", err)
+	}
+	if addr, _ := payload["listen_addr"].(string); addr != "127.0.0.1:1234" {
+		t.Fatalf("expected listen_addr in status payload, got %v", payload["listen_addr"])
+	}
+}
+
+func TestSystemStatusMethodGuard(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
+
+	okResp := httptest.NewRecorder()
+	handler.ServeHTTP(okResp, authedRequest(http.MethodGet, "/system/status", nil))
+	assertStatus(t, okResp, http.StatusOK)
+
+	postResp := httptest.NewRecorder()
+	handler.ServeHTTP(postResp, authedRequest(http.MethodPost, "/system/status", nil))
+	assertStatus(t, postResp, http.StatusMethodNotAllowed)
+}
+
+func TestSystemBusEvents(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	var gotEvent string
+	var gotPayload any
+	publish := func(ctx context.Context, event string, payload any) error {
+		gotEvent = event
+		gotPayload = payload
+		return nil
+	}
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(publish, nil, nil)), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	body := marshal(map[string]any{
+		"event":   "observation",
+		"payload": map[string]any{"price": "1.23"},
+	})
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/system/events", body))
+	assertStatus(t, resp, http.StatusOK)
+	if gotEvent != "observation" {
+		t.Fatalf("expected event propagated, got %s", gotEvent)
+	}
+	if gotPayload == nil {
+		t.Fatalf("expected payload propagated")
+	}
+}
+
+func TestSystemBusEventsMethodGuard(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/events", nil))
+	assertStatus(t, resp, http.StatusMethodNotAllowed)
+	if allow := resp.Header().Get("Allow"); allow != http.MethodPost {
+		t.Fatalf("expected Allow header %s, got %q", http.MethodPost, allow)
+	}
+}
+
+func TestSystemBusCompute(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	var seenPayload any
+	invoker := func(ctx context.Context, payload any) ([]ComputeResult, error) {
+		seenPayload = payload
+		return []ComputeResult{
+			{Module: "compute-ok", Result: "ok"},
+			{Module: "compute-fail", Error: "boom"},
+		}, fmt.Errorf("aggregate failure")
+	}
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, nil, invoker)), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	body := marshal(map[string]any{"payload": map[string]any{"job": 1}})
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/system/compute", body))
+	if resp.Code != http.StatusInternalServerError {
+		t.Fatalf("expected compute fan-out to bubble error as 500, got %d", resp.Code)
+	}
+	var payload struct {
+		Results []ComputeResult `json:"results"`
+		Error   string          `json:"error"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if len(payload.Results) != 2 || payload.Error == "" {
+		t.Fatalf("expected results and aggregate error, got %+v", payload)
+	}
+	if seenPayload == nil {
+		t.Fatalf("expected payload passed to invoker")
+	}
+}
+
+func TestAuthLoginMethodGuard(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/auth/login", nil))
+	assertStatus(t, resp, http.StatusMethodNotAllowed)
+	if allow := resp.Header().Get("Allow"); allow != http.MethodPost {
+		t.Fatalf("expected Allow header %s, got %q", http.MethodPost, allow)
+	}
+}
+
+func TestSystemBusData(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	var gotTopic string
+	var gotPayload any
+	push := func(ctx context.Context, topic string, payload any) error {
+		gotTopic = topic
+		gotPayload = payload
+		return nil
+	}
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, push, nil)), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	body := marshal(map[string]any{
+		"topic":   "stream-1",
+		"payload": map[string]any{"value": 123},
+	})
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/system/data", body))
+	assertStatus(t, resp, http.StatusOK)
+	if gotTopic != "stream-1" || gotPayload == nil {
+		t.Fatalf("expected data bus to receive topic and payload, got %s %+v", gotTopic, gotPayload)
+	}
+}
+
+func TestReadyzAndLivez(t *testing.T) {
+	application, err := app.New(app.Stores{}, nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	modulesFn := func() []ModuleStatus {
+		return []ModuleStatus{
+			{Name: "svc-ready", Ready: "ready"},
+			{Name: "svc-bad", Ready: "not-ready", Error: "boom"},
+		}
+	}
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/livez", nil))
+	assertStatus(t, resp, http.StatusOK)
+
+	resp = httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/readyz", nil))
+	if resp.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 readyz, got %d", resp.Code)
+	}
+	var payload struct {
+		Modules []ModuleStatus `json:"modules"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(payload.Modules) != 1 || payload.Modules[0].Name != "svc-bad" {
+		t.Fatalf("expected not-ready module returned, got %+v", payload.Modules)
+	}
 }
 
 func doJSON(handler http.Handler, method, path string, payload any) *httptest.ResponseRecorder {

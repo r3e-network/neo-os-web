@@ -58,7 +58,7 @@ func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accou
 			}
 			writeJSON(w, http.StatusCreated, created)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		}
 		return
 	}
@@ -109,7 +109,7 @@ func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accou
 			}
 			writeJSON(w, http.StatusOK, updated)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPut)
 		}
 		return
 	}
@@ -150,13 +150,13 @@ func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accou
 				}
 				writeJSON(w, http.StatusCreated, created)
 			default:
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodGet, http.MethodPost)
 			}
 			return
 		}
 	case "latest":
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet)
 			return
 		}
 		latest, err := h.app.DataFeeds.LatestUpdate(r.Context(), accountID, feedID)
@@ -203,7 +203,7 @@ func (h *handler) accountPriceFeeds(w http.ResponseWriter, r *http.Request, acco
 			}
 			writeJSON(w, http.StatusCreated, feed)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		}
 		return
 	}
@@ -251,7 +251,7 @@ func (h *handler) accountPriceFeeds(w http.ResponseWriter, r *http.Request, acco
 			}
 			writeJSON(w, http.StatusOK, updated)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPatch)
 		}
 		return
 	}
@@ -291,7 +291,7 @@ func (h *handler) accountPriceFeeds(w http.ResponseWriter, r *http.Request, acco
 			}
 			writeJSON(w, http.StatusCreated, snap)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		}
 		return
 	}

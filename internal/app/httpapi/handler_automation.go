@@ -46,7 +46,7 @@ func (h *handler) accountAutomation(w http.ResponseWriter, r *http.Request, acco
 			}
 			writeJSON(w, http.StatusCreated, job)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		}
 	case 2:
 		jobID := rest[1]
@@ -118,7 +118,7 @@ func (h *handler) accountAutomation(w http.ResponseWriter, r *http.Request, acco
 			}
 			writeJSON(w, http.StatusOK, updated)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPatch)
 		}
 	default:
 		w.WriteHeader(http.StatusNotFound)

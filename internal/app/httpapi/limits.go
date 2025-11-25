@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	core "github.com/R3E-Network/service_layer/internal/app/core/service"
+	core "github.com/R3E-Network/service_layer/internal/services/core"
 )
 
 func parseLimitParam(raw string, defaultLimit int) (int, error) {

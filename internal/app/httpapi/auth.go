@@ -24,6 +24,7 @@ const (
 	ctxUserKey   ctxKey = "httpapi.user"
 	ctxRoleKey   ctxKey = "httpapi.role"
 	ctxTenantKey ctxKey = "httpapi.tenant"
+	ctxTokenKey  ctxKey = "httpapi.token"
 )
 
 var adminPrefixes = []string{
@@ -50,6 +51,7 @@ func wrapWithAuth(next http.Handler, tokens []string, log *logger.Logger, jwtMgr
 			if _, ok := tokenSet[token]; ok {
 				ctx := context.WithValue(r.Context(), ctxUserKey, "token")
 				ctx = context.WithValue(ctx, ctxRoleKey, "token")
+				ctx = context.WithValue(ctx, ctxTokenKey, token)
 				ctx = withTenant(ctx, r)
 				if enforceRole(w, r, ctx) {
 					next.ServeHTTP(w, r.WithContext(ctx))
@@ -60,6 +62,7 @@ func wrapWithAuth(next http.Handler, tokens []string, log *logger.Logger, jwtMgr
 				if claims, err := jwtMgr.Validate(token); err == nil {
 					ctx := context.WithValue(r.Context(), ctxUserKey, claims.Username)
 					ctx = context.WithValue(ctx, ctxRoleKey, claims.Role)
+					ctx = context.WithValue(ctx, ctxTokenKey, claims.Username)
 					ctx = withTenant(ctx, r)
 					if enforceRole(w, r, ctx) {
 						next.ServeHTTP(w, r.WithContext(ctx))

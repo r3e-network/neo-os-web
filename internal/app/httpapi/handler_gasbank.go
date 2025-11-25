@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/internal/app/domain/gasbank"
-	gasbanksvc "github.com/R3E-Network/service_layer/internal/app/services/gasbank"
+	gasbanksvc "github.com/R3E-Network/service_layer/internal/services/gasbank"
 )
 
 func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
@@ -68,13 +68,13 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 			}
 			writeJSON(w, http.StatusOK, acct)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		}
 	default:
 		action := rest[0]
 		if action == "summary" {
 			if r.Method != http.MethodGet {
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodGet)
 				return
 			}
 			summary, err := h.app.GasBank.Summary(r.Context(), accountID)
@@ -131,7 +131,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 					Transaction: tx,
 				})
 			default:
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodGet, http.MethodPost)
 			}
 			return
 		}
@@ -139,7 +139,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 		switch action {
 		case "deposit":
 			if r.Method != http.MethodPost {
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodPost)
 				return
 			}
 			var payload struct {
@@ -180,7 +180,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 			})
 		case "withdraw":
 			if r.Method != http.MethodPost {
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodPost)
 				return
 			}
 			var payload struct {
@@ -233,7 +233,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 			})
 		case "transactions":
 			if r.Method != http.MethodGet {
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodGet)
 				return
 			}
 			gasAcct, err := h.resolveGasAccount(r.Context(), accountID, r.URL.Query().Get("gas_account_id"))
@@ -256,7 +256,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 			writeJSON(w, http.StatusOK, txs)
 		case "deposits":
 			if r.Method != http.MethodGet {
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodGet)
 				return
 			}
 			gasAcct, err := h.resolveGasAccount(r.Context(), accountID, r.URL.Query().Get("gas_account_id"))
@@ -278,7 +278,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 		case "withdrawals":
 			if len(rest) == 1 {
 				if r.Method != http.MethodGet {
-					w.WriteHeader(http.StatusMethodNotAllowed)
+					methodNotAllowed(w, http.MethodGet)
 					return
 				}
 				gasAcctID := strings.TrimSpace(r.URL.Query().Get("gas_account_id"))
@@ -308,7 +308,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 			txID := rest[1]
 			if len(rest) >= 3 && rest[2] == "attempts" {
 				if r.Method != http.MethodGet {
-					w.WriteHeader(http.StatusMethodNotAllowed)
+					methodNotAllowed(w, http.MethodGet)
 					return
 				}
 				limit, err := parseLimitParam(r.URL.Query().Get("limit"), 25)
@@ -361,14 +361,14 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 					writeError(w, http.StatusBadRequest, fmt.Errorf("unsupported action %q", payload.Action))
 				}
 			default:
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodGet, http.MethodPatch)
 			}
 		case "withdrawals_attempts":
 			w.WriteHeader(http.StatusNotFound)
 		case "deadletters":
 			if len(rest) == 1 {
 				if r.Method != http.MethodGet {
-					w.WriteHeader(http.StatusMethodNotAllowed)
+					methodNotAllowed(w, http.MethodGet)
 					return
 				}
 				limit, err := parseLimitParam(r.URL.Query().Get("limit"), 25)
@@ -387,7 +387,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 			txID := rest[1]
 			if len(rest) >= 3 && rest[2] == "retry" {
 				if r.Method != http.MethodPost {
-					w.WriteHeader(http.StatusMethodNotAllowed)
+					methodNotAllowed(w, http.MethodPost)
 					return
 				}
 				tx, err := h.app.GasBank.RetryDeadLetter(r.Context(), accountID, txID)
@@ -403,7 +403,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 				return
 			}
 			if r.Method != http.MethodDelete {
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodDelete)
 				return
 			}
 			if err := h.app.GasBank.DeleteDeadLetter(r.Context(), accountID, txID); err != nil {

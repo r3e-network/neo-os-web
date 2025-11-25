@@ -3,17 +3,37 @@ package httpapi
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	app "github.com/R3E-Network/service_layer/internal/app"
 	"github.com/R3E-Network/service_layer/internal/app/jam"
 	"github.com/R3E-Network/service_layer/internal/app/metrics"
 	"github.com/R3E-Network/service_layer/internal/app/system"
+	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
+
+// BusPublisher dispatches an event to all EventEngine implementations.
+type BusPublisher func(context.Context, string, any) error
+
+// BusPusher fan-outs a payload to all DataEngine implementations.
+type BusPusher func(context.Context, string, any) error
+
+// ComputeResult captures per-module outcomes for compute fan-out.
+type ComputeResult struct {
+	Module string `json:"module"`
+	Result any    `json:"result,omitempty"`
+	Error  string `json:"error,omitempty"`
+}
+
+// ComputeInvoker invokes every ComputeEngine with the provided payload.
+type ComputeInvoker func(context.Context, any) ([]ComputeResult, error)
 
 // Service exposes the HTTP API and fits into the system manager lifecycle.
 type Service struct {
@@ -21,9 +41,53 @@ type Service struct {
 	server  *http.Server
 	handler http.Handler
 	log     *logger.Logger
+	busPub  BusPublisher
+	busPush BusPusher
+	invoke  ComputeInvoker
+	mu      sync.Mutex
+	running bool
+	bound   string
+	slowMS  float64
+	rpcEng  func() []engine.RPCEngine
+	rpcPol  *RPCPolicy
 }
 
-func NewService(application *app.Application, addr string, tokens []string, jamCfg jam.Config, authMgr authManager, log *logger.Logger, db *sql.DB) *Service {
+// ServiceOption customizes the HTTP service behavior.
+type ServiceOption func(*Service)
+
+// WithBus wires the engine fan-out helpers (events/data/compute) for use by /system bus endpoints.
+func WithBus(publish BusPublisher, push BusPusher, invoke ComputeInvoker) ServiceOption {
+	return func(s *Service) {
+		s.busPub = publish
+		s.busPush = push
+		s.invoke = invoke
+	}
+}
+
+// WithStatusSlowThreshold overrides the slow module threshold (ms) for status responses.
+func WithStatusSlowThreshold(ms float64) ServiceOption {
+	return func(s *Service) {
+		if ms > 0 {
+			s.slowMS = ms
+		}
+	}
+}
+
+// WithRPCEnginesOption wires the RPC engine lookup into the HTTP handler.
+func WithRPCEnginesOption(fn func() []engine.RPCEngine) ServiceOption {
+	return func(s *Service) {
+		s.rpcEng = fn
+	}
+}
+
+// WithRPCPolicyOption wires tenancy/rate limits for /system/rpc.
+func WithRPCPolicyOption(policy *RPCPolicy) ServiceOption {
+	return func(s *Service) {
+		s.rpcPol = policy
+	}
+}
+
+func NewService(application *app.Application, addr string, tokens []string, jamCfg jam.Config, authMgr authManager, log *logger.Logger, db *sql.DB, modules ModuleProvider, opts ...ServiceOption) *Service {
 	if log == nil {
 		log = logger.NewDefault("http")
 	}
@@ -39,18 +103,35 @@ func NewService(application *app.Application, addr string, tokens []string, jamC
 		auditSink = newPostgresAuditSink(db)
 	}
 	audit := newAuditLog(300, auditSink)
-	handler := NewHandler(application, jamCfg, tokens, authMgr, audit)
+	neo := newNeoReader(db, os.Getenv("NEO_SNAPSHOT_DIR"), os.Getenv("NEO_RPC_STATUS_URL"))
+	svc := &Service{
+		addr: addr,
+		log:  log,
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(svc)
+		}
+	}
+
+	if len(tokens) == 0 {
+		log.Warn("HTTP service starting without API tokens; prefer JWT login or configure API_TOKENS")
+	}
+	handler := NewHandler(application, jamCfg, tokens, authMgr, audit, neo, modules,
+		WithBusEndpoints(svc.busPub, svc.busPush, svc.invoke),
+		WithListenAddrProvider(svc.Addr),
+		WithSlowThreshold(svc.slowMS),
+		WithRPCEngines(svc.rpcEng),
+		WithRPCPolicy(svc.rpcPol),
+	)
 	// Order matters: auth should see real requests, CORS should short-circuit
 	// preflight OPTIONS before auth, metrics wraps the final handler.
 	handler = wrapWithAuth(handler, tokens, log, authMgr)
 	handler = wrapWithAudit(handler, audit)
 	handler = wrapWithCORS(handler)
 	handler = metrics.InstrumentHandler(handler)
-	return &Service{
-		addr:    addr,
-		handler: handler,
-		log:     log,
-	}
+	svc.handler = handler
+	return svc
 }
 
 var _ system.Service = (*Service)(nil)
@@ -58,26 +139,94 @@ var _ system.Service = (*Service)(nil)
 func (s *Service) Name() string { return "http" }
 
 func (s *Service) Start(ctx context.Context) error {
-	s.server = &http.Server{
+	s.mu.Lock()
+	if s.running {
+		s.mu.Unlock()
+		return nil
+	}
+	server := &http.Server{
 		Addr:         s.addr,
 		Handler:      s.handler,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 	}
 
+	ln, err := net.Listen("tcp", s.addr)
+	if err != nil {
+		s.mu.Unlock()
+		return fmt.Errorf("listen %s: %w", s.addr, err)
+	}
+	s.running = true
+	s.server = server
+	s.bound = ln.Addr().String()
+	s.mu.Unlock()
+
 	go func() {
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := server.Serve(ln); err != nil && err != http.ErrServerClosed {
 			s.log.Errorf("http server error: %v", err)
 		}
+		s.mu.Lock()
+		if s.server == server {
+			s.running = false
+			s.bound = ""
+		}
+		s.mu.Unlock()
 	}()
 	return nil
 }
 
 func (s *Service) Stop(ctx context.Context) error {
-	if s.server == nil {
+	s.mu.Lock()
+	server := s.server
+	s.mu.Unlock()
+
+	if server == nil {
+		s.mu.Lock()
+		s.running = false
+		s.mu.Unlock()
 		return nil
 	}
-	return s.server.Shutdown(ctx)
+	err := server.Shutdown(ctx)
+
+	s.mu.Lock()
+	if s.server == server {
+		s.running = false
+		s.bound = ""
+	}
+	s.mu.Unlock()
+
+	return err
+}
+
+func (s *Service) Domain() string { return "system" }
+
+// Ready reports readiness based on the running flag.
+func (s *Service) Ready(ctx context.Context) error {
+	_ = ctx
+	s.mu.Lock()
+	running := s.running
+	s.mu.Unlock()
+	if !running {
+		return fmt.Errorf("http server not running")
+	}
+	return nil
+}
+
+// SetReady keeps internal running state in sync with engine readiness.
+func (s *Service) SetReady(status string, _ string) {
+	s.mu.Lock()
+	s.running = strings.EqualFold(strings.TrimSpace(status), "ready")
+	s.mu.Unlock()
+}
+
+// Addr returns the bound address (after Start) or the configured address when not yet bound.
+func (s *Service) Addr() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.bound != "" {
+		return s.bound
+	}
+	return s.addr
 }
 
 // wrapWithCORS allows cross-origin requests from the dashboard (localhost:8081)

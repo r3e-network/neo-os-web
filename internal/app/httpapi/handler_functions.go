@@ -8,8 +8,10 @@ import (
 
 	"github.com/R3E-Network/service_layer/internal/app/domain/function"
 	randomdomain "github.com/R3E-Network/service_layer/internal/app/domain/random"
+	"github.com/R3E-Network/service_layer/internal/app/domain/secret"
 	"github.com/R3E-Network/service_layer/internal/app/domain/trigger"
-	"github.com/R3E-Network/service_layer/internal/app/services/random"
+	"github.com/R3E-Network/service_layer/internal/services/random"
+	"github.com/R3E-Network/service_layer/internal/services/secrets"
 )
 
 func (h *handler) accountFunctions(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
@@ -50,7 +52,7 @@ func (h *handler) accountFunctions(w http.ResponseWriter, r *http.Request, accou
 			writeJSON(w, http.StatusOK, funcs)
 
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodPost, http.MethodGet)
 		}
 		return
 	}
@@ -68,7 +70,7 @@ func (h *handler) accountFunctions(w http.ResponseWriter, r *http.Request, accou
 		switch rest[1] {
 		case "execute":
 			if r.Method != http.MethodPost {
-				w.WriteHeader(http.StatusMethodNotAllowed)
+				methodNotAllowed(w, http.MethodPost)
 				return
 			}
 			def, err := h.app.Functions.Get(r.Context(), functionID)
@@ -116,7 +118,7 @@ func (h *handler) accountFunctionExecutions(w http.ResponseWriter, r *http.Reque
 	switch len(rest) {
 	case 0:
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet)
 			return
 		}
 		limit, err := parseLimitParam(r.URL.Query().Get("limit"), 25)
@@ -132,7 +134,7 @@ func (h *handler) accountFunctionExecutions(w http.ResponseWriter, r *http.Reque
 		writeJSON(w, http.StatusOK, execs)
 	case 1:
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet)
 			return
 		}
 		exec, err := h.app.Functions.GetExecution(r.Context(), rest[0])
@@ -156,7 +158,7 @@ func (h *handler) accountFunctionExecutionLookup(w http.ResponseWriter, r *http.
 		return
 	}
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		methodNotAllowed(w, http.MethodGet)
 		return
 	}
 	exec, err := h.app.Functions.GetExecution(r.Context(), rest[0])
@@ -215,7 +217,7 @@ func (h *handler) accountTriggers(w http.ResponseWriter, r *http.Request, accoun
 		writeJSON(w, http.StatusOK, triggers)
 
 	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		methodNotAllowed(w, http.MethodPost, http.MethodGet)
 	}
 }
 
@@ -235,22 +237,30 @@ func (h *handler) accountSecrets(w http.ResponseWriter, r *http.Request, account
 			}
 			writeJSON(w, http.StatusOK, items)
 		case http.MethodPost:
+			// Enhanced payload with ACL support
+			// Aligned with SecretsVault.cs contract ACL model
 			var payload struct {
 				Name  string `json:"name"`
 				Value string `json:"value"`
+				ACL   *uint8 `json:"acl,omitempty"` // Optional ACL flags
 			}
 			if err := decodeJSON(r.Body, &payload); err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			meta, err := h.app.Secrets.Create(r.Context(), accountID, payload.Name, payload.Value)
+			opts := secrets.CreateOptions{}
+			if payload.ACL != nil {
+				acl := secret.ACL(*payload.ACL)
+				opts.ACL = acl
+			}
+			meta, err := h.app.Secrets.CreateWithOptions(r.Context(), accountID, payload.Name, payload.Value, opts)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
 			writeJSON(w, http.StatusCreated, meta)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		}
 		return
 	}
@@ -270,14 +280,30 @@ func (h *handler) accountSecrets(w http.ResponseWriter, r *http.Request, account
 		}
 		writeJSON(w, http.StatusOK, sec)
 	case http.MethodPut:
+		// Enhanced payload with ACL support
+		// Aligned with SecretsVault.cs contract ACL model
 		var payload struct {
-			Value string `json:"value"`
+			Value *string `json:"value,omitempty"` // Optional - only update if provided
+			ACL   *uint8  `json:"acl,omitempty"`   // Optional ACL flags
 		}
 		if err := decodeJSON(r.Body, &payload); err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		meta, err := h.app.Secrets.Update(r.Context(), accountID, name, payload.Value)
+		opts := secrets.UpdateOptions{}
+		if payload.Value != nil {
+			opts.Value = payload.Value
+		}
+		if payload.ACL != nil {
+			acl := secret.ACL(*payload.ACL)
+			opts.ACL = &acl
+		}
+		// Require at least one field to update
+		if opts.Value == nil && opts.ACL == nil {
+			writeError(w, http.StatusBadRequest, fmt.Errorf("at least one of 'value' or 'acl' is required"))
+			return
+		}
+		meta, err := h.app.Secrets.UpdateWithOptions(r.Context(), accountID, name, opts)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -290,7 +316,7 @@ func (h *handler) accountSecrets(w http.ResponseWriter, r *http.Request, account
 		}
 		w.WriteHeader(http.StatusNoContent)
 	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		methodNotAllowed(w, http.MethodGet, http.MethodPut, http.MethodDelete)
 	}
 }
 
@@ -312,7 +338,7 @@ func (h *handler) accountRandom(w http.ResponseWriter, r *http.Request, accountI
 	}
 	if len(rest) == 0 {
 		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodPost)
 			return
 		}
 		var payload struct {
@@ -339,7 +365,7 @@ func (h *handler) accountRandom(w http.ResponseWriter, r *http.Request, accountI
 	switch rest[0] {
 	case "requests":
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet)
 			return
 		}
 		limit, err := parseLimitParam(r.URL.Query().Get("limit"), 25)

@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	app "github.com/R3E-Network/service_layer/internal/app"
@@ -21,9 +22,9 @@ import (
 	"github.com/R3E-Network/service_layer/internal/app/domain/oracle"
 	"github.com/R3E-Network/service_layer/internal/app/jam"
 	"github.com/R3E-Network/service_layer/internal/app/metrics"
+	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/internal/platform/database"
 	"github.com/R3E-Network/service_layer/internal/platform/migrations"
-	"github.com/R3E-Network/service_layer/internal/version"
 )
 
 // handler bundles HTTP endpoints for the application services.
@@ -32,8 +33,19 @@ type handler struct {
 	jamCfg      jam.Config
 	jamAuth     []string
 	jamStore    jam.PackageStore
+	neo         neoProvider
 	authManager authManager
 	audit       *auditLog
+	modulesFn   ModuleProvider
+	busPub      BusPublisher
+	busPush     BusPusher
+	invoke      ComputeInvoker
+	listenAddr  func() string
+	slowMS      float64
+	rpcEngines  func() []engine.RPCEngine
+	rpcPolicy   *rpcPolicy
+	rpcMu       sync.Mutex
+	rpcSeq      map[string]int
 }
 
 type authManager interface {
@@ -45,24 +57,99 @@ type authManager interface {
 	VerifyWalletSignature(wallet, signature, pubKey string) (auth.User, error)
 }
 
+// HandlerOption customizes handler behaviour.
+type HandlerOption func(*handler)
+
+// WithBusEndpoints wires engine fan-out helpers for /system bus endpoints.
+func WithBusEndpoints(publish BusPublisher, push BusPusher, invoke ComputeInvoker) HandlerOption {
+	return func(h *handler) {
+		h.busPub = publish
+		h.busPush = push
+		h.invoke = invoke
+	}
+}
+
+// WithListenAddrProvider injects a function returning the current listen address.
+func WithListenAddrProvider(provider func() string) HandlerOption {
+	return func(h *handler) {
+		h.listenAddr = provider
+	}
+}
+
+// WithSlowThreshold overrides the slow module threshold (milliseconds) for status responses.
+func WithSlowThreshold(ms float64) HandlerOption {
+	return func(h *handler) {
+		if ms > 0 {
+			h.slowMS = ms
+		}
+	}
+}
+
+// WithRPCEngines injects a lookup for available RPC hubs.
+func WithRPCEngines(fn func() []engine.RPCEngine) HandlerOption {
+	return func(h *handler) {
+		h.rpcEngines = fn
+	}
+}
+
+// WithRPCPolicy enforces tenancy/rate limits on /system/rpc.
+func WithRPCPolicy(policy *RPCPolicy) HandlerOption {
+	return func(h *handler) {
+		if policy != nil {
+			h.rpcPolicy = newRPCPolicy(*policy)
+		}
+	}
+}
+
 // NewHandler returns a mux exposing the core REST API.
-func NewHandler(application *app.Application, jamCfg jam.Config, tokens []string, authMgr authManager, audit *auditLog) http.Handler {
+func NewHandler(
+	application *app.Application,
+	jamCfg jam.Config,
+	tokens []string,
+	authMgr authManager,
+	audit *auditLog,
+	neo neoProvider,
+	modules ModuleProvider,
+	opts ...HandlerOption,
+) http.Handler {
 	jamCfg.Normalize()
-	h := &handler{app: application, jamCfg: jamCfg, jamAuth: tokens, authManager: authMgr, audit: audit}
+	h := &handler{app: application, jamCfg: jamCfg, jamAuth: tokens, authManager: authMgr, audit: audit, neo: neo, modulesFn: modules}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(h)
+		}
+	}
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", metrics.Handler())
-	mux.HandleFunc("/healthz", h.health)
-	mux.HandleFunc("/system/descriptors", h.systemDescriptors)
-	mux.HandleFunc("/system/descriptors.html", h.systemDescriptorsHTML)
-	mux.HandleFunc("/system/version", h.systemVersion)
-	mux.HandleFunc("/system/status", h.systemStatus)
-	mux.HandleFunc("/auth/login", h.login)
-	mux.HandleFunc("/auth/wallet/challenge", h.walletChallenge)
-	mux.HandleFunc("/auth/wallet/login", h.walletLogin)
-	mux.HandleFunc("/auth/whoami", h.whoami)
+	mountRoutes(mux,
+		route{pattern: "/healthz", method: http.MethodGet, handler: h.health},
+		route{pattern: "/readyz", method: http.MethodGet, handler: h.readyz},
+		route{pattern: "/livez", method: http.MethodGet, handler: h.livez},
+		route{pattern: "/system/descriptors", method: http.MethodGet, handler: h.systemDescriptors},
+		route{pattern: "/system/descriptors.html", method: http.MethodGet, handler: h.systemDescriptorsHTML},
+		route{pattern: "/system/version", method: http.MethodGet, handler: h.systemVersion},
+		route{pattern: "/system/status", method: http.MethodGet, handler: h.systemStatus},
+		route{pattern: "/system/events", method: http.MethodPost, handler: h.systemEvents},
+		route{pattern: "/system/data", method: http.MethodPost, handler: h.systemData},
+		route{pattern: "/system/compute", method: http.MethodPost, handler: h.systemCompute},
+		route{pattern: "/system/rpc", method: http.MethodPost, handler: h.handleChainRPC},
+		route{pattern: "/neo/status", method: http.MethodGet, handler: h.neoStatus},
+		route{pattern: "/neo/checkpoint", method: http.MethodGet, handler: h.neoCheckpoint},
+		route{pattern: "/neo/blocks", method: http.MethodGet, handler: h.neoBlocks},
+		route{pattern: "/neo/blocks/", method: http.MethodGet, handler: h.neoBlock},
+		route{pattern: "/neo/snapshots", method: http.MethodGet, handler: h.neoSnapshots},
+		route{pattern: "/neo/snapshots/", method: http.MethodGet, handler: h.neoSnapshot},
+		route{pattern: "/neo/storage/", method: http.MethodGet, handler: h.neoStorage},
+		route{pattern: "/neo/storage-diff/", method: http.MethodGet, handler: h.neoStorageDiff},
+		route{pattern: "/neo/storage-summary/", method: http.MethodGet, handler: h.neoStorageSummary},
+		route{pattern: "/auth/login", method: http.MethodPost, handler: h.login},
+		route{pattern: "/auth/wallet/challenge", method: http.MethodPost, handler: h.walletChallenge},
+		route{pattern: "/auth/wallet/login", method: http.MethodPost, handler: h.walletLogin},
+		route{pattern: "/auth/whoami", method: http.MethodGet, handler: h.whoami},
+		route{pattern: "/admin/audit", method: http.MethodGet, handler: h.adminAudit},
+	)
 	mux.HandleFunc("/accounts", h.accounts)
 	mux.HandleFunc("/accounts/", h.accountResources)
-	mux.HandleFunc("/admin/audit", h.adminAudit)
 
 	h.maybeMountJAM(mux)
 	return mux
@@ -182,7 +269,7 @@ func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, filtered)
 
 	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		methodNotAllowed(w, http.MethodPost, http.MethodGet)
 	}
 }
 
@@ -233,7 +320,7 @@ func (h *handler) accountResources(w http.ResponseWriter, r *http.Request) {
 			}
 			w.WriteHeader(http.StatusNoContent)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodDelete)
 		}
 		return
 	}
@@ -305,53 +392,6 @@ func isNotFound(err error) bool {
 	return strings.Contains(strings.ToLower(err.Error()), "not found")
 }
 
-func (h *handler) systemVersion(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{
-		"version":    version.Version,
-		"commit":     version.GitCommit,
-		"built_at":   version.BuildTime,
-		"go_version": version.GoVersion,
-	})
-}
-
-func (h *handler) systemStatus(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	jamStatus := map[string]any{
-		"enabled":              h.jamCfg.Enabled,
-		"store":                h.jamCfg.Store,
-		"rate_limit_per_min":   h.jamCfg.RateLimitPerMinute,
-		"max_preimage_bytes":   h.jamCfg.MaxPreimageBytes,
-		"max_pending_packages": h.jamCfg.MaxPendingPackages,
-		"auth_required":        h.jamCfg.AuthRequired,
-		"legacy_list_response": h.jamCfg.LegacyListResponse,
-		"accumulators_enabled": h.jamCfg.AccumulatorsEnabled,
-		"accumulator_hash":     h.jamCfg.AccumulatorHash,
-	}
-	if h.jamCfg.AccumulatorsEnabled && h.jamStore != nil {
-		if lister, ok := h.jamStore.(interface {
-			AccumulatorRoots(context.Context) ([]jam.AccumulatorRoot, error)
-		}); ok {
-			if roots, err := lister.AccumulatorRoots(r.Context()); err == nil && len(roots) > 0 {
-				jamStatus["accumulator_roots"] = roots
-			}
-		}
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status": "ok",
-		"version": map[string]string{
-			"version":    version.Version,
-			"commit":     version.GitCommit,
-			"built_at":   version.BuildTime,
-			"go_version": version.GoVersion,
-		},
-		"services": h.app.Descriptors(),
-		"jam":      jamStatus,
-	})
-}
-
 func (h *handler) accountOracle(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
 	if h.app.Oracle == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("oracle service not configured"))
@@ -403,7 +443,7 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 			}
 			writeJSON(w, http.StatusCreated, src)
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		}
 		return
 	}
@@ -459,7 +499,7 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 		}
 		writeJSON(w, http.StatusOK, updated)
 	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		methodNotAllowed(w, http.MethodGet, http.MethodPatch)
 	}
 }
 
@@ -645,19 +685,7 @@ func (h *handler) requireOracleRunner(r *http.Request) bool {
 	return false
 }
 
-func (h *handler) health(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
 func (h *handler) adminAudit(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
 	if h.audit == nil {
 		writeJSON(w, http.StatusOK, []auditEntry{})
 		return

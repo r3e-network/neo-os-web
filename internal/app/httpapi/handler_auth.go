@@ -21,10 +21,6 @@ var errUnauthorised = auth.ErrUnauthorised
 // loginHandler issues JWT tokens for configured users. When no users are configured,
 // it rejects requests to avoid giving a false sense of auth.
 func (h *handler) login(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
 	if h.authManager == nil || !h.authManager.HasUsers() {
 		writeError(w, http.StatusUnauthorized, errUnauthorised)
 		return
@@ -57,10 +53,6 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 
 // walletChallenge returns a nonce for the wallet to sign (HMAC-based in this implementation).
 func (h *handler) walletChallenge(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
 	if h.authManager == nil || !h.authManager.HasUsers() {
 		writeError(w, http.StatusUnauthorized, errUnauthorised)
 		return
@@ -85,10 +77,6 @@ func (h *handler) walletChallenge(w http.ResponseWriter, r *http.Request) {
 
 // walletLogin verifies a signed nonce and returns a JWT.
 func (h *handler) walletLogin(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
 	if h.authManager == nil || !h.authManager.HasUsers() {
 		writeError(w, http.StatusUnauthorized, errUnauthorised)
 		return
@@ -121,10 +109,6 @@ func (h *handler) walletLogin(w http.ResponseWriter, r *http.Request) {
 
 // whoami returns the current principal and role derived from token/JWT.
 func (h *handler) whoami(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
 	user, _ := r.Context().Value(ctxUserKey).(string)
 	role, _ := r.Context().Value(ctxRoleKey).(string)
 	tenant, _ := r.Context().Value(ctxTenantKey).(string)
@@ -133,8 +117,8 @@ func (h *handler) whoami(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"user": user,
-		"role": role,
+		"user":   user,
+		"role":   role,
 		"tenant": tenant,
 	})
 }
