@@ -8,6 +8,8 @@ import (
 	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	"github.com/R3E-Network/service_layer/internal/app/domain/function"
 	"github.com/R3E-Network/service_layer/internal/app/domain/gasbank"
+	"github.com/R3E-Network/service_layer/internal/app/domain/oracle"
+	"github.com/R3E-Network/service_layer/internal/app/domain/secret"
 	"github.com/R3E-Network/service_layer/internal/app/domain/trigger"
 )
 
@@ -162,5 +164,207 @@ func TestStoreCoreIntegration(t *testing.T) {
 	}
 	if _, err := store.FindWorkspaceWalletByAddress(ctx, acct.ID, wallet.WalletAddress); err != nil {
 		t.Fatalf("find wallet by address: %v", err)
+	}
+}
+
+func TestStoreSecretsIntegration(t *testing.T) {
+	store, ctx := newTestStore(t)
+
+	acct, err := store.CreateAccount(ctx, account.Account{Owner: "secret-owner"})
+	if err != nil {
+		t.Fatalf("create account: %v", err)
+	}
+
+	// Create secret
+	sec, err := store.CreateSecret(ctx, secret.Secret{
+		AccountID: acct.ID,
+		Name:      "API_KEY",
+		Value:     "encrypted-secret-value",
+	})
+	if err != nil {
+		t.Fatalf("create secret: %v", err)
+	}
+	if sec.ID == "" {
+		t.Fatalf("expected secret ID to be set")
+	}
+	if sec.Version != 1 {
+		t.Fatalf("expected version 1, got %d", sec.Version)
+	}
+	if sec.CreatedAt.IsZero() || sec.UpdatedAt.IsZero() {
+		t.Fatalf("expected timestamps to be set")
+	}
+
+	// Get secret by name (case insensitive)
+	retrieved, err := store.GetSecret(ctx, acct.ID, "api_key")
+	if err != nil {
+		t.Fatalf("get secret: %v", err)
+	}
+	if retrieved.ID != sec.ID {
+		t.Fatalf("expected ID %q, got %q", sec.ID, retrieved.ID)
+	}
+	if retrieved.Value != "encrypted-secret-value" {
+		t.Fatalf("expected value 'encrypted-secret-value', got %q", retrieved.Value)
+	}
+
+	// Update secret
+	sec.Value = "new-encrypted-value"
+	updated, err := store.UpdateSecret(ctx, sec)
+	if err != nil {
+		t.Fatalf("update secret: %v", err)
+	}
+	if updated.Version != 2 {
+		t.Fatalf("expected version 2 after update, got %d", updated.Version)
+	}
+	if updated.Value != "new-encrypted-value" {
+		t.Fatalf("expected updated value")
+	}
+
+	// List secrets
+	secrets, err := store.ListSecrets(ctx, acct.ID)
+	if err != nil {
+		t.Fatalf("list secrets: %v", err)
+	}
+	if len(secrets) != 1 {
+		t.Fatalf("expected 1 secret, got %d", len(secrets))
+	}
+
+	// Delete secret
+	if err := store.DeleteSecret(ctx, acct.ID, "API_KEY"); err != nil {
+		t.Fatalf("delete secret: %v", err)
+	}
+
+	// Verify deletion
+	secrets, err = store.ListSecrets(ctx, acct.ID)
+	if err != nil {
+		t.Fatalf("list secrets after delete: %v", err)
+	}
+	if len(secrets) != 0 {
+		t.Fatalf("expected 0 secrets after deletion, got %d", len(secrets))
+	}
+}
+
+func TestStoreOracleIntegration(t *testing.T) {
+	store, ctx := newTestStore(t)
+
+	acct, err := store.CreateAccount(ctx, account.Account{Owner: "oracle-owner"})
+	if err != nil {
+		t.Fatalf("create account: %v", err)
+	}
+
+	// Create data source
+	src, err := store.CreateDataSource(ctx, oracle.DataSource{
+		AccountID:   acct.ID,
+		Name:        "weather-api",
+		Description: "Weather data provider",
+		URL:         "https://api.weather.example/v1/data",
+		Method:      "GET",
+		Headers:     map[string]string{"Authorization": "Bearer xxx"},
+		Enabled:     true,
+	})
+	if err != nil {
+		t.Fatalf("create data source: %v", err)
+	}
+	if src.ID == "" {
+		t.Fatalf("expected data source ID to be set")
+	}
+
+	// Get data source
+	retrieved, err := store.GetDataSource(ctx, src.ID)
+	if err != nil {
+		t.Fatalf("get data source: %v", err)
+	}
+	if retrieved.Name != "weather-api" {
+		t.Fatalf("expected name 'weather-api', got %q", retrieved.Name)
+	}
+	if retrieved.Headers["Authorization"] != "Bearer xxx" {
+		t.Fatalf("expected Authorization header preserved")
+	}
+
+	// Update data source
+	src.Description = "Updated weather provider"
+	src.Enabled = false
+	updated, err := store.UpdateDataSource(ctx, src)
+	if err != nil {
+		t.Fatalf("update data source: %v", err)
+	}
+	if updated.Description != "Updated weather provider" {
+		t.Fatalf("expected updated description")
+	}
+	if updated.Enabled {
+		t.Fatalf("expected enabled to be false")
+	}
+
+	// List data sources
+	sources, err := store.ListDataSources(ctx, acct.ID)
+	if err != nil {
+		t.Fatalf("list data sources: %v", err)
+	}
+	if len(sources) != 1 {
+		t.Fatalf("expected 1 data source, got %d", len(sources))
+	}
+
+	// Create oracle request
+	req, err := store.CreateRequest(ctx, oracle.Request{
+		AccountID:    acct.ID,
+		DataSourceID: src.ID,
+		Status:       oracle.StatusPending,
+		Payload:      `{"city": "tokyo"}`,
+	})
+	if err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	if req.ID == "" {
+		t.Fatalf("expected request ID to be set")
+	}
+
+	// Get request
+	retrievedReq, err := store.GetRequest(ctx, req.ID)
+	if err != nil {
+		t.Fatalf("get request: %v", err)
+	}
+	if retrievedReq.Status != oracle.StatusPending {
+		t.Fatalf("expected status 'pending', got %q", retrievedReq.Status)
+	}
+
+	// List pending requests
+	pending, err := store.ListPendingRequests(ctx)
+	if err != nil {
+		t.Fatalf("list pending requests: %v", err)
+	}
+	if len(pending) != 1 {
+		t.Fatalf("expected 1 pending request, got %d", len(pending))
+	}
+
+	// Update request to succeeded
+	req.Status = oracle.StatusSucceeded
+	req.Result = `{"temp": 25, "humidity": 60}`
+	req.CompletedAt = time.Now().UTC()
+	updated2, err := store.UpdateRequest(ctx, req)
+	if err != nil {
+		t.Fatalf("update request: %v", err)
+	}
+	if updated2.Status != oracle.StatusSucceeded {
+		t.Fatalf("expected status 'succeeded', got %q", updated2.Status)
+	}
+	if updated2.CompletedAt.IsZero() {
+		t.Fatalf("expected completed_at to be set")
+	}
+
+	// List requests with status filter
+	requests, err := store.ListRequests(ctx, acct.ID, 10, string(oracle.StatusSucceeded))
+	if err != nil {
+		t.Fatalf("list requests with filter: %v", err)
+	}
+	if len(requests) != 1 {
+		t.Fatalf("expected 1 succeeded request, got %d", len(requests))
+	}
+
+	// Verify no more pending
+	pending, err = store.ListPendingRequests(ctx)
+	if err != nil {
+		t.Fatalf("list pending requests: %v", err)
+	}
+	if len(pending) != 0 {
+		t.Fatalf("expected 0 pending requests after completion, got %d", len(pending))
 	}
 }

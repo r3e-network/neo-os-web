@@ -61,6 +61,7 @@ func resetTables(db *sql.DB) error {
 			workspace_wallets,
 			app_oracle_requests,
 			app_oracle_sources,
+			app_secrets,
 			app_price_feed_rounds,
 			app_price_feed_snapshots,
 			app_price_feeds,
