@@ -17,6 +17,9 @@ docker run -p 8081:80 service-layer-dashboard
 Then open `http://localhost:8081` and configure API + Prometheus URLs in the UI.
 For local compose defaults you can prefill from the URL:
 `http://localhost:8081/?baseUrl=http://localhost:8080&token=dev-token`.
+You can also pre-set a module API surface filter for the System Overview with
+`?surface=compute` (or `data`, `event`, `store`, `account`, etc.); the selection
+persists in `localStorage` alongside API credentials.
 JWT login is available at `/auth/login` using the users configured via
 `AUTH_USERS` (default: `admin/changeme`).
 
@@ -25,6 +28,7 @@ JWT login is available at `/auth/login` using the users configured via
 - Hooks are domain-scoped (`src/hooks/use*Resources.ts`) and re-exported via `src/hooks/index.ts`.
 - Components live in `src/components` and re-export via `src/components/index.ts` for concise imports.
 - Shared formatting helpers live in `src/utils/formatters.ts`; prefer those over ad-hoc date/number formatting.
+- Engine Bus Console: `BusConsole` publishes events/data/compute fan-out via `/system/events|data|compute` (mirrors `slctl bus`). Keep payload presets aligned with `docs/examples/bus.md`.
 
 ## Local Development
 
@@ -47,4 +51,4 @@ values.
 - Refer back to the specification before adding new views or metrics so the UX
   remains consistent across CLI, docs, and dashboard.
 - Before releases, walk through the UI using the [dashboard smoke checklist](../../docs/dashboard-smoke.md)
-  to catch console/API drift (datafeeds, DataLink, JAM, gas bank, system cards).
+  and [dashboard E2E smoke](../../docs/dashboard-e2e.md) to catch console/API drift (datafeeds, DataLink, JAM, gas bank, system cards, Engine Bus).

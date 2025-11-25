@@ -148,6 +148,55 @@ export type SystemStatus = {
   };
   services?: Descriptor[];
   jam?: JamStatus;
+  neo?: NeoStatus | NeoStatusError;
+  modules?: ModuleStatus[];
+  modules_meta?: Record<string, number>;
+  modules_timings?: Record<string, { start_ms?: number; stop_ms?: number }>;
+  modules_uptime?: Record<string, number>;
+  modules_slow?: string[];
+  modules_slow_threshold_ms?: number;
+  modules_summary?: {
+    data?: string[];
+    event?: string[];
+    compute?: string[];
+  };
+  modules_api_meta?: Record<string, { total?: number; slow?: number }>;
+  modules_api_summary?: Record<string, string[]>;
+  modules_layers?: Record<string, string[]>;
+  modules_waiting_deps?: string[];
+  modules_waiting_reasons?: Record<string, string>;
+  bus_fanout?: Record<string, { ok?: number; error?: number }>;
+  bus_fanout_recent?: Record<string, { ok?: number; error?: number }>;
+  bus_fanout_recent_window_seconds?: number;
+};
+
+export type ModuleStatus = {
+  name: string;
+  domain?: string;
+  category?: string;
+  layer?: string;
+  interfaces?: string[];
+  apis?: {
+    name?: string;
+    surface?: string;
+    stability?: string;
+    summary?: string;
+  }[];
+  permissions?: string[];
+  depends_on?: string[];
+  capabilities?: string[];
+  quotas?: Record<string, string>;
+  requires_apis?: string[];
+  notes?: string[];
+  status?: string;
+  error?: string;
+  ready_status?: string;
+  ready_error?: string;
+  started_at?: string;
+  stopped_at?: string;
+  updated_at?: string;
+  start_nanos?: number;
+  stop_nanos?: number;
 };
 
 export type AuditEntry = {
@@ -203,6 +252,88 @@ export type PriceSnapshot = {
   Source?: string;
   CollectedAt?: string;
   CreatedAt?: string;
+};
+
+export type NeoStatus = {
+  enabled: boolean;
+  latest_height?: number;
+  latest_hash?: string;
+  latest_state_root?: string;
+  stable_height?: number;
+  stable_hash?: string;
+  stable_state_root?: string;
+  block_count?: number;
+  tx_count?: number;
+  snapshot_count?: number;
+  last_indexed_at?: string;
+  node_height?: number;
+  node_lag?: number;
+};
+
+export type NeoStatusError = {
+  enabled: boolean;
+  error: string;
+};
+
+export type NeoBlock = {
+  height: number;
+  hash: string;
+  state_root?: string;
+  prev_hash?: string;
+  next_hash?: string;
+  block_time?: string;
+  tx_count?: number;
+};
+
+export type NeoTransaction = {
+  hash: string;
+  ordinal: number;
+  type?: string;
+  sender?: string;
+  net_fee?: number;
+  sys_fee?: number;
+  vm_state?: string;
+  exception?: string;
+};
+
+export type NeoBlockDetail = {
+  block: NeoBlock;
+  transactions: NeoTransaction[];
+};
+
+export type NeoSnapshot = {
+  network: string;
+  height: number;
+  state_root: string;
+  generated_at: string;
+  kv_path?: string;
+  kv_url?: string;
+  kv_sha256?: string;
+  kv_bytes?: number;
+  kv_diff_path?: string;
+  kv_diff_url?: string;
+  kv_diff_sha256?: string;
+  kv_diff_bytes?: number;
+  contracts?: string[];
+  rpc_url?: string;
+  signature?: string;
+  signing_public_key?: string;
+};
+
+export type NeoStorage = {
+  contract: string;
+  kv: any;
+};
+
+export type NeoStorageDiff = {
+  contract: string;
+  kv_diff: any;
+};
+
+export type NeoStorageSummary = {
+  contract: string;
+  kv_entries: number;
+  diff_entries?: number;
 };
 
 export type DTAProduct = {
@@ -424,11 +555,16 @@ export type ClientConfig = {
 };
 
 export function normaliseUrl(url: string) {
-  return url.trim().replace(/\/$/, "");
+  const trimmed = url.trim().replace(/\/$/, "");
+  if (!trimmed) return "";
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return `http://${trimmed}`;
+  }
+  return trimmed;
 }
 
 export async function fetchJSON<T>(url: string, config: ClientConfig, init?: RequestInit): Promise<T> {
-  const headers = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${config.token}`,
     ...(init?.headers as Record<string, string> | undefined),
@@ -469,6 +605,61 @@ export async function fetchVersion(config: ClientConfig): Promise<SystemVersion>
 export async function fetchSystemStatus(config: ClientConfig): Promise<SystemStatus> {
   const url = `${config.baseUrl}/system/status`;
   return fetchJSON<SystemStatus>(url, config);
+}
+
+export async function postBusEvent(config: ClientConfig, event: string, payload?: any): Promise<{ status: string }> {
+  const url = `${config.baseUrl}/system/events`;
+  return fetchJSON<{ status: string }>(url, config, {
+    method: "POST",
+    body: JSON.stringify({ event, payload }),
+  });
+}
+
+export async function postBusData(config: ClientConfig, topic: string, payload?: any): Promise<{ status: string }> {
+  const url = `${config.baseUrl}/system/data`;
+  return fetchJSON<{ status: string }>(url, config, {
+    method: "POST",
+    body: JSON.stringify({ topic, payload }),
+  });
+}
+
+export type ComputeResult = { module: string; result?: any; error?: string };
+export async function postBusCompute(config: ClientConfig, payload: any): Promise<{ results: ComputeResult[]; error?: string }> {
+  const url = `${config.baseUrl}/system/compute`;
+  return fetchJSON<{ results: ComputeResult[]; error?: string }>(url, config, {
+    method: "POST",
+    body: JSON.stringify({ payload }),
+  });
+}
+
+export async function fetchNeoBlocks(config: ClientConfig, limit = 10): Promise<NeoBlock[]> {
+  const url = `${config.baseUrl}/neo/blocks?limit=${limit}`;
+  return fetchJSON<NeoBlock[]>(url, config);
+}
+
+export async function fetchNeoSnapshots(config: ClientConfig, limit = 20): Promise<NeoSnapshot[]> {
+  const url = `${config.baseUrl}/neo/snapshots?limit=${limit}`;
+  return fetchJSON<NeoSnapshot[]>(url, config);
+}
+
+export async function fetchNeoBlockDetail(config: ClientConfig, height: number): Promise<NeoBlockDetail> {
+  const url = `${config.baseUrl}/neo/blocks/${height}`;
+  return fetchJSON<NeoBlockDetail>(url, config);
+}
+
+export async function fetchNeoStorage(config: ClientConfig, height: number): Promise<NeoStorage[]> {
+  const url = `${config.baseUrl}/neo/storage/${height}`;
+  return fetchJSON<NeoStorage[]>(url, config);
+}
+
+export async function fetchNeoStorageDiff(config: ClientConfig, height: number): Promise<NeoStorageDiff[]> {
+  const url = `${config.baseUrl}/neo/storage-diff/${height}`;
+  return fetchJSON<NeoStorageDiff[]>(url, config);
+}
+
+export async function fetchNeoStorageSummary(config: ClientConfig, height: number): Promise<NeoStorageSummary[]> {
+  const url = `${config.baseUrl}/neo/storage-summary/${height}`;
+  return fetchJSON<NeoStorageSummary[]>(url, config);
 }
 
 export type AuditQuery = {

@@ -1,7 +1,12 @@
-import { Descriptor } from "../api";
-import { MetricSample, TimeSeries } from "../metrics";
-import { Chart } from "./Chart";
+import { Descriptor, ModuleStatus, NeoStatus } from "../api";
 import { JamStatus } from "../api";
+import { MetricSample, TimeSeries } from "../metrics";
+import { SystemBusCards } from "./system/SystemBusCards";
+import { SystemDescriptorsCard } from "./system/SystemDescriptorsCard";
+import { SystemJamCard } from "./system/SystemJamCard";
+import { SystemMetricsCard } from "./system/SystemMetricsCard";
+import { SystemModulesCard } from "./system/SystemModulesCard";
+import { SystemNeoCard } from "./system/SystemNeoCard";
 
 type Metrics = {
   rps?: MetricSample[];
@@ -17,11 +22,163 @@ type Props = {
   baseUrl: string;
   promBase?: string;
   jam?: JamStatus;
+  neo?: NeoStatus | { enabled: boolean; error: string };
+  modules?: ModuleStatus[];
+  modulesTimings?: Record<string, { start_ms?: number; stop_ms?: number }>;
+  modulesUptime?: Record<string, number>;
+  modulesMeta?: Record<string, number>;
+  modulesSlow?: string[];
+  modulesSlowThreshold?: number;
+  slowOverrideMs?: string;
+  modulesSummary?: { data?: string[]; event?: string[]; compute?: string[] };
+  modulesAPISummary?: Record<string, string[]>;
+  modulesAPIMeta?: Record<string, { total?: number; slow?: number }>;
+  modulesLayers?: Record<string, string[]>;
+  modulesNotes?: Record<string, string[]>;
+  modulesPermissions?: Record<string, string[]>;
+  modulesDeps?: Record<string, string[]>;
+  modulesWaitingDeps?: string[];
+  modulesWaitingReasons?: Record<string, string>;
+  busFanout?: Record<string, { ok?: number; error?: number }>;
+  busFanoutRecent?: Record<string, { ok?: number; error?: number }>;
+  busFanoutRecentWindowSeconds?: number;
   metrics?: Metrics;
+  activeSurface?: string;
+  activeLayer?: string;
+  onSurfaceChange?: (surface: string) => void;
+  onLayerChange?: (layer: string) => void;
   formatDuration: (value?: number) => string;
+  formatTimestamp: (value?: string) => string;
 };
 
-export function SystemOverview({ descriptors, version, buildVersion, baseUrl, promBase, jam, metrics, formatDuration }: Props) {
+export function SystemOverview({
+  descriptors,
+  version,
+  buildVersion,
+  baseUrl,
+  promBase,
+  jam,
+  neo,
+  modules,
+  modulesTimings,
+  modulesUptime,
+  modulesMeta,
+  modulesSlow,
+  modulesSlowThreshold,
+  slowOverrideMs,
+  modulesSummary,
+  modulesAPISummary,
+  modulesAPIMeta,
+  modulesLayers,
+  modulesNotes,
+  modulesPermissions,
+  modulesDeps,
+  modulesWaitingDeps,
+  modulesWaitingReasons,
+  busFanout,
+  busFanoutRecent,
+  busFanoutRecentWindowSeconds,
+  metrics,
+  activeSurface,
+  activeLayer,
+  onSurfaceChange,
+  onLayerChange,
+  formatDuration,
+  formatTimestamp,
+}: Props) {
+  const handleExport = (format: "json" | "csv") => {
+    if (!modules || modules.length === 0) return;
+    const filtered = modules.filter((m) => {
+      if (!activeSurface) return true;
+      const surface = activeSurface.toLowerCase();
+      return (m.apis || []).some(
+        (api) => (api.surface || api.name || "").toLowerCase() === surface,
+      );
+    });
+    if (format === "json") {
+      const blob = new Blob([JSON.stringify(filtered, null, 2)], {
+        type: "application/json",
+      });
+      triggerDownload(blob, "modules.json");
+      return;
+    }
+    const headers = [
+      "name",
+      "domain",
+      "category",
+      "layer",
+      "status",
+      "ready",
+      "interfaces",
+      "apis",
+      "permissions",
+      "depends_on",
+      "capabilities",
+      "requires_apis",
+      "quotas",
+      "notes",
+      "started_at",
+      "stopped_at",
+    ];
+    const rows = filtered.map((m) => {
+      const apis = (m.apis || [])
+        .map((api) => {
+          const label = (api.surface || api.name || "").trim();
+          const stable = (api.stability || "").toLowerCase();
+          return label
+            ? stable && stable !== "stable"
+              ? `${label}(${stable})`
+              : label
+            : "";
+        })
+        .filter(Boolean)
+        .join("|");
+      const perms = (modulesPermissions?.[m.name] || m.permissions || []).join(
+        "|",
+      );
+      const depends = (modulesDeps?.[m.name] || []).join("|");
+      const ifaces = (m.interfaces || []).join("|");
+      const caps = (m.capabilities || []).join("|");
+      const requires = (m.requires_apis || []).join("|");
+      const quotas = m.quotas
+        ? Object.entries(m.quotas)
+            .map(([k, v]) => `${k}=${v}`)
+            .join("|")
+        : "";
+      const notes = (m.notes || []).join("|");
+      const row = [
+        m.name,
+        m.domain || "",
+        m.category || "",
+        m.layer || "",
+        m.status || "",
+        m.ready_status || "",
+        ifaces,
+        apis,
+        perms,
+        depends,
+        caps,
+        requires,
+        quotas,
+        notes,
+        m.started_at || "",
+        m.stopped_at || "",
+      ];
+      return row
+        .map((val) => {
+          if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+            return `"${val.replace(/"/g, '""')}"`;
+          }
+          return val;
+        })
+        .join(",");
+    });
+    const blob = new Blob([[headers.join(","), ...rows].join("\n")], {
+      type: "text/csv",
+    });
+    triggerDownload(blob, "modules.csv");
+  };
+
   return (
     <div className="grid">
       <div className="card inner">
@@ -43,127 +200,83 @@ export function SystemOverview({ descriptors, version, buildVersion, baseUrl, pr
           </p>
         )}
       </div>
-      {jam && (
+
+      {modulesWaitingDeps && modulesWaitingDeps.length > 0 && (
         <div className="card inner">
-          <h3>JAM</h3>
-          <p>
-            Status: <span className={`tag ${jam.enabled ? "subdued" : "error"}`}>{jam.enabled ? "enabled" : "disabled"}</span>
+          <h4>Waiting for dependencies</h4>
+          <p className="muted">
+            These modules declared deps that are not ready yet.
           </p>
-          <p className="muted mono">
-            Store: {jam.store || "n/a"} • Rate limit: {jam.rate_limit_per_min ?? 0}/min • Max preimage bytes: {jam.max_preimage_bytes ?? 0}
-          </p>
-          <p className="muted mono">
-            Pending packages: {jam.max_pending_packages ?? 0} • Auth required: {jam.auth_required ? "yes" : "no"}
-          </p>
-          {jam.accumulators_enabled && (
-            <p className="muted mono">
-              Accumulators enabled • Hash: {jam.accumulator_hash || "n/a"}
-              {jam.accumulator_roots && jam.accumulator_roots.length > 0 && (
-                <>
-                  <br />
-                  Roots: {jam.accumulator_roots.map((r) => r.root).join(", ")}
-                </>
-              )}
-            </p>
-          )}
+          <div className="row" style={{ gap: "6px", flexWrap: "wrap" }}>
+            {modulesWaitingDeps.map((name) => (
+              <span
+                key={name}
+                className="tag warning"
+                title={modulesWaitingReasons?.[name] || undefined}
+              >
+                {name}
+              </span>
+            ))}
+          </div>
         </div>
       )}
-      <div className="card inner">
-        <h3>Descriptors ({descriptors.length})</h3>
-        <ul className="list">
-          {descriptors.map((d) => (
-            <li key={`${d.domain}:${d.name}`}>
-              <div className="row">
-                <div>
-                  <strong>{d.name}</strong> <span className="tag">{d.domain}</span> <span className="tag subdued">{d.layer}</span>
-                </div>
-                {d.capabilities && <span className="cap">{d.capabilities.join(", ")}</span>}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-      {metrics && metrics.rps && (
-        <div className="card inner">
-          <h3>HTTP RPS (5m)</h3>
-          <ul className="list">
-            {metrics.rps.map((m) => {
-              const label = m.metric.status ? `Status ${m.metric.status}` : "All status codes";
-              return (
-                <li key={`${m.metric.status || "all"}`}>
-                  <div className="row">
-                    <span className="tag subdued">{label}</span>
-                    <strong>{Number(m.value[1]).toFixed(3)}</strong>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+
+      <SystemBusCards
+        busFanout={busFanout}
+        busFanoutRecent={busFanoutRecent}
+        busFanoutRecentWindowSeconds={busFanoutRecentWindowSeconds}
+      />
+      <SystemNeoCard neo={neo} />
+      <SystemJamCard jam={jam} />
+
+      {modules && modules.length > 0 && (
+        <SystemModulesCard
+          modules={modules}
+          modulesTimings={modulesTimings}
+          modulesUptime={modulesUptime}
+          modulesMeta={modulesMeta}
+          modulesSlow={modulesSlow}
+          modulesSlowThreshold={modulesSlowThreshold}
+          slowOverrideMs={slowOverrideMs}
+          modulesSummary={modulesSummary}
+          modulesAPISummary={modulesAPISummary}
+          modulesAPIMeta={modulesAPIMeta}
+          modulesLayers={modulesLayers}
+          modulesNotes={modulesNotes}
+          modulesPermissions={modulesPermissions}
+          modulesDeps={modulesDeps}
+          modulesWaitingDeps={modulesWaitingDeps}
+          modulesWaitingReasons={modulesWaitingReasons}
+          activeSurface={activeSurface}
+          activeLayer={activeLayer}
+          onSurfaceChange={onSurfaceChange}
+          onLayerChange={onLayerChange}
+          onExport={handleExport}
+          formatDuration={formatDuration}
+          formatTimestamp={formatTimestamp}
+        />
       )}
-      {metrics?.oracleQueue && metrics.oracleQueue.length > 0 && (
-        <div className="card inner">
-          <h3>Oracle Attempts</h3>
-          <ul className="list">
-            {metrics.oracleQueue.map((m) => {
-              const statusLabel = m.metric.status || "all";
-              return (
-                <li key={`${statusLabel}`}>
-                  <div className="row">
-                    <span className="tag subdued">{statusLabel}</span>
-                    <strong>{Number(m.value[1]).toFixed(0)}</strong>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-      {metrics?.datafeedStaleness && metrics.datafeedStaleness.length > 0 && (
-        <div className="card inner">
-          <h3>Datafeed Freshness</h3>
-          <ul className="list">
-            {metrics.datafeedStaleness.slice(0, 5).map((m) => {
-              const feedId = m.metric.feed_id || "feed";
-              const status = m.metric.status || "unknown";
-              const ageMs = Number(m.value[1]) * 1000;
-              return (
-                <li key={`${feedId}-${status}`}>
-                  <div className="row">
-                    <span className="tag subdued">{feedId}</span>
-                    <span className={`tag ${status === "stale" ? "error" : "subdued"}`}>{status}</span>
-                  </div>
-                  <div className="muted mono">age {formatDuration(ageMs)}</div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-      {metrics?.duration && metrics.duration.length > 0 && (
-        <div className="card inner">
-          <h3>HTTP p90 latency (past 30m)</h3>
-          <ul className="list">
-            {metrics.duration.map((ts, idx) => {
-              const latest = ts.values[ts.values.length - 1];
-              return (
-                <li key={idx}>
-                  <div className="row">
-                    <span className="tag subdued">p90</span>
-                    <strong>{Number(latest[1]).toFixed(3)}s</strong>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          <Chart
-            label="p90 latency"
-            data={metrics.duration[0].values.map(([x, y]) => ({ x, y: Number(y) }))}
-            color="#0f766e"
-            height={220}
-          />
-        </div>
-      )}
+
+      <SystemDescriptorsCard descriptors={descriptors} />
+
+      <SystemMetricsCard
+        rps={metrics?.rps}
+        duration={metrics?.duration}
+        oracleQueue={metrics?.oracleQueue}
+        datafeedStaleness={metrics?.datafeedStaleness}
+        formatDuration={formatDuration}
+      />
     </div>
   );
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

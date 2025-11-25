@@ -2,7 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { normaliseUrl } from "./api";
 import { useLocalStorage } from "./useLocalStorage";
 import { MetricsConfig } from "./metrics";
-import { AccountsSection, AdminPanel, AuthPanel, JamPanel, Notifications, SettingsForm, SystemOverview, WalletGate } from "./components";
+import { AccountsSection, AdminPanel, AuthPanel, BusConsole, JamPanel, NeoPanel, Notifications, SettingsForm, SystemOverview, WalletGate } from "./components";
 import { useAccountsData, useSystemInfo } from "./hooks";
 import { formatAmount, formatDuration, formatSnippet, formatTimestamp } from "./utils";
 import type { Notification } from "./components/Notifications";
@@ -13,6 +13,9 @@ export function App() {
   const [baseUrl, setBaseUrl] = useLocalStorage("sl-ui.baseUrl", "http://localhost:8080");
   const [token, setToken] = useLocalStorage("sl-ui.token", "dev-token");
   const [tenant, setTenant] = useLocalStorage("sl-ui.tenant", "");
+  const [slowMs, setSlowMs] = useLocalStorage("sl-ui.slowMs", "");
+  const [surface, setSurface] = useLocalStorage("sl-ui.surface", "");
+  const [layer, setLayer] = useLocalStorage("sl-ui.layer", "");
   const [wallet, setWallet] = useState<WalletSession>(() => {
     try {
       const raw = window.localStorage.getItem("sl-ui.wallet");
@@ -48,13 +51,29 @@ export function App() {
     const params = new URLSearchParams(window.location.search);
     const qsBase = params.get("api") || params.get("base") || params.get("baseUrl") || params.get("endpoint");
     const qsTenant = params.get("tenant");
+    const qsToken = params.get("token") || params.get("auth") || params.get("bearer");
+    const qsProm = params.get("prom") || params.get("prometheus");
+    const qsSlow = params.get("slow_ms");
+    const qsSurface = params.get("surface");
     if (qsBase) {
       setBaseUrl(normaliseUrl(qsBase));
     }
     if (qsTenant) {
       setTenant(qsTenant);
     }
-  }, [setBaseUrl, setTenant]);
+    if (qsToken) {
+      setToken(qsToken);
+    }
+    if (qsProm) {
+      setPromBase(normaliseUrl(qsProm));
+    }
+    if (qsSlow) {
+      setSlowMs(qsSlow);
+    }
+    if (qsSurface) {
+      setSurface(qsSurface);
+    }
+  }, [setBaseUrl, setTenant, setToken, setPromBase, setSurface]);
 
   const {
     wallets,
@@ -112,7 +131,16 @@ export function App() {
     resetAccounts();
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.baseUrl, config.token]);
+  }, [config.baseUrl, config.token, config.tenant]);
+
+  // Auto-refresh system info periodically when credentials are set.
+  useEffect(() => {
+    if (!canQuery) return;
+    const id = setInterval(() => {
+      void load();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [canQuery, load]);
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -125,12 +153,16 @@ export function App() {
     setTenant("");
     setBaseUrl("http://localhost:8080");
     setPromBase("http://localhost:9090");
+    setSlowMs("");
+    setSurface("");
     resetAccounts();
-  }, [resetAccounts, setBaseUrl, setPromBase, setTenant, setToken]);
+  }, [resetAccounts, setBaseUrl, setPromBase, setSlowMs, setSurface, setTenant, setToken]);
+
 
   const docsLinks = [
     { label: "Data Feeds Quickstart", href: "https://github.com/R3E-Network/service_layer/blob/master/docs/examples/datafeeds.md" },
     { label: "DataLink Quickstart", href: "https://github.com/R3E-Network/service_layer/blob/master/docs/examples/datalink.md" },
+    { label: "Engine Bus Quickstart", href: "https://github.com/R3E-Network/service_layer/blob/master/docs/examples/bus.md" },
     { label: "JAM Quickstart", href: "https://github.com/R3E-Network/service_layer/blob/master/docs/examples/jam.md" },
     { label: "Dashboard Smoke Checklist", href: "https://github.com/R3E-Network/service_layer/blob/master/docs/dashboard-smoke.md" },
     { label: "Tenant Quickstart", href: "https://github.com/R3E-Network/service_layer/blob/master/docs/tenant-quickstart.md" },
@@ -147,6 +179,26 @@ export function App() {
   const dismissNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
+
+  const unhealthyModules = useMemo(() => {
+    if (state.status !== "ready" || !state.modules) return [];
+    return state.modules.filter((m) => {
+      const status = (m.status || "").toLowerCase();
+      const ready = (m.ready_status || "").toLowerCase();
+      const lifecycleBad = status.includes("fail") || status.includes("error") || status === "stopped" || status === "stop-error";
+      const readyBad = ready === "not-ready";
+      return lifecycleBad || readyBad;
+    });
+  }, [state]);
+
+  // Emit a toast when modules transition into an unhealthy state.
+  useEffect(() => {
+    if (unhealthyModules.length === 0) return;
+    const label = unhealthyModules.map((m) => m.name).join(", ");
+    notify("error", `Modules degraded: ${label}`);
+    // run once per state change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unhealthyModules.map((m) => m.name + m.status).join("|")]);
 
   const handleSetAggregation = useCallback(
     async (accountID: string, feedID: string, aggregation: string) => {
@@ -200,6 +252,8 @@ export function App() {
           <p className="muted">
             Configure the API endpoint and token, then explore system descriptors to toggle feature-aware views. Defaults (local compose):
             API <code>http://localhost:8080</code>, token <code>dev-token</code>, or login via admin/changeme.
+            Tip: open <code>http://localhost:8081/?api=http://localhost:8080&token=dev-token</code> (append <code>&tenant=&lt;id&gt;</code>) to
+            prefill the UI in one click.
           </p>
           <div className="row" style={{ gap: "8px" }}>
             <span className="tag">Tenant: {config.tenant || "none"}</span>
@@ -231,6 +285,8 @@ export function App() {
           token={token}
           tenant={tenant}
           promBase={promBase}
+          slowMs={slowMs}
+          serverSlowMs={state.status === "ready" ? state.modulesSlowThreshold : undefined}
           canQuery={canQuery}
           status={state.status}
           onSubmit={onSubmit}
@@ -238,9 +294,25 @@ export function App() {
           onTokenChange={setToken}
           onTenantChange={setTenant}
           onPromChange={setPromBase}
+          onSlowMsChange={setSlowMs}
           onClear={handleClearSession}
         />
         {state.status === "error" && <p className="error">Failed to load: {state.message}</p>}
+        {state.status === "ready" && unhealthyModules.length > 0 && (
+          <div className="card warning">
+            <h4>Modules need attention</h4>
+            <ul className="list">
+              {unhealthyModules.map((m) => (
+                <li key={m.name}>
+                  <div className="row">
+                    <strong>{m.name}</strong> {m.status && <span className="tag error">{m.status}</span>}
+                  </div>
+                  {m.error && <div className="muted mono">{m.error}</div>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {state.status === "ready" && (
           <>
             <SystemOverview
@@ -249,9 +321,28 @@ export function App() {
               buildVersion={systemVersion}
               baseUrl={config.baseUrl}
               promBase={promConfig.prometheusBaseUrl}
+              modules={state.modules}
+              modulesTimings={state.modulesTimings}
+              modulesUptime={state.modulesUptime}
+              modulesMeta={state.modulesMeta}
+              modulesSlow={state.modulesSlow}
+              modulesSlowThreshold={state.modulesSlowThreshold}
+              slowOverrideMs={slowMs}
+              modulesSummary={state.modulesSummary}
+              modulesAPISummary={state.modulesAPISummary}
+              modulesAPIMeta={state.modulesAPIMeta}
+              activeSurface={surface}
+              activeLayer={layer}
+              onSurfaceChange={setSurface}
+              onLayerChange={setLayer}
+              modulesWaitingDeps={state.modulesWaitingDeps}
+              neo={state.neo}
               metrics={state.metrics}
               formatDuration={formatDuration}
+              formatTimestamp={formatTimestamp}
             />
+            <BusConsole config={config} onNotify={notify} />
+            <NeoPanel baseUrl={config.baseUrl} token={config.token} onNotify={notify} />
             <div className="card inner accounts">
               <h3>Accounts ({state.accounts.length})</h3>
               {state.accounts.some((a) => a.Metadata?.tenant) && !config.tenant && (

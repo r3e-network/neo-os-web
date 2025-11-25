@@ -1,6 +1,8 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+// Use the original App for E2E compatibility; AppNew available for new frontend
 import { App } from "./App";
+import "./styles.css";
 
 const container = document.getElementById("root");
 

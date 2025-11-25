@@ -5,6 +5,8 @@ type Props = {
   token: string;
   tenant: string;
   promBase: string;
+  slowMs: string;
+  serverSlowMs?: number;
   canQuery: boolean;
   status: "idle" | "loading" | "ready" | "error";
   onSubmit: (event: FormEvent) => void;
@@ -12,6 +14,7 @@ type Props = {
   onTokenChange: (value: string) => void;
   onTenantChange: (value: string) => void;
   onPromChange: (value: string) => void;
+  onSlowMsChange: (value: string) => void;
   onClear?: () => void;
 };
 
@@ -20,6 +23,8 @@ export function SettingsForm({
   token,
   tenant,
   promBase,
+  slowMs,
+  serverSlowMs,
   canQuery,
   status,
   onSubmit,
@@ -27,6 +32,7 @@ export function SettingsForm({
   onTokenChange,
   onTenantChange,
   onPromChange,
+  onSlowMsChange,
   onClear,
 }: Props) {
   return (
@@ -50,6 +56,14 @@ export function SettingsForm({
         Prometheus URL
         <input value={promBase} onChange={(e) => onPromChange(e.target.value)} placeholder="http://localhost:9090" />
         <span className="hint">Optional: needed for the metrics cards.</span>
+      </label>
+      <label>
+        Slow Threshold (ms, UI only)
+        <input value={slowMs} onChange={(e) => onSlowMsChange(e.target.value)} placeholder="e.g. 1000" />
+        <span className="hint">
+          Overrides slow badge threshold locally; leave blank to use server threshold from /system/status
+          {serverSlowMs ? ` (${serverSlowMs}ms)` : ""}.
+        </span>
       </label>
       <button type="submit" disabled={!canQuery || status === "loading"}>
         {status === "loading" ? "Loading..." : "Connect"}
