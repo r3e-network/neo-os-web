@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	domain "github.com/R3E-Network/service_layer/internal/app/domain/random"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
+	domain "github.com/R3E-Network/service_layer/internal/domain/random"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/internal/framework"
 	core "github.com/R3E-Network/service_layer/internal/services/core"

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	domain "github.com/R3E-Network/service_layer/internal/app/domain/automation"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
 	"github.com/R3E-Network/service_layer/internal/domain/account"
+	domain "github.com/R3E-Network/service_layer/internal/domain/automation"
 	"github.com/R3E-Network/service_layer/internal/domain/function"
 	core "github.com/R3E-Network/service_layer/internal/services/core"
 )

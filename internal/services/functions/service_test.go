@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	datalinkdomain "github.com/R3E-Network/service_layer/internal/app/domain/datalink"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
 	"github.com/R3E-Network/service_layer/internal/domain/account"
+	datalinkdomain "github.com/R3E-Network/service_layer/internal/domain/datalink"
 	"github.com/R3E-Network/service_layer/internal/domain/function"
 	"github.com/R3E-Network/service_layer/internal/domain/trigger"
 	automationsvc "github.com/R3E-Network/service_layer/internal/services/automation"

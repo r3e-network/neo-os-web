@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/pricefeed"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
+	"github.com/R3E-Network/service_layer/internal/domain/pricefeed"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/internal/framework"
 	core "github.com/R3E-Network/service_layer/internal/services/core"

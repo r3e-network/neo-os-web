@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/automation"
+	"github.com/R3E-Network/service_layer/internal/domain/automation"
 	functiondomain "github.com/R3E-Network/service_layer/internal/domain/function"
 )
 

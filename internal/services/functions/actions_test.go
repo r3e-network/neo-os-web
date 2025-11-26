@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	datafeeddomain "github.com/R3E-Network/service_layer/internal/app/domain/datafeeds"
-	datalinkdomain "github.com/R3E-Network/service_layer/internal/app/domain/datalink"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
 	"github.com/R3E-Network/service_layer/internal/domain/account"
+	datafeeddomain "github.com/R3E-Network/service_layer/internal/domain/datafeeds"
+	datalinkdomain "github.com/R3E-Network/service_layer/internal/domain/datalink"
 	datastreamsdomain "github.com/R3E-Network/service_layer/internal/domain/datastreams"
 	"github.com/R3E-Network/service_layer/internal/domain/function"
 	automationsvc "github.com/R3E-Network/service_layer/internal/services/automation"

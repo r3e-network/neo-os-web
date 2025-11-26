@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	pricefeedDomain "github.com/R3E-Network/service_layer/internal/app/domain/pricefeed"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
 	"github.com/R3E-Network/service_layer/internal/domain/account"
+	pricefeedDomain "github.com/R3E-Network/service_layer/internal/domain/pricefeed"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 

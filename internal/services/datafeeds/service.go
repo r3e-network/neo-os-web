@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	domaindf "github.com/R3E-Network/service_layer/internal/app/domain/datafeeds"
 	"github.com/R3E-Network/service_layer/internal/app/metrics"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
+	domaindf "github.com/R3E-Network/service_layer/internal/domain/datafeeds"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/internal/framework"
 	core "github.com/R3E-Network/service_layer/internal/services/core"

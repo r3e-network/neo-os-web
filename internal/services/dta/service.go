@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	domaindta "github.com/R3E-Network/service_layer/internal/app/domain/dta"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
+	domaindta "github.com/R3E-Network/service_layer/internal/domain/dta"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/internal/framework"
 	core "github.com/R3E-Network/service_layer/internal/services/core"

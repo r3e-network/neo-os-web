@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	domainccip "github.com/R3E-Network/service_layer/internal/app/domain/ccip"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
+	domainccip "github.com/R3E-Network/service_layer/internal/domain/ccip"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/internal/framework"
 	core "github.com/R3E-Network/service_layer/internal/services/core"

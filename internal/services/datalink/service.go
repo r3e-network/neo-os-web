@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	domainlink "github.com/R3E-Network/service_layer/internal/app/domain/datalink"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
+	domainlink "github.com/R3E-Network/service_layer/internal/domain/datalink"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/internal/framework"
 	core "github.com/R3E-Network/service_layer/internal/services/core"

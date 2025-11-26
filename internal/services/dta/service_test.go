@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	domaindta "github.com/R3E-Network/service_layer/internal/app/domain/dta"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
 	"github.com/R3E-Network/service_layer/internal/domain/account"
+	domaindta "github.com/R3E-Network/service_layer/internal/domain/dta"
 	core "github.com/R3E-Network/service_layer/internal/services/core"
 )
 

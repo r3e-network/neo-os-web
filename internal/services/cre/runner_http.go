@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/cre"
+	"github.com/R3E-Network/service_layer/internal/domain/cre"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	domain "github.com/R3E-Network/service_layer/internal/app/domain/oracle"
+	domain "github.com/R3E-Network/service_layer/internal/domain/oracle"
 )
 
 // RequestResolver inspects a pending oracle request and determines whether it has finished.

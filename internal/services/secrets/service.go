@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/secret"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
+	"github.com/R3E-Network/service_layer/internal/domain/secret"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/internal/framework"
 	core "github.com/R3E-Network/service_layer/internal/services/core"

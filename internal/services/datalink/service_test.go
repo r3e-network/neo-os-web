@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	domainlink "github.com/R3E-Network/service_layer/internal/app/domain/datalink"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
 	"github.com/R3E-Network/service_layer/internal/domain/account"
+	domainlink "github.com/R3E-Network/service_layer/internal/domain/datalink"
 	core "github.com/R3E-Network/service_layer/internal/services/core"
 )
 

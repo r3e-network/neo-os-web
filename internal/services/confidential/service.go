@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	domainconf "github.com/R3E-Network/service_layer/internal/app/domain/confidential"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
+	domainconf "github.com/R3E-Network/service_layer/internal/domain/confidential"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/internal/framework"
 	core "github.com/R3E-Network/service_layer/internal/services/core"

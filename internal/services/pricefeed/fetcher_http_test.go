@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	domain "github.com/R3E-Network/service_layer/internal/app/domain/pricefeed"
+	domain "github.com/R3E-Network/service_layer/internal/domain/pricefeed"
 )
 
 func TestHTTPFetcher(t *testing.T) {

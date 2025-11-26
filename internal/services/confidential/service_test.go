@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	domainconf "github.com/R3E-Network/service_layer/internal/app/domain/confidential"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
 	"github.com/R3E-Network/service_layer/internal/domain/account"
+	domainconf "github.com/R3E-Network/service_layer/internal/domain/confidential"
 )
 
 func TestService_CreateEnclave(t *testing.T) {

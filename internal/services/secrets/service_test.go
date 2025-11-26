@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/secret"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
 	"github.com/R3E-Network/service_layer/internal/domain/account"
+	"github.com/R3E-Network/service_layer/internal/domain/secret"
 )
 
 type mockStore struct {
