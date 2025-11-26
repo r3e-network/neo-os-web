@@ -14,6 +14,7 @@ import (
 	app "github.com/R3E-Network/service_layer/internal/app"
 	"github.com/R3E-Network/service_layer/internal/app/jam"
 	"github.com/R3E-Network/service_layer/internal/app/metrics"
+	"github.com/R3E-Network/service_layer/internal/app/storage/postgres"
 	"github.com/R3E-Network/service_layer/internal/app/system"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
 	"github.com/R3E-Network/service_layer/pkg/logger"
@@ -117,13 +118,23 @@ func NewService(application *app.Application, addr string, tokens []string, jamC
 	if len(tokens) == 0 {
 		log.Warn("HTTP service starting without API tokens; prefer JWT login or configure API_TOKENS")
 	}
-	handler := NewHandler(application, jamCfg, tokens, authMgr, audit, neo, modules,
+
+	// Build handler options
+	handlerOpts := []HandlerOption{
 		WithBusEndpoints(svc.busPub, svc.busPush, svc.invoke),
 		WithListenAddrProvider(svc.Addr),
 		WithSlowThreshold(svc.slowMS),
 		WithRPCEngines(svc.rpcEng),
 		WithRPCPolicy(svc.rpcPol),
-	)
+	}
+
+	// Add admin config store if database is available
+	if db != nil {
+		adminStore := postgres.New(db)
+		handlerOpts = append(handlerOpts, WithAdminConfigStore(adminStore))
+	}
+
+	handler := NewHandler(application, jamCfg, tokens, authMgr, audit, neo, modules, handlerOpts...)
 	// Order matters: auth should see real requests, CORS should short-circuit
 	// preflight OPTIONS before auth, metrics wraps the final handler.
 	handler = wrapWithAuth(handler, tokens, log, authMgr)

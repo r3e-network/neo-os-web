@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AuditEntry, ClientConfig, fetchAudit } from "../api";
 import { SystemState } from "../hooks/useSystemInfo";
+import { AdminConfigPanel } from "./AdminConfigPanel";
 
 type Props = {
   systemState: SystemState;
@@ -9,7 +10,10 @@ type Props = {
   tenant?: string;
 };
 
+type AdminTab = "overview" | "config" | "audit";
+
 export function AdminPanel({ systemState, baseUrl, token, tenant }: Props) {
+  const [adminTab, setAdminTab] = useState<AdminTab>("overview");
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [auditError, setAuditError] = useState<string>();
   const [limit, setLimit] = useState(50);
@@ -60,12 +64,21 @@ export function AdminPanel({ systemState, baseUrl, token, tenant }: Props) {
   return (
     <section className="card inner">
       <div className="row">
-        <h3>Admin overview</h3>
+        <h3>Admin Panel</h3>
         <span className="tag subdued">services {services.length}</span>
       </div>
+      <div className="tabs" style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+        <button className={adminTab === "overview" ? "btn primary" : "btn"} onClick={() => setAdminTab("overview")}>Overview</button>
+        <button className={adminTab === "config" ? "btn primary" : "btn"} onClick={() => setAdminTab("config")}>Configuration</button>
+        <button className={adminTab === "audit" ? "btn primary" : "btn"} onClick={() => setAdminTab("audit")}>Audit Log</button>
+      </div>
+
+      {adminTab === "config" && <AdminConfigPanel baseUrl={baseUrl} token={token} tenant={tenant} />}
+
+      {adminTab === "overview" && (
+        <>
       <p className="muted">
-        Operator view across the platform. Use the links below for quick validation and monitoring. Admin actions (quotas, feature flags, tenants)
-        can be added as the next step.
+        Operator view across the platform. Use the links below for quick validation and monitoring.
       </p>
       <div className="grid two-cols">
         <div className="card">
@@ -104,7 +117,11 @@ export function AdminPanel({ systemState, baseUrl, token, tenant }: Props) {
           </ul>
         </div>
       </div>
-      <div className="card">
+        </>
+      )}
+
+      {adminTab === "audit" && (
+        <>
         <div className="row">
           <h4>Recent API audit</h4>
           <span className="tag subdued">{audit.length}</span>
@@ -168,7 +185,8 @@ export function AdminPanel({ systemState, baseUrl, token, tenant }: Props) {
             ))}
           </div>
         )}
-      </div>
+        </>
+      )}
     </section>
   );
 }

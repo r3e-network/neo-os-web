@@ -29,23 +29,24 @@ import (
 
 // handler bundles HTTP endpoints for the application services.
 type handler struct {
-	app         *app.Application
-	jamCfg      jam.Config
-	jamAuth     []string
-	jamStore    jam.PackageStore
-	neo         neoProvider
-	authManager authManager
-	audit       *auditLog
-	modulesFn   ModuleProvider
-	busPub      BusPublisher
-	busPush     BusPusher
-	invoke      ComputeInvoker
-	listenAddr  func() string
-	slowMS      float64
-	rpcEngines  func() []engine.RPCEngine
-	rpcPolicy   *rpcPolicy
-	rpcMu       sync.Mutex
-	rpcSeq      map[string]int
+	app              *app.Application
+	jamCfg           jam.Config
+	jamAuth          []string
+	jamStore         jam.PackageStore
+	neo              neoProvider
+	authManager      authManager
+	audit            *auditLog
+	modulesFn        ModuleProvider
+	busPub           BusPublisher
+	busPush          BusPusher
+	invoke           ComputeInvoker
+	listenAddr       func() string
+	slowMS           float64
+	rpcEngines       func() []engine.RPCEngine
+	rpcPolicy        *rpcPolicy
+	rpcMu            sync.Mutex
+	rpcSeq           map[string]int
+	adminConfigStore adminConfigStore
 }
 
 type authManager interface {
@@ -101,6 +102,13 @@ func WithRPCPolicy(policy *RPCPolicy) HandlerOption {
 	}
 }
 
+// WithAdminConfigStore sets the admin configuration store.
+func WithAdminConfigStore(store adminConfigStore) HandlerOption {
+	return func(h *handler) {
+		h.adminConfigStore = store
+	}
+}
+
 // NewHandler returns a mux exposing the core REST API.
 func NewHandler(
 	application *app.Application,
@@ -152,6 +160,7 @@ func NewHandler(
 	mux.HandleFunc("/accounts/", h.accountResources)
 
 	h.maybeMountJAM(mux)
+	h.maybeMountAdminConfig(mux)
 	return mux
 }
 
@@ -753,4 +762,13 @@ func (h *handler) adminAudit(w http.ResponseWriter, r *http.Request) {
 		filtered = filtered[:limit]
 	}
 	writeJSON(w, http.StatusOK, filtered)
+}
+
+// maybeMountAdminConfig mounts admin configuration endpoints if a store is provided.
+func (h *handler) maybeMountAdminConfig(mux *http.ServeMux) {
+	if h.adminConfigStore == nil {
+		return
+	}
+	adminHandler := NewAdminConfigHandler(h.adminConfigStore)
+	adminHandler.RegisterRoutes(mux)
 }

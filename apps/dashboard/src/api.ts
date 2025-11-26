@@ -1050,3 +1050,185 @@ export async function jamSubmitPackage(config: ClientConfig, payload: any) {
   const url = `${config.baseUrl}/jam/packages`;
   return fetchJSON<any>(url, config, { method: "POST", body: JSON.stringify(payload) });
 }
+
+// ============================================================================
+// Admin Configuration API
+// ============================================================================
+
+export type ChainRPC = {
+  id: string;
+  chain_id: string;
+  name: string;
+  rpc_url: string;
+  ws_url?: string;
+  chain_type: string;
+  network_id?: number;
+  priority?: number;
+  weight?: number;
+  max_rps?: number;
+  timeout_ms?: number;
+  enabled: boolean;
+  healthy: boolean;
+  metadata?: Record<string, string>;
+  created_at?: string;
+  updated_at?: string;
+  last_check_at?: string;
+};
+
+export type DataProvider = {
+  id: string;
+  name: string;
+  type: string;
+  base_url: string;
+  api_key?: string;
+  rate_limit?: number;
+  timeout_ms?: number;
+  retries?: number;
+  enabled: boolean;
+  healthy: boolean;
+  features?: string[];
+  metadata?: Record<string, string>;
+  created_at?: string;
+  updated_at?: string;
+  last_check_at?: string;
+};
+
+export type SystemSetting = {
+  key: string;
+  value: string;
+  type: string;
+  category: string;
+  description?: string;
+  editable: boolean;
+  updated_at?: string;
+  updated_by?: string;
+};
+
+export type FeatureFlag = {
+  key: string;
+  enabled: boolean;
+  description?: string;
+  rollout: number;
+  updated_at?: string;
+  updated_by?: string;
+};
+
+export type TenantQuota = {
+  tenant_id: string;
+  max_accounts: number;
+  max_functions: number;
+  max_rpc_per_min: number;
+  max_storage_bytes: number;
+  max_gas_per_day: number;
+  features?: string[];
+  updated_at?: string;
+  updated_by?: string;
+};
+
+export type AllowedMethod = {
+  chain_id: string;
+  methods: string[];
+};
+
+// Chain RPCs
+export async function fetchChainRPCs(config: ClientConfig): Promise<ChainRPC[]> {
+  const url = `${config.baseUrl}/admin/config/chains`;
+  return fetchJSON<ChainRPC[]>(url, config);
+}
+
+export async function createChainRPC(config: ClientConfig, rpc: Partial<ChainRPC>): Promise<ChainRPC> {
+  const url = `${config.baseUrl}/admin/config/chains`;
+  return fetchJSON<ChainRPC>(url, config, { method: "POST", body: JSON.stringify(rpc) });
+}
+
+export async function updateChainRPC(config: ClientConfig, id: string, rpc: Partial<ChainRPC>): Promise<ChainRPC> {
+  const url = `${config.baseUrl}/admin/config/chains/${id}`;
+  return fetchJSON<ChainRPC>(url, config, { method: "PUT", body: JSON.stringify(rpc) });
+}
+
+export async function deleteChainRPC(config: ClientConfig, id: string): Promise<void> {
+  const url = `${config.baseUrl}/admin/config/chains/${id}`;
+  await fetchJSON<void>(url, config, { method: "DELETE" });
+}
+
+// Data Providers
+export async function fetchDataProviders(config: ClientConfig, type?: string): Promise<DataProvider[]> {
+  const params = type ? `?type=${encodeURIComponent(type)}` : "";
+  const url = `${config.baseUrl}/admin/config/providers${params}`;
+  return fetchJSON<DataProvider[]>(url, config);
+}
+
+export async function createDataProvider(config: ClientConfig, provider: Partial<DataProvider>): Promise<DataProvider> {
+  const url = `${config.baseUrl}/admin/config/providers`;
+  return fetchJSON<DataProvider>(url, config, { method: "POST", body: JSON.stringify(provider) });
+}
+
+export async function updateDataProvider(config: ClientConfig, id: string, provider: Partial<DataProvider>): Promise<DataProvider> {
+  const url = `${config.baseUrl}/admin/config/providers/${id}`;
+  return fetchJSON<DataProvider>(url, config, { method: "PUT", body: JSON.stringify(provider) });
+}
+
+export async function deleteDataProvider(config: ClientConfig, id: string): Promise<void> {
+  const url = `${config.baseUrl}/admin/config/providers/${id}`;
+  await fetchJSON<void>(url, config, { method: "DELETE" });
+}
+
+// System Settings
+export async function fetchSettings(config: ClientConfig, category?: string): Promise<SystemSetting[]> {
+  const params = category ? `?category=${encodeURIComponent(category)}` : "";
+  const url = `${config.baseUrl}/admin/config/settings${params}`;
+  return fetchJSON<SystemSetting[]>(url, config);
+}
+
+export async function updateSetting(config: ClientConfig, key: string, setting: Partial<SystemSetting>): Promise<SystemSetting> {
+  const url = `${config.baseUrl}/admin/config/settings/${encodeURIComponent(key)}`;
+  return fetchJSON<SystemSetting>(url, config, { method: "PUT", body: JSON.stringify(setting) });
+}
+
+// Feature Flags
+export async function fetchFeatureFlags(config: ClientConfig): Promise<FeatureFlag[]> {
+  const url = `${config.baseUrl}/admin/config/features`;
+  return fetchJSON<FeatureFlag[]>(url, config);
+}
+
+export async function updateFeatureFlag(config: ClientConfig, key: string, flag: Partial<FeatureFlag>): Promise<FeatureFlag> {
+  const url = `${config.baseUrl}/admin/config/features/${encodeURIComponent(key)}`;
+  return fetchJSON<FeatureFlag>(url, config, { method: "PUT", body: JSON.stringify(flag) });
+}
+
+export async function createFeatureFlag(config: ClientConfig, flag: Partial<FeatureFlag>): Promise<FeatureFlag> {
+  const url = `${config.baseUrl}/admin/config/features`;
+  return fetchJSON<FeatureFlag>(url, config, { method: "POST", body: JSON.stringify(flag) });
+}
+
+// Tenant Quotas
+export async function fetchTenantQuotas(config: ClientConfig): Promise<TenantQuota[]> {
+  const url = `${config.baseUrl}/admin/config/quotas`;
+  return fetchJSON<TenantQuota[]>(url, config);
+}
+
+export async function updateTenantQuota(config: ClientConfig, tenantId: string, quota: Partial<TenantQuota>): Promise<TenantQuota> {
+  const url = `${config.baseUrl}/admin/config/quotas/${encodeURIComponent(tenantId)}`;
+  return fetchJSON<TenantQuota>(url, config, { method: "PUT", body: JSON.stringify(quota) });
+}
+
+export async function createTenantQuota(config: ClientConfig, quota: Partial<TenantQuota>): Promise<TenantQuota> {
+  const url = `${config.baseUrl}/admin/config/quotas`;
+  return fetchJSON<TenantQuota>(url, config, { method: "POST", body: JSON.stringify(quota) });
+}
+
+export async function deleteTenantQuota(config: ClientConfig, tenantId: string): Promise<void> {
+  const url = `${config.baseUrl}/admin/config/quotas/${encodeURIComponent(tenantId)}`;
+  await fetchJSON<void>(url, config, { method: "DELETE" });
+}
+
+// Allowed Methods
+export async function fetchAllowedMethods(config: ClientConfig): Promise<AllowedMethod[]> {
+  const url = `${config.baseUrl}/admin/config/methods`;
+  return fetchJSON<AllowedMethod[]>(url, config);
+}
+
+export async function updateAllowedMethods(config: ClientConfig, chainId: string, methods: string[]): Promise<AllowedMethod> {
+  const url = `${config.baseUrl}/admin/config/methods/${encodeURIComponent(chainId)}`;
+  return fetchJSON<AllowedMethod>(url, config, { method: "PUT", body: JSON.stringify({ chain_id: chainId, methods }) });
+}
