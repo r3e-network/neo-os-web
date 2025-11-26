@@ -7,10 +7,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
-	"github.com/R3E-Network/service_layer/internal/app/domain/trigger"
 	"github.com/R3E-Network/service_layer/internal/app/storage"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/trigger"
 	"github.com/google/uuid"
 )
 

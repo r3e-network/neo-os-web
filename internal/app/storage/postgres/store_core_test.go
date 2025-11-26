@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
-	"github.com/R3E-Network/service_layer/internal/app/domain/gasbank"
-	"github.com/R3E-Network/service_layer/internal/app/domain/oracle"
-	"github.com/R3E-Network/service_layer/internal/app/domain/secret"
-	"github.com/R3E-Network/service_layer/internal/app/domain/trigger"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/gasbank"
+	"github.com/R3E-Network/service_layer/internal/domain/oracle"
+	"github.com/R3E-Network/service_layer/internal/domain/secret"
+	"github.com/R3E-Network/service_layer/internal/domain/trigger"
 )
 
 func TestStoreCoreIntegration(t *testing.T) {

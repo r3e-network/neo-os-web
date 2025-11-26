@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
-	"github.com/R3E-Network/service_layer/internal/app/domain/secret"
-	"github.com/R3E-Network/service_layer/internal/app/domain/trigger"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/secret"
+	"github.com/R3E-Network/service_layer/internal/domain/trigger"
 )
 
 // Memory is a thread-safe in-memory persistence layer implementing the storage

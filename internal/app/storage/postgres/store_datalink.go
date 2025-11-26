@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	domainlink "github.com/R3E-Network/service_layer/internal/app/domain/datalink"
+	domainlink "github.com/R3E-Network/service_layer/internal/domain/datalink"
 	"github.com/google/uuid"
 )
 

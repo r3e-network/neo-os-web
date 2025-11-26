@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/vrf"
+	"github.com/R3E-Network/service_layer/internal/domain/vrf"
 )
 
 // VRFStore implementation

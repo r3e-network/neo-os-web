@@ -9,11 +9,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
-	"github.com/R3E-Network/service_layer/internal/app/domain/cre"
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
-	"github.com/R3E-Network/service_layer/internal/app/domain/gasbank"
-	"github.com/R3E-Network/service_layer/internal/app/domain/secret"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
+	"github.com/R3E-Network/service_layer/internal/domain/cre"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/gasbank"
+	"github.com/R3E-Network/service_layer/internal/domain/secret"
 )
 
 // --- CREStore ---------------------------------------------------------------

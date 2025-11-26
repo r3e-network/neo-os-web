@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	domainds "github.com/R3E-Network/service_layer/internal/app/domain/datastreams"
+	domainds "github.com/R3E-Network/service_layer/internal/domain/datastreams"
 	"github.com/google/uuid"
 )
 

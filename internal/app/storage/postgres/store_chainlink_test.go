@@ -4,15 +4,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
-	domainccip "github.com/R3E-Network/service_layer/internal/app/domain/ccip"
-	domainconf "github.com/R3E-Network/service_layer/internal/app/domain/confidential"
-	domaincre "github.com/R3E-Network/service_layer/internal/app/domain/cre"
-	domaindf "github.com/R3E-Network/service_layer/internal/app/domain/datafeeds"
-	domainlink "github.com/R3E-Network/service_layer/internal/app/domain/datalink"
-	domainds "github.com/R3E-Network/service_layer/internal/app/domain/datastreams"
-	domaindta "github.com/R3E-Network/service_layer/internal/app/domain/dta"
-	domainvrf "github.com/R3E-Network/service_layer/internal/app/domain/vrf"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
+	domainccip "github.com/R3E-Network/service_layer/internal/domain/ccip"
+	domainconf "github.com/R3E-Network/service_layer/internal/domain/confidential"
+	domaincre "github.com/R3E-Network/service_layer/internal/domain/cre"
+	domaindf "github.com/R3E-Network/service_layer/internal/domain/datafeeds"
+	domainlink "github.com/R3E-Network/service_layer/internal/domain/datalink"
+	domainds "github.com/R3E-Network/service_layer/internal/domain/datastreams"
+	domaindta "github.com/R3E-Network/service_layer/internal/domain/dta"
+	domainvrf "github.com/R3E-Network/service_layer/internal/domain/vrf"
 )
 
 func TestStoreChainlinkIntegration(t *testing.T) {

@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/admin"
+	"github.com/R3E-Network/service_layer/internal/domain/admin"
 )
 
 // AdminConfigStore persists admin configuration data.

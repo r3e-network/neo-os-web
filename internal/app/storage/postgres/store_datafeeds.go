@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	domaindf "github.com/R3E-Network/service_layer/internal/app/domain/datafeeds"
+	domaindf "github.com/R3E-Network/service_layer/internal/domain/datafeeds"
 	"github.com/google/uuid"
 	"strings"
 )

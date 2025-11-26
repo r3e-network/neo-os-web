@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/pricefeed"
+	"github.com/R3E-Network/service_layer/internal/domain/pricefeed"
 )
 
 // PriceFeedStore implementation

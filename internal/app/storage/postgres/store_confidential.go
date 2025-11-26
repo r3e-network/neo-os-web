@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	domainconf "github.com/R3E-Network/service_layer/internal/app/domain/confidential"
+	domainconf "github.com/R3E-Network/service_layer/internal/domain/confidential"
 	"github.com/google/uuid"
 )
 

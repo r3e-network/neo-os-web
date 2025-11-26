@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/oracle"
+	"github.com/R3E-Network/service_layer/internal/domain/oracle"
 )
 
 // OracleStore implementation

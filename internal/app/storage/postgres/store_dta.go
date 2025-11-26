@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	domaindta "github.com/R3E-Network/service_layer/internal/app/domain/dta"
+	domaindta "github.com/R3E-Network/service_layer/internal/domain/dta"
 	"github.com/google/uuid"
 )
 
