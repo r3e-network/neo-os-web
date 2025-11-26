@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
 )
 
 func TestServiceGenerate(t *testing.T) {
@@ -114,4 +114,43 @@ func ExampleService_Generate() {
 	fmt.Printf("bytes:%d encoded:%d\n", len(res.Value), len(EncodeResult(res)))
 	// Output:
 	// bytes:4 encoded:8
+}
+
+func TestService_Manifest(t *testing.T) {
+	svc := New(nil, nil)
+	m := svc.Manifest()
+	if m.Name != "random" {
+		t.Fatalf("expected name random, got %s", m.Name)
+	}
+}
+
+func TestService_Descriptor(t *testing.T) {
+	svc := New(nil, nil)
+	d := svc.Descriptor()
+	if d.Name != "random" {
+		t.Fatalf("expected name random, got %s", d.Name)
+	}
+}
+
+func TestService_Domain(t *testing.T) {
+	svc := New(nil, nil)
+	if svc.Domain() != "random" {
+		t.Fatalf("expected domain random")
+	}
+}
+
+func TestService_Lifecycle(t *testing.T) {
+	svc := New(nil, nil)
+	if err := svc.Start(context.Background()); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	if err := svc.Ready(context.Background()); err != nil {
+		t.Fatalf("ready: %v", err)
+	}
+	if err := svc.Stop(context.Background()); err != nil {
+		t.Fatalf("stop: %v", err)
+	}
+	if svc.Ready(context.Background()) == nil {
+		t.Fatalf("expected not ready after stop")
+	}
 }

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	domainccip "github.com/R3E-Network/service_layer/internal/app/domain/ccip"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
 	core "github.com/R3E-Network/service_layer/internal/services/core"
 )
 
@@ -327,5 +327,68 @@ func TestService_TokenTransferNormalization(t *testing.T) {
 	}
 	if len(msg.TokenTransfers) != 1 {
 		t.Fatalf("expected 1 valid token transfer, got %d", len(msg.TokenTransfers))
+	}
+}
+
+func TestService_CreateLane_DuplicateSigners(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "acct"})
+	svc := New(store, store, nil)
+	svc.WithWorkspaceWallets(store)
+	store.CreateWorkspaceWallet(context.Background(), account.WorkspaceWallet{WorkspaceID: acct.ID, WalletAddress: testLaneWallet})
+
+	// Test with duplicate signers - should deduplicate
+	lane, err := svc.CreateLane(context.Background(), domainccip.Lane{
+		AccountID:   acct.ID,
+		Name:        "Lane",
+		SourceChain: "eth",
+		DestChain:   "neo",
+		SignerSet:   []string{testLaneWallet, testLaneWallet, "  " + testLaneWallet + "  "},
+	})
+	if err != nil {
+		t.Fatalf("create lane: %v", err)
+	}
+	if len(lane.SignerSet) != 1 {
+		t.Fatalf("expected deduplicated signers, got %d", len(lane.SignerSet))
+	}
+}
+
+func TestService_CreateLane_EmptySigners(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "acct"})
+	svc := New(store, store, nil)
+	svc.WithWorkspaceWallets(store)
+
+	// Test with empty signers - should succeed
+	lane, err := svc.CreateLane(context.Background(), domainccip.Lane{
+		AccountID:   acct.ID,
+		Name:        "Lane",
+		SourceChain: "eth",
+		DestChain:   "neo",
+		SignerSet:   []string{},
+	})
+	if err != nil {
+		t.Fatalf("create lane: %v", err)
+	}
+	if lane.ID == "" {
+		t.Fatalf("expected lane ID")
+	}
+}
+
+func TestService_ListLanes_MissingAccount(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	_, err := svc.ListLanes(context.Background(), "nonexistent")
+	if err == nil {
+		t.Fatalf("expected error for nonexistent account")
+	}
+}
+
+func TestService_ListMessages_MissingAccount(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	_, err := svc.ListMessages(context.Background(), "nonexistent", 10)
+	if err == nil {
+		t.Fatalf("expected error for nonexistent account")
 	}
 }

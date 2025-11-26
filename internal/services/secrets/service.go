@@ -165,8 +165,8 @@ func (s *Service) CreateWithOptions(ctx context.Context, accountID, name, value 
 
 // UpdateOptions configures secret update.
 type UpdateOptions struct {
-	ACL    *secret.ACL // If set, updates the ACL; nil keeps existing ACL
-	Value  *string     // If set, updates the value; nil keeps existing value
+	ACL   *secret.ACL // If set, updates the ACL; nil keeps existing ACL
+	Value *string     // If set, updates the value; nil keeps existing value
 }
 
 // Update replaces the secret value.

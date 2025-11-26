@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	domainds "github.com/R3E-Network/service_layer/internal/app/domain/datastreams"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
 	core "github.com/R3E-Network/service_layer/internal/services/core"
 )
 
@@ -226,4 +226,178 @@ func TestService_WithObservationHooks(t *testing.T) {
 		OnStart:    func(ctx context.Context, attrs map[string]string) {},
 		OnComplete: func(ctx context.Context, attrs map[string]string, err error, dur time.Duration) {},
 	})
+}
+
+func TestService_CreateStream_MissingAccount(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	_, err := svc.CreateStream(context.Background(), domainds.Stream{AccountID: "nonexistent"})
+	if err == nil {
+		t.Fatalf("expected error for nonexistent account")
+	}
+}
+
+func TestService_CreateStream_MissingName(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	_, err := svc.CreateStream(context.Background(), domainds.Stream{
+		AccountID: acct.ID,
+		Symbol:    "TEST",
+	})
+	if err == nil {
+		t.Fatalf("expected error for missing name")
+	}
+}
+
+func TestService_CreateStream_MissingSymbol(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	_, err := svc.CreateStream(context.Background(), domainds.Stream{
+		AccountID: acct.ID,
+		Name:      "test-stream",
+	})
+	if err == nil {
+		t.Fatalf("expected error for missing symbol")
+	}
+}
+
+func TestService_UpdateStream_NotFound(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	_, err := svc.UpdateStream(context.Background(), domainds.Stream{ID: "nonexistent"})
+	if err == nil {
+		t.Fatalf("expected error for nonexistent stream")
+	}
+}
+
+func TestService_UpdateStream_WrongAccount(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	acct2, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner2"})
+	svc := New(store, store, nil)
+	stream, _ := svc.CreateStream(context.Background(), domainds.Stream{
+		AccountID:   acct.ID,
+		Name:        "test-stream",
+		Symbol:      "TEST",
+		Description: "test",
+	})
+	_, err := svc.UpdateStream(context.Background(), domainds.Stream{
+		ID:        stream.ID,
+		AccountID: acct2.ID,
+	})
+	if err == nil {
+		t.Fatalf("expected error for wrong account")
+	}
+}
+
+func TestService_ListStreams_MissingAccount(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	_, err := svc.ListStreams(context.Background(), "nonexistent")
+	if err == nil {
+		t.Fatalf("expected error for nonexistent account")
+	}
+}
+
+func TestService_LatestFrame_NotFound(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	_, err := svc.LatestFrame(context.Background(), acct.ID, "nonexistent")
+	if err == nil {
+		t.Fatalf("expected error for nonexistent stream")
+	}
+}
+
+func TestService_Push_MissingStreamID(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	err := svc.Push(context.Background(), "", nil)
+	if err == nil {
+		t.Fatalf("expected error for missing stream_id")
+	}
+}
+
+func TestService_ListFrames_MissingStreamID(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	_, err := svc.ListFrames(context.Background(), acct.ID, "", 10)
+	if err == nil {
+		t.Fatalf("expected error for missing stream_id")
+	}
+}
+
+func TestService_CreateStream_WithHooks(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	svc.Start(context.Background())
+	svc.WithObservationHooks(core.ObservationHooks{
+		OnStart:    func(ctx context.Context, attrs map[string]string) {},
+		OnComplete: func(ctx context.Context, attrs map[string]string, err error, dur time.Duration) {},
+	})
+	stream, err := svc.CreateStream(context.Background(), domainds.Stream{
+		AccountID:   acct.ID,
+		Name:        "test-stream",
+		Symbol:      "TEST",
+		Description: "test",
+	})
+	if err != nil {
+		t.Fatalf("create stream: %v", err)
+	}
+	if stream.ID == "" {
+		t.Fatalf("expected stream ID")
+	}
+}
+
+func TestService_UpdateStream_WithHooks(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	svc.Start(context.Background())
+	svc.WithObservationHooks(core.ObservationHooks{
+		OnStart:    func(ctx context.Context, attrs map[string]string) {},
+		OnComplete: func(ctx context.Context, attrs map[string]string, err error, dur time.Duration) {},
+	})
+	stream, _ := svc.CreateStream(context.Background(), domainds.Stream{
+		AccountID:   acct.ID,
+		Name:        "test-stream",
+		Symbol:      "TEST",
+		Description: "test",
+	})
+	updated, err := svc.UpdateStream(context.Background(), domainds.Stream{
+		ID:          stream.ID,
+		AccountID:   acct.ID,
+		Name:        "updated-stream",
+		Symbol:      "UPD",
+		Description: "updated",
+	})
+	if err != nil {
+		t.Fatalf("update stream: %v", err)
+	}
+	if updated.Name != "updated-stream" {
+		t.Fatalf("expected updated name")
+	}
+}
+
+func TestService_Push_NotStarted(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	err := svc.Push(context.Background(), "stream-1", map[string]any{"value": 123})
+	if err == nil {
+		t.Fatalf("expected error when service not started")
+	}
+}
+
+func TestService_Push_InvalidPayload(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	svc.Start(context.Background())
+	err := svc.Push(context.Background(), "stream-1", "not-a-map")
+	if err == nil {
+		t.Fatalf("expected error for invalid payload type")
+	}
 }

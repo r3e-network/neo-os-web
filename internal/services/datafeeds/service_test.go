@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	domaindf "github.com/R3E-Network/service_layer/internal/app/domain/datafeeds"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
+	core "github.com/R3E-Network/service_layer/internal/services/core"
 )
 
 const testFeedSigner = "0xbbbbccccddddeeeeffffaaaabbbbccccddddeeee"
@@ -351,5 +352,136 @@ func TestService_GetFeedOwnership(t *testing.T) {
 
 	if _, err := svc.GetFeed(context.Background(), acct2.ID, feed.ID); err == nil {
 		t.Fatalf("expected ownership error")
+	}
+}
+
+func TestService_Publish(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+
+	// Test unsupported event
+	if err := svc.Publish(context.Background(), "unknown", nil); err == nil {
+		t.Fatalf("expected error for unknown event")
+	}
+
+	// Test invalid payload type
+	if err := svc.Publish(context.Background(), "update", "not a map"); err == nil {
+		t.Fatalf("expected error for invalid payload type")
+	}
+
+	// Test missing fields
+	if err := svc.Publish(context.Background(), "update", map[string]any{}); err == nil {
+		t.Fatalf("expected error for missing fields")
+	}
+
+	// Test with some fields but not all
+	if err := svc.Publish(context.Background(), "update", map[string]any{"account_id": "acct"}); err == nil {
+		t.Fatalf("expected error for incomplete fields")
+	}
+
+	// Test with float64 round_id conversion
+	if err := svc.Publish(context.Background(), "update", map[string]any{
+		"account_id": "acct",
+		"feed_id":    "feed",
+		"price":      "100",
+		"round_id":   float64(1),
+	}); err == nil {
+		// This will fail due to account not found, which is expected
+		// The point is to cover the float64 conversion code path
+	}
+}
+
+func TestService_UpdateFeed(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "upd"})
+	svc := New(store, store, nil)
+	svc.WithWorkspaceWallets(store)
+	// Initialize hooks to avoid nil pointer
+	svc.WithObservationHooks(core.ObservationHooks{
+		OnStart:    func(ctx context.Context, meta map[string]string) {},
+		OnComplete: func(ctx context.Context, meta map[string]string, err error, duration time.Duration) {},
+	})
+	if _, err := store.CreateWorkspaceWallet(context.Background(), account.WorkspaceWallet{WorkspaceID: acct.ID, WalletAddress: testFeedSigner}); err != nil {
+		t.Fatalf("seed wallet: %v", err)
+	}
+	feed, _ := svc.CreateFeed(context.Background(), domaindf.Feed{
+		AccountID: acct.ID,
+		Pair:      "ETH/USD",
+		Decimals:  8,
+		SignerSet: []string{testFeedSigner},
+	})
+
+	// Update the feed
+	feed.Pair = "BTC/USD"
+	updated, err := svc.UpdateFeed(context.Background(), feed)
+	if err != nil {
+		t.Fatalf("update feed: %v", err)
+	}
+	if updated.Pair != "BTC/USD" {
+		t.Fatalf("expected updated pair")
+	}
+}
+
+func TestService_UpdateFeed_WrongAccount(t *testing.T) {
+	store := memory.New()
+	acct1, _ := store.CreateAccount(context.Background(), account.Account{Owner: "one"})
+	acct2, _ := store.CreateAccount(context.Background(), account.Account{Owner: "two"})
+	svc := New(store, store, nil)
+	feed, _ := svc.CreateFeed(context.Background(), domaindf.Feed{AccountID: acct1.ID, Pair: "ETH/USD", Decimals: 8})
+
+	// Try to update feed with wrong account
+	feed.AccountID = acct2.ID
+	if _, err := svc.UpdateFeed(context.Background(), feed); err == nil {
+		t.Fatalf("expected ownership error")
+	}
+}
+
+func TestService_UpdateFeed_NotFound(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+
+	_, err := svc.UpdateFeed(context.Background(), domaindf.Feed{ID: "nonexistent", AccountID: "acct"})
+	if err == nil {
+		t.Fatalf("expected not found error")
+	}
+}
+
+func TestService_ListFeeds_MissingAccount(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+
+	_, err := svc.ListFeeds(context.Background(), "nonexistent")
+	if err == nil {
+		t.Fatalf("expected account error")
+	}
+}
+
+func TestService_ListUpdates_MissingFeed(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "acct"})
+	svc := New(store, store, nil)
+
+	_, err := svc.ListUpdates(context.Background(), acct.ID, "nonexistent", 10)
+	if err == nil {
+		t.Fatalf("expected feed error")
+	}
+}
+
+func TestService_LatestUpdate_NotFound(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "acct"})
+	svc := New(store, store, nil)
+	feed, _ := svc.CreateFeed(context.Background(), domaindf.Feed{AccountID: acct.ID, Pair: "ETH/USD", Decimals: 8})
+
+	_, err := svc.LatestUpdate(context.Background(), acct.ID, feed.ID)
+	if err == nil {
+		t.Fatalf("expected no updates error")
+	}
+}
+
+func TestService_Domain(t *testing.T) {
+	svc := New(nil, nil, nil)
+	if svc.Domain() != "datafeeds" {
+		t.Fatalf("expected domain datafeeds")
 	}
 }

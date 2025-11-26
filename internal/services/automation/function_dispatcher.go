@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	core "github.com/R3E-Network/service_layer/internal/services/core"
 	domain "github.com/R3E-Network/service_layer/internal/app/domain/automation"
 	"github.com/R3E-Network/service_layer/internal/app/domain/function"
 	"github.com/R3E-Network/service_layer/internal/app/metrics"
+	core "github.com/R3E-Network/service_layer/internal/services/core"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 

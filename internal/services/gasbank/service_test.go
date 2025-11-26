@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	domain "github.com/R3E-Network/service_layer/internal/app/domain/gasbank"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
@@ -577,5 +577,670 @@ func TestService_ListTransactions(t *testing.T) {
 	}
 	if len(txs) != 1 {
 		t.Fatalf("expected 1 transaction, got %d", len(txs))
+	}
+}
+
+func TestService_GetWithdrawal(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-wd")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-wd", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 5, "dest")
+
+	got, err := svc.GetWithdrawal(context.Background(), acct.ID, tx.ID)
+	if err != nil {
+		t.Fatalf("get withdrawal: %v", err)
+	}
+	if got.ID != tx.ID {
+		t.Fatalf("expected transaction %s, got %s", tx.ID, got.ID)
+	}
+}
+
+func TestService_GetWithdrawal_MissingParams(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.GetWithdrawal(context.Background(), "", "tx1")
+	if err == nil {
+		t.Fatalf("expected error for missing account_id")
+	}
+	_, err = svc.GetWithdrawal(context.Background(), "acc1", "")
+	if err == nil {
+		t.Fatalf("expected error for missing transaction_id")
+	}
+}
+
+func TestService_CancelWithdrawal(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-cancel")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	cancelled, err := svc.CancelWithdrawal(context.Background(), acct.ID, tx.ID, "user requested")
+	if err != nil {
+		t.Fatalf("cancel withdrawal: %v", err)
+	}
+	if cancelled.Status != domain.StatusCancelled {
+		t.Fatalf("expected cancelled status, got %s", cancelled.Status)
+	}
+}
+
+func TestService_ListDeadLetters(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+
+	letters, err := svc.ListDeadLetters(context.Background(), acct.ID, 10)
+	if err != nil {
+		t.Fatalf("list dead letters: %v", err)
+	}
+	if len(letters) != 0 {
+		t.Fatalf("expected 0 dead letters, got %d", len(letters))
+	}
+}
+
+func TestService_ListDeadLetters_MissingParams(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.ListDeadLetters(context.Background(), "", 10)
+	if err == nil {
+		t.Fatalf("expected error for missing account_id")
+	}
+}
+
+func TestService_ListSettlementAttempts(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-settle")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	attempts, err := svc.ListSettlementAttempts(context.Background(), acct.ID, tx.ID, 10)
+	if err != nil {
+		t.Fatalf("list settlement attempts: %v", err)
+	}
+	// New withdrawal has no attempts yet
+	if len(attempts) != 0 {
+		t.Fatalf("expected 0 attempts, got %d", len(attempts))
+	}
+}
+
+func TestService_ListSettlementAttempts_MissingParams(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.ListSettlementAttempts(context.Background(), "", "tx1", 10)
+	if err == nil {
+		t.Fatalf("expected error for missing account_id")
+	}
+}
+
+func TestService_RetryDeadLetter(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+
+	// Test missing params
+	_, err := svc.RetryDeadLetter(context.Background(), acct.ID, "")
+	if err == nil {
+		t.Fatalf("expected error for missing transaction_id")
+	}
+}
+
+func TestService_RetryDeadLetter_MissingParams(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.RetryDeadLetter(context.Background(), "", "tx1")
+	if err == nil {
+		t.Fatalf("expected error for missing account_id")
+	}
+}
+
+func TestService_DeleteDeadLetter(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+
+	// Test missing params
+	err := svc.DeleteDeadLetter(context.Background(), acct.ID, "")
+	if err == nil {
+		t.Fatalf("expected error for missing transaction_id")
+	}
+}
+
+func TestService_DeleteDeadLetter_MissingParams(t *testing.T) {
+	svc := New(nil, nil, nil)
+	err := svc.DeleteDeadLetter(context.Background(), "", "tx1")
+	if err == nil {
+		t.Fatalf("expected error for missing account_id")
+	}
+}
+
+func TestService_MarkDeadLetter(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-mark")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	err := svc.MarkDeadLetter(context.Background(), tx, "settlement failure", "network error")
+	if err != nil {
+		t.Fatalf("mark dead letter: %v", err)
+	}
+	// Verify tx status updated
+	updatedTx, _ := store.GetGasTransaction(context.Background(), tx.ID)
+	if updatedTx.Status != domain.StatusDeadLetter {
+		t.Fatalf("expected dead lettered status, got %s", updatedTx.Status)
+	}
+}
+
+func TestService_MarkDeadLetter_MissingParams(t *testing.T) {
+	svc := New(nil, nil, nil)
+	err := svc.MarkDeadLetter(context.Background(), domain.Transaction{Type: domain.TransactionWithdrawal}, "reason", "")
+	if err == nil {
+		t.Fatalf("expected error for missing account")
+	}
+}
+
+func TestService_ListTransactionsFiltered(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-filter")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	txs, err := svc.ListTransactionsFiltered(context.Background(), gasAcct.ID, "deposit", "", 10)
+	if err != nil {
+		t.Fatalf("list transactions filtered: %v", err)
+	}
+	if len(txs) != 1 {
+		t.Fatalf("expected 1 deposit transaction, got %d", len(txs))
+	}
+}
+
+// FeeCollector tests
+
+func TestFeeCollector_NewFeeCollector(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	if fc == nil {
+		t.Fatalf("expected fee collector to be created")
+	}
+}
+
+func TestFeeCollector_CollectFee_ZeroAmount(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	// Zero amount should return nil
+	err := fc.CollectFee(context.Background(), "acct", 0, "ref")
+	if err != nil {
+		t.Fatalf("expected no error for zero amount: %v", err)
+	}
+	err = fc.CollectFee(context.Background(), "acct", -10, "ref")
+	if err != nil {
+		t.Fatalf("expected no error for negative amount: %v", err)
+	}
+}
+
+func TestFeeCollector_CollectFee_NoGasAccount(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	err := fc.CollectFee(context.Background(), acct.ID, 100000000, "ref")
+	if err == nil {
+		t.Fatalf("expected error for no gas account")
+	}
+}
+
+func TestFeeCollector_CollectFee_InsufficientBalance(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-fee")
+	svc.Deposit(context.Background(), gasAcct.ID, 1, "tx-dep", "from", "to") // 1 GAS
+
+	err := fc.CollectFee(context.Background(), acct.ID, 200000000, "ref") // 2 GAS
+	if err == nil {
+		t.Fatalf("expected error for insufficient balance")
+	}
+}
+
+func TestFeeCollector_CollectFee_Success(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-fee")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+
+	err := fc.CollectFee(context.Background(), acct.ID, 100000000, "ref") // 1 GAS
+	if err != nil {
+		t.Fatalf("collect fee: %v", err)
+	}
+	updated, _ := store.GetGasAccount(context.Background(), gasAcct.ID)
+	if updated.Available >= 10 {
+		t.Fatalf("expected available to decrease")
+	}
+}
+
+func TestFeeCollector_RefundFee_ZeroAmount(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	err := fc.RefundFee(context.Background(), "acct", 0, "ref")
+	if err != nil {
+		t.Fatalf("expected no error for zero amount: %v", err)
+	}
+}
+
+func TestFeeCollector_RefundFee_NoGasAccount(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	err := fc.RefundFee(context.Background(), acct.ID, 100000000, "ref")
+	if err == nil {
+		t.Fatalf("expected error for no gas account")
+	}
+}
+
+func TestFeeCollector_RefundFee_Success(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-refund")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	fc.CollectFee(context.Background(), acct.ID, 100000000, "ref") // 1 GAS
+
+	err := fc.RefundFee(context.Background(), acct.ID, 100000000, "refund-ref")
+	if err != nil {
+		t.Fatalf("refund fee: %v", err)
+	}
+}
+
+func TestFeeCollector_RefundFee_ExceedsLocked(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-refund2")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+
+	// Refund more than locked - should set locked to 0
+	err := fc.RefundFee(context.Background(), acct.ID, 500000000, "refund-ref")
+	if err != nil {
+		t.Fatalf("refund fee: %v", err)
+	}
+}
+
+func TestFeeCollector_SettleFee_ZeroAmount(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	err := fc.SettleFee(context.Background(), "acct", 0, "ref")
+	if err != nil {
+		t.Fatalf("expected no error for zero amount: %v", err)
+	}
+}
+
+func TestFeeCollector_SettleFee_NoGasAccount(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	err := fc.SettleFee(context.Background(), acct.ID, 100000000, "ref")
+	if err == nil {
+		t.Fatalf("expected error for no gas account")
+	}
+}
+
+func TestFeeCollector_SettleFee_Success(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-settle")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	fc.CollectFee(context.Background(), acct.ID, 100000000, "ref") // Lock 1 GAS
+
+	err := fc.SettleFee(context.Background(), acct.ID, 100000000, "settle-ref")
+	if err != nil {
+		t.Fatalf("settle fee: %v", err)
+	}
+}
+
+func TestFeeCollector_SettleFee_ExceedsLocked(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	fc := NewFeeCollector(svc)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-settle2")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+
+	// Settle more than locked - should set locked to 0
+	err := fc.SettleFee(context.Background(), acct.ID, 500000000, "settle-ref")
+	if err != nil {
+		t.Fatalf("settle fee: %v", err)
+	}
+}
+
+// Additional service tests for edge cases
+
+func TestService_ActivateDueSchedules(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	err := svc.ActivateDueSchedules(context.Background(), 10)
+	if err != nil {
+		t.Fatalf("activate due schedules: %v", err)
+	}
+}
+
+func TestService_ListApprovals(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	approvals, err := svc.ListApprovals(context.Background(), tx.ID)
+	if err != nil {
+		t.Fatalf("list approvals: %v", err)
+	}
+	// approvals can be nil or empty for new transactions
+	_ = approvals
+}
+
+func TestService_ListApprovals_MissingParams(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.ListApprovals(context.Background(), "")
+	if err == nil {
+		t.Fatalf("expected error for missing transaction_id")
+	}
+}
+
+func TestService_EnsureAccountWithOptions_InvalidOwner(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	_, err := svc.EnsureAccountWithOptions(context.Background(), "", EnsureAccountOptions{WalletAddress: "wallet"})
+	if err == nil {
+		t.Fatalf("expected error for empty account id")
+	}
+}
+
+func TestService_Deposit_InvalidAmount(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet")
+	_, _, err := svc.Deposit(context.Background(), gasAcct.ID, 0, "tx", "from", "to")
+	if err == nil {
+		t.Fatalf("expected error for zero amount")
+	}
+	_, _, err = svc.Deposit(context.Background(), gasAcct.ID, -1, "tx", "from", "to")
+	if err == nil {
+		t.Fatalf("expected error for negative amount")
+	}
+}
+
+func TestService_RetryDeadLetter_Success(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-retry")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	// Mark as dead letter
+	svc.MarkDeadLetter(context.Background(), tx, "test reason", "test error")
+
+	// Create dead letter entry in store
+	store.UpsertDeadLetter(context.Background(), domain.DeadLetter{
+		TransactionID: tx.ID,
+		AccountID:     acct.ID,
+		Reason:        "test reason",
+	})
+
+	// Retry
+	retried, err := svc.RetryDeadLetter(context.Background(), acct.ID, tx.ID)
+	if err != nil {
+		t.Fatalf("retry dead letter: %v", err)
+	}
+	if retried.Status == domain.StatusDeadLetter {
+		t.Fatalf("expected status to change from dead letter")
+	}
+}
+
+func TestService_RetryDeadLetter_WrongOwner(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	acct2, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner2"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	store.UpsertDeadLetter(context.Background(), domain.DeadLetter{
+		TransactionID: tx.ID,
+		AccountID:     acct.ID,
+	})
+
+	// Try retry with wrong account
+	_, err := svc.RetryDeadLetter(context.Background(), acct2.ID, tx.ID)
+	if err == nil {
+		t.Fatalf("expected error for wrong owner")
+	}
+}
+
+func TestService_DeleteDeadLetter_Success(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-del")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	svc.MarkDeadLetter(context.Background(), tx, "test reason", "test error")
+	store.UpsertDeadLetter(context.Background(), domain.DeadLetter{
+		TransactionID: tx.ID,
+		AccountID:     acct.ID,
+	})
+
+	err := svc.DeleteDeadLetter(context.Background(), acct.ID, tx.ID)
+	if err != nil {
+		t.Fatalf("delete dead letter: %v", err)
+	}
+}
+
+func TestService_DeleteDeadLetter_WrongOwner(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	acct2, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner2"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	store.UpsertDeadLetter(context.Background(), domain.DeadLetter{
+		TransactionID: tx.ID,
+		AccountID:     acct.ID,
+	})
+
+	err := svc.DeleteDeadLetter(context.Background(), acct2.ID, tx.ID)
+	if err == nil {
+		t.Fatalf("expected error for wrong owner")
+	}
+}
+
+func TestService_Summary_Error(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.Summary(context.Background(), "")
+	if err == nil {
+		t.Fatalf("expected error for missing account_id")
+	}
+}
+
+func TestService_GetWithdrawal_Success(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-getwd")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	wd, err := svc.GetWithdrawal(context.Background(), acct.ID, tx.ID)
+	if err != nil {
+		t.Fatalf("get withdrawal: %v", err)
+	}
+	if wd.ID != tx.ID {
+		t.Fatalf("expected same transaction ID")
+	}
+}
+
+func TestService_ListAccounts_Success(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	svc.EnsureAccount(context.Background(), acct.ID, "wallet")
+	accounts, err := svc.ListAccounts(context.Background(), acct.ID)
+	if err != nil {
+		t.Fatalf("list accounts: %v", err)
+	}
+	if len(accounts) != 1 {
+		t.Fatalf("expected 1 account, got %d", len(accounts))
+	}
+}
+
+func TestService_ListAccounts_EmptyOwner(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	// Empty owner ID still works, returns empty list
+	accounts, err := svc.ListAccounts(context.Background(), "")
+	if err != nil {
+		t.Fatalf("list accounts: %v", err)
+	}
+	if len(accounts) != 0 {
+		t.Fatalf("expected empty list")
+	}
+}
+
+func TestService_CancelWithdrawal_Validation(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	_, err := svc.CancelWithdrawal(context.Background(), "", "tx", "reason")
+	if err == nil {
+		t.Fatalf("expected error for missing account_id")
+	}
+	_, err = svc.CancelWithdrawal(context.Background(), "acct", "", "reason")
+	if err == nil {
+		t.Fatalf("expected error for missing transaction_id")
+	}
+}
+
+func TestService_CancelWithdrawal_WrongOwner(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	acct2, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner2"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	_, err := svc.CancelWithdrawal(context.Background(), acct2.ID, tx.ID, "reason")
+	if err == nil {
+		t.Fatalf("expected error for wrong owner")
+	}
+}
+
+func TestService_GetWithdrawal_WrongOwner(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	acct2, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner2"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	_, err := svc.GetWithdrawal(context.Background(), acct2.ID, tx.ID)
+	if err == nil {
+		t.Fatalf("expected error for wrong owner")
+	}
+}
+
+func TestService_ListSettlementAttempts_WrongOwner(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	acct2, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner2"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet")
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+	_, tx, _ := svc.Withdraw(context.Background(), acct.ID, gasAcct.ID, 3, "dest")
+
+	_, err := svc.ListSettlementAttempts(context.Background(), acct2.ID, tx.ID, 10)
+	if err == nil {
+		t.Fatalf("expected error for wrong owner")
+	}
+}
+
+func TestService_SubmitApproval_Validation(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	// Missing transaction_id
+	_, _, err := svc.SubmitApproval(context.Background(), "", "approver", "", "", true)
+	if err == nil {
+		t.Fatalf("expected error for missing transaction_id")
+	}
+}
+
+func TestService_SubmitApproval_TxNotFound(t *testing.T) {
+	store := memory.New()
+	svc := New(store, store, nil)
+	_, _, err := svc.SubmitApproval(context.Background(), "nonexistent", "approver", "", "", true)
+	if err == nil {
+		t.Fatalf("expected error for non-existent transaction")
+	}
+}
+
+func TestService_ActivateDueSchedules_WithApproval(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	gasAcct, _ := svc.EnsureAccount(context.Background(), acct.ID, "wallet-sched")
+	gasAcct.RequiredApprovals = 2
+	store.UpdateGasAccount(context.Background(), gasAcct)
+	svc.Deposit(context.Background(), gasAcct.ID, 10, "tx-dep", "from", "to")
+
+	// Create scheduled withdrawal
+	future := time.Now().Add(time.Hour)
+	opts := WithdrawOptions{
+		Amount:     1,
+		ToAddress:  "dest",
+		ScheduleAt: &future,
+	}
+	_, scheduledTx, _ := svc.WithdrawWithOptions(context.Background(), acct.ID, gasAcct.ID, opts)
+
+	// Make it due
+	due := time.Now().Add(-time.Minute)
+	store.SaveWithdrawalSchedule(context.Background(), domain.WithdrawalSchedule{
+		TransactionID: scheduledTx.ID,
+		ScheduleAt:    due,
+		NextRunAt:     due,
+		CreatedAt:     due,
+		UpdatedAt:     due,
+	})
+
+	// Activate
+	if err := svc.ActivateDueSchedules(context.Background(), 10); err != nil {
+		t.Fatalf("activate schedules: %v", err)
+	}
+
+	tx, _ := store.GetGasTransaction(context.Background(), scheduledTx.ID)
+	if tx.Status != domain.StatusAwaitingApproval {
+		t.Fatalf("expected awaiting approval status, got %s", tx.Status)
 	}
 }

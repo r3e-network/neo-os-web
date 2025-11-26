@@ -8,10 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	datalinkdomain "github.com/R3E-Network/service_layer/internal/app/domain/datalink"
 	"github.com/R3E-Network/service_layer/internal/app/domain/function"
 	"github.com/R3E-Network/service_layer/internal/app/domain/trigger"
+	"github.com/R3E-Network/service_layer/internal/app/storage"
+	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
 	automationsvc "github.com/R3E-Network/service_layer/internal/services/automation"
 	datalinksvc "github.com/R3E-Network/service_layer/internal/services/datalink"
 	gasbanksvc "github.com/R3E-Network/service_layer/internal/services/gasbank"
@@ -19,8 +21,6 @@ import (
 	pricefeedsvc "github.com/R3E-Network/service_layer/internal/services/pricefeed"
 	randomsvc "github.com/R3E-Network/service_layer/internal/services/random"
 	"github.com/R3E-Network/service_layer/internal/services/triggers"
-	"github.com/R3E-Network/service_layer/internal/app/storage"
-	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
@@ -864,5 +864,300 @@ func TestService_ScheduleAutomationJob(t *testing.T) {
 	}
 	if job.FunctionID != fn.ID {
 		t.Fatalf("expected job linked to function")
+	}
+}
+
+func TestService_UpdateAutomationJob(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	automationSvc := automationsvc.New(store, store, store, nil)
+
+	svc := New(store, store, nil)
+	svc.AttachDependencies(nil, automationSvc, nil, nil, nil, nil, nil, nil, nil)
+
+	fn, _ := svc.Create(context.Background(), function.Definition{AccountID: acct.ID, Name: "update-job", Source: "() => 1"})
+	job, _ := svc.ScheduleAutomationJob(context.Background(), acct.ID, fn.ID, "hourly", "0 * * * *", "hourly run")
+
+	newName := "daily"
+	updated, err := svc.UpdateAutomationJob(context.Background(), job.ID, &newName, nil, nil)
+	if err != nil {
+		t.Fatalf("update job: %v", err)
+	}
+	if updated.Name != newName {
+		t.Fatalf("expected name %q, got %q", newName, updated.Name)
+	}
+}
+
+func TestService_UpdateAutomationJob_NoDependency(t *testing.T) {
+	svc := New(nil, nil, nil)
+	newName := "test"
+	_, err := svc.UpdateAutomationJob(context.Background(), "job-1", &newName, nil, nil)
+	if err == nil {
+		t.Fatalf("expected dependency unavailable error")
+	}
+}
+
+func TestService_SetAutomationEnabled(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	automationSvc := automationsvc.New(store, store, store, nil)
+
+	svc := New(store, store, nil)
+	svc.AttachDependencies(nil, automationSvc, nil, nil, nil, nil, nil, nil, nil)
+
+	fn, _ := svc.Create(context.Background(), function.Definition{AccountID: acct.ID, Name: "toggle-job", Source: "() => 1"})
+	job, _ := svc.ScheduleAutomationJob(context.Background(), acct.ID, fn.ID, "test", "0 * * * *", "")
+
+	updated, err := svc.SetAutomationEnabled(context.Background(), job.ID, false)
+	if err != nil {
+		t.Fatalf("set enabled: %v", err)
+	}
+	if updated.Enabled {
+		t.Fatalf("expected job disabled")
+	}
+}
+
+func TestService_SetAutomationEnabled_NoDependency(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.SetAutomationEnabled(context.Background(), "job-1", true)
+	if err == nil {
+		t.Fatalf("expected dependency unavailable error")
+	}
+}
+
+func TestService_CreatePriceFeed(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	priceSvc := pricefeedsvc.New(store, store, nil)
+
+	svc := New(store, store, nil)
+	svc.AttachDependencies(nil, nil, priceSvc, nil, nil, nil, nil, nil, nil)
+
+	feed, err := svc.CreatePriceFeed(context.Background(), acct.ID, "NEO", "USD", "@every 1m", "@every 1h", 0.5)
+	if err != nil {
+		t.Fatalf("create feed: %v", err)
+	}
+	if feed.BaseAsset != "NEO" {
+		t.Fatalf("expected base asset NEO")
+	}
+}
+
+func TestService_CreatePriceFeed_NoDependency(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.CreatePriceFeed(context.Background(), "acc-1", "NEO", "USD", "@every 1m", "@every 1h", 0.5)
+	if err == nil {
+		t.Fatalf("expected dependency unavailable error")
+	}
+}
+
+func TestService_RecordPriceSnapshot(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	priceSvc := pricefeedsvc.New(store, store, nil)
+
+	svc := New(store, store, nil)
+	svc.AttachDependencies(nil, nil, priceSvc, nil, nil, nil, nil, nil, nil)
+
+	feed, _ := priceSvc.CreateFeed(context.Background(), acct.ID, "NEO", "USD", "@every 1m", "@every 1h", 0.5)
+
+	snap, err := svc.RecordPriceSnapshot(context.Background(), feed.ID, 15.5, "oracle", time.Now().UTC())
+	if err != nil {
+		t.Fatalf("record snapshot: %v", err)
+	}
+	if snap.Price != 15.5 {
+		t.Fatalf("expected price 15.5")
+	}
+}
+
+func TestService_RecordPriceSnapshot_NoDependency(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.RecordPriceSnapshot(context.Background(), "feed-1", 10.0, "test", time.Now())
+	if err == nil {
+		t.Fatalf("expected dependency unavailable error")
+	}
+}
+
+func TestService_CreateOracleRequest(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	oracleSvc := oraclesvc.New(store, store, nil)
+
+	svc := New(store, store, nil)
+	svc.AttachDependencies(nil, nil, nil, nil, nil, nil, oracleSvc, nil, nil)
+
+	src, _ := oracleSvc.CreateSource(context.Background(), acct.ID, "test", "https://example.com", "GET", "", nil, "")
+
+	req, err := svc.CreateOracleRequest(context.Background(), acct.ID, src.ID, `{"key":"value"}`)
+	if err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	if req.DataSourceID != src.ID {
+		t.Fatalf("expected source ID match")
+	}
+}
+
+func TestService_CreateOracleRequest_NoDependency(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.CreateOracleRequest(context.Background(), "acc-1", "src-1", "")
+	if err == nil {
+		t.Fatalf("expected dependency unavailable error")
+	}
+}
+
+func TestService_CompleteOracleRequest(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	oracleSvc := oraclesvc.New(store, store, nil)
+
+	svc := New(store, store, nil)
+	svc.AttachDependencies(nil, nil, nil, nil, nil, nil, oracleSvc, nil, nil)
+
+	src, _ := oracleSvc.CreateSource(context.Background(), acct.ID, "test", "https://example.com", "GET", "", nil, "")
+	req, _ := oracleSvc.CreateRequest(context.Background(), acct.ID, src.ID, "")
+	_, _ = oracleSvc.MarkRunning(context.Background(), req.ID)
+
+	completed, err := svc.CompleteOracleRequest(context.Background(), req.ID, `{"result":"ok"}`)
+	if err != nil {
+		t.Fatalf("complete request: %v", err)
+	}
+	if completed.Result != `{"result":"ok"}` {
+		t.Fatalf("expected result match")
+	}
+}
+
+func TestService_CompleteOracleRequest_NoDependency(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.CompleteOracleRequest(context.Background(), "req-1", "result")
+	if err == nil {
+		t.Fatalf("expected dependency unavailable error")
+	}
+}
+
+func TestService_EnsureGasAccount(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	gasSvc := gasbanksvc.New(store, store, nil)
+
+	svc := New(store, store, nil)
+	svc.AttachDependencies(nil, nil, nil, nil, nil, nil, nil, gasSvc, nil)
+
+	gasAcct, err := svc.EnsureGasAccount(context.Background(), acct.ID, "NWALLET")
+	if err != nil {
+		t.Fatalf("ensure account: %v", err)
+	}
+	if gasAcct.WalletAddress != "nwallet" {
+		t.Fatalf("expected wallet match, got %q", gasAcct.WalletAddress)
+	}
+}
+
+func TestService_EnsureGasAccount_NoDependency(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.EnsureGasAccount(context.Background(), "acc-1", "wallet")
+	if err == nil {
+		t.Fatalf("expected dependency unavailable error")
+	}
+}
+
+func TestService_RegisterTrigger_NoDependency(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.RegisterTrigger(context.Background(), trigger.Trigger{})
+	if err == nil {
+		t.Fatalf("expected dependency unavailable error")
+	}
+}
+
+func TestService_ScheduleAutomationJob_NoDependency(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.ScheduleAutomationJob(context.Background(), "acc", "fn", "name", "0 * * * *", "")
+	if err == nil {
+		t.Fatalf("expected dependency unavailable error")
+	}
+}
+
+func TestService_GetExecution(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	svc.AttachExecutor(&mockExecutor{})
+
+	fn, _ := svc.Create(context.Background(), function.Definition{AccountID: acct.ID, Name: "exec", Source: "() => 1"})
+	exec, _ := svc.Execute(context.Background(), fn.ID, map[string]any{"foo": "bar"})
+
+	fetched, err := svc.GetExecution(context.Background(), exec.ID)
+	if err != nil {
+		t.Fatalf("get execution: %v", err)
+	}
+	if fetched.ID != exec.ID {
+		t.Fatalf("expected execution ID match")
+	}
+}
+
+func TestService_Invoke(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	svc.AttachExecutor(&mockExecutor{})
+	_ = svc.Start(context.Background())
+
+	fn, _ := svc.Create(context.Background(), function.Definition{AccountID: acct.ID, Name: "invoke", Source: "() => 1"})
+
+	result, err := svc.Invoke(context.Background(), map[string]any{
+		"account_id":  acct.ID,
+		"function_id": fn.ID,
+		"input":       "test",
+	})
+	if err != nil {
+		t.Fatalf("invoke: %v", err)
+	}
+	if result == nil {
+		t.Fatalf("expected result")
+	}
+}
+
+func TestService_Invoke_WithMapInput(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+	svc.AttachExecutor(&mockExecutor{})
+	_ = svc.Start(context.Background())
+
+	fn, _ := svc.Create(context.Background(), function.Definition{AccountID: acct.ID, Name: "invoke-map", Source: "() => 1"})
+
+	result, err := svc.Invoke(context.Background(), map[string]any{
+		"account_id":  acct.ID,
+		"function_id": fn.ID,
+		"input":       map[string]any{"key": "value"},
+	})
+	if err != nil {
+		t.Fatalf("invoke: %v", err)
+	}
+	if result == nil {
+		t.Fatalf("expected result")
+	}
+}
+
+func TestService_Invoke_NotReady(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_, err := svc.Invoke(context.Background(), map[string]any{})
+	if err == nil {
+		t.Fatalf("expected not ready error")
+	}
+}
+
+func TestService_Invoke_InvalidPayload(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_ = svc.Start(context.Background())
+	_, err := svc.Invoke(context.Background(), "not a map")
+	if err == nil {
+		t.Fatalf("expected payload type error")
+	}
+}
+
+func TestService_Invoke_MissingParams(t *testing.T) {
+	svc := New(nil, nil, nil)
+	_ = svc.Start(context.Background())
+	_, err := svc.Invoke(context.Background(), map[string]any{})
+	if err == nil {
+		t.Fatalf("expected missing params error")
 	}
 }

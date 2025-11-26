@@ -177,7 +177,9 @@ func (s *Service) UpdateFeed(ctx context.Context, feed domaindf.Feed) (domaindf.
 	}
 	start := time.Now()
 	s.hooks.OnStart(ctx, map[string]string{"account_id": feed.AccountID, "feed_id": feed.ID})
-	defer func() { s.hooks.OnComplete(ctx, map[string]string{"account_id": feed.AccountID, "feed_id": feed.ID}, nil, time.Since(start)) }()
+	defer func() {
+		s.hooks.OnComplete(ctx, map[string]string{"account_id": feed.AccountID, "feed_id": feed.ID}, nil, time.Since(start))
+	}()
 	updated, err := s.store.UpdateDataFeed(ctx, feed)
 	if err != nil {
 		return domaindf.Feed{}, err

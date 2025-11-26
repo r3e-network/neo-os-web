@@ -675,7 +675,7 @@ kubectl -n service-layer logs -f deployment/service-layer
 psql "$DATABASE_URL" -c "SELECT 1"
 
 # Check connection pool
-curl http://localhost:8080/system/status | jq '.modules[] | select(.name == "store-postgres")'
+curl http://localhost:8080/system/status | jq '.modules[] | select(.name == "store")'
 ```
 
 **High Memory Usage**

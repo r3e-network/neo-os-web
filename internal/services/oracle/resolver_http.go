@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	core "github.com/R3E-Network/service_layer/internal/services/core"
 	domain "github.com/R3E-Network/service_layer/internal/app/domain/oracle"
+	core "github.com/R3E-Network/service_layer/internal/services/core"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 

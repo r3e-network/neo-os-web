@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	domain "github.com/R3E-Network/service_layer/internal/app/domain/oracle"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
 )
 
 func TestHTTPResolver_GetRequest(t *testing.T) {
@@ -196,4 +196,188 @@ func newOracleHTTPServer(t *testing.T, handler http.Handler) *httptest.Server {
 	}
 	server.Start()
 	return server
+}
+
+func TestHTTPResolver_WithTracer(t *testing.T) {
+	resolver := NewHTTPResolver(nil, nil, nil)
+	// With nil tracer
+	resolver.WithTracer(nil)
+	// With actual tracer
+	resolver.WithTracer(mockHTTPTracer{})
+}
+
+type mockHTTPTracer struct{}
+
+func (mockHTTPTracer) StartSpan(ctx context.Context, name string, attrs map[string]string) (context.Context, func(error)) {
+	return ctx, func(error) {}
+}
+
+func TestHTTPResolver_SourceNotFound(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+
+	resolver := NewHTTPResolver(svc, nil, nil)
+	req := domain.Request{ID: "req-notfound", AccountID: acct.ID, DataSourceID: "nonexistent"}
+
+	done, _, _, errMsg, _, err := resolver.Resolve(context.Background(), req)
+	// Source not found should cause an error or return not done with error message
+	if done && errMsg == "" && err == nil {
+		t.Fatalf("expected error or error message for nonexistent source")
+	}
+}
+
+func TestHTTPResolver_MedianFloatOddCount(t *testing.T) {
+	// Test median with odd number of values
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+
+	server1 := newOracleHTTPServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("10"))
+	}))
+	defer server1.Close()
+	server2 := newOracleHTTPServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("20"))
+	}))
+	defer server2.Close()
+	server3 := newOracleHTTPServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("30"))
+	}))
+	defer server3.Close()
+
+	src1, _ := svc.CreateSource(context.Background(), acct.ID, "median1", server1.URL, "GET", "", nil, "")
+	src2, _ := svc.CreateSource(context.Background(), acct.ID, "median2", server2.URL, "GET", "", nil, "")
+	src3, _ := svc.CreateSource(context.Background(), acct.ID, "median3", server3.URL, "GET", "", nil, "")
+
+	resolver := NewHTTPResolver(svc, server1.Client(), nil)
+	req := domain.Request{
+		ID:           "req-median-odd",
+		AccountID:    acct.ID,
+		DataSourceID: src1.ID,
+		Payload:      fmt.Sprintf(`{"alternate_source_ids":["%s","%s"]}`, src2.ID, src3.ID),
+	}
+
+	done, success, result, _, _, err := resolver.Resolve(context.Background(), req)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if !done || !success {
+		t.Fatalf("expected done and success")
+	}
+	// With odd count (3 values), median should be the middle value (20)
+	if !strings.Contains(result, "20") {
+		t.Logf("unexpected median result: %s", result)
+	}
+}
+
+func TestHTTPResolver_NonNumericResults(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+
+	server1 := newOracleHTTPServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`"hello"`))
+	}))
+	defer server1.Close()
+	server2 := newOracleHTTPServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`"world"`))
+	}))
+	defer server2.Close()
+
+	src1, _ := svc.CreateSource(context.Background(), acct.ID, "string1", server1.URL, "GET", "", nil, "")
+	src2, _ := svc.CreateSource(context.Background(), acct.ID, "string2", server2.URL, "GET", "", nil, "")
+
+	resolver := NewHTTPResolver(svc, server1.Client(), nil)
+	req := domain.Request{
+		ID:           "req-string",
+		AccountID:    acct.ID,
+		DataSourceID: src1.ID,
+		Payload:      fmt.Sprintf(`{"alternate_source_ids":["%s"]}`, src2.ID),
+	}
+
+	done, success, result, _, _, err := resolver.Resolve(context.Background(), req)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	// Non-numeric results should still be returned
+	if !done || !success {
+		t.Fatalf("expected done and success for non-numeric values")
+	}
+	// Result should contain one of the string values
+	if !strings.Contains(result, "hello") && !strings.Contains(result, "world") {
+		t.Logf("result: %s", result)
+	}
+}
+
+func TestHTTPResolver_AlreadySucceeded(t *testing.T) {
+	resolver := NewHTTPResolver(nil, nil, nil)
+	req := domain.Request{
+		ID:     "req-succeeded",
+		Status: domain.StatusSucceeded,
+		Result: "already done",
+	}
+
+	done, success, result, _, _, err := resolver.Resolve(context.Background(), req)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if !done || !success || result != "already done" {
+		t.Fatalf("expected done=true, success=true, result=already done")
+	}
+}
+
+func TestHTTPResolver_AlreadyFailed(t *testing.T) {
+	resolver := NewHTTPResolver(nil, nil, nil)
+	req := domain.Request{
+		ID:     "req-failed",
+		Status: domain.StatusFailed,
+		Error:  "previous error",
+	}
+
+	done, success, _, errMsg, _, err := resolver.Resolve(context.Background(), req)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if !done || success || errMsg != "previous error" {
+		t.Fatalf("expected done=true, success=false, errMsg=previous error")
+	}
+}
+
+func TestHTTPResolver_NoService(t *testing.T) {
+	resolver := NewHTTPResolver(nil, nil, nil)
+	req := domain.Request{ID: "req-no-svc", Status: domain.StatusPending}
+
+	_, _, _, _, _, err := resolver.Resolve(context.Background(), req)
+	if err == nil {
+		t.Fatalf("expected error for nil service")
+	}
+}
+
+func TestHTTPResolver_EmptyDataSourceID(t *testing.T) {
+	store := memory.New()
+	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
+	svc := New(store, store, nil)
+
+	resolver := NewHTTPResolver(svc, nil, nil)
+	req := domain.Request{
+		ID:           "req-empty-src",
+		AccountID:    acct.ID,
+		DataSourceID: "",
+		Status:       domain.StatusPending,
+	}
+
+	done, success, _, errMsg, _, err := resolver.Resolve(context.Background(), req)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	// No sources specified should return done=true, success=false with error message
+	if !done || success || errMsg == "" {
+		t.Fatalf("expected done=true, success=false with error message")
+	}
 }

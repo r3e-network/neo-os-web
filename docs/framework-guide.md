@@ -215,7 +215,7 @@ svc, err := framework.NewService("my-service", "domain").
     WithVersion("1.0.0").
     WithLayer("service").
     WithCapabilities("read", "write").
-    DependsOn("store-postgres", "svc-accounts").
+    DependsOn("store", "svc-accounts").
     RequiresAPI(engine.APISurfaceStore, engine.APISurfaceEvent).
     OnStart(func(ctx context.Context) error {
         // Initialize resources
@@ -350,7 +350,7 @@ m := &framework.Manifest{
     Version:      "1.0.0",
     Layer:        "service",
     Capabilities: []string{"read", "write"},
-    DependsOn:    []string{"store-postgres"},
+    DependsOn:    []string{"store"},
     RequiresAPIs: []engine.APISurface{
         engine.APISurfaceStore,
         engine.APISurfaceEvent,
@@ -374,7 +374,7 @@ if err := m.Validate(); err != nil {
 ```go
 m.HasCapability("read")           // true
 m.RequiresAPI("store")            // true
-m.DependsOnService("store-postgres") // true
+m.DependsOnService("store") // true
 m.GetQuota("rpc")                 // "my-quota", true
 m.GetTag("env")                   // "prod", true
 m.IsEnabled()                     // true
@@ -409,7 +409,7 @@ func (s *Service) Manifest() *framework.Manifest {
         Domain:       s.Domain(),
         Description:  "My service",
         Layer:        "service",
-        DependsOn:    []string{"store-postgres", "svc-accounts"},
+        DependsOn:    []string{"store", "svc-accounts"},
         RequiresAPIs: []engine.APISurface{
             engine.APISurfaceStore,
             engine.APISurfaceEvent,
@@ -730,7 +730,7 @@ err := &framework.ConfigError{
 // Dependency error
 err := &framework.DependencyError{
     Service:    "myservice",
-    Dependency: "store-postgres",
+    Dependency: "store",
     Err:        originalError,
 }
 
@@ -815,7 +815,7 @@ func (s *Service) Manifest() *framework.Manifest {
         Description:  "Custom service implementation",
         Version:      "1.0.0",
         Layer:        "service",
-        DependsOn:    []string{"store-postgres", "svc-accounts"},
+        DependsOn:    []string{"store", "svc-accounts"},
         RequiresAPIs: []engine.APISurface{
             engine.APISurfaceStore,
             engine.APISurfaceEvent,

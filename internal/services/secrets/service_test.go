@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/account"
 	"github.com/R3E-Network/service_layer/internal/app/domain/secret"
 	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
+	"github.com/R3E-Network/service_layer/internal/domain/account"
 )
 
 type mockStore struct {
@@ -250,4 +250,156 @@ func ExampleService_Create() {
 	fmt.Println(meta.Name, len(resolved["apiKey"]))
 	// Output:
 	// apiKey 6
+}
+
+func TestService_Lifecycle(t *testing.T) {
+	svc := New(nil, nil, nil)
+	if err := svc.Start(context.Background()); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	if err := svc.Ready(context.Background()); err != nil {
+		t.Fatalf("ready: %v", err)
+	}
+	if err := svc.Stop(context.Background()); err != nil {
+		t.Fatalf("stop: %v", err)
+	}
+	if svc.Ready(context.Background()) == nil {
+		t.Fatalf("expected not ready after stop")
+	}
+}
+
+func TestService_Manifest(t *testing.T) {
+	svc := New(nil, nil, nil)
+	m := svc.Manifest()
+	if m.Name != "secrets" {
+		t.Fatalf("expected name secrets")
+	}
+}
+
+func TestService_Domain(t *testing.T) {
+	svc := New(nil, nil, nil)
+	if svc.Domain() != "secrets" {
+		t.Fatalf("expected domain secrets")
+	}
+}
+
+func TestService_Descriptor(t *testing.T) {
+	svc := New(nil, nil, nil)
+	d := svc.Descriptor()
+	if d.Name != "secrets" {
+		t.Fatalf("expected name secrets")
+	}
+}
+
+func TestService_WithCipher(t *testing.T) {
+	key := make([]byte, 32)
+	cipher, _ := NewAESCipher(key)
+	svc := New(nil, nil, nil, WithCipher(cipher))
+	if svc == nil {
+		t.Fatalf("expected service")
+	}
+}
+
+func TestService_UpdateWithOptions(t *testing.T) {
+	acctID := "acct"
+	svc, _ := newTestService(t, acctID)
+
+	svc.Create(context.Background(), acctID, "apiKey", "original")
+	newValue := "updated"
+	meta, err := svc.UpdateWithOptions(context.Background(), acctID, "apiKey", UpdateOptions{
+		Value: &newValue,
+	})
+	if err != nil {
+		t.Fatalf("update with options: %v", err)
+	}
+	if meta.Name != "apiKey" {
+		t.Fatalf("expected name apiKey")
+	}
+}
+
+func TestService_CreateWithOptions(t *testing.T) {
+	acctID := "acct2"
+	svc, _ := newTestService(t, acctID)
+
+	meta, err := svc.CreateWithOptions(context.Background(), acctID, "apiKey", "value", CreateOptions{})
+	if err != nil {
+		t.Fatalf("create with options: %v", err)
+	}
+	if meta.Name != "apiKey" {
+		t.Fatalf("expected name apiKey")
+	}
+}
+
+func TestService_ResolveSecretsWithACL(t *testing.T) {
+	acctID := "acct"
+	svc, _ := newTestService(t, acctID)
+	svc.CreateWithOptions(context.Background(), acctID, "mykey", "myvalue", CreateOptions{
+		ACL: secret.ACLFunctionAccess,
+	})
+
+	resolved, err := svc.ResolveSecretsWithACL(context.Background(), acctID, []string{"mykey"}, CallerFunctions)
+	if err != nil {
+		t.Fatalf("resolve with acl: %v", err)
+	}
+	if resolved["mykey"] != "myvalue" {
+		t.Fatalf("expected resolved value")
+	}
+}
+
+func TestService_ResolveSecretsWithACL_AutomationCaller(t *testing.T) {
+	acctID := "acct3"
+	svc, _ := newTestService(t, acctID)
+	svc.CreateWithOptions(context.Background(), acctID, "autokey", "autovalue", CreateOptions{
+		ACL: secret.ACLAutomationAccess,
+	})
+
+	resolved, err := svc.ResolveSecretsWithACL(context.Background(), acctID, []string{"autokey"}, CallerAutomation)
+	if err != nil {
+		t.Fatalf("resolve with acl: %v", err)
+	}
+	if resolved["autokey"] != "autovalue" {
+		t.Fatalf("expected resolved value")
+	}
+}
+
+func TestService_ResolveSecretsWithACL_OracleCaller(t *testing.T) {
+	acctID := "acct4"
+	svc, _ := newTestService(t, acctID)
+	svc.CreateWithOptions(context.Background(), acctID, "oraclekey", "oraclevalue", CreateOptions{
+		ACL: secret.ACLOracleAccess,
+	})
+
+	resolved, err := svc.ResolveSecretsWithACL(context.Background(), acctID, []string{"oraclekey"}, CallerOracle)
+	if err != nil {
+		t.Fatalf("resolve with acl: %v", err)
+	}
+	if resolved["oraclekey"] != "oraclevalue" {
+		t.Fatalf("expected resolved value")
+	}
+}
+
+func TestService_Delete_NotFound(t *testing.T) {
+	acctID := "acct"
+	svc, _ := newTestService(t, acctID)
+	err := svc.Delete(context.Background(), acctID, "nonexistent")
+	if err == nil {
+		t.Fatalf("expected not found error")
+	}
+}
+
+func TestService_Get_NotFound(t *testing.T) {
+	acctID := "acct"
+	svc, _ := newTestService(t, acctID)
+	_, err := svc.Get(context.Background(), acctID, "nonexistent")
+	if err == nil {
+		t.Fatalf("expected not found error")
+	}
+}
+
+func TestAESCipher_InvalidKey(t *testing.T) {
+	// Too short key
+	_, err := NewAESCipher([]byte("short"))
+	if err == nil {
+		t.Fatalf("expected error for short key")
+	}
 }
