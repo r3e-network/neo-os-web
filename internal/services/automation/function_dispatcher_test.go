@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/R3E-Network/service_layer/internal/app/domain/automation"
-	functiondomain "github.com/R3E-Network/service_layer/internal/app/domain/function"
+	functiondomain "github.com/R3E-Network/service_layer/internal/domain/function"
 )
 
 type scriptStep struct {

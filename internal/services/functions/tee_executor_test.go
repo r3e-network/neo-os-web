@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
 )
 
 type teeSecretResolver struct {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
 )
 
 // MockTEEExecutor fakes TEE-backed execution by echoing inputs after validating secrets.

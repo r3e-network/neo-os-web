@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
 )
 
 func clonePayload(payload map[string]any) map[string]any {

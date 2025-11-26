@@ -8,7 +8,7 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
 )
 
 // TEEExecutor executes functions inside a Goja runtime and resolves secrets on demand.

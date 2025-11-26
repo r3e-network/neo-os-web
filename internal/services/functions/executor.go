@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
 )
 
 // SimpleExecutor is a placeholder executor that echoes the payload.

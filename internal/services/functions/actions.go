@@ -10,9 +10,9 @@ import (
 	"time"
 
 	domaindatastreams "github.com/R3E-Network/service_layer/internal/app/domain/datastreams"
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
 	"github.com/R3E-Network/service_layer/internal/app/domain/gasbank"
 	"github.com/R3E-Network/service_layer/internal/app/domain/trigger"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
 	core "github.com/R3E-Network/service_layer/internal/services/core"
 	randomsvc "github.com/R3E-Network/service_layer/internal/services/random"
 )
