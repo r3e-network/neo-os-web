@@ -104,6 +104,8 @@ Once up:
 - Snapshots directory: compose mounts `./snapshots` into `/app/snapshots` so the appserver can serve locally generated manifests/bundles (`NEO_SNAPSHOT_DIR` defaults to `/app/snapshots`).
 - Engine modules: `/system/status` now includes the list of registered modules (store/app/services/runners) with name, domain, category, lifecycle status, readiness, timestamps, and supported interfaces. It also returns a summary of data/event/compute modules. The dashboard auto-refreshes this every 30s and surfaces warnings/toasts if modules fail/stop or report not-ready. Start/stop timings, uptime, and slow modules (threshold configurable via `MODULE_SLOW_MS`, `runtime.slow_module_threshold_ms` in config, or `appserver -slow-ms`) are surfaced in status, CLI, and dashboard.
 - Module slow/uptime: `/system/status`/`slctl`/dashboard surface start/stop timings, uptimes, and slow modules. Tune the slow threshold via `MODULE_SLOW_MS` (ms); the value is echoed as `modules_slow_threshold_ms` in status responses for observability.
+- Auto-wired layering: `AUTO_DEPS_FROM_APIS=true` (default) lets the engine add dependency edges from service `RequiresAPIs` declarations (store/compute/data/event/etc.) to providers automatically. Keeps the lower platform/infra layers starting before services even when module names differ. Disable via `AUTO_DEPS_FROM_APIS=false` for narrow tests.
+- In-memory mode now registers a `store-memory` provider module so required `store` API surfaces are satisfied without Postgres, keeping the OS layering intact in local/dev runs. Manifests that list `store-postgres` automatically fall back to `store-memory` when it is the available provider.
 
 CLI or manual server (in-memory):
 

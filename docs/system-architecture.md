@@ -23,7 +23,7 @@ Example `/system/status` modules after enabling infrastructure modules:
 ```
 {
   "modules": [
-    {"name":"store-postgres","domain":"store","status":"started","apis":[{"name":"lifecycle","surface":"lifecycle"},{"name":"readiness","surface":"readiness"},{"name":"store","surface":"store"}]},
+    {"name":"store","domain":"store","status":"started","apis":[{"name":"lifecycle","surface":"lifecycle"},{"name":"readiness","surface":"readiness"},{"name":"store","surface":"store"}]},
     {"name":"svc-neo-node","domain":"neo","status":"started","ready_status":"ready","apis":[{"name":"neo-ledger","surface":"ledger"},{"name":"neo-rpc","surface":"rpc"}]},
     {"name":"svc-neo-indexer","domain":"neo","status":"started","ready_status":"ready","apis":[{"name":"neo-indexer","surface":"indexer"},{"name":"neo-rpc","surface":"rpc"}]},
     {"name":"svc-chain-rpc","domain":"chains","status":"started","ready_status":"ready","apis":[{"name":"chain-rpc","surface":"rpc"}]},
@@ -37,7 +37,7 @@ Example `/system/status` modules after enabling infrastructure modules:
   ],
   "modules_summary":{"data":["svc-datafeeds","svc-datalink","svc-datastreams","svc-data-sources"],"event":["svc-pricefeed","svc-oracle","svc-datalink","svc-datafeeds"],"compute":["svc-functions"]},
   "modules_api_summary":{"rpc":["svc-neo-node","svc-neo-indexer","svc-chain-rpc"],"ledger":["svc-neo-node"],"indexer":["svc-neo-indexer"],"data-source":["svc-data-sources"],"contracts":["svc-contracts"],"gasbank":["svc-service-bank"],"event":["svc-rocketmq"]},
-  "modules_layers":{"service":["svc-accounts","svc-functions","svc-automation"],"runner":["runner-automation","runner-oracle"],"infra":["store-postgres","svc-neo-node","svc-neo-indexer","svc-chain-rpc","svc-data-sources","svc-service-bank","svc-crypto","svc-contracts","svc-rocketmq"]},
+  "modules_layers":{"service":["svc-accounts","svc-functions","svc-automation"],"runner":["runner-automation","runner-oracle"],"infra":["store","svc-neo-node","svc-neo-indexer","svc-chain-rpc","svc-data-sources","svc-service-bank","svc-crypto","svc-contracts","svc-rocketmq"]},
   "modules_slow_threshold_ms":1000
 }
 ```

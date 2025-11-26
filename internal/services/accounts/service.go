@@ -42,7 +42,7 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "Account registry and metadata",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres"},
+		DependsOn:    []string{"store"},
 		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceAccount},
 		Capabilities: []string{"accounts"},
 	}
@@ -55,7 +55,7 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"accounts"},
-		DependsOn:    []string{"store-postgres"},
+		DependsOn:    []string{"store"},
 		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceAccount)},
 	}
 }

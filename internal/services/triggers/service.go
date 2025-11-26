@@ -46,7 +46,7 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "Triggers that route events/webhooks to functions",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres", "svc-accounts", "svc-functions"},
+		DependsOn:    []string{"store", "svc-accounts", "svc-functions"},
 		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceEvent},
 		Capabilities: []string{"triggers"},
 	}
@@ -59,7 +59,7 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"triggers"},
-		DependsOn:    []string{"store-postgres", "svc-accounts", "svc-functions"},
+		DependsOn:    []string{"store", "svc-accounts", "svc-functions"},
 		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceEvent)},
 	}
 }

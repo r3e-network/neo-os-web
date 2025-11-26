@@ -1,10 +1,12 @@
 package runtime
 
 import (
+	"context"
 	"testing"
 
 	app "github.com/R3E-Network/service_layer/internal/app"
 	"github.com/R3E-Network/service_layer/internal/config"
+	engine "github.com/R3E-Network/service_layer/internal/engine"
 )
 
 func TestDetermineListenAddrUsesDefaults(t *testing.T) {
@@ -193,3 +195,81 @@ func TestDefaultModuleDepsApplied(t *testing.T) {
 		}
 	}
 }
+
+func TestApplyRequiredAPIDepsAddsProviders(t *testing.T) {
+	eng := engine.New()
+
+	store := storeStub{name: "store-postgres"}
+	if err := eng.Register(store); err != nil {
+		t.Fatalf("register store: %v", err)
+	}
+
+	consumer := consumerStub{name: "svc-consumer"}
+	if err := eng.Register(consumer); err != nil {
+		t.Fatalf("register consumer: %v", err)
+	}
+
+	eng.SetModuleDeps("svc-consumer", "core-application")
+	eng.SetModuleRequiredAPIs("svc-consumer", engine.APISurfaceStore)
+
+	applyRequiredAPIDeps(eng, nil)
+
+	deps := eng.Dependencies().GetDeps("svc-consumer")
+	if len(deps) != 2 {
+		t.Fatalf("expected two dependencies, got %v", deps)
+	}
+	foundCore, foundStore := false, false
+	for _, dep := range deps {
+		if dep == "core-application" {
+			foundCore = true
+		}
+		if dep == "store-postgres" {
+			foundStore = true
+		}
+	}
+	if !foundCore || !foundStore {
+		t.Fatalf("expected deps to include core-application and store-postgres, got %v", deps)
+	}
+}
+
+func TestMemoryStoreModuleRegisteredWhenNoDB(t *testing.T) {
+	cfg := config.New()
+	cfg.Database.Driver = ""
+	cfg.Database.DSN = ""
+
+	app, err := NewApplication(
+		WithConfig(cfg),
+		WithRunMigrations(false),
+	)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+
+	var hasMemoryStore bool
+	for _, info := range app.engine.ModulesInfo() {
+		if info.Name == "store-memory" {
+			hasMemoryStore = true
+			if info.Layer != "infra" {
+				t.Fatalf("expected store-memory layer infra, got %s", info.Layer)
+			}
+		}
+	}
+	if !hasMemoryStore {
+		t.Fatalf("expected store-memory module to be registered when DB is nil")
+	}
+}
+
+type storeStub struct{ name string }
+
+func (s storeStub) Name() string                  { return s.name }
+func (s storeStub) Domain() string                { return "store" }
+func (storeStub) Start(ctx context.Context) error { _ = ctx; return nil }
+func (storeStub) Stop(ctx context.Context) error  { _ = ctx; return nil }
+func (storeStub) Ping(ctx context.Context) error  { _ = ctx; return nil }
+
+type consumerStub struct{ name string }
+
+func (c consumerStub) Name() string                  { return c.name }
+func (c consumerStub) Domain() string                { return "svc" }
+func (consumerStub) Start(ctx context.Context) error { _ = ctx; return nil }
+func (consumerStub) Stop(ctx context.Context) error  { _ = ctx; return nil }

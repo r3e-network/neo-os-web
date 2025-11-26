@@ -38,8 +38,8 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "Service-owned gas accounts and settlements",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
-		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceGasBank},
+		DependsOn:    []string{"store", "svc-accounts"},
+		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore},
 		Capabilities: []string{"gasbank"},
 		Quotas:       map[string]string{"gas": "account-balances"},
 	}
@@ -52,8 +52,8 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"gasbank"},
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
-		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceGasBank)},
+		DependsOn:    []string{"store", "svc-accounts"},
+		RequiresAPIs: []string{string(engine.APISurfaceStore)},
 	}
 }
 

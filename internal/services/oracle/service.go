@@ -55,7 +55,7 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "Oracle sources and request lifecycle",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceData, engine.APISurfaceEvent},
 		Capabilities: []string{"oracle"},
 		Quotas:       map[string]string{"rpc": "oracle-callbacks"},
@@ -69,7 +69,7 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"oracle"},
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceData), string(engine.APISurfaceEvent)},
 	}
 }

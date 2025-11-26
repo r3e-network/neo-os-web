@@ -55,7 +55,7 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "Secret storage and resolution",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore},
 		Capabilities: []string{"secrets"},
 	}
@@ -68,7 +68,7 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"secrets"},
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []string{string(engine.APISurfaceStore)},
 	}
 }

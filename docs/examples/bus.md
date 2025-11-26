@@ -79,13 +79,13 @@ Example (truncated):
 ```json
 {
   "modules": [
-    {"name":"store-postgres","status":"started","ready_status":"ready","start_nanos":1200000,"stop_nanos":800000},
+    {"name":"store","status":"started","ready_status":"ready","start_nanos":1200000,"stop_nanos":800000},
     {"name":"svc-automation","status":"failed","error":"boom","ready_status":"not-ready"}
   ],
   "modules_meta":{"total":2,"started":1,"failed":1,"stop_error":0,"not_ready":1},
-  "modules_timings":{"store-postgres":{"start_ms":1.2,"stop_ms":0.8}},
-  "modules_uptime":{"store-postgres":42.3},
-  "modules_slow":["store-postgres"],
+  "modules_timings":{"store":{"start_ms":1.2,"stop_ms":0.8}},
+  "modules_uptime":{"store":42.3},
+  "modules_slow":["store"],
   "modules_slow_threshold_ms":1000,
   "listen_addr":"127.0.0.1:8080"
 }
@@ -104,9 +104,9 @@ slctl status --addr http://localhost:8080 --token dev-token
 # Version: 1.0.0 (commit abc123, built 2025-01-01T00:00:00Z, go1.22.0)
 # Listen Address: 127.0.0.1:8080
 # Module summary: total=4 started=3 failed=1 stop_error=0 not_ready=1
-# Slow modules (>1000ms start/stop): store-postgres
+# Slow modules (>1000ms start/stop): store
 # Modules:
 # NAME                DOMAIN      CATEGORY    INTERFACES      STATUS      READY   ERROR
-# store-postgres      store       store                       started (slow)      ready
+# store              store       store                       started (slow)      ready
 # ...
 ```

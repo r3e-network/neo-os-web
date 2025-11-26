@@ -50,7 +50,7 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "Aggregated data feed definitions and updates",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceData},
 		Capabilities: []string{"datafeeds"},
 	}
@@ -63,7 +63,7 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"datafeeds"},
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceData)},
 	}
 }
@@ -177,7 +177,7 @@ func (s *Service) UpdateFeed(ctx context.Context, feed domaindf.Feed) (domaindf.
 	}
 	start := time.Now()
 	s.hooks.OnStart(ctx, map[string]string{"account_id": feed.AccountID, "feed_id": feed.ID})
-	defer s.hooks.OnComplete(ctx, map[string]string{"account_id": feed.AccountID, "feed_id": feed.ID}, nil, time.Since(start))
+	defer func() { s.hooks.OnComplete(ctx, map[string]string{"account_id": feed.AccountID, "feed_id": feed.ID}, nil, time.Since(start)) }()
 	updated, err := s.store.UpdateDataFeed(ctx, feed)
 	if err != nil {
 		return domaindf.Feed{}, err

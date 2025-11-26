@@ -227,6 +227,7 @@ func NewApplication(options ...Option) (*Application, error) {
 	engineLogger := stdlog.New(log.Out, "", stdlog.LstdFlags)
 	engineOrder := []string{
 		"store-postgres",
+		"store-memory",
 		"core-application",
 		"svc-neo-node",
 		"svc-neo-indexer",
@@ -264,6 +265,10 @@ func NewApplication(options ...Option) (*Application, error) {
 		if err := eng.Register(newStoreModule(db)); err != nil {
 			_ = db.Close()
 			return nil, fmt.Errorf("register store module: %w", err)
+		}
+	} else {
+		if err := eng.Register(newMemoryStoreModule()); err != nil {
+			return nil, fmt.Errorf("register memory store module: %w", err)
 		}
 	}
 	if err := eng.Register(newAppModule(application)); err != nil {
@@ -364,6 +369,9 @@ func NewApplication(options ...Option) (*Application, error) {
 			_ = db.Close()
 		}
 		return nil, err
+	}
+	if cfg.Runtime.AutoDepsFromAPIs {
+		applyRequiredAPIDeps(eng, log)
 	}
 	applyCoreModuleMetadata(eng)
 	if eng != nil && log != nil {
@@ -641,12 +649,18 @@ func applyDefaultModuleDeps(eng *engine.Engine) {
 		return
 	}
 	has := func(name string) bool { return eng.Lookup(name) != nil }
+
+	// Ensure store modules do not accidentally inherit stale dependency edges.
+	eng.SetModuleDeps("store-postgres")
+	eng.SetModuleDeps("store-memory")
 	base := []string{}
 	if has("core-application") {
 		base = append(base, "core-application")
 	}
 	if has("store-postgres") {
 		base = append(base, "store-postgres")
+	} else if has("store-memory") {
+		base = append(base, "store-memory")
 	}
 	if len(base) == 0 {
 		return
@@ -661,7 +675,7 @@ func applyDefaultModuleDeps(eng *engine.Engine) {
 
 	// Default every non-core/store module to depend on base.
 	for _, name := range eng.Modules() {
-		if name == "core-application" || name == "store-postgres" {
+		if name == "core-application" || name == "store-postgres" || name == "store-memory" {
 			continue
 		}
 		set(name, base...)
@@ -685,6 +699,139 @@ func applyDefaultModuleDeps(eng *engine.Engine) {
 	set("svc-http", base...)
 }
 
+// applyRequiredAPIDeps ensures modules wait for providers of the API surfaces
+// they declare as required. It merges existing dependencies so user/configured
+// ordering is preserved while still enforcing bottom-layer providers start
+// before consumers.
+func applyRequiredAPIDeps(eng *engine.Engine, log *logger.Logger) {
+	if eng == nil || eng.Metadata() == nil || eng.Dependencies() == nil {
+		return
+	}
+
+	modNames := eng.Modules()
+	if len(modNames) == 0 {
+		return
+	}
+
+	// Build surface -> providers map from concrete interfaces so we only wire
+	// dependencies to modules that actually expose the required surface.
+	providers := make(map[string][]string)
+	for _, name := range modNames {
+		mod := eng.Lookup(name)
+		if mod == nil {
+			continue
+		}
+		if _, ok := mod.(engine.StoreEngine); ok {
+			providers["store"] = append(providers["store"], name)
+		}
+		if _, ok := mod.(engine.AccountEngine); ok {
+			if cap, ok := mod.(engine.AccountCapable); !ok || cap.HasAccount() {
+				providers["account"] = append(providers["account"], name)
+			}
+		}
+		if _, ok := mod.(engine.ComputeEngine); ok {
+			if cap, ok := mod.(engine.ComputeCapable); !ok || cap.HasCompute() {
+				providers["compute"] = append(providers["compute"], name)
+			}
+		}
+		if _, ok := mod.(engine.DataEngine); ok {
+			if cap, ok := mod.(engine.DataCapable); !ok || cap.HasData() {
+				providers["data"] = append(providers["data"], name)
+			}
+		}
+		if _, ok := mod.(engine.EventEngine); ok {
+			if cap, ok := mod.(engine.EventCapable); !ok || cap.HasEvent() {
+				providers["event"] = append(providers["event"], name)
+			}
+		}
+		if _, ok := mod.(engine.RPCEngine); ok {
+			providers["rpc"] = append(providers["rpc"], name)
+		}
+		if _, ok := mod.(engine.IndexerEngine); ok {
+			providers["indexer"] = append(providers["indexer"], name)
+		}
+		if _, ok := mod.(engine.LedgerEngine); ok {
+			providers["ledger"] = append(providers["ledger"], name)
+		}
+		if _, ok := mod.(engine.DataSourceEngine); ok {
+			providers["data-source"] = append(providers["data-source"], name)
+		}
+		if _, ok := mod.(engine.ContractsEngine); ok {
+			providers["contracts"] = append(providers["contracts"], name)
+		}
+		if _, ok := mod.(engine.ServiceBankEngine); ok {
+			providers["gasbank"] = append(providers["gasbank"], name)
+		}
+		if _, ok := mod.(engine.CryptoEngine); ok {
+			providers["crypto"] = append(providers["crypto"], name)
+		}
+	}
+
+	deps := eng.Dependencies()
+	metadata := eng.Metadata()
+	allowedSurfaces := map[string]bool{
+		"store":       true,
+		"account":     true,
+		"rpc":         true,
+		"indexer":     true,
+		"ledger":      true,
+		"data-source": true,
+		"contracts":   true,
+		"gasbank":     true,
+		"crypto":      true,
+	}
+
+	for _, name := range modNames {
+		required := metadata.GetRequiredAPIs(name)
+		if len(required) == 0 {
+			continue
+		}
+
+		existing := deps.GetDeps(name)
+		seen := make(map[string]bool, len(existing))
+		merged := make([]string, 0, len(existing))
+
+		for _, dep := range existing {
+			dep = strings.TrimSpace(dep)
+			if dep == "" || dep == name || seen[dep] {
+				continue
+			}
+			seen[dep] = true
+			merged = append(merged, dep)
+		}
+
+		for _, req := range required {
+			surf := strings.TrimSpace(strings.ToLower(string(req)))
+			if surf == "" || !allowedSurfaces[surf] {
+				continue
+			}
+			provs := providers[surf]
+			selfProvides := false
+			for _, prov := range provs {
+				if prov == name {
+					selfProvides = true
+					break
+				}
+			}
+			if len(provs) == 0 && !selfProvides && log != nil {
+				log.Warnf("module %s requires api %s but no provider registered", name, surf)
+			}
+			for _, prov := range provs {
+				prov = strings.TrimSpace(prov)
+				if prov == "" || prov == name || seen[prov] {
+					continue
+				}
+				seen[prov] = true
+				merged = append(merged, prov)
+			}
+		}
+
+		if len(merged) > 0 {
+			eng.SetModuleDeps(name, merged...)
+		}
+	}
+}
+
 // applyCoreModuleMetadata annotates core modules with layer/capabilities for status/descriptors.
 func applyCoreModuleMetadata(eng *engine.Engine) {
 	if eng == nil {
@@ -693,6 +840,10 @@ func applyCoreModuleMetadata(eng *engine.Engine) {
 	if eng.Lookup("store-postgres") != nil {
 		eng.SetModuleLayer("store-postgres", "infra")
 		eng.SetModuleCapabilities("store-postgres", "store", "postgres")
+	}
+	if eng.Lookup("store-memory") != nil {
+		eng.SetModuleLayer("store-memory", "infra")
+		eng.SetModuleCapabilities("store-memory", "store", "memory")
 	}
 	if eng.Lookup("core-application") != nil {
 		eng.SetModuleLayer("core-application", "infra")

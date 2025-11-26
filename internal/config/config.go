@@ -88,7 +88,9 @@ func New() *Config {
 			Output:     "stdout",
 			FilePrefix: "service-layer",
 		},
-		Runtime:  RuntimeConfig{},
+		Runtime: RuntimeConfig{
+			AutoDepsFromAPIs: true,
+		},
 		Security: SecurityConfig{},
 		Auth:     AuthConfig{},
 	}

@@ -45,7 +45,7 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "Data stream definitions and frames",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceData},
 		Capabilities: []string{"datastreams"},
 	}
@@ -58,7 +58,7 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"datastreams"},
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceData)},
 	}
 }
@@ -127,7 +127,9 @@ func (s *Service) CreateStream(ctx context.Context, stream domainds.Stream) (dom
 	if s.Ready(ctx) == nil {
 		start := time.Now()
 		s.hooks.OnStart(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID})
-		defer s.hooks.OnComplete(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID}, nil, time.Since(start))
+		defer func() {
+			s.hooks.OnComplete(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID}, nil, time.Since(start))
+		}()
 	}
 	created, err := s.store.CreateStream(ctx, stream)
 	if err != nil {
@@ -154,7 +156,9 @@ func (s *Service) UpdateStream(ctx context.Context, stream domainds.Stream) (dom
 	if s.Ready(ctx) == nil {
 		start = time.Now()
 		s.hooks.OnStart(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID})
-		defer s.hooks.OnComplete(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID}, nil, time.Since(start))
+		defer func() {
+			s.hooks.OnComplete(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID}, nil, time.Since(start))
+		}()
 	}
 	updated, err := s.store.UpdateStream(ctx, stream)
 	if err != nil {

@@ -36,7 +36,7 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "Automation jobs and schedulers",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres", "svc-accounts", "svc-functions"},
+		DependsOn:    []string{"store", "svc-accounts", "svc-functions"},
 		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceEvent, engine.APISurfaceCompute},
 		Capabilities: []string{"automation"},
 	}
@@ -49,7 +49,7 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"automation"},
-		DependsOn:    []string{"store-postgres", "svc-accounts", "svc-functions"},
+		DependsOn:    []string{"store", "svc-accounts", "svc-functions"},
 		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceEvent), string(engine.APISurfaceCompute)},
 	}
 }

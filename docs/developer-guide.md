@@ -222,7 +222,7 @@ func (s *Service) Descriptor() core.Descriptor {
         Domain:       s.Domain(),
         Layer:        core.LayerService,
         Capabilities: []string{"custom-capability"},
-        DependsOn:    []string{"store-postgres"},
+        DependsOn:    []string{"store"},
     }
 }
 
@@ -244,7 +244,7 @@ func (s *Service) Manifest() *framework.Manifest {
         Domain:       s.Domain(),
         Description:  "My custom service",
         Layer:        "service",
-        DependsOn:    []string{"store-postgres", "svc-accounts"},
+        DependsOn:    []string{"store", "svc-accounts"},
         RequiresAPIs: []engine.APISurface{
             engine.APISurfaceStore,
             engine.APISurfaceEvent,

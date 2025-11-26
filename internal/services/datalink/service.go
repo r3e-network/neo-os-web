@@ -56,7 +56,7 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "DataLink channels and deliveries",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceData, engine.APISurfaceEvent},
 		Capabilities: []string{"datalink"},
 	}
@@ -69,7 +69,7 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"datalink"},
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceData), string(engine.APISurfaceEvent)},
 	}
 }

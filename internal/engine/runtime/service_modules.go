@@ -286,6 +286,35 @@ func moduleDomain(mod any, fallback string) string {
 	return ""
 }
 
+// resolveDependencyFallback maps common dependency aliases to registered modules so
+// manifests can declare a preferred store while the runtime swaps implementations.
+func resolveDependencyFallback(dep string, eng *engine.Engine) (string, string) {
+	if eng == nil {
+		return "", ""
+	}
+	dep = strings.TrimSpace(dep)
+	if dep == "" {
+		return "", ""
+	}
+
+	// If the requested module exists, no fallback is needed.
+	if eng.Lookup(dep) != nil {
+		return "", ""
+	}
+
+	switch dep {
+	case "store-postgres":
+		if eng.Lookup("store-memory") != nil {
+			return "store-memory", "dependency store-postgres not registered; using store-memory"
+		}
+	case "store-memory":
+		if eng.Lookup("store-postgres") != nil {
+			return "store-postgres", "dependency store-memory not registered; using store-postgres"
+		}
+	}
+	return "", ""
+}
+
 // Merge intended descriptors into module metadata so /system/status can present normalized names/domains.
 func normalizeDescriptorNameDomain(name, domain string) (string, string) {
 	return strings.TrimSpace(name), strings.TrimSpace(domain)
@@ -404,9 +433,17 @@ func registerModule(eng *engine.Engine, name, domain string, mod any, manageLife
 					for _, dep := range manifest.DependsOn {
 						if eng.Lookup(dep) != nil {
 							deps = append(deps, dep)
-						} else {
-							eng.AddModuleNote(name, fmt.Sprintf("declares dependency %q (not registered)", dep))
+							continue
 						}
+						fallbackDep, fallbackNote := resolveDependencyFallback(dep, eng)
+						if fallbackDep != "" {
+							deps = append(deps, fallbackDep)
+							if fallbackNote != "" {
+								eng.AddModuleNote(name, fallbackNote)
+							}
+							continue
+						}
+						eng.AddModuleNote(name, fmt.Sprintf("declares dependency %q (not registered)", dep))
 					}
 					if len(deps) > 0 {
 						eng.SetModuleDeps(name, deps...)

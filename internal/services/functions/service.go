@@ -70,7 +70,7 @@ func (s *Service) Manifest() *framework.Manifest {
 		Domain:       s.Domain(),
 		Description:  "Function registry and execution runtime",
 		Layer:        "service",
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceCompute, engine.APISurfaceEvent, engine.APISurfaceData},
 		Capabilities: []string{"functions"},
 		Quotas:       map[string]string{"compute": "function-exec"},
@@ -84,7 +84,7 @@ func (s *Service) Descriptor() core.Descriptor {
 		Domain:       s.Domain(),
 		Layer:        core.LayerService,
 		Capabilities: []string{"functions"},
-		DependsOn:    []string{"store-postgres", "svc-accounts"},
+		DependsOn:    []string{"store", "svc-accounts"},
 		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceCompute), string(engine.APISurfaceEvent), string(engine.APISurfaceData)},
 	}
 }

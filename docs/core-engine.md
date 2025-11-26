@@ -28,7 +28,7 @@ without invasive changes.
   - `EventEngine` — pub/sub style (`Publish`, `Subscribe`).
   - Infra-oriented markers: `LedgerEngine`, `IndexerEngine`, `RPCEngine`, `DataSourceEngine`, `ContractsEngine`, `ServiceBankEngine`, `CryptoEngine` (used for status/visibility; methods come from `ServiceModule` unless extended).
 - Ordering: use `WithOrder(...)` when constructing the engine to enforce startup
-  ordering (e.g., `store-postgres` → `core-application` → services → runners).
+  ordering (e.g., `store` → `core-application` → services → runners).
 
 ## Engine
 - Registry with uniqueness checks for module names.
@@ -60,13 +60,13 @@ Example `/system/status` payload (truncated):
 ```
 {
   "modules": [
-    {"name":"store-postgres","status":"started","ready_status":"ready","start_nanos":1200000,"stop_nanos":800000,"apis":[{"name":"lifecycle","surface":"lifecycle","stability":"stable"},{"name":"store","surface":"store","stability":"stable"}]},
+    {"name":"store","status":"started","ready_status":"ready","start_nanos":1200000,"stop_nanos":800000,"apis":[{"name":"lifecycle","surface":"lifecycle","stability":"stable"},{"name":"store","surface":"store","stability":"stable"}]},
     {"name":"svc-automation","status":"failed","error":"boom","ready_status":"not-ready"}
   ],
   "modules_meta":{"total":2,"started":1,"failed":1,"stop_error":0,"not_ready":1},
-  "modules_timings":{"store-postgres":{"start_ms":1.2,"stop_ms":0.8}},
-  "modules_uptime":{"store-postgres":42.3},
-  "modules_slow":["store-postgres"],
+  "modules_timings":{"store":{"start_ms":1.2,"stop_ms":0.8}},
+  "modules_uptime":{"store":42.3},
+  "modules_slow":["store"],
   "modules_slow_threshold_ms":1000,
   "listen_addr":"127.0.0.1:8080"
 }
@@ -82,8 +82,20 @@ Example `/system/status` payload (truncated):
   or unresolved deps return errors before any modules are started; readiness
   probes also mark dependants as `waiting for dependencies` until their deps are
   started and ready.
+- Optional (default **enabled**): `runtime.auto_deps_from_apis=true` automatically
+  adds dependency edges to modules that provide the required API surfaces (e.g.,
+  anything requiring `store` waits for registered store providers). This keeps
+  OS-style layering intact without forcing services to reference concrete module
+  names. Disable via config/env when you need to opt out for narrow tests.
+- In-memory runs register a `store-memory` module that exposes the standard
+  `store` surface so services can still satisfy their API requirements without
+  Postgres, preserving the OS layering even for local/dev.
+- Dependency aliasing: when manifests depend on `store` but only
+  `store-memory` is registered (or vice versa), the runtime will alias the dep
+  to the available store provider and annotate the module notes so ordering still
+  respects the bottom storage layer.
 - Default deps: runtime seeds reasonable defaults so all modules wait for
-  `core-application`/`store-postgres`, runners wait for their parent services,
+  `core-application`/`store`, runners wait for their parent services,
   and the HTTP module waits for core/store. Override in `runtime.module_deps`
   when you need something different.
 
@@ -125,7 +137,7 @@ Common event/data topics understood by the current services:
 - `functions.Invoke` expects a map with `function_id`, `account_id`, and optional `input`.
 
 Service → interface map (as registered in the runtime adapters):
-- `store-postgres` → `StoreEngine` (ready via DB ping)
+- `store` → `StoreEngine` (ready via DB ping)
 - `svc-accounts` → `AccountEngine` (Create/List)
 - `svc-functions` → `ComputeEngine` (Invoke)
 - `svc-datastreams` → `DataEngine` (Push)
@@ -136,7 +148,7 @@ Service → interface map (as registered in the runtime adapters):
 - Capability markers: modules can implement `HasAccount/HasCompute/HasData/HasEvent` to opt out of interface advertising/lookups when the adapter provides stubbed methods. The runtime adapter sets these based on attached function pointers to avoid surfacing unsupported interfaces.
 
 ### Naming conventions
-- Module names are stable, kebab-style: `store-postgres`, `svc-accounts`, `svc-functions`, `svc-datastreams`, `svc-pricefeed`, `svc-datafeeds`, `svc-oracle`, `svc-datalink`, `runner-*`.
+- Module names are stable, kebab-style: `store`, `svc-accounts`, `svc-functions`, `svc-datastreams`, `svc-pricefeed`, `svc-datafeeds`, `svc-oracle`, `svc-datalink`, `runner-*`.
 - Domains reflect service areas: `store`, `accounts`, `functions`, `datastreams`, `pricefeed`, `datafeeds`, `oracle`, `datalink`, `gasbank`, `automation`.
 - If a service exposes `Name()`/`Domain()`, those take precedence when registering with the engine; otherwise defaults above are used. If a duplicate name is detected, the adapter appends the domain (e.g., `svc-foo-accounts`).
 

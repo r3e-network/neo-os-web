@@ -211,3 +211,27 @@ func TestRegisterModuleRejectsNil(t *testing.T) {
 		t.Fatalf("expected error for nil module")
 	}
 }
+
+func TestResolveDependencyFallbackPrefersAvailableStore(t *testing.T) {
+	eng := engine.New()
+	mem := noopModule{name: "store-memory", domain: "store"}
+	if err := registerModule(eng, mem.name, mem.domain, mem, false); err != nil {
+		t.Fatalf("register memory store: %v", err)
+	}
+
+	if dep, _ := resolveDependencyFallback("store-postgres", eng); dep != "store-memory" {
+		t.Fatalf("expected fallback to store-memory, got %q", dep)
+	}
+
+	// When the requested store exists, no fallback should be applied.
+	pg := noopModule{name: "store-postgres", domain: "store"}
+	if err := registerModule(eng, pg.name, pg.domain, pg, false); err != nil {
+		t.Fatalf("register postgres store: %v", err)
+	}
+	if dep, note := resolveDependencyFallback("store-postgres", eng); dep != "" || note != "" {
+		t.Fatalf("expected no fallback when store-postgres exists, got dep=%q note=%q", dep, note)
+	}
+	if dep, note := resolveDependencyFallback("store-memory", eng); dep != "" || note != "" {
+		t.Fatalf("expected no fallback when store-memory exists, got dep=%q note=%q", dep, note)
+	}
+}

@@ -142,7 +142,7 @@ import "github.com/R3E-Network/service_layer/internal/engine"
 // Create engine with options
 eng := engine.New(
     engine.WithLogger(log),
-    engine.WithOrder("store-postgres", "svc-accounts", "svc-functions"),
+    engine.WithOrder("store", "svc-accounts", "svc-functions"),
 )
 
 // Register modules
@@ -165,12 +165,12 @@ engine.New(
     engine.WithLogger(log),
 
     // Startup ordering (modules start in this order)
-    engine.WithOrder("store-postgres", "core-application", "svc-*"),
+    engine.WithOrder("store", "core-application", "svc-*"),
 
     // Module dependencies
     engine.WithDependencies(map[string][]string{
-        "svc-functions": {"store-postgres", "svc-accounts"},
-        "svc-oracle":    {"store-postgres", "svc-accounts"},
+        "svc-functions": {"store", "svc-accounts"},
+        "svc-oracle":    {"store", "svc-accounts"},
     }),
 
     // Bus permissions per module
@@ -416,13 +416,13 @@ eng.SetSlowThreshold(2 * time.Second)
 // Via options
 engine.New(
     engine.WithDependencies(map[string][]string{
-        "svc-functions": {"store-postgres", "svc-accounts"},
-        "svc-oracle":    {"store-postgres", "svc-accounts", "svc-functions"},
+        "svc-functions": {"store", "svc-accounts"},
+        "svc-oracle":    {"store", "svc-accounts", "svc-functions"},
     }),
 )
 
 // Or programmatically
-eng.SetDependencies("svc-functions", []string{"store-postgres", "svc-accounts"})
+eng.SetDependencies("svc-functions", []string{"store", "svc-accounts"})
 ```
 
 ### Dependency Resolution
@@ -638,13 +638,13 @@ func main() {
     eng := engine.New(
         engine.WithLogger(log),
         engine.WithOrder(
-            "store-postgres",
+            "store",
             "svc-accounts",
             "svc-functions",
         ),
         engine.WithDependencies(map[string][]string{
-            "svc-accounts":  {"store-postgres"},
-            "svc-functions": {"store-postgres", "svc-accounts"},
+            "svc-accounts":  {"store"},
+            "svc-functions": {"store", "svc-accounts"},
         }),
         engine.WithSlowThreshold(2*time.Second),
     )
