@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/internal/app/domain/function"
-	"github.com/R3E-Network/service_layer/internal/app/domain/trigger"
+	"github.com/R3E-Network/service_layer/internal/domain/function"
+	"github.com/R3E-Network/service_layer/internal/domain/trigger"
 )
 
 func TestApplicationLifecycle(t *testing.T) {
