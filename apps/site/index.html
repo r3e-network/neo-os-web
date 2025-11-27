@@ -7,11 +7,24 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <nav style="position:sticky;top:0;z-index:1000;background:rgba(11,18,34,0.8);backdrop-filter: blur(8px);border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px clamp(24px,6vw,64px);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-weight:700;letter-spacing:0.02em;color:var(--text)">Neo Service Layer</span>
+        <span class="chip">Unified Data & Automation</span>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <a class="btn ghost" href="http://localhost:8081/?ui=new" target="_blank" rel="noreferrer">Console</a>
+        <a class="btn ghost" href="../docs/README.md" target="_blank" rel="noreferrer">Docs</a>
+        <a class="btn ghost" href="http://localhost:8080/system/status" target="_blank" rel="noreferrer">Status</a>
+      </div>
+    </div>
+  </nav>
   <header class="hero">
     <div class="hero-content">
       <p class="eyebrow">Neo Service Layer</p>
       <h1>Operate data and automation at SaaS speed</h1>
-      <p class="subtitle">Feeds, DataLink, streams, JAM, gas bank, oracle, automation — unified under one API, one console, one control plane.</p>
+      <p class="subtitle">Data feeds, DataLink deliveries, real‑time streams, JAM packages, gas bank, oracle, automation — unified under one API and one operator console.</p>
       <div class="cta">
         <a class="btn primary" href="http://localhost:8081/?baseUrl=http://localhost:8080&token=dev-token" target="_blank" rel="noreferrer">Open Console</a>
         <a class="btn ghost" href="http://localhost:8080/system/status" target="_blank" rel="noreferrer">Live Status (requires auth header)</a>
@@ -31,6 +44,99 @@
   </header>
 
   <main>
+    <section class="grid three-cols" id="modules-grid">
+      <div class="card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 13h2v-2H3v2zm4 0h2V7H7v6zm4 0h2V3h-2v10zm4 0h2V9h-2v4zm4 0h2v-6h-2v6z"/></svg>
+        </div>
+        <h3>Data Feeds</h3>
+        <p class="list">Aggregated price/data updates with per‑feed strategies and signer sets.</p>
+        <div class="pill-row"><span class="chip">Aggregation</span><span class="chip">Signer Sets</span><span class="chip">Heartbeat</span></div>
+      </div>
+      <div class="card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M17 7H7v10h10V7zm2-2a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h12z"/></svg>
+        </div>
+        <h3>DataLink</h3>
+        <p class="list">Webhook channels and deliveries with signatures, retries, and DLQ.</p>
+        <div class="pill-row"><span class="chip">Channels</span><span class="chip">Deliveries</span><span class="chip">Retry</span></div>
+      </div>
+      <div class="card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M4 6h16v2H4V6zm0 5h10v2H4v-2zm0 5h7v2H4v-2z"/></svg>
+        </div>
+        <h3>Datastreams</h3>
+        <p class="list">High‑frequency frames with latency and SLA tracking.</p>
+        <div class="pill-row"><span class="chip">Frames</span><span class="chip">Latency</span><span class="chip">SLA</span></div>
+      </div>
+      <div class="card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2l9 4v6c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V6l9-4zm0 10H5v1c0 4.08 2.69 7.74 7 8.94 4.31-1.2 7-4.86 7-8.94v-1h-7z"/></svg>
+        </div>
+        <h3>Oracle</h3>
+        <p class="list">External data requests, runner tokens, and robust retry handling.</p>
+        <div class="pill-row"><span class="chip">Sources</span><span class="chip">Requests</span><span class="chip">Runner Token</span></div>
+      </div>
+      <div class="card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M7 14l5-5 5 5H7z"/></svg>
+        </div>
+        <h3>VRF & Random</h3>
+        <p class="list">Verifiable randomness with key management and request audit.</p>
+        <div class="pill-row"><span class="chip">Keys</span><span class="chip">Attestation</span><span class="chip">Audit</span></div>
+      </div>
+      <div class="card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 6v6l4 2-1 1-5-3V6h2z"/></svg>
+        </div>
+        <h3>Automation</h3>
+        <p class="list">Schedules, triggers, and function dispatch for workflows.</p>
+        <div class="pill-row"><span class="chip">Schedules</span><span class="chip">Triggers</span><span class="chip">Functions</span></div>
+      </div>
+      <div class="card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 5h18v14H3V5zm2 2v10h14V7H5z"/></svg>
+        </div>
+        <h3>Gas Bank</h3>
+        <p class="list">Balances, settlements, dead letters, and withdrawal attempts.</p>
+        <div class="pill-row"><span class="chip">Balances</span><span class="chip">Settlements</span><span class="chip">DLQ</span></div>
+      </div>
+      <div class="card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M5 8l7-5 7 5v8l-7 5-7-5V8z"/></svg>
+        </div>
+        <h3>CCIP & CRE</h3>
+        <p class="list">Cross‑chain lanes and compute runtime orchestration.</p>
+        <div class="pill-row"><span class="chip">Lanes</span><span class="chip">Executors</span><span class="chip">Playbooks</span></div>
+      </div>
+      <div class="card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2l7 4v12l-7 4-7-4V6l7-4z"/></svg>
+        </div>
+        <h3>Secrets & Functions</h3>
+        <p class="list">Secret storage and serverless function execution state.</p>
+        <div class="pill-row"><span class="chip">Secrets</span><span class="chip">Executions</span><span class="chip">Runtimes</span></div>
+      </div>
+    </section>
+
+    <section class="grid two-cols" id="how-it-works" style="margin-top: 24px;">
+      <div class="card">
+        <h2>How it works</h2>
+        <ol class="list" style="padding-left:20px;">
+          <li><strong>Connect</strong>: configure API, token, and tenant; create or select accounts.</li>
+          <li><strong>Configure</strong>: set up feeds, channels, streams, oracle sources, VRF keys.</li>
+          <li><strong>Operate</strong>: monitor status, metrics, retries, and DLQs in the console.</li>
+        </ol>
+      </div>
+      <div class="panel">
+        <h3>Quick actions</h3>
+        <div class="cta">
+          <a class="btn primary" href="http://localhost:8081/?ui=new" target="_blank" rel="noreferrer">Open Console</a>
+          <a class="btn ghost" href="../docs/examples/datafeeds.md" target="_blank" rel="noreferrer">Data Feeds Quickstart</a>
+          <a class="btn outline" href="../docs/examples/datalink.md" target="_blank" rel="noreferrer">DataLink Quickstart</a>
+        </div>
+      </div>
+    </section>
     <section class="grid features">
       <div>
         <h2>Service catalog</h2>
@@ -62,6 +168,148 @@
           <li>Token auth or wallet connect (dashboard)</li>
           <li>Multi-tenant ready: accounts as projects</li>
           <li>Role-based admin view (planned)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="grid two-cols">
+      <div class="card">
+        <h2>Connect to your API</h2>
+        <p class="subtitle">Test connectivity to a Service Layer instance and discover advertised services.</p>
+        <form id="connect-form" class="grid" style="grid-template-columns: 1fr; gap: 12px;">
+          <label>
+            <span>API Endpoint</span>
+            <input id="api-input" type="url" placeholder="http://localhost:8080" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);" />
+          </label>
+          <label>
+            <span>Bearer Token</span>
+            <input id="token-input" type="text" placeholder="dev-token" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);" />
+          </label>
+          <label>
+            <span>Tenant (optional)</span>
+            <input id="tenant-input" type="text" placeholder="" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);" />
+          </label>
+          <div class="cta">
+            <button type="submit" class="btn primary">Check Status</button>
+            <a id="open-console-link" class="btn ghost" href="#" target="_blank" rel="noreferrer">Open Console</a>
+          </div>
+        </form>
+        <div id="status-output" class="panel" style="margin-top: 12px;">
+          <div id="status-line">Status: <span class="eyebrow">idle</span></div>
+          <div id="version-line" class="tagline"></div>
+          <div id="services-block" style="margin-top: 8px; display: none;">
+            <h3>Advertised services</h3>
+            <ul id="services-list" class="links"></ul>
+          </div>
+          <div id="error-line" class="tagline" style="color:#ff8a8a"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Tips</h3>
+        <ul class="links">
+          <li>Defaults: API <code>http://localhost:8080</code>, token <code>dev-token</code></li>
+          <li>Login via credentials at <code>/auth/login</code> to obtain a JWT</li>
+          <li>Use <code>?api=&amp;token=&amp;tenant=</code> in the URL to prefill</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="grid two-cols" id="accounts-section" style="margin-top: 24px;">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h2>Accounts</h2>
+          <span id="accounts-count" class="eyebrow"></span>
+        </div>
+        <p class="subtitle">Accounts act as projects. Tenancy is enforced by the API.</p>
+        <div class="grid" style="grid-template-columns: 1fr; gap: 8px;">
+          <div id="accounts-list" class="panel" style="min-height: 60px;">
+            <div class="tagline">Load accounts using the form above, then select one to explore services.</div>
+          </div>
+          <form id="create-account-form" class="grid" style="grid-template-columns: 1fr; gap: 8px;">
+            <label>
+              <span>Owner</span>
+              <input id="account-owner-input" type="text" placeholder="owner-id or wallet address" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);" />
+            </label>
+            <button type="submit" class="btn primary">Create Account</button>
+          </form>
+          <div id="account-error" class="tagline" style="color:#ff8a8a"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Selected Account</h3>
+        <div id="selected-account" class="tagline">None</div>
+        <div id="account-meta" class="list"></div>
+      </div>
+    </section>
+
+    <section class="grid three-cols" id="services-section" style="margin-top: 24px; display:none;">
+      <div class="card">
+        <h3>Data Feeds</h3>
+        <ul id="datafeeds-list" class="links"></ul>
+      </div>
+      <div class="card">
+        <h3>DataLink Channels</h3>
+        <ul id="datalink-channels-list" class="links"></ul>
+        <form id="create-channel-form" class="grid" style="grid-template-columns: 1fr; gap: 8px; margin-top: 8px;">
+          <label>
+            <span>Name</span>
+            <input id="channel-name" type="text" placeholder="channel name" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);" />
+          </label>
+          <label>
+            <span>Endpoint</span>
+            <input id="channel-endpoint" type="url" placeholder="https://example.com/webhook" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);" />
+          </label>
+          <label>
+            <span>Signers (comma-separated)</span>
+            <input id="channel-signers" type="text" placeholder="addr1, addr2" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text);" />
+          </label>
+          <button type="submit" class="btn primary">Create Channel</button>
+          <div id="channel-error" class="tagline" style="color:#ff8a8a"></div>
+        </form>
+      </div>
+      <div class="card">
+        <h3>VRF & Oracle</h3>
+        <div>
+          <strong>VRF Requests</strong>
+          <ul id="vrf-requests-list" class="links"></ul>
+        </div>
+        <div style="margin-top:12px;">
+          <strong>Oracle Requests</strong>
+          <ul id="oracle-requests-list" class="links"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid two-cols" id="neo-section" style="margin-top: 24px;">
+      <div class="card highlight">
+        <h2>Neo Blockchain Status</h2>
+        <p class="subtitle">Live integration to Neo N3 via Service Layer indexer.</p>
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <div>Latest Height</div>
+            <div id="neo-latest-height" class="eyebrow">-</div>
+          </div>
+          <div>
+            <div>Node Lag</div>
+            <div id="neo-node-lag" class="eyebrow">-</div>
+          </div>
+          <div>
+            <div>Stable Height</div>
+            <div id="neo-stable-height" class="eyebrow">-</div>
+          </div>
+          <div>
+            <div>Indexed At</div>
+            <div id="neo-indexed-at" class="eyebrow">-</div>
+          </div>
+        </div>
+        <div id="neo-error" class="tagline" style="color:#ff8a8a; margin-top:8px;"></div>
+      </div>
+      <div class="panel">
+        <h3>Neo Integrations</h3>
+        <ul class="links">
+          <li>State root snapshots via `/neo/snapshots`</li>
+          <li>Contract storage & diffs via `/neo/storage` and `/neo/storage-diff`</li>
+          <li>Blocks and transactions via `/neo/blocks`</li>
         </ul>
       </div>
     </section>
@@ -115,5 +363,238 @@
       <a href="https://github.com/R3E-Network/service_layer" target="_blank" rel="noreferrer">GitHub</a>
     </div>
   </footer>
+  <script>
+    (function() {
+      const apiInput = document.getElementById('api-input');
+      const tokenInput = document.getElementById('token-input');
+      const tenantInput = document.getElementById('tenant-input');
+      const statusLine = document.getElementById('status-line');
+      const versionLine = document.getElementById('version-line');
+      const errorLine = document.getElementById('error-line');
+      const servicesBlock = document.getElementById('services-block');
+      const servicesList = document.getElementById('services-list');
+      const openConsole = document.getElementById('open-console-link');
+      const accountsList = document.getElementById('accounts-list');
+      const accountsCount = document.getElementById('accounts-count');
+      const createAccountForm = document.getElementById('create-account-form');
+      const accountOwnerInput = document.getElementById('account-owner-input');
+      const accountError = document.getElementById('account-error');
+      const selectedAccount = document.getElementById('selected-account');
+      const accountMeta = document.getElementById('account-meta');
+      const servicesSection = document.getElementById('services-section');
+      const datafeedsList = document.getElementById('datafeeds-list');
+      const datalinkChannelsList = document.getElementById('datalink-channels-list');
+      const createChannelForm = document.getElementById('create-channel-form');
+      const channelNameInput = document.getElementById('channel-name');
+      const channelEndpointInput = document.getElementById('channel-endpoint');
+      const channelSignersInput = document.getElementById('channel-signers');
+      const channelError = document.getElementById('channel-error');
+      const vrfRequestsList = document.getElementById('vrf-requests-list');
+      const oracleRequestsList = document.getElementById('oracle-requests-list');
+      const neoHeight = document.getElementById('neo-latest-height');
+      const neoLag = document.getElementById('neo-node-lag');
+      const neoStable = document.getElementById('neo-stable-height');
+      const neoIndexedAt = document.getElementById('neo-indexed-at');
+      const neoError = document.getElementById('neo-error');
+
+      let currentAccountID = '';
+
+      function normaliseUrl(url) {
+        url = (url || '').trim().replace(/\/$/, '');
+        if (!url) return '';
+        if (!/^https?:\/\//i.test(url)) return 'http://' + url;
+        return url;
+      }
+
+      function updateConsoleLink() {
+        const api = normaliseUrl(apiInput.value);
+        const token = (tokenInput.value || '').trim();
+        const tenant = (tenantInput.value || '').trim();
+        const params = new URLSearchParams();
+        if (api) params.set('api', api);
+        if (token) params.set('token', token);
+        if (tenant) params.set('tenant', tenant);
+        openConsole.href = 'http://localhost:8081/?ui=new&' + params.toString();
+      }
+
+      async function fetchJSON(url, init) {
+        const resp = await fetch(url, init);
+        if (!resp.ok) throw new Error(await resp.text() || (resp.status + ' ' + resp.statusText));
+        return resp.json();
+      }
+
+      async function checkStatus(api, token, tenant) {
+        statusLine.innerHTML = 'Status: <span class="eyebrow">checking…</span>';
+        versionLine.textContent = '';
+        errorLine.textContent = '';
+        servicesBlock.style.display = 'none';
+        servicesList.innerHTML = '';
+        const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+        if (tenant) headers['X-Tenant-ID'] = tenant;
+        try {
+          const health = await fetchJSON(api + '/healthz', { headers });
+          const version = await fetchJSON(api + '/system/version', { headers });
+          const descriptors = await fetchJSON(api + '/system/descriptors', { headers });
+          statusLine.innerHTML = 'Status: <span class="eyebrow">' + (health.status || 'ok') + '</span>';
+          versionLine.textContent = 'Version: ' + (version.version || 'unknown') + ' (' + (version.commit || '') + ')';
+          servicesBlock.style.display = 'block';
+          descriptors.forEach(function(d) {
+            const li = document.createElement('li');
+            li.textContent = d.domain + ' / ' + d.name + (d.layer ? (' (' + d.layer + ')') : '');
+            servicesList.appendChild(li);
+          });
+          try {
+            const neo = await fetchJSON(api + '/neo/status', { headers });
+            neoHeight.textContent = (neo.latest_height != null) ? neo.latest_height.toLocaleString() : '-';
+            neoLag.textContent = (neo.node_lag != null) ? neo.node_lag + ' blocks' : '-';
+            neoStable.textContent = (neo.stable_height != null) ? neo.stable_height.toLocaleString() : '-';
+            neoIndexedAt.textContent = neo.last_indexed_at ? new Date(neo.last_indexed_at).toLocaleString() : '-';
+            neoError.textContent = '';
+          } catch (e) {
+            neoError.textContent = (e && e.message) ? e.message : String(e);
+          }
+        } catch (err) {
+          statusLine.innerHTML = 'Status: <span class="eyebrow">error</span>';
+          errorLine.textContent = (err && err.message) ? err.message : String(err);
+        }
+      }
+
+      async function loadAccounts(api, token, tenant) {
+        accountsList.innerHTML = '';
+        accountsCount.textContent = '';
+        accountError.textContent = '';
+        const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+        if (tenant) headers['X-Tenant-ID'] = tenant;
+        try {
+          const accts = await fetchJSON(api + '/accounts?limit=50' + (tenant ? '' : ''), { headers });
+          accountsCount.textContent = accts.length + ' loaded';
+          if (accts.length === 0) {
+            accountsList.innerHTML = '<div class="tagline">No accounts found for tenant.</div>';
+            return;
+          }
+          const ul = document.createElement('ul'); ul.className = 'links';
+          accts.forEach(function(a) {
+            const li = document.createElement('li');
+            const btn = document.createElement('a');
+            btn.href = '#';
+            btn.textContent = a.ID.slice(0, 8) + '… (owner: ' + a.Owner + ')';
+            btn.onclick = function(e){ e.preventDefault(); selectAccount(api, token, tenant, a); };
+            li.appendChild(btn);
+            ul.appendChild(li);
+          });
+          accountsList.appendChild(ul);
+        } catch (err) {
+          accountError.textContent = (err && err.message) ? err.message : String(err);
+        }
+      }
+
+      async function createAccount(api, token, tenant, owner) {
+        accountError.textContent = '';
+        const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+        if (tenant) headers['X-Tenant-ID'] = tenant;
+        try {
+          const body = JSON.stringify({ owner: owner, metadata: {} });
+          await fetchJSON(api + '/accounts', { method:'POST', headers, body });
+          await loadAccounts(api, token, tenant);
+        } catch (err) {
+          accountError.textContent = (err && err.message) ? err.message : String(err);
+        }
+      }
+
+      function renderList(listEl, items, renderItem) {
+        listEl.innerHTML = '';
+        if (!items || items.length === 0) { listEl.innerHTML = '<div class="tagline">None</div>'; return; }
+        const ul = document.createElement('ul'); ul.className = 'links';
+        items.forEach(function(item){ const li = document.createElement('li'); li.appendChild(renderItem(item)); ul.appendChild(li); });
+        listEl.appendChild(ul);
+      }
+
+      async function selectAccount(api, token, tenant, account) {
+        currentAccountID = account.ID;
+        selectedAccount.textContent = account.ID;
+        accountMeta.innerHTML = '<div>Owner: ' + account.Owner + '</div>';
+        servicesSection.style.display = 'grid';
+        const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+        if (tenant) headers['X-Tenant-ID'] = tenant;
+        try {
+          const [feeds, channels, vrfReqs, oracleReqs] = await Promise.all([
+            fetchJSON(api + '/accounts/' + account.ID + '/datafeeds?limit=50', { headers }).catch(function(){ return []; }),
+            fetchJSON(api + '/accounts/' + account.ID + '/datalink/channels?limit=50', { headers }).catch(function(){ return []; }),
+            fetchJSON(api + '/accounts/' + account.ID + '/vrf/requests?limit=25', { headers }).catch(function(){ return []; }),
+            fetchJSON(api + '/accounts/' + account.ID + '/oracle/requests?limit=25', { headers }).catch(function(){ return []; })
+          ]);
+          renderList(datafeedsList, feeds, function(f){ const span=document.createElement('span'); span.textContent = f.Pair + ' (agg: ' + (f.Aggregation||'-') + ')'; return span; });
+          renderList(datalinkChannelsList, channels, function(c){ const span=document.createElement('span'); span.textContent = c.Name + ' → ' + c.Endpoint; return span; });
+          renderList(vrfRequestsList, vrfReqs, function(r){ const span=document.createElement('span'); span.textContent = r.ID.slice(0,8) + '… ' + r.Status; return span; });
+          renderList(oracleRequestsList, oracleReqs, function(r){ const span=document.createElement('span'); span.textContent = r.ID.slice(0,8) + '… ' + r.Status; return span; });
+        } catch (err) {
+          // Surface error in console, keep UI minimal
+          console.error(err);
+        }
+      }
+
+      createAccountForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        const api = normaliseUrl(apiInput.value);
+        const token = (tokenInput.value || '').trim();
+        const tenant = (tenantInput.value || '').trim();
+        const owner = (accountOwnerInput.value || '').trim();
+        if (!api || !token || !tenant || !owner) { accountError.textContent = 'API, token, tenant, and owner are required'; return; }
+        createAccount(api, token, tenant, owner);
+      });
+
+      createChannelForm.addEventListener('submit', async function(e){
+        e.preventDefault();
+        channelError.textContent = '';
+        const api = normaliseUrl(apiInput.value);
+        const token = (tokenInput.value || '').trim();
+        const tenant = (tenantInput.value || '').trim();
+        const name = (channelNameInput.value || '').trim();
+        const endpoint = (channelEndpointInput.value || '').trim();
+        const signers = (channelSignersInput.value || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+        if (!api || !token || !tenant || !currentAccountID || !name || !endpoint) { channelError.textContent = 'Fill all fields and select an account'; return; }
+        const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+        if (tenant) headers['X-Tenant-ID'] = tenant;
+        try {
+          const body = JSON.stringify({ name: name, endpoint: endpoint, signer_set: signers, status: 'active', metadata: {} });
+          await fetchJSON(api + '/accounts/' + currentAccountID + '/datalink/channels', { method:'POST', headers, body });
+          await selectAccount(api, token, tenant, { ID: currentAccountID, Owner: selectedAccount.textContent });
+        } catch (err) {
+          channelError.textContent = (err && err.message) ? err.message : String(err);
+        }
+      });
+
+      document.getElementById('connect-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const api = normaliseUrl(apiInput.value);
+        const token = (tokenInput.value || '').trim();
+        const tenant = (tenantInput.value || '').trim();
+        updateConsoleLink();
+        if (api && token) {
+          const params = new URLSearchParams(window.location.search);
+          params.set('api', api);
+          params.set('token', token);
+          if (tenant) params.set('tenant', tenant); else params.delete('tenant');
+          history.replaceState(null, '', window.location.pathname + '?' + params.toString());
+          checkStatus(api, token, tenant);
+        } else {
+          errorLine.textContent = 'Enter API and token to check status';
+        }
+      });
+
+      // Prefill from URL parameters
+      const qs = new URLSearchParams(window.location.search);
+      const qsApi = qs.get('api');
+      const qsToken = qs.get('token');
+      const qsTenant = qs.get('tenant');
+      if (qsApi) apiInput.value = qsApi;
+      if (qsToken) tokenInput.value = qsToken;
+      if (qsTenant) tenantInput.value = qsTenant;
+      updateConsoleLink();
+      if (qsApi && qsToken) {
+        checkStatus(normaliseUrl(qsApi), qsToken || '', qsTenant || '');
+      }
+    })();
+  </script>
 </body>
 </html>

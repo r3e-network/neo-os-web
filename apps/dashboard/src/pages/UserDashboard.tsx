@@ -16,6 +16,7 @@ type Props = {
   accounts: Account[];
   onSelectAccount: (accountId: string) => void;
   onServiceClick: (serviceId: string) => void;
+  onOpenSettings?: () => void;
 };
 
 const SERVICE_INFO: Record<string, { description: string; icon: string }> = {
@@ -36,7 +37,7 @@ const SERVICE_INFO: Record<string, { description: string; icon: string }> = {
   random: { description: "Secure random number service", icon: "random" },
 };
 
-export function UserDashboard({ systemState, accounts, onSelectAccount, onServiceClick }: Props) {
+export function UserDashboard({ systemState, accounts, onSelectAccount, onServiceClick, onOpenSettings }: Props) {
   const services = useMemo<ServiceCard[]>(() => {
     if (systemState.status !== "ready") return [];
 
@@ -106,6 +107,12 @@ export function UserDashboard({ systemState, accounts, onSelectAccount, onServic
           <h2>Connection Error</h2>
           <p>{systemState.message}</p>
           <p className="muted">Check your API endpoint and token in Settings.</p>
+          <div style={{ marginTop: 12 }}>
+            <button className="btn-primary" onClick={() => onOpenSettings ? onOpenSettings() : (window.location.hash = "settings")}>Open Settings</button>
+          </div>
+          <p className="muted" style={{ marginTop: 8 }}>
+            Tip: try <code>?api=http://localhost:8080&token=dev-token</code>
+          </p>
         </div>
       </div>
     );

@@ -8,11 +8,12 @@ type Props = {
   systemState: SystemState;
   config: ClientConfig;
   onNotify: (type: "success" | "error", message: string) => void;
+  onOpenSettings?: () => void;
 };
 
 type AdminTab = "overview" | "modules" | "audit" | "metrics" | "settings";
 
-export function AdminDashboard({ systemState, config, onNotify }: Props) {
+export function AdminDashboard({ systemState, config, onNotify, onOpenSettings }: Props) {
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
 
   if (systemState.status !== "ready") {
@@ -21,6 +22,7 @@ export function AdminDashboard({ systemState, config, onNotify }: Props) {
         <div className="admin-header">
           <h1>Admin Dashboard</h1>
           <p className="muted">Connect to the service layer to access admin features.</p>
+          <button className="btn-primary" onClick={() => onOpenSettings ? onOpenSettings() : (window.location.hash = "settings")}>Open Settings</button>
         </div>
       </div>
     );

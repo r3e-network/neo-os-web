@@ -178,6 +178,7 @@ export function App() {
             systemState={systemState}
             config={config}
             onNotify={notify}
+            onOpenSettings={() => navigate("settings")}
           />
         );
 
@@ -206,6 +207,7 @@ export function App() {
             accounts={systemState.status === "ready" ? systemState.accounts : []}
             onSelectAccount={handleSelectAccount}
             onServiceClick={handleServiceClick}
+            onOpenSettings={() => navigate("settings")}
           />
         );
     }
