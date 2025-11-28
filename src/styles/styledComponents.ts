@@ -63,7 +63,7 @@ export const ModernChip = styled(Chip)(({ theme }) => ({
 }));
 
 // Glassmorphism Container
-export const GlassContainer = styled(Paper)(({ theme }) => ({
+export const GlassContainer = styled(Paper)(() => ({
   background: 'rgba(255, 255, 255, 0.85)',
   backdropFilter: 'blur(20px)',
   borderRadius: 24,
@@ -85,7 +85,7 @@ export const ProfessionalAppBar = styled(MuiAppBar)(({ theme }) => ({
 }));
 
 // Modern Toolbar
-export const ModernToolbar = styled(MuiToolbar)(({ theme }) => ({
+export const ModernToolbar = styled(MuiToolbar)(() => ({
   padding: '16px 24px',
   minHeight: 80,
 }));
@@ -163,7 +163,12 @@ export const AnimatedCard = styled(Card)(({ theme }) => ({
 }));
 
 // Status Card with gradient background
-export const StatusCard = styled(Card)(({ theme, status = 'default' }) => {
+type StatusVariant = 'success' | 'warning' | 'error' | 'info' | 'default'
+
+export const StatusCard = styled(Card, {
+  // Avoid forwarding the synthetic status prop to the DOM
+  shouldForwardProp: (prop) => prop !== 'status',
+})<{ status?: StatusVariant }>(({ theme, status = 'default' }) => {
   const statusColors = {
     success: `linear-gradient(135deg, ${theme.palette.success[50]} 0%, ${theme.palette.success[100]} 100%)`,
     warning: `linear-gradient(135deg, ${theme.palette.warning[50]} 0%, ${theme.palette.warning[100]} 100%)`,

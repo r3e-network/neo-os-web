@@ -92,6 +92,9 @@ func validateRuntimeConfig(cfg *config.Config) error {
 			return fmt.Errorf("runtime.rocketmq.consume_from must be latest or first")
 		}
 	}
+	if rt.BusMaxBytes < 0 {
+		return fmt.Errorf("runtime.bus_max_bytes must be non-negative")
+	}
 	return nil
 }
 

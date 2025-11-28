@@ -12,7 +12,7 @@ Objective: implement the hardened JAM API changes (auth, quotas, filters, metada
 - Add middleware in JAM handler to:
   - Enforce bearer auth when `auth_required` is true.
   - If `allowed_tokens` non-empty, require token membership; otherwise reuse global token list.
-  - Apply token-level rate limiting (token or IP key) using a leaky bucket in-memory; no-op when disabled.
+- Apply token-level rate limiting (token or IP key) using persistent counters; no in-memory fallback.
 - Return 401/403 appropriately; 429 with `Retry-After` on limit hit.
 
 ### 3) API Enhancements

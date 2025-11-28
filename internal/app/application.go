@@ -12,13 +12,15 @@ import (
 	"strings"
 	"time"
 
-	core "github.com/R3E-Network/service_layer/internal/services/core"
 	"github.com/R3E-Network/service_layer/internal/app/domain/function"
 	"github.com/R3E-Network/service_layer/internal/app/metrics"
+	"github.com/R3E-Network/service_layer/internal/app/storage"
+	"github.com/R3E-Network/service_layer/internal/app/system"
 	"github.com/R3E-Network/service_layer/internal/services/accounts"
 	automationsvc "github.com/R3E-Network/service_layer/internal/services/automation"
 	ccipsvc "github.com/R3E-Network/service_layer/internal/services/ccip"
 	confsvc "github.com/R3E-Network/service_layer/internal/services/confidential"
+	core "github.com/R3E-Network/service_layer/internal/services/core"
 	cresvc "github.com/R3E-Network/service_layer/internal/services/cre"
 	datafeedsvc "github.com/R3E-Network/service_layer/internal/services/datafeeds"
 	datalinksvc "github.com/R3E-Network/service_layer/internal/services/datalink"
@@ -32,14 +34,10 @@ import (
 	"github.com/R3E-Network/service_layer/internal/services/secrets"
 	"github.com/R3E-Network/service_layer/internal/services/triggers"
 	vrfsvc "github.com/R3E-Network/service_layer/internal/services/vrf"
-	"github.com/R3E-Network/service_layer/internal/app/storage"
-	"github.com/R3E-Network/service_layer/internal/app/storage/memory"
-	"github.com/R3E-Network/service_layer/internal/app/system"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
-// Stores encapsulates persistence dependencies. Nil stores default to the
-// in-memory implementation.
+// Stores encapsulates persistence dependencies. All stores must be provided.
 type Stores struct {
 	Accounts         storage.AccountStore
 	Functions        storage.FunctionStore
@@ -58,63 +56,6 @@ type Stores struct {
 	CCIP             storage.CCIPStore
 	VRF              storage.VRFStore
 	WorkspaceWallets storage.WorkspaceWalletStore
-}
-
-func (s *Stores) applyDefaults(mem *memory.Store) {
-	if s == nil || mem == nil {
-		return
-	}
-	if s.Accounts == nil {
-		s.Accounts = mem
-	}
-	if s.Functions == nil {
-		s.Functions = mem
-	}
-	if s.Triggers == nil {
-		s.Triggers = mem
-	}
-	if s.GasBank == nil {
-		s.GasBank = mem
-	}
-	if s.Automation == nil {
-		s.Automation = mem
-	}
-	if s.PriceFeeds == nil {
-		s.PriceFeeds = mem
-	}
-	if s.DataFeeds == nil {
-		s.DataFeeds = mem
-	}
-	if s.DataStreams == nil {
-		s.DataStreams = mem
-	}
-	if s.DataLink == nil {
-		s.DataLink = mem
-	}
-	if s.DTA == nil {
-		s.DTA = mem
-	}
-	if s.Confidential == nil {
-		s.Confidential = mem
-	}
-	if s.Oracle == nil {
-		s.Oracle = mem
-	}
-	if s.Secrets == nil {
-		s.Secrets = mem
-	}
-	if s.CRE == nil {
-		s.CRE = mem
-	}
-	if s.CCIP == nil {
-		s.CCIP = mem
-	}
-	if s.VRF == nil {
-		s.VRF = mem
-	}
-	if s.WorkspaceWallets == nil {
-		s.WorkspaceWallets = mem
-	}
 }
 
 // RuntimeConfig captures environment-dependent wiring that was previously
@@ -148,6 +89,7 @@ type RuntimeConfig struct {
 	JAMLegacyList          bool
 	JAMAccumulatorsEnabled bool
 	JAMAccumulatorHash     string
+	BusMaxBytes            int64
 }
 
 // Option customises the application runtime.
@@ -190,6 +132,70 @@ type runtimeSettings struct {
 	oracleRunnerTokens  []string
 	dataFeedMinSigners  int
 	dataFeedAggregation string
+	busMaxBytes         int64
+}
+
+func validateStores(stores Stores) error {
+	missing := map[string]bool{}
+	if stores.Accounts == nil {
+		missing["accounts"] = true
+	}
+	if stores.Functions == nil {
+		missing["functions"] = true
+	}
+	if stores.Triggers == nil {
+		missing["triggers"] = true
+	}
+	if stores.GasBank == nil {
+		missing["gasbank"] = true
+	}
+	if stores.Automation == nil {
+		missing["automation"] = true
+	}
+	if stores.PriceFeeds == nil {
+		missing["pricefeeds"] = true
+	}
+	if stores.DataFeeds == nil {
+		missing["datafeeds"] = true
+	}
+	if stores.DataStreams == nil {
+		missing["datastreams"] = true
+	}
+	if stores.DataLink == nil {
+		missing["datalink"] = true
+	}
+	if stores.DTA == nil {
+		missing["dta"] = true
+	}
+	if stores.Confidential == nil {
+		missing["confidential"] = true
+	}
+	if stores.Oracle == nil {
+		missing["oracle"] = true
+	}
+	if stores.Secrets == nil {
+		missing["secrets"] = true
+	}
+	if stores.CRE == nil {
+		missing["cre"] = true
+	}
+	if stores.CCIP == nil {
+		missing["ccip"] = true
+	}
+	if stores.VRF == nil {
+		missing["vrf"] = true
+	}
+	if stores.WorkspaceWallets == nil {
+		missing["workspace_wallets"] = true
+	}
+	if len(missing) > 0 {
+		keys := make([]string, 0, len(missing))
+		for k := range missing {
+			keys = append(keys, k)
+		}
+		return fmt.Errorf("missing required stores: %s", strings.Join(keys, ", "))
+	}
+	return nil
 }
 
 // WithRuntimeConfig overrides the runtime configuration used when wiring
@@ -266,8 +272,9 @@ func New(stores Stores, log *logger.Logger, opts ...Option) (*Application, error
 		log = logger.NewDefault("app")
 	}
 
-	mem := memory.New()
-	stores.applyDefaults(mem)
+	if err := validateStores(stores); err != nil {
+		return nil, err
+	}
 
 	var manager *system.Manager
 	if options.manager {
@@ -323,6 +330,8 @@ func New(stores Stores, log *logger.Logger, opts ...Option) (*Application, error
 		} else {
 			randomOpts = append(randomOpts, randomsvc.WithSigningKey(decoded))
 		}
+	} else {
+		log.Info("random signing key not configured; randomness signatures rotate on restart")
 	}
 	randomService := randomsvc.New(stores.Accounts, log, randomOpts...)
 
@@ -522,6 +531,10 @@ func runtimeConfigFromEnv(env Environment) RuntimeConfig {
 	if parsed, ok := parseInt(env.Lookup("ORACLE_MAX_ATTEMPTS")); ok {
 		oracleAttempts = parsed
 	}
+	var busMax int64
+	if parsed, ok := parseInt64(env.Lookup("BUS_MAX_BYTES")); ok {
+		busMax = parsed
+	}
 	return RuntimeConfig{
 		TEEMode:             env.Lookup("TEE_MODE"),
 		RandomSigningKey:    env.Lookup("RANDOM_SIGNING_KEY"),
@@ -539,6 +552,7 @@ func runtimeConfigFromEnv(env Environment) RuntimeConfig {
 		OracleRunnerTokens:  env.Lookup("ORACLE_RUNNER_TOKENS"),
 		DataFeedMinSigners:  parseIntOrZero(env.Lookup("DATAFEEDS_MIN_SIGNERS")),
 		DataFeedAggregation: env.Lookup("DATAFEEDS_AGGREGATION"),
+		BusMaxBytes:         busMax,
 	}
 }
 
@@ -576,6 +590,10 @@ func normalizeRuntimeConfig(cfg RuntimeConfig) runtimeSettings {
 		minSigners = 0
 	}
 	runnerTokens := parseTokens(cfg.OracleRunnerTokens)
+	busMax := cfg.BusMaxBytes
+	if busMax <= 0 {
+		busMax = 1 << 20 // 1 MiB default
+	}
 	return runtimeSettings{
 		teeMode:             strings.ToLower(strings.TrimSpace(cfg.TEEMode)),
 		randomSigningKey:    strings.TrimSpace(cfg.RandomSigningKey),
@@ -593,6 +611,7 @@ func normalizeRuntimeConfig(cfg RuntimeConfig) runtimeSettings {
 		oracleRunnerTokens:  runnerTokens,
 		dataFeedMinSigners:  minSigners,
 		dataFeedAggregation: agg,
+		busMaxBytes:         busMax,
 	}
 }
 
@@ -611,6 +630,18 @@ func parseInt(value string) (int, bool) {
 		return 0, false
 	}
 	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, false
+	}
+	return parsed, true
+}
+
+func parseInt64(value string) (int64, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, false
+	}
+	parsed, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return 0, false
 	}

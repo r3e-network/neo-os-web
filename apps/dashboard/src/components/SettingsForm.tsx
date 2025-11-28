@@ -3,6 +3,7 @@ import { FormEvent } from "react";
 type Props = {
   baseUrl: string;
   token: string;
+  refreshToken?: string;
   tenant: string;
   promBase: string;
   slowMs: string;
@@ -12,6 +13,7 @@ type Props = {
   onSubmit: (event: FormEvent) => void;
   onBaseUrlChange: (value: string) => void;
   onTokenChange: (value: string) => void;
+  onRefreshTokenChange?: (value: string) => void;
   onTenantChange: (value: string) => void;
   onPromChange: (value: string) => void;
   onSlowMsChange: (value: string) => void;
@@ -21,6 +23,7 @@ type Props = {
 export function SettingsForm({
   baseUrl,
   token,
+  refreshToken,
   tenant,
   promBase,
   slowMs,
@@ -30,6 +33,7 @@ export function SettingsForm({
   onSubmit,
   onBaseUrlChange,
   onTokenChange,
+  onRefreshTokenChange,
   onTenantChange,
   onPromChange,
   onSlowMsChange,
@@ -47,6 +51,14 @@ export function SettingsForm({
         <input value={token} onChange={(e) => onTokenChange(e.target.value)} placeholder="Bearer token" />
         <span className="hint">Use the same bearer token you send to the API.</span>
       </label>
+      {onRefreshTokenChange && (
+        <label>
+          Supabase Refresh Token (optional)
+          <input value={refreshToken || ""} onChange={(e) => onRefreshTokenChange(e.target.value)} placeholder="Supabase refresh token" />
+          <span className="hint">Used to obtain a new access token via /auth/refresh when the API token expires.</span>
+          <span className="hint">Stored only in session storage; paste a Supabase refresh token to auto-renew access.</span>
+        </label>
+      )}
       <label>
         Tenant (required for scoped accounts)
         <input value={tenant} onChange={(e) => onTenantChange(e.target.value)} placeholder="tenant id" />

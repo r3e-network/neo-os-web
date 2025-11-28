@@ -276,6 +276,11 @@ func (e *Engine) SetModuleRequiredAPIs(name string, surfaces ...APISurface) {
 	e.metadata.SetRequiredAPIs(name, surfaces...)
 }
 
+// SetModuleLabel records a human-friendly label for a module.
+func (e *Engine) SetModuleLabel(name, label string) {
+	e.metadata.SetLabel(name, label)
+}
+
 // SetModuleLayer records an optional layer hint for a module.
 func (e *Engine) SetModuleLayer(name, layer string) {
 	e.metadata.SetLayer(name, layer)

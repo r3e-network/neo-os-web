@@ -11,7 +11,7 @@ Purpose: describe how to run JAM in a multi-tenant environment with clear isolat
 - **AuthZ (per service)**:
   - Enable `runtime.jam.authz_enabled`.
   - If `runtime.jam.owner_is_account`, require tokens associated with the owning account.
-  - Delegate table (PG) or in-memory map for additional authorized tokens per service.
+  - Delegate table (PG-backed) for additional authorized tokens per service.
 - **Data access**:
   - Package submit/list/report endpoints enforce service ownership/delegates.
   - Preimages optionally scoped to service (future: add `service_id` to preimage metadata and enforce).
@@ -39,7 +39,7 @@ Purpose: describe how to run JAM in a multi-tenant environment with clear isolat
 - `runtime.jam.authz_enabled` (bool)
 - `runtime.jam.owner_is_account` (bool)
 - `runtime.jam.allowed_tokens` (global operator tokens)
-- `runtime.jam.service_delegates` (in-memory) or PG table for delegates
+- `runtime.jam.service_delegates` (PG table) for delegates
 - Future: per-service quotas config store/table.
 
 ## Implementation Steps

@@ -19,6 +19,7 @@ type RuntimeConfig struct {
 	Crypto      CryptoConfig      `json:"crypto"`
 	RocketMQ    RocketMQConfig    `json:"rocketmq" mapstructure:"rocketmq"`
 	SlowMS      int               `json:"slow_module_threshold_ms" env:"MODULE_SLOW_MS"`
+	BusMaxBytes int64             `json:"bus_max_bytes" mapstructure:"bus_max_bytes" env:"BUS_MAX_BYTES"`
 	// AutoDepsFromAPIs wires dependency edges based on required API surfaces (store/compute/data/event/etc).
 	AutoDepsFromAPIs bool `json:"auto_deps_from_apis" mapstructure:"auto_deps_from_apis" env:"AUTO_DEPS_FROM_APIS"`
 	// BusPermissions allow overriding event/data/compute fan-out per module (name -> permissions).

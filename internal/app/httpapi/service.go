@@ -38,19 +38,21 @@ type ComputeInvoker func(context.Context, any) ([]ComputeResult, error)
 
 // Service exposes the HTTP API and fits into the system manager lifecycle.
 type Service struct {
-	addr    string
-	server  *http.Server
-	handler http.Handler
-	log     *logger.Logger
-	busPub  BusPublisher
-	busPush BusPusher
-	invoke  ComputeInvoker
-	mu      sync.Mutex
-	running bool
-	bound   string
-	slowMS  float64
-	rpcEng  func() []engine.RPCEngine
-	rpcPol  *RPCPolicy
+	addr              string
+	server            *http.Server
+	handler           http.Handler
+	log               *logger.Logger
+	busPub            BusPublisher
+	busPush           BusPusher
+	invoke            ComputeInvoker
+	busMaxBytes       int64
+	mu                sync.Mutex
+	running           bool
+	bound             string
+	slowMS            float64
+	rpcEng            func() []engine.RPCEngine
+	rpcPol            *RPCPolicy
+	supabaseGoTrueURL string
 }
 
 // ServiceOption customizes the HTTP service behavior.
@@ -88,7 +90,25 @@ func WithRPCPolicyOption(policy *RPCPolicy) ServiceOption {
 	}
 }
 
-func NewService(application *app.Application, addr string, tokens []string, jamCfg jam.Config, authMgr authManager, log *logger.Logger, db *sql.DB, modules ModuleProvider, opts ...ServiceOption) *Service {
+// WithSupabaseGoTrueURL injects the GoTrue base URL for refresh token proxying.
+func WithSupabaseGoTrueURL(url string) ServiceOption {
+	return func(s *Service) {
+		if trimmed := strings.TrimSpace(url); trimmed != "" {
+			s.supabaseGoTrueURL = trimmed
+		}
+	}
+}
+
+// WithBusMaxBytesOption caps /system/events|data|compute payload sizes.
+func WithBusMaxBytesOption(limit int64) ServiceOption {
+	return func(s *Service) {
+		if limit > 0 {
+			s.busMaxBytes = limit
+		}
+	}
+}
+
+func NewService(application *app.Application, addr string, tokens []string, jamCfg jam.Config, authMgr authManager, jwtValidator JWTValidator, log *logger.Logger, db *sql.DB, modules ModuleProvider, opts ...ServiceOption) *Service {
 	if log == nil {
 		log = logger.NewDefault("http")
 	}
@@ -115,8 +135,13 @@ func NewService(application *app.Application, addr string, tokens []string, jamC
 		}
 	}
 
+	validator := jwtValidator
+	if validator == nil {
+		validator = authMgr
+	}
+
 	if len(tokens) == 0 {
-		log.Warn("HTTP service starting without API tokens; prefer JWT login or configure API_TOKENS")
+		log.Warn("HTTP service starting without API tokens; prefer Supabase JWT login or configure API_TOKENS")
 	}
 
 	// Build handler options
@@ -126,6 +151,16 @@ func NewService(application *app.Application, addr string, tokens []string, jamC
 		WithSlowThreshold(svc.slowMS),
 		WithRPCEngines(svc.rpcEng),
 		WithRPCPolicy(svc.rpcPol),
+	}
+	if svc.busMaxBytes > 0 {
+		handlerOpts = append(handlerOpts, WithBusMaxBytes(svc.busMaxBytes))
+		log.Infof("bus payload limit set to %d bytes", svc.busMaxBytes)
+		if svc.busMaxBytes > 10<<20 { // >10 MiB
+			log.Warnf("bus payload limit set above 10 MiB (%d bytes); review edge limits and abuse risk", svc.busMaxBytes)
+		}
+	}
+	if svc.supabaseGoTrueURL != "" {
+		handlerOpts = append(handlerOpts, WithHandlerSupabaseGoTrueURL(svc.supabaseGoTrueURL))
 	}
 
 	// Add admin config store if database is available
@@ -137,7 +172,7 @@ func NewService(application *app.Application, addr string, tokens []string, jamC
 	handler := NewHandler(application, jamCfg, tokens, authMgr, audit, neo, modules, handlerOpts...)
 	// Order matters: auth should see real requests, CORS should short-circuit
 	// preflight OPTIONS before auth, metrics wraps the final handler.
-	handler = wrapWithAuth(handler, tokens, log, authMgr)
+	handler = wrapWithAuth(handler, tokens, log, validator)
 	handler = wrapWithAudit(handler, audit)
 	handler = wrapWithCORS(handler)
 	handler = metrics.InstrumentHandler(handler)

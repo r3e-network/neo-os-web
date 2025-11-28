@@ -10,7 +10,7 @@ import (
 
 // Ensures the engine-owned lifecycle starts and stops services cleanly and updates health.
 func TestEngineLifecycleWithApplicationServices(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}

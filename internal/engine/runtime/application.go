@@ -44,6 +44,7 @@ type builderOptions struct {
 	listenAddr    string
 	runMigrations *bool
 	slowThreshold int
+	customStores  *app.Stores
 }
 
 func defaultBuilderOptions() builderOptions {
@@ -93,6 +94,14 @@ func WithRunMigrations(enabled bool) Option {
 	}
 }
 
+// WithStores supplies pre-built stores (primarily for tests). When provided,
+// database wiring is skipped.
+func WithStores(stores app.Stores) Option {
+	return func(opts *builderOptions) {
+		opts.customStores = &stores
+	}
+}
+
 // WithSlowThresholdMS overrides the slow module threshold (ms) used by /system/status.
 func WithSlowThresholdMS(ms int) Option {
 	return func(opts *builderOptions) {
@@ -133,6 +142,10 @@ func NewApplication(options ...Option) (*Application, error) {
 		builder.slowThreshold = cfg.Runtime.SlowMS
 	}
 
+	if err := validateSupabaseConfig(cfg); err != nil {
+		return nil, err
+	}
+
 	logCfg := logger.LoggingConfig{
 		Level:      cfg.Logging.Level,
 		Format:     cfg.Logging.Format,
@@ -141,15 +154,24 @@ func NewApplication(options ...Option) (*Application, error) {
 	}
 	log := logger.New(logCfg)
 
-	stores, db, err := buildStores(context.Background(), cfg, runMigrations)
-	if err != nil {
-		return nil, fmt.Errorf("configure stores: %w", err)
-	}
+	var (
+		stores app.Stores
+		db     *sql.DB
+	)
+	if builder.customStores != nil {
+		stores = *builder.customStores
+	} else {
+		var err error
+		stores, db, err = buildStores(context.Background(), cfg, runMigrations)
+		if err != nil {
+			return nil, fmt.Errorf("configure stores: %w", err)
+		}
 
-	if db != nil {
-		if err := assertTenantColumns(context.Background(), db); err != nil {
-			_ = db.Close()
-			return nil, fmt.Errorf("schema validation: %w", err)
+		if db != nil {
+			if err := assertTenantColumns(context.Background(), db); err != nil {
+				_ = db.Close()
+				return nil, fmt.Errorf("schema validation: %w", err)
+			}
 		}
 	}
 
@@ -218,16 +240,18 @@ func NewApplication(options ...Option) (*Application, error) {
 		log.Info(msg)
 	}
 
-	authMgr := buildAuthManager(cfg)
-	if authMgr != nil && authMgr.HasUsers() && len(tokens) == 0 {
-		log.Info("login enabled via /auth/login (JWT); API tokens also supported")
+	authMgr, jwtValidator := buildAuthStack(cfg)
+	if (jwtValidator != nil || authMgr != nil) && len(tokens) == 0 {
+		log.Info("login enabled via Supabase JWT (/auth/login also supported); API tokens also supported")
+	}
+	if cfg != nil && strings.TrimSpace(cfg.Auth.SupabaseJWTSecret) != "" && strings.TrimSpace(cfg.Auth.SupabaseGoTrueURL) == "" {
+		log.Warn("SUPABASE_GOTRUE_URL not set; /auth/refresh will be disabled")
 	}
 
 	// Wire modules into the core engine for lifecycle management with explicit ordering.
 	engineLogger := stdlog.New(log.Out, "", stdlog.LstdFlags)
 	engineOrder := []string{
 		"store-postgres",
-		"store-memory",
 		"core-application",
 		"svc-neo-node",
 		"svc-neo-indexer",
@@ -261,15 +285,9 @@ func NewApplication(options ...Option) (*Application, error) {
 		"svc-http",
 	}
 	eng := engine.New(engine.WithLogger(engineLogger), engine.WithOrder(engineOrder...))
-	if db != nil {
-		if err := eng.Register(newStoreModule(db)); err != nil {
-			_ = db.Close()
-			return nil, fmt.Errorf("register store module: %w", err)
-		}
-	} else {
-		if err := eng.Register(newMemoryStoreModule()); err != nil {
-			return nil, fmt.Errorf("register memory store module: %w", err)
-		}
+	if err := eng.Register(newStoreModule(db)); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("register store module: %w", err)
 	}
 	if err := eng.Register(newAppModule(application)); err != nil {
 		if db != nil {
@@ -350,7 +368,13 @@ func NewApplication(options ...Option) (*Application, error) {
 		Burst:              rpcBurst,
 		AllowedMethods:     cfg.Runtime.Chains.AllowedMethods,
 	}))
-	httpSvc := httpapi.NewService(application, listenAddr, tokens, jamCfg, authMgr, log, db, modulesProvider, busOpts...)
+	if cfg.Runtime.BusMaxBytes > 0 {
+		busOpts = append(busOpts, httpapi.WithBusMaxBytesOption(cfg.Runtime.BusMaxBytes))
+	}
+	if goTrueURL := resolveSupabaseGoTrueURL(cfg); goTrueURL != "" {
+		busOpts = append(busOpts, httpapi.WithSupabaseGoTrueURL(goTrueURL))
+	}
+	httpSvc := httpapi.NewService(application, listenAddr, tokens, jamCfg, authMgr, jwtValidator, log, db, modulesProvider, busOpts...)
 	if err := application.Attach(httpSvc); err != nil {
 		if db != nil {
 			_ = db.Close()
@@ -474,7 +498,7 @@ func buildStores(ctx context.Context, cfg *config.Config, runMigrations bool) (a
 	dsn := strings.TrimSpace(cfg.Database.DSN)
 
 	if driver == "" || dsn == "" {
-		return app.Stores{}, nil, nil
+		return app.Stores{}, nil, fmt.Errorf("database driver and dsn are required (Supabase Postgres)")
 	}
 
 	if !strings.EqualFold(driver, "postgres") {
@@ -638,6 +662,16 @@ func resolveSecretEncryptionKey(cfg *config.Config) string {
 	}
 	if cfg != nil {
 		return strings.TrimSpace(cfg.Security.SecretEncryptionKey)
+	}
+	return ""
+}
+
+func resolveSupabaseGoTrueURL(cfg *config.Config) string {
+	if env := strings.TrimSpace(os.Getenv("SUPABASE_GOTRUE_URL")); env != "" {
+		return env
+	}
+	if cfg != nil {
+		return strings.TrimSpace(cfg.Auth.SupabaseGoTrueURL)
 	}
 	return ""
 }
@@ -839,18 +873,22 @@ func applyCoreModuleMetadata(eng *engine.Engine) {
 	}
 	if eng.Lookup("store-postgres") != nil {
 		eng.SetModuleLayer("store-postgres", "infra")
+		eng.SetModuleLabel("store-postgres", "Supabase Postgres")
 		eng.SetModuleCapabilities("store-postgres", "store", "postgres")
 	}
 	if eng.Lookup("store-memory") != nil {
 		eng.SetModuleLayer("store-memory", "infra")
+		eng.SetModuleLabel("store-memory", "Memory Store (test)")
 		eng.SetModuleCapabilities("store-memory", "store", "memory")
 	}
 	if eng.Lookup("core-application") != nil {
 		eng.SetModuleLayer("core-application", "infra")
+		eng.SetModuleLabel("core-application", "Service Engine")
 		eng.SetModuleCapabilities("core-application", "service-engine")
 	}
 	if eng.Lookup("svc-http") != nil {
 		eng.SetModuleLayer("svc-http", "infra")
+		eng.SetModuleLabel("svc-http", "HTTP Edge")
 		eng.SetModuleCapabilities("svc-http", "http-edge", "api-gateway")
 	}
 }
@@ -897,15 +935,34 @@ func applyRuntimeModuleConfig(eng *engine.Engine, cfg *config.Config, intendedOr
 	return nil
 }
 
-func buildAuthManager(cfg *config.Config) *appauth.Manager {
+func buildAuthStack(cfg *config.Config) (*appauth.Manager, httpapi.JWTValidator) {
 	if cfg == nil {
-		return nil
+		return nil, nil
 	}
-	// Allow env override for JWT secret/users.
+
+	adminRoles := append([]string{}, cfg.Auth.SupabaseAdminRoles...)
+	if envRoles := strings.TrimSpace(os.Getenv("SUPABASE_ADMIN_ROLES")); envRoles != "" {
+		adminRoles = append(adminRoles, splitAndTrim(envRoles)...)
+	}
+	tenantClaim := strings.TrimSpace(cfg.Auth.SupabaseTenantClaim)
+	if envTenant := strings.TrimSpace(os.Getenv("SUPABASE_TENANT_CLAIM")); envTenant != "" {
+		tenantClaim = envTenant
+	}
+	roleClaim := strings.TrimSpace(cfg.Auth.SupabaseRoleClaim)
+	if envRole := strings.TrimSpace(os.Getenv("SUPABASE_ROLE_CLAIM")); envRole != "" {
+		roleClaim = envRole
+	}
+	supValidator := httpapi.NewSupabaseJWTValidator(cfg.Auth.SupabaseJWTSecret, cfg.Auth.SupabaseJWTAud, adminRoles, tenantClaim, roleClaim)
+
 	secret := strings.TrimSpace(cfg.Auth.JWTSecret)
 	if envSecret := strings.TrimSpace(os.Getenv("AUTH_JWT_SECRET")); envSecret != "" {
 		secret = envSecret
 	}
+	// Fallback to Supabase JWT secret so wallet login can share the same signing key.
+	if secret == "" {
+		secret = strings.TrimSpace(cfg.Auth.SupabaseJWTSecret)
+	}
+
 	var users []appauth.User
 	for _, u := range cfg.Auth.Users {
 		if strings.TrimSpace(u.Username) == "" || strings.TrimSpace(u.Password) == "" {
@@ -934,8 +991,35 @@ func buildAuthManager(cfg *config.Config) *appauth.Manager {
 			})
 		}
 	}
-	if len(users) == 0 || secret == "" {
+
+	var authMgr *appauth.Manager
+	if len(users) > 0 && secret != "" {
+		authMgr = appauth.NewManager(secret, users)
+	}
+
+	var validator httpapi.JWTValidator
+	switch {
+	case supValidator != nil && authMgr != nil:
+		validator = httpapi.NewCompositeValidator(supValidator, authMgr)
+	case supValidator != nil:
+		validator = supValidator
+	case authMgr != nil:
+		validator = authMgr
+	}
+
+	return authMgr, validator
+}
+
+func validateSupabaseConfig(cfg *config.Config) error {
+	if cfg == nil {
+		return fmt.Errorf("config required")
+	}
+	secret := strings.TrimSpace(cfg.Auth.SupabaseJWTSecret)
+	if secret == "" {
 		return nil
 	}
-	return appauth.NewManager(secret, users)
+	if strings.TrimSpace(cfg.Auth.SupabaseGoTrueURL) == "" {
+		return fmt.Errorf("SUPABASE_GOTRUE_URL must be set when SUPABASE_JWT_SECRET is configured (self-hosted Supabase required)")
+	}
+	return nil
 }

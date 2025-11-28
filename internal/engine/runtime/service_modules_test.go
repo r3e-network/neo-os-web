@@ -32,7 +32,7 @@ func (s *readyService) Ready(ctx context.Context) error {
 }
 
 func TestWrapServicesUsesStableEngineNames(t *testing.T) {
-	appInstance, err := app.New(app.Stores{}, nil, app.WithRuntimeConfig(app.RuntimeConfig{}))
+	appInstance, err := app.New(app.NewMemoryStoresForTest(), nil, app.WithRuntimeConfig(app.RuntimeConfig{}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestRegisterModuleForwardsReadySetter(t *testing.T) {
 }
 
 func TestWrapServicesExposesTypedEngines(t *testing.T) {
-	appInstance, err := app.New(app.Stores{}, nil, app.WithRuntimeConfig(app.RuntimeConfig{}))
+	appInstance, err := app.New(app.NewMemoryStoresForTest(), nil, app.WithRuntimeConfig(app.RuntimeConfig{}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}

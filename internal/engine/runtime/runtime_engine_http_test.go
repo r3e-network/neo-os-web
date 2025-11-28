@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	app "github.com/R3E-Network/service_layer/internal/app"
 	"github.com/R3E-Network/service_layer/internal/app/httpapi"
 	"github.com/R3E-Network/service_layer/internal/config"
 	engine "github.com/R3E-Network/service_layer/internal/engine"
@@ -25,6 +26,7 @@ func TestRuntimeEngineStartsHTTPModule(t *testing.T) {
 		WithConfig(cfg),
 		WithRunMigrations(false),
 		WithListenAddr("127.0.0.1:0"),
+		WithStores(app.NewMemoryStoresForTest()),
 	)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
@@ -82,6 +84,7 @@ func TestRuntimeEngineServesSystemStatus(t *testing.T) {
 		WithRunMigrations(false),
 		WithListenAddr("127.0.0.1:0"),
 		WithAPITokens([]string{"dev-token"}),
+		WithStores(app.NewMemoryStoresForTest()),
 	)
 	if err != nil {
 		t.Fatalf("new application: %v", err)

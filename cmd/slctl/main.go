@@ -33,11 +33,13 @@ func run(ctx context.Context, args []string) error {
 	defaultAddr := getenv("SERVICE_LAYER_ADDR", "http://localhost:8080")
 	defaultToken := os.Getenv("SERVICE_LAYER_TOKEN")
 	defaultTenant := os.Getenv("SERVICE_LAYER_TENANT")
+	defaultRefreshToken := os.Getenv("SUPABASE_REFRESH_TOKEN")
 
 	root := flag.NewFlagSet("slctl", flag.ContinueOnError)
 	root.SetOutput(io.Discard)
 	addrFlag := root.String("addr", defaultAddr, "Service Layer base URL (default env SERVICE_LAYER_ADDR)")
 	tokenFlag := root.String("token", defaultToken, "Bearer token for authentication (env SERVICE_LAYER_TOKEN)")
+	refreshFlag := root.String("refresh-token", defaultRefreshToken, "Supabase refresh token (env SUPABASE_REFRESH_TOKEN); used to obtain a new access token via /auth/refresh")
 	tenantFlag := root.String("tenant", defaultTenant, "Tenant identifier for multi-tenant headers (env SERVICE_LAYER_TENANT)")
 	timeoutFlag := root.Duration("timeout", 15*time.Second, "HTTP request timeout")
 	showVersion := root.Bool("version", false, "Print slctl build information and exit")
@@ -56,10 +58,14 @@ func run(ctx context.Context, args []string) error {
 
 	httpClient := &http.Client{Timeout: *timeoutFlag}
 	client := &apiClient{
-		baseURL: strings.TrimRight(*addrFlag, "/"),
-		token:   strings.TrimSpace(*tokenFlag),
-		tenant:  strings.TrimSpace(*tenantFlag),
-		http:    httpClient,
+		baseURL:      strings.TrimRight(*addrFlag, "/"),
+		token:        strings.TrimSpace(*tokenFlag),
+		refreshToken: strings.TrimSpace(*refreshFlag),
+		tenant:       strings.TrimSpace(*tenantFlag),
+		http:         httpClient,
+	}
+	if err := client.ensureToken(ctx); err != nil {
+		return fmt.Errorf("auth: %w", err)
 	}
 
 	switch remaining[0] {
@@ -172,7 +178,7 @@ Commands:
   workspace-wallets Inspect linked signing wallets
   jam          Interact with JAM prototype (preimages, packages, reports)
   services     Introspect service descriptors
-  bus          Publish events, push data, and invoke compute fan-out
+  bus          Publish events, push data, and invoke compute fan-out (admin only)
   audit        Fetch recent audit entries (admin JWT required)
   status       Show health/version/engine status (modules, APIs, descriptors via /system/status; supports --surface and --export; /healthz is unauthenticated)
   neo          Inspect Neo indexed data (status, checkpoint, blocks, snapshots)
@@ -183,10 +189,49 @@ Commands:
 }
 
 type apiClient struct {
-	baseURL string
-	token   string
-	tenant  string
-	http    *http.Client
+	baseURL      string
+	token        string
+	refreshToken string
+	tenant       string
+	http         *http.Client
+}
+
+// ensureToken refreshes an access token using the refresh token when no token is provided.
+func (c *apiClient) ensureToken(ctx context.Context) error {
+	if c == nil {
+		return fmt.Errorf("client nil")
+	}
+	if strings.TrimSpace(c.token) != "" || strings.TrimSpace(c.refreshToken) == "" {
+		return nil
+	}
+	refreshURL := strings.TrimRight(c.baseURL, "/") + "/auth/refresh"
+	payload := map[string]string{"refresh_token": c.refreshToken}
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, refreshURL, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("refresh failed (%d): %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+	}
+	var parsed map[string]any
+	_ = json.Unmarshal(respBody, &parsed)
+	if token, ok := parsed["access_token"].(string); ok && strings.TrimSpace(token) != "" {
+		c.token = strings.TrimSpace(token)
+		return nil
+	}
+	if token, ok := parsed["token"].(string); ok && strings.TrimSpace(token) != "" {
+		c.token = strings.TrimSpace(token)
+		return nil
+	}
+	return fmt.Errorf("refresh succeeded but access_token not found")
 }
 
 type promSample struct {
@@ -322,6 +367,10 @@ func (c *apiClient) request(ctx context.Context, method, path string, payload an
 
 // requestRaw sends a request with an arbitrary body and content type.
 func (c *apiClient) requestRaw(ctx context.Context, method, path string, body []byte, contentType string) ([]byte, http.Header, error) {
+	// Attempt automatic refresh if no token yet but refresh token present.
+	if c.token == "" {
+		_ = c.ensureToken(ctx)
+	}
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bytes.NewReader(body))
 	if err != nil {
 		return nil, nil, err
@@ -345,6 +394,12 @@ func (c *apiClient) requestRaw(ctx context.Context, method, path string, body []
 		return nil, resp.Header, err
 	}
 	if resp.StatusCode >= 300 {
+		// If unauthorized and we have a refresh token, attempt a one-time refresh.
+		if resp.StatusCode == http.StatusUnauthorized && c.refreshToken != "" {
+			if err := c.ensureToken(ctx); err == nil && c.token != "" {
+				return c.requestRaw(ctx, method, path, body, contentType)
+			}
+		}
 		msg := strings.TrimSpace(string(data))
 		if len(msg) > 0 {
 			var parsed map[string]any
@@ -375,6 +430,9 @@ func handleDashboardLink(client *apiClient, args []string) error {
 	values.Set("api", api)
 	if client.token != "" {
 		values.Set("token", client.token)
+	}
+	if client.refreshToken != "" {
+		values.Set("refresh_token", client.refreshToken)
 	}
 	if client.tenant != "" {
 		values.Set("tenant", client.tenant)
@@ -566,9 +624,9 @@ func handleServices(ctx context.Context, client *apiClient, args []string) error
 func handleBus(ctx context.Context, client *apiClient, args []string) error {
 	if len(args) == 0 {
 		fmt.Println(`Usage:
-  slctl bus events --event <name> [--payload JSON] [--payload-file path]
-  slctl bus data --topic <topic> [--payload JSON] [--payload-file path]
-  slctl bus compute [--payload JSON] [--payload-file path]
+  slctl bus events --event <name> [--payload JSON] [--payload-file path]        # admin token/JWT required
+  slctl bus data --topic <topic> [--payload JSON] [--payload-file path]         # admin token/JWT required
+  slctl bus compute [--payload JSON] [--payload-file path]                      # admin token/JWT required
   slctl bus stats --prom-url <http://prom:9090> [--token <prom-token>] [--range 5m]`)
 		return nil
 	}
@@ -677,6 +735,7 @@ func handleBus(ctx context.Context, client *apiClient, args []string) error {
 					Error float64 `json:"error"`
 				} `json:"bus_fanout_recent"`
 				BusFanoutRecentWindow float64 `json:"bus_fanout_recent_window_seconds"`
+				BusMaxBytes           float64 `json:"bus_max_bytes"`
 			}
 			if err := json.Unmarshal(statusData, &payload); err != nil {
 				return fmt.Errorf("decode status: %w", err)
@@ -690,6 +749,9 @@ func handleBus(ctx context.Context, client *apiClient, args []string) error {
 				OK  float64
 				Err float64
 			}, len(payload.BusFanout))
+			if payload.BusMaxBytes > 0 {
+				fmt.Printf("Bus payload cap: %.0f bytes\n", payload.BusMaxBytes)
+			}
 			for k, v := range payload.BusFanout {
 				statusMap[k] = struct {
 					OK  float64
@@ -851,7 +913,8 @@ func handleStatus(ctx context.Context, client *apiClient, args []string) error {
 			OK    float64 `json:"ok"`
 			Error float64 `json:"error"`
 		} `json:"bus_fanout"`
-		Modules []struct {
+		BusMaxBytes float64 `json:"bus_max_bytes"`
+		Modules     []struct {
 			Name        string   `json:"name"`
 			Domain      string   `json:"domain"`
 			Category    string   `json:"category"`
@@ -1007,6 +1070,9 @@ func handleStatus(ctx context.Context, client *apiClient, args []string) error {
 		}
 	}
 	if len(payload.BusFanout) > 0 {
+		if payload.BusMaxBytes > 0 {
+			fmt.Printf("Bus payload cap: %.0f bytes\n", payload.BusMaxBytes)
+		}
 		fmt.Println("Bus fan-out totals (since start):")
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
 		fmt.Fprintln(w, "KIND\tOK\tERROR")

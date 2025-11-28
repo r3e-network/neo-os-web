@@ -1,7 +1,8 @@
 # Engine Bus Quickstart
 
 Use the core engine bus to fan-out events/data/compute across all registered
-services. These endpoints require an API token or login.
+services. These endpoints require an **admin** token/JWT (non-admin/token-only
+callers are rejected).
 
 ## Endpoints
 - `POST /system/events` — `{ "event": "<name>", "payload": {...} }`
@@ -10,40 +11,40 @@ services. These endpoints require an API token or login.
 
 ## Quick commands (default dev-token)
 ```bash
-# Publish a pricefeed observation
-curl -H "Authorization: Bearer dev-token" \
+# Publish a pricefeed observation (admin JWT/token)
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
   -X POST http://localhost:8080/system/events \
   -d '{"event":"observation","payload":{"account_id":"<acct>","feed_id":"<feed>","price":"123.45","source":"manual"}}'
 
 # Publish a datafeed round update
-curl -H "Authorization: Bearer dev-token" \
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
   -X POST http://localhost:8080/system/events \
   -d '{"event":"update","payload":{"account_id":"<acct>","feed_id":"<feed>","price":"123.45","round_id":1}}'
 
 # Queue a datalink delivery
-curl -H "Authorization: Bearer dev-token" \
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
   -X POST http://localhost:8080/system/events \
   -d '{"event":"delivery","payload":{"account_id":"<acct>","channel_id":"<channel>","payload":{"hello":"world"},"metadata":{"trace":"demo"}}}'
 
 # Push a datastream frame
-curl -H "Authorization: Bearer dev-token" \
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
   -X POST http://localhost:8080/system/data \
   -d '{"topic":"<stream-id>","payload":{"price":123,"ts":"'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}}'
 
 # Fan-out a compute invoke (functions service)
-curl -H "Authorization: Bearer dev-token" \
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
   -X POST http://localhost:8080/system/compute \
   -d '{"payload":{"function_id":"<fn>","account_id":"<acct>","input":{"foo":"bar"}}}'
 ```
 
 ## CLI shortcuts
 ```bash
-slctl --token dev-token bus events --event observation --payload '{"account_id":"<acct>","feed_id":"<feed>","price":"123.45","source":"cli"}'
-slctl --token dev-token bus data --topic <stream-id> --payload '{"price":123}'
-slctl --token dev-token bus compute --payload '{"function_id":"<fn>","account_id":"<acct>","input":{"foo":"bar"}}'
+slctl --token $ADMIN_TOKEN bus events --event observation --payload '{"account_id":"<acct>","feed_id":"<feed>","price":"123.45","source":"cli"}'
+slctl --token $ADMIN_TOKEN bus data --topic <stream-id> --payload '{"price":123}'
+slctl --token $ADMIN_TOKEN bus compute --payload '{"function_id":"<fn>","account_id":"<acct>","input":{"foo":"bar"}}'
 # Fan-out health (prefer Prometheus when available; falls back to /system/status totals)
-slctl --token dev-token bus stats --prom-url http://localhost:9090 --range 10m
-slctl --token dev-token bus stats   # uses /system/status bus_fanout totals if Prom is unset
+slctl --token $ADMIN_TOKEN bus stats --prom-url http://localhost:9090 --range 10m
+slctl --token $ADMIN_TOKEN bus stats   # uses /system/status bus_fanout totals if Prom is unset
 ```
 
 ## Expected payload shapes
@@ -66,6 +67,7 @@ slctl --token dev-token bus stats   # uses /system/status bus_fanout totals if P
 
 ### Observability
 - `/system/status` exposes `bus_fanout` totals (ok/error per kind) for quick checks without Prometheus.
+- `/system/status` also includes `bus_max_bytes`; tune via `BUS_MAX_BYTES` (default 1 MiB) and align proxy limits.
 - Prometheus counter: `service_layer_engine_bus_fanout_total{kind,result}`. See `docs/alerts.md` for alert examples.
 ## Engine Status Examples
 

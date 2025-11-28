@@ -3,12 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "check": "tsc -b --noEmit"
+    "check": "tsc -b --noEmit",
+    "test:sdk": "npm test --prefix sdk/typescript/client",
+    "test:dashboard": "npm test --prefix apps/dashboard",
+    "typecheck:dashboard": "npm run typecheck --prefix apps/dashboard"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

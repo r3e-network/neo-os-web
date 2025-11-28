@@ -70,8 +70,11 @@ LISTEN_ADDR=:8080
 ### Optional Variables
 
 ```bash
+# Tenancy enforcement
+REQUIRE_TENANT_HEADER=true  # recommended to prevent missing-tenant leaks
+
 # Randomness
-RANDOM_SIGNING_KEY=<ed25519-private-key-base64>
+RANDOM_SIGNING_KEY=<ed25519-private-key-base64>  # recommended to keep signatures stable across restarts
 
 # Oracle integration
 ORACLE_TTL_SECONDS=300
@@ -106,6 +109,12 @@ ROCKETMQ_NAMESERVER=mq.example.com:9876
 ROCKETMQ_TOPIC_PREFIX=sl-prod
 ROCKETMQ_CONSUMER_GROUP=sl-prod-consumers
 ```
+
+### Supabase (self-hosted)
+- The runtime is Supabase-first: `DATABASE_URL` points at your self-hosted Supabase Postgres; missing/empty DSNs are fatal.
+- When enabling Supabase JWT auth, set `SUPABASE_JWT_SECRET` **and** `SUPABASE_GOTRUE_URL` so `/auth/refresh` proxies to your GoTrue instance. Role/tenant mapping comes from `SUPABASE_ADMIN_ROLES`, `SUPABASE_TENANT_CLAIM`, and `SUPABASE_ROLE_CLAIM`.
+- Compose shortcut: `docker compose --profile supabase up -d --build` (adds GoTrue/PostgREST/Kong/Studio to the core stack). `DATABASE_URL` is the canonical override across config/env/flags.
+- Smoke test: `make supabase-smoke` starts the Supabase profile and curls the appserver `/auth/refresh` (when `SUPABASE_REFRESH_TOKEN` is set) plus `/system/status` to confirm health.
 
 ---
 

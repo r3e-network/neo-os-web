@@ -3,11 +3,9 @@ import {
   Box,
   Container,
   Grid,
-  Card,
   CardContent,
   CardMedia,
   Typography,
-  Button,
   Chip,
   TextField,
   Select,
@@ -26,38 +24,29 @@ import {
   CircularProgress,
   Rating,
   Badge,
-  Divider,
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
-  Avatar,
   Accordion,
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
-import { ProfessionalCard, GradientButton, ModernChip, GlassContainer } from '../styles/styledComponents';
+import { ProfessionalCard, GradientButton, GlassContainer } from '../styles/styledComponents';
 import {
   Search as SearchIcon,
-  FilterList as FilterIcon,
   Clear as ClearIcon,
   Add as AddIcon,
   ShoppingCart as CartIcon,
   Timeline as TimelineIcon,
   AttachMoney as MoneyIcon,
   ExpandMore as ExpandMoreIcon,
-  Star as StarIcon,
   Business as BusinessIcon,
   Code as CodeIcon,
   DesignServices as DesignIcon,
   Analytics as AnalyticsIcon,
   Security as SecurityIcon,
   Cloud as CloudIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Chat as ChatIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import useServiceStore from '../stores/serviceStore';
 import { Service, ServiceRequest, ServiceCategory } from '../types/service';
 
@@ -91,14 +80,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'cloud': <CloudIcon />,
 };
 
-const supportIcons: Record<string, React.ReactNode> = {
-  'email': <EmailIcon />,
-  'phone': <PhoneIcon />,
-  'chat': <ChatIcon />,
-};
-
 export default function UserConsole() {
-  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [showServiceDialog, setShowServiceDialog] = useState(false);
@@ -114,7 +96,6 @@ export default function UserConsole() {
 
   // Service Store State
   const {
-    services,
     categories,
     featuredServices,
     popularServices,
@@ -128,8 +109,6 @@ export default function UserConsole() {
     selectedStatus,
     sortBy,
     sortOrder,
-    currentPage,
-    totalPages,
     filteredServices,
     setSearchQuery,
     setSelectedCategory,
@@ -137,9 +116,12 @@ export default function UserConsole() {
     setSelectedStatus,
     setSortBy,
     setSortOrder,
-    setCurrentPage,
     clearFilters,
     addUserRequest,
+    setServices,
+    setCategories,
+    setFeaturedServices,
+    setPopularServices,
   } = useServiceStore();
 
   useEffect(() => {
@@ -288,8 +270,12 @@ export default function UserConsole() {
     ];
 
     // Initialize store with mock data
+    setServices(mockServices);
+    setCategories(mockCategories);
+    setFeaturedServices(mockServices.slice(0, 2));
+    setPopularServices(mockServices.slice(0, 2));
     // In a real app, this would be API calls
-  }, []);
+  }, [setCategories, setFeaturedServices, setPopularServices, setServices]);
 
   const handleServiceClick = (service: Service) => {
     setSelectedService(service);

@@ -204,6 +204,26 @@ func TestLoad_WithEnvOverride(t *testing.T) {
 	}
 }
 
+func TestLoad_AppliesDatabaseURLEnv(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	yamlContent := `database: { dsn: "postgres://file-dsn" }`
+	if err := os.WriteFile(path, []byte(yamlContent), 0644); err != nil {
+		t.Fatalf("write temp file: %v", err)
+	}
+
+	t.Setenv("CONFIG_FILE", path)
+	t.Setenv("DATABASE_URL", "postgres://env-dsn")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load error: %v", err)
+	}
+	if cfg.Database.DSN != "postgres://env-dsn" {
+		t.Fatalf("expected DATABASE_URL override, got %q", cfg.Database.DSN)
+	}
+}
+
 func TestLoad_WithConfigFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test_config.yaml")
@@ -229,6 +249,24 @@ server:
 	}
 	if cfg.Server.Port != 4000 {
 		t.Errorf("expected port from config file, got %d", cfg.Server.Port)
+	}
+}
+
+func TestLoadConfig_AppliesDatabaseURLEnv(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "cfg.json")
+	jsonContent := `{"database": {"dsn": "postgres://file-dsn"}}`
+	if err := os.WriteFile(path, []byte(jsonContent), 0644); err != nil {
+		t.Fatalf("write temp file: %v", err)
+	}
+	t.Setenv("DATABASE_URL", "postgres://env-dsn")
+
+	cfg, err := LoadConfig(path)
+	if err != nil {
+		t.Fatalf("LoadConfig error: %v", err)
+	}
+	if cfg.Database.DSN != "postgres://env-dsn" {
+		t.Fatalf("expected DATABASE_URL override, got %q", cfg.Database.DSN)
 	}
 }
 

@@ -18,7 +18,7 @@ import { Check, Phone, Email, ArrowBack } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 
 const ServiceDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>()
+  const { id: _serviceId } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   // Mock service data - in a real app, this would come from API

@@ -1,6 +1,6 @@
 # JAM External Blob Store (S3) Design
 
-Purpose: move JAM preimage storage out of Postgres/in-memory into an S3-compatible object store, while keeping metadata and hash validation intact.
+Purpose: move JAM preimage storage out of Supabase Postgres into an S3-compatible object store, while keeping metadata and hash validation intact.
 
 ## Goals
 - Store preimage bytes in an object store keyed by hash.

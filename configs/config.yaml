@@ -6,12 +6,13 @@ server:
   port: 8080
 
 database:
-  # When dsn is empty the runtime falls back to in-memory storage.
   driver: "postgres"
-  dsn: "postgres://service_layer:service_layer@localhost:5432/service_layer?sslmode=disable"
+  dsn: "postgres://supabase_admin:supabase_pass@localhost:5432/service_layer?sslmode=disable"
   max_open_conns: 10
   max_idle_conns: 5
   conn_max_lifetime: 300
+  # Set to true to run migrations automatically on startup (requires PostgreSQL).
+  migrate_on_start: false
 
 logging:
   level: "info"   # debug, info, warn, error
@@ -33,7 +34,8 @@ runtime:
   slow_module_threshold_ms: 1000
   random:
     # Optional base64/hex encoded ed25519 private key for deterministic random
-    # signatures. Leave empty to auto-generate ephemeral keys on startup.
+    # signatures. Leave empty to auto-generate ephemeral keys on startup
+    # (NOT recommended for production; set a persistent key to keep signatures stable).
     signing_key: ""
   pricefeed:
     # Configure the HTTP fetcher for refreshing price feeds. Leave fetch_url
@@ -64,6 +66,8 @@ runtime:
     min_signers: 0
     # Default aggregation strategy for submissions (median|mean|min|max).
     aggregation: "median"
+  # Bus payload cap for /system/events|data|compute. Prefer env override BUS_MAX_BYTES.
+  bus_max_bytes: 1048576
   cre:
     # Set to true to enable the HTTP CRE runner.
     http_runner: false
@@ -123,6 +127,21 @@ auth:
   # API_TOKENS / API_TOKEN environment variables for runtime overrides.
   tokens:
     - "dev-token"   # Local-only default; override in production.
+  # Validate JWTs issued by your self-hosted Supabase (GoTrue). When set,
+  # bearer tokens remain accepted and /auth/login will also reuse this secret
+  # if jwt_secret is empty.
+  supabase_jwt_secret: "***REMOVED***"
+  # Optional audience to enforce (matches Supabase default).
+  supabase_jwt_aud: "authenticated"
+  # Optional list of Supabase roles treated as admin inside the Service Layer.
+  supabase_admin_roles: ["service_role", "admin"]
+  # Optional claim path (supports dot notation, e.g., app_metadata.tenant) to
+  # derive the tenant from Supabase JWTs when X-Tenant-ID is absent.
+  supabase_tenant_claim: "app_metadata.tenant"
+  # Optional claim path to derive the role from Supabase JWTs (dot notation).
+  supabase_role_claim: "app_metadata.role"
+  # Optional GoTrue base URL for refresh token proxy (/auth/refresh).
+  supabase_gotrue_url: "http://supabase-gotrue:9999"
   # JWT secret and users enable /auth/login for dashboard/console logins.
   jwt_secret: "***REMOVED***"
   users:

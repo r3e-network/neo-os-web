@@ -81,7 +81,7 @@ Scope: document the current JAM prototype endpoints, payloads, and expectations 
 
 ### Processing
 - `POST /jam/process`
-  - Processes the next pending package (refine → attest → accumulate). Uses the in-memory/PG store and the configured engine (hash-refiner + static attestor in prototype).
+- Processes the next pending package (refine → attest → accumulate). Uses the Supabase-backed store and the configured engine (hash-refiner + static attestor in prototype).
   - Response: `200 {"processed": true}` when a package was processed; `204 No Content` when no pending work; `400` if processing fails.
 
 ## Status Surface

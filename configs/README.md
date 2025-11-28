@@ -10,9 +10,17 @@ environments.
   edit sections before passing `-config configs/config.yaml`.
 - `examples/appserver.json` – JSON version used in documentation snippets.
 - `prometheus.yml` – example scrape config aligned with the `/metrics` surface.
+- `config.migrate.yaml` – starter with `database.migrate_on_start: true` for teams that prefer auto-migrations at boot (PostgreSQL only).
 
 Always update the specification first when adding/removing configuration fields. File
 paths are workspace-relative; you can use absolute paths if preferred.
+
+## Database Block
+
+- Persistence is Supabase-first: set `database.dsn` or export `DATABASE_URL` (preferred) to point at your self-hosted Supabase Postgres. The runtime has no in-memory fallback outside of tests.
+- `DATABASE_URL` overrides any file-based DSN automatically so Compose or `.env` values apply consistently.
+- TLS: set `sslmode=require` in `DATABASE_URL` for production. Connection pool knobs mirror the config fields (`max_open_conns`, `max_idle_conns`, `conn_max_lifetime`).
+- `migrate_on_start` (bool, default false): run migrations automatically at startup. Requires PostgreSQL connectivity and is best left off in shared envs unless coordinated. Use `upgrades/on` workflows or `migrate` binaries for controlled rollouts in prod.
 
 ## Runtime Block
 
@@ -22,7 +30,8 @@ variables for the orchestration runtime:
 - `tee.mode` — selects between the mock executor (`"mock"`) and the enclave
   executor (`"enclave"`, or leave empty).
 - `random.signing_key` — optional ed25519 private key for deterministic random
-  responses (base64 or hex encoded).
+  responses (base64 or hex encoded). Recommended to set in production so
+  randomness signatures remain stable across restarts.
 - `pricefeed.fetch_url` / `pricefeed.fetch_key` — configure the background price
   feed refresher HTTP fetcher.
 - `gasbank.resolver_url` / `gasbank.resolver_key` — configure the settlement
@@ -40,6 +49,9 @@ variables for the orchestration runtime:
 - `datastreams` / `datalink` — currently rely on service defaults; no runtime
   toggles are required.
 - `cre.http_runner` — enables the HTTP CRE runner integration.
+- Env-only toggles:
+  - `REQUIRE_TENANT_HEADER=true` to hard-enforce tenant headers across authenticated requests (recommended for production).
+  - `BUS_MAX_BYTES` to cap `/system/events|data|compute` payload sizes (default 1 MiB).
 
 Every field still honours its corresponding environment variable, so you can
 mix-and-match config files and env overrides as needed.
@@ -57,14 +69,33 @@ public for probes/discovery. Local defaults set `API_TOKENS=dev-token` and
 for any shared environment. JWT tokens and static tokens can be supplied via
 `Authorization: Bearer ...` headers. Avoid query parameters for tokens.
 
+Supabase JWTs: set `supabase_jwt_secret` (or `SUPABASE_JWT_SECRET`) to accept
+tokens issued by your self-hosted Supabase GoTrue; optionally set
+`supabase_jwt_aud` (defaults to `authenticated`). When `jwt_secret` is empty,
+the Supabase JWT secret is reused for `/auth/login` and wallet challenges so
+you only manage a single signing key.
+`supabase_gotrue_url` (`SUPABASE_GOTRUE_URL`) is required when `supabase_jwt_secret` is set to enable refresh token proxying and enforce self-hosted GoTrue.
+You can also map Supabase roles to admin by setting `supabase_admin_roles`
+(`SUPABASE_ADMIN_ROLES=service_role,admin`); any JWT with a matching role
+is elevated to `admin` inside the Service Layer.
+To derive tenant IDs from JWTs (when `X-Tenant-ID` is not provided), set
+`supabase_tenant_claim` (or `SUPABASE_TENANT_CLAIM`) to a claim path such as
+`app_metadata.tenant`.
+To derive roles from a custom claim, set `supabase_role_claim`
+(`SUPABASE_ROLE_CLAIM`, e.g., `app_metadata.role`); admin role mapping is
+applied after role extraction.
+To enable refresh token proxying for dashboards/CLI, set
+`supabase_gotrue_url` (or `SUPABASE_GOTRUE_URL`); `/auth/refresh` will forward
+refresh tokens to GoTrue and return the response.
+
 ## Auditing
-- The HTTP layer keeps a rolling in-memory audit buffer (latest 300 entries).
-- To persist audits, set `AUDIT_LOG_PATH=/var/log/service-layer-audit.jsonl` (JSONL output). When PostgreSQL is configured, audits are also written to the `http_audit_log` table automatically.
+- The HTTP layer keeps a rolling audit buffer (latest 300 entries) in memory alongside persisted rows.
+- To persist audits, set `AUDIT_LOG_PATH=/var/log/service-layer-audit.jsonl` (JSONL output). Audits are always written to the `http_audit_log` table in Supabase Postgres.
 - Admin-only `/admin/audit?limit=200` returns recent entries; the dashboard Admin panel renders the most recent 20. Admin JWT is required (token-only auth is not admin).
 
 ## Security Block
 
 The `security` section holds the AES key used to encrypt secrets at rest. The
 `secret_encryption_key` accepts raw, base64, or hex encodings for 16/24/32 byte
-keys. When persistence is enabled (PostgreSQL stores), this field or the
+keys. When persistence is enabled (Supabase Postgres), this field or the
 `SECRET_ENCRYPTION_KEY` environment variable must be set.

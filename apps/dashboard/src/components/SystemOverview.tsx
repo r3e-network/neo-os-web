@@ -42,6 +42,8 @@ type Props = {
   busFanout?: Record<string, { ok?: number; error?: number }>;
   busFanoutRecent?: Record<string, { ok?: number; error?: number }>;
   busFanoutRecentWindowSeconds?: number;
+  busMaxBytes?: number;
+  busMaxBytesWarning?: string;
   metrics?: Metrics;
   activeSurface?: string;
   activeLayer?: string;
@@ -78,6 +80,8 @@ export function SystemOverview({
   busFanout,
   busFanoutRecent,
   busFanoutRecentWindowSeconds,
+  busMaxBytes,
+  busMaxBytesWarning,
   metrics,
   activeSurface,
   activeLayer,
@@ -221,10 +225,33 @@ export function SystemOverview({
         </div>
       )}
 
+      {(() => {
+        const defaultCap = 1 << 20; // 1 MiB
+        if (!busMaxBytes || busMaxBytes <= 0) {
+          return (
+            <div className="notice warning">
+              Bus payload cap not reported; default 1 MiB applies. Set BUS_MAX_BYTES to tune and match proxy limits.
+            </div>
+          );
+        }
+        if (busMaxBytesWarning) {
+          return <div className="notice warning">{busMaxBytesWarning}</div>;
+        }
+        if (busMaxBytes > defaultCap) {
+          return (
+            <div className="notice info">
+              Bus payload cap set to {busMaxBytes.toLocaleString()} bytes. Ensure edge limits match this value.
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       <SystemBusCards
         busFanout={busFanout}
         busFanoutRecent={busFanoutRecent}
         busFanoutRecentWindowSeconds={busFanoutRecentWindowSeconds}
+        busMaxBytes={busMaxBytes}
       />
       <SystemNeoCard neo={neo} />
       <SystemJamCard jam={jam} />

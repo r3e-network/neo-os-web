@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
 	app "github.com/R3E-Network/service_layer/internal/app"
+	"github.com/R3E-Network/service_layer/internal/app/auth"
 	"github.com/R3E-Network/service_layer/internal/app/jam"
 	"github.com/R3E-Network/service_layer/internal/domain/automation"
 	domainccip "github.com/R3E-Network/service_layer/internal/domain/ccip"
@@ -28,6 +30,7 @@ import (
 )
 
 const testAuthToken = "test-token"
+const adminAuthToken = "admin-token"
 
 const (
 	testWalletABC123      = "0xabc123abc123abc123abc123abc123abc123abcd"
@@ -47,8 +50,14 @@ var (
 	testLogger = logger.NewDefault("test")
 )
 
+type staticAdminValidator struct{}
+
+func (staticAdminValidator) Validate(string) (*auth.Claims, error) {
+	return &auth.Claims{Username: "admin", Role: "admin"}, nil
+}
+
 func TestJAMEndpointsEnabled(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -136,7 +145,7 @@ func TestJAMEndpointsEnabled(t *testing.T) {
 }
 
 func TestHandlerLifecycle(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -757,7 +766,7 @@ func TestHandlerLifecycle(t *testing.T) {
 }
 
 func TestSystemDescriptors(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -780,7 +789,7 @@ func TestSystemDescriptors(t *testing.T) {
 }
 
 func TestWorkspaceWallets(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -843,7 +852,7 @@ func TestWorkspaceWallets(t *testing.T) {
 }
 
 func TestCREPlaybooksAndRunsHTTP(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -901,7 +910,7 @@ func TestCREPlaybooksAndRunsHTTP(t *testing.T) {
 }
 
 func TestTenantIsolationEnforced(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -933,7 +942,7 @@ func TestTenantIsolationEnforced(t *testing.T) {
 }
 
 func TestDataFeedsWalletGatedHTTP(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -996,7 +1005,7 @@ func TestDataFeedsWalletGatedHTTP(t *testing.T) {
 }
 
 func TestVRFWalletGatedHTTP(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1047,7 +1056,7 @@ func TestVRFWalletGatedHTTP(t *testing.T) {
 }
 
 func TestDataLinkChannelAndDeliveryHTTP(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1100,7 +1109,7 @@ func TestDataLinkChannelAndDeliveryHTTP(t *testing.T) {
 }
 
 func TestCCIPLaneAndMessageHTTP(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1153,7 +1162,7 @@ func TestCCIPLaneAndMessageHTTP(t *testing.T) {
 }
 
 func TestDataStreamsHTTP(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1189,7 +1198,7 @@ func TestDataStreamsHTTP(t *testing.T) {
 }
 
 func TestConfidentialComputeHTTP(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1230,7 +1239,7 @@ func TestConfidentialComputeHTTP(t *testing.T) {
 }
 
 func TestDTAWalletGatedHTTP(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1275,7 +1284,7 @@ func TestDTAWalletGatedHTTP(t *testing.T) {
 }
 
 func TestCCIPLanesRequireRegisteredSigner(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1333,7 +1342,7 @@ func TestCCIPLanesRequireRegisteredSigner(t *testing.T) {
 }
 
 func TestHandlerAuthRequired(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1348,7 +1357,7 @@ func TestHandlerAuthRequired(t *testing.T) {
 }
 
 func TestHandler_PreventCrossAccountExecution(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1397,7 +1406,7 @@ func TestHandler_PreventCrossAccountExecution(t *testing.T) {
 }
 
 func TestIntegration_AutomationExecutesFunction(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1499,6 +1508,19 @@ func authedRequestWithTenant(method, url, tenant string, body []byte) *http.Requ
 	return req
 }
 
+func adminRequest(method, url string, body []byte) *http.Request {
+	var reader *bytes.Reader
+	if body != nil {
+		reader = bytes.NewReader(body)
+	} else {
+		reader = bytes.NewReader(nil)
+	}
+	req := httptest.NewRequest(method, url, reader)
+	req.Header.Set("Authorization", "Bearer "+adminAuthToken)
+	req.Header.Set("X-Tenant-ID", "tenant-a")
+	return req
+}
+
 func marshal(v any) []byte {
 	buf, _ := json.Marshal(v)
 	return buf
@@ -1526,7 +1548,7 @@ func createAccountWithTenant(t *testing.T, handler http.Handler, owner, tenant s
 }
 
 func TestSystemStatusModules(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1558,7 +1580,7 @@ func TestSystemStatusModules(t *testing.T) {
 }
 
 func TestSystemStatusModuleSummaryUsesInterfaces(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1620,7 +1642,7 @@ func TestSystemStatusModuleSummaryUsesInterfaces(t *testing.T) {
 }
 
 func TestSystemStatusAPISummary(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1694,7 +1716,7 @@ func (e eventCapableModule) Subscribe(ctx context.Context, event string, handler
 func (e eventCapableModule) HasEvent() bool { return e.enabled }
 
 func TestSystemStatusRespectsEngineCapabilities(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1732,7 +1754,7 @@ func TestSystemStatusRespectsEngineCapabilities(t *testing.T) {
 }
 
 func TestSystemStatusModuleMeta(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1784,7 +1806,7 @@ func TestSystemStatusModuleMeta(t *testing.T) {
 // Ensures slow threshold can be overridden via env.
 func TestSystemStatusSlowThresholdEnv(t *testing.T) {
 	t.Setenv("MODULE_SLOW_MS", "5000")
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1821,7 +1843,7 @@ func TestSystemStatusSlowThresholdEnv(t *testing.T) {
 }
 
 func TestSystemStatusIncludesListenAddr(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1844,7 +1866,7 @@ func TestSystemStatusIncludesListenAddr(t *testing.T) {
 }
 
 func TestSystemStatusMethodGuard(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1861,7 +1883,7 @@ func TestSystemStatusMethodGuard(t *testing.T) {
 }
 
 func TestSystemBusEvents(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1873,14 +1895,14 @@ func TestSystemBusEvents(t *testing.T) {
 		gotPayload = payload
 		return nil
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(publish, nil, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(publish, nil, nil)), nil, testLogger, staticAdminValidator{})
 
 	resp := httptest.NewRecorder()
 	body := marshal(map[string]any{
 		"event":   "observation",
 		"payload": map[string]any{"price": "1.23"},
 	})
-	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/system/events", body))
+	handler.ServeHTTP(resp, adminRequest(http.MethodPost, "/system/events", body))
 	assertStatus(t, resp, http.StatusOK)
 	if gotEvent != "observation" {
 		t.Fatalf("expected event propagated, got %s", gotEvent)
@@ -1891,15 +1913,15 @@ func TestSystemBusEvents(t *testing.T) {
 }
 
 func TestSystemBusEventsMethodGuard(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
 	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), nil, testLogger, staticAdminValidator{})
 
 	resp := httptest.NewRecorder()
-	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/events", nil))
+	handler.ServeHTTP(resp, adminRequest(http.MethodGet, "/system/events", nil))
 	assertStatus(t, resp, http.StatusMethodNotAllowed)
 	if allow := resp.Header().Get("Allow"); allow != http.MethodPost {
 		t.Fatalf("expected Allow header %s, got %q", http.MethodPost, allow)
@@ -1907,7 +1929,7 @@ func TestSystemBusEventsMethodGuard(t *testing.T) {
 }
 
 func TestSystemBusCompute(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1920,11 +1942,11 @@ func TestSystemBusCompute(t *testing.T) {
 			{Module: "compute-fail", Error: "boom"},
 		}, fmt.Errorf("aggregate failure")
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, nil, invoker)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, nil, invoker)), nil, testLogger, staticAdminValidator{})
 
 	resp := httptest.NewRecorder()
 	body := marshal(map[string]any{"payload": map[string]any{"job": 1}})
-	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/system/compute", body))
+	handler.ServeHTTP(resp, adminRequest(http.MethodPost, "/system/compute", body))
 	if resp.Code != http.StatusInternalServerError {
 		t.Fatalf("expected compute fan-out to bubble error as 500, got %d", resp.Code)
 	}
@@ -1944,7 +1966,7 @@ func TestSystemBusCompute(t *testing.T) {
 }
 
 func TestAuthLoginMethodGuard(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1960,7 +1982,7 @@ func TestAuthLoginMethodGuard(t *testing.T) {
 }
 
 func TestSystemBusData(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -1972,22 +1994,63 @@ func TestSystemBusData(t *testing.T) {
 		gotPayload = payload
 		return nil
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, push, nil)), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, push, nil)), nil, testLogger, staticAdminValidator{})
 
 	resp := httptest.NewRecorder()
 	body := marshal(map[string]any{
 		"topic":   "stream-1",
 		"payload": map[string]any{"value": 123},
 	})
-	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/system/data", body))
+	handler.ServeHTTP(resp, adminRequest(http.MethodPost, "/system/data", body))
 	assertStatus(t, resp, http.StatusOK)
 	if gotTopic != "stream-1" || gotPayload == nil {
 		t.Fatalf("expected data bus to receive topic and payload, got %s %+v", gotTopic, gotPayload)
 	}
 }
 
+func TestSystemBusPayloadLimit(t *testing.T) {
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(func(ctx context.Context, event string, payload any) error {
+		return nil
+	}, nil, nil), WithBusMaxBytes(32)), nil, testLogger, staticAdminValidator{})
+
+	req := adminRequest(http.MethodPost, "/system/events", marshal(map[string]any{
+		"event":   "big",
+		"payload": strings.Repeat("a", 1024),
+	}))
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, req)
+	if resp.Code != http.StatusBadRequest && resp.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected payload limit rejection, got %d (%s)", resp.Code, resp.Body.String())
+	}
+}
+
+func TestSystemBusRequiresAdminRole(t *testing.T) {
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
+	if err != nil {
+		t.Fatalf("new application: %v", err)
+	}
+	audit := newAuditLog(10, nil)
+	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(func(ctx context.Context, event string, payload any) error {
+		return nil
+	}, nil, nil)), authTokens, testLogger, nil)
+
+	resp := httptest.NewRecorder()
+	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/system/events", marshal(map[string]any{
+		"event":   "test",
+		"payload": map[string]any{"value": 1},
+	})))
+	if resp.Code != http.StatusForbidden {
+		t.Fatalf("expected admin-only bus to forbid non-admin, got %d", resp.Code)
+	}
+}
+
 func TestReadyzAndLivez(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}

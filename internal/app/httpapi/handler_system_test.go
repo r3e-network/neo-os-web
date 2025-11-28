@@ -12,7 +12,7 @@ import (
 )
 
 func TestSystemDescriptorsIncludeEngineModules(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}

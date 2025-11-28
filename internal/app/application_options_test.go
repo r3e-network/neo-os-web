@@ -21,6 +21,7 @@ func TestResolveBuilderOptions_FromEnvironment(t *testing.T) {
 		"GASBANK_RESOLVER_URL": "https://gas",
 		"GASBANK_RESOLVER_KEY": "resolver",
 		"CRE_HTTP_RUNNER":      "true",
+		"BUS_MAX_BYTES":        "2048",
 	}
 	resolved := resolveBuilderOptions(WithEnvironment(env))
 	if resolved.runtime.teeMode != "mock" {
@@ -37,6 +38,9 @@ func TestResolveBuilderOptions_FromEnvironment(t *testing.T) {
 	}
 	if resolved.runtime.gasBankResolverKey != "resolver" {
 		t.Fatalf("gas bank resolver key not captured")
+	}
+	if resolved.runtime.busMaxBytes != 2048 {
+		t.Fatalf("bus max bytes not captured, got %d", resolved.runtime.busMaxBytes)
 	}
 }
 

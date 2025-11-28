@@ -34,6 +34,7 @@ type handler struct {
 	jamAuth          []string
 	jamStore         jam.PackageStore
 	neo              neoProvider
+	supabaseGoTrueURL string
 	authManager      authManager
 	audit            *auditLog
 	modulesFn        ModuleProvider
@@ -42,6 +43,7 @@ type handler struct {
 	invoke           ComputeInvoker
 	listenAddr       func() string
 	slowMS           float64
+	busMaxBytes      int64
 	rpcEngines       func() []engine.RPCEngine
 	rpcPolicy        *rpcPolicy
 	rpcMu            sync.Mutex
@@ -58,8 +60,28 @@ type authManager interface {
 	VerifyWalletSignature(wallet, signature, pubKey string) (auth.User, error)
 }
 
+func parseMaxBytes(value string, def int64) int64 {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return def
+	}
+	if n, err := strconv.ParseInt(value, 10, 64); err == nil && n > 0 {
+		return n
+	}
+	return def
+}
+
 // HandlerOption customizes handler behaviour.
 type HandlerOption func(*handler)
+
+// WithBusMaxBytes caps request bodies for bus endpoints.
+func WithBusMaxBytes(limit int64) HandlerOption {
+	return func(h *handler) {
+		if limit > 0 {
+			h.busMaxBytes = limit
+		}
+	}
+}
 
 // WithBusEndpoints wires engine fan-out helpers for /system bus endpoints.
 func WithBusEndpoints(publish BusPublisher, push BusPusher, invoke ComputeInvoker) HandlerOption {
@@ -74,6 +96,15 @@ func WithBusEndpoints(publish BusPublisher, push BusPusher, invoke ComputeInvoke
 func WithListenAddrProvider(provider func() string) HandlerOption {
 	return func(h *handler) {
 		h.listenAddr = provider
+	}
+}
+
+// WithHandlerSupabaseGoTrueURL wires the configured self-hosted GoTrue base URL for refresh proxying.
+func WithHandlerSupabaseGoTrueURL(url string) HandlerOption {
+	return func(h *handler) {
+		if trimmed := strings.TrimSpace(url); trimmed != "" {
+			h.supabaseGoTrueURL = trimmed
+		}
 	}
 }
 
@@ -121,7 +152,7 @@ func NewHandler(
 	opts ...HandlerOption,
 ) http.Handler {
 	jamCfg.Normalize()
-	h := &handler{app: application, jamCfg: jamCfg, jamAuth: tokens, authManager: authMgr, audit: audit, neo: neo, modulesFn: modules}
+	h := &handler{app: application, jamCfg: jamCfg, jamAuth: tokens, authManager: authMgr, audit: audit, neo: neo, modulesFn: modules, busMaxBytes: parseMaxBytes(os.Getenv("BUS_MAX_BYTES"), 1<<20)}
 	for _, opt := range opts {
 		if opt != nil {
 			opt(h)
@@ -151,6 +182,7 @@ func NewHandler(
 		route{pattern: "/neo/storage-diff/", method: http.MethodGet, handler: h.neoStorageDiff},
 		route{pattern: "/neo/storage-summary/", method: http.MethodGet, handler: h.neoStorageSummary},
 		route{pattern: "/auth/login", method: http.MethodPost, handler: h.login},
+		route{pattern: "/auth/refresh", method: http.MethodPost, handler: h.refresh},
 		route{pattern: "/auth/wallet/challenge", method: http.MethodPost, handler: h.walletChallenge},
 		route{pattern: "/auth/wallet/login", method: http.MethodPost, handler: h.walletLogin},
 		route{pattern: "/auth/whoami", method: http.MethodGet, handler: h.whoami},

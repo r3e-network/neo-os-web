@@ -315,7 +315,10 @@ export function SystemModulesCard({
           <li key={m.name}>
             <div className="row">
               <div>
-                <strong>{m.name}</strong>{" "}
+                <strong>{m.label || m.name}</strong>{" "}
+                {m.label && m.label !== m.name && (
+                  <span className="tag subtle">{m.name}</span>
+                )}
                 {m.domain && <span className="tag">{m.domain}</span>}{" "}
                 {m.category && (
                   <span className="tag subdued">{m.category}</span>
@@ -324,27 +327,32 @@ export function SystemModulesCard({
                 {m.interfaces && m.interfaces.length > 0 && (
                   <span className="tag subtle">{m.interfaces.join(",")}</span>
                 )}
-                {m.apis && m.apis.length > 0 && (
-                  <span className="tag subtle">
-                    apis{" "}
-                    {m.apis
-                      .map((api) => {
-                        const label = (api.surface || api.name || "").trim();
-                        const stable = (api.stability || "").toLowerCase();
-                        if (!label) return "";
-                        return stable && stable !== "stable"
-                          ? `${label}(${stable})`
-                          : label;
-                      })
-                      .filter(Boolean)
-                      .join(",")}
-                  </span>
-                )}
-                {modulesPermissions?.[m.name] &&
-                  modulesPermissions[m.name].length > 0 && (
-                    <span
-                      className="tag subtle"
-                      title={`Bus permissions: ${modulesPermissions[m.name].join(",")}`}
+              {m.apis && m.apis.length > 0 && (
+                <span className="tag subtle">
+                  apis{" "}
+                  {m.apis
+                    .map((api) => {
+                      const label = (api.surface || api.name || "").trim();
+                      const stable = (api.stability || "").toLowerCase();
+                      if (!label) return "";
+                      return stable && stable !== "stable"
+                        ? `${label}(${stable})`
+                        : label;
+                    })
+                    .filter(Boolean)
+                    .join(",")}
+                </span>
+              )}
+              {m.capabilities && m.capabilities.length > 0 && (
+                <span className="tag subtle">
+                  caps {m.capabilities.join(",")}
+                </span>
+              )}
+              {modulesPermissions?.[m.name] &&
+                modulesPermissions[m.name].length > 0 && (
+                  <span
+                    className="tag subtle"
+                    title={`Bus permissions: ${modulesPermissions[m.name].join(",")}`}
                     >
                       perms ({modulesPermissions[m.name].length})
                     </span>

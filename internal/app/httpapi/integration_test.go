@@ -16,7 +16,7 @@ import (
 
 // Basic HTTP integration smoke test covering health, auth, accounts, wallets, datafeeds, secrets, oracle, audit, random, datalink.
 func TestIntegrationHTTPAPI(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}

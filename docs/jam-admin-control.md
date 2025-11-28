@@ -25,7 +25,7 @@ Purpose: define administrative controls for JAM beyond the public operator endpo
   - `POST /jam/admin/cleanup/run` — trigger retention cleanup now (PG only).
   - `GET /jam/admin/cleanup/status` — last run time/results.
 - **Feature Toggles (optional)**
-  - `POST /jam/admin/toggles` body `{enabled: bool, rate_limit_per_minute: int, max_preimage_bytes: int64, max_pending_packages: int}` — adjust runtime without restart (in-memory overrides).
+  - `POST /jam/admin/toggles` body `{enabled: bool, rate_limit_per_minute: int, max_preimage_bytes: int64, max_pending_packages: int}` — adjust runtime without restart (persisted; no in-memory overrides).
   - `GET /jam/admin/toggles` — current overrides.
 
 ## Response/Errors

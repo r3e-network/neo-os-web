@@ -9,7 +9,7 @@ import (
 )
 
 func TestApplicationLifecycle(t *testing.T) {
-	application, err := New(Stores{}, nil)
+	application, err := New(NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}

@@ -3,9 +3,12 @@ package httpapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 )
+
+const defaultBusMaxBytes = int64(1 << 20) // 1 MiB
 
 // systemEvents publishes an event to all EventEngines via the core engine fan-out.
 func (h *handler) systemEvents(w http.ResponseWriter, r *http.Request) {
@@ -13,11 +16,17 @@ func (h *handler) systemEvents(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "event bus not available", http.StatusNotImplemented)
 		return
 	}
+	if !requireAdminRole(w, r) {
+		return
+	}
 	var req struct {
 		Event   string `json:"event"`
 		Payload any    `json:"payload"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	limited := h.limitedBody(w, r)
+	defer limited.Close()
+	dec := json.NewDecoder(limited)
+	if err := dec.Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("invalid payload: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -38,11 +47,17 @@ func (h *handler) systemData(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "data bus not available", http.StatusNotImplemented)
 		return
 	}
+	if !requireAdminRole(w, r) {
+		return
+	}
 	var req struct {
 		Topic   string `json:"topic"`
 		Payload any    `json:"payload"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	limited := h.limitedBody(w, r)
+	defer limited.Close()
+	dec := json.NewDecoder(limited)
+	if err := dec.Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("invalid payload: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -63,10 +78,16 @@ func (h *handler) systemCompute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "compute fan-out not available", http.StatusNotImplemented)
 		return
 	}
+	if !requireAdminRole(w, r) {
+		return
+	}
 	var req struct {
 		Payload any `json:"payload"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	limited := h.limitedBody(w, r)
+	defer limited.Close()
+	dec := json.NewDecoder(limited)
+	if err := dec.Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("invalid payload: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -90,4 +111,21 @@ func errString(err error) string {
 		return ""
 	}
 	return err.Error()
+}
+
+func (h *handler) limitedBody(w http.ResponseWriter, r *http.Request) io.ReadCloser {
+	limit := h.busMaxBytes
+	if limit <= 0 {
+		limit = defaultBusMaxBytes
+	}
+	return http.MaxBytesReader(w, r.Body, limit)
+}
+
+func requireAdminRole(w http.ResponseWriter, r *http.Request) bool {
+	role, _ := r.Context().Value(ctxRoleKey).(string)
+	if role != "admin" {
+		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: admin only"))
+		return false
+	}
+	return true
 }

@@ -58,6 +58,9 @@ spec:
               value: {{ .Values.config.logging.level }}
             - name: LOG_FORMAT
               value: {{ .Values.config.logging.format }}
+            # Supabase-first: DATABASE_URL supersedes host/port/user/name.
+            - name: DATABASE_URL
+              value: {{ .Values.config.database.dsn | quote }}
             - name: DATABASE_HOST
               value: {{ .Values.config.database.host }}
             - name: DATABASE_PORT
@@ -76,11 +79,29 @@ spec:
                 secretKeyRef:
                   name: {{ include "service-layer.secretsName" . }}
                   key: jwt-secret
+            - name: SECRET_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "service-layer.secretsName" . }}
+                  key: encryption-key
+            # Backward compatibility for older configs expecting SECURITY_ENCRYPTION_KEY.
             - name: SECURITY_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "service-layer.secretsName" . }}
                   key: encryption-key
+            - name: SUPABASE_JWT_SECRET
+              value: {{ .Values.config.auth.supabase_jwt_secret | quote }}
+            - name: SUPABASE_JWT_AUD
+              value: {{ .Values.config.auth.supabase_jwt_aud | quote }}
+            - name: SUPABASE_ADMIN_ROLES
+              value: {{ .Values.config.auth.supabase_admin_roles | quote }}
+            - name: SUPABASE_TENANT_CLAIM
+              value: {{ .Values.config.auth.supabase_tenant_claim | quote }}
+            - name: SUPABASE_ROLE_CLAIM
+              value: {{ .Values.config.auth.supabase_role_claim | quote }}
+            - name: SUPABASE_GOTRUE_URL
+              value: {{ .Values.config.auth.supabase_gotrue_url | quote }}
           volumeMounts:
             - name: config-volume
               mountPath: /app/config

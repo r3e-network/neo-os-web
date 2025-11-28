@@ -19,7 +19,7 @@ import (
 
 func main() {
 	addr := flag.String("addr", "", "HTTP listen address (defaults to config or :8080)")
-	dsn := flag.String("dsn", "", "PostgreSQL DSN (overrides config/env; in-memory storage when empty)")
+	dsn := flag.String("dsn", "", "PostgreSQL DSN (Supabase) required; no in-memory fallback")
 	configPath := flag.String("config", "", "Path to configuration file (JSON or YAML)")
 	runMigrations := flag.Bool("migrate", true, "run embedded database migrations on startup (ignored for in-memory)")
 	apiTokensFlag := flag.String("api-tokens", "", "comma-separated API tokens for HTTP authentication")

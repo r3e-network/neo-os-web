@@ -110,6 +110,8 @@ cd service_layer
 
 # Install dependencies
 go mod download
+# Node.js 20+ (use `nvm use` from repo root to match CI)
+nvm use 2>/dev/null || true
 ```
 
 ### Project Structure
@@ -139,17 +141,31 @@ service_layer/
 ### Running Locally
 
 ```bash
-# In-memory mode (development)
+# Supabase Postgres (required)
 export API_TOKENS=dev-token
-go run ./cmd/appserver
+export DATABASE_URL="postgres://supabase_admin:supabase_pass@supabase-postgres:5432/service_layer?sslmode=disable"
+export SUPABASE_JWT_SECRET="***REMOVED***"   # validate GoTrue JWTs; reused by /auth/login when AUTH_JWT_SECRET is empty
+export SUPABASE_JWT_AUD="authenticated"         # optional; defaults to Supabase audience
+export SUPABASE_ADMIN_ROLES="service_role,admin" # optional; map Supabase roles to Service Layer admin
+export SUPABASE_TENANT_CLAIM="app_metadata.tenant" # optional; map tenant from JWT when X-Tenant-ID missing
+export SUPABASE_GOTRUE_URL="http://supabase-gotrue:9999" # required with Supabase JWTs for /auth/refresh
+export SUPABASE_HEALTH_URL="http://supabase-gotrue:9999/health" # optional; reported in /system/status
+export SUPABASE_HEALTH_GOTRUE="http://supabase-gotrue:9999/health"
+export SUPABASE_HEALTH_POSTGREST="http://supabase-postgrest:3000"
+export SUPABASE_HEALTH_KONG="http://supabase-kong:8000/health"
+export SUPABASE_HEALTH_STUDIO="http://supabase-studio:3000"
+export SUPABASE_ROLE_CLAIM="app_metadata.role" # optional; derive role from JWT claim before admin mapping
+go run ./cmd/appserver -dsn "$DATABASE_URL" -migrate
 
-# With PostgreSQL
-export DATABASE_URL="postgres://user:pass@localhost:5432/service_layer"
-go run ./cmd/appserver -migrate
-
-# Full stack with Docker
+# Full stack with Docker (Supabase profile included)
 make run
+# or
+docker compose --profile supabase up -d --build
 ```
+
+Notes:
+- `docs/supabase-setup.md` covers the Supabase profile (Postgres + GoTrue/PostgREST/Kong/Studio) and the auth/env matrix (`DATABASE_URL`, `SUPABASE_JWT_SECRET`, `SUPABASE_GOTRUE_URL`).
+- On-chain helpers live in `examples/neo-privnet-contract*` with a companion guide in `docs/blockchain-contracts.md`; use the typed clients in `sdk/typescript/client` or `sdk/go/client` (both support Supabase refresh tokens) for service automation.
 
 ---
 
@@ -590,8 +606,11 @@ go test -cover ./internal/services/...
 # Verbose
 go test -v ./internal/services/myservice/...
 
-# Integration tests
+# Integration tests (requires running API)
 go test -tags integration ./internal/app/httpapi/...
+
+# TypeScript SDK (builds dist via pretest hook)
+npm run test:sdk
 ```
 
 ---

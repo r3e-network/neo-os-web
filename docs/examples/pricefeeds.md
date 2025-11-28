@@ -83,6 +83,10 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   "$API/accounts/$ACCOUNT_ID/pricefeeds/$FEED_ID/snapshots" | jq
 ```
 
+### 5. Push on-chain (privnet)
+- Use the helpers in `examples/neo-privnet-contract` (Node) or `examples/neo-privnet-contract-go` (Go) to pull the latest snapshot and call your contract (default method `updatePrice`). Configure env per the `.env.example` files.
+- Full walkthrough: `docs/blockchain-contracts.md` (Supabase-backed stack + privnet node).
+
 ## API Reference
 
 ### Feed Management
@@ -205,7 +209,18 @@ slctl pricefeeds get --account $ACCOUNT_ID --feed $FEED_ID --token $TOKEN
 
 # List snapshots
 slctl pricefeeds snapshots --account $ACCOUNT_ID --feed $FEED_ID --token $TOKEN --limit 10
+
+# Push latest snapshot on-chain (privnet helpers)
+# TypeScript:
+cd examples/neo-privnet-contract && cp .env.example .env && npm install && npm run invoke
+# Go:
+cd examples/neo-privnet-contract-go && cp .env.example .env && go mod tidy && go run ./...
 ```
+
+### Contract parameter tips
+- If your contract expects an integer price, convert the string price to the required scale (e.g., multiply by `1e8`) before invoking. The JS/Go helpers send the raw string; adapt `invoke-price.mjs` or `main.go` accordingly.
+- Contract hashes in the helpers are little-endian (Neo standard). Keep the `0x` prefix or supply LE hex directly.
+- Increase fees if the node rejects the transaction: in JS set `NETWORK_FEE` in `.env`; the Go helper estimates fees automatically via neo-go.
 
 ## Advanced Usage
 

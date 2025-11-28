@@ -241,6 +241,7 @@ func TestEngineMetadata(t *testing.T) {
 	e.SetModuleCapabilities("meta-mod", "cap1", "cap2")
 	e.SetModuleQuotas("meta-mod", map[string]string{"rate": "100/s"})
 	e.SetModuleLayer("meta-mod", "infra")
+	e.SetModuleLabel("meta-mod", "Metadata Module")
 
 	info := e.ModulesInfo()
 	if len(info) != 1 {
@@ -248,6 +249,9 @@ func TestEngineMetadata(t *testing.T) {
 	}
 	if info[0].Layer != "infra" {
 		t.Errorf("expected layer infra, got %s", info[0].Layer)
+	}
+	if info[0].Label != "Metadata Module" {
+		t.Errorf("expected label Metadata Module, got %s", info[0].Label)
 	}
 	if len(info[0].Notes) != 1 || info[0].Notes[0] != "test note" {
 		t.Errorf("expected note, got %v", info[0].Notes)
@@ -595,5 +599,7 @@ type rpcModule struct {
 	simpleTestModule
 }
 
-func (m *rpcModule) RPCInfo() string                    { return "test-rpc" }
-func (m *rpcModule) RPCEndpoints() map[string]string { return map[string]string{"neo": "http://localhost:10332"} }
+func (m *rpcModule) RPCInfo() string { return "test-rpc" }
+func (m *rpcModule) RPCEndpoints() map[string]string {
+	return map[string]string{"neo": "http://localhost:10332"}
+}

@@ -973,7 +973,7 @@ slctl dta products|orders --account <id>
 # System
 slctl status
 slctl services list
-slctl bus events|data|compute
+slctl bus events|data|compute (admin token/JWT required)
 ```
 
 ---

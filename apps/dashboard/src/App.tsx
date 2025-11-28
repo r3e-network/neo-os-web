@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { normaliseUrl } from "./api";
 import { useLocalStorage } from "./useLocalStorage";
+import { useSessionStorage } from "./useSessionStorage";
 import { MetricsConfig } from "./metrics";
 import { AccountsSection, AdminPanel, AuthPanel, BusConsole, JamPanel, NeoPanel, Notifications, SettingsForm, SystemOverview, WalletGate } from "./components";
 import { useAccountsData, useSystemInfo } from "./hooks";
@@ -12,6 +13,7 @@ type WalletSession = { address: string; label?: string; signature?: string };
 export function App() {
   const [baseUrl, setBaseUrl] = useLocalStorage("sl-ui.baseUrl", "http://localhost:8080");
   const [token, setToken] = useLocalStorage("sl-ui.token", "dev-token");
+  const [refreshToken, setRefreshToken] = useSessionStorage("sl-ui.refreshToken", "");
   const [tenant, setTenant] = useLocalStorage("sl-ui.tenant", "");
   const [slowMs, setSlowMs] = useLocalStorage("sl-ui.slowMs", "");
   const [surface, setSurface] = useLocalStorage("sl-ui.surface", "");
@@ -33,47 +35,40 @@ export function App() {
       token: token.trim(),
       tenant: tenant.trim() || undefined,
       wallet,
+      refreshToken: refreshToken.trim(),
     }),
-    [baseUrl, token, tenant, wallet],
+    [baseUrl, token, tenant, wallet, refreshToken],
   );
+
+  const [accessToken, setAccessToken] = useState(config.token);
+  const canQuery = config.baseUrl.length > 0 && accessToken.length > 0;
+
   const [promBase, setPromBase] = useLocalStorage("sl-ui.prometheus", "http://localhost:9090");
   const promConfig: MetricsConfig = useMemo(
     () => ({
       baseUrl: config.baseUrl,
-      token: config.token,
+      token: accessToken,
       prometheusBaseUrl: normaliseUrl(promBase),
     }),
-    [config, promBase],
+    [config.baseUrl, accessToken, promBase],
   );
-
-  const canQuery = config.baseUrl.length > 0 && config.token.length > 0;
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const qsBase = params.get("api") || params.get("base") || params.get("baseUrl") || params.get("endpoint");
     const qsTenant = params.get("tenant");
     const qsToken = params.get("token") || params.get("auth") || params.get("bearer");
     const qsProm = params.get("prom") || params.get("prometheus");
+    const qsRefresh = params.get("refresh_token") || params.get("refresh");
     const qsSlow = params.get("slow_ms");
     const qsSurface = params.get("surface");
-    if (qsBase) {
-      setBaseUrl(normaliseUrl(qsBase));
-    }
-    if (qsTenant) {
-      setTenant(qsTenant);
-    }
-    if (qsToken) {
-      setToken(qsToken);
-    }
-    if (qsProm) {
-      setPromBase(normaliseUrl(qsProm));
-    }
-    if (qsSlow) {
-      setSlowMs(qsSlow);
-    }
-    if (qsSurface) {
-      setSurface(qsSurface);
-    }
-  }, [setBaseUrl, setTenant, setToken, setPromBase, setSurface]);
+    if (qsBase) setBaseUrl(normaliseUrl(qsBase));
+    if (qsTenant) setTenant(qsTenant);
+    if (qsToken) setToken(qsToken);
+    if (qsRefresh) setRefreshToken(qsRefresh);
+    if (qsProm) setPromBase(normaliseUrl(qsProm));
+    if (qsSlow) setSlowMs(qsSlow);
+    if (qsSurface) setSurface(qsSurface);
+  }, [setBaseUrl, setTenant, setToken, setPromBase, setSurface, setRefreshToken, setSlowMs]);
 
   const {
     wallets,
@@ -131,7 +126,7 @@ export function App() {
     resetAccounts();
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.baseUrl, config.token, config.tenant]);
+  }, [config.baseUrl, accessToken, config.tenant]);
 
   // Auto-refresh system info periodically when credentials are set.
   useEffect(() => {
@@ -142,6 +137,34 @@ export function App() {
     return () => clearInterval(id);
   }, [canQuery, load]);
 
+  // Attempt refresh when no token but refresh token is present.
+  useEffect(() => {
+    if (accessToken || !config.refreshToken) {
+      if (config.token && config.token !== accessToken) {
+        setAccessToken(config.token);
+      }
+      return;
+    }
+    void (async () => {
+      try {
+        const resp = await fetch(`${config.baseUrl}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: config.refreshToken }),
+        });
+        if (!resp.ok) return;
+        const json = await resp.json();
+        const newToken = json.access_token || json.token;
+        if (newToken) {
+          setToken(newToken);
+          setAccessToken(newToken);
+        }
+      } catch {
+        // ignore refresh failures
+      }
+    })();
+  }, [accessToken, config.baseUrl, config.refreshToken, config.token, setToken]);
+
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     resetAccounts();
@@ -150,6 +173,7 @@ export function App() {
 
   const handleClearSession = useCallback(() => {
     setToken("");
+    setRefreshToken("");
     setTenant("");
     setBaseUrl("http://localhost:8080");
     setPromBase("http://localhost:9090");
@@ -283,6 +307,7 @@ export function App() {
         <SettingsForm
           baseUrl={baseUrl}
           token={token}
+          refreshToken={refreshToken}
           tenant={tenant}
           promBase={promBase}
           slowMs={slowMs}
@@ -292,6 +317,7 @@ export function App() {
           onSubmit={onSubmit}
           onBaseUrlChange={setBaseUrl}
           onTokenChange={setToken}
+          onRefreshTokenChange={setRefreshToken}
           onTenantChange={setTenant}
           onPromChange={setPromBase}
           onSlowMsChange={setSlowMs}
@@ -336,7 +362,13 @@ export function App() {
               onSurfaceChange={setSurface}
               onLayerChange={setLayer}
               modulesWaitingDeps={state.modulesWaitingDeps}
+              modulesWaitingReasons={state.modulesWaitingReasons}
               neo={state.neo}
+              jam={state.jam}
+              busFanout={state.busFanout}
+              busFanoutRecent={state.busFanoutRecent}
+              busFanoutRecentWindowSeconds={state.busFanoutRecentWindowSeconds}
+              busMaxBytes={state.busMaxBytes}
               metrics={state.metrics}
               formatDuration={formatDuration}
               formatTimestamp={formatTimestamp}

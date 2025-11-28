@@ -10,13 +10,13 @@ Scope: move the current JAM prototype (work packages, reports, preimages, JAM HT
 
 ## Current Prototype (recap)
 - Endpoints under `/jam/*`: upload/get preimages; submit packages; process next; fetch report.
-- Stores: in-memory (default) and Postgres (jam_* tables) selected by `runtime.jam`.
+- Stores: Supabase Postgres (`jam_*` tables) selected by `runtime.jam` (no in-memory mode).
 - CLI: `slctl jam preimage|package|packages|process|report|status`.
 - Status surface: `/system/status` exposes JAM enablement/store.
 
 ## Gaps / Risks
 - No authZ scoping: any bearer token can hit `/jam/*`.
-- No per-tenant quotas or rate limits; in-memory mode is ephemeral and silent.
+- No per-tenant quotas or rate limits; storage is durable, but quotas are missing.
 - No listing/filtering of reports/attestations; no JSON stat for preimages (only HEAD/GET).
 - No audit/event stream; no metrics specific to JAM.
 - No TTL/cleanup on packages/reports/preimages.

@@ -46,26 +46,3 @@ func (s storeModule) Ping(ctx context.Context) error {
 	}
 	return s.db.PingContext(ctx)
 }
-
-// storeMemoryModule exposes the in-memory store as an engine StoreEngine for layering.
-type storeMemoryModule struct{}
-
-func newMemoryStoreModule() engine.ServiceModule { return storeMemoryModule{} }
-func (storeMemoryModule) Name() string           { return "store-memory" }
-func (storeMemoryModule) Domain() string         { return "store" }
-func (storeMemoryModule) Start(ctx context.Context) error {
-	_ = ctx
-	return nil
-}
-func (storeMemoryModule) Stop(ctx context.Context) error {
-	_ = ctx
-	return nil
-}
-func (storeMemoryModule) Ready(ctx context.Context) error {
-	_ = ctx
-	return nil
-}
-func (storeMemoryModule) Ping(ctx context.Context) error {
-	_ = ctx
-	return nil
-}

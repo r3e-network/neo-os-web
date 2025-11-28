@@ -12,6 +12,7 @@ The system is organized into **four primary layers** (bottom to top):
 4. **Services Layer** (Applications) - Business logic and domain services
 
 Additionally, an **Application Composition Layer** (`internal/app/`) sits above the Services Layer to wire everything together into a runnable application. Domain contracts are defined in `internal/app/domain/` and re-exported through `internal/domain/` so services and adapters can depend on a stable surface without importing application wiring.
+The default platform stack is intentionally minimal: self-hosted Supabase Postgres + GoTrue replace bespoke auth/store modules, while SDKs and helpers focus on blockchain contract delivery rather than infra plumbing.
 
 ### Android OS Analogy
 
@@ -40,8 +41,8 @@ Just as Android apps use standard APIs without knowing about hardware details, o
 
 **Responsibilities**:
 - Abstract blockchain RPC connectivity (Neo N3, Ethereum, etc.)
-- Provide database drivers (PostgreSQL, SQLite)
-- Handle cache operations (Redis, in-memory)
+- Provide database drivers (Supabase Postgres, self-hosted)
+- Handle cache operations (Redis)
 - Manage message queue integration (RocketMQ, Kafka)
 - Expose cryptographic operations (key management, signing, encryption)
 - Provide HTTP/gRPC client wrappers

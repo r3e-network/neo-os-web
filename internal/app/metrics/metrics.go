@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -247,6 +248,8 @@ func init() {
 		moduleStopSeconds,
 		rpcRequests,
 		rpcDuration,
+		externalHealthGauge,
+		externalHealthLatency,
 		busFanout,
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewGoCollector(),
@@ -415,6 +418,69 @@ func RecordRPCCall(chain, status string, dur time.Duration) {
 	}
 	rpcRequests.WithLabelValues(chain, status).Inc()
 	rpcDuration.WithLabelValues(chain, status).Observe(dur.Seconds())
+}
+
+var externalHealthGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	Name: "service_layer_external_health",
+	Help: "Health of external dependencies (1=up,0=down)",
+}, []string{"service", "name", "code"})
+
+var externalHealthLatency = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	Name:    "service_layer_external_health_latency_seconds",
+	Help:    "Latency of external dependency health checks",
+	Buckets: prometheus.DefBuckets,
+}, []string{"service", "name"})
+
+// RecordExternalHealth records status/latency for external health checks.
+// Expected check fields: name (string), state ("up"/"partial"/"down"), code (int/string), duration_ms (float/int).
+func RecordExternalHealth(service string, checks []map[string]any) {
+	for _, check := range checks {
+		name := strings.TrimSpace(anyToString(check["name"]))
+		code := strings.TrimSpace(anyToString(check["code"]))
+		state := strings.ToLower(strings.TrimSpace(anyToString(check["state"])))
+		val := 0.0
+		if state == "up" {
+			val = 1.0
+		}
+		externalHealthGauge.WithLabelValues(service, name, code).Set(val)
+		if dur, ok := toFloat64(check["duration_ms"]); ok {
+			externalHealthLatency.WithLabelValues(service, name).Observe(dur / 1000.0)
+		}
+	}
+}
+
+func anyToString(v any) string {
+	switch t := v.(type) {
+	case string:
+		return t
+	case fmt.Stringer:
+		return t.String()
+	default:
+		return fmt.Sprint(t)
+	}
+}
+
+func toFloat64(v any) (float64, bool) {
+	switch t := v.(type) {
+	case float64:
+		return t, true
+	case float32:
+		return float64(t), true
+	case int:
+		return float64(t), true
+	case int64:
+		return float64(t), true
+	case int32:
+		return float64(t), true
+	case uint:
+		return float64(t), true
+	case uint64:
+		return float64(t), true
+	case uint32:
+		return float64(t), true
+	default:
+		return 0, false
+	}
 }
 
 // BusFanoutSnapshot returns aggregate fan-out counts grouped by kind.

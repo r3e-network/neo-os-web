@@ -53,3 +53,18 @@ func TestValidateRuntimeConfig_CryptoCapabilities(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestValidateRuntimeConfig_BusMaxBytes(t *testing.T) {
+	cfg := &config.Config{
+		Runtime: config.RuntimeConfig{
+			BusMaxBytes: -1,
+		},
+	}
+	if err := validateRuntimeConfig(cfg); err == nil {
+		t.Fatalf("expected error for negative bus_max_bytes")
+	}
+	cfg.Runtime.BusMaxBytes = 0
+	if err := validateRuntimeConfig(cfg); err != nil {
+		t.Fatalf("unexpected error for zero bus_max_bytes: %v", err)
+	}
+}

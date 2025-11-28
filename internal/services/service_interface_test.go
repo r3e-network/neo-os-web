@@ -8,7 +8,7 @@ import (
 )
 
 func TestAllServicesImplementLifecycle(t *testing.T) {
-	a, err := app.New(app.Stores{}, nil)
+	a, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}

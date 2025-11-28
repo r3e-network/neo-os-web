@@ -51,6 +51,8 @@ COPY --from=builder /app/configs/config.yaml ./config/
 
 # Set environment variables
 ENV CONFIG_FILE=/app/config/config.yaml
+# Supabase Postgres DSN is required; override at runtime.
+ENV DATABASE_URL=postgres://supabase_admin:supabase_pass@localhost:5432/service_layer?sslmode=disable
 ENV LOG_LEVEL=info
 ENV LOG_FORMAT=json
 ENV PORT=8080

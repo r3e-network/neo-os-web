@@ -120,7 +120,7 @@ Transitions are driven by API actions (approve/deny/cancel), scheduler (moves sc
 
 ## 6. Settlement Poller
 - Configurable via `configs/config.yaml` (`gasbank.poll_interval`, `gasbank.max_attempts`, `gasbank.backoff.initial`, `gasbank.backoff.max`).
-- Maintains per-transaction attempt metadata in storage (not in-memory map) so restarts resume correctly.
+- Maintains per-transaction attempt metadata in storage (Supabase Postgres) so restarts resume correctly.
 - Emits events:
   - `gasbank_settlement_attempts_total{result="success|failure"}`
   - `gasbank_settlement_latency_seconds`
@@ -201,7 +201,7 @@ API client updates (`apps/dashboard/src/api.ts`) mirror the HTTP endpoints above
 - Devpack sample under `examples/functions/devpack/js/gasbank_workflow.js`.
 
 ## 13. Work Breakdown
-1. **Schema & Storage** – DB migrations, Postgres + in-memory store updates, domain structs.
+1. **Schema & Storage** – DB migrations, Supabase Postgres store updates, domain structs.
 2. **Service Layer** – business logic for withdrawals, approvals, scheduling, retries.
 3. **API/CLI** – HTTP handlers + `slctl` parity with pagination/filters.
 4. **Devpack/SDK** – runtime/handler updates + docs/examples.

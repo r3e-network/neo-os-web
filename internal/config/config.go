@@ -48,9 +48,15 @@ type SecurityConfig struct {
 
 // AuthConfig controls HTTP API authentication.
 type AuthConfig struct {
-	Tokens    []string   `json:"tokens"`
-	JWTSecret string     `json:"jwt_secret" env:"AUTH_JWT_SECRET"`
-	Users     []UserSpec `json:"users"`
+	Tokens              []string   `json:"tokens"`
+	JWTSecret           string     `json:"jwt_secret" env:"AUTH_JWT_SECRET"`
+	Users               []UserSpec `json:"users"`
+	SupabaseJWTSecret   string     `json:"supabase_jwt_secret" env:"SUPABASE_JWT_SECRET"`
+	SupabaseJWTAud      string     `json:"supabase_jwt_aud" env:"SUPABASE_JWT_AUD"`
+	SupabaseAdminRoles  []string   `json:"supabase_admin_roles" env:"SUPABASE_ADMIN_ROLES"`
+	SupabaseTenantClaim string     `json:"supabase_tenant_claim" env:"SUPABASE_TENANT_CLAIM"`
+	SupabaseRoleClaim   string     `json:"supabase_role_claim" env:"SUPABASE_ROLE_CLAIM"`
+	SupabaseGoTrueURL   string     `json:"supabase_gotrue_url" env:"SUPABASE_GOTRUE_URL"`
 }
 
 type UserSpec struct {
@@ -127,6 +133,8 @@ func Load() (*Config, error) {
 		}
 	}
 
+	applyDatabaseURLOverride(cfg)
+
 	return cfg, nil
 }
 
@@ -136,6 +144,7 @@ func LoadFile(path string) (*Config, error) {
 	if err := loadFromFile(path, cfg); err != nil {
 		return nil, err
 	}
+	applyDatabaseURLOverride(cfg)
 	return cfg, nil
 }
 
@@ -167,5 +176,17 @@ func LoadConfig(path string) (*Config, error) {
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, err
 	}
+	applyDatabaseURLOverride(cfg)
 	return cfg, nil
+}
+
+// applyDatabaseURLOverride aligns config loading with cmd/appserver: DATABASE_URL (Supabase DSN)
+// overrides any file-based DSN to reduce setup friction.
+func applyDatabaseURLOverride(cfg *Config) {
+	if cfg == nil {
+		return
+	}
+	if dsn := strings.TrimSpace(os.Getenv("DATABASE_URL")); dsn != "" {
+		cfg.Database.DSN = dsn
+	}
 }

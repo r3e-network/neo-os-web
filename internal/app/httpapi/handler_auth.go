@@ -2,11 +2,17 @@ package httpapi
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/R3E-Network/service_layer/internal/app/auth"
 )
+
+var refreshHTTPClient = &http.Client{Timeout: 5 * time.Second}
 
 type authProvider interface {
 	HasUsers() bool
@@ -49,6 +55,44 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 		"role":       user.Role,
 	}
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+// refresh proxies a Supabase GoTrue refresh token exchange when configured.
+func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := decodeJSON(r.Body, &payload); err != nil || strings.TrimSpace(payload.RefreshToken) == "" {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("refresh_token required"))
+		return
+	}
+	goTrueURL := strings.TrimSpace(h.supabaseGoTrueURL)
+	if goTrueURL == "" {
+		goTrueURL = strings.TrimSpace(os.Getenv("SUPABASE_GOTRUE_URL"))
+	}
+	if goTrueURL == "" {
+		writeError(w, http.StatusNotImplemented, fmt.Errorf("supabase gotrue url not configured"))
+		return
+	}
+	reqBody := map[string]string{
+		"grant_type":    "refresh_token",
+		"refresh_token": payload.RefreshToken,
+	}
+	body, _ := json.Marshal(reqBody)
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, strings.TrimRight(goTrueURL, "/")+"/token?grant_type=refresh_token", strings.NewReader(string(body)))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := refreshHTTPClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	defer resp.Body.Close()
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
 }
 
 // walletChallenge returns a nonce for the wallet to sign (HMAC-based in this implementation).

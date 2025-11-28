@@ -51,6 +51,8 @@ export type SystemState =
       busFanout?: Record<string, { ok?: number; error?: number }>;
       busFanoutRecent?: Record<string, { ok?: number; error?: number }>;
       busFanoutRecentWindowSeconds?: number;
+      busMaxBytes?: number;
+      busMaxBytesWarning?: string;
       metrics?: {
         rps?: MetricSample[];
         duration?: TimeSeries[];
@@ -171,6 +173,8 @@ export function useSystemInfo(
         busFanoutRecent: systemStatus.bus_fanout_recent,
         busFanoutRecentWindowSeconds: (systemStatus as any)
           .bus_fanout_recent_window_seconds,
+        busMaxBytes: (systemStatus as any).bus_max_bytes,
+        busMaxBytesWarning: (systemStatus as any).bus_max_bytes_warning,
         modulesNotes: (systemStatus.modules || []).reduce<
           Record<string, string[]>
         >((acc, m) => {

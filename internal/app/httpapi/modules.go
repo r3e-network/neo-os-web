@@ -11,6 +11,7 @@ import (
 // ModuleStatus is exposed on /system/status to describe active modules and their domains.
 type ModuleStatus struct {
 	Name         string                 `json:"name"`
+	Label        string                 `json:"label,omitempty"`
 	Domain       string                 `json:"domain,omitempty"`
 	Category     string                 `json:"category,omitempty"`
 	Layer        string                 `json:"layer,omitempty"`
@@ -47,6 +48,7 @@ func BuildModuleStatuses(infos []engine.ModuleInfo, health []engine.ModuleHealth
 		h := statusByName[info.Name]
 		out = append(out, ModuleStatus{
 			Name:         info.Name,
+			Label:        firstNonEmpty(info.Label, info.Name),
 			Domain:       info.Domain,
 			Category:     info.Category,
 			Layer:        info.Layer,
@@ -80,6 +82,15 @@ func surfacesToStrings(surfaces []engine.APISurface) []string {
 		}
 	}
 	return out
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if s := strings.TrimSpace(v); s != "" {
+			return s
+		}
+	}
+	return ""
 }
 
 // EngineModuleProvider returns a ModuleProvider that probes readiness, fetches

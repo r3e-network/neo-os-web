@@ -3,8 +3,8 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -23,7 +23,12 @@ var ErrUnauthorised = errors.New("unauthorised")
 type Claims struct {
 	Username string `json:"sub"`
 	Role     string `json:"role"`
+	Tenant   string `json:"tenant,omitempty"`
 	jwt.RegisteredClaims
+}
+
+type JWTManager interface {
+	Validate(token string) (*Claims, error)
 }
 
 type Manager struct {

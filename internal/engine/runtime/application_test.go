@@ -109,7 +109,7 @@ func TestResolveSecretEncryptionKeyFallsBackToConfig(t *testing.T) {
 }
 
 func TestApplicationDescriptorsIncludeServices(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
@@ -141,6 +141,7 @@ func TestRuntimeConfigOverridesBusPermissions(t *testing.T) {
 	app, err := NewApplication(
 		WithConfig(cfg),
 		WithRunMigrations(false),
+		WithStores(app.NewMemoryStoresForTest()),
 	)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
@@ -158,6 +159,7 @@ func TestDefaultModuleDepsApplied(t *testing.T) {
 	app, err := NewApplication(
 		WithConfig(cfg),
 		WithRunMigrations(false),
+		WithStores(app.NewMemoryStoresForTest()),
 	)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
@@ -232,7 +234,7 @@ func TestApplyRequiredAPIDepsAddsProviders(t *testing.T) {
 	}
 }
 
-func TestMemoryStoreModuleRegisteredWhenNoDB(t *testing.T) {
+func TestStoreModuleRegisteredWhenUsingCustomStores(t *testing.T) {
 	cfg := config.New()
 	cfg.Database.Driver = ""
 	cfg.Database.DSN = ""
@@ -240,22 +242,23 @@ func TestMemoryStoreModuleRegisteredWhenNoDB(t *testing.T) {
 	app, err := NewApplication(
 		WithConfig(cfg),
 		WithRunMigrations(false),
+		WithStores(app.NewMemoryStoresForTest()),
 	)
 	if err != nil {
 		t.Fatalf("new application: %v", err)
 	}
 
-	var hasMemoryStore bool
+	var hasStore bool
 	for _, info := range app.engine.ModulesInfo() {
-		if info.Name == "store-memory" {
-			hasMemoryStore = true
+		if info.Name == "store-postgres" {
+			hasStore = true
 			if info.Layer != "infra" {
-				t.Fatalf("expected store-memory layer infra, got %s", info.Layer)
+				t.Fatalf("expected store-postgres layer infra, got %s", info.Layer)
 			}
 		}
 	}
-	if !hasMemoryStore {
-		t.Fatalf("expected store-memory module to be registered when DB is nil")
+	if !hasStore {
+		t.Fatalf("expected store-postgres module to be registered when custom stores are supplied")
 	}
 }
 

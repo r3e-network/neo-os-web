@@ -116,8 +116,17 @@ config:
     max_open_conns: 25
     max_idle_conns: 25
     conn_max_lifetime: 300
+    # DATABASE_URL is the canonical override (Supabase DSN). When set, it
+    # supersedes host/port/user/name/ssl fields.
+    dsn: ${DATABASE_URL}
   auth:
     jwt_secret: ${AUTH_JWT_SECRET}
+    supabase_jwt_secret: ${SUPABASE_JWT_SECRET}
+    supabase_jwt_aud: ${SUPABASE_JWT_AUD:-authenticated}
+    supabase_admin_roles: ${SUPABASE_ADMIN_ROLES:-service_role,admin}
+    supabase_tenant_claim: ${SUPABASE_TENANT_CLAIM:-app_metadata.tenant}
+    supabase_role_claim: ${SUPABASE_ROLE_CLAIM:-app_metadata.role}
+    supabase_gotrue_url: ${SUPABASE_GOTRUE_URL:-http://supabase-gotrue:9999}
     token_expiry: 3600
     refresh_token_expiry: 86400
   neo:

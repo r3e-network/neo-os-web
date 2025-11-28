@@ -25,7 +25,7 @@ Purpose: add filters and pagination to JAM list endpoints while keeping backward
 - `next_offset` is null when no more data.
 
 ## Store Requirements
-- **Memory store**: filter in-memory; offset/limit slicing.
+- **Supabase store**: filter in Postgres; offset/limit slicing.
 - **Postgres store**:
   - Add indexes: `jam_work_packages(status, service_id, created_at)` and `jam_work_reports(service_id, created_at)`.
   - Queries use `ORDER BY created_at DESC LIMIT $limit OFFSET $offset`.

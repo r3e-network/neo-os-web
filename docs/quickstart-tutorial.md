@@ -32,17 +32,37 @@ make build
 ./bin/slctl --help
 ```
 
-### Step 2: Start the Server (In-Memory)
+### Step 2: Start the Server (Supabase Postgres)
 
 ```bash
 # Set authentication token
 export API_TOKENS=dev-token
 
-# Start server (in-memory, no database required)
-./bin/appserver
+# Start server against Supabase Postgres
+export DATABASE_URL=postgres://supabase_admin:supabase_pass@localhost:5432/service_layer?sslmode=disable
+export SUPABASE_JWT_SECRET=***REMOVED***   # validate Supabase GoTrue JWTs
+# Optional: map Supabase roles to Service Layer admin
+export SUPABASE_ADMIN_ROLES=service_role,admin
+# Optional: map tenant from Supabase JWT (dot path, e.g., app_metadata.tenant)
+export SUPABASE_TENANT_CLAIM=app_metadata.tenant
+# Required when using Supabase JWTs: GoTrue base URL for refresh token proxy
+export SUPABASE_GOTRUE_URL=http://supabase-gotrue:9999
+# Optional: CLI/dashboard can use a Supabase refresh token to fetch an access token via /auth/refresh
+# export SUPABASE_REFRESH_TOKEN=<refresh-token>
+# Optional: map role from Supabase JWT (dot path, e.g., app_metadata.role)
+export SUPABASE_ROLE_CLAIM=app_metadata.role
+# Optional: Supabase health probe surfaced in /system/status
+# export SUPABASE_HEALTH_URL=http://supabase-gotrue:9999/health
+# export SUPABASE_HEALTH_GOTRUE=http://supabase-gotrue:9999/health
+# export SUPABASE_HEALTH_POSTGREST=http://supabase-postgrest:3000
+# export SUPABASE_HEALTH_KONG=http://supabase-kong:8000/health
+# export SUPABASE_HEALTH_STUDIO=http://supabase-studio:3000
+./bin/appserver -dsn "$DATABASE_URL"
 
 # Server is now running at http://localhost:8080
 ```
+
+Prefer Docker for the full Supabase surface? Run `docker compose --profile supabase up -d --build` (see `docs/supabase-setup.md`). For pushing price feed data on-chain, follow `docs/blockchain-contracts.md` and the helpers under `examples/neo-privnet-contract*`.
 
 ### Step 3: Verify It Works
 
@@ -318,7 +338,7 @@ http://localhost:8081/?api=http://localhost:8080&token=dev-token&tenant=tutorial
 
 In this tutorial, you:
 
-1. **Started the Service Layer** in-memory for quick development
+1. **Started the Service Layer** against Supabase Postgres for quick development
 2. **Created an Account** with tenant isolation
 3. **Stored a Secret** with encryption at rest
 4. **Created and Executed a Function** with secret injection

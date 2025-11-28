@@ -3,7 +3,7 @@
 ## Purpose & Scope
 - Deliver a multi-tenant orchestration runtime for Neo N3 that exposes automation, oracle, price feed, randomness, gas bank, wallet, and confidential-compute utilities behind a consistent HTTP API, CLI, and SDK.
 - Preserve compatibility with existing Neo services while introducing Chainlink parity (CRE, CCIP, Data Feeds, Data Streams, DataLink, DTA, VRF, Confidential Compute) in the same Go backend.
-- Provide a lightweight developer experience that can run entirely in-memory for experimentation or attach to PostgreSQL for persistence, without requiring Redis or external schedulers. Blockchain node management, billing, and external TEE hosts remain out of scope for this repository.
+- Provide a lightweight developer experience that targets self-hosted Supabase Postgres for persistence (no in-memory mode), without requiring Redis or external schedulers. Blockchain node management, billing, and external TEE hosts remain out of scope for this repository.
 
 ## Documentation Governance
 - This specification is the single source of truth for product behaviour, APIs, storage, and operations. Update it before changing code, Helm charts, or SDKs.
@@ -18,9 +18,11 @@
 - `cmd/appserver` is the single Go binary that wires all services (`internal/services/*`), HTTP handlers (`internal/app/httpapi`), and storage adapters (`internal/app/storage/{memory,postgres}`).
 - `cmd/slctl` is the CLI wrapper over the HTTP API. It honours `SERVICE_LAYER_ADDR` and `SERVICE_LAYER_TOKEN` for pointing at different environments.
 - `apps/dashboard` hosts the React + Vite front-end surface that consumes the same HTTP API for operator workflows. Additional surfaces must be documented here before landing in the repo.
-- Dashboard must expose an Engine Bus console to publish events/data/compute fan-out via `/system/events|data|compute`, matching `slctl bus` and the bus quickstart in `docs/examples/bus.md`. Payload presets should reflect the expected shapes for pricefeeds, datafeeds, oracle, datalink, datastreams, and functions.
+- Dashboard must expose an Engine Bus console to publish events/data/compute fan-out via `/system/events|data|compute`, matching `slctl bus` and the bus quickstart in `docs/examples/bus.md`. Payload presets should reflect the expected shapes for pricefeeds, datafeeds, oracle, datalink, datastreams, and functions. These endpoints are admin-only; the console must require an admin JWT/token. Bus payloads are capped by `BUS_MAX_BYTES` (default 1 MiB).
 - `sdk/devpack` plus `examples/functions/devpack` provide the TypeScript toolchain used to author functions locally. Devpack helpers let functions queue automation, oracle, price feed, data feed, data stream, DataLink, gas bank, randomness, and trigger actions that execute after the JavaScript runtime completes. Companion SDKs in Go, Rust, and Python mirror the same action surface for polyglot authoring.
-- Persistence defaults to in-memory stores. Supplying a PostgreSQL DSN (via `-dsn`, `DATABASE_URL`, or config files under `configs/`) switches all services to the Postgres adapters and enables migrations embedded in `internal/platform/migrations` (0001–0017).
+- Persistence requires Supabase Postgres. A valid DSN (`-dsn`, `DATABASE_URL`, or config files under `configs/`) is mandatory; migrations in `internal/platform/migrations` (0001–0017) must run on startup.
+- When Supabase JWT auth is configured (`SUPABASE_JWT_SECRET`), the self-hosted GoTrue base URL (`SUPABASE_GOTRUE_URL`) must be set; otherwise startup fails (/auth/refresh depends on it).
+- `DATABASE_URL` is the canonical DSN override across flags/env/config; file-based DSNs must be superseded by this env to keep compose/.env workflows consistent. Missing/empty DSNs are fatal.
 - Optional TEE execution paths use the Goja JavaScript runtime today and can be swapped with Azure Confidential Computing-backed executors when runners are provisioned (see Confidential Compute sections for expectations).
 - Engine-managed infrastructure modules (configurable under `runtime.*`):
   - `neo`: enable Neo full node/indexer modules (neo-go RPC + indexer health).
@@ -39,13 +41,17 @@
 #### Accounts & Authentication
 - Manage account/workspace records, metadata, and lifecycle through `/accounts` endpoints and enforce per-account ownership across dependent services.
 - Enforce HTTP authentication via static bearer tokens configured through `API_TOKENS` or the `-api-tokens` flag. All endpoints except `/healthz` and `/system/version` require a valid `Authorization: Bearer <token>` header.
+- Accept Supabase GoTrue JWTs when `SUPABASE_JWT_SECRET` (and optional `SUPABASE_JWT_AUD`) are configured; `/auth/login` continues to issue JWTs for configured local users and reuses the Supabase JWT secret when no `AUTH_JWT_SECRET` is provided.
+- Map Supabase roles listed in `SUPABASE_ADMIN_ROLES` to Service Layer admin for `/admin/*` endpoints.
+- Optionally derive tenant from Supabase JWTs using `SUPABASE_TENANT_CLAIM` (dot path, e.g., `app_metadata.tenant`) when `X-Tenant-ID` is absent.
+- Optionally derive role from Supabase JWTs using `SUPABASE_ROLE_CLAIM` (dot path, e.g., `app_metadata.role`) before admin-role mapping.
 - Provide workspace-level capability descriptors via `/system/descriptors` for dashboards/CLI discovery.
 
 #### Workspace Wallets
 - Register signer wallets, threshold policies, and association to accounts. Wallet metadata is exposed under `/accounts/{id}/workspace-wallets` and used by downstream services (CCIP, VRF, Data Feeds, DTA) to gate actions.
 
 #### Secrets Vault
-- Store, rotate, and resolve AES-GCM encrypted secrets per account. Plaintext material must never be persisted; secret resolution only happens in-memory during function execution.
+- Store, rotate, and resolve AES-GCM encrypted secrets per account. Plaintext material must never be persisted; secret resolution only happens during function execution.
 - Require `SECRET_ENCRYPTION_KEY` (raw/base64/hex) whenever PostgreSQL is enabled. Reject operations if encryption is misconfigured.
 
 #### Functions Runtime
@@ -172,11 +178,12 @@
 
 ## Data Management & Persistence
 - PostgreSQL 14+ is the canonical store. Tables cover accounts, workspace wallets, secrets (encrypted values + metadata), functions (definitions, executions, action history), automation jobs/runs, triggers, oracle sources/requests, price feeds/snapshots, gas accounts/transactions, randomness history, and each service entity described in this catalogue (CRE, CCIP, VRF, Data Feeds, Data Streams, DataLink, DTA, Confidential Compute).
-- All database mutations go through versioned migrations under `internal/platform/migrations`; the server auto-applies them when `-migrate` is enabled (default true) in Postgres mode.
+- All database mutations go through versioned migrations under `internal/platform/migrations`; the server can auto-apply them when `-migrate`/`database.migrate_on_start` is enabled (default true for legacy flag, default false in the sample config). Prefer coordinated rollouts in shared environments.
 - In-memory adapters (under `internal/app/storage/memory`) provide a dependency-free option for tests and local experimentation.
 - Secrets are encrypted before persistence; other sensitive blobs (sealed keys, attestations) follow the same cipher utilities.
 - When Postgres is enabled, startup must fail if the configured secret encryption key is missing or invalid to avoid persisting plaintext values.
 - No external cache is required; any caching remains in-process. When future Redis integrations are added, they must remain optional and feature-flagged.
+- Supabase: the platform targets a self-hosted Supabase Postgres. The `supabase` compose profile bundles GoTrue/PostgREST/Kong/Studio for refresh tokens and admin UI; a smoke helper (`make supabase-smoke`) should verify `/auth/refresh` proxying and `/system/status` before promoting environments. Prefer controlled migrations in CI/CD; use `database.migrate_on_start` for local/dev only.
 
 ## Non-Functional Requirements
 ### Security
@@ -188,6 +195,7 @@
 ### Reliability & Observability
 - Provide `/healthz` for liveness/readiness, structured logs, and `/metrics` compatible with Prometheus.
 - Emit per-service metrics (execution counts, latencies, success/failure) via the observation hooks defined in `internal/app/metrics`.
+- Export external dependency health (Supabase) as gauges/histograms when `SUPABASE_HEALTH_*` envs are configured so Prometheus/Grafana/alerts can track availability/latency.
 - Automation, oracle, CCIP, and delivery pipelines include retry policies with jitter and exponential backoff. Failed jobs must surface in metrics and execution history.
 
 ### Performance
@@ -215,7 +223,7 @@
 ## Testing, Delivery & Operations
 - Unit and integration tests (`go test ./...`) exercise every service, including HTTP handlers and Postgres adapters. Examples in `*_test.go` double as documentation and must remain deterministic.
 - CI/CD runs via GitHub Actions (`.github/workflows/ci-cd.yml`), ensuring lint/test/build coverage on every change.
-- Local development: `go run ./cmd/appserver` (in-memory) or `docker compose up --build` (Postgres). CLI interactions use `go run ./cmd/slctl` or the installed binary.
+- Local development: `go run ./cmd/appserver -dsn <supabase_dsn>` or `docker compose up --build` (Supabase Postgres). CLI interactions use `go run ./cmd/slctl` or the installed binary.
 - Configuration: `DATABASE_URL`, `API_TOKENS`, `SECRET_ENCRYPTION_KEY`, `PRICEFEED_FETCH_URL`, `GASBANK_RESOLVER_URL`, `RANDOM_SIGNING_KEY`, and logging level env vars or config files under `configs/` (see `configs/README.md` for the samples).
 - Oracle dispatcher tuning: `ORACLE_TTL_SECONDS`, `ORACLE_MAX_ATTEMPTS`, `ORACLE_BACKOFF`, `ORACLE_DLQ_ENABLED`, and `ORACLE_RUNNER_TOKENS` (or `runtime.oracle.*` in config files) govern expiry, retries, and runner authentication.
 - Deployment artifacts are containerized via `Dockerfile` and `docker-compose.yml`. Rolling updates must respect migrations (run once) and maintain backward compatibility of the HTTP API.

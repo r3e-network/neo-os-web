@@ -5,7 +5,6 @@ import {
   Grid,
   Card,
   CardContent,
-  LinearProgress,
   Table,
   TableBody,
   TableCell,
@@ -20,7 +19,6 @@ import {
   People,
   ShoppingCart,
   AttachMoney,
-  Timeline,
 } from '@mui/icons-material'
 
 const AdminDashboard: React.FC = () => {

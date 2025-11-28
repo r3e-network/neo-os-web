@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Container,
   Grid,
-  Card,
   CardContent,
   Typography,
   Button,
@@ -21,15 +20,12 @@ import {
   Tabs,
   Tab,
   Alert,
-  CircularProgress,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Fab,
   Switch,
   FormControlLabel,
   Accordion,
@@ -37,26 +33,19 @@ import {
   AccordionDetails,
   List,
   ListItem,
-  ListItemText,
   ListItemAvatar,
   Avatar,
+  ListItemText,
   Badge,
-  Divider,
-  Stepper,
-  Step,
-  StepLabel,
-  Tooltip,
 } from '@mui/material';
-import { ProfessionalCard, GradientButton, ModernChip, GlassContainer } from '../styles/styledComponents';
+import { ProfessionalCard, GradientButton, GlassContainer } from '../styles/styledComponents';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as ViewIcon,
   Search as SearchIcon,
-  FilterList as FilterIcon,
   Clear as ClearIcon,
-  Timeline as TimelineIcon,
   AttachMoney as MoneyIcon,
   ExpandMore as ExpandMoreIcon,
   Business as BusinessIcon,
@@ -65,6 +54,7 @@ import {
   Analytics as AnalyticsIcon,
   Security as SecurityIcon,
   Cloud as CloudIcon,
+  Timeline as TimelineIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   HourglassEmpty as HourglassIcon,
@@ -72,11 +62,10 @@ import {
   Assessment as AssessmentIcon,
   People as PeopleIcon,
   Settings as SettingsIcon,
-  Warning as WarningIcon,
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import useServiceStore from '../stores/serviceStore';
-import { Service, ServiceRequest, ServiceOrder, ServiceCategory } from '../types/service';
+import { Service, ServiceRequest, ServiceOrder } from '../types/service';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -176,12 +165,7 @@ export default function AdminConsole() {
     categories,
     userRequests,
     userOrders,
-    loading,
     error,
-    setServices,
-    setCategories,
-    setUserRequests,
-    setUserOrders,
     updateUserRequest,
     updateUserOrder,
   } = useServiceStore();

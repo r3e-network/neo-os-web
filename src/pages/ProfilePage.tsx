@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Box, Typography, Card, CardContent, TextField, Button, Grid, Avatar, Alert, Divider, } from '@mui/material'
+import { Box, Typography, Card, CardContent, TextField, Button, Grid, Avatar, Alert, } from '@mui/material'
 import { PhotoCamera, Save } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
 

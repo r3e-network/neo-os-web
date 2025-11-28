@@ -345,16 +345,19 @@ func TestGracefulShutdown_SelectPattern(t *testing.T) {
 	gs := NewGracefulShutdown()
 
 	done := make(chan bool, 1)
+	ready := make(chan struct{})
 
 	go func() {
+		close(ready)
 		select {
 		case <-gs.ShutdownCh():
 			done <- true
-		case <-time.After(100 * time.Millisecond):
+		case <-time.After(500 * time.Millisecond):
 			done <- false
 		}
 	}()
 
+	<-ready
 	time.Sleep(10 * time.Millisecond)
 	gs.Shutdown()
 

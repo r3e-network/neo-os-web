@@ -28,8 +28,16 @@ data:
       max_open_conns: {{ .Values.config.database.max_open_conns }}
       max_idle_conns: {{ .Values.config.database.max_idle_conns }}
       conn_max_lifetime: {{ .Values.config.database.conn_max_lifetime }}
+      # DATABASE_URL overrides this entire block when set (Supabase-first).
+      dsn: ${DATABASE_URL}
     auth:
       jwt_secret: ${AUTH_JWT_SECRET}
+      supabase_jwt_secret: ${SUPABASE_JWT_SECRET}
+      supabase_jwt_aud: ${SUPABASE_JWT_AUD}
+      supabase_admin_roles: ${SUPABASE_ADMIN_ROLES}
+      supabase_tenant_claim: ${SUPABASE_TENANT_CLAIM}
+      supabase_role_claim: ${SUPABASE_ROLE_CLAIM}
+      supabase_gotrue_url: ${SUPABASE_GOTRUE_URL}
       token_expiry: {{ .Values.config.auth.token_expiry }}
       refresh_token_expiry: {{ .Values.config.auth.refresh_token_expiry }}
     neo:

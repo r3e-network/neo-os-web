@@ -1,4 +1,4 @@
-.PHONY: build run run-local test test-unit test-coverage test-integration test-smoke test-neo test-postgres test-all clean docker docker-run docker-compose docker-compose-run help build-dashboard
+.PHONY: build run run-local run-neo run-monitoring run-dev run-all test test-unit test-coverage test-integration test-smoke test-neo test-postgres test-all clean docker docker-run docker-compose docker-compose-run down ps logs neo-up neo-down help build-dashboard typecheck smoke supabase-smoke
 
 BIN_DIR?=./bin
 APP_BIN?=$(BIN_DIR)/appserver
@@ -13,7 +13,7 @@ build:
 	@go build -o $(CLI_BIN) ./cmd/slctl
 
 run:
-	@echo "Starting stack via docker compose (appserver + postgres + dashboard)..."
+	@echo "Starting stack via docker compose (appserver + Supabase Postgres + dashboard)..."
 	@echo "API:       http://localhost:8080   (Authorization: Bearer dev-token or JWT from /auth/login)"
 	@echo "Dashboard: http://localhost:8081   (use admin/changeme via /auth/login to obtain JWT)"
 	@echo "Site:      http://localhost:8082   (public marketing/docs entry)"
@@ -25,22 +25,26 @@ run:
 	@docker compose ps
 
 run-local:
-	@echo "Running appserver locally (expects Postgres via DATABASE_URL or config)..."
+	@echo "Running appserver locally (expects Supabase Postgres via DATABASE_URL or config)..."
 	@go run ./cmd/appserver
 
 run-neo:
-	@echo "Starting full stack with NEO profile (appserver + postgres + dashboard + site + neo-indexer + nodes)..."
+	@echo "Starting full stack with NEO profile (appserver + Supabase Postgres + dashboard + site + neo-indexer + nodes)..."
 	@echo "API:       http://localhost:8080"
 	@echo "Dashboard: http://localhost:8081"
-	@echo "NEO RPC:   http://localhost:10332 (mainnet), http://localhost:10342 (testnet)"
+	@echo "NEO RPC:   http://localhost:20332 (privnet)"
 	@[ -f .env ] || (cp .env.example .env && echo "  > created .env from .env.example")
 	@docker compose --profile neo down --remove-orphans >/dev/null 2>&1 || true
 	@docker compose --profile neo up -d --build
 	@docker compose --profile neo ps
 
 test:
-	@echo "Running tests..."
+	@echo "Running Go tests..."
 	@go test -race -short ./...
+	@echo "Running TypeScript SDK tests..."
+	@npm ci --no-progress --prefix sdk/typescript/client
+	@npm test --prefix sdk/typescript/client
+	@echo "Supabase profile smoke (optional): run ./scripts/supabase_smoke.sh to verify GoTrue/PostgREST/Kong/Studio"
 
 test-unit:
 	@echo "Running unit tests..."
@@ -113,12 +117,16 @@ logs:
 help:
 	@echo "Build & Run:"
 	@echo "  make build             - Build appserver and CLI binaries into $(BIN_DIR)"
-	@echo "  make run               - Start the stack with docker compose (detached; uses .env)"
-	@echo "  make run-neo           - Start the stack plus NEO nodes + indexer (compose profile 'neo')"
+	@echo "  make run               - Start core stack (appserver + postgres + dashboard + site)"
+	@echo "  make run-neo           - Start core + NEO nodes + indexer"
+	@echo "  make run-monitoring    - Start core + Prometheus + Grafana"
+	@echo "  make run-dev           - Start core + monitoring + pgAdmin"
+	@echo "  make run-all           - Start complete stack (all profiles)"
 	@echo "  make run-local         - Run appserver locally (requires Postgres available)"
+	@echo "  make supabase-smoke    - Start Supabase profile (GoTrue/PostgREST/Kong/Studio) and run smoke script"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test              - Run all unit tests (short mode)"
+	@echo "  make test              - Run Go tests (race/short) + TypeScript SDK build/test"
 	@echo "  make test-unit         - Run unit tests with verbose output"
 	@echo "  make test-coverage     - Run unit tests with coverage report"
 	@echo "  make test-integration  - Run integration tests (requires running server)"
@@ -153,6 +161,10 @@ typecheck:
 smoke: test typecheck
 	@echo "Smoke checks complete."
 
+supabase-smoke:
+	@echo "Running Supabase profile smoke (GoTrue/PostgREST/Kong/Studio)..."
+	@./scripts/supabase_smoke.sh
+
 neo-up:
 	@echo "Starting NEO mainnet/testnet nodes + indexer (profile: neo)..."
 	@docker compose --profile neo up -d neo-mainnet neo-testnet neo-indexer
@@ -160,3 +172,34 @@ neo-up:
 neo-down:
 	@echo "Stopping NEO nodes + indexer (profile: neo)..."
 	@docker compose --profile neo down --remove-orphans
+
+run-monitoring:
+	@echo "Starting stack with monitoring (Prometheus + Grafana)..."
+	@echo "API:        http://localhost:8080"
+	@echo "Dashboard:  http://localhost:8081"
+	@echo "Prometheus: http://localhost:9090"
+	@echo "Grafana:    http://localhost:3000 (admin/admin)"
+	@[ -f .env ] || (cp .env.example .env && echo "  > created .env from .env.example")
+	@docker compose --profile monitoring down --remove-orphans >/dev/null 2>&1 || true
+	@docker compose --profile monitoring up -d --build
+	@docker compose --profile monitoring ps
+
+run-dev:
+	@echo "Starting full dev stack (all services + tools)..."
+	@echo "API:        http://localhost:8080"
+	@echo "Dashboard:  http://localhost:8081"
+	@echo "Site:       http://localhost:8082"
+	@echo "Prometheus: http://localhost:9090"
+	@echo "Grafana:    http://localhost:3000 (admin/admin)"
+	@echo "pgAdmin:    http://localhost:5050 (admin@local.dev/admin)"
+	@[ -f .env ] || (cp .env.example .env && echo "  > created .env from .env.example")
+	@docker compose --profile dev --profile monitoring down --remove-orphans >/dev/null 2>&1 || true
+	@docker compose --profile dev --profile monitoring up -d --build
+	@docker compose --profile dev --profile monitoring ps
+
+run-all:
+	@echo "Starting complete stack (all profiles)..."
+	@[ -f .env ] || (cp .env.example .env && echo "  > created .env from .env.example")
+	@docker compose --profile all down --remove-orphans >/dev/null 2>&1 || true
+	@docker compose --profile all up -d --build
+	@docker compose --profile all ps

@@ -91,3 +91,28 @@ annotations:
   summary: "Bus fan-out failures"
   description: "Errors detected in bus fan-out calls (kind={{ $labels.kind }})"
 ```
+
+## Supabase health
+External Supabase checks emit gauges and latency histograms when `SUPABASE_HEALTH_*` envs are set.
+```
+supabase_health = service_layer_external_health{service="supabase"}
+supabase_health_latency = rate(service_layer_external_health_latency_seconds_sum{service="supabase"}[5m]) / rate(service_layer_external_health_latency_seconds_count{service="supabase"}[5m])
+
+alert: SupabaseDown
+expr: supabase_health == 0
+for: 1m
+labels:
+  severity: critical
+annotations:
+  summary: "Supabase dependency down ({{ $labels.name }})"
+  description: "Supabase health probe {{ $labels.name }} returned state=down (code={{ $labels.code }})"
+
+alert: SupabaseLatencyHigh
+expr: supabase_health_latency > 0.5
+for: 5m
+labels:
+  severity: warning
+annotations:
+  summary: "Supabase latency high"
+  description: "Supabase health latency above 500ms (name={{ $labels.name }}, value={{ $value }})"
+```

@@ -16,6 +16,14 @@ on:
           - none
           - staging
           - production
+      supabase_smoke:
+        description: 'Run Supabase compose smoke (requires docker compose)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   setup:
@@ -170,7 +178,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
           cache: 'npm'
           cache-dependency-path: apps/dashboard/package-lock.json
 
@@ -181,6 +189,39 @@ jobs:
       - name: Typecheck dashboard
         working-directory: apps/dashboard
         run: npm test
+
+      - name: Strict typecheck dashboard
+        working-directory: apps/dashboard
+        run: npm run typecheck
+
+  ts-sdk-tests:
+    name: TypeScript SDK Tests
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Cache npm and node_modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            sdk/typescript/client/node_modules
+          key: ${{ runner.os }}-ts-sdk-${{ hashFiles('sdk/typescript/client/package-lock.json', 'sdk/typescript/client/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-ts-sdk-
+
+      - name: Install TypeScript SDK deps
+        run: npm ci --no-progress --prefix sdk/typescript/client
+
+      - name: Build + test TypeScript SDK
+        run: npm test --prefix sdk/typescript/client
 
   integration-tests:
     name: Integration Tests
@@ -226,6 +267,34 @@ jobs:
           DATABASE_NAME: service_layer_test
           DATABASE_USER: postgres
           DATABASE_PASSWORD: postgres
+
+  supabase-smoke:
+    name: Supabase Smoke
+    needs: [setup]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.supabase_smoke == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Supabase smoke (compose profile)
+        run: |
+          chmod +x scripts/supabase_smoke.sh
+          ./scripts/supabase_smoke.sh
+        env:
+          SUPABASE_REFRESH_TOKEN: ${{ secrets.SUPABASE_REFRESH_TOKEN || '' }}
+          SERVICE_LAYER_ADDR: http://localhost:8080
 
   security-scan:
     name: Security Scan
@@ -370,7 +439,7 @@ jobs:
 
   docker-build:
     name: Docker Build
-    needs: [unit-tests, integration-tests, security-scan]
+    needs: [unit-tests, integration-tests, ts-sdk-tests, security-scan]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

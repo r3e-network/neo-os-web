@@ -34,7 +34,7 @@ JWT login is available at `/auth/login` using the users configured via
 
 ```bash
 cd apps/dashboard
-# Requires Node.js 20+ / npm 10+
+# Requires Node.js 20+ / npm 10+ (`nvm use` supported via repo .nvmrc)
 npm install
 npm run dev
 ```

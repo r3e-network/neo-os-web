@@ -163,11 +163,23 @@ func (h *handler) systemStatus(w http.ResponseWriter, r *http.Request) {
 		payload["bus_fanout_recent"] = recent
 		payload["bus_fanout_recent_window_seconds"] = int(resolveBusWindow(r).Seconds())
 	}
+	if h.busMaxBytes > 0 {
+		payload["bus_max_bytes"] = h.busMaxBytes
+		if h.busMaxBytes > 10<<20 {
+			payload["bus_max_bytes_warning"] = "bus_max_bytes exceeds 10 MiB; review edge limits and abuse risk"
+		}
+	}
 	if h.neo != nil {
 		if neoStatus, err := h.neo.Status(r.Context()); err == nil {
 			payload["neo"] = neoStatus
 		} else {
 			payload["neo"] = map[string]any{"enabled": false, "error": err.Error()}
+		}
+	}
+	if sup := checkSupabaseHealth(r.Context()); sup != nil {
+		payload["supabase"] = sup
+		if checks, ok := sup["checks"].([]map[string]any); ok {
+			metrics.RecordExternalHealth("supabase", checks)
 		}
 	}
 	writeJSON(w, http.StatusOK, payload)
@@ -251,6 +263,71 @@ func summarizeModuleAPIs(modules []ModuleStatus) map[string][]string {
 		sort.Strings(summary[k])
 	}
 	return summary
+}
+
+// checkSupabaseHealth probes optional Supabase surfaces if the corresponding env vars are set.
+// Supported envs: SUPABASE_HEALTH_URL (generic), SUPABASE_HEALTH_GOTRUE, SUPABASE_HEALTH_POSTGREST,
+// SUPABASE_HEALTH_KONG, SUPABASE_HEALTH_STUDIO. Results are summarized in /system/status.
+func checkSupabaseHealth(ctx context.Context) map[string]any {
+	endpoints := map[string]string{
+		"default":   strings.TrimSpace(os.Getenv("SUPABASE_HEALTH_URL")),
+		"gotrue":    strings.TrimSpace(os.Getenv("SUPABASE_HEALTH_GOTRUE")),
+		"postgrest": strings.TrimSpace(os.Getenv("SUPABASE_HEALTH_POSTGREST")),
+		"kong":      strings.TrimSpace(os.Getenv("SUPABASE_HEALTH_KONG")),
+		"studio":    strings.TrimSpace(os.Getenv("SUPABASE_HEALTH_STUDIO")),
+	}
+	checks := []map[string]any{}
+	up := 0
+	for name, url := range endpoints {
+		if url == "" {
+			continue
+		}
+		result := probeHealth(ctx, url)
+		result["name"] = name
+		checks = append(checks, result)
+		if state, ok := result["state"].(string); ok && state == "up" {
+			up++
+		}
+	}
+	if len(checks) == 0 {
+		return nil
+	}
+	state := "down"
+	switch {
+	case up == len(checks):
+		state = "up"
+	case up > 0:
+		state = "partial"
+	}
+	return map[string]any{
+		"state":  state,
+		"checks": checks,
+	}
+}
+
+func probeHealth(ctx context.Context, url string) map[string]any {
+	start := time.Now()
+	client := &http.Client{Timeout: 2 * time.Second}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return map[string]any{"state": "down", "error": err.Error(), "url": url, "duration_ms": time.Since(start).Milliseconds()}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return map[string]any{"state": "down", "error": err.Error(), "url": url, "duration_ms": time.Since(start).Milliseconds()}
+	}
+	defer resp.Body.Close()
+	state := "down"
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		state = "up"
+	}
+	return map[string]any{
+		"status":      resp.Status,
+		"state":       state,
+		"url":         url,
+		"code":        resp.StatusCode,
+		"duration_ms": time.Since(start).Milliseconds(),
+	}
 }
 
 func summarizeModuleAPIMeta(modules []ModuleStatus, slowThreshold float64) map[string]map[string]int {

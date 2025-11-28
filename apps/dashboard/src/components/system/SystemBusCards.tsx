@@ -4,16 +4,31 @@ type BusProps = {
   busFanout?: Record<string, { ok?: number; error?: number }>;
   busFanoutRecent?: Record<string, { ok?: number; error?: number }>;
   busFanoutRecentWindowSeconds?: number;
+  busMaxBytes?: number;
+  busMaxBytesWarning?: string;
 };
 
-export function SystemBusCards({ busFanout, busFanoutRecent, busFanoutRecentWindowSeconds }: BusProps) {
+export function SystemBusCards({
+  busFanout,
+  busFanoutRecent,
+  busFanoutRecentWindowSeconds,
+  busMaxBytes,
+  busMaxBytesWarning,
+}: BusProps) {
   if (!busFanout && !busFanoutRecent) return null;
   return (
     <>
       {busFanout && Object.keys(busFanout).length > 0 && (
         <div className="card inner">
           <h4>Engine Bus Fan-out (lifetime)</h4>
-          <p className="muted">Counts since process start; use Prometheus or slctl bus stats for windowed rates.</p>
+          <p className="muted">
+            Counts since process start; use Prometheus or slctl bus stats for windowed rates.
+            {busMaxBytesWarning
+              ? ` ${busMaxBytesWarning}`
+              : busMaxBytes
+                ? ` Payload cap: ${busMaxBytes.toLocaleString()} bytes.`
+                : ""}
+          </p>
           <ul className="list">
             {Object.entries(busFanout)
               .sort(([a], [b]) => a.localeCompare(b))

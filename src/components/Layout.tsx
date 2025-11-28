@@ -11,8 +11,6 @@ import {
   Menu,
   MenuItem,
   Avatar,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material'
 import { Menu as MenuIcon, Business } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
@@ -21,8 +19,6 @@ const Layout: React.FC = () => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
   const [mobileMenuAnchor, setMobileMenuAnchor] = React.useState<null | HTMLElement>(null)
 

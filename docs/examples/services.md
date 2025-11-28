@@ -118,6 +118,9 @@ FEED_ID=$(curl -s -X POST http://localhost:8080/accounts/<ACCOUNT_ID>/pricefeeds
   }' | jq -r .ID)
 ```
 
+### Push price feeds on-chain
+- Use the TypeScript/Go helpers under `examples/neo-privnet-contract*` to fetch the latest snapshot and call your contract (default method `updatePrice` on privnet). See `docs/blockchain-contracts.md` for end-to-end wiring with self-hosted Supabase + privnet.
+
 Submit price observations:
 ```bash
 # Submit observation (creates/finalizes rounds based on deviation)
@@ -220,6 +223,63 @@ slctl datalink channel-create --account <ACCOUNT_ID> --name provider-1 --endpoin
 slctl datalink deliver --account <ACCOUNT_ID> --channel <CHANNEL_ID> --payload '{"data":"hello"}'
 ```
 
+## SDK blockchain flows (Neo privnet)
+
+TypeScript (privnet stack from `make run-neo`):
+```ts
+import { ServiceLayerClient } from '@service-layer/client';
+const sl = new ServiceLayerClient({ baseURL: 'http://localhost:8080', token: 'dev-token', tenantID: '<TENANT>' });
+
+// Oracle: source -> request -> mark running -> retry
+const source = await sl.oracle.createSource('<ACCOUNT_ID>', { name: 'prices', url: 'https://oracle.test', method: 'GET' });
+const req = await sl.oracle.createRequest('<ACCOUNT_ID>', { data_source_id: source.ID, payload: '{}' });
+await sl.oracle.updateRequest('<ACCOUNT_ID>', req.ID, { status: 'running' });
+await sl.oracle.updateRequest('<ACCOUNT_ID>', req.ID, { status: 'retry' });
+
+// VRF: key + request
+const key = await sl.vrf.createKey('<ACCOUNT_ID>', { label: 'privnet-key' });
+const vrfReq = await sl.vrf.createRequest('<ACCOUNT_ID>', key.ID, { consumer: 'dapp-A', seed: 'seed-123' });
+
+// CCIP: lane + message (cross-chain style payload)
+const lane = await sl.ccip.createLane('<ACCOUNT_ID>', { name: 'privnet-lane', source_chain: 'neo-priv', dest_chain: 'neo-priv', signer_set: ['<WALLET>'] });
+const msg = await sl.ccip.sendMessage('<ACCOUNT_ID>', lane.ID, { payload: { action: 'mint', amount: '100' }, metadata: { trace: 'abc' } });
+console.log(source.ID, vrfReq.ID, msg.ID);
+```
+
+Go:
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	sl "github.com/R3E-Network/service_layer/sdk/go/client"
+)
+
+func main() {
+	ctx := context.Background()
+	client := sl.New(sl.Config{BaseURL: "http://localhost:8080", Token: "dev-token", TenantID: "<TENANT>"})
+
+	// Oracle
+	src, _ := client.Oracle.CreateSource(ctx, "<ACCOUNT_ID>", sl.CreateSourceParams{Name: "prices", URL: "https://oracle.test", Method: "GET"})
+	req, _ := client.Oracle.CreateRequest(ctx, "<ACCOUNT_ID>", sl.CreateOracleRequestParams{DataSourceID: src.ID, Payload: "{}"})
+	_, _ = client.Oracle.UpdateRequest(ctx, "<ACCOUNT_ID>", req.ID, sl.UpdateOracleRequestParams{Status: "running"})
+
+	// VRF
+	key, _ := client.VRF.CreateKey(ctx, "<ACCOUNT_ID>", sl.CreateVRFKeyParams{Label: "privnet"})
+	vrfReq, _ := client.VRF.CreateRequest(ctx, "<ACCOUNT_ID>", key.ID, sl.CreateVRFRequestParams{Consumer: "dapp-A", Seed: "seed-123"})
+
+	// CCIP
+	lane, _ := client.CCIP.CreateLane(ctx, "<ACCOUNT_ID>", sl.CreateLaneParams{Name: "privnet", SourceChain: "neo-priv", DestChain: "neo-priv", SignerSet: []string{"<WALLET>"}})
+	msg, _ := client.CCIP.SendMessage(ctx, "<ACCOUNT_ID>", lane.ID, sl.SendCCIPMessageParams{Payload: map[string]any{"action": "mint", "amount": "100"}})
+
+	fmt.Println(src.ID, vrfReq.ID, msg.ID)
+}
+```
+
+See `examples/neo-privnet-contract/` (TypeScript) and `examples/neo-privnet-contract-go/` (Go) for end-to-end helpers that pull a price feed snapshot and invoke a privnet contract.
+
 ## Discover services via the system APIs (engine-as-OS)
 - The Service Engine is the “OS”; services are apps. `/system/status` shows how
   modules plug into the standard surfaces. To see which modules expose which
@@ -242,3 +302,48 @@ slctl datalink deliver --account <ACCOUNT_ID> --channel <CHANNEL_ID> --payload '
   to print JSON to stdout for piping/automation.
 - Dashboard export: the System Overview “Export JSON/CSV” buttons download the
   current (filtered) module list directly from the UI.
+
+## Dashboard quick start (privnet)
+- Start the stack with `make run-neo` (API 8080, Dashboard 8081, Neo privnet RPC 20332).
+- Open `http://localhost:8081/?api=http://localhost:8080&token=dev-token&tenant=<TENANT>` to prefill credentials.
+- In Settings, leave the base URL/token/tenant prefilled; enable the “NEO” panel to see indexed height and storage snapshots.
+- The Modules view lists the “OS” services; red/yellow badges show readiness or slow-start warnings. Click a module to see its exposed surfaces (compute/data/event/store/etc.).
+- The NEO panel lets you inspect height/hash/state root, download snapshots, and verify manifests/diffs without leaving the dashboard.
+
+## Contract invocation (Neo privnet, TypeScript)
+
+Use the SDK for off-chain prep, then invoke a contract on privnet with `@cityofzion/neon-js`. This example fetches a price via Oracle/CCIP-style payload and calls a contract method.
+
+```ts
+import { rpc, sc, u, wallet } from '@cityofzion/neon-js';
+import { ServiceLayerClient } from '@service-layer/client';
+
+const sl = new ServiceLayerClient({ baseURL: 'http://localhost:8080', token: 'dev-token', tenantID: '<TENANT>' });
+const rpcClient = new rpc.RPCClient('http://localhost:20332');
+
+async function main() {
+  // Off-chain fetch via Oracle
+  const source = await sl.oracle.createSource('<ACCOUNT_ID>', { name: 'prices', url: 'https://api.example.com', method: 'GET' });
+  const req = await sl.oracle.createRequest('<ACCOUNT_ID>', { data_source_id: source.ID, payload: '{}' });
+  const latest = await sl.oracle.listRequests('<ACCOUNT_ID>', { limit: 1 });
+  const price = latest[0]?.Result || '0';
+
+  // On-chain call (privnet). Replace with your contract script hash + method.
+  const contract = '0x<contract-script-hash>';
+  const account = new wallet.Account('<WIF>');
+  const invokeResult = await rpcClient.invokeFunction(
+    contract,
+    'updatePrice',
+    [sc.ContractParam.string(price)],
+    [],
+    { signers: [{ account: account.scriptHash, scopes: 1 }] }
+  );
+  console.log('tx status', invokeResult.state);
+}
+
+main().catch(console.error);
+```
+
+Notes:
+- Use the privnet wallet WIF from your local node or `neo-go` wallet JSON. Ensure the contract is deployed on privnet and the caller has gas.
+- Oracle results may need runner callbacks in production; for local dev with `dev-token` you can patch status via the HTTP API as shown earlier.

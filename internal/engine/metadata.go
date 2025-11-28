@@ -8,12 +8,13 @@ import (
 
 // MetadataManager manages module metadata (notes, capabilities, quotas, layers, etc).
 type MetadataManager struct {
-	mu          sync.RWMutex
-	notes       map[string][]string
-	caps        map[string][]string
-	quotas      map[string]map[string]string
-	reqAPIs     map[string][]APISurface
-	layers      map[string]string
+	mu      sync.RWMutex
+	notes   map[string][]string
+	caps    map[string][]string
+	quotas  map[string]map[string]string
+	reqAPIs map[string][]APISurface
+	layers  map[string]string
+	labels  map[string]string
 }
 
 // NewMetadataManager creates a new metadata manager.
@@ -24,6 +25,7 @@ func NewMetadataManager() *MetadataManager {
 		quotas:  make(map[string]map[string]string),
 		reqAPIs: make(map[string][]APISurface),
 		layers:  make(map[string]string),
+		labels:  make(map[string]string),
 	}
 }
 
@@ -208,9 +210,39 @@ func (m *MetadataManager) GetLayer(name string) string {
 	return m.layers[name]
 }
 
+// SetLabel records a human-readable label for a module.
+func (m *MetadataManager) SetLabel(name, label string) {
+	if m == nil {
+		return
+	}
+	name = trimSpace(name)
+	label = trimSpace(label)
+	if name == "" {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if label == "" {
+		delete(m.labels, name)
+		return
+	}
+	m.labels[name] = label
+}
+
+// GetLabel returns the configured label for a module.
+func (m *MetadataManager) GetLabel(name string) string {
+	if m == nil {
+		return ""
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.labels[name]
+}
+
 // ModuleInfo describes a registered module with its domain and inferred category.
 type ModuleInfo struct {
 	Name         string            `json:"name"`
+	Label        string            `json:"label,omitempty"`
 	Domain       string            `json:"domain,omitempty"`
 	Category     string            `json:"category,omitempty"`
 	Layer        string            `json:"layer,omitempty"`
@@ -268,6 +300,7 @@ func (m *MetadataManager) BuildModuleInfo(
 	}
 	reqAPIs := append([]APISurface{}, m.reqAPIs[name]...)
 	layer := m.layers[name]
+	label := m.labels[name]
 	m.mu.RUnlock()
 
 	// Add infrastructure notes
@@ -287,9 +320,13 @@ func (m *MetadataManager) BuildModuleInfo(
 	if layer == "" {
 		layer = "service"
 	}
+	if label == "" {
+		label = name
+	}
 
 	return ModuleInfo{
 		Name:         name,
+		Label:        label,
 		Domain:       mod.Domain(),
 		Category:     classify(mod),
 		Layer:        layer,

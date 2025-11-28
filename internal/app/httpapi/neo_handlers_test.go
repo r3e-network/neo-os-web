@@ -93,7 +93,7 @@ func (s *stubNeoProvider) SnapshotBundlePath(_ context.Context, _ int64, _ bool)
 }
 
 func TestNeoEndpointsUnavailable(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestNeoEndpointsUnavailable(t *testing.T) {
 }
 
 func TestNeoEndpointsHappyPath(t *testing.T) {
-	application, err := app.New(app.Stores{}, nil)
+	application, err := app.New(app.NewMemoryStoresForTest(), nil)
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}

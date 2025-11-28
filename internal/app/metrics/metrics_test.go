@@ -138,6 +138,25 @@ func metricGaugeEquals(t *testing.T, name string, labels map[string]string, expe
 	return false
 }
 
+func metricGaugeGreaterOrEqual(t *testing.T, name string, labels map[string]string, min float64) bool {
+	t.Helper()
+	families, err := Registry.Gather()
+	if err != nil {
+		t.Fatalf("gather metrics: %v", err)
+	}
+	for _, mf := range families {
+		if mf.GetName() != name {
+			continue
+		}
+		for _, metric := range mf.GetMetric() {
+			if labelsMatch(metric, labels) && metric.GetGauge() != nil {
+				return metric.GetGauge().GetValue() >= min
+			}
+		}
+	}
+	return false
+}
+
 func metricHistogramCountGreaterOrEqual(t *testing.T, name string, labels map[string]string, min uint64) bool {
 	t.Helper()
 	families, err := Registry.Gather()
@@ -329,6 +348,27 @@ func TestRecordRPCCall(t *testing.T) {
 		"status": "unknown",
 	}, 1) {
 		t.Fatal("expected unknown labels for empty input")
+	}
+}
+
+func TestRecordExternalHealth(t *testing.T) {
+	checks := []map[string]any{
+		{"name": "gotrue", "state": "up", "code": 200, "duration_ms": 50},
+		{"name": "postgrest", "state": "down", "code": 500, "duration_ms": 100},
+	}
+	RecordExternalHealth("supabase", checks)
+	if !metricGaugeGreaterOrEqual(t, "service_layer_external_health", map[string]string{
+		"service": "supabase",
+		"name":    "gotrue",
+		"code":    "200",
+	}, 1) {
+		t.Fatal("expected health gauge to be set")
+	}
+	if !metricHistogramCountGreaterOrEqual(t, "service_layer_external_health_latency_seconds", map[string]string{
+		"service": "supabase",
+		"name":    "gotrue",
+	}, 1) {
+		t.Fatal("expected latency histogram to record")
 	}
 }
 

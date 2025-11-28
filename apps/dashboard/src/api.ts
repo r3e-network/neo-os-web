@@ -149,6 +149,8 @@ export type SystemStatus = {
   services?: Descriptor[];
   jam?: JamStatus;
   neo?: NeoStatus | NeoStatusError;
+  bus_max_bytes?: number;
+  bus_max_bytes_warning?: string;
   modules?: ModuleStatus[];
   modules_meta?: Record<string, number>;
   modules_timings?: Record<string, { start_ms?: number; stop_ms?: number }>;
@@ -175,7 +177,9 @@ export type ModuleStatus = {
   domain?: string;
   category?: string;
   layer?: string;
+  label?: string;
   interfaces?: string[];
+  capabilities?: string[];
   apis?: {
     name?: string;
     surface?: string;
@@ -184,7 +188,6 @@ export type ModuleStatus = {
   }[];
   permissions?: string[];
   depends_on?: string[];
-  capabilities?: string[];
   quotas?: Record<string, string>;
   requires_apis?: string[];
   notes?: string[];
@@ -551,6 +554,7 @@ export type Trigger = {
 export type ClientConfig = {
   baseUrl: string;
   token: string;
+  refreshToken?: string;
   tenant?: string;
 };
 
@@ -566,18 +570,50 @@ export function normaliseUrl(url: string) {
 export async function fetchJSON<T>(url: string, config: ClientConfig, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${config.token}`,
     ...(init?.headers as Record<string, string> | undefined),
   };
-  if (config.tenant) {
-    headers["X-Tenant-ID"] = config.tenant;
+  const applyAuth = (token?: string) => {
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    if (config.tenant) {
+      headers["X-Tenant-ID"] = config.tenant;
+    }
+  };
+  applyAuth(config.token);
+
+  const doFetch = async (overrideInit?: RequestInit) => fetch(url, { ...init, ...overrideInit, headers });
+
+  let resp = await doFetch();
+  if (resp.status === 401 && config.refreshToken) {
+    const refreshed = await refreshToken(config);
+    if (refreshed) {
+      applyAuth(refreshed);
+      resp = await doFetch({ signal: init?.signal });
+    }
   }
-  const resp = await fetch(url, { ...init, headers });
+
   if (!resp.ok) {
     const text = await resp.text();
     throw new Error(`${resp.status} ${resp.statusText}: ${text}`);
   }
   return resp.json() as Promise<T>;
+}
+
+async function refreshToken(config: ClientConfig): Promise<string | null> {
+  try {
+    const resp = await fetch(`${normaliseUrl(config.baseUrl)}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: config.refreshToken }),
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    const token = (json.access_token || json.token || "").trim();
+    return token || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchDescriptors(config: ClientConfig): Promise<Descriptor[]> {

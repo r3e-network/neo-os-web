@@ -81,7 +81,6 @@ This design doc proposes concrete API changes to harden the JAM prototype endpoi
 2) Add middleware for auth scope + rate limiting on `/jam/*`.
 3) Implement filters/pagination in list endpoints; adjust slctl to consume `items`.
 4) Add preimage meta JSON endpoint; enforce size/media caps.
-5) Add retention job (in-memory: no-op; Postgres: soft-delete or delete).
+5) Add retention job (Supabase: soft-delete or delete).
 6) Add metrics/logging; expose in Prometheus and logs.
 7) Update `requirements.md` and `slctl` help text.
-

@@ -11,10 +11,15 @@ as the single source of truth for the platform.
 | **Services** | [Service Catalog](service-catalog.md) | Complete reference for all 17 services |
 | **Development** | [Developer Guide](developer-guide.md) | Building and extending the Service Layer |
 | **Architecture** | [Architecture Layers](architecture-layers.md) | 4-layer design (Platform → Framework → Engine → Services) |
+| **Supabase** | [Supabase Setup](supabase-setup.md) | Self-hosted Supabase Postgres + GoTrue profile and env matrix |
 | **Deep Dives** | [Framework Guide](framework-guide.md) | ServiceBase, Builder, Manifest, Testing |
 | **Deep Dives** | [Engine Guide](engine-guide.md) | Registry, Lifecycle, Bus, Health monitoring |
 | **Deployment** | [Deployment Guide](deployment-guide.md) | Production deployment with Docker/Kubernetes |
 | **Specification** | [Requirements](requirements.md) | Single source of truth |
+
+### SDKs
+- [TypeScript Client](../sdk/typescript/client/README.md) — typed API surface with Supabase refresh token support
+- [Go Client](../sdk/go/client/README.md) — typed client with Supabase refresh token support
 
 ---
 
@@ -98,6 +103,7 @@ internal/
 ### Deployment
 - [Deployment Guide](deployment-guide.md) - **NEW**: Production deployment with Docker/Kubernetes
 - [Operations Runbook](ops-runbook.md) - Start/stop, monitoring, troubleshooting
+- Supabase smoke: `make supabase-smoke` (or `./scripts/supabase_smoke.sh`) spins up the Supabase profile (GoTrue/PostgREST/Kong/Studio) and checks `/auth/refresh` + `/system/status` via the appserver.
 
 ### Dashboard
 - [Dashboard Smoke Checklist](dashboard-smoke.md) - Dashboard verification
@@ -118,6 +124,7 @@ internal/
 ### NEO N3 Integration
 - [NEO API Reference](neo-api.md) - Indexer and snapshot APIs
 - [NEO Operations](neo-ops.md) - Running NEO nodes
+- [Blockchain Contracts](blockchain-contracts.md) - Push Service Layer feeds into privnet contracts via SDK helpers
 - [NEO Layering Plan](neo-layering-summary.md) - Architecture roadmap
 - [NEO Contract Set](neo-n3-contract-set.md) - Smart contract layout
 - [Contract ↔ Service Alignment](neo-contracts-alignment.md) - Field mappings
