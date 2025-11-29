@@ -30,7 +30,7 @@ Operate the Service Layer as a Supabase-backed service OS and push its data to o
 - `DATABASE_URL` is the primary DSN override for all config loaders and the appserver.
 - When `SUPABASE_JWT_SECRET` is set, `SUPABASE_GOTRUE_URL` is required so `/auth/refresh` can proxy to your self-hosted GoTrue.
 - Map roles with `SUPABASE_ADMIN_ROLES` and derive tenants/roles from claims with `SUPABASE_TENANT_CLAIM` / `SUPABASE_ROLE_CLAIM` to keep admin and multi-tenant enforcement consistent.
-- Auto-migrations: enable with `-migrate` or `database.migrate_on_start` (see `configs/config.migrate.yaml`); default in samples is off for shared environments.
+- Auto-migrations: enable with `-migrate` or `database.migrate_on_start` (see `configs/config.migrate.yaml`); samples default to on for local/dev. Disable when running migrations via CI/CD.
 
 ## Minimal SDK snippets
 ```ts

@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "pretest": "npm run build",
-    "test": "node --test dist/**/*.test.js"
+    "test": "node --test dist"
   },
   "keywords": ["service-layer", "sdk", "client"],
   "license": "MIT",

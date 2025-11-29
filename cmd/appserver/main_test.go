@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/internal/config"
+	"github.com/R3E-Network/service_layer/pkg/config"
 )
 
 func TestResolveDSNPrecedence(t *testing.T) {

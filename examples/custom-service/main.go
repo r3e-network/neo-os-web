@@ -32,12 +32,12 @@ import (
 
 // Item represents a domain entity
 type Item struct {
-	ID        string            `json:"id"`
-	AccountID string            `json:"account_id"`
-	Name      string            `json:"name"`
-	Data      map[string]any    `json:"data,omitempty"`
-	CreatedAt time.Time         `json:"created_at"`
-	UpdatedAt time.Time         `json:"updated_at"`
+	ID        string         `json:"id"`
+	AccountID string         `json:"account_id"`
+	Name      string         `json:"name"`
+	Data      map[string]any `json:"data,omitempty"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 // =============================================================================

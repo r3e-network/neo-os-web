@@ -14,6 +14,13 @@ The system is organized into **four primary layers** (bottom to top):
 Additionally, an **Application Composition Layer** (`internal/app/`) sits above the Services Layer to wire everything together into a runnable application. Domain contracts are defined in `internal/app/domain/` and re-exported through `internal/domain/` so services and adapters can depend on a stable surface without importing application wiring.
 The default platform stack is intentionally minimal: self-hosted Supabase Postgres + GoTrue replace bespoke auth/store modules, while SDKs and helpers focus on blockchain contract delivery rather than infra plumbing.
 
+### Naming and dependency rules
+- Package names mirror layer names: `internal/platform`, `internal/framework`, `internal/engine`, `internal/services`, `internal/app` (composition), plus `cmd/` entrypoints and `sdk/` clients.
+- Dependencies are one-way: `services` → `engine`/`framework` → `platform`; composition code lives in `internal/app` to avoid leaking wiring into domains.
+- Supabase is the default platform for auth + Postgres; other stores/queues live under `internal/platform/` as drivers.
+- Keep handlers/thin adapters in `internal/app/httpapi`, leaving business logic inside `internal/services` and persistence in `internal/app/storage`.
+- CLI (`cmd/slctl`) and SDKs consume the HTTP surface only; they must not reach into `internal/*`.
+
 ### Android OS Analogy
 
 ```
@@ -137,6 +144,24 @@ type Manifest struct {
 
 ---
 
+### Layer 2.5: Application Composition
+
+**Location**: `internal/app/`
+
+**Purpose**: Assemble drivers, engines, and services into a runnable binary. This layer owns configuration, HTTP routes, storage adapters, and tenancy/auth wiring.
+
+**Responsibilities**:
+- HTTP API surface (`internal/app/httpapi`) for all modules
+- Storage adapters (`internal/app/storage`) that bind services to Postgres (Supabase-first) and in-memory stores for tests
+- Configuration parsing and validation (`internal/config`)
+- Tenant/header enforcement and Supabase JWT integration
+- Migration orchestration (database + service-specific)
+
+**Dependencies**:
+- Platform (drivers), Framework (shared helpers), Engine (module registration), Services (business logic)
+
+---
+
 ### Layer 3: Engine (OS Kernel)
 
 **Location**: `internal/engine/`
@@ -193,6 +218,7 @@ type RPCEngine interface { ... }
 - Dependency resolution ensures correct startup order
 - Bus enables loose coupling between services
 - Typed engine interfaces provide compile-time safety
+- Engine modules are named after capabilities (compute/data/event/store) and live in `internal/engine` and `internal/services`; composition code avoids embedding business logic directly into engine primitives.
 
 **Dependencies**:
 - Framework Layer (for ServiceBase, Manifest)

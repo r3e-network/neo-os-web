@@ -20,7 +20,7 @@ paths are workspace-relative; you can use absolute paths if preferred.
 - Persistence is Supabase-first: set `database.dsn` or export `DATABASE_URL` (preferred) to point at your self-hosted Supabase Postgres. The runtime has no in-memory fallback outside of tests.
 - `DATABASE_URL` overrides any file-based DSN automatically so Compose or `.env` values apply consistently.
 - TLS: set `sslmode=require` in `DATABASE_URL` for production. Connection pool knobs mirror the config fields (`max_open_conns`, `max_idle_conns`, `conn_max_lifetime`).
-- `migrate_on_start` (bool, default false): run migrations automatically at startup. Requires PostgreSQL connectivity and is best left off in shared envs unless coordinated. Use `upgrades/on` workflows or `migrate` binaries for controlled rollouts in prod.
+- `migrate_on_start` (bool, default true): run migrations automatically at startup. Leave it enabled for local/dev; set to false in shared/prod when migrations are orchestrated separately.
 
 ## Runtime Block
 

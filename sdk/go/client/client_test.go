@@ -109,6 +109,21 @@ func TestAccountsAndFunctionsRoundTrip(t *testing.T) {
 		"GET /accounts/acc-1/functions/executions/exec-1": func(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(map[string]any{"ID": "exec-1", "FunctionID": "fn-1"})
 		},
+		"POST /accounts/acc-1/secrets": func(w http.ResponseWriter, r *http.Request) {
+			json.NewEncoder(w).Encode(map[string]any{"ID": "sec-1", "AccountID": "acc-1", "Name": "apiKey", "ACL": 1, "Version": 1})
+		},
+		"GET /accounts/acc-1/secrets": func(w http.ResponseWriter, r *http.Request) {
+			json.NewEncoder(w).Encode([]map[string]any{{"ID": "sec-1", "AccountID": "acc-1", "Name": "apiKey", "ACL": 1, "Version": 1}})
+		},
+		"GET /accounts/acc-1/secrets/apiKey": func(w http.ResponseWriter, r *http.Request) {
+			json.NewEncoder(w).Encode(map[string]any{"ID": "sec-1", "AccountID": "acc-1", "Name": "apiKey", "ACL": 1, "Version": 1, "Value": "v1"})
+		},
+		"PUT /accounts/acc-1/secrets/apiKey": func(w http.ResponseWriter, r *http.Request) {
+			json.NewEncoder(w).Encode(map[string]any{"ID": "sec-1", "AccountID": "acc-1", "Name": "apiKey", "ACL": 3, "Version": 2})
+		},
+		"DELETE /accounts/acc-1/secrets/apiKey": func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		},
 	})
 	defer srv.Close()
 
@@ -141,6 +156,27 @@ func TestAccountsAndFunctionsRoundTrip(t *testing.T) {
 	}
 	if err := client.Accounts.Delete(ctx, "acc-1"); err != nil {
 		t.Fatalf("delete account: %v", err)
+	}
+
+	// Secrets CRUD
+	sec, err := client.Secrets.Create(ctx, "acc-1", CreateSecretParams{Name: "apiKey", Value: "v1", ACL: 1})
+	if err != nil || sec.ID != "sec-1" || sec.ACL != 1 || sec.Version != 1 {
+		t.Fatalf("create secret: %v", err)
+	}
+	list, err := client.Secrets.List(ctx, "acc-1")
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list secrets: %v", err)
+	}
+	got, err := client.Secrets.Get(ctx, "acc-1", "apiKey")
+	if err != nil || got.Value != "v1" {
+		t.Fatalf("get secret: %v", err)
+	}
+	updated, err := client.Secrets.Update(ctx, "acc-1", "apiKey", UpdateSecretParams{ACL: 3})
+	if err != nil || updated.ACL != 3 || updated.Version != 2 {
+		t.Fatalf("update secret: %v", err)
+	}
+	if err := client.Secrets.Delete(ctx, "acc-1", "apiKey"); err != nil {
+		t.Fatalf("delete secret: %v", err)
 	}
 }
 

@@ -21,6 +21,25 @@ const client = new ServiceLayerClient({
 const accounts = await client.accounts.list();
 ```
 
+### Secrets (ACL-aware)
+
+```ts
+// Create with optional ACL byte (see contracts' SecretsVault.cs flags)
+const secret = await client.secrets.create(accountId, { name: 'apiKey', value: 's3cr3t', acl: 0x03 });
+
+// Fetch, update ACL/value, delete
+const current = await client.secrets.get(accountId, 'apiKey');
+await client.secrets.update(accountId, 'apiKey', { acl: 0x07 });
+await client.secrets.delete(accountId, 'apiKey');
+```
+
+### Workspace wallets
+
+```ts
+const wallet = await client.workspaceWallets.create(accountId, { wallet_address: '0xabc123...' });
+const wallets = await client.workspaceWallets.list(accountId);
+```
+
 ## Supabase refresh tokens
 
 Pass a `refreshToken` in `ClientConfig` to allow the SDK to fetch an access token from `/auth/refresh` and retry once on 401:

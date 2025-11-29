@@ -12,7 +12,7 @@ database:
   max_idle_conns: 5
   conn_max_lifetime: 300
   # Set to true to run migrations automatically on startup (requires PostgreSQL).
-  migrate_on_start: false
+  migrate_on_start: true
 
 logging:
   level: "info"   # debug, info, warn, error

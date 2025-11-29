@@ -110,6 +110,8 @@ Once up:
 - System bus: `/system/events|data|compute` fan-out endpoints are admin-only. Use an admin JWT/role (e.g., Supabase admin role mapping) rather than API tokens.
 - SDKs and on-chain helpers: `sdk/typescript/client` and `sdk/go/client` expose typed API clients (with Supabase refresh-token support). See `docs/blockchain-contracts.md` plus `examples/neo-privnet-contract*` for pushing price feed data into privnet contracts.
 - Randomness: set `RANDOM_SIGNING_KEY` to a persistent ed25519 private key to keep randomness signatures stable across restarts; otherwise keys rotate on each boot.
+- Migrations: `database.migrate_on_start` defaults to `true` in the sample configs for local/dev. Disable it in shared/prod environments when you orchestrate migrations separately.
+- Tenant debug: `/system/tenant` echoes the resolved tenant/user/role and whether `REQUIRE_TENANT_HEADER` is enforced. Use it to verify Supabase claim mapping or header propagation.
 
 CLI or manual server:
 
@@ -140,6 +142,7 @@ ensure gas accounts and submit oracle requests.
 - **CLI (`cmd/slctl`)** — wraps the HTTP API for scripting. Honours `SERVICE_LAYER_ADDR`
   and `SERVICE_LAYER_TOKEN` like the server; set `--tenant` / `SERVICE_LAYER_TENANT` to send `X-Tenant-ID` when needed. Use it to create accounts, register functions,
   request randomness (`slctl random generate --account <id> --length 64`) or inspect recent draws (`slctl random list --account <id>`), and inspect automation/oracle history from a terminal.
+- CLI file map (post-refactor): `core.go` (entry + dispatch), `client.go` (HTTP + auth), `helpers.go` (shared flag/JSON utils), `system.go`/`system_status.go` (status/services/tenant/dashboard/audit), `bus.go`, `accounts.go` (accounts + workspace-wallets), `functions.go`, `automation.go`, `secrets.go`, `gasbank.go`, `oracle.go`, `datafeeds.go` (pricefeeds + randomness), `chainlink.go` (CRE/CCIP/VRF), `datalink.go`, `dta.go`, `datastreams.go`, `confcompute.go`, plus `neo.go`, `jam.go`, and `manifest.go`.
 - **Dashboard (`apps/dashboard`)** — React + Vite SPA for day-to-day operations. See
   `apps/dashboard/README.md` for Docker/local instructions. Configure API and Prometheus
   endpoints in the UI once the server is running. The NEO panel (if enabled server-side) shows
@@ -429,5 +432,5 @@ curl -H "Authorization: Bearer dev-token" -H "X-Tenant-ID: tenant-a" http://loca
 ```
 
 ### NEO layering plan
-- See `docs/neo-layering.md` for the roadmap to run full NEO nodes (mainnet/testnet), indexers, and per-block stateless state snapshots with trusted state roots.
+- See `docs/neo-layering-summary.md` for the roadmap to run full NEO nodes (mainnet/testnet), indexers, and per-block stateless state snapshots with trusted state roots.
 - See `docs/neo-ops.md` for running neo-cli nodes via the `neo` compose profile (ports, plugins, volumes).

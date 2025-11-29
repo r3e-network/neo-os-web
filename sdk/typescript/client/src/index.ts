@@ -78,6 +78,9 @@ export interface Secret {
   ID: string;
   AccountID: string;
   Name: string;
+  Version?: number;
+  ACL?: number;
+  Value?: string;
   CreatedAt: string;
   UpdatedAt: string;
 }
@@ -604,10 +607,16 @@ export class ServiceLayerClient {
 
   // Secrets
   readonly secrets = {
-    create: (accountId: string, params: { name: string; value: string; tenant_id?: string }): Promise<Secret> =>
+    create: (accountId: string, params: { name: string; value: string; acl?: number; tenant_id?: string }): Promise<Secret> =>
       this.request('POST', `/accounts/${accountId}/secrets`, params),
+    get: (accountId: string, name: string): Promise<Secret> =>
+      this.request('GET', `/accounts/${accountId}/secrets/${encodeURIComponent(name)}`),
     list: (accountId: string): Promise<Secret[]> =>
       this.request('GET', `/accounts/${accountId}/secrets`),
+    update: (accountId: string, name: string, params: { value?: string; acl?: number }): Promise<Secret> =>
+      this.request('PUT', `/accounts/${accountId}/secrets/${encodeURIComponent(name)}`, params),
+    delete: (accountId: string, name: string): Promise<void> =>
+      this.request('DELETE', `/accounts/${accountId}/secrets/${encodeURIComponent(name)}`),
   };
 
   // Gas bank

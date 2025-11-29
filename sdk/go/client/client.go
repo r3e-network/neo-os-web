@@ -266,6 +266,9 @@ type Secret struct {
 	ID        string    `json:"ID"`
 	AccountID string    `json:"AccountID"`
 	Name      string    `json:"Name"`
+	Version   int       `json:"Version,omitempty"`
+	ACL       uint8     `json:"ACL,omitempty"`
+	Value     string    `json:"Value,omitempty"`
 	CreatedAt time.Time `json:"CreatedAt"`
 	UpdatedAt time.Time `json:"UpdatedAt"`
 }
@@ -760,6 +763,7 @@ type SecretsService struct{ client *Client }
 type CreateSecretParams struct {
 	Name     string `json:"name"`
 	Value    string `json:"value"`
+	ACL      uint8  `json:"acl,omitempty"`
 	TenantID string `json:"tenant_id,omitempty"`
 }
 
@@ -773,6 +777,27 @@ func (s *SecretsService) List(ctx context.Context, accountID string) ([]Secret, 
 	var result []Secret
 	err := s.client.request(ctx, http.MethodGet, "/accounts/"+accountID+"/secrets", nil, nil, &result)
 	return result, err
+}
+
+func (s *SecretsService) Get(ctx context.Context, accountID, name string) (*Secret, error) {
+	var result Secret
+	err := s.client.request(ctx, http.MethodGet, "/accounts/"+accountID+"/secrets/"+url.PathEscape(name), nil, nil, &result)
+	return &result, err
+}
+
+type UpdateSecretParams struct {
+	Value string `json:"value,omitempty"`
+	ACL   uint8  `json:"acl,omitempty"`
+}
+
+func (s *SecretsService) Update(ctx context.Context, accountID, name string, params UpdateSecretParams) (*Secret, error) {
+	var result Secret
+	err := s.client.request(ctx, http.MethodPut, "/accounts/"+accountID+"/secrets/"+url.PathEscape(name), nil, params, &result)
+	return &result, err
+}
+
+func (s *SecretsService) Delete(ctx context.Context, accountID, name string) error {
+	return s.client.request(ctx, http.MethodDelete, "/accounts/"+accountID+"/secrets/"+url.PathEscape(name), nil, nil, nil)
 }
 
 // ============================================================================ //

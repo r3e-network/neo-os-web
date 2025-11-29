@@ -26,33 +26,33 @@ import (
 
 // Config controls snapshot generation for a given block height.
 type Config struct {
-	RPCURL    string
-	Height    int64
-	OutputDir string
-	Network   string
-	Contracts []string
-	KVURLBase string
-	DSN       string
+	RPCURL     string
+	Height     int64
+	OutputDir  string
+	Network    string
+	Contracts  []string
+	KVURLBase  string
+	DSN        string
 	SigningKey string
 }
 
 type snapshotManifest struct {
-	Network    string    `json:"network"`
-	Height     int64     `json:"height"`
-	StateRoot  string    `json:"state_root"`
-	Generated  time.Time `json:"generated_at"`
-	KVPath     string    `json:"kv_path,omitempty"`
-	KVURL      string    `json:"kv_url,omitempty"`
-	KVHash     string    `json:"kv_sha256,omitempty"`
-	KVBytes    int64     `json:"kv_bytes,omitempty"`
-	KVDiffPath string    `json:"kv_diff_path,omitempty"`
-	KVDiffURL  string    `json:"kv_diff_url,omitempty"`
-	KVDiffHash string    `json:"kv_diff_sha256,omitempty"`
-	KVDiffBytes int64    `json:"kv_diff_bytes,omitempty"`
-	Contracts  []string  `json:"contracts,omitempty"`
-	RPCURL     string    `json:"rpc_url,omitempty"`
-	Signature  string    `json:"signature,omitempty"`
-	SigningKey string    `json:"signing_public_key,omitempty"`
+	Network     string    `json:"network"`
+	Height      int64     `json:"height"`
+	StateRoot   string    `json:"state_root"`
+	Generated   time.Time `json:"generated_at"`
+	KVPath      string    `json:"kv_path,omitempty"`
+	KVURL       string    `json:"kv_url,omitempty"`
+	KVHash      string    `json:"kv_sha256,omitempty"`
+	KVBytes     int64     `json:"kv_bytes,omitempty"`
+	KVDiffPath  string    `json:"kv_diff_path,omitempty"`
+	KVDiffURL   string    `json:"kv_diff_url,omitempty"`
+	KVDiffHash  string    `json:"kv_diff_sha256,omitempty"`
+	KVDiffBytes int64     `json:"kv_diff_bytes,omitempty"`
+	Contracts   []string  `json:"contracts,omitempty"`
+	RPCURL      string    `json:"rpc_url,omitempty"`
+	Signature   string    `json:"signature,omitempty"`
+	SigningKey  string    `json:"signing_public_key,omitempty"`
 }
 
 func main() {

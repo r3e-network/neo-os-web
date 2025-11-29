@@ -21,6 +21,7 @@ services:
     environment:
       - CONFIG_FILE=/app/configs/config.yaml
       - DATABASE_URL=${DATABASE_URL:-postgres://supabase_admin:supabase_pass@supabase-postgres:5432/service_layer?sslmode=disable}
+      - DATABASE_MIGRATE_ON_START=${DATABASE_MIGRATE_ON_START:-true}
       - API_TOKENS=${API_TOKENS:-dev-token}
       - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY:-***REMOVED***}
       - AUTH_JWT_SECRET=${AUTH_JWT_SECRET:-***REMOVED***}

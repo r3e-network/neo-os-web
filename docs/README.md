@@ -78,22 +78,22 @@ as the single source of truth for the platform.
 
 ### Core Architecture
 - [System Architecture](system-architecture.md) - Deployment topology and data flows
-- [Service Engine Architecture](service-engine-architecture.md) - Detailed engine design
-- [Service Engine (Android Model)](service-engine.md) - OS-style service model
-- [Service Core Engine](core-engine.md) - Core engine internals
-
-### Deep Dive Guides
-- [Framework Guide](framework-guide.md) - **NEW**: ServiceBase, Builder, Manifest, Testing utilities
-- [Engine Guide](engine-guide.md) - **NEW**: Registry, Lifecycle, Bus, Health, Dependencies
+- [Engine Guide](engine-guide.md) - Complete engine reference (Registry, Lifecycle, Bus, Health)
+- [Framework Guide](framework-guide.md) - ServiceBase, Builder, Manifest, Testing utilities
+- [Supabase Integration](supabase-integration.md) - Auth, Storage, Realtime integration
 
 ### Code Layout
 ```
-internal/
-├── platform/     # HAL/Drivers (RPC, Storage, Cache, Queue, Crypto)
-├── framework/    # SDK (ServiceBase, Builder, Manifest)
-├── engine/       # OS Kernel (Registry, Lifecycle, Bus, Health)
-├── services/     # Business services (17 domains)
-└── app/          # Application wiring (HTTP API, storage)
+system/
+├── core/         # Service Engine (Registry, Lifecycle, Bus)
+├── framework/    # Service SDK (ServiceBase, Builder, Manifest)
+├── platform/     # Platform services (database, migrations)
+├── runtime/      # Package runtime (loader, permissions)
+└── bootstrap/    # Application bootstrapping
+
+packages/         # Service packages (com.r3e.services.*)
+applications/     # HTTP API, storage adapters
+pkg/              # Shared libraries (supabase, pgnotify, blob)
 ```
 
 ---
@@ -130,10 +130,10 @@ internal/
 - [Contract ↔ Service Alignment](neo-contracts-alignment.md) - Field mappings
 
 ### JAM Integration
-- [JAM Integration Design](polkadot-jam-integration-design.md) - Overview
-- [JAM Accumulator Plan](jam-accumulator-plan.md) - Implementation plan
-- [JAM Receipts and Roots](jam-receipts-and-roots.md) - Receipt system
-- [JAM Hardening](jam-hardening.md) - Security hardening
+- [JAM Integration Design](jam/polkadot-jam-integration-design.md) - Overview
+- [JAM Accumulator Plan](jam/jam-accumulator-plan.md) - Implementation plan
+- [JAM Receipts and Roots](jam/jam-receipts-and-roots.md) - Receipt system
+- [JAM Hardening](jam/jam-hardening.md) - Security hardening
 
 ---
 

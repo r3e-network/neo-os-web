@@ -46,6 +46,23 @@ func main() {
 ### Tenancy
 - Multi-tenant deployments require `X-Tenant-ID`. Set `TenantID` in `Config` to automatically send the header for every request.
 
+### Secrets (ACL-aware)
+
+```go
+sec, err := client.Secrets.Create(ctx, "account-id", sl.CreateSecretParams{
+    Name:  "apiKey",
+    Value: "s3cr3t",
+    ACL:   0x03, // optional ACL byte (see SecretsVault.cs flags)
+})
+if err != nil { panic(err) }
+
+meta, _ := client.Secrets.Get(ctx, "account-id", "apiKey")
+fmt.Println(meta.Version, meta.ACL)
+
+updated, _ := client.Secrets.Update(ctx, "account-id", "apiKey", sl.UpdateSecretParams{ACL: 0x07})
+_ = client.Secrets.Delete(ctx, "account-id", "apiKey")
+```
+
 ### Engine bus fan-out
 - Use `Bus.PublishEvent` to dispatch an event to all registered modules, `Bus.PushData` for data fan-out, and `Bus.Compute` to invoke every compute engine and collect results.
 - Example:

@@ -73,8 +73,8 @@ SUPABASE_ROLE_CLAIM=app_metadata.role         # optional claim path for role map
 
 ## Migrations
 
-Migrations are embedded. Control auto-apply with either the legacy `-migrate` flag or `database.migrate_on_start` in `configs/config.yaml` (see `configs/config.migrate.yaml` for an opt-in sample). Default is on for the flag in older setups; sample configs now default to off for safer shared environments. The runtime fails fast if the DSN is missing or unreachable.
-For Supabase deployments, prefer controlled migrations (CI/CD) and enable `migrate_on_start` only in transient/local stacks or when you explicitly manage change windows.
+Migrations are embedded. Control auto-apply with either the legacy `-migrate` flag or `database.migrate_on_start` in `configs/config.yaml` (see `configs/config.migrate.yaml`). Sample configs default to on for local/dev (matching the historic flag default); set `database.migrate_on_start: false` if you orchestrate migrations separately. The runtime fails fast if the DSN is missing or unreachable.
+For Supabase deployments, prefer controlled migrations (CI/CD) and flip `migrate_on_start` to false outside of transient/local stacks when you need explicit change windows.
 
 ## Admin Access
 

@@ -26,18 +26,18 @@ type Response struct {
 }
 
 const (
-	ActionGasbankEnsureAccount   = "gasbank.ensureAccount"
-	ActionGasbankWithdraw        = "gasbank.withdraw"
-	ActionGasbankBalance         = "gasbank.balance"
+	ActionGasbankEnsureAccount    = "gasbank.ensureAccount"
+	ActionGasbankWithdraw         = "gasbank.withdraw"
+	ActionGasbankBalance          = "gasbank.balance"
 	ActionGasbankListTransactions = "gasbank.listTransactions"
-	ActionOracleCreateRequest    = "oracle.createRequest"
-	ActionPricefeedSnapshot      = "pricefeed.recordSnapshot"
-	ActionRandomGenerate         = "random.generate"
-	ActionDatafeedSubmitUpdate   = "datafeeds.submitUpdate"
-	ActionDatastreamPublishFrame = "datastreams.publishFrame"
-	ActionDatalinkCreateDelivery = "datalink.createDelivery"
-	ActionTriggersRegister       = "triggers.register"
-	ActionAutomationSchedule     = "automation.schedule"
+	ActionOracleCreateRequest     = "oracle.createRequest"
+	ActionPricefeedSnapshot       = "pricefeed.recordSnapshot"
+	ActionRandomGenerate          = "random.generate"
+	ActionDatafeedSubmitUpdate    = "datafeeds.submitUpdate"
+	ActionDatastreamPublishFrame  = "datastreams.publishFrame"
+	ActionDatalinkCreateDelivery  = "datalink.createDelivery"
+	ActionTriggersRegister        = "triggers.register"
+	ActionAutomationSchedule      = "automation.schedule"
 )
 
 // ensure map is initialized once to avoid nil map panics when adding meta.

@@ -250,6 +250,25 @@ test('accounts.delete uses DELETE', async () => {
   await client.accounts.delete('acc-1');
 });
 
+test('secrets CRUD paths are wired', async () => {
+  const fetch = createMockFetch({
+    'POST /accounts/acc-1/secrets': { ID: 'sec-1', Name: 'apiKey', ACL: 1, Version: 1 },
+    'GET /accounts/acc-1/secrets/apiKey': { ID: 'sec-1', Name: 'apiKey', Value: 'v1', ACL: 1, Version: 1 },
+    'PUT /accounts/acc-1/secrets/apiKey': { ID: 'sec-1', Name: 'apiKey', ACL: 3, Version: 2 },
+    'DELETE /accounts/acc-1/secrets/apiKey': {},
+  });
+  // @ts-expect-error override global fetch for tests
+  global.fetch = fetch;
+  const client = new ServiceLayerClient({ baseURL: 'http://api.test', token: 't' });
+  const created = await client.secrets.create('acc-1', { name: 'apiKey', value: 'v1', acl: 1 });
+  assert(created.Version === 1 && created.ACL === 1, 'created secret fields');
+  const fetched = await client.secrets.get('acc-1', 'apiKey');
+  assert(fetched.Value === 'v1', 'fetched secret value');
+  const updated = await client.secrets.update('acc-1', 'apiKey', { acl: 3 });
+  assert(updated.Version === 2 && updated.ACL === 3, 'updated secret ACL/version');
+  await client.secrets.delete('acc-1', 'apiKey');
+});
+
 test('dataFeeds.submitUpdate posts to updates path', async () => {
   const fetch = createMockFetch({
     'POST /accounts/acc-1/datafeeds/feed-1/updates': { ID: 'upd-1', FeedID: 'feed-1' },

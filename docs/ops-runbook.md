@@ -9,6 +9,7 @@
 ## Health & Smoke
 - Liveness: `curl -H "Authorization: Bearer dev-token" http://localhost:8080/livez`
 - Readiness: `curl -H "Authorization: Bearer dev-token" http://localhost:8080/readyz` (returns 503 with modules list if any module is not ready). `/healthz` behaves the same as `/readyz`. `/system/status` provides the detailed modules view with readiness + timestamps.
+- Tenant check: `curl -H "Authorization: Bearer dev-token" -H "X-Tenant-ID: <id>" http://localhost:8080/system/tenant` echoes the resolved tenant/user/role and whether `REQUIRE_TENANT_HEADER` is enforced—useful when validating Supabase JWT claim mapping.
 - System status: `curl -H "Authorization: Bearer dev-token" http://localhost:8080/system/status`
 - Dashboard: open `http://localhost:8081/?api=http://localhost:8080&token=dev-token&tenant=<id>` or generate via `slctl dashboard-link`.
 - NEO smoke: `slctl neo status` and `slctl neo snapshots` (requires indexed data or manifests in `NEO_SNAPSHOT_DIR`).

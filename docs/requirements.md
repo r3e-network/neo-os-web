@@ -178,12 +178,12 @@
 
 ## Data Management & Persistence
 - PostgreSQL 14+ is the canonical store. Tables cover accounts, workspace wallets, secrets (encrypted values + metadata), functions (definitions, executions, action history), automation jobs/runs, triggers, oracle sources/requests, price feeds/snapshots, gas accounts/transactions, randomness history, and each service entity described in this catalogue (CRE, CCIP, VRF, Data Feeds, Data Streams, DataLink, DTA, Confidential Compute).
-- All database mutations go through versioned migrations under `internal/platform/migrations`; the server can auto-apply them when `-migrate`/`database.migrate_on_start` is enabled (default true for legacy flag, default false in the sample config). Prefer coordinated rollouts in shared environments.
+- All database mutations go through versioned migrations under `internal/platform/migrations`; the server can auto-apply them when `-migrate`/`database.migrate_on_start` is enabled (defaults to on in the sample config for local/dev). Prefer coordinated rollouts in shared environments by setting `database.migrate_on_start` to false.
 - In-memory adapters (under `internal/app/storage/memory`) provide a dependency-free option for tests and local experimentation.
 - Secrets are encrypted before persistence; other sensitive blobs (sealed keys, attestations) follow the same cipher utilities.
 - When Postgres is enabled, startup must fail if the configured secret encryption key is missing or invalid to avoid persisting plaintext values.
 - No external cache is required; any caching remains in-process. When future Redis integrations are added, they must remain optional and feature-flagged.
-- Supabase: the platform targets a self-hosted Supabase Postgres. The `supabase` compose profile bundles GoTrue/PostgREST/Kong/Studio for refresh tokens and admin UI; a smoke helper (`make supabase-smoke`) should verify `/auth/refresh` proxying and `/system/status` before promoting environments. Prefer controlled migrations in CI/CD; use `database.migrate_on_start` for local/dev only.
+- Supabase: the platform targets a self-hosted Supabase Postgres. The `supabase` compose profile bundles GoTrue/PostgREST/Kong/Studio for refresh tokens and admin UI; a smoke helper (`make supabase-smoke`) should verify `/auth/refresh` proxying and `/system/status` before promoting environments. Prefer controlled migrations in CI/CD; keep `database.migrate_on_start` enabled locally and disable it when you orchestrate migrations separately.
 
 ## Non-Functional Requirements
 ### Security

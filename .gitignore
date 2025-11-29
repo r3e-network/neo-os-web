@@ -27,6 +27,11 @@ dist-ssr
 vendor/
 sdk/rust/devpack/target/
 
+# Build outputs
+bin/
+appserver
+*.exe
+
 # Local test/output artifacts
 apps/dashboard/test-results/
 postgres.test
@@ -42,6 +47,12 @@ sdk/typescript/client/dist/
 
 # Local tool/workspace state
 .claude-flow/
+.claude/
 .hive-mind/
+.serena/
+.trae/
+.cursor/
 coverage.out
-bin/
+
+# Snapshot files
+snapshots/
