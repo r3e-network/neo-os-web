@@ -236,16 +236,7 @@ func (s *Service) ListMessages(ctx context.Context, accountID string, limit int)
 }
 
 // Descriptor advertises the service placement and capabilities.
-func (s *Service) Descriptor() core.Descriptor {
-	return core.Descriptor{
-		Name:         "ccip",
-		Domain:       "ccip",
-		Layer:        core.LayerService,
-		Capabilities: []string{"lanes", "dispatch", "messages"},
-		DependsOn:    []string{"store", "svc-accounts"},
-		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceEvent)},
-	}
-}
+func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
 
 func (s *Service) normalizeLane(lane *domainccip.Lane) error {
 	lane.Name = strings.TrimSpace(lane.Name)

@@ -1,11 +1,28 @@
 using System;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
 namespace ServiceLayer.Contracts
 {
-    // AccountManager tracks workspaces/accounts and linked wallets.
+    /// <summary>
+    /// AccountManager tracks workspaces/accounts and linked wallets.
+    ///
+    /// Go Alignment:
+    /// - domain/account/model.go: Account struct (ID, Owner, Metadata)
+    /// - domain/account/wallet.go: WorkspaceWallet struct
+    /// - domain/gasbank/model.go: Account.WalletAddress, Account.Status
+    /// - applications/storage/interfaces.go: AccountStore, WorkspaceWalletStore
+    ///
+    /// Struct Mapping:
+    /// - Account.Id → account.Account.ID (string)
+    /// - Account.Owner → account.Account.Owner (UInt160 → string address)
+    /// - Account.MetadataHash → SHA256 of account.Account.Metadata
+    /// - Wallet.AccountId → account.WorkspaceWallet.AccountID
+    /// - Wallet.Address → account.WorkspaceWallet.Address
+    /// - Wallet.Status → gasbank.AccountStatus (0=active, 1=revoked)
+    /// </summary>
     public class AccountManager : SmartContract
     {
         private static readonly StorageMap Accounts = new(Storage.CurrentContext, "acct:");

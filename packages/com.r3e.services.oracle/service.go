@@ -63,16 +63,7 @@ func (s *Service) Manifest() *framework.Manifest {
 }
 
 // Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor {
-	return core.Descriptor{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Layer:        core.LayerService,
-		Capabilities: []string{"oracle"},
-		DependsOn:    []string{"store", "svc-accounts"},
-		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceData), string(engine.APISurfaceEvent)},
-	}
-}
+func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
 
 // Option configures the oracle service.
 type Option func(*Service)

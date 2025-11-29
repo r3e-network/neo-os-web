@@ -6,12 +6,27 @@ using Neo.SmartContract.Framework.Services;
 
 namespace ServiceLayer.Contracts
 {
-    // Manager holds contract hashes for modules and governs roles/pause flags.
+    /// <summary>
+    /// Manager holds contract hashes for modules and governs roles/pause flags.
+    ///
+    /// Go Alignment:
+    /// - domain/contract/contract.go: EngineContracts list includes "Manager"
+    /// - domain/contract/template.go: ContractCapability maps to Role constants
+    /// - sdk/go/contract/contract.go: Capability constants map to RoleXxx bytes
+    ///
+    /// Role Mapping:
+    /// - RoleAdmin (0x01) → Not exposed via SDK (admin-only)
+    /// - RoleScheduler (0x02) → CapAutomation
+    /// - RoleOracleRunner (0x04) → CapOracleProvide
+    /// - RoleRandomnessRunner (0x08) → CapVRFProvide
+    /// - RoleJamRunner (0x10) → CapCrossChain
+    /// - RoleDataFeedSigner (0x20) → CapFeedWrite
+    /// </summary>
     public class Manager : SmartContract
     {
         private static readonly StorageMap Modules = new(Storage.CurrentContext, "mod:");
         private static readonly StorageMap Roles = new(Storage.CurrentContext, "role:");
-        private static readonly StorageMap Paused = new(Storage.CurrentContext, "pause:");
+        private static readonly StorageMap PauseFlags = new(Storage.CurrentContext, "pause:");
 
         // Roles are bit flags to allow multiple capabilities per account.
         public const byte RoleAdmin = 0x01;
@@ -24,7 +39,7 @@ namespace ServiceLayer.Contracts
         public static event Action<string, UInt160> ModuleUpgraded;
         public static event Action<UInt160, byte> RoleGranted;
         public static event Action<UInt160, byte> RoleRevoked;
-        public static event Action<string, bool> Paused;
+        public static event Action<string, bool> ModulePaused;
 
         public static void SetModule(string name, UInt160 hash)
         {
@@ -50,8 +65,9 @@ namespace ServiceLayer.Contracts
             {
                 throw new Exception("invalid account");
             }
-            var existing = (byte)Roles.Get(account)!.ToByteArray()[0];
-            var updated = (byte)(existing | role);
+            var existing = Roles.Get(account);
+            byte existingFlags = existing is not null && existing.Length > 0 ? (byte)existing[0] : (byte)0;
+            var updated = (byte)(existingFlags | role);
             Roles.Put(account, new byte[] { updated });
             RoleGranted(account, role);
         }
@@ -59,8 +75,9 @@ namespace ServiceLayer.Contracts
         public static void RevokeRole(UInt160 account, byte role)
         {
             AssertAdmin();
-            var existing = (byte)Roles.Get(account)!.ToByteArray()[0];
-            var updated = (byte)(existing & ~role);
+            var existing = Roles.Get(account);
+            byte existingFlags = existing is not null && existing.Length > 0 ? (byte)existing[0] : (byte)0;
+            var updated = (byte)(existingFlags & ~role);
             Roles.Put(account, new byte[] { updated });
             RoleRevoked(account, role);
         }
@@ -76,21 +93,21 @@ namespace ServiceLayer.Contracts
             {
                 return false;
             }
-            var flags = (byte)stored.ToByteArray()[0];
+            var flags = (byte)stored[0];
             return (flags & role) != 0;
         }
 
         public static void Pause(string name, bool flag)
         {
             AssertAdmin();
-            Paused.Put(name, flag ? 1 : 0);
-            Paused(name, flag);
+            PauseFlags.Put(name, flag ? 1 : 0);
+            ModulePaused(name, flag);
         }
 
         public static bool IsPaused(string name)
         {
-            var val = Paused.Get(name);
-            return val is not null && val.Length > 0 && val.ToByteArray()[0] != 0;
+            var val = PauseFlags.Get(name);
+            return val is not null && val.Length > 0 && (byte)val[0] != 0;
         }
 
         private static void AssertAdmin()

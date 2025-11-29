@@ -152,7 +152,7 @@ Use `slctl gasbank summary` or the dashboard to monitor `TotalLocked`, pending c
 
 --- 
 
-For more details on API schemas and CLI flags, see `cmd/slctl/main.go` and `internal/app/httpapi/handler_gasbank.go`. Devpack usage examples live in `examples/functions/devpack/`. Metrics appear under `gasbank_*` in `/metrics`.
+For more details on API schemas and CLI flags, see `cmd/slctl/main.go` and `applications/httpapi/handler_gasbank.go`. Devpack usage examples live in `examples/functions/devpack/`. Metrics appear under `gasbank_*` in `/metrics`.
 
 ## Devpack Example
 

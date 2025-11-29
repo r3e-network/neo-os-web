@@ -46,16 +46,7 @@ func (s *Service) Manifest() *framework.Manifest {
 }
 
 // Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor {
-	return core.Descriptor{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Layer:        core.LayerService,
-		Capabilities: []string{"gasbank"},
-		DependsOn:    []string{"store", "svc-accounts"},
-		RequiresAPIs: []string{string(engine.APISurfaceStore)},
-	}
-}
+func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
 
 // Summary aggregates balances and pending withdrawals for an account.
 type Summary struct {

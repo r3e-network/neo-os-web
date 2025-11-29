@@ -7,10 +7,11 @@ Comprehensive guide for developers building on or extending the Neo N3 Service L
 1. [Architecture Overview](#architecture-overview)
 2. [Getting Started](#getting-started)
 3. [Creating Services](#creating-services)
-4. [Framework Components](#framework-components)
-5. [Platform Drivers](#platform-drivers)
-6. [Testing](#testing)
-7. [Best Practices](#best-practices)
+4. [Service Engine (V2)](#service-engine-v2)
+5. [Framework Components](#framework-components)
+6. [Platform Drivers](#platform-drivers)
+7. [Testing](#testing)
+8. [Best Practices](#best-practices)
 
 ---
 
@@ -30,7 +31,7 @@ Comprehensive guide for developers building on or extending the Neo N3 Service L
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
 │  │ accounts │ │functions │ │  oracle  │ │ gasbank  │ │    ...   │          │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
-│  Location: internal/services/                                               │
+│  Location: packages/com.r3e.services.*/                                     │
 │  Purpose: Domain-specific business logic                                    │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -40,7 +41,7 @@ Comprehensive guide for developers building on or extending the Neo N3 Service L
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
 │  │ Registry │ │Lifecycle │ │   Bus    │ │  Health  │ │ Recovery │          │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
-│  Location: internal/engine/                                                 │
+│  Location: system/core/                                                     │
 │  Purpose: Service orchestration, lifecycle, communication                   │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -50,7 +51,7 @@ Comprehensive guide for developers building on or extending the Neo N3 Service L
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
 │  │  Base    │ │ Builder  │ │ Manifest │ │   Bus    │ │ Testing  │          │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
-│  Location: internal/framework/                                              │
+│  Location: system/framework/                                                │
 │  Purpose: Service development SDK and utilities                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -60,7 +61,7 @@ Comprehensive guide for developers building on or extending the Neo N3 Service L
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
 │  │   RPC    │ │ Storage  │ │  Cache   │ │  Queue   │ │  Crypto  │          │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
-│  Location: internal/platform/                                               │
+│  Location: system/platform/                                                 │
 │  Purpose: Infrastructure abstraction (HAL)                                  │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -69,10 +70,10 @@ Comprehensive guide for developers building on or extending the Neo N3 Service L
 
 | Layer | Location | Responsibility |
 |-------|----------|---------------|
-| **Platform** | `internal/platform/` | Hardware abstraction, drivers |
-| **Framework** | `internal/framework/` | Service development SDK |
-| **Engine** | `internal/engine/` | Lifecycle, bus, health, recovery |
-| **Services** | `internal/services/` | Business logic (17 domains) |
+| **Platform** | `system/platform/` | Hardware abstraction, drivers |
+| **Framework** | `system/framework/` | Service development SDK |
+| **Engine** | `system/core/` | Lifecycle, bus, health, recovery |
+| **Services** | `packages/com.r3e.services.*/` | Business logic (17 domains) |
 
 ### Service Dependencies
 
@@ -122,16 +123,18 @@ service_layer/
 │   ├── appserver/          # Main HTTP server
 │   ├── slctl/              # CLI tool
 │   └── neo-indexer/        # NEO blockchain indexer
-├── internal/
-│   ├── app/                # Application wiring
-│   │   ├── domain/         # Domain models
-│   │   ├── httpapi/        # HTTP handlers
-│   │   └── storage/        # Storage implementations
-│   ├── config/             # Configuration
-│   ├── engine/             # Service engine (OS kernel)
-│   ├── framework/          # Service SDK
-│   ├── platform/           # Platform drivers
-│   └── services/           # 17 business services
+├── system/                 # System layer (Android OS equivalent)
+│   ├── core/               # Service engine interfaces
+│   ├── framework/          # Service SDK (ServiceBase, Manifest, Bus)
+│   ├── platform/           # Platform drivers (database, migrations)
+│   ├── runtime/            # Runtime adapters
+│   └── bootstrap/          # Application bootstrap
+├── packages/               # Service packages (Android Apps equivalent)
+│   └── com.r3e.services.*/ # 17 business services
+├── applications/           # Application composition layer
+│   ├── httpapi/            # HTTP handlers
+│   └── storage/            # Storage implementations
+├── domain/                 # Domain models
 ├── pkg/                    # Shared utilities
 ├── docs/                   # Documentation
 ├── examples/               # Code examples
@@ -192,8 +195,8 @@ package myservice
 
 import (
     "context"
-    "github.com/R3E-Network/service_layer/internal/framework"
-    "github.com/R3E-Network/service_layer/internal/services/core"
+    "github.com/R3E-Network/service_layer/system/framework"
+    "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 type Service struct {
@@ -303,6 +306,141 @@ func (s *Service) HealthCheck(ctx context.Context) core.HealthCheck {
 
 ---
 
+## Service Engine (V2)
+
+The Service Engine V2 provides an automated workflow for contract event handling with explicit method declarations.
+
+### Method Types
+
+| Type | Description | Callback |
+|------|-------------|----------|
+| `init` | Called once at service deployment | None |
+| `invoke` | Standard method called by contract events | Required/Optional |
+| `view` | Read-only method, no state changes | None |
+| `admin` | Administrative method requiring elevated permissions | Optional |
+
+### Callback Modes
+
+| Mode | Description |
+|------|-------------|
+| `none` | No callback sent (void method) |
+| `required` | Callback MUST be sent with result |
+| `optional` | Callback sent only if result is non-nil |
+| `on_error` | Callback sent only on error |
+
+### Creating a V2 Service
+
+```go
+package myservice
+
+import (
+    "context"
+    "github.com/R3E-Network/service_layer/system/framework"
+)
+
+type MyServiceV2 struct {
+    registry    *framework.ServiceMethodRegistry
+    initialized bool
+}
+
+func NewMyServiceV2() *MyServiceV2 {
+    svc := &MyServiceV2{}
+    svc.registry = svc.buildRegistry()
+    return svc
+}
+
+func (s *MyServiceV2) ServiceName() string {
+    return "myservice"
+}
+
+func (s *MyServiceV2) MethodRegistry() *framework.ServiceMethodRegistry {
+    return s.registry
+}
+
+func (s *MyServiceV2) buildRegistry() *framework.ServiceMethodRegistry {
+    builder := framework.NewMethodRegistryBuilder("myservice")
+
+    // Init method - called once at deployment
+    builder.WithInit(
+        framework.NewMethod("init").
+            AsInit().
+            WithDescription("Initialize service").
+            WithOptionalParam("config", "map", "Configuration", nil).
+            Build(),
+    )
+
+    // Invoke method - sends callback with result
+    builder.WithMethod(
+        framework.NewMethod("process").
+            WithDescription("Process a request").
+            RequiresCallback().
+            WithDefaultCallbackMethod("fulfill").
+            WithParam("data", "string", "Input data").
+            WithMaxExecutionTime(30000).
+            Build(),
+    )
+
+    // View method - no callback
+    builder.WithMethod(
+        framework.NewMethod("getStatus").
+            AsView().
+            WithDescription("Get status").
+            Build(),
+    )
+
+    return builder.Build()
+}
+
+// Initialize is called once when the service is deployed
+func (s *MyServiceV2) Initialize(ctx context.Context, params map[string]any) error {
+    if s.initialized {
+        return fmt.Errorf("already initialized")
+    }
+    s.initialized = true
+    return nil
+}
+
+// Invoke calls a method with parameters
+func (s *MyServiceV2) Invoke(ctx context.Context, method string, params map[string]any) (any, error) {
+    switch method {
+    case "process":
+        return s.process(ctx, params)
+    case "getStatus":
+        return s.getStatus(ctx, params)
+    default:
+        return nil, fmt.Errorf("unknown method: %s", method)
+    }
+}
+
+func (s *MyServiceV2) process(ctx context.Context, params map[string]any) (any, error) {
+    data, _ := params["data"].(string)
+    // Process and return result - callback sent automatically
+    return map[string]any{"result": data, "timestamp": time.Now().Unix()}, nil
+}
+
+func (s *MyServiceV2) getStatus(ctx context.Context, params map[string]any) (any, error) {
+    // View method - no callback sent
+    return map[string]any{"initialized": s.initialized}, nil
+}
+```
+
+### Contract Event Format
+
+```json
+{
+  "id": "request-123",
+  "service": "myservice",
+  "method": "process",
+  "params": {"data": "input"},
+  "callback_contract": "0x1234...",
+  "callback_method": "fulfill"
+}
+```
+
+For complete documentation, see [Service Engine Guide](service-engine.md).
+
+---
+
 ## Framework Components
 
 ### ServiceBase
@@ -329,7 +467,7 @@ func (b *ServiceBase) Uptime() time.Duration
 
 ### Core Utilities
 
-Located in `internal/services/core/`:
+Located in `system/framework/core/`:
 
 #### Base Validation
 
@@ -420,7 +558,7 @@ offset := core.ClampOffset(requestOffset, 0, core.MaxOffset)
 ### Storage Interface
 
 ```go
-// internal/app/storage/interfaces.go
+// applications/storage/interfaces.go
 type MyStore interface {
     Create(ctx context.Context, item Item) (Item, error)
     Update(ctx context.Context, item Item) (Item, error)
@@ -433,7 +571,7 @@ type MyStore interface {
 ### Memory Implementation
 
 ```go
-// internal/app/storage/memory/memory.go
+// applications/storage/memory.go
 type Store struct {
     mu    sync.RWMutex
     items map[string]Item
@@ -455,7 +593,7 @@ func (s *Store) Create(ctx context.Context, item Item) (Item, error) {
 ### PostgreSQL Implementation
 
 ```go
-// internal/app/storage/postgres/store_myservice.go
+// applications/storage/postgres/store_myservice.go
 func (s *Store) Create(ctx context.Context, item Item) (Item, error) {
     if item.ID == "" {
         item.ID = uuid.NewString()
@@ -480,7 +618,7 @@ func (s *Store) Create(ctx context.Context, item Item) (Item, error) {
 ### Adding Migrations
 
 ```sql
--- internal/platform/migrations/NNNN_my_feature.sql
+-- system/platform/migrations/NNNN_my_feature.sql
 
 -- +migrate Up
 CREATE TABLE my_items (
@@ -506,7 +644,7 @@ DROP TABLE IF EXISTS my_items;
 ### Unit Tests
 
 ```go
-// internal/services/myservice/service_test.go
+// packages/com.r3e.services.myservice/service_test.go
 func TestService_DoSomething(t *testing.T) {
     store := memory.New()
     acct, err := store.CreateAccount(context.Background(), account.Account{
@@ -532,7 +670,7 @@ func TestService_DoSomething(t *testing.T) {
 ### Integration Tests
 
 ```go
-// internal/app/httpapi/integration_test.go
+// applications/httpapi/integration_test.go
 func TestIntegration_MyService(t *testing.T) {
     if testing.Short() {
         t.Skip("skipping integration test")
@@ -598,16 +736,16 @@ func TestService_Validation(t *testing.T) {
 go test ./...
 
 # Specific package
-go test ./internal/services/myservice/...
+go test ./packages/com.r3e.services.myservice/...
 
 # With coverage
-go test -cover ./internal/services/...
+go test -cover ./packages/...
 
 # Verbose
-go test -v ./internal/services/myservice/...
+go test -v ./packages/com.r3e.services.myservice/...
 
 # Integration tests (requires running API)
-go test -tags integration ./internal/app/httpapi/...
+go test -tags integration ./applications/httpapi/...
 
 # TypeScript SDK (builds dist via pretest hook)
 npm run test:sdk

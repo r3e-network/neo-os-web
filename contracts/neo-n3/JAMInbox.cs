@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
 namespace ServiceLayer.Contracts
@@ -67,7 +68,7 @@ namespace ServiceLayer.Contracts
             BigInteger current = 0;
             if (existing is not null && existing.Length > 0)
             {
-                current = existing.ToBigInteger();
+                current = (BigInteger)existing;
             }
             var next = current + 1;
             Seq.Put(serviceId, next);

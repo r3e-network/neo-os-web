@@ -37,7 +37,7 @@ Purpose: define a test strategy for the JAM prototype and upcoming hardening wor
 - **Postgres mode**: integration tests using test DB (jam migrations applied).
 
 ## Tooling
-- Go unit tests in `internal/app/jam` for model validation, engine, store, handler.
+- Go unit tests in `applications/jam` for model validation, engine, store, handler.
 - HTTP handler tests for auth, rate-limit, quota, listing filters.
 - CLI tests (lightweight) using httptest server.
 - Optional e2e script: start appserver (memory/PG) + run slctl flows.

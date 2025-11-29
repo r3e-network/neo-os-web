@@ -1,11 +1,29 @@
 using System;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
 namespace ServiceLayer.Contracts
 {
-    // ServiceRegistry tracks services, versions, and capability flags.
+    /// <summary>
+    /// ServiceRegistry tracks services, versions, and capability flags.
+    ///
+    /// Go Alignment:
+    /// - domain/contract/contract.go: Contract struct
+    /// - domain/contract/template.go: ContractCapability constants
+    /// - system/framework/manifest.go: Manifest struct (CodeHash, ConfigHash)
+    /// - packages/com.r3e.services.contracts/service.go: Contracts service
+    ///
+    /// Struct Mapping:
+    /// - Service.Id → contract.Contract.ID
+    /// - Service.Owner → contract.Contract.AccountID (resolved to address)
+    /// - Service.Version → contract.Contract.Version (byte → semver string)
+    /// - Service.CodeHash → contract.Contract.CodeHash
+    /// - Service.ConfigHash → contract.Contract.ConfigHash
+    /// - Service.Capabilities → contract.Contract.Capabilities (bit flags → string[])
+    /// - Service.Paused → contract.ContractStatus == "paused"
+    /// </summary>
     public class ServiceRegistry : SmartContract
     {
         private static readonly StorageMap Services = new(Storage.CurrentContext, "svc:");

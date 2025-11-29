@@ -25,7 +25,7 @@ Purpose: outline how to benchmark JAM components (preimages, package submit, ref
 
 ## Tooling
 - Go benchmarks and load generators (e.g., vegeta/hey) against httptest server (memory) and real server (PG).
-- Bench harness in `internal/app/jam/bench/` to simulate submit/process loops.
+- Bench harness in `applications/jam/bench/` to simulate submit/process loops.
 - Metrics capture via Prometheus test registry; log summaries.
 
 ## Metrics to Collect

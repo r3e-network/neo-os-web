@@ -1,36 +1,29 @@
 # Service Engine Deep Dive
 
-Complete guide to the Service Engine (`internal/engine/`), the OS kernel that orchestrates all services.
+Complete guide to the Service Engine (`system/core/`), the OS kernel that orchestrates all services.
 
 ## Overview
 
 The Engine is the "operating system" for services:
 
 ```
-internal/engine/
-├── engine.go           # Core coordinator
-├── interfaces.go       # All interface definitions
-├── registry.go         # Module registration and lookup
-├── lifecycle.go        # Start/Stop management
-├── bus.go              # Event/Data/Compute buses
-├── health.go           # Health checks and readiness
-├── dependency.go       # Dependency resolution
+system/core/
+├── interfaces.go       # All interface definitions (ServiceModule, typed engines)
 ├── apis.go             # API Surface definitions
-├── options.go          # Engine configuration
-├── metadata.go         # Module metadata
-├── state/              # State machine
-├── events/             # Event system
-├── metrics/            # Metrics collection
-├── recovery/           # Failure recovery
-├── bridge/             # External integrations
-├── bus/                # Bus extensions (limiter)
-├── domains/            # Domain modules (defi, gamefi, nft)
-└── runtime/            # Runtime adapters
-    ├── application.go      # App runtime
-    ├── service_modules.go  # Service wrappers
-    ├── infrastructure_modules.go
-    ├── config_bridge.go    # Config integration
-    └── secrets.go          # Secret management
+
+system/framework/
+├── base.go             # ServiceBase - state management
+├── manifest.go         # Service manifest
+├── bus.go              # Event/Data/Compute buses
+├── builder.go          # ServiceBuilder pattern
+├── lifecycle/          # Lifecycle hooks
+
+system/runtime/
+├── application.go      # App runtime
+├── service_modules.go  # Service wrappers
+
+system/bootstrap/
+├── bootstrap.go        # Application bootstrap
 ```
 
 ---
@@ -43,8 +36,8 @@ The Engine behaves like a mobile OS:
 
 | Concept | Engine Equivalent |
 |---------|------------------|
-| OS Kernel | Engine (`internal/engine/`) |
-| Applications | Services (`internal/services/`) |
+| OS Kernel | Engine (`system/core/`) |
+| Applications | Services (`packages/com.r3e.services.*/`) |
 | System APIs | API Surfaces (store, compute, event, data) |
 | App Manifest | Service Manifest |
 | Intent System | Event Bus |
@@ -137,7 +130,7 @@ type APIDescriber interface {
 ### Basic Setup
 
 ```go
-import "github.com/R3E-Network/service_layer/internal/engine"
+import engine "github.com/R3E-Network/service_layer/system/core"
 
 // Create engine with options
 eng := engine.New(
@@ -573,7 +566,7 @@ Returns all service manifests/descriptors.
 
 ## Runtime Adapters
 
-Located in `internal/engine/runtime/`.
+Located in `system/runtime/`.
 
 ### Service Module Adapter
 
@@ -624,10 +617,10 @@ import (
     "os/signal"
     "syscall"
 
-    "github.com/R3E-Network/service_layer/internal/engine"
-    "github.com/R3E-Network/service_layer/internal/engine/runtime"
-    "github.com/R3E-Network/service_layer/internal/services/accounts"
-    "github.com/R3E-Network/service_layer/internal/services/functions"
+    "engine "github.com/R3E-Network/service_layer/system/core""
+    "engine "github.com/R3E-Network/service_layer/system/core"/runtime"
+    "github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
+    "github.com/R3E-Network/service_layer/packages/com.r3e.services.functions"
     "github.com/R3E-Network/service_layer/pkg/logger"
 )
 
@@ -739,8 +732,65 @@ failed := eng.FailedModules()
 
 ---
 
+## Service Engine V2 (Contract Event Automation)
+
+For automated contract event handling and service invocation, see the **Service Engine V2** system located in `system/engine/`.
+
+### Overview
+
+The Service Engine V2 provides a fully automated workflow for processing blockchain contract events:
+
+```
+Contract Event → ServiceBridge → ServiceEngine → InvocableServiceV2 → CallbackSender
+```
+
+### Key Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `ServiceEngine` | `system/engine/invocable.go` | Automatic service loading and invocation |
+| `ServiceBridge` | `system/engine/bridge.go` | Connects contract events to ServiceEngine |
+| `CallbackSender` | `system/engine/callback.go` | Sends results back to contracts |
+| `InvocableServiceV2` | `system/framework/method.go` | Service interface with method declarations |
+
+### Service Method Types
+
+Services declare methods with explicit types:
+
+| Type | Description | Callback |
+|------|-------------|----------|
+| `init` | Called once at service deployment | None |
+| `invoke` | Standard method for contract events | Required/Optional |
+| `view` | Read-only, no state changes | None |
+| `admin` | Requires elevated permissions | Optional |
+
+### Callback Modes
+
+| Mode | Description |
+|------|-------------|
+| `none` | No callback sent |
+| `required` | Callback MUST be sent with result |
+| `optional` | Callback sent only if result is non-nil |
+| `on_error` | Callback sent only on error |
+
+### Integration with Core Engine
+
+The Service Engine V2 works alongside the core engine:
+
+1. **Core Engine** (`system/core/`) - Module lifecycle, bus, health monitoring
+2. **Service Engine V2** (`system/engine/`) - Contract event automation, callbacks
+
+Services can implement both:
+- `ServiceModule` interface for core engine integration
+- `InvocableServiceV2` interface for contract event automation
+
+For complete documentation, see [Service Engine Guide](service-engine.md).
+
+---
+
 ## Related Documentation
 
+- [Service Engine](service-engine.md) - Contract event automation (V2)
 - [Framework Guide](framework-guide.md) - Service SDK
 - [Service Catalog](service-catalog.md) - All 17 services
 - [Developer Guide](developer-guide.md) - Building services

@@ -12,15 +12,15 @@
 - Deprecations and removals should be staged through this document first, with migration notes captured alongside the affected services.
 - Service descriptors expose a single `platform` layer so every capability carries the same priority; update descriptors + docs alongside CLI/dashboard expectations.
 - During reviews, step through the [Service Layer Review Checklist](review-checklist.md) to keep documentation, CLI, and dashboard coverage aligned.
-- Code layout: the service engine lives under `internal/engine` (`internal/engine/runtime` for wiring), while domain services live under `internal/services` (shared helpers in `internal/services/core`). Legacy `internal/app/services` and `internal/core/engine` paths have been removed.
+- Code layout: the service engine lives under `system/core` (`system/runtime` for wiring), while domain services live under `packages/com.r3e.services.*` (shared helpers in `system/framework/core`). Legacy `internal/app/services` and `internal/core/engine` paths have been removed.
 
 ## System Overview
-- `cmd/appserver` is the single Go binary that wires all services (`internal/services/*`), HTTP handlers (`internal/app/httpapi`), and storage adapters (`internal/app/storage/{memory,postgres}`).
+- `cmd/appserver` is the single Go binary that wires all services (`packages/com.r3e.services.*`), HTTP handlers (`applications/httpapi`), and storage adapters (`applications/storage`).
 - `cmd/slctl` is the CLI wrapper over the HTTP API. It honours `SERVICE_LAYER_ADDR` and `SERVICE_LAYER_TOKEN` for pointing at different environments.
 - `apps/dashboard` hosts the React + Vite front-end surface that consumes the same HTTP API for operator workflows. Additional surfaces must be documented here before landing in the repo.
 - Dashboard must expose an Engine Bus console to publish events/data/compute fan-out via `/system/events|data|compute`, matching `slctl bus` and the bus quickstart in `docs/examples/bus.md`. Payload presets should reflect the expected shapes for pricefeeds, datafeeds, oracle, datalink, datastreams, and functions. These endpoints are admin-only; the console must require an admin JWT/token. Bus payloads are capped by `BUS_MAX_BYTES` (default 1 MiB).
 - `sdk/devpack` plus `examples/functions/devpack` provide the TypeScript toolchain used to author functions locally. Devpack helpers let functions queue automation, oracle, price feed, data feed, data stream, DataLink, gas bank, randomness, and trigger actions that execute after the JavaScript runtime completes. Companion SDKs in Go, Rust, and Python mirror the same action surface for polyglot authoring.
-- Persistence requires Supabase Postgres. A valid DSN (`-dsn`, `DATABASE_URL`, or config files under `configs/`) is mandatory; migrations in `internal/platform/migrations` (0001–0017) must run on startup.
+- Persistence requires Supabase Postgres. A valid DSN (`-dsn`, `DATABASE_URL`, or config files under `configs/`) is mandatory; migrations in `system/platform/migrations` must run on startup.
 - When Supabase JWT auth is configured (`SUPABASE_JWT_SECRET`), the self-hosted GoTrue base URL (`SUPABASE_GOTRUE_URL`) must be set; otherwise startup fails (/auth/refresh depends on it).
 - `DATABASE_URL` is the canonical DSN override across flags/env/config; file-based DSNs must be superseded by this env to keep compose/.env workflows consistent. Missing/empty DSNs are fatal.
 - Optional TEE execution paths use the Goja JavaScript runtime today and can be swapped with Azure Confidential Computing-backed executors when runners are provisioned (see Confidential Compute sections for expectations).
@@ -93,7 +93,7 @@
 
 #### Observability & System Services
 - Expose `/metrics` for Prometheus scraping and `/healthz` for readiness probes. `/metrics` requires authentication; `/healthz` and `/system/version` remain unauthenticated for orchestrators/discovery.
-- Emit structured logs annotated with account/service identifiers. Provide hooks for tracing/metrics per service (see `internal/app/metrics`).
+- Emit structured logs annotated with account/service identifiers. Provide hooks for tracing/metrics per service (see `applications/metrics`).
 - Enforce pagination limits via `limit` parameters to protect the API, returning cursors/tokens where applicable.
 
 #### CRE Orchestrator
@@ -178,8 +178,8 @@
 
 ## Data Management & Persistence
 - PostgreSQL 14+ is the canonical store. Tables cover accounts, workspace wallets, secrets (encrypted values + metadata), functions (definitions, executions, action history), automation jobs/runs, triggers, oracle sources/requests, price feeds/snapshots, gas accounts/transactions, randomness history, and each service entity described in this catalogue (CRE, CCIP, VRF, Data Feeds, Data Streams, DataLink, DTA, Confidential Compute).
-- All database mutations go through versioned migrations under `internal/platform/migrations`; the server can auto-apply them when `-migrate`/`database.migrate_on_start` is enabled (defaults to on in the sample config for local/dev). Prefer coordinated rollouts in shared environments by setting `database.migrate_on_start` to false.
-- In-memory adapters (under `internal/app/storage/memory`) provide a dependency-free option for tests and local experimentation.
+- All database mutations go through versioned migrations under `system/platform/migrations`; the server can auto-apply them when `-migrate`/`database.migrate_on_start` is enabled (defaults to on in the sample config for local/dev). Prefer coordinated rollouts in shared environments by setting `database.migrate_on_start` to false.
+- In-memory adapters (under `applications/storage/memory.go`) provide a dependency-free option for tests and local experimentation.
 - Secrets are encrypted before persistence; other sensitive blobs (sealed keys, attestations) follow the same cipher utilities.
 - When Postgres is enabled, startup must fail if the configured secret encryption key is missing or invalid to avoid persisting plaintext values.
 - No external cache is required; any caching remains in-process. When future Redis integrations are added, they must remain optional and feature-flagged.
@@ -194,7 +194,7 @@
 
 ### Reliability & Observability
 - Provide `/healthz` for liveness/readiness, structured logs, and `/metrics` compatible with Prometheus.
-- Emit per-service metrics (execution counts, latencies, success/failure) via the observation hooks defined in `internal/app/metrics`.
+- Emit per-service metrics (execution counts, latencies, success/failure) via the observation hooks defined in `applications/metrics`.
 - Export external dependency health (Supabase) as gauges/histograms when `SUPABASE_HEALTH_*` envs are configured so Prometheus/Grafana/alerts can track availability/latency.
 - Automation, oracle, CCIP, and delivery pipelines include retry policies with jitter and exponential backoff. Failed jobs must surface in metrics and execution history.
 
@@ -207,7 +207,7 @@
 - Enforce pagination and request limits to protect cluster resources. Each service should guard per-account quotas (feeds, streams, wallets, keys, etc.).
 
 ### Maintainability & Developer Experience
-- Keep services isolated (`internal/services/<name>`), with interfaces documented in `internal/app/storage/interfaces.go` and examples in `*_test.go`.
+- Keep services isolated (`packages/com.r3e.services.<name>`), with interfaces documented in `applications/storage/interfaces.go` and examples in `*_test.go`.
 - Require `go test ./...` to pass before merge, and update this specification whenever surfaces change so it remains the single source of truth.
 
 ### Compliance & Auditability

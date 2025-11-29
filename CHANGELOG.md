@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Contract System**: Android OS-style three-tier contract architecture
+  - Engine Contracts: Manager, AccountManager, ServiceRegistry, GasBank core contracts
+  - Service Contracts: OracleHub, RandomnessHub, DataFeedHub, AutomationScheduler, etc.
+  - User Contracts: Custom business logic deployed via SDK
+- Contract domain models (`domain/contract/`) with Contract, Template, Deployment types
+- ContractStore interface (`applications/storage/interfaces.go`) for persistence abstraction
+- Contracts service package (`packages/com.r3e.services.contracts/`) with deploy/invoke capabilities
+- Go SDK contract builder (`sdk/go/contract/`) with fluent API and capability system
+- Neo N3 contract stubs (`contracts/neo-n3/`) with Go alignment documentation
+- Memory-based ContractStore implementation for testing
+- Integration tests for contract service
 - Comprehensive security documentation for rate limiting, API key rotation, and audit logging
 - Detailed security checklist and implementation status
 - Complete DevOps infrastructure with Terraform and Helm charts

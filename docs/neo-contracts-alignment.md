@@ -59,7 +59,7 @@ RoleDataFeedSigner  = 0x20
 ```
 
 **Go Equivalent:**
-- Role checking: `internal/app/httpapi/auth.go`
+- Role checking: `applications/httpapi/auth.go`
 - API tokens: `API_TOKENS` environment variable
 - JWT auth: `AUTH_USERS`, `AUTH_JWT_SECRET`
 - Tenant isolation: `X-Tenant-ID` header
@@ -140,7 +140,7 @@ struct Wallet {
 
 **Go Domain:**
 ```go
-// internal/app/domain/account/model.go
+// domain/account/model.go
 type Account struct {
     ID        string
     Owner     string
@@ -178,7 +178,7 @@ struct Secret {
 
 **Go Domain:**
 ```go
-// internal/app/domain/secret/model.go
+// domain/secret/model.go
 type Secret struct {
     ID        string
     AccountID string
@@ -224,7 +224,7 @@ struct Job {
 
 **Go Domain:**
 ```go
-// internal/app/domain/automation/model.go
+// domain/automation/model.go
 type Job struct {
     ID          string
     AccountID   string
@@ -268,7 +268,7 @@ struct Request {
 
 **Go Domain:**
 ```go
-// internal/app/domain/oracle/model.go
+// domain/oracle/model.go
 type Request struct {
     ID           string
     AccountID    string
@@ -319,7 +319,7 @@ struct Request {
 
 **Go Domain:**
 ```go
-// internal/app/domain/vrf/vrf.go
+// domain/vrf/vrf.go
 type Key struct {
     ID            string
     AccountID     string
@@ -376,7 +376,7 @@ struct Round {
 
 **Go Domain:**
 ```go
-// internal/app/domain/datafeeds/datafeeds.go
+// domain/datafeeds/datafeeds.go
 type Feed struct {
     ID           string
     AccountID    string
@@ -421,7 +421,7 @@ struct Receipt {
 
 **Go Domain:**
 ```go
-// internal/app/jam/model.go
+// applications/jam/model.go
 type Receipt struct {
     Hash        string
     ServiceID   string
@@ -555,60 +555,60 @@ neo-cli invoke Manager GrantRole <signer_addr> 0x20
    - Added `MaxRuns int` and `RunCount int` fields to automation job model
    - Added `JobStatus` type with Active/Completed/Paused states
    - Added `IsCompleted()` helper method
-   - File: `internal/app/domain/automation/model.go`
+   - File: `domain/automation/model.go`
 
 2. **~~Add ACL to Secrets~~** ✓
    - Added `ACL byte` field to secret model
    - Added ACL constants (Oracle, Automation, Function, JAM access)
    - Added `HasAccess()` helper method
-   - File: `internal/app/domain/secret/model.go`
+   - File: `domain/secret/model.go`
 
 3. **~~Add Fee Tracking to Oracle~~** ✓
    - Added `Fee int64` field to oracle request
-   - File: `internal/app/domain/oracle/model.go`
+   - File: `domain/oracle/model.go`
 
 4. **~~Add Wallet Status Tracking~~** ✓
    - Added `AccountStatus` type with Active/Revoked states
    - Added `Status` field to gasbank Account
-   - File: `internal/app/domain/gasbank/model.go`
+   - File: `domain/gasbank/model.go`
 
 5. **~~Add Threshold to DataFeeds~~** ✓
    - Added `Threshold int` field for multi-sig requirements
-   - File: `internal/app/domain/datafeeds/datafeeds.go`
+   - File: `domain/datafeeds/datafeeds.go`
 
 6. **~~Add FulfilledAt to VRF Request~~** ✓
    - Added `FulfilledAt time.Time` field for completion timestamp
-   - File: `internal/app/domain/vrf/vrf.go`
+   - File: `domain/vrf/vrf.go`
 
 7. **~~Implement ACL Enforcement~~** ✓
    - Added `CallerService` type for service identification
    - Added `ResolveSecretsWithACL()` method for ACL-enforced access
    - Added `CreateWithOptions()` and `UpdateWithOptions()` for ACL management
-   - File: `internal/services/secrets/service.go`
+   - File: `packages/com.r3e.services.secrets/service.go`
 
 8. **~~Version in Manifest~~** ✓
    - `Version string` field already exists in framework.Manifest
-   - File: `internal/framework/manifest.go:18`
+   - File: `system/framework/manifest.go:18`
 
 9. **~~Implement Fee Collection~~** ✓
    - Added `FeeCollector` interface for fee management
    - Added `WithFeeCollector()` and `WithDefaultFee()` options
    - Added `CreateRequestWithOptions()` with fee tracking
    - Added `FailRequestWithOptions()` with optional fee refund
-   - File: `internal/services/oracle/service.go`
+   - File: `packages/com.r3e.services.oracle/service.go`
 
 10. **~~Add HTTP API for ACL Management~~** ✓
     - Enhanced POST /accounts/{id}/secrets with `acl` field
     - Enhanced PUT /accounts/{id}/secrets/{name} with `acl` field
     - ACL returned in secret metadata responses
-    - File: `internal/app/httpapi/handler_functions.go`
+    - File: `applications/httpapi/handler_functions.go`
 
 11. **~~Implement GasBank Fee Collector Adapter~~** ✓
     - Created `FeeCollector` struct implementing `oracle.FeeCollector`
     - `CollectFee()` deducts from gas account available balance
     - `RefundFee()` returns fee on service failure
     - `SettleFee()` finalizes fee after successful completion
-    - File: `internal/services/gasbank/fee_collector.go`
+    - File: `packages/com.r3e.services.gasbank/fee_collector.go`
 
 12. **~~Add CodeHash/ConfigHash to Manifest~~** ✓
     - Added `CodeHash string` for service code verification
@@ -616,7 +616,7 @@ neo-cli invoke Manager GrantRole <signer_addr> 0x20
     - Added `SetCodeHash()`, `SetConfigHash()` setters
     - Added `VerifyCodeHash()`, `VerifyConfigHash()` validators
     - Updated `Normalize()`, `Merge()`, `Clone()` methods
-    - File: `internal/framework/manifest.go`
+    - File: `system/framework/manifest.go`
 
 13. **~~Content-Addressed Storage~~** ✓
     - Added `ContentDriver` interface for content-addressed storage
@@ -631,10 +631,10 @@ neo-cli invoke Manager GrantRole <signer_addr> 0x20
       - Reference counting
       - Metadata support
       - Full test coverage
-    - File: `internal/platform/driver.go` (interface)
-    - File: `internal/platform/noop.go` (noop impl)
-    - File: `internal/platform/content_memory.go` (memory impl)
-    - File: `internal/platform/content_memory_test.go` (tests)
+    - File: `system/platform/driver.go` (interface)
+    - File: `system/platform/noop.go` (noop impl)
+    - File: `system/platform/content_memory.go` (memory impl)
+    - File: `system/platform/content_memory_test.go` (tests)
 
 ### Remaining Work
 

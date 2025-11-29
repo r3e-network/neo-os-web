@@ -6,6 +6,7 @@ package neoexpress
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -133,7 +134,10 @@ func (c *RPCClient) GetBalance(ctx context.Context, address string) (map[string]
 
 // InvokeFunction invokes a smart contract function.
 func (c *RPCClient) InvokeFunction(ctx context.Context, scriptHash, method string, params []interface{}) (map[string]interface{}, error) {
-	result, err := c.Call(ctx, "invokefunction", append([]interface{}{scriptHash, method}, params...))
+	// Neo RPC invokefunction format: [scriptHash, method, params, signers]
+	// params must be an array, signers can be empty array
+	rpcParams := []interface{}{scriptHash, method, params, []interface{}{}}
+	result, err := c.Call(ctx, "invokefunction", rpcParams)
 	if err != nil {
 		return nil, err
 	}
@@ -475,4 +479,231 @@ func TestNeoExpressTransfer(t *testing.T) {
 		t.Skipf("transfer command failed (expected in fresh setup): %v", err)
 	}
 	t.Logf("Transfer result: %s", out)
+}
+
+// ContractConfig holds deployed contract information.
+type ContractConfig struct {
+	Network   string                       `json:"network"`
+	RPCURL    string                       `json:"rpc_url"`
+	Contracts map[string]ContractInfo      `json:"contracts"`
+}
+
+// ContractInfo holds individual contract details.
+type ContractInfo struct {
+	Hash    string   `json:"hash"`
+	Methods []string `json:"methods"`
+}
+
+// LoadContractConfig loads contract configuration from JSON.
+func LoadContractConfig(path string) (*ContractConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var config ContractConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
+// TestDeployedContracts_Manager tests the Manager contract.
+func TestDeployedContracts_Manager(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping contract test in short mode")
+	}
+
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		projectRoot = "../.."
+	}
+
+	contractCfg, err := LoadContractConfig(filepath.Join(projectRoot, "test/neo-express/contracts.json"))
+	if err != nil {
+		t.Skipf("contract config not found: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	client := NewRPCClient(contractCfg.RPCURL)
+
+	// Test connectivity
+	if _, err := client.GetBlockCount(ctx); err != nil {
+		t.Skipf("Neo Express not running: %v", err)
+	}
+
+	manager := contractCfg.Contracts["Manager"]
+	if manager.Hash == "" {
+		t.Fatal("Manager contract not configured")
+	}
+
+	t.Run("isPaused_oracle", func(t *testing.T) {
+		result, err := client.InvokeFunction(ctx, manager.Hash, "isPaused", []interface{}{
+			map[string]interface{}{"type": "String", "value": "oracle"},
+		})
+		if err != nil {
+			t.Fatalf("isPaused: %v", err)
+		}
+		if result["state"] != "HALT" {
+			t.Errorf("expected HALT state, got %v", result["state"])
+		}
+		t.Logf("Manager.isPaused(oracle) = %v", result["stack"])
+	})
+
+	t.Run("isPaused_randomness", func(t *testing.T) {
+		result, err := client.InvokeFunction(ctx, manager.Hash, "isPaused", []interface{}{
+			map[string]interface{}{"type": "String", "value": "randomness"},
+		})
+		if err != nil {
+			t.Fatalf("isPaused: %v", err)
+		}
+		if result["state"] != "HALT" {
+			t.Errorf("expected HALT state, got %v", result["state"])
+		}
+		t.Logf("Manager.isPaused(randomness) = %v", result["stack"])
+	})
+}
+
+// TestDeployedContracts_OracleHub tests the OracleHub contract.
+func TestDeployedContracts_OracleHub(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping contract test in short mode")
+	}
+
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		projectRoot = "../.."
+	}
+
+	contractCfg, err := LoadContractConfig(filepath.Join(projectRoot, "test/neo-express/contracts.json"))
+	if err != nil {
+		t.Skipf("contract config not found: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	client := NewRPCClient(contractCfg.RPCURL)
+
+	// Test connectivity
+	if _, err := client.GetBlockCount(ctx); err != nil {
+		t.Skipf("Neo Express not running: %v", err)
+	}
+
+	oracleHub := contractCfg.Contracts["OracleHub"]
+	if oracleHub.Hash == "" {
+		t.Fatal("OracleHub contract not configured")
+	}
+
+	t.Run("getRequest_nonexistent", func(t *testing.T) {
+		// Query a non-existent request - use base64 encoding for ByteArray
+		result, err := client.InvokeFunction(ctx, oracleHub.Hash, "getRequest", []interface{}{
+			map[string]interface{}{"type": "ByteArray", "value": base64.StdEncoding.EncodeToString([]byte("nonexistent"))},
+		})
+		if err != nil {
+			t.Fatalf("getRequest: %v", err)
+		}
+		// Should return empty or null for non-existent
+		t.Logf("OracleHub.getRequest(nonexistent) state=%v stack=%v", result["state"], result["stack"])
+	})
+}
+
+// TestDeployedContracts_DataFeedHub tests the DataFeedHub contract.
+func TestDeployedContracts_DataFeedHub(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping contract test in short mode")
+	}
+
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		projectRoot = "../.."
+	}
+
+	contractCfg, err := LoadContractConfig(filepath.Join(projectRoot, "test/neo-express/contracts.json"))
+	if err != nil {
+		t.Skipf("contract config not found: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	client := NewRPCClient(contractCfg.RPCURL)
+
+	// Test connectivity
+	if _, err := client.GetBlockCount(ctx); err != nil {
+		t.Skipf("Neo Express not running: %v", err)
+	}
+
+	dataFeed := contractCfg.Contracts["DataFeedHub"]
+	if dataFeed.Hash == "" {
+		t.Fatal("DataFeedHub contract not configured")
+	}
+
+	t.Run("getLatestRound_nonexistent", func(t *testing.T) {
+		result, err := client.InvokeFunction(ctx, dataFeed.Hash, "getLatestRound", []interface{}{
+			map[string]interface{}{"type": "ByteArray", "value": base64.StdEncoding.EncodeToString([]byte("ETH/USD"))},
+		})
+		if err != nil {
+			t.Fatalf("getLatestRound: %v", err)
+		}
+		t.Logf("DataFeedHub.getLatestRound(ETH/USD) state=%v stack=%v", result["state"], result["stack"])
+	})
+}
+
+// TestDeployedContracts_AllContracts runs basic invocation tests on all deployed contracts.
+func TestDeployedContracts_AllContracts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping contract test in short mode")
+	}
+
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		projectRoot = "../.."
+	}
+
+	contractCfg, err := LoadContractConfig(filepath.Join(projectRoot, "test/neo-express/contracts.json"))
+	if err != nil {
+		t.Skipf("contract config not found: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	client := NewRPCClient(contractCfg.RPCURL)
+
+	// Test connectivity
+	blockCount, err := client.GetBlockCount(ctx)
+	if err != nil {
+		t.Skipf("Neo Express not running: %v", err)
+	}
+	t.Logf("Neo Express block count: %d", blockCount)
+
+	// Test each contract is accessible
+	for name, contract := range contractCfg.Contracts {
+		t.Run(name, func(t *testing.T) {
+			// Query contract state via getcontractstate
+			result, err := client.Call(ctx, "getcontractstate", []interface{}{contract.Hash})
+			if err != nil {
+				t.Fatalf("getcontractstate(%s): %v", contract.Hash, err)
+			}
+
+			var state map[string]interface{}
+			if err := json.Unmarshal(result, &state); err != nil {
+				t.Fatalf("unmarshal contract state: %v", err)
+			}
+
+			manifest, ok := state["manifest"].(map[string]interface{})
+			if !ok {
+				t.Fatalf("missing manifest in contract state")
+			}
+
+			contractName, _ := manifest["name"].(string)
+			if contractName != name {
+				t.Errorf("expected contract name %q, got %q", name, contractName)
+			}
+
+			t.Logf("Contract %s deployed at %s", name, contract.Hash)
+		})
+	}
 }

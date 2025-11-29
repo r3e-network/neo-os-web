@@ -49,16 +49,7 @@ func (s *Service) Manifest() *framework.Manifest {
 }
 
 // Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor {
-	return core.Descriptor{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Layer:        core.LayerService,
-		Capabilities: []string{"accounts"},
-		DependsOn:    []string{"store"},
-		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceAccount)},
-	}
-}
+func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
 
 // Start marks the service as ready.
 func (s *Service) Start(ctx context.Context) error { _ = ctx; s.MarkReady(true); return nil }

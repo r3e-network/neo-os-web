@@ -26,6 +26,7 @@ import (
 	"github.com/R3E-Network/service_layer/pkg/pgnotify"
 	"github.com/R3E-Network/service_layer/pkg/supabase"
 	"github.com/R3E-Network/service_layer/pkg/version"
+	"github.com/R3E-Network/service_layer/system/bootstrap"
 	"github.com/R3E-Network/service_layer/system/platform/migrations"
 )
 
@@ -167,6 +168,32 @@ func main() {
 		log.Printf("  - %s@%s", pkg.Manifest.PackageID, pkg.Manifest.Version)
 	}
 
+	// Initialize Event System and User API (FullSystem)
+	log.Println("Initializing event system and user API...")
+
+	// Load contract type mappings from environment (format: "hash1:type1,hash2:type2")
+	contractTypes := parseContractTypes(os.Getenv("CONTRACT_TYPE_MAPPINGS"))
+
+	// Load secrets encryption key from environment (should be 32 bytes for AES-256)
+	secretsKey := []byte(os.Getenv("SECRETS_ENCRYPT_KEY"))
+	if len(secretsKey) == 0 {
+		// Use a default key for development (NOT for production!)
+		secretsKey = []byte("dev-secrets-key-32-bytes-long!!")
+		log.Println("WARNING: Using default secrets encryption key. Set SECRETS_ENCRYPT_KEY in production!")
+	}
+
+	fullSystem, err := bootstrap.NewFullSystem(bootstrap.FullSystemConfig{
+		DB:                db,
+		Logger:            appLogger,
+		ContractTypes:     contractTypes,
+		SecretsEncryptKey: secretsKey,
+		DispatcherWorkers: 4,
+		RouterWorkers:     4,
+	})
+	if err != nil {
+		log.Fatalf("create full system: %v", err)
+	}
+
 	// Bridge to Application for httpapi compatibility
 	application := engineAppToApplication(engineApp, stores, appLogger, cfg)
 
@@ -234,6 +261,10 @@ func main() {
 		log.Printf("Supabase GoTrue configured: %s", cfg.Auth.SupabaseGoTrueURL)
 	}
 
+	// Register FullSystem API routes (User API endpoints)
+	httpOpts = append(httpOpts, httpapi.WithExtraRoutesOption(fullSystem.UserAPI.Handler.RegisterRoutes))
+	log.Println("User API routes registered at /api/v1/*")
+
 	// Create HTTP service
 	httpSvc := httpapi.NewService(
 		application,
@@ -258,6 +289,12 @@ func main() {
 	if err := engineApp.Start(runCtx); err != nil {
 		log.Fatalf("start engine: %v", err)
 	}
+
+	// Start FullSystem (event processing and user API)
+	if err := fullSystem.Start(runCtx); err != nil {
+		log.Fatalf("start full system: %v", err)
+	}
+	log.Println("Event system and user API started")
 
 	runErr := make(chan error, 1)
 	go func() {
@@ -288,6 +325,10 @@ func main() {
 	cancel()
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
+
+	// Stop FullSystem
+	fullSystem.Stop()
+	log.Println("Event system and user API stopped")
 
 	// Stop Engine
 	if err := engineApp.Stop(shutdownCtx); err != nil {
@@ -380,4 +421,30 @@ func splitTokens(value string) []string {
 		}
 	}
 	return trimmed
+}
+
+// parseContractTypes parses contract type mappings from a string.
+// Format: "hash1:type1,hash2:type2" (e.g., "0x1234:oraclehub,0x5678:vrf")
+func parseContractTypes(value string) map[string]string {
+	result := make(map[string]string)
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return result
+	}
+	pairs := strings.Split(value, ",")
+	for _, pair := range pairs {
+		pair = strings.TrimSpace(pair)
+		if pair == "" {
+			continue
+		}
+		parts := strings.SplitN(pair, ":", 2)
+		if len(parts) == 2 {
+			hash := strings.TrimSpace(parts[0])
+			contractType := strings.TrimSpace(parts[1])
+			if hash != "" && contractType != "" {
+				result[hash] = contractType
+			}
+		}
+	}
+	return result
 }

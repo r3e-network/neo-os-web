@@ -433,3 +433,11 @@ func cloneExecution(exec function.Execution) function.Execution {
 func cloneTrigger(trg trigger.Trigger) trigger.Trigger {
 	return trg
 }
+
+// TestAccount creates a minimal account for testing.
+func TestAccount(id string) account.Account {
+	return account.Account{
+		ID:    id,
+		Owner: "test-owner",
+	}
+}

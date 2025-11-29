@@ -49,6 +49,7 @@ type handler struct {
 	rpcMu             sync.Mutex
 	rpcSeq            map[string]int
 	adminConfigStore  adminConfigStore
+	extraRoutes       []RouteRegistrar
 }
 
 type authManager interface {
@@ -140,6 +141,17 @@ func WithAdminConfigStore(store adminConfigStore) HandlerOption {
 	}
 }
 
+// RouteRegistrar is a function that registers routes on a ServeMux.
+type RouteRegistrar func(*http.ServeMux)
+
+// WithExtraRoutes allows registering additional routes on the handler's mux.
+// This is useful for integrating external API handlers (e.g., system/api).
+func WithExtraRoutes(registrars ...RouteRegistrar) HandlerOption {
+	return func(h *handler) {
+		h.extraRoutes = append(h.extraRoutes, registrars...)
+	}
+}
+
 // NewHandler returns a mux exposing the core REST API.
 func NewHandler(
 	application *app.Application,
@@ -194,7 +206,17 @@ func NewHandler(
 
 	h.maybeMountJAM(mux)
 	h.maybeMountAdminConfig(mux)
+	h.mountExtraRoutes(mux)
 	return mux
+}
+
+// mountExtraRoutes registers any additional routes configured via WithExtraRoutes.
+func (h *handler) mountExtraRoutes(mux *http.ServeMux) {
+	for _, registrar := range h.extraRoutes {
+		if registrar != nil {
+			registrar(mux)
+		}
+	}
 }
 
 func (h *handler) maybeMountJAM(mux *http.ServeMux) {

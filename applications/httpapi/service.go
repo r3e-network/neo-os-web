@@ -53,6 +53,7 @@ type Service struct {
 	rpcEng            func() []engine.RPCEngine
 	rpcPol            *RPCPolicy
 	supabaseGoTrueURL string
+	extraRoutes       []RouteRegistrar
 }
 
 // ServiceOption customizes the HTTP service behavior.
@@ -105,6 +106,14 @@ func WithBusMaxBytesOption(limit int64) ServiceOption {
 		if limit > 0 {
 			s.busMaxBytes = limit
 		}
+	}
+}
+
+// WithExtraRoutesOption allows registering additional routes on the HTTP service.
+// This is useful for integrating external API handlers (e.g., system/api UserService).
+func WithExtraRoutesOption(registrars ...RouteRegistrar) ServiceOption {
+	return func(s *Service) {
+		s.extraRoutes = append(s.extraRoutes, registrars...)
 	}
 }
 
@@ -167,6 +176,11 @@ func NewService(application *app.Application, addr string, tokens []string, jamC
 	if db != nil {
 		adminStore := postgres.New(db)
 		handlerOpts = append(handlerOpts, WithAdminConfigStore(adminStore))
+	}
+
+	// Add extra routes if configured
+	if len(svc.extraRoutes) > 0 {
+		handlerOpts = append(handlerOpts, WithExtraRoutes(svc.extraRoutes...))
 	}
 
 	handler := NewHandler(application, jamCfg, tokens, authMgr, audit, neo, modules, handlerOpts...)

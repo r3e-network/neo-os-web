@@ -1,0 +1,11 @@
+[
+  {
+    "contract": "OracleHub",
+    "operation": "fulfill",
+    "args": [
+      "dGVzdC1yZXEtMTIz",
+      "cmVzdWx0LWhhc2gtMTIzNDU2Nzg5MA==",
+      1
+    ]
+  }
+]

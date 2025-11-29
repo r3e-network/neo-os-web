@@ -31,7 +31,7 @@ Error payload: `{"error":"message","code":"jam_auth|jam_rate_limit"}`.
 
 ## Implementation Steps
 - Add config fields to `runtime.jam` structs; bridge into `app.RuntimeConfig`.
-- Build middleware in `internal/app/jam/http.go`:
+- Build middleware in `applications/jam/http.go`:
   - Extract token from `Authorization: Bearer`.
   - Validate against allowlist/global tokens.
   - Rate-limit bucket map with mutex; configurable limit; include `Retry-After`.

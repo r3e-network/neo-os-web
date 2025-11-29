@@ -69,9 +69,17 @@ type DataSourceEngine interface {
 }
 
 // ContractsEngine manages deployment/invocation of service-layer contracts.
+// Extended to support the full contract lifecycle including deployment,
+// invocation, and service binding.
 type ContractsEngine interface {
 	ServiceModule
 	ContractsNetwork() string
+	// Deploy initiates a contract deployment.
+	Deploy(ctx context.Context, contractID string, args map[string]any) (string, error)
+	// Invoke calls a contract method.
+	Invoke(ctx context.Context, contractID, method string, args map[string]any) (any, error)
+	// GetContractAddress returns the deployed address for a contract.
+	GetContractAddress(ctx context.Context, contractID string) (string, error)
 }
 
 // ServiceBankEngine controls GAS usage owned by the service layer.

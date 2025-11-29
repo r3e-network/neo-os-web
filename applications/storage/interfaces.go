@@ -8,6 +8,7 @@ import (
 	"github.com/R3E-Network/service_layer/domain/automation"
 	"github.com/R3E-Network/service_layer/domain/ccip"
 	"github.com/R3E-Network/service_layer/domain/confidential"
+	"github.com/R3E-Network/service_layer/domain/contract"
 	"github.com/R3E-Network/service_layer/domain/cre"
 	"github.com/R3E-Network/service_layer/domain/datafeeds"
 	"github.com/R3E-Network/service_layer/domain/datalink"
@@ -215,4 +216,48 @@ type CCIPStore interface {
 	UpdateMessage(ctx context.Context, msg ccip.Message) (ccip.Message, error)
 	GetMessage(ctx context.Context, id string) (ccip.Message, error)
 	ListMessages(ctx context.Context, accountID string, limit int) ([]ccip.Message, error)
+}
+
+// ContractStore persists smart contract metadata, deployments, and invocations.
+// Aligned with ServiceRegistry.cs and the Service Layer contract system.
+type ContractStore interface {
+	// Contract CRUD
+	CreateContract(ctx context.Context, c contract.Contract) (contract.Contract, error)
+	UpdateContract(ctx context.Context, c contract.Contract) (contract.Contract, error)
+	GetContract(ctx context.Context, id string) (contract.Contract, error)
+	GetContractByAddress(ctx context.Context, network contract.Network, address string) (contract.Contract, error)
+	ListContracts(ctx context.Context, accountID string) ([]contract.Contract, error)
+	ListContractsByService(ctx context.Context, serviceID string) ([]contract.Contract, error)
+	ListContractsByNetwork(ctx context.Context, network contract.Network) ([]contract.Contract, error)
+
+	// Template CRUD
+	CreateTemplate(ctx context.Context, t contract.Template) (contract.Template, error)
+	UpdateTemplate(ctx context.Context, t contract.Template) (contract.Template, error)
+	GetTemplate(ctx context.Context, id string) (contract.Template, error)
+	ListTemplates(ctx context.Context, category contract.TemplateCategory) ([]contract.Template, error)
+	ListTemplatesByService(ctx context.Context, serviceID string) ([]contract.Template, error)
+
+	// Deployment tracking
+	CreateDeployment(ctx context.Context, d contract.Deployment) (contract.Deployment, error)
+	UpdateDeployment(ctx context.Context, d contract.Deployment) (contract.Deployment, error)
+	GetDeployment(ctx context.Context, id string) (contract.Deployment, error)
+	ListDeployments(ctx context.Context, contractID string, limit int) ([]contract.Deployment, error)
+
+	// Invocation tracking
+	CreateInvocation(ctx context.Context, inv contract.Invocation) (contract.Invocation, error)
+	UpdateInvocation(ctx context.Context, inv contract.Invocation) (contract.Invocation, error)
+	GetInvocation(ctx context.Context, id string) (contract.Invocation, error)
+	ListInvocations(ctx context.Context, contractID string, limit int) ([]contract.Invocation, error)
+	ListAccountInvocations(ctx context.Context, accountID string, limit int) ([]contract.Invocation, error)
+
+	// Service contract bindings
+	CreateServiceBinding(ctx context.Context, b contract.ServiceContractBinding) (contract.ServiceContractBinding, error)
+	GetServiceBinding(ctx context.Context, id string) (contract.ServiceContractBinding, error)
+	ListServiceBindings(ctx context.Context, serviceID string) ([]contract.ServiceContractBinding, error)
+	ListAccountBindings(ctx context.Context, accountID string) ([]contract.ServiceContractBinding, error)
+
+	// Network config
+	GetNetworkConfig(ctx context.Context, network contract.Network) (contract.NetworkConfig, error)
+	ListNetworkConfigs(ctx context.Context) ([]contract.NetworkConfig, error)
+	SaveNetworkConfig(ctx context.Context, cfg contract.NetworkConfig) (contract.NetworkConfig, error)
 }

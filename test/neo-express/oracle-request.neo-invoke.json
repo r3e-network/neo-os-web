@@ -1,0 +1,12 @@
+[
+  {
+    "contract": "OracleHub",
+    "operation": "submitRequest",
+    "args": [
+      "dGVzdC1yZXEtMTIz",
+      "dGVzdC1zdmM=",
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      1000000
+    ]
+  }
+]

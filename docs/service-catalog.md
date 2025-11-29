@@ -96,7 +96,7 @@ This document provides a comprehensive reference for all 17 services in the Neo 
 
 **Purpose**: Account registry with pluggable storage and multi-tenant isolation.
 
-**Location**: `internal/services/accounts/`
+**Location**: `packages/com.r3e.services.accounts/`
 
 ### API Endpoints
 
@@ -142,7 +142,7 @@ type Account struct {
 
 **Purpose**: JavaScript function execution with Devpack SDK integration.
 
-**Location**: `internal/services/functions/`
+**Location**: `packages/com.r3e.services.functions/`
 
 ### API Endpoints
 
@@ -209,7 +209,7 @@ export default function(params, secrets) {
 
 **Purpose**: Cron-style job scheduling for function execution.
 
-**Location**: `internal/services/automation/`
+**Location**: `packages/com.r3e.services.automation/`
 
 ### API Endpoints
 
@@ -255,7 +255,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 **Purpose**: Event/webhook routing to functions.
 
-**Location**: `internal/services/triggers/`
+**Location**: `packages/com.r3e.services.triggers/`
 
 ### API Endpoints
 
@@ -307,7 +307,7 @@ curl -s -X POST http://localhost:8080/accounts/$ACCOUNT_ID/triggers \
 
 **Purpose**: Encrypted secret storage with ACL enforcement.
 
-**Location**: `internal/services/secrets/`
+**Location**: `packages/com.r3e.services.secrets/`
 
 ### API Endpoints
 
@@ -349,7 +349,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 **Purpose**: HTTP adapter for external data sources with retry logic.
 
-**Location**: `internal/services/oracle/`
+**Location**: `packages/com.r3e.services.oracle/`
 
 ### API Endpoints
 
@@ -402,7 +402,7 @@ pending → running → succeeded/failed → (retry) → succeeded/dlq
 
 **Purpose**: Chainlink-style signed data feeds with aggregation.
 
-**Location**: `internal/services/datafeeds/`
+**Location**: `packages/com.r3e.services.datafeeds/`
 
 ### API Endpoints
 
@@ -461,7 +461,7 @@ See [DataFeeds Quickstart](examples/datafeeds.md) for detailed guide.
 
 **Purpose**: Decentralized oracle aggregation with deviation-based publishing.
 
-**Location**: `internal/services/pricefeed/`
+**Location**: `packages/com.r3e.services.pricefeed/`
 
 ### API Endpoints
 
@@ -505,7 +505,7 @@ See [PriceFeeds Quickstart](examples/pricefeeds.md) for detailed guide.
 
 **Purpose**: Real-time high-frequency data streams.
 
-**Location**: `internal/services/datastreams/`
+**Location**: `packages/com.r3e.services.datastreams/`
 
 ### API Endpoints
 
@@ -553,7 +553,7 @@ curl -s -X POST http://localhost:8080/accounts/$ACCOUNT_ID/datastreams/$STREAM_I
 
 **Purpose**: Data delivery channels with dispatcher pattern.
 
-**Location**: `internal/services/datalink/`
+**Location**: `packages/com.r3e.services.datalink/`
 
 ### API Endpoints
 
@@ -598,7 +598,7 @@ See [DataLink Quickstart](examples/datalink.md) for detailed guide.
 
 **Purpose**: Cryptographically secure random number generation with ED25519 signatures.
 
-**Location**: `internal/services/random/`
+**Location**: `packages/com.r3e.services.random/`
 
 ### API Endpoints
 
@@ -638,7 +638,7 @@ slctl random list --account $ACCOUNT_ID --limit 10
 
 **Purpose**: Verifiable Random Function for provably fair randomness.
 
-**Location**: `internal/services/vrf/`
+**Location**: `packages/com.r3e.services.vrf/`
 
 ### API Endpoints
 
@@ -685,7 +685,7 @@ curl -s -X POST http://localhost:8080/accounts/$ACCOUNT_ID/vrf/requests \
 
 **Purpose**: Service-owned gas accounts for transaction subsidization.
 
-**Location**: `internal/services/gasbank/`
+**Location**: `packages/com.r3e.services.gasbank/`
 
 ### API Endpoints
 
@@ -729,7 +729,7 @@ See [GasBank Workflows](gasbank-workflows.md) for detailed guide.
 
 **Purpose**: Cross-Chain Interoperability Protocol for multi-chain messaging.
 
-**Location**: `internal/services/ccip/`
+**Location**: `packages/com.r3e.services.ccip/`
 
 ### API Endpoints
 
@@ -782,7 +782,7 @@ pending → inflight → delivered/failed → (retry) → confirmed
 
 **Purpose**: Composable Run Engine for complex workflow orchestration.
 
-**Location**: `internal/services/cre/`
+**Location**: `packages/com.r3e.services.cre/`
 
 ### API Endpoints
 
@@ -833,7 +833,7 @@ curl -s -X POST http://localhost:8080/accounts/$ACCOUNT_ID/cre/runs \
 
 **Purpose**: TEE enclave management and sealed key operations.
 
-**Location**: `internal/services/confidential/`
+**Location**: `packages/com.r3e.services.confidential/`
 
 ### API Endpoints
 
@@ -885,7 +885,7 @@ curl -s -X POST http://localhost:8080/accounts/$ACCOUNT_ID/confidential/enclaves
 
 **Purpose**: Decentralized Trading Architecture for product/order management.
 
-**Location**: `internal/services/dta/`
+**Location**: `packages/com.r3e.services.dta/`
 
 ### API Endpoints
 

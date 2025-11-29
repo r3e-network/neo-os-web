@@ -72,16 +72,7 @@ func (s *Service) Manifest() *framework.Manifest {
 }
 
 // Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor {
-	return core.Descriptor{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Layer:        core.LayerService,
-		Capabilities: []string{"functions"},
-		DependsOn:    []string{"store", "svc-accounts"},
-		RequiresAPIs: []string{string(engine.APISurfaceStore), string(engine.APISurfaceCompute), string(engine.APISurfaceEvent), string(engine.APISurfaceData)},
-	}
-}
+func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
 
 // New constructs a function service.
 func New(accounts storage.AccountStore, store storage.FunctionStore, log *logger.Logger) *Service {

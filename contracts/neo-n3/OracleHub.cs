@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
 namespace ServiceLayer.Contracts
@@ -29,7 +30,7 @@ namespace ServiceLayer.Contracts
             public ByteString ResultHash;
         }
 
-        public static void Request(ByteString id, ByteString serviceId, ByteString payloadHash, long fee)
+        public static void SubmitRequest(ByteString id, ByteString serviceId, ByteString payloadHash, long fee)
         {
             if (id is null || id.Length == 0) throw new Exception("missing id");
             if (Requests.Get(id) is not null) throw new Exception("exists");

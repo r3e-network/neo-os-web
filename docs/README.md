@@ -14,6 +14,7 @@ as the single source of truth for the platform.
 | **Supabase** | [Supabase Setup](supabase-setup.md) | Self-hosted Supabase Postgres + GoTrue profile and env matrix |
 | **Deep Dives** | [Framework Guide](framework-guide.md) | ServiceBase, Builder, Manifest, Testing |
 | **Deep Dives** | [Engine Guide](engine-guide.md) | Registry, Lifecycle, Bus, Health monitoring |
+| **Deep Dives** | [Service Engine](service-engine.md) | Automated service invocation and callbacks |
 | **Deployment** | [Deployment Guide](deployment-guide.md) | Production deployment with Docker/Kubernetes |
 | **Specification** | [Requirements](requirements.md) | Single source of truth |
 
@@ -89,10 +90,13 @@ system/
 ├── framework/    # Service SDK (ServiceBase, Builder, Manifest)
 ├── platform/     # Platform services (database, migrations)
 ├── runtime/      # Package runtime (loader, permissions)
-└── bootstrap/    # Application bootstrapping
+├── bootstrap/    # Application bootstrapping and component wiring
+├── events/       # Event dispatcher, request router, indexer bridge
+└── api/          # User API (accounts, secrets, contracts, functions)
 
 packages/         # Service packages (com.r3e.services.*)
 applications/     # HTTP API, storage adapters
+contracts/neo-n3/ # Neo N3 smart contracts (C#)
 pkg/              # Shared libraries (supabase, pgnotify, blob)
 ```
 
@@ -122,6 +126,7 @@ pkg/              # Shared libraries (supabase, pgnotify, blob)
 ## Integration References
 
 ### NEO N3 Integration
+- [Contract System](contract-system.md) - **Complete architecture**: contracts, event system, user API
 - [NEO API Reference](neo-api.md) - Indexer and snapshot APIs
 - [NEO Operations](neo-ops.md) - Running NEO nodes
 - [Blockchain Contracts](blockchain-contracts.md) - Push Service Layer feeds into privnet contracts via SDK helpers
@@ -179,16 +184,16 @@ GET /livez
 ### Unit Tests
 ```bash
 go test ./...
-go test ./internal/services/... -cover
+go test ./packages/... -cover
 ```
 
 ### Integration Tests
 ```bash
 # In-memory
-go test ./internal/app/httpapi -run IntegrationHTTPAPI
+go test ./applications/httpapi -run IntegrationHTTPAPI
 
 # PostgreSQL
-go test -tags "integration postgres" ./internal/app/httpapi -run IntegrationPostgres
+go test -tags "integration postgres" ./applications/httpapi -run IntegrationPostgres
 ```
 
 ### Dashboard E2E

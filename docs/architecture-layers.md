@@ -11,15 +11,15 @@ The system is organized into **four primary layers** (bottom to top):
 3. **Engine Layer** (OS Kernel) - Service orchestration and lifecycle management
 4. **Services Layer** (Applications) - Business logic and domain services
 
-Additionally, an **Application Composition Layer** (`internal/app/`) sits above the Services Layer to wire everything together into a runnable application. Domain contracts are defined in `internal/app/domain/` and re-exported through `internal/domain/` so services and adapters can depend on a stable surface without importing application wiring.
+Additionally, an **Application Composition Layer** (`applications/`) sits above the Services Layer to wire everything together into a runnable application. Domain contracts are defined in `domain/` so services and adapters can depend on a stable surface without importing application wiring.
 The default platform stack is intentionally minimal: self-hosted Supabase Postgres + GoTrue replace bespoke auth/store modules, while SDKs and helpers focus on blockchain contract delivery rather than infra plumbing.
 
 ### Naming and dependency rules
-- Package names mirror layer names: `internal/platform`, `internal/framework`, `internal/engine`, `internal/services`, `internal/app` (composition), plus `cmd/` entrypoints and `sdk/` clients.
-- Dependencies are one-way: `services` → `engine`/`framework` → `platform`; composition code lives in `internal/app` to avoid leaking wiring into domains.
-- Supabase is the default platform for auth + Postgres; other stores/queues live under `internal/platform/` as drivers.
-- Keep handlers/thin adapters in `internal/app/httpapi`, leaving business logic inside `internal/services` and persistence in `internal/app/storage`.
-- CLI (`cmd/slctl`) and SDKs consume the HTTP surface only; they must not reach into `internal/*`.
+- Package names mirror layer names: `system/platform`, `system/framework`, `system/core` (engine), `packages/com.r3e.services.*` (services), `applications/` (composition), plus `cmd/` entrypoints and `sdk/` clients.
+- Dependencies are one-way: `packages` → `system/core`/`system/framework` → `system/platform`; composition code lives in `applications/` to avoid leaking wiring into domains.
+- Supabase is the default platform for auth + Postgres; other stores/queues live under `system/platform/` as drivers.
+- Keep handlers/thin adapters in `applications/httpapi`, leaving business logic inside `packages/` and persistence in `applications/storage`.
+- CLI (`cmd/slctl`) and SDKs consume the HTTP surface only; they must not reach into internal packages.
 
 ### Android OS Analogy
 
@@ -42,7 +42,7 @@ Just as Android apps use standard APIs without knowing about hardware details, o
 
 ### Layer 1: Platform (HAL/Drivers)
 
-**Location**: `internal/platform/`
+**Location**: `system/platform/`
 
 **Purpose**: Provide low-level drivers and adapters for external systems. This is the Hardware Abstraction Layer that isolates the rest of the system from infrastructure implementation details.
 
@@ -91,7 +91,7 @@ type OracleDriver interface { ... }   // External data
 
 ### Layer 2: Framework (API/SDK)
 
-**Location**: `internal/framework/`
+**Location**: `system/framework/`
 
 **Purpose**: Provide developer-friendly tools and abstractions for building services. This is the SDK that service developers use.
 
@@ -146,14 +146,14 @@ type Manifest struct {
 
 ### Layer 2.5: Application Composition
 
-**Location**: `internal/app/`
+**Location**: `applications/`
 
 **Purpose**: Assemble drivers, engines, and services into a runnable binary. This layer owns configuration, HTTP routes, storage adapters, and tenancy/auth wiring.
 
 **Responsibilities**:
-- HTTP API surface (`internal/app/httpapi`) for all modules
-- Storage adapters (`internal/app/storage`) that bind services to Postgres (Supabase-first) and in-memory stores for tests
-- Configuration parsing and validation (`internal/config`)
+- HTTP API surface (`applications/httpapi`) for all modules
+- Storage adapters (`applications/storage`) that bind services to Postgres (Supabase-first) and in-memory stores for tests
+- Configuration parsing and validation (`configs/`)
 - Tenant/header enforcement and Supabase JWT integration
 - Migration orchestration (database + service-specific)
 
@@ -164,7 +164,7 @@ type Manifest struct {
 
 ### Layer 3: Engine (OS Kernel)
 
-**Location**: `internal/engine/`
+**Location**: `system/core/`
 
 **Purpose**: Orchestrate services, manage lifecycle, and provide system-level capabilities. This is the operating system kernel.
 
@@ -199,17 +199,13 @@ type RPCEngine interface { ... }
 **Key Files**:
 - `interfaces.go` - Core engine interfaces (ServiceModule, typed engines)
 - `apis.go` - API surface definitions
-- `runtime/` - Runtime adapters and module wrappers
-  - `application.go` - Application runtime
-  - `service_modules.go` - Service wrappers
-  - `infrastructure_modules.go` - Infrastructure adapters
-  - `config_bridge.go` - Configuration bridging
-  - `engine_adapters.go` - Adapter implementations
+- `system/runtime/` - Runtime adapters and module wrappers
+- `system/bootstrap/` - Application bootstrap and initialization
 
 **Engine Components** (conceptual, not yet fully decomposed):
 - **Registry**: Service registration and lookup
 - **Lifecycle Manager**: Dependency-aware start/stop
-- **Bus System**: Event/data/compute fan-out
+- **Bus System**: Event/data/compute fan-out (`system/framework/bus.go`)
 - **Health Monitor**: Readiness tracking and probing
 - **API Surface**: Capability advertisement and verification
 
@@ -218,7 +214,7 @@ type RPCEngine interface { ... }
 - Dependency resolution ensures correct startup order
 - Bus enables loose coupling between services
 - Typed engine interfaces provide compile-time safety
-- Engine modules are named after capabilities (compute/data/event/store) and live in `internal/engine` and `internal/services`; composition code avoids embedding business logic directly into engine primitives.
+- Engine modules are named after capabilities (compute/data/event/store) and live in `system/core` and `packages/`; composition code avoids embedding business logic directly into engine primitives.
 
 **Dependencies**:
 - Framework Layer (for ServiceBase, Manifest)
@@ -228,7 +224,7 @@ type RPCEngine interface { ... }
 
 ### Layer 4: Services (Applications)
 
-**Location**: `internal/services/`
+**Location**: `packages/com.r3e.services.*/`
 
 **Purpose**: Implement business logic and domain-specific functionality. These are the applications running on top of the operating system.
 
@@ -268,7 +264,7 @@ type RPCEngine interface { ... }
 
 **Standard Service Structure**:
 ```
-internal/services/{service-name}/
+packages/com.r3e.services.{service-name}/
 ├── service.go          # Main service implementation
 ├── service_test.go     # Service tests
 ├── handlers.go         # Optional request handlers
@@ -278,25 +274,40 @@ internal/services/{service-name}/
 
 **Service Implementation Pattern**:
 ```go
+import (
+    "github.com/R3E-Network/service_layer/system/framework"
+    engine "github.com/R3E-Network/service_layer/system/core"
+)
+
 type Service struct {
     framework.ServiceBase
-    manifest *framework.Manifest
-    bus      framework.BusClient
-    store    Store
+    base  *core.Base
+    store storage.MyStore
+    log   *logger.Logger
 }
 
-func (s *Service) Name() string   { return s.manifest.Name }
-func (s *Service) Domain() string { return s.manifest.Domain }
+func (s *Service) Name() string   { return "myservice" }
+func (s *Service) Domain() string { return "myservice" }
+
+func (s *Service) Manifest() *framework.Manifest {
+    return &framework.Manifest{
+        Name:         s.Name(),
+        Domain:       s.Domain(),
+        Description:  "My service description",
+        Layer:        "service",
+        DependsOn:    []string{"store", "svc-accounts"},
+        RequiresAPIs: []engine.APISurface{engine.APISurfaceStore},
+        Capabilities: []string{"myservice"},
+    }
+}
 
 func (s *Service) Start(ctx context.Context) error {
-    // Initialize resources
     s.MarkReady(true)
     return nil
 }
 
 func (s *Service) Stop(ctx context.Context) error {
     s.MarkReady(false)
-    // Cleanup resources
     return nil
 }
 ```
@@ -315,18 +326,18 @@ func (s *Service) Stop(ctx context.Context) error {
 
 ### Application Composition Layer
 
-**Location**: `internal/app/`
+**Location**: `applications/`
 
 **Purpose**: Wire services together and compose them into a runnable application. This is the "main assembly" layer.
 
 **Responsibilities**:
 - Instantiate all services with their dependencies
 - Configure runtime settings from environment/config
-- Provide HTTP API handlers (`internal/app/httpapi/`)
-- Define domain models (`internal/app/domain/`)
-- Implement storage interfaces (`internal/app/storage/`)
-- Manage system lifecycle (`internal/app/system/`)
-- Expose metrics and observability (`internal/app/metrics/`)
+- Provide HTTP API handlers (`applications/httpapi/`)
+- Define domain models (`domain/`)
+- Implement storage interfaces (`applications/storage/`)
+- Manage system lifecycle (`applications/system/`)
+- Expose metrics and observability (`applications/metrics/`)
 
 **Key Components**:
 
@@ -360,13 +371,13 @@ func (s *Service) Stop(ctx context.Context) error {
 - Descriptor collection
 
 **Key Files**:
-- `application.go` - Main application builder
-- `httpapi/handler.go` - HTTP handler router
-- `httpapi/service.go` - HTTP service lifecycle
-- `storage/interfaces.go` - Storage contracts
-- `system/manager.go` - Legacy service manager
-- `system/registry.go` - Service registry
-- `metrics/metrics.go` - Metrics collection
+- `applications/application.go` - Main application builder
+- `applications/httpapi/handler.go` - HTTP handler router
+- `applications/httpapi/service.go` - HTTP service lifecycle
+- `applications/storage/interfaces.go` - Storage contracts
+- `applications/system/manager.go` - Legacy service manager
+- `applications/system/registry.go` - Service registry
+- `applications/metrics/metrics.go` - Metrics collection
 
 **Design Principles**:
 - Composition over inheritance
@@ -429,16 +440,16 @@ Legend:
 
 ```
 ✓ GOOD:
-  internal/framework/base.go  → (no internal imports)
-  internal/engine/interfaces.go → internal/framework
-  internal/services/vrf/service.go → internal/framework, internal/engine
-  internal/app/application.go → internal/services/vrf
+  system/framework/base.go  → (no internal imports)
+  system/core/interfaces.go → system/framework
+  packages/com.r3e.services.vrf/service.go → system/framework, system/core
+  applications/application.go → packages/com.r3e.services.vrf
 
 ✗ BAD:
-  internal/framework/base.go → internal/engine
-  internal/engine/registry.go → internal/services/vrf
-  internal/services/vrf/service.go → internal/services/oracle
-  internal/services/vrf/service.go → internal/platform/driver
+  system/framework/base.go → system/core
+  system/core/registry.go → packages/com.r3e.services.vrf
+  packages/com.r3e.services.vrf/service.go → packages/com.r3e.services.oracle
+  packages/com.r3e.services.vrf/service.go → system/platform/driver
 ```
 
 ---
@@ -450,7 +461,7 @@ Legend:
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                     APPLICATION COMPOSITION LAYER                        │
-│                        (internal/app/)                                   │
+│                        (applications/)                                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
 │  │   HTTP API   │  │    Domain    │  │   Storage    │  │   System   │ │
 │  │   Handlers   │  │    Models    │  │  Interfaces  │  │  Manager   │ │
@@ -463,7 +474,7 @@ Legend:
                                     │
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         SERVICES LAYER (Applications)                    │
-│                        (internal/services/)                              │
+│                        (packages/com.r3e.services.*/)                    │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐          │
 │  │   VRF   │ │ Oracle  │ │Functions│ │ Gasbank │ │Automation│          │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘          │
@@ -478,7 +489,7 @@ Legend:
                                     │
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    ENGINE LAYER (OS Kernel)                              │
-│                        (internal/engine/)                                │
+│                        (system/core/)                                    │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
 │  │                      Service Engine                               │  │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │  │
@@ -495,7 +506,7 @@ Legend:
                                     │
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                   FRAMEWORK LAYER (API/SDK)                              │
-│                        (internal/framework/)                             │
+│                        (system/framework/)                               │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  │
 │  │ ServiceBase  │ │  BusClient   │ │   Manifest   │ │  Lifecycle   │  │
 │  │  (state)     │ │  (pub/sub)   │ │  (contract)  │ │   (hooks)    │  │
@@ -509,7 +520,7 @@ Legend:
                                     │
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                  PLATFORM LAYER (HAL/Drivers)                            │
-│                        (internal/platform/)                              │
+│                        (system/platform/)                                │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐    │
 │  │Blockchain│ │ Storage  │ │  Cache   │ │  Queue   │ │  Crypto  │    │
 │  │   RPC    │ │ (Postgres│ │ (Redis)  │ │(RocketMQ)│ │  (HSM)   │    │
@@ -619,8 +630,8 @@ Follow these steps to add a new domain service:
 
 **Step 1: Create Service Directory**
 ```bash
-mkdir -p internal/services/myservice
-cd internal/services/myservice
+mkdir -p packages/com.r3e.services.myservice
+cd packages/com.r3e.services.myservice
 ```
 
 **Step 2: Implement Service**
@@ -630,8 +641,8 @@ package myservice
 
 import (
     "context"
-    "github.com/R3E-Network/service_layer/internal/framework"
-    "github.com/R3E-Network/service_layer/internal/engine"
+    "github.com/R3E-Network/service_layer/system/framework"
+    engine "github.com/R3E-Network/service_layer/system/core"
 )
 
 type Service struct {
@@ -641,22 +652,26 @@ type Service struct {
     store    Store
 }
 
-func New(store Store, bus framework.BusClient) *Service {
-    s := &Service{
-        manifest: &framework.Manifest{
-            Name:         "myservice",
-            Domain:       "myservice",
-            Description:  "My new domain service",
-            Layer:        "service",
-            Capabilities: []string{"myservice.read", "myservice.write"},
-            DependsOn:    []string{"svc-accounts"},
-            RequiresAPIs: []engine.APISurface{engine.APISurfaceStore},
-        },
+func New(accounts storage.AccountStore, store Store, log *logger.Logger) *Service {
+    svc := &Service{
+        base:  core.NewBase(accounts),
         store: store,
-        bus:   bus,
+        log:   log,
     }
-    s.ServiceBase = *framework.NewServiceBase("myservice", "myservice")
-    return s
+    svc.SetName(svc.Name())
+    return svc
+}
+
+func (s *Service) Manifest() *framework.Manifest {
+    return &framework.Manifest{
+        Name:         s.Name(),
+        Domain:       s.Domain(),
+        Description:  "My new domain service",
+        Layer:        "service",
+        Capabilities: []string{"myservice.read", "myservice.write"},
+        DependsOn:    []string{"store", "svc-accounts"},
+        RequiresAPIs: []engine.APISurface{engine.APISurfaceStore},
+    }
 }
 
 func (s *Service) Name() string { return s.manifest.Name }
@@ -711,18 +726,18 @@ type Entity struct {
 
 **Step 4: Add Storage Implementation**
 
-Update `internal/app/storage/interfaces.go`:
+Update `applications/storage/interfaces.go`:
 ```go
 type MyServiceStore interface {
     // Same methods as service Store interface
 }
 ```
 
-Update `internal/app/storage/memory/store.go` to implement the interface.
+Update `applications/storage/memory.go` to implement the interface.
 
 **Step 5: Wire in Application Layer**
 
-Update `internal/app/application.go`:
+Update `applications/application.go`:
 ```go
 // Add to Stores struct
 type Stores struct {
@@ -757,7 +772,7 @@ func New(stores Stores, log *logger.Logger, opts ...Option) (*Application, error
 
 **Step 6: Add HTTP Handlers**
 
-Create `internal/app/httpapi/handler_myservice.go`:
+Create `applications/httpapi/handler_myservice.go`:
 ```go
 func (h *Handler) handleMyServiceList(w http.ResponseWriter, r *http.Request) {
     ctx := r.Context()
@@ -807,7 +822,7 @@ func TestService_DoSomething(t *testing.T) {
 
 **Step 1: Define Driver Interface**
 
-Update `internal/platform/driver.go`:
+Update `system/platform/driver.go`:
 ```go
 // MySystemDriver provides connectivity to My External System.
 type MySystemDriver interface {
@@ -821,12 +836,12 @@ type MySystemDriver interface {
 
 **Step 2: Implement Driver**
 ```go
-// internal/platform/mysystem/driver.go
+// system/platform/mysystem/driver.go
 package mysystem
 
 import (
     "context"
-    "github.com/R3E-Network/service_layer/internal/platform"
+    "github.com/R3E-Network/service_layer/system/platform"
 )
 
 type driver struct {
@@ -866,7 +881,7 @@ func (d *driver) Query(ctx context.Context, query string) ([]Result, error) {
 
 **Step 3: Register with Engine**
 
-Update `internal/engine/runtime/infrastructure_modules.go` to wrap the driver if it needs to be lifecycle-managed by the engine.
+Update `system/runtime/` to wrap the driver if it needs to be lifecycle-managed by the engine.
 
 **Step 4: Wire in Application**
 
@@ -876,7 +891,7 @@ Update application builder to instantiate and inject the driver where needed.
 
 **Step 1: Implement Utility**
 ```go
-// internal/framework/myutil/utility.go
+// system/framework/myutil/utility.go
 package myutil
 
 func DoSomething() {
@@ -886,11 +901,11 @@ func DoSomething() {
 
 **Step 2: Document in Framework Package**
 
-Update `internal/framework/doc.go` with usage examples.
+Update `system/framework/doc.go` with usage examples.
 
 **Step 3: Add Tests**
 ```go
-// internal/framework/myutil/utility_test.go
+// system/framework/myutil/utility_test.go
 func TestDoSomething(t *testing.T) {
     // Test utility
 }
@@ -959,7 +974,7 @@ func TestDoSomething(t *testing.T) {
 
 ### Observability
 
-- **Metrics**: Collected in Application Layer (`internal/app/metrics/`)
+- **Metrics**: Collected in Application Layer (`applications/metrics/`)
 - **Logging**: Structured logging via `pkg/logger`
 - **Tracing**: Context propagation through all layers
 - **Health Checks**: Exposed via `/healthz` and `/system/status`
@@ -984,13 +999,13 @@ func TestDoSomething(t *testing.T) {
 
 ### Current State
 
-The codebase is transitioning from a mixed architecture to this clean layered design:
+The codebase follows a clean layered design inspired by Android OS:
 
-- Platform Layer: Well-defined (`internal/platform/`)
-- Framework Layer: Well-defined (`internal/framework/`)
-- Engine Layer: Partially decomposed (interfaces defined, needs refactoring)
-- Services Layer: Well-defined (`internal/services/`)
-- Application Layer: Well-defined (`internal/app/`)
+- Platform Layer: Well-defined (`system/platform/`)
+- Framework Layer: Well-defined (`system/framework/`)
+- Engine Layer: Well-defined (`system/core/`)
+- Services Layer: Well-defined (`packages/com.r3e.services.*/`)
+- Application Layer: Well-defined (`applications/`)
 
 ### Future Work
 

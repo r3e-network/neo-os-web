@@ -1,16 +1,17 @@
 # Service Framework Deep Dive
 
-Complete guide to the Service Framework layer (`internal/framework/`), the SDK for building services.
+Complete guide to the Service Framework layer (`system/framework/`), the SDK for building services.
 
 ## Overview
 
 The Framework layer provides developer tools and abstractions for building services:
 
 ```
-internal/framework/
+system/framework/
 ├── base.go              # ServiceBase - thread-safe state management
 ├── builder.go           # ServiceBuilder - fluent service construction
 ├── manifest.go          # Manifest - service contract declaration
+├── method.go            # MethodDeclaration - service method specifications
 ├── bus.go               # BusClient - inter-service communication
 ├── bus_impl.go          # Bus implementation
 ├── errors.go            # Framework error types
@@ -34,7 +35,7 @@ package myservice
 
 import (
     "context"
-    "github.com/R3E-Network/service_layer/internal/framework"
+    "github.com/R3E-Network/service_layer/system/framework"
 )
 
 type Service struct {
@@ -127,7 +128,7 @@ import (
     "context"
     "time"
 
-    "github.com/R3E-Network/service_layer/internal/framework"
+    "github.com/R3E-Network/service_layer/system/framework"
     "github.com/R3E-Network/service_layer/pkg/logger"
 )
 
@@ -206,8 +207,8 @@ Fluent API for constructing services with minimal boilerplate.
 ```go
 import (
     "context"
-    "github.com/R3E-Network/service_layer/internal/framework"
-    "github.com/R3E-Network/service_layer/internal/engine"
+    "github.com/R3E-Network/service_layer/system/framework"
+    engine "github.com/R3E-Network/service_layer/system/core"
 )
 
 svc, err := framework.NewService("my-service", "domain").
@@ -422,9 +423,203 @@ func (s *Service) Manifest() *framework.Manifest {
 
 ---
 
+## Method Declarations (Service Engine V2)
+
+Located in `system/framework/method.go`. Provides explicit method specifications for services that integrate with the Service Engine.
+
+### Method Types
+
+```go
+const (
+    MethodTypeInit   MethodType = "init"   // Called once at deployment
+    MethodTypeInvoke MethodType = "invoke" // Standard method for contract events
+    MethodTypeView   MethodType = "view"   // Read-only, no state changes
+    MethodTypeAdmin  MethodType = "admin"  // Requires elevated permissions
+)
+```
+
+### Callback Modes
+
+```go
+const (
+    CallbackNone     CallbackMode = "none"     // No callback sent
+    CallbackRequired CallbackMode = "required" // Callback MUST be sent
+    CallbackOptional CallbackMode = "optional" // Callback if result non-nil
+    CallbackOnError  CallbackMode = "on_error" // Callback only on error
+)
+```
+
+### MethodDeclaration Structure
+
+```go
+type MethodDeclaration struct {
+    Name                  string       // Method name (e.g., "fetch")
+    Description           string       // Human-readable description
+    Type                  MethodType   // init, invoke, view, admin
+    CallbackMode          CallbackMode // How to handle results
+    Params                []MethodParam // Input parameters
+    DefaultCallbackMethod string       // Default callback method name
+    MaxExecutionTime      int64        // Max execution time (ms)
+    RequiresAuth          bool         // Authentication required
+    MinFee                int64        // Minimum fee required
+}
+```
+
+### Building Method Declarations
+
+Use the fluent `MethodBuilder` API:
+
+```go
+import "github.com/R3E-Network/service_layer/system/framework"
+
+// Init method - called once at deployment
+initMethod := framework.NewMethod("init").
+    AsInit().
+    WithDescription("Initialize service with configuration").
+    WithOptionalParam("timeout", "int", "Timeout in seconds", 30).
+    Build()
+
+// Invoke method - called by contract events, sends callback
+fetchMethod := framework.NewMethod("fetch").
+    WithDescription("Fetch data from HTTP endpoint").
+    RequiresCallback().
+    WithDefaultCallbackMethod("fulfill").
+    WithParam("url", "string", "URL to fetch").
+    WithOptionalParam("method", "string", "HTTP method", "GET").
+    WithMaxExecutionTime(30000).
+    WithMinFee(100000).
+    Build()
+
+// View method - read-only, no callback
+statusMethod := framework.NewMethod("getStatus").
+    AsView().
+    WithDescription("Get current service status").
+    Build()
+
+// Admin method - requires elevated permissions
+configMethod := framework.NewMethod("setConfig").
+    AsAdmin().
+    WithDescription("Update service configuration").
+    RequiresAuth().
+    WithParam("key", "string", "Configuration key").
+    WithParam("value", "any", "Configuration value").
+    Build()
+```
+
+### ServiceMethodRegistry
+
+Holds all method declarations for a service:
+
+```go
+// Build registry using fluent API
+registry := framework.NewMethodRegistryBuilder("oracle").
+    WithInit(initMethod).
+    WithMethod(fetchMethod).
+    WithMethod(statusMethod).
+    Build()
+
+// Query methods
+method, ok := registry.GetMethod("fetch")
+initMethod := registry.GetInitMethod()
+allMethods := registry.ListMethods()
+invokeMethods := registry.ListInvokeMethods()
+```
+
+### InvocableServiceV2 Interface
+
+Services implementing this interface can be automatically invoked by the ServiceEngine:
+
+```go
+type InvocableServiceV2 interface {
+    // ServiceName returns the unique service identifier
+    ServiceName() string
+
+    // MethodRegistry returns the service's method declarations
+    MethodRegistry() *ServiceMethodRegistry
+
+    // Initialize is called once when the service is deployed
+    Initialize(ctx context.Context, params map[string]any) error
+
+    // Invoke calls a method with the given parameters
+    Invoke(ctx context.Context, method string, params map[string]any) (result any, err error)
+}
+```
+
+### Complete V2 Service Example
+
+```go
+type MyServiceV2 struct {
+    registry    *framework.ServiceMethodRegistry
+    initialized bool
+}
+
+func NewMyServiceV2() *MyServiceV2 {
+    svc := &MyServiceV2{}
+    svc.registry = svc.buildRegistry()
+    return svc
+}
+
+func (s *MyServiceV2) ServiceName() string {
+    return "myservice"
+}
+
+func (s *MyServiceV2) MethodRegistry() *framework.ServiceMethodRegistry {
+    return s.registry
+}
+
+func (s *MyServiceV2) buildRegistry() *framework.ServiceMethodRegistry {
+    return framework.NewMethodRegistryBuilder("myservice").
+        WithInit(
+            framework.NewMethod("init").
+                AsInit().
+                WithDescription("Initialize service").
+                Build(),
+        ).
+        WithMethod(
+            framework.NewMethod("process").
+                WithDescription("Process a request").
+                RequiresCallback().
+                WithDefaultCallbackMethod("fulfill").
+                WithParam("data", "string", "Input data").
+                Build(),
+        ).
+        WithMethod(
+            framework.NewMethod("getStatus").
+                AsView().
+                WithDescription("Get status").
+                Build(),
+        ).
+        Build()
+}
+
+func (s *MyServiceV2) Initialize(ctx context.Context, params map[string]any) error {
+    if s.initialized {
+        return fmt.Errorf("already initialized")
+    }
+    s.initialized = true
+    return nil
+}
+
+func (s *MyServiceV2) Invoke(ctx context.Context, method string, params map[string]any) (any, error) {
+    switch strings.ToLower(method) {
+    case "process":
+        data, _ := params["data"].(string)
+        return map[string]any{"result": data, "timestamp": time.Now().Unix()}, nil
+    case "getstatus":
+        return map[string]any{"initialized": s.initialized}, nil
+    default:
+        return nil, fmt.Errorf("unknown method: %s", method)
+    }
+}
+```
+
+For complete Service Engine documentation, see [Service Engine Guide](service-engine.md).
+
+---
+
 ## Lifecycle Hooks
 
-Located in `internal/framework/lifecycle/`.
+Located in `system/framework/lifecycle/`.
 
 ### Hook Types
 
@@ -442,7 +637,7 @@ type Hooks struct {
 ### Using Hooks
 
 ```go
-import "github.com/R3E-Network/service_layer/internal/framework/lifecycle"
+import "github.com/R3E-Network/service_layer/system/framework/lifecycle"
 
 hooks := &lifecycle.Hooks{}
 
@@ -479,12 +674,12 @@ if err := hooks.RunPostStart(ctx); err != nil {
 
 ## Graceful Shutdown
 
-Located in `internal/framework/lifecycle/graceful.go`.
+Located in `system/framework/lifecycle/graceful.go`.
 
 ### Basic Usage
 
 ```go
-import "github.com/R3E-Network/service_layer/internal/framework/lifecycle"
+import "github.com/R3E-Network/service_layer/system/framework/lifecycle"
 
 gs := lifecycle.NewGracefulShutdown()
 
@@ -617,10 +812,10 @@ rs.FailedCount()              // Failed count
 
 ### MockBusClient
 
-Located in `internal/framework/testing/mock_bus.go`.
+Located in `system/framework/testing/mock_bus.go`.
 
 ```go
-import ftesting "github.com/R3E-Network/service_layer/internal/framework/testing"
+import ftesting "github.com/R3E-Network/service_layer/system/framework/testing"
 
 func TestService_PublishesEvent(t *testing.T) {
     mock := ftesting.NewMockBusClient()
@@ -696,7 +891,7 @@ mock.Reset()
 
 ## Error Types
 
-Located in `internal/framework/errors.go`.
+Located in `system/framework/errors.go`.
 
 ### Sentinel Errors
 
@@ -772,10 +967,10 @@ import (
     "fmt"
     "time"
 
-    "github.com/R3E-Network/service_layer/internal/engine"
-    "github.com/R3E-Network/service_layer/internal/framework"
-    "github.com/R3E-Network/service_layer/internal/framework/lifecycle"
-    core "github.com/R3E-Network/service_layer/internal/services/core"
+    engine "github.com/R3E-Network/service_layer/system/core"
+    "github.com/R3E-Network/service_layer/system/framework"
+    "github.com/R3E-Network/service_layer/system/framework/lifecycle"
+    core "github.com/R3E-Network/service_layer/system/framework/core"
     "github.com/R3E-Network/service_layer/pkg/logger"
 )
 
