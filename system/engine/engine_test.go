@@ -9,8 +9,8 @@ import (
 func TestServiceEngine_RegisterService(t *testing.T) {
 	engine := NewServiceEngine(ServiceEngineConfig{})
 
-	// Register Oracle adapter
-	oracle := NewOracleAdapter()
+	// Register Oracle V2 service
+	oracle := NewOracleServiceV2()
 	engine.RegisterService(oracle)
 
 	// Verify registration
@@ -23,8 +23,9 @@ func TestServiceEngine_RegisterService(t *testing.T) {
 		t.Errorf("expected service name 'oracle', got %s", svc.ServiceName())
 	}
 
-	// Check methods
-	methods := svc.Methods()
+	// Check methods from registry
+	registry := svc.MethodRegistry()
+	methods := registry.ListInvokeMethods()
 	if len(methods) == 0 {
 		t.Error("expected methods, got none")
 	}
@@ -39,10 +40,10 @@ func TestServiceEngine_ProcessRequest(t *testing.T) {
 		CallbackSender: mockCallback,
 	})
 
-	// Register services
-	engine.RegisterService(NewOracleAdapter())
-	engine.RegisterService(NewVRFAdapter())
-	engine.RegisterService(NewAutomationAdapter())
+	// Register V2 services
+	engine.RegisterService(NewOracleServiceV2())
+	engine.RegisterService(NewVRFServiceV2())
+	engine.RegisterService(NewAutomationServiceV2())
 
 	ctx := context.Background()
 
@@ -131,7 +132,7 @@ func TestServiceEngine_VRFGenerate(t *testing.T) {
 		CallbackSender: mockCallback,
 	})
 
-	engine.RegisterService(NewVRFAdapter())
+	engine.RegisterService(NewVRFServiceV2())
 
 	ctx := context.Background()
 	req := &ServiceRequest{
@@ -182,8 +183,8 @@ func TestServiceBridge_HandleEvent(t *testing.T) {
 		CallbackSender: mockCallback,
 	})
 
-	engine.RegisterService(NewOracleAdapter())
-	engine.RegisterService(NewVRFAdapter())
+	engine.RegisterService(NewOracleServiceV2())
+	engine.RegisterService(NewVRFServiceV2())
 
 	bridge := NewServiceBridge(ServiceBridgeConfig{
 		Engine: engine,
@@ -389,8 +390,8 @@ func TestMethodResult(t *testing.T) {
 func TestServiceEngine_Stats(t *testing.T) {
 	engine := NewServiceEngine(ServiceEngineConfig{})
 
-	engine.RegisterService(NewOracleAdapter())
-	engine.RegisterService(NewVRFAdapter())
+	engine.RegisterService(NewOracleServiceV2())
+	engine.RegisterService(NewVRFServiceV2())
 
 	stats := engine.Stats()
 
@@ -403,6 +404,109 @@ func TestServiceEngine_Stats(t *testing.T) {
 	}
 
 	t.Logf("Engine stats: %+v", stats)
+}
+
+func TestServiceEngine_MethodInfo(t *testing.T) {
+	engine := NewServiceEngine(ServiceEngineConfig{})
+	engine.RegisterService(NewOracleServiceV2())
+
+	// Test getting method info
+	decl, err := engine.MethodInfo("oracle", "fetch")
+	if err != nil {
+		t.Fatalf("MethodInfo failed: %v", err)
+	}
+
+	if decl.Name != "fetch" {
+		t.Errorf("expected method name 'fetch', got %s", decl.Name)
+	}
+
+	if decl.CallbackMode != "required" {
+		t.Errorf("expected callback mode 'required', got %s", decl.CallbackMode)
+	}
+
+	// Test unknown service
+	_, err = engine.MethodInfo("unknown", "fetch")
+	if err == nil {
+		t.Error("expected error for unknown service")
+	}
+
+	// Test unknown method
+	_, err = engine.MethodInfo("oracle", "unknown")
+	if err == nil {
+		t.Error("expected error for unknown method")
+	}
+}
+
+func TestServiceEngine_ValidateRequest(t *testing.T) {
+	engine := NewServiceEngine(ServiceEngineConfig{})
+	engine.RegisterService(NewOracleServiceV2())
+
+	tests := []struct {
+		name    string
+		request *ServiceRequest
+		wantErr bool
+	}{
+		{
+			name: "valid_request",
+			request: &ServiceRequest{
+				ID:          "req-001",
+				ServiceName: "oracle",
+				MethodName:  "fetch",
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing_id",
+			request: &ServiceRequest{
+				ServiceName: "oracle",
+				MethodName:  "fetch",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing_service",
+			request: &ServiceRequest{
+				ID:         "req-001",
+				MethodName: "fetch",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing_method",
+			request: &ServiceRequest{
+				ID:          "req-001",
+				ServiceName: "oracle",
+			},
+			wantErr: true,
+		},
+		{
+			name: "unknown_service",
+			request: &ServiceRequest{
+				ID:          "req-001",
+				ServiceName: "unknown",
+				MethodName:  "fetch",
+			},
+			wantErr: true,
+		},
+		{
+			name: "unknown_method",
+			request: &ServiceRequest{
+				ID:          "req-001",
+				ServiceName: "oracle",
+				MethodName:  "unknown",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := engine.ValidateRequest(tt.request)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateRequest() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
 
 // Helper function

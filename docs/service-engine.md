@@ -35,10 +35,10 @@ The Service Engine provides a fully automated workflow:
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   ServiceEngine                                  │
-│  - Loads InvocableService by name                               │
+│  - Loads InvocableServiceV2 by name                             │
+│  - Validates method declaration from MethodRegistry             │
 │  - Invokes method with params                                   │
-│  - Handles MethodResult                                         │
-│  - Sends callback via CallbackSender                            │
+│  - Sends callback based on CallbackMode                         │
 └────────────────────────┬────────────────────────────────────────┘
                          │
           ┌──────────────┼──────────────┐
@@ -305,15 +305,14 @@ return nil, fmt.Errorf("processing failed: %v", err)
 
 ```
 system/engine/
-├── invocable.go       # InvocableService interface, ServiceRequest, MethodResult
-├── callback.go        # CallbackSender implementations
-├── bridge.go          # ServiceBridge - connects events to engine
-├── service_v2.go      # V2 service adapters with method declarations
-├── oracle_adapter.go  # Legacy Oracle/VRF/Automation adapters
+├── invocable.go       # ServiceEngine, ServiceRequest, MethodResult, CallbackSender
+├── callback.go        # CallbackSender implementations (Neo, Mock)
+├── bridge.go          # ServiceBridge - connects contract events to engine
+├── service_v2.go      # OracleServiceV2, VRFServiceV2, AutomationServiceV2
 └── engine_test.go     # Test suite
 
 system/framework/
-├── method.go          # MethodDeclaration, MethodType, CallbackMode
+├── method.go          # InvocableServiceV2, MethodDeclaration, MethodType, CallbackMode
 ├── manifest.go        # Service manifest
 └── base.go            # ServiceBase with state management
 ```

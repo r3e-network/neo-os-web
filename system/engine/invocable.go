@@ -7,12 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/R3E-Network/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/system/framework"
 )
 
 // MethodResult represents the result of a service method invocation.
@@ -71,32 +70,8 @@ type ServiceRequest struct {
 	CallbackMethod   string `json:"callback_method"`   // Method to call on callback contract
 
 	// Timing
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time     `json:"created_at"`
 	Timeout   time.Duration `json:"timeout,omitempty"` // Optional timeout
-}
-
-// ServiceMethod defines a method that can be invoked on a service.
-type ServiceMethod struct {
-	Name        string   // Method name
-	Description string   // Human-readable description
-	ParamNames  []string // Expected parameter names
-	HasCallback bool     // Whether this method returns a result
-}
-
-// InvocableService is implemented by services that can be invoked by the engine.
-// Each service exposes a set of methods that can be called with parameters
-// and optionally return results.
-type InvocableService interface {
-	// ServiceName returns the unique service identifier.
-	ServiceName() string
-
-	// Methods returns the list of methods this service exposes.
-	Methods() []ServiceMethod
-
-	// Invoke calls a method with the given parameters.
-	// The method name and params come from the contract event.
-	// Returns MethodResult which may trigger a callback transaction.
-	Invoke(ctx context.Context, method string, params map[string]any) MethodResult
 }
 
 // CallbackSender sends callback transactions to contracts.
@@ -106,8 +81,9 @@ type CallbackSender interface {
 }
 
 // ServiceEngine manages service invocation and callback handling.
+// It uses InvocableServiceV2 interface with explicit method declarations.
 type ServiceEngine struct {
-	services       map[string]InvocableService
+	services       map[string]framework.InvocableServiceV2
 	callbackSender CallbackSender
 	log            *logger.Logger
 
@@ -143,7 +119,7 @@ func NewServiceEngine(cfg ServiceEngineConfig) *ServiceEngine {
 	}
 
 	return &ServiceEngine{
-		services:        make(map[string]InvocableService),
+		services:        make(map[string]framework.InvocableServiceV2),
 		callbackSender:  cfg.CallbackSender,
 		log:             cfg.Logger,
 		pendingRequests: make(map[string]*ServiceRequest),
@@ -152,14 +128,16 @@ func NewServiceEngine(cfg ServiceEngineConfig) *ServiceEngine {
 }
 
 // RegisterService registers a service with the engine.
-func (e *ServiceEngine) RegisterService(svc InvocableService) {
+func (e *ServiceEngine) RegisterService(svc framework.InvocableServiceV2) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
 	name := svc.ServiceName()
 	e.services[name] = svc
 
-	methods := svc.Methods()
+	// Get method names from registry
+	registry := svc.MethodRegistry()
+	methods := registry.ListInvokeMethods()
 	methodNames := make([]string, len(methods))
 	for i, m := range methods {
 		methodNames[i] = m.Name
@@ -179,7 +157,7 @@ func (e *ServiceEngine) UnregisterService(name string) {
 }
 
 // GetService returns a registered service by name.
-func (e *ServiceEngine) GetService(name string) (InvocableService, bool) {
+func (e *ServiceEngine) GetService(name string) (framework.InvocableServiceV2, bool) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	svc, ok := e.services[name]
@@ -202,8 +180,9 @@ func (e *ServiceEngine) ListServices() []string {
 // This is the main entry point for the automated workflow:
 // 1. Parse the request
 // 2. Find the target service
-// 3. Invoke the method
-// 4. Send callback if result is returned
+// 3. Validate method declaration
+// 4. Invoke the method
+// 5. Send callback based on CallbackMode
 func (e *ServiceEngine) ProcessRequest(ctx context.Context, req *ServiceRequest) error {
 	e.log.WithField("request_id", req.ID).
 		WithField("service", req.ServiceName).
@@ -230,20 +209,22 @@ func (e *ServiceEngine) ProcessRequest(ctx context.Context, req *ServiceRequest)
 		return fmt.Errorf("service not found: %s", req.ServiceName)
 	}
 
-	// Validate method exists
-	methods := svc.Methods()
-	var methodFound bool
-	for _, m := range methods {
-		if strings.EqualFold(m.Name, req.MethodName) {
-			methodFound = true
-			break
-		}
-	}
-	if !methodFound {
+	// Get method declaration from registry
+	registry := svc.MethodRegistry()
+	methodDecl, ok := registry.GetMethod(req.MethodName)
+	if !ok {
 		e.mu.Lock()
 		e.requestsFailed++
 		e.mu.Unlock()
 		return fmt.Errorf("method not found: %s.%s", req.ServiceName, req.MethodName)
+	}
+
+	// Check if init method (should not be invoked directly)
+	if methodDecl.IsInit() {
+		e.mu.Lock()
+		e.requestsFailed++
+		e.mu.Unlock()
+		return fmt.Errorf("init method cannot be invoked directly: %s.%s", req.ServiceName, req.MethodName)
 	}
 
 	// Apply timeout if configured
@@ -251,17 +232,21 @@ func (e *ServiceEngine) ProcessRequest(ctx context.Context, req *ServiceRequest)
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, req.Timeout)
 		defer cancel()
+	} else if methodDecl.MaxExecutionTime > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(methodDecl.MaxExecutionTime)*time.Millisecond)
+		defer cancel()
 	}
 
 	// Invoke the method
-	result := svc.Invoke(ctx, req.MethodName, req.Params)
+	result, err := svc.Invoke(ctx, req.MethodName, req.Params)
 
 	e.mu.Lock()
 	e.requestsProcessed++
 	e.mu.Unlock()
 
 	// Handle errors
-	if result.Error != nil {
+	if err != nil {
 		e.mu.Lock()
 		e.requestsFailed++
 		e.mu.Unlock()
@@ -269,22 +254,24 @@ func (e *ServiceEngine) ProcessRequest(ctx context.Context, req *ServiceRequest)
 		e.log.WithField("request_id", req.ID).
 			WithField("service", req.ServiceName).
 			WithField("method", req.MethodName).
-			WithError(result.Error).
+			WithError(err).
 			Error("service method failed")
 
-		// Still send callback with error if callback is configured
-		if req.CallbackContract != "" && e.callbackSender != nil {
-			if err := e.callbackSender.SendCallback(ctx, req, result); err != nil {
-				e.log.WithError(err).Error("failed to send error callback")
+		// Send error callback if callback mode requires it
+		if shouldSendCallback(methodDecl, true) && req.CallbackContract != "" && e.callbackSender != nil {
+			errResult := MethodResult{HasResult: true, Error: err}
+			if sendErr := e.callbackSender.SendCallback(ctx, req, errResult); sendErr != nil {
+				e.log.WithError(sendErr).Error("failed to send error callback")
 			}
 		}
 
-		return result.Error
+		return err
 	}
 
-	// Send callback if method returns a result
-	if result.HasResult && req.CallbackContract != "" && e.callbackSender != nil {
-		if err := e.callbackSender.SendCallback(ctx, req, result); err != nil {
+	// Determine if callback should be sent based on CallbackMode
+	methodResult := MethodResult{HasResult: result != nil, Data: result}
+	if shouldSendCallback(methodDecl, false) && req.CallbackContract != "" && e.callbackSender != nil {
+		if err := e.callbackSender.SendCallback(ctx, req, methodResult); err != nil {
 			e.log.WithField("request_id", req.ID).
 				WithError(err).
 				Error("failed to send callback")
@@ -302,6 +289,22 @@ func (e *ServiceEngine) ProcessRequest(ctx context.Context, req *ServiceRequest)
 	}
 
 	return nil
+}
+
+// shouldSendCallback determines if a callback should be sent based on method declaration.
+func shouldSendCallback(decl *framework.MethodDeclaration, isError bool) bool {
+	switch decl.CallbackMode {
+	case framework.CallbackNone:
+		return false
+	case framework.CallbackRequired:
+		return true
+	case framework.CallbackOptional:
+		return !isError
+	case framework.CallbackOnError:
+		return isError
+	default:
+		return decl.NeedsCallback()
+	}
 }
 
 // ParseRequestFromEvent parses a ServiceRequest from a contract event.
@@ -448,19 +451,19 @@ func (e *ServiceEngine) Stop() {
 }
 
 // MethodInfo returns information about a service method.
-func (e *ServiceEngine) MethodInfo(serviceName, methodName string) (*ServiceMethod, error) {
+func (e *ServiceEngine) MethodInfo(serviceName, methodName string) (*framework.MethodDeclaration, error) {
 	svc, ok := e.GetService(serviceName)
 	if !ok {
 		return nil, fmt.Errorf("service not found: %s", serviceName)
 	}
 
-	for _, m := range svc.Methods() {
-		if strings.EqualFold(m.Name, methodName) {
-			return &m, nil
-		}
+	registry := svc.MethodRegistry()
+	decl, ok := registry.GetMethod(methodName)
+	if !ok {
+		return nil, fmt.Errorf("method not found: %s.%s", serviceName, methodName)
 	}
 
-	return nil, fmt.Errorf("method not found: %s.%s", serviceName, methodName)
+	return decl, nil
 }
 
 // ValidateRequest validates a service request before processing.
@@ -482,42 +485,21 @@ func (e *ServiceEngine) ValidateRequest(req *ServiceRequest) error {
 	}
 
 	// Check method exists
-	methods := svc.Methods()
-	for _, m := range methods {
-		if strings.EqualFold(m.Name, req.MethodName) {
-			return nil
-		}
+	registry := svc.MethodRegistry()
+	if !registry.HasMethod(req.MethodName) {
+		return fmt.Errorf("method not found: %s.%s", req.ServiceName, req.MethodName)
 	}
 
-	return fmt.Errorf("method not found: %s.%s", req.ServiceName, req.MethodName)
+	return nil
 }
 
-// ReflectMethods uses reflection to discover methods on a service.
-// This is a helper for services that want to auto-register methods.
-func ReflectMethods(svc any) []ServiceMethod {
-	var methods []ServiceMethod
-
-	t := reflect.TypeOf(svc)
-	for i := 0; i < t.NumMethod(); i++ {
-		m := t.Method(i)
-
-		// Skip unexported methods
-		if !m.IsExported() {
-			continue
-		}
-
-		// Skip common methods
-		switch m.Name {
-		case "ServiceName", "Methods", "Invoke", "Start", "Stop", "Ready", "Name", "Domain", "Manifest":
-			continue
-		}
-
-		methods = append(methods, ServiceMethod{
-			Name:        m.Name,
-			Description: fmt.Sprintf("Method %s", m.Name),
-			HasCallback: true, // Default to true; services can override
-		})
+// GetMethodDeclarations returns all method declarations for a service.
+func (e *ServiceEngine) GetMethodDeclarations(serviceName string) ([]*framework.MethodDeclaration, error) {
+	svc, ok := e.GetService(serviceName)
+	if !ok {
+		return nil, fmt.Errorf("service not found: %s", serviceName)
 	}
 
-	return methods
+	registry := svc.MethodRegistry()
+	return registry.ListMethods(), nil
 }
