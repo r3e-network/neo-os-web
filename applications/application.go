@@ -274,7 +274,7 @@ func New(stores Stores, log *logger.Logger, opts ...Option) (*Application, error
 	funcService.AttachExecutor(executor)
 	funcService.AttachSecretResolver(secretsService)
 	gasService := gasbanksvc.New(stores.Accounts, stores.GasBank, log)
-	automationService := automationsvc.New(stores.Accounts, stores.Functions, stores.Automation, log)
+	automationService := automationsvc.New(stores.Accounts, stores.Functions, automationsvc.NewStoreAdapter(stores.Automation), log)
 	dataFeedService := datafeedsvc.New(stores.Accounts, stores.DataFeeds, log)
 	dataFeedService.WithAggregationConfig(options.runtime.dataFeedMinSigners, options.runtime.dataFeedAggregation)
 	dataFeedService.WithObservationHooks(metrics.DataFeedUpdateHooks())

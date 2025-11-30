@@ -428,7 +428,7 @@ func TestAction_OracleCreateRequest_WithAlternateSources(t *testing.T) {
 func TestAction_AutomationSchedule_WithEnabled(t *testing.T) {
 	store := memory.New()
 	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
-	autoSvc := automationsvc.New(store, store, store, nil)
+	autoSvc := automationsvc.New(store, store, automationsvc.NewStoreAdapter(store), nil)
 
 	fnSvc := New(store, store, nil)
 	fnSvc.AttachDependencies(autoSvc, nil, nil, nil, nil, nil, nil)

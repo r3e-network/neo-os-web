@@ -9,9 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/pkg/metrics"
-	"github.com/R3E-Network/service_layer/domain/automation"
 	"github.com/R3E-Network/service_layer/domain/function"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
 	"github.com/R3E-Network/service_layer/domain/gasbank"
 	automationsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.automation"
 	datafeedsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.datafeeds"
@@ -253,25 +252,25 @@ func (s *Service) List(ctx context.Context, accountID string) ([]function.Defini
 var errDependencyUnavailable = errors.New("dependent service not configured")
 
 // ScheduleAutomationJob creates a job through the automation service.
-func (s *Service) ScheduleAutomationJob(ctx context.Context, accountID, functionID, name, schedule, description string) (automation.Job, error) {
+func (s *Service) ScheduleAutomationJob(ctx context.Context, accountID, functionID, name, schedule, description string) (automationsvc.Job, error) {
 	if s.automation == nil {
-		return automation.Job{}, fmt.Errorf("create automation job: %w", errDependencyUnavailable)
+		return automationsvc.Job{}, fmt.Errorf("create automation job: %w", errDependencyUnavailable)
 	}
 	return s.automation.CreateJob(ctx, accountID, functionID, name, schedule, description)
 }
 
 // UpdateAutomationJob updates an automation job via the automation service.
-func (s *Service) UpdateAutomationJob(ctx context.Context, jobID string, name, schedule, description *string) (automation.Job, error) {
+func (s *Service) UpdateAutomationJob(ctx context.Context, jobID string, name, schedule, description *string) (automationsvc.Job, error) {
 	if s.automation == nil {
-		return automation.Job{}, fmt.Errorf("update automation job: %w", errDependencyUnavailable)
+		return automationsvc.Job{}, fmt.Errorf("update automation job: %w", errDependencyUnavailable)
 	}
 	return s.automation.UpdateJob(ctx, jobID, name, schedule, description, nil)
 }
 
 // SetAutomationEnabled toggles a job's enabled flag.
-func (s *Service) SetAutomationEnabled(ctx context.Context, jobID string, enabled bool) (automation.Job, error) {
+func (s *Service) SetAutomationEnabled(ctx context.Context, jobID string, enabled bool) (automationsvc.Job, error) {
 	if s.automation == nil {
-		return automation.Job{}, fmt.Errorf("set automation enabled: %w", errDependencyUnavailable)
+		return automationsvc.Job{}, fmt.Errorf("set automation enabled: %w", errDependencyUnavailable)
 	}
 	return s.automation.SetEnabled(ctx, jobID, enabled)
 }

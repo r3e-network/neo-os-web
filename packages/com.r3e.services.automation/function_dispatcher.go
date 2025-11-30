@@ -5,10 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/pkg/metrics"
-	domain "github.com/R3E-Network/service_layer/domain/automation"
 	"github.com/R3E-Network/service_layer/domain/function"
 	"github.com/R3E-Network/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
@@ -59,7 +58,7 @@ func (d *FunctionDispatcher) WithTracer(tracer core.Tracer) {
 	d.tracer = tracer
 }
 
-func (d *FunctionDispatcher) DispatchJob(ctx context.Context, job domain.Job) error {
+func (d *FunctionDispatcher) DispatchJob(ctx context.Context, job Job) error {
 	if d.runner == nil {
 		return nil
 	}

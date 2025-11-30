@@ -1,15 +1,14 @@
 package automation
 
 import (
-	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/pkg/storage"
-	"github.com/R3E-Network/service_layer/domain/automation"
+	"github.com/R3E-Network/service_layer/domain/account"
 	"github.com/R3E-Network/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	engine "github.com/R3E-Network/service_layer/system/core"
 	"github.com/R3E-Network/service_layer/system/framework"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
@@ -20,7 +19,7 @@ type Service struct {
 	framework.ServiceBase
 	base      *core.Base
 	functions storage.FunctionStore
-	store     storage.AutomationStore
+	store     Store
 	log       *logger.Logger
 }
 
@@ -47,7 +46,7 @@ func (s *Service) Manifest() *framework.Manifest {
 func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
 
 // New creates a configured automation service.
-func New(accounts storage.AccountStore, functions storage.FunctionStore, store storage.AutomationStore, log *logger.Logger) *Service {
+func New(accounts storage.AccountStore, functions storage.FunctionStore, store Store, log *logger.Logger) *Service {
 	if log == nil {
 		log = logger.NewDefault("automation")
 	}
@@ -64,49 +63,49 @@ func New(accounts storage.AccountStore, functions storage.FunctionStore, store s
 // Start/Stop/Ready are inherited from framework.ServiceBase.
 
 // CreateJob provisions a new automation job tied to a function.
-func (s *Service) CreateJob(ctx context.Context, accountID, functionID, name, schedule, description string) (automation.Job, error) {
+func (s *Service) CreateJob(ctx context.Context, accountID, functionID, name, schedule, description string) (Job, error) {
 	accountID = strings.TrimSpace(accountID)
 	functionID = strings.TrimSpace(functionID)
 	name = strings.TrimSpace(name)
 	schedule = strings.TrimSpace(schedule)
 
 	if accountID == "" {
-		return automation.Job{}, core.RequiredError("account_id")
+		return Job{}, core.RequiredError("account_id")
 	}
 	if functionID == "" {
-		return automation.Job{}, core.RequiredError("function_id")
+		return Job{}, core.RequiredError("function_id")
 	}
 	if name == "" {
-		return automation.Job{}, core.RequiredError("name")
+		return Job{}, core.RequiredError("name")
 	}
 	if schedule == "" {
-		return automation.Job{}, core.RequiredError("schedule")
+		return Job{}, core.RequiredError("schedule")
 	}
 
 	if err := s.base.EnsureAccount(ctx, accountID); err != nil {
-		return automation.Job{}, fmt.Errorf("account validation failed: %w", err)
+		return Job{}, fmt.Errorf("account validation failed: %w", err)
 	}
 	if s.functions != nil {
 		fn, err := s.functions.GetFunction(ctx, functionID)
 		if err != nil {
-			return automation.Job{}, fmt.Errorf("function validation failed: %w", err)
+			return Job{}, fmt.Errorf("function validation failed: %w", err)
 		}
 		if err := core.EnsureOwnership(fn.AccountID, accountID, "function", functionID); err != nil {
-			return automation.Job{}, err
+			return Job{}, err
 		}
 	}
 
 	existing, err := s.store.ListAutomationJobs(ctx, accountID)
 	if err != nil {
-		return automation.Job{}, err
+		return Job{}, err
 	}
 	for _, job := range existing {
 		if strings.EqualFold(job.Name, name) {
-			return automation.Job{}, fmt.Errorf("job with name %q already exists", name)
+			return Job{}, fmt.Errorf("job with name %q already exists", name)
 		}
 	}
 
-	job := automation.Job{
+	job := Job{
 		AccountID:   accountID,
 		FunctionID:  functionID,
 		Name:        name,
@@ -115,11 +114,11 @@ func (s *Service) CreateJob(ctx context.Context, accountID, functionID, name, sc
 		Enabled:     true,
 	}
 	if err := s.applyNextRun(&job, time.Now().UTC()); err != nil {
-		return automation.Job{}, err
+		return Job{}, err
 	}
 	job, err = s.store.CreateAutomationJob(ctx, job)
 	if err != nil {
-		return automation.Job{}, err
+		return Job{}, err
 	}
 	s.log.WithField("job_id", job.ID).
 		WithField("account_id", accountID).
@@ -129,24 +128,24 @@ func (s *Service) CreateJob(ctx context.Context, accountID, functionID, name, sc
 }
 
 // UpdateJob applies modifications to an automation job.
-func (s *Service) UpdateJob(ctx context.Context, jobID string, name, schedule, description *string, nextRun *time.Time) (automation.Job, error) {
+func (s *Service) UpdateJob(ctx context.Context, jobID string, name, schedule, description *string, nextRun *time.Time) (Job, error) {
 	job, err := s.store.GetAutomationJob(ctx, jobID)
 	if err != nil {
-		return automation.Job{}, err
+		return Job{}, err
 	}
 
 	if name != nil {
 		trimmed := strings.TrimSpace(*name)
 		if trimmed == "" {
-			return automation.Job{}, fmt.Errorf("name cannot be empty")
+			return Job{}, fmt.Errorf("name cannot be empty")
 		}
 		existing, err := s.store.ListAutomationJobs(ctx, job.AccountID)
 		if err != nil {
-			return automation.Job{}, err
+			return Job{}, err
 		}
 		for _, other := range existing {
 			if other.ID != job.ID && strings.EqualFold(other.Name, trimmed) {
-				return automation.Job{}, fmt.Errorf("job with name %q already exists", trimmed)
+				return Job{}, fmt.Errorf("job with name %q already exists", trimmed)
 			}
 		}
 		job.Name = trimmed
@@ -154,7 +153,7 @@ func (s *Service) UpdateJob(ctx context.Context, jobID string, name, schedule, d
 	if schedule != nil {
 		trimmed := strings.TrimSpace(*schedule)
 		if trimmed == "" {
-			return automation.Job{}, fmt.Errorf("schedule cannot be empty")
+			return Job{}, fmt.Errorf("schedule cannot be empty")
 		}
 		job.Schedule = trimmed
 	}
@@ -165,13 +164,13 @@ func (s *Service) UpdateJob(ctx context.Context, jobID string, name, schedule, d
 		job.NextRun = nextRun.UTC()
 	} else if schedule != nil {
 		if err := s.applyNextRun(&job, time.Now().UTC()); err != nil {
-			return automation.Job{}, err
+			return Job{}, err
 		}
 	}
 
 	job, err = s.store.UpdateAutomationJob(ctx, job)
 	if err != nil {
-		return automation.Job{}, err
+		return Job{}, err
 	}
 	s.log.WithField("job_id", job.ID).
 		WithField("account_id", job.AccountID).
@@ -180,10 +179,10 @@ func (s *Service) UpdateJob(ctx context.Context, jobID string, name, schedule, d
 }
 
 // SetEnabled toggles a job's enabled flag.
-func (s *Service) SetEnabled(ctx context.Context, jobID string, enabled bool) (automation.Job, error) {
+func (s *Service) SetEnabled(ctx context.Context, jobID string, enabled bool) (Job, error) {
 	job, err := s.store.GetAutomationJob(ctx, jobID)
 	if err != nil {
-		return automation.Job{}, err
+		return Job{}, err
 	}
 	if job.Enabled == enabled {
 		return job, nil
@@ -191,7 +190,7 @@ func (s *Service) SetEnabled(ctx context.Context, jobID string, enabled bool) (a
 	job.Enabled = enabled
 	job, err = s.store.UpdateAutomationJob(ctx, job)
 	if err != nil {
-		return automation.Job{}, err
+		return Job{}, err
 	}
 	s.log.WithField("job_id", job.ID).
 		WithField("account_id", job.AccountID).
@@ -201,10 +200,10 @@ func (s *Service) SetEnabled(ctx context.Context, jobID string, enabled bool) (a
 }
 
 // RecordExecution stores execution metadata for a job.
-func (s *Service) RecordExecution(ctx context.Context, jobID string, runAt time.Time) (automation.Job, error) {
+func (s *Service) RecordExecution(ctx context.Context, jobID string, runAt time.Time) (Job, error) {
 	job, err := s.store.GetAutomationJob(ctx, jobID)
 	if err != nil {
-		return automation.Job{}, err
+		return Job{}, err
 	}
 
 	job.LastRun = runAt.UTC()
@@ -219,12 +218,12 @@ func (s *Service) RecordExecution(ctx context.Context, jobID string, runAt time.
 }
 
 // GetJob fetches a job by identifier.
-func (s *Service) GetJob(ctx context.Context, jobID string) (automation.Job, error) {
+func (s *Service) GetJob(ctx context.Context, jobID string) (Job, error) {
 	return s.store.GetAutomationJob(ctx, jobID)
 }
 
 // ListJobs lists jobs for an account.
-func (s *Service) ListJobs(ctx context.Context, accountID string) ([]automation.Job, error) {
+func (s *Service) ListJobs(ctx context.Context, accountID string) ([]Job, error) {
 	trimmed := strings.TrimSpace(accountID)
 	if trimmed == "" {
 		if accountID == "" {
@@ -238,7 +237,7 @@ func (s *Service) ListJobs(ctx context.Context, accountID string) ([]automation.
 	return s.store.ListAutomationJobs(ctx, trimmed)
 }
 
-func (s *Service) applyNextRun(job *automation.Job, from time.Time) error {
+func (s *Service) applyNextRun(job *Job, from time.Time) error {
 	if job == nil {
 		return fmt.Errorf("job is nil")
 	}

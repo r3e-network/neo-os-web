@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	domain "github.com/R3E-Network/service_layer/domain/automation"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/R3E-Network/service_layer/system/framework"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
@@ -38,13 +37,13 @@ type Scheduler struct {
 
 // JobDispatcher consumes scheduled automation jobs.
 type JobDispatcher interface {
-	DispatchJob(ctx context.Context, job domain.Job) error
+	DispatchJob(ctx context.Context, job Job) error
 }
 
 // JobDispatcherFunc adapts a function to the JobDispatcher interface.
-type JobDispatcherFunc func(ctx context.Context, job domain.Job) error
+type JobDispatcherFunc func(ctx context.Context, job Job) error
 
-func (f JobDispatcherFunc) DispatchJob(ctx context.Context, job domain.Job) error {
+func (f JobDispatcherFunc) DispatchJob(ctx context.Context, job Job) error {
 	if f == nil {
 		return nil
 	}
@@ -220,7 +219,7 @@ func (s *Scheduler) tick(ctx context.Context) {
 			continue
 		}
 		wg.Add(1)
-		go func(job domain.Job) {
+		go func(job Job) {
 			defer wg.Done()
 			attrs := map[string]string{"job_id": job.ID}
 			if job.FunctionID != "" {

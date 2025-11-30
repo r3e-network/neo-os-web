@@ -286,7 +286,7 @@ func TestService_ExecuteProcessesMultipleActions(t *testing.T) {
 	svc.AttachExecutor(multiExec)
 
 	gasService := gasbanksvc.New(store, store, nil)
-	automationService := automationsvc.New(store, store, store, nil)
+	automationService := automationsvc.New(store, store, automationsvc.NewStoreAdapter(store), nil)
 	oracleService := oraclesvc.New(store, oraclesvc.NewStoreAdapter(store), nil)
 
 	svc.AttachDependencies(automationService, nil, nil, nil, oracleService, gasService, nil)
@@ -698,7 +698,7 @@ func TestService_Get(t *testing.T) {
 func TestService_ScheduleAutomationJob(t *testing.T) {
 	store := memory.New()
 	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
-	automationSvc := automationsvc.New(store, store, store, nil)
+	automationSvc := automationsvc.New(store, store, automationsvc.NewStoreAdapter(store), nil)
 
 	svc := New(store, store, nil)
 	svc.AttachDependencies(automationSvc, nil, nil, nil, nil, nil, nil)
@@ -717,7 +717,7 @@ func TestService_ScheduleAutomationJob(t *testing.T) {
 func TestService_UpdateAutomationJob(t *testing.T) {
 	store := memory.New()
 	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
-	automationSvc := automationsvc.New(store, store, store, nil)
+	automationSvc := automationsvc.New(store, store, automationsvc.NewStoreAdapter(store), nil)
 
 	svc := New(store, store, nil)
 	svc.AttachDependencies(automationSvc, nil, nil, nil, nil, nil, nil)
@@ -747,7 +747,7 @@ func TestService_UpdateAutomationJob_NoDependency(t *testing.T) {
 func TestService_SetAutomationEnabled(t *testing.T) {
 	store := memory.New()
 	acct, _ := store.CreateAccount(context.Background(), account.Account{Owner: "owner"})
-	automationSvc := automationsvc.New(store, store, store, nil)
+	automationSvc := automationsvc.New(store, store, automationsvc.NewStoreAdapter(store), nil)
 
 	svc := New(store, store, nil)
 	svc.AttachDependencies(automationSvc, nil, nil, nil, nil, nil, nil)

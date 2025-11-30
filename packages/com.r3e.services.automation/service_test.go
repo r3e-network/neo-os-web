@@ -24,7 +24,7 @@ func TestService_CreateAndUpdateJob(t *testing.T) {
 		t.Fatalf("create function: %v", err)
 	}
 
-	svc := New(store, store, store, nil)
+	svc := New(store, store, NewStoreAdapter(store), nil)
 	job, err := svc.CreateJob(context.Background(), acct.ID, fn.ID, "hourly", "@every 1h", "desc")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
@@ -95,7 +95,7 @@ func ExampleService_CreateJob() {
 	fn, _ := store.CreateFunction(context.Background(), function.Definition{AccountID: acct.ID, Name: "fn", Source: "() => 1"})
 	log := logger.NewDefault("example-automation")
 	log.SetOutput(io.Discard)
-	svc := New(store, store, store, log)
+	svc := New(store, store, NewStoreAdapter(store), log)
 
 	job, _ := svc.CreateJob(context.Background(), acct.ID, fn.ID, "daily-report", "@daily", "send summary email")
 	fmt.Println(job.Name, job.Enabled)
@@ -118,7 +118,7 @@ func TestService_CreateJobRejectsForeignFunction(t *testing.T) {
 		t.Fatalf("create function: %v", err)
 	}
 
-	svc := New(store, store, store, nil)
+	svc := New(store, store, NewStoreAdapter(store), nil)
 	if _, err := svc.CreateJob(context.Background(), acct2.ID, fn.ID, "job", "@hourly", "desc"); err == nil {
 		t.Fatalf("expected create job to fail when function belongs to different account")
 	}

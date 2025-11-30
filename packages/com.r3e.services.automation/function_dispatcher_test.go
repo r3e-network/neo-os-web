@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/domain/automation"
 	functiondomain "github.com/R3E-Network/service_layer/domain/function"
 )
 
@@ -44,7 +43,7 @@ func TestFunctionDispatcher_PerformFlow(t *testing.T) {
 		},
 	}
 	dispatcher := NewFunctionDispatcher(runner, nil, nil)
-	job := automation.Job{ID: "job-1", FunctionID: "fn-1", Enabled: true}
+	job := Job{ID: "job-1", FunctionID: "fn-1", Enabled: true}
 
 	if err := dispatcher.DispatchJob(context.Background(), job); err != nil {
 		t.Fatalf("dispatch job: %v", err)
@@ -74,7 +73,7 @@ func TestFunctionDispatcher_CheckSkip(t *testing.T) {
 		},
 	}
 	dispatcher := NewFunctionDispatcher(runner, nil, nil)
-	job := automation.Job{ID: "job-2", FunctionID: "fn-2", Enabled: true}
+	job := Job{ID: "job-2", FunctionID: "fn-2", Enabled: true}
 
 	if err := dispatcher.DispatchJob(context.Background(), job); err != nil {
 		t.Fatalf("dispatch job: %v", err)

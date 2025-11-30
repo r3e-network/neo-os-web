@@ -6,10 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/pkg/storage/memory"
 	"github.com/R3E-Network/service_layer/domain/account"
-	domain "github.com/R3E-Network/service_layer/domain/automation"
 	"github.com/R3E-Network/service_layer/domain/function"
+	"github.com/R3E-Network/service_layer/pkg/storage/memory"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
@@ -17,14 +16,14 @@ type countingDispatcher struct {
 	count int
 }
 
-func (d *countingDispatcher) DispatchJob(ctx context.Context, job domain.Job) error {
+func (d *countingDispatcher) DispatchJob(ctx context.Context, job Job) error {
 	d.count++
 	return nil
 }
 
 type errorDispatcher struct{}
 
-func (d *errorDispatcher) DispatchJob(ctx context.Context, job domain.Job) error {
+func (d *errorDispatcher) DispatchJob(ctx context.Context, job Job) error {
 	return errors.New("dispatch error")
 }
 
@@ -32,7 +31,7 @@ type tracedDispatcher struct {
 	tracer core.Tracer
 }
 
-func (d *tracedDispatcher) DispatchJob(ctx context.Context, job domain.Job) error {
+func (d *tracedDispatcher) DispatchJob(ctx context.Context, job Job) error {
 	return nil
 }
 
@@ -55,7 +54,7 @@ func TestScheduler_RespectsNextRun(t *testing.T) {
 		t.Fatalf("create function: %v", err)
 	}
 
-	svc := New(store, store, store, nil)
+	svc := New(store, store, NewStoreAdapter(store), nil)
 	job, err := svc.CreateJob(context.Background(), acct.ID, fn.ID, "daily", "@daily", "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
@@ -115,7 +114,7 @@ func TestScheduler_Descriptor(t *testing.T) {
 
 func TestScheduler_StartStop(t *testing.T) {
 	store := memory.New()
-	svc := New(store, store, store, nil)
+	svc := New(store, store, NewStoreAdapter(store), nil)
 	scheduler := NewScheduler(svc, nil)
 
 	// Start the scheduler
@@ -186,7 +185,7 @@ func TestScheduler_TickWithNilService(t *testing.T) {
 
 func TestScheduler_TickWithNilDispatcher(t *testing.T) {
 	store := memory.New()
-	svc := New(store, store, store, nil)
+	svc := New(store, store, NewStoreAdapter(store), nil)
 	scheduler := NewScheduler(svc, nil)
 	// Should not panic without dispatcher
 	scheduler.tick(context.Background())
@@ -201,7 +200,7 @@ func TestScheduler_TickWithDisabledJob(t *testing.T) {
 		Source:    "() => 1",
 	})
 
-	svc := New(store, store, store, nil)
+	svc := New(store, store, NewStoreAdapter(store), nil)
 	job, err := svc.CreateJob(context.Background(), acct.ID, fn.ID, "disabled-job", "@daily", "")
 	if err != nil {
 		t.Fatalf("create job: %v", err)
@@ -232,7 +231,7 @@ func TestScheduler_TickWithDispatchError(t *testing.T) {
 		Source:    "() => 1",
 	})
 
-	svc := New(store, store, store, nil)
+	svc := New(store, store, NewStoreAdapter(store), nil)
 	job, _ := svc.CreateJob(context.Background(), acct.ID, fn.ID, "error-job", "@daily", "")
 
 	// Set past next run
@@ -248,19 +247,19 @@ func TestScheduler_TickWithDispatchError(t *testing.T) {
 
 func TestJobDispatcherFunc_Nil(t *testing.T) {
 	var fn JobDispatcherFunc
-	if err := fn.DispatchJob(context.Background(), domain.Job{}); err != nil {
+	if err := fn.DispatchJob(context.Background(), Job{}); err != nil {
 		t.Errorf("nil JobDispatcherFunc should return nil, got: %v", err)
 	}
 }
 
 func TestJobDispatcherFunc_Valid(t *testing.T) {
 	called := false
-	fn := JobDispatcherFunc(func(ctx context.Context, job domain.Job) error {
+	fn := JobDispatcherFunc(func(ctx context.Context, job Job) error {
 		called = true
 		return nil
 	})
 
-	if err := fn.DispatchJob(context.Background(), domain.Job{ID: "test"}); err != nil {
+	if err := fn.DispatchJob(context.Background(), Job{ID: "test"}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if !called {
