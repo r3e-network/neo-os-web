@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Service Contracts: OracleHub, RandomnessHub, DataFeedHub, AutomationScheduler, etc.
   - User Contracts: Custom business logic deployed via SDK
 - Contract domain models (`domain/contract/`) with Contract, Template, Deployment types
-- ContractStore interface (`applications/storage/interfaces.go`) for persistence abstraction
+- ContractStore interface (`pkg/storage/interfaces.go`) for persistence abstraction
 - Contracts service package (`packages/com.r3e.services.contracts/`) with deploy/invoke capabilities
 - Go SDK contract builder (`sdk/go/contract/`) with fluent API and capability system
 - Neo N3 contract stubs (`contracts/neo-n3/`) with Go alignment documentation

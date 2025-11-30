@@ -19,11 +19,11 @@ import (
 	"github.com/R3E-Network/service_layer/applications/auth"
 	"github.com/R3E-Network/service_layer/applications/httpapi"
 	"github.com/R3E-Network/service_layer/applications/jam"
-	"github.com/R3E-Network/service_layer/applications/storage/postgres"
 	"github.com/R3E-Network/service_layer/pkg/blob"
 	"github.com/R3E-Network/service_layer/pkg/config"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/R3E-Network/service_layer/pkg/pgnotify"
+	"github.com/R3E-Network/service_layer/pkg/storage/postgres"
 	"github.com/R3E-Network/service_layer/pkg/supabase"
 	"github.com/R3E-Network/service_layer/pkg/version"
 	"github.com/R3E-Network/service_layer/system/bootstrap"
@@ -194,9 +194,6 @@ func main() {
 		log.Fatalf("create full system: %v", err)
 	}
 
-	// Bridge to Application for httpapi compatibility
-	application := engineAppToApplication(engineApp, stores, appLogger, cfg)
-
 	// Resolve listen address
 	listenAddr := *addr
 	if listenAddr == "" {
@@ -267,7 +264,7 @@ func main() {
 
 	// Create HTTP service
 	httpSvc := httpapi.NewService(
-		application,
+		engineApp,
 		listenAddr,
 		tokens,
 		jamCfg,
@@ -340,39 +337,6 @@ func main() {
 	}
 
 	log.Println("Server stopped")
-}
-
-// engineAppToApplication creates a legacy Application from an EngineApplication.
-// This bridges the new Engine-based architecture with the existing httpapi layer.
-func engineAppToApplication(eng *app.EngineApplication, stores app.Stores, log *logger.Logger, cfg *config.Config) *app.Application {
-	// The EngineApplication has the same service fields as Application,
-	// but we need to create an Application instance for httpapi compatibility.
-	//
-	// For now, we create a legacy Application but skip manager registration
-	// since Engine handles lifecycle. The services are already instantiated by
-	// the package loader.
-	//
-	// TODO: Refactor httpapi to accept an interface instead of *Application
-	// to eliminate this bridging layer.
-
-	runtimeCfg := buildRuntimeConfig(cfg)
-	application, err := app.New(stores, log,
-		app.WithRuntimeConfig(runtimeCfg),
-		app.WithManagerEnabled(false), // Engine manages lifecycle
-	)
-	if err != nil {
-		log.Fatalf("create bridge application: %v", err)
-		return nil
-	}
-
-	return application
-}
-
-func buildRuntimeConfig(cfg *config.Config) app.RuntimeConfig {
-	return app.RuntimeConfig{
-		// Map config fields to RuntimeConfig
-		// Add fields as they become available
-	}
 }
 
 func loadConfigFile(path string) (*config.Config, error) {

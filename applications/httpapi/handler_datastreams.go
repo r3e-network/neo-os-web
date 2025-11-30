@@ -8,14 +8,14 @@ import (
 )
 
 func (h *handler) accountDataStreams(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.DataStreams == nil {
+	if h.services.DataStreamsService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("data streams service not configured"))
 		return
 	}
 	if len(rest) == 0 {
 		switch r.Method {
 		case http.MethodGet:
-			streams, err := h.app.DataStreams.ListStreams(r.Context(), accountID)
+			streams, err := h.services.DataStreamsService().ListStreams(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -45,7 +45,7 @@ func (h *handler) accountDataStreams(w http.ResponseWriter, r *http.Request, acc
 				Status:      domainds.StreamStatus(payload.Status),
 				Metadata:    payload.Metadata,
 			}
-			created, err := h.app.DataStreams.CreateStream(r.Context(), stream)
+			created, err := h.services.DataStreamsService().CreateStream(r.Context(), stream)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -61,7 +61,7 @@ func (h *handler) accountDataStreams(w http.ResponseWriter, r *http.Request, acc
 	if len(rest) == 1 {
 		switch r.Method {
 		case http.MethodGet:
-			stream, err := h.app.DataStreams.GetStream(r.Context(), accountID, streamID)
+			stream, err := h.services.DataStreamsService().GetStream(r.Context(), accountID, streamID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -92,7 +92,7 @@ func (h *handler) accountDataStreams(w http.ResponseWriter, r *http.Request, acc
 				Status:      domainds.StreamStatus(payload.Status),
 				Metadata:    payload.Metadata,
 			}
-			updated, err := h.app.DataStreams.UpdateStream(r.Context(), stream)
+			updated, err := h.services.DataStreamsService().UpdateStream(r.Context(), stream)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -112,7 +112,7 @@ func (h *handler) accountDataStreams(w http.ResponseWriter, r *http.Request, acc
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			frames, err := h.app.DataStreams.ListFrames(r.Context(), accountID, streamID, limit)
+			frames, err := h.services.DataStreamsService().ListFrames(r.Context(), accountID, streamID, limit)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -130,7 +130,7 @@ func (h *handler) accountDataStreams(w http.ResponseWriter, r *http.Request, acc
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			frame, err := h.app.DataStreams.CreateFrame(r.Context(), accountID, streamID, payload.Sequence, payload.Payload, payload.LatencyMS, domainds.FrameStatus(payload.Status), payload.Metadata)
+			frame, err := h.services.DataStreamsService().CreateFrame(r.Context(), accountID, streamID, payload.Sequence, payload.Payload, payload.LatencyMS, domainds.FrameStatus(payload.Status), payload.Metadata)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return

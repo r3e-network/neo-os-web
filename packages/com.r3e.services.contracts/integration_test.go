@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	domaincontract "github.com/R3E-Network/service_layer/domain/contract"
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	"github.com/R3E-Network/service_layer/packages/com.r3e.services.contracts"
 )
 

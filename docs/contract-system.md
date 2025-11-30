@@ -71,7 +71,7 @@ domain/contract/           # Domain models
 ├── template.go            # Template, NetworkConfig types
 └── contract_test.go
 
-applications/storage/
+pkg/storage/
 └── interfaces.go          # ContractStore interface
 
 packages/com.r3e.services.contracts/

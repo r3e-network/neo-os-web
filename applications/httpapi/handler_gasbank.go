@@ -13,7 +13,7 @@ import (
 )
 
 func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.GasBank == nil {
+	if h.services.GasBankService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("gas bank service not configured"))
 		return
 	}
@@ -33,7 +33,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 				return
 			}
 
-			accts, err := h.app.GasBank.ListAccounts(r.Context(), accountID)
+			accts, err := h.services.GasBankService().ListAccounts(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -51,7 +51,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			acct, err := h.app.GasBank.EnsureAccountWithOptions(r.Context(), accountID, gasbanksvc.EnsureAccountOptions{
+			acct, err := h.services.GasBankService().EnsureAccountWithOptions(r.Context(), accountID, gasbanksvc.EnsureAccountOptions{
 				WalletAddress:         payload.WalletAddress,
 				MinBalance:            payload.MinBalance,
 				DailyLimit:            payload.DailyLimit,
@@ -77,7 +77,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 				methodNotAllowed(w, http.MethodGet)
 				return
 			}
-			summary, err := h.app.GasBank.Summary(r.Context(), accountID)
+			summary, err := h.services.GasBankService().Summary(r.Context(), accountID)
 			if err != nil {
 				status := http.StatusInternalServerError
 				if strings.Contains(err.Error(), "account_id") {
@@ -97,7 +97,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 			txID := rest[1]
 			switch r.Method {
 			case http.MethodGet:
-				approvals, err := h.app.GasBank.ListApprovals(r.Context(), txID)
+				approvals, err := h.services.GasBankService().ListApprovals(r.Context(), txID)
 				if err != nil {
 					writeError(w, http.StatusInternalServerError, err)
 					return
@@ -118,7 +118,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 					writeError(w, http.StatusBadRequest, fmt.Errorf("approver is required"))
 					return
 				}
-				recorded, tx, err := h.app.GasBank.SubmitApproval(r.Context(), txID, payload.Approver, payload.Signature, payload.Note, payload.Approve)
+				recorded, tx, err := h.services.GasBankService().SubmitApproval(r.Context(), txID, payload.Approver, payload.Signature, payload.Note, payload.Approve)
 				if err != nil {
 					writeError(w, http.StatusBadRequest, err)
 					return
@@ -166,7 +166,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 				writeError(w, http.StatusNotFound, err)
 				return
 			}
-			updated, tx, err := h.app.GasBank.Deposit(r.Context(), acct.ID, payload.Amount, payload.TxID, payload.FromAddress, payload.ToAddress)
+			updated, tx, err := h.services.GasBankService().Deposit(r.Context(), acct.ID, payload.Amount, payload.TxID, payload.FromAddress, payload.ToAddress)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -215,7 +215,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 				}
 				schedulePtr = &t
 			}
-			updated, tx, err := h.app.GasBank.WithdrawWithOptions(r.Context(), accountID, acct.ID, gasbanksvc.WithdrawOptions{
+			updated, tx, err := h.services.GasBankService().WithdrawWithOptions(r.Context(), accountID, acct.ID, gasbanksvc.WithdrawOptions{
 				Amount:     payload.Amount,
 				ToAddress:  payload.ToAddress,
 				ScheduleAt: schedulePtr,
@@ -248,7 +248,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 			}
 			txType := strings.TrimSpace(r.URL.Query().Get("type"))
 			status := strings.TrimSpace(r.URL.Query().Get("status"))
-			txs, err := h.app.GasBank.ListTransactionsFiltered(r.Context(), gasAcct.ID, txType, status, limit)
+			txs, err := h.services.GasBankService().ListTransactionsFiltered(r.Context(), gasAcct.ID, txType, status, limit)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -269,7 +269,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			txs, err := h.app.GasBank.ListTransactionsFiltered(r.Context(), gasAcct.ID, gasbank.TransactionDeposit, "", limit)
+			txs, err := h.services.GasBankService().ListTransactionsFiltered(r.Context(), gasAcct.ID, gasbank.TransactionDeposit, "", limit)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -297,7 +297,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 					return
 				}
 				status := strings.TrimSpace(r.URL.Query().Get("status"))
-				txs, err := h.app.GasBank.ListTransactionsFiltered(r.Context(), gasAcct.ID, gasbank.TransactionWithdrawal, status, limit)
+				txs, err := h.services.GasBankService().ListTransactionsFiltered(r.Context(), gasAcct.ID, gasbank.TransactionWithdrawal, status, limit)
 				if err != nil {
 					writeError(w, http.StatusInternalServerError, err)
 					return
@@ -316,7 +316,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 					writeError(w, http.StatusBadRequest, err)
 					return
 				}
-				attempts, err := h.app.GasBank.ListSettlementAttempts(r.Context(), accountID, txID, limit)
+				attempts, err := h.services.GasBankService().ListSettlementAttempts(r.Context(), accountID, txID, limit)
 				if err != nil {
 					status := http.StatusBadRequest
 					if strings.Contains(strings.ToLower(err.Error()), "not owned") || strings.Contains(strings.ToLower(err.Error()), "not found") {
@@ -330,7 +330,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 			}
 			switch r.Method {
 			case http.MethodGet:
-				tx, err := h.app.GasBank.GetWithdrawal(r.Context(), accountID, txID)
+				tx, err := h.services.GasBankService().GetWithdrawal(r.Context(), accountID, txID)
 				if err != nil {
 					status := http.StatusBadRequest
 					if strings.Contains(strings.ToLower(err.Error()), "not owned") || strings.Contains(strings.ToLower(err.Error()), "not a withdrawal") {
@@ -351,7 +351,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 				}
 				switch strings.ToLower(strings.TrimSpace(payload.Action)) {
 				case "cancel":
-					tx, err := h.app.GasBank.CancelWithdrawal(r.Context(), accountID, txID, strings.TrimSpace(payload.Reason))
+					tx, err := h.services.GasBankService().CancelWithdrawal(r.Context(), accountID, txID, strings.TrimSpace(payload.Reason))
 					if err != nil {
 						writeError(w, http.StatusBadRequest, err)
 						return
@@ -376,7 +376,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 					writeError(w, http.StatusBadRequest, err)
 					return
 				}
-				items, err := h.app.GasBank.ListDeadLetters(r.Context(), accountID, limit)
+				items, err := h.services.GasBankService().ListDeadLetters(r.Context(), accountID, limit)
 				if err != nil {
 					writeError(w, http.StatusInternalServerError, err)
 					return
@@ -390,7 +390,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 					methodNotAllowed(w, http.MethodPost)
 					return
 				}
-				tx, err := h.app.GasBank.RetryDeadLetter(r.Context(), accountID, txID)
+				tx, err := h.services.GasBankService().RetryDeadLetter(r.Context(), accountID, txID)
 				if err != nil {
 					status := http.StatusBadRequest
 					if strings.Contains(strings.ToLower(err.Error()), "not found") {
@@ -406,7 +406,7 @@ func (h *handler) accountGasBank(w http.ResponseWriter, r *http.Request, account
 				methodNotAllowed(w, http.MethodDelete)
 				return
 			}
-			if err := h.app.GasBank.DeleteDeadLetter(r.Context(), accountID, txID); err != nil {
+			if err := h.services.GasBankService().DeleteDeadLetter(r.Context(), accountID, txID); err != nil {
 				status := http.StatusBadRequest
 				if strings.Contains(strings.ToLower(err.Error()), "not found") {
 					status = http.StatusNotFound
@@ -427,7 +427,7 @@ func (h *handler) resolveGasAccount(ctx context.Context, accountID string, gasAc
 		return gasbank.Account{}, fmt.Errorf("gas_account_id is required")
 	}
 
-	acct, err := h.app.GasBank.GetAccount(ctx, gasAccountID)
+	acct, err := h.services.GasBankService().GetAccount(ctx, gasAccountID)
 	if err != nil {
 		return gasbank.Account{}, err
 	}

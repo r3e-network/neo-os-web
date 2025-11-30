@@ -9,14 +9,14 @@ import (
 )
 
 func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.DataFeeds == nil {
+	if h.services.DataFeedsService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("data feeds service not configured"))
 		return
 	}
 	if len(rest) == 0 {
 		switch r.Method {
 		case http.MethodGet:
-			feeds, err := h.app.DataFeeds.ListFeeds(r.Context(), accountID)
+			feeds, err := h.services.DataFeedsService().ListFeeds(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -50,7 +50,7 @@ func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accou
 				Metadata:     payload.Metadata,
 				Tags:         payload.Tags,
 			}
-			created, err := h.app.DataFeeds.CreateFeed(r.Context(), feed)
+			created, err := h.services.DataFeedsService().CreateFeed(r.Context(), feed)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -66,7 +66,7 @@ func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accou
 	if len(rest) == 1 {
 		switch r.Method {
 		case http.MethodGet:
-			feed, err := h.app.DataFeeds.GetFeed(r.Context(), accountID, feedID)
+			feed, err := h.services.DataFeedsService().GetFeed(r.Context(), accountID, feedID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -101,7 +101,7 @@ func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accou
 				Metadata:     payload.Metadata,
 				Tags:         payload.Tags,
 			}
-			updated, err := h.app.DataFeeds.UpdateFeed(r.Context(), feed)
+			updated, err := h.services.DataFeedsService().UpdateFeed(r.Context(), feed)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -123,7 +123,7 @@ func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accou
 					writeError(w, http.StatusBadRequest, err)
 					return
 				}
-				updates, err := h.app.DataFeeds.ListUpdates(r.Context(), accountID, feedID, limit)
+				updates, err := h.services.DataFeedsService().ListUpdates(r.Context(), accountID, feedID, limit)
 				if err != nil {
 					writeError(w, http.StatusBadRequest, err)
 					return
@@ -142,7 +142,7 @@ func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accou
 					writeError(w, http.StatusBadRequest, err)
 					return
 				}
-				created, err := h.app.DataFeeds.SubmitUpdate(r.Context(), accountID, feedID, payload.RoundID, payload.Price, payload.Timestamp, payload.Signer, payload.Signature, payload.Metadata)
+				created, err := h.services.DataFeedsService().SubmitUpdate(r.Context(), accountID, feedID, payload.RoundID, payload.Price, payload.Timestamp, payload.Signer, payload.Signature, payload.Metadata)
 				if err != nil {
 					writeError(w, http.StatusBadRequest, err)
 					return
@@ -158,7 +158,7 @@ func (h *handler) accountDataFeeds(w http.ResponseWriter, r *http.Request, accou
 			methodNotAllowed(w, http.MethodGet)
 			return
 		}
-		latest, err := h.app.DataFeeds.LatestUpdate(r.Context(), accountID, feedID)
+		latest, err := h.services.DataFeedsService().LatestUpdate(r.Context(), accountID, feedID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return

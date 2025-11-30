@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/applications/jam"
-	"github.com/R3E-Network/service_layer/applications/metrics"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
 	"github.com/R3E-Network/service_layer/pkg/version"
 )
 
@@ -122,7 +122,7 @@ func (h *handler) systemStatus(w http.ResponseWriter, r *http.Request) {
 			"built_at":   version.BuildTime,
 			"go_version": version.GoVersion,
 		},
-		"services": h.app.Descriptors(),
+		"services": h.services.DescriptorSnapshot(),
 		"jam":      jamStatus,
 	}
 	if h.listenAddr != nil {

@@ -95,9 +95,9 @@ system/
 └── api/          # User API (accounts, secrets, contracts, functions)
 
 packages/         # Service packages (com.r3e.services.*)
-applications/     # HTTP API, storage adapters
+applications/     # HTTP API + composition (wiring, ServiceProvider)
 contracts/neo-n3/ # Neo N3 smart contracts (C#)
-pkg/              # Shared libraries (supabase, pgnotify, blob)
+pkg/              # Shared libraries (storage, supabase, pgnotify, blob)
 ```
 
 ---

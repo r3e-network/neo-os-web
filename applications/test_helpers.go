@@ -1,6 +1,6 @@
 package app
 
-import "github.com/R3E-Network/service_layer/applications/storage/memory"
+import "github.com/R3E-Network/service_layer/pkg/storage/memory"
 
 // NewMemoryStoresForTest creates a Stores instance backed by the in-memory
 // storage implementation. This is intended for use in tests and local development.

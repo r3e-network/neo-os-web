@@ -8,7 +8,7 @@
 |--------|------|----------------|
 | `pkg/supabase` | Supabase 统一客户端 | - |
 | `pkg/auth` | GoTrue 认证适配器 | `applications/auth/manager.go` |
-| `pkg/storage` | PostgREST CRUD 操作 | `applications/storage/postgres/store*.go` |
+| `pkg/storage` | PostgREST CRUD 操作 | `pkg/storage/postgres/store*.go` |
 | `pkg/blob` | Supabase Storage 文件存储 | `applications/jam/store_pg.go` |
 | `pkg/pgnotify` | 事件总线 + 表变更订阅 | `system/core/bus.go` |
 
@@ -91,7 +91,7 @@ SUPABASE_STORAGE_URL="http://localhost:5000"
 | JWT 验证 | `applications/auth/manager.go` | GoTrue + `pkg/supabase` |
 | Token 刷新 | `httpapi/handler_auth.go` | GoTrue `/token?grant_type=refresh_token` |
 | 用户管理 | 手动实现 | GoTrue admin API |
-| CRUD 操作 | `applications/storage/postgres/store*.go` | PostgREST via `pkg/supabase` |
+| CRUD 操作 | `pkg/storage/postgres/store*.go` | PostgREST via `pkg/supabase` |
 | 租户隔离 | 中间件过滤 | PostgreSQL RLS 策略 |
 | 事件总线 | `system/core/bus.go` | PostgreSQL NOTIFY via `pkg/pgnotify` |
 | 文件存储 | JAM (bytea) | Supabase Storage |

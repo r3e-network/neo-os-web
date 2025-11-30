@@ -9,7 +9,7 @@ import (
 )
 
 func (h *handler) accountConfCompute(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.Confidential == nil {
+	if h.services.ConfidentialService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("confidential service not configured"))
 		return
 	}
@@ -33,7 +33,7 @@ func (h *handler) accountConfEnclaves(w http.ResponseWriter, r *http.Request, ac
 	if len(rest) == 0 {
 		switch r.Method {
 		case http.MethodGet:
-			enclaves, err := h.app.Confidential.ListEnclaves(r.Context(), accountID)
+			enclaves, err := h.services.ConfidentialService().ListEnclaves(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -74,7 +74,7 @@ func (h *handler) accountConfEnclaves(w http.ResponseWriter, r *http.Request, ac
 				Status:      domainconf.EnclaveStatus(payload.Status),
 				Metadata:    meta,
 			}
-			created, err := h.app.Confidential.CreateEnclave(r.Context(), enclave)
+			created, err := h.services.ConfidentialService().CreateEnclave(r.Context(), enclave)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -90,7 +90,7 @@ func (h *handler) accountConfEnclaves(w http.ResponseWriter, r *http.Request, ac
 	if len(rest) == 1 {
 		switch r.Method {
 		case http.MethodGet:
-			enclave, err := h.app.Confidential.GetEnclave(r.Context(), accountID, enclaveID)
+			enclave, err := h.services.ConfidentialService().GetEnclave(r.Context(), accountID, enclaveID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -132,7 +132,7 @@ func (h *handler) accountConfEnclaves(w http.ResponseWriter, r *http.Request, ac
 				Status:      domainconf.EnclaveStatus(payload.Status),
 				Metadata:    meta,
 			}
-			updated, err := h.app.Confidential.UpdateEnclave(r.Context(), enclave)
+			updated, err := h.services.ConfidentialService().UpdateEnclave(r.Context(), enclave)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -152,7 +152,7 @@ func (h *handler) accountConfEnclaves(w http.ResponseWriter, r *http.Request, ac
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			keys, err := h.app.Confidential.ListSealedKeys(r.Context(), accountID, enclaveID, limit)
+			keys, err := h.services.ConfidentialService().ListSealedKeys(r.Context(), accountID, enclaveID, limit)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -175,7 +175,7 @@ func (h *handler) accountConfEnclaves(w http.ResponseWriter, r *http.Request, ac
 				Blob:      payload.Blob,
 				Metadata:  payload.Metadata,
 			}
-			created, err := h.app.Confidential.CreateSealedKey(r.Context(), key)
+			created, err := h.services.ConfidentialService().CreateSealedKey(r.Context(), key)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -214,7 +214,7 @@ func (h *handler) accountConfSealedKeys(w http.ResponseWriter, r *http.Request, 
 			Blob:      payload.Blob,
 			Metadata:  payload.Metadata,
 		}
-		created, err := h.app.Confidential.CreateSealedKey(r.Context(), key)
+		created, err := h.services.ConfidentialService().CreateSealedKey(r.Context(), key)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -231,7 +231,7 @@ func (h *handler) accountConfSealedKeys(w http.ResponseWriter, r *http.Request, 
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		keys, err := h.app.Confidential.ListSealedKeys(r.Context(), accountID, enclaveID, limit)
+		keys, err := h.services.ConfidentialService().ListSealedKeys(r.Context(), accountID, enclaveID, limit)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -266,7 +266,7 @@ func (h *handler) accountConfAttestations(w http.ResponseWriter, r *http.Request
 			Status:    payload.Status,
 			Metadata:  payload.Metadata,
 		}
-		created, err := h.app.Confidential.CreateAttestation(r.Context(), att)
+		created, err := h.services.ConfidentialService().CreateAttestation(r.Context(), att)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -281,13 +281,13 @@ func (h *handler) accountConfAttestations(w http.ResponseWriter, r *http.Request
 		}
 		var result []domainconf.Attestation
 		if enclaveID == "" {
-			result, err = h.app.Confidential.ListAccountAttestations(r.Context(), accountID, limit)
+			result, err = h.services.ConfidentialService().ListAccountAttestations(r.Context(), accountID, limit)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
 		} else {
-			result, err = h.app.Confidential.ListAttestations(r.Context(), accountID, enclaveID, limit)
+			result, err = h.services.ConfidentialService().ListAttestations(r.Context(), accountID, enclaveID, limit)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return

@@ -10,7 +10,7 @@ import (
 )
 
 func (h *handler) accountCCIP(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.CCIP == nil {
+	if h.services.CCIPService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("ccip service not configured"))
 		return
 	}
@@ -33,7 +33,7 @@ func (h *handler) accountCCIPLanes(w http.ResponseWriter, r *http.Request, accou
 	case 0:
 		switch r.Method {
 		case http.MethodGet:
-			lanes, err := h.app.CCIP.ListLanes(r.Context(), accountID)
+			lanes, err := h.services.CCIPService().ListLanes(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -65,7 +65,7 @@ func (h *handler) accountCCIPLanes(w http.ResponseWriter, r *http.Request, accou
 				Metadata:       payload.Metadata,
 				Tags:           payload.Tags,
 			}
-			created, err := h.app.CCIP.CreateLane(r.Context(), lane)
+			created, err := h.services.CCIPService().CreateLane(r.Context(), lane)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -91,7 +91,7 @@ func (h *handler) accountCCIPLanes(w http.ResponseWriter, r *http.Request, accou
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			msg, err := h.app.CCIP.SendMessage(r.Context(), accountID, laneID, payload.Payload, payload.TokenTransfers, payload.Metadata, payload.Tags)
+			msg, err := h.services.CCIPService().SendMessage(r.Context(), accountID, laneID, payload.Payload, payload.TokenTransfers, payload.Metadata, payload.Tags)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -101,7 +101,7 @@ func (h *handler) accountCCIPLanes(w http.ResponseWriter, r *http.Request, accou
 		}
 		switch r.Method {
 		case http.MethodGet:
-			lane, err := h.app.CCIP.GetLane(r.Context(), accountID, laneID)
+			lane, err := h.services.CCIPService().GetLane(r.Context(), accountID, laneID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -134,7 +134,7 @@ func (h *handler) accountCCIPLanes(w http.ResponseWriter, r *http.Request, accou
 				Metadata:       payload.Metadata,
 				Tags:           payload.Tags,
 			}
-			updated, err := h.app.CCIP.UpdateLane(r.Context(), lane)
+			updated, err := h.services.CCIPService().UpdateLane(r.Context(), lane)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -158,7 +158,7 @@ func (h *handler) accountCCIPMessages(w http.ResponseWriter, r *http.Request, ac
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		msgs, err := h.app.CCIP.ListMessages(r.Context(), accountID, limit)
+		msgs, err := h.services.CCIPService().ListMessages(r.Context(), accountID, limit)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -170,7 +170,7 @@ func (h *handler) accountCCIPMessages(w http.ResponseWriter, r *http.Request, ac
 			return
 		}
 		msgID := rest[0]
-		msg, err := h.app.CCIP.GetMessage(r.Context(), accountID, msgID)
+		msg, err := h.services.CCIPService().GetMessage(r.Context(), accountID, msgID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return
@@ -180,7 +180,7 @@ func (h *handler) accountCCIPMessages(w http.ResponseWriter, r *http.Request, ac
 }
 
 func (h *handler) accountDataLink(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.DataLink == nil {
+	if h.services.DataLinkService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("datalink service not configured"))
 		return
 	}
@@ -202,7 +202,7 @@ func (h *handler) accountDataLinkChannels(w http.ResponseWriter, r *http.Request
 	if len(rest) == 0 {
 		switch r.Method {
 		case http.MethodGet:
-			channels, err := h.app.DataLink.ListChannels(r.Context(), accountID)
+			channels, err := h.services.DataLinkService().ListChannels(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -234,7 +234,7 @@ func (h *handler) accountDataLinkChannels(w http.ResponseWriter, r *http.Request
 				Status:    domainlink.ChannelStatus(payload.Status),
 				Metadata:  payload.Metadata,
 			}
-			created, err := h.app.DataLink.CreateChannel(r.Context(), ch)
+			created, err := h.services.DataLinkService().CreateChannel(r.Context(), ch)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -250,7 +250,7 @@ func (h *handler) accountDataLinkChannels(w http.ResponseWriter, r *http.Request
 	if len(rest) == 1 {
 		switch r.Method {
 		case http.MethodGet:
-			ch, err := h.app.DataLink.GetChannel(r.Context(), accountID, channelID)
+			ch, err := h.services.DataLinkService().GetChannel(r.Context(), accountID, channelID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -283,7 +283,7 @@ func (h *handler) accountDataLinkChannels(w http.ResponseWriter, r *http.Request
 				Status:    domainlink.ChannelStatus(payload.Status),
 				Metadata:  payload.Metadata,
 			}
-			updated, err := h.app.DataLink.UpdateChannel(r.Context(), ch)
+			updated, err := h.services.DataLinkService().UpdateChannel(r.Context(), ch)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -308,7 +308,7 @@ func (h *handler) accountDataLinkChannels(w http.ResponseWriter, r *http.Request
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		del, err := h.app.DataLink.CreateDelivery(r.Context(), accountID, channelID, payload.Payload, payload.Metadata)
+		del, err := h.services.DataLinkService().CreateDelivery(r.Context(), accountID, channelID, payload.Payload, payload.Metadata)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -332,7 +332,7 @@ func (h *handler) accountDataLinkDeliveries(w http.ResponseWriter, r *http.Reque
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		deliveries, err := h.app.DataLink.ListDeliveries(r.Context(), accountID, limit)
+		deliveries, err := h.services.DataLinkService().ListDeliveries(r.Context(), accountID, limit)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -344,7 +344,7 @@ func (h *handler) accountDataLinkDeliveries(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		deliveryID := rest[0]
-		del, err := h.app.DataLink.GetDelivery(r.Context(), accountID, deliveryID)
+		del, err := h.services.DataLinkService().GetDelivery(r.Context(), accountID, deliveryID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return
@@ -354,14 +354,14 @@ func (h *handler) accountDataLinkDeliveries(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *handler) accountWorkspaceWallets(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.WorkspaceWallets == nil {
+	if h.services.WorkspaceWalletStore() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("workspace wallet store not configured"))
 		return
 	}
 	switch len(rest) {
 	case 0:
 		if r.Method == http.MethodGet {
-			wallets, err := h.app.WorkspaceWallets.ListWorkspaceWallets(r.Context(), accountID)
+			wallets, err := h.services.WorkspaceWalletStore().ListWorkspaceWallets(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -384,7 +384,7 @@ func (h *handler) accountWorkspaceWallets(w http.ResponseWriter, r *http.Request
 				return
 			}
 			addr := account.NormalizeWalletAddress(payload.WalletAddress)
-			wallet, err := h.app.WorkspaceWallets.CreateWorkspaceWallet(r.Context(), account.WorkspaceWallet{
+			wallet, err := h.services.WorkspaceWalletStore().CreateWorkspaceWallet(r.Context(), account.WorkspaceWallet{
 				WorkspaceID:   accountID,
 				WalletAddress: addr,
 				Label:         payload.Label,
@@ -400,7 +400,7 @@ func (h *handler) accountWorkspaceWallets(w http.ResponseWriter, r *http.Request
 	default:
 		if r.Method == http.MethodGet {
 			walletID := rest[0]
-			wallet, err := h.app.WorkspaceWallets.GetWorkspaceWallet(r.Context(), walletID)
+			wallet, err := h.services.WorkspaceWalletStore().GetWorkspaceWallet(r.Context(), walletID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return

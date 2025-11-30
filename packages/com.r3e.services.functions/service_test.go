@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
-	"github.com/R3E-Network/service_layer/applications/storage/memory"
+	"github.com/R3E-Network/service_layer/pkg/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage/memory"
 	"github.com/R3E-Network/service_layer/domain/account"
 	datalinkdomain "github.com/R3E-Network/service_layer/domain/datalink"
 	"github.com/R3E-Network/service_layer/domain/function"

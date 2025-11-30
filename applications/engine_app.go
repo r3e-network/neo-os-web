@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	"github.com/R3E-Network/service_layer/applications/system"
 	"github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
 	automationsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.automation"

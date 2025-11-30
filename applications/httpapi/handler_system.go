@@ -37,10 +37,10 @@ func (h *handler) systemDescriptorsHTML(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *handler) descriptorsSnapshot() []core.Descriptor {
-	if h == nil || h.app == nil {
+	if h == nil || h.services == nil {
 		return nil
 	}
-	base := h.app.Descriptors()
+	base := h.services.DescriptorSnapshot()
 	seen := make(map[string]bool, len(base))
 	providers := make([]system.DescriptorProvider, 0, len(base))
 	for _, d := range base {

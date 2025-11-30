@@ -13,10 +13,10 @@ import (
 
 	app "github.com/R3E-Network/service_layer/applications"
 	"github.com/R3E-Network/service_layer/applications/jam"
-	"github.com/R3E-Network/service_layer/applications/metrics"
-	"github.com/R3E-Network/service_layer/applications/storage/postgres"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
 	"github.com/R3E-Network/service_layer/applications/system"
 	"github.com/R3E-Network/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/pkg/storage/postgres"
 	engine "github.com/R3E-Network/service_layer/system/core"
 )
 
@@ -117,7 +117,7 @@ func WithExtraRoutesOption(registrars ...RouteRegistrar) ServiceOption {
 	}
 }
 
-func NewService(application *app.Application, addr string, tokens []string, jamCfg jam.Config, authMgr authManager, jwtValidator JWTValidator, log *logger.Logger, db *sql.DB, modules ModuleProvider, opts ...ServiceOption) *Service {
+func NewService(services app.ServiceProvider, addr string, tokens []string, jamCfg jam.Config, authMgr authManager, jwtValidator JWTValidator, log *logger.Logger, db *sql.DB, modules ModuleProvider, opts ...ServiceOption) *Service {
 	if log == nil {
 		log = logger.NewDefault("http")
 	}
@@ -183,7 +183,7 @@ func NewService(application *app.Application, addr string, tokens []string, jamC
 		handlerOpts = append(handlerOpts, WithExtraRoutes(svc.extraRoutes...))
 	}
 
-	handler := NewHandler(application, jamCfg, tokens, authMgr, audit, neo, modules, handlerOpts...)
+	handler := NewHandler(services, jamCfg, tokens, authMgr, audit, neo, modules, handlerOpts...)
 	// Order matters: auth should see real requests, CORS should short-circuit
 	// preflight OPTIONS before auth, metrics wraps the final handler.
 	handler = wrapWithAuth(handler, tokens, log, validator)

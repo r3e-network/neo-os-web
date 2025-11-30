@@ -2,7 +2,7 @@
 package pkg
 
 // storeProvider implements StoreProvider interface.
-// It wraps the actual storage implementations from applications/storage.
+// It wraps the actual storage implementations from pkg/storage.
 type storeProvider struct {
 	accounts         AccountStoreAPI
 	functions        FunctionStoreAPI

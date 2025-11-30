@@ -18,7 +18,7 @@ The default platform stack is intentionally minimal: self-hosted Supabase Postgr
 - Package names mirror layer names: `system/platform`, `system/framework`, `system/core` (engine), `packages/com.r3e.services.*` (services), `applications/` (composition), plus `cmd/` entrypoints and `sdk/` clients.
 - Dependencies are one-way: `packages` → `system/core`/`system/framework` → `system/platform`; composition code lives in `applications/` to avoid leaking wiring into domains.
 - Supabase is the default platform for auth + Postgres; other stores/queues live under `system/platform/` as drivers.
-- Keep handlers/thin adapters in `applications/httpapi`, leaving business logic inside `packages/` and persistence in `applications/storage`.
+- Keep handlers/thin adapters in `applications/httpapi`, leaving business logic inside `packages/` and persistence in `pkg/storage`.
 - CLI (`cmd/slctl`) and SDKs consume the HTTP surface only; they must not reach into internal packages.
 
 ### Android OS Analogy
@@ -152,7 +152,7 @@ type Manifest struct {
 
 **Responsibilities**:
 - HTTP API surface (`applications/httpapi`) for all modules
-- Storage adapters (`applications/storage`) that bind services to Postgres (Supabase-first) and in-memory stores for tests
+- Storage adapters (`pkg/storage`) that bind services to Postgres (Supabase-first) and in-memory stores for tests
 - Configuration parsing and validation (`configs/`)
 - Tenant/header enforcement and Supabase JWT integration
 - Migration orchestration (database + service-specific)
@@ -335,9 +335,10 @@ func (s *Service) Stop(ctx context.Context) error {
 - Configure runtime settings from environment/config
 - Provide HTTP API handlers (`applications/httpapi/`)
 - Define domain models (`domain/`)
-- Implement storage interfaces (`applications/storage/`)
+- Implement storage interfaces (`pkg/storage/`)
 - Manage system lifecycle (`applications/system/`)
-- Expose metrics and observability (`applications/metrics/`)
+- Surface service pointers to transports via `applications/services.go`
+- Expose metrics and observability (`pkg/metrics/`)
 
 **Key Components**:
 
@@ -352,7 +353,7 @@ func (s *Service) Stop(ctx context.Context) error {
 - DTOs and value objects
 - Validation logic
 
-**Storage Layer** (`storage/`):
+**Storage Layer** (`pkg/storage/`):
 - Storage interface definitions
 - In-memory implementations
 - PostgreSQL implementations (when applicable)
@@ -365,19 +366,23 @@ func (s *Service) Stop(ctx context.Context) error {
 - Error handling
 
 **System Management** (`system/`):
-- Service registry and discovery
-- Lifecycle management
+- Lifecycle orchestration helpers
 - Health monitoring
-- Descriptor collection
+- Descriptor collection and snapshots for transports
+
+**Service Provider Interface** (`applications/services.go`):
+- Defines the pointer surface (Accounts, Functions, VRF, etc.) consumed by HTTP/grpc transports
+- Implemented by both `Application` and `EngineApplication` so transports never depend on composition structs directly
+- Carries shared helpers such as descriptor snapshots and wallet stores
 
 **Key Files**:
 - `applications/application.go` - Main application builder
 - `applications/httpapi/handler.go` - HTTP handler router
 - `applications/httpapi/service.go` - HTTP service lifecycle
-- `applications/storage/interfaces.go` - Storage contracts
-- `applications/system/manager.go` - Legacy service manager
-- `applications/system/registry.go` - Service registry
-- `applications/metrics/metrics.go` - Metrics collection
+- `applications/services.go` - `ServiceProvider` contracts implemented by application + runtime
+- `pkg/storage/interfaces.go` - Storage contracts (in-memory + Postgres implementations)
+- `applications/system/manager.go` - Service manager used for compatibility with legacy modules
+- `pkg/metrics/metrics.go` - Metrics collection
 
 **Design Principles**:
 - Composition over inheritance
@@ -463,7 +468,7 @@ Legend:
 │                     APPLICATION COMPOSITION LAYER                        │
 │                        (applications/)                                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
-│  │   HTTP API   │  │    Domain    │  │   Storage    │  │   System   │ │
+│  │   HTTP API   │  │    Domain    │  │ Storage (pkg)│  │ ServiceProv│ │
 │  │   Handlers   │  │    Models    │  │  Interfaces  │  │  Manager   │ │
 │  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘ │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
@@ -552,6 +557,14 @@ HTTP Request
                    │
                    ▼
 ┌────────────────────────────────────────────────────┐
+│ Service Provider (`applications/services.go`)       │
+│ • Shared service pointers (Accounts, Functions, …)  │
+│ • Used by all transports (HTTP, future gRPC, etc.)  │
+│ • Guards runtime access to engine-loaded services   │
+└──────────────────┬─────────────────────────────────┘
+                   │
+                   ▼
+┌────────────────────────────────────────────────────┐
 │ Services Layer: Domain Service                     │
 │ • Business logic                                   │
 │ • State validation                                 │
@@ -586,8 +599,8 @@ Application Start
 ┌────────────────────────────────────────────────────┐
 │ Application Layer                                  │
 │ • Load configuration                               │
-│ • Instantiate services                             │
-│ • Wire dependencies                                │
+│ • Instantiate services / load engine packages      │
+│ • Build `ServiceProvider` surface for transports   │
 └──────────────────┬─────────────────────────────────┘
                    │
                    ▼
@@ -601,7 +614,7 @@ Application Start
                    ▼
 ┌────────────────────────────────────────────────────┐
 │ Platform Layer                                     │
-│ • Start drivers (Storage, RPC, Cache, etc.)        │
+│ • Start drivers (pkg/storage adapters, RPC, cache) │
 │ • Verify connectivity                              │
 └──────────────────┬─────────────────────────────────┘
                    │
@@ -615,7 +628,7 @@ Application Start
                    ▼
 ┌────────────────────────────────────────────────────┐
 │ Application Layer                                  │
-│ • Start HTTP API                                   │
+│ • Start HTTP API/transports using ServiceProvider  │
 │ • Begin serving requests                           │
 └────────────────────────────────────────────────────┘
 ```
@@ -726,14 +739,14 @@ type Entity struct {
 
 **Step 4: Add Storage Implementation**
 
-Update `applications/storage/interfaces.go`:
+Update `pkg/storage/interfaces.go`:
 ```go
 type MyServiceStore interface {
     // Same methods as service Store interface
 }
 ```
 
-Update `applications/storage/memory.go` to implement the interface.
+Update `pkg/storage/memory.go` to implement the interface.
 
 **Step 5: Wire in Application Layer**
 
@@ -974,7 +987,7 @@ func TestDoSomething(t *testing.T) {
 
 ### Observability
 
-- **Metrics**: Collected in Application Layer (`applications/metrics/`)
+- **Metrics**: Collected in shared libraries (`pkg/metrics/`)
 - **Logging**: Structured logging via `pkg/logger`
 - **Tracing**: Context propagation through all layers
 - **Health Checks**: Exposed via `/healthz` and `/system/status`

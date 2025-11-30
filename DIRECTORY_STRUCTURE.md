@@ -85,6 +85,7 @@ service_layer/
 │
 ├── applications/                    # 🖥️ Presentation Layer
 │   ├── httpapi/                     # HTTP API server
+│   ├── services.go                  # ServiceProvider contracts for transports
 │   ├── grpcapi/                     # (future) gRPC API server
 │   └── dashboard/                   # (future) Web UI
 │
@@ -111,6 +112,7 @@ service_layer/
 │   └── neo-snapshot/                # State snapshot tool
 │
 ├── pkg/                             # 📦 Public Libraries
+│   ├── storage/                     # Storage interfaces + adapters (memory/Postgres)
 │   ├── logger/                      # Logging utilities
 │   └── utils/                       # Common utilities
 │
@@ -186,6 +188,7 @@ Each package contains:
 
 Presentation layer servers that expose services via APIs:
 - `httpapi/` - RESTful HTTP API
+- `services.go` - Shared `ServiceProvider` surface implemented by application/engine runtime
 - `grpcapi/` - (future) gRPC API
 - `dashboard/` - (future) Web management UI
 

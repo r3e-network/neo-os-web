@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/metrics"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
 	domain "github.com/R3E-Network/service_layer/domain/oracle"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	"github.com/R3E-Network/service_layer/system/framework"

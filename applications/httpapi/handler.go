@@ -19,7 +19,7 @@ import (
 	app "github.com/R3E-Network/service_layer/applications"
 	"github.com/R3E-Network/service_layer/applications/auth"
 	"github.com/R3E-Network/service_layer/applications/jam"
-	"github.com/R3E-Network/service_layer/applications/metrics"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
 	domainaccount "github.com/R3E-Network/service_layer/domain/account"
 	"github.com/R3E-Network/service_layer/domain/oracle"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -29,7 +29,7 @@ import (
 
 // handler bundles HTTP endpoints for the application services.
 type handler struct {
-	app               *app.Application
+	services          app.ServiceProvider
 	jamCfg            jam.Config
 	jamAuth           []string
 	jamStore          jam.PackageStore
@@ -154,7 +154,7 @@ func WithExtraRoutes(registrars ...RouteRegistrar) HandlerOption {
 
 // NewHandler returns a mux exposing the core REST API.
 func NewHandler(
-	application *app.Application,
+	services app.ServiceProvider,
 	jamCfg jam.Config,
 	tokens []string,
 	authMgr authManager,
@@ -164,7 +164,7 @@ func NewHandler(
 	opts ...HandlerOption,
 ) http.Handler {
 	jamCfg.Normalize()
-	h := &handler{app: application, jamCfg: jamCfg, jamAuth: tokens, authManager: authMgr, audit: audit, neo: neo, modulesFn: modules, busMaxBytes: parseMaxBytes(os.Getenv("BUS_MAX_BYTES"), 1<<20)}
+	h := &handler{services: services, jamCfg: jamCfg, jamAuth: tokens, authManager: authMgr, audit: audit, neo: neo, modulesFn: modules, busMaxBytes: parseMaxBytes(os.Getenv("BUS_MAX_BYTES"), 1<<20)}
 	for _, opt := range opts {
 		if opt != nil {
 			opt(h)
@@ -310,7 +310,7 @@ func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 			payload.Metadata["tenant"] = tenant
 		}
 
-		acct, err := h.app.Accounts.Create(r.Context(), payload.Owner, payload.Metadata)
+		acct, err := h.services.AccountsService().Create(r.Context(), payload.Owner, payload.Metadata)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -321,7 +321,7 @@ func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusCreated, acct)
 
 	case http.MethodGet:
-		accts, err := h.app.Accounts.List(r.Context())
+		accts, err := h.services.AccountsService().List(r.Context())
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
@@ -370,14 +370,14 @@ func (h *handler) accountResources(w http.ResponseWriter, r *http.Request) {
 	if len(parts) == 1 {
 		switch r.Method {
 		case http.MethodGet:
-			acct, err := h.app.Accounts.Get(r.Context(), accountID)
+			acct, err := h.services.AccountsService().Get(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
 			}
 			writeJSON(w, http.StatusOK, acct)
 		case http.MethodDelete:
-			if err := h.app.Accounts.Delete(r.Context(), accountID); err != nil {
+			if err := h.services.AccountsService().Delete(r.Context(), accountID); err != nil {
 				status := http.StatusBadRequest
 				if errors.Is(err, sql.ErrNoRows) {
 					status = http.StatusNotFound
@@ -429,7 +429,7 @@ func (h *handler) accountResources(w http.ResponseWriter, r *http.Request) {
 
 // accountTenant returns the tenant string for an account (from metadata) or an empty string if none.
 func (h *handler) accountTenant(ctx context.Context, accountID string) (string, error) {
-	acct, err := h.app.Accounts.Get(ctx, accountID)
+	acct, err := h.services.AccountsService().Get(ctx, accountID)
 	if err != nil {
 		return "", err
 	}
@@ -454,7 +454,7 @@ func isNotFound(err error) bool {
 }
 
 func (h *handler) accountOracle(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.Oracle == nil {
+	if h.services.OracleService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("oracle service not configured"))
 		return
 	}
@@ -478,7 +478,7 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 	if len(rest) == 0 {
 		switch r.Method {
 		case http.MethodGet:
-			sources, err := h.app.Oracle.ListSources(r.Context(), accountID)
+			sources, err := h.services.OracleService().ListSources(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -497,7 +497,7 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			src, err := h.app.Oracle.CreateSource(r.Context(), accountID, payload.Name, payload.URL, payload.Method, payload.Description, payload.Headers, payload.Body)
+			src, err := h.services.OracleService().CreateSource(r.Context(), accountID, payload.Name, payload.URL, payload.Method, payload.Description, payload.Headers, payload.Body)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -510,7 +510,7 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 	}
 
 	sourceID := rest[0]
-	src, err := h.app.Oracle.GetSource(r.Context(), sourceID)
+	src, err := h.services.OracleService().GetSource(r.Context(), sourceID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err)
 		return
@@ -545,14 +545,14 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 
 		updated := src
 		if payload.Name != nil || payload.URL != nil || payload.Method != nil || payload.Description != nil || payload.Headers != nil || payload.Body != nil {
-			updated, err = h.app.Oracle.UpdateSource(r.Context(), sourceID, payload.Name, payload.URL, payload.Method, payload.Description, payload.Headers, payload.Body)
+			updated, err = h.services.OracleService().UpdateSource(r.Context(), sourceID, payload.Name, payload.URL, payload.Method, payload.Description, payload.Headers, payload.Body)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
 		}
 		if payload.Enabled != nil {
-			updated, err = h.app.Oracle.SetSourceEnabled(r.Context(), sourceID, *payload.Enabled)
+			updated, err = h.services.OracleService().SetSourceEnabled(r.Context(), sourceID, *payload.Enabled)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -579,7 +579,7 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 			if cursorID != "" && fetchLimit < 500 {
 				fetchLimit = 500
 			}
-			reqs, err := h.app.Oracle.ListRequests(r.Context(), accountID, fetchLimit, status)
+			reqs, err := h.services.OracleService().ListRequests(r.Context(), accountID, fetchLimit, status)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -614,7 +614,7 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			req, err := h.app.Oracle.CreateRequest(r.Context(), accountID, payload.DataSourceID, payload.Payload)
+			req, err := h.services.OracleService().CreateRequest(r.Context(), accountID, payload.DataSourceID, payload.Payload)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -627,7 +627,7 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 	}
 
 	requestID := rest[0]
-	req, err := h.app.Oracle.GetRequest(r.Context(), requestID)
+	req, err := h.services.OracleService().GetRequest(r.Context(), requestID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err)
 		return
@@ -667,7 +667,7 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 				writeError(w, http.StatusUnauthorized, fmt.Errorf("oracle runner token required"))
 				return
 			}
-			updated, err = h.app.Oracle.MarkRunning(r.Context(), requestID)
+			updated, err = h.services.OracleService().MarkRunning(r.Context(), requestID)
 		case "succeeded", "completed":
 			if !h.requireOracleRunner(r) {
 				writeError(w, http.StatusUnauthorized, fmt.Errorf("oracle runner token required"))
@@ -677,7 +677,7 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 				writeError(w, http.StatusBadRequest, fmt.Errorf("result is required for succeeded status"))
 				return
 			}
-			updated, err = h.app.Oracle.CompleteRequest(r.Context(), requestID, *payload.Result)
+			updated, err = h.services.OracleService().CompleteRequest(r.Context(), requestID, *payload.Result)
 		case "failed":
 			if !h.requireOracleRunner(r) {
 				writeError(w, http.StatusUnauthorized, fmt.Errorf("oracle runner token required"))
@@ -687,9 +687,9 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 			if payload.Error != nil {
 				errMsg = *payload.Error
 			}
-			updated, err = h.app.Oracle.FailRequest(r.Context(), requestID, errMsg)
+			updated, err = h.services.OracleService().FailRequest(r.Context(), requestID, errMsg)
 		case "retry":
-			updated, err = h.app.Oracle.RetryRequest(r.Context(), requestID)
+			updated, err = h.services.OracleService().RetryRequest(r.Context(), requestID)
 		default:
 			writeError(w, http.StatusBadRequest, fmt.Errorf("unsupported status %s", status))
 			return
@@ -724,7 +724,7 @@ func writeError(w http.ResponseWriter, status int, err error) {
 }
 
 func (h *handler) requireOracleRunner(r *http.Request) bool {
-	tokens := h.app.OracleRunnerTokens
+	tokens := h.services.OracleRunnerTokensValue()
 	if len(tokens) == 0 {
 		return true
 	}

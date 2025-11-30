@@ -13,7 +13,7 @@ namespace ServiceLayer.Contracts
     /// - domain/account/model.go: Account struct (ID, Owner, Metadata)
     /// - domain/account/wallet.go: WorkspaceWallet struct
     /// - domain/gasbank/model.go: Account.WalletAddress, Account.Status
-    /// - applications/storage/interfaces.go: AccountStore, WorkspaceWalletStore
+    /// - pkg/storage/interfaces.go: AccountStore, WorkspaceWalletStore
     ///
     /// Struct Mapping:
     /// - Account.Id → account.Account.ID (string)

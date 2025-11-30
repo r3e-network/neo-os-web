@@ -132,10 +132,11 @@ service_layer/
 ├── packages/               # Service packages (Android Apps equivalent)
 │   └── com.r3e.services.*/ # 17 business services
 ├── applications/           # Application composition layer
-│   ├── httpapi/            # HTTP handlers
-│   └── storage/            # Storage implementations
+│   └── httpapi/            # HTTP handlers
 ├── domain/                 # Domain models
 ├── pkg/                    # Shared utilities
+│   ├── storage/            # Storage interfaces + adapters (memory/Postgres)
+│   └── logger/             # Logging utilities
 ├── docs/                   # Documentation
 ├── examples/               # Code examples
 └── apps/dashboard/         # React dashboard
@@ -558,7 +559,7 @@ offset := core.ClampOffset(requestOffset, 0, core.MaxOffset)
 ### Storage Interface
 
 ```go
-// applications/storage/interfaces.go
+// pkg/storage/interfaces.go
 type MyStore interface {
     Create(ctx context.Context, item Item) (Item, error)
     Update(ctx context.Context, item Item) (Item, error)
@@ -571,7 +572,7 @@ type MyStore interface {
 ### Memory Implementation
 
 ```go
-// applications/storage/memory.go
+// pkg/storage/memory.go
 type Store struct {
     mu    sync.RWMutex
     items map[string]Item
@@ -593,7 +594,7 @@ func (s *Store) Create(ctx context.Context, item Item) (Item, error) {
 ### PostgreSQL Implementation
 
 ```go
-// applications/storage/postgres/store_myservice.go
+// pkg/storage/postgres/store_myservice.go
 func (s *Store) Create(ctx context.Context, item Item) (Item, error) {
     if item.ID == "" {
         item.ID = uuid.NewString()
@@ -636,6 +637,39 @@ CREATE INDEX idx_my_items_tenant ON my_items(tenant);
 -- +migrate Down
 DROP TABLE IF EXISTS my_items;
 ```
+
+---
+
+## Transport Wiring
+
+### Service Provider Interface
+
+`applications/services.go` defines the `ServiceProvider` interface that bundles references to every domain service plus common helpers such as descriptor snapshots, oracle runner tokens, and workspace wallet store access. Both `Application` and `EngineApplication` implement this interface so transports never depend on concrete wiring structs.
+
+```go
+// applications/services.go
+type ServiceProvider interface {
+    AccountsService() *accounts.Service
+    FunctionsService() *functions.Service
+    // ... other services omitted for brevity ...
+    WorkspaceWalletStore() storage.WorkspaceWalletStore
+    DescriptorSnapshot() []core.Descriptor
+}
+```
+
+### HTTP Service Construction
+
+HTTP handlers accept a `ServiceProvider`, keeping the transport layer thin and runtime-agnostic.
+
+```go
+// applications/httpapi/service.go
+func NewService(services app.ServiceProvider, addr string, tokens []string, jamCfg jam.Config, auth authManager, jwt JWTValidator, log *logger.Logger, db *sql.DB, modules ModuleProvider, opts ...ServiceOption) *Service {
+    handler := httpapi.NewHandler(services, auth, jwt, log, modules, opts...)
+    return &Service{Handler: handler, addr: addr, log: log}
+}
+```
+
+The same interface can back future gRPC or websocket transports without exporting raw service pointers from the application layer.
 
 ---
 

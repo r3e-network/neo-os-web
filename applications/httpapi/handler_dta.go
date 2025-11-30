@@ -8,7 +8,7 @@ import (
 )
 
 func (h *handler) accountDTA(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.DTA == nil {
+	if h.services.DTAService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("dta service not configured"))
 		return
 	}
@@ -30,7 +30,7 @@ func (h *handler) accountDTAProducts(w http.ResponseWriter, r *http.Request, acc
 	if len(rest) == 0 {
 		switch r.Method {
 		case http.MethodGet:
-			products, err := h.app.DTA.ListProducts(r.Context(), accountID)
+			products, err := h.services.DTAService().ListProducts(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -58,7 +58,7 @@ func (h *handler) accountDTAProducts(w http.ResponseWriter, r *http.Request, acc
 				SettlementTerms: payload.SettlementTerms,
 				Metadata:        payload.Metadata,
 			}
-			created, err := h.app.DTA.CreateProduct(r.Context(), product)
+			created, err := h.services.DTAService().CreateProduct(r.Context(), product)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -74,7 +74,7 @@ func (h *handler) accountDTAProducts(w http.ResponseWriter, r *http.Request, acc
 	if len(rest) == 1 {
 		switch r.Method {
 		case http.MethodGet:
-			product, err := h.app.DTA.GetProduct(r.Context(), accountID, productID)
+			product, err := h.services.DTAService().GetProduct(r.Context(), accountID, productID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -103,7 +103,7 @@ func (h *handler) accountDTAProducts(w http.ResponseWriter, r *http.Request, acc
 				SettlementTerms: payload.SettlementTerms,
 				Metadata:        payload.Metadata,
 			}
-			updated, err := h.app.DTA.UpdateProduct(r.Context(), product)
+			updated, err := h.services.DTAService().UpdateProduct(r.Context(), product)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -130,7 +130,7 @@ func (h *handler) accountDTAProducts(w http.ResponseWriter, r *http.Request, acc
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		order, err := h.app.DTA.CreateOrder(r.Context(), accountID, productID, domaindta.OrderType(payload.Type), payload.Amount, payload.WalletAddress, payload.Metadata)
+		order, err := h.services.DTAService().CreateOrder(r.Context(), accountID, productID, domaindta.OrderType(payload.Type), payload.Amount, payload.WalletAddress, payload.Metadata)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -154,7 +154,7 @@ func (h *handler) accountDTAOrders(w http.ResponseWriter, r *http.Request, accou
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		orders, err := h.app.DTA.ListOrders(r.Context(), accountID, limit)
+		orders, err := h.services.DTAService().ListOrders(r.Context(), accountID, limit)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -166,7 +166,7 @@ func (h *handler) accountDTAOrders(w http.ResponseWriter, r *http.Request, accou
 			return
 		}
 		orderID := rest[0]
-		order, err := h.app.DTA.GetOrder(r.Context(), accountID, orderID)
+		order, err := h.services.DTAService().GetOrder(r.Context(), accountID, orderID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return

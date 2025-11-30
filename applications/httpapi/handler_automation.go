@@ -8,7 +8,7 @@ import (
 )
 
 func (h *handler) accountAutomation(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.Automation == nil {
+	if h.services.AutomationService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("automation service not configured"))
 		return
 	}
@@ -22,7 +22,7 @@ func (h *handler) accountAutomation(w http.ResponseWriter, r *http.Request, acco
 	case 1:
 		switch r.Method {
 		case http.MethodGet:
-			jobs, err := h.app.Automation.ListJobs(r.Context(), accountID)
+			jobs, err := h.services.AutomationService().ListJobs(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -39,7 +39,7 @@ func (h *handler) accountAutomation(w http.ResponseWriter, r *http.Request, acco
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			job, err := h.app.Automation.CreateJob(r.Context(), accountID, payload.FunctionID, payload.Name, payload.Schedule, payload.Description)
+			job, err := h.services.AutomationService().CreateJob(r.Context(), accountID, payload.FunctionID, payload.Name, payload.Schedule, payload.Description)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -52,7 +52,7 @@ func (h *handler) accountAutomation(w http.ResponseWriter, r *http.Request, acco
 		jobID := rest[1]
 		switch r.Method {
 		case http.MethodGet:
-			job, err := h.app.Automation.GetJob(r.Context(), jobID)
+			job, err := h.services.AutomationService().GetJob(r.Context(), jobID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -63,7 +63,7 @@ func (h *handler) accountAutomation(w http.ResponseWriter, r *http.Request, acco
 			}
 			writeJSON(w, http.StatusOK, job)
 		case http.MethodPatch:
-			job, err := h.app.Automation.GetJob(r.Context(), jobID)
+			job, err := h.services.AutomationService().GetJob(r.Context(), jobID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -102,7 +102,7 @@ func (h *handler) accountAutomation(w http.ResponseWriter, r *http.Request, acco
 
 			updated := job
 			if payload.Name != nil || payload.Schedule != nil || payload.Description != nil || payload.NextRun != nil {
-				updated, err = h.app.Automation.UpdateJob(r.Context(), jobID, payload.Name, payload.Schedule, payload.Description, nextRun)
+				updated, err = h.services.AutomationService().UpdateJob(r.Context(), jobID, payload.Name, payload.Schedule, payload.Description, nextRun)
 				if err != nil {
 					writeError(w, http.StatusBadRequest, err)
 					return
@@ -110,7 +110,7 @@ func (h *handler) accountAutomation(w http.ResponseWriter, r *http.Request, acco
 			}
 
 			if payload.Enabled != nil {
-				updated, err = h.app.Automation.SetEnabled(r.Context(), updated.ID, *payload.Enabled)
+				updated, err = h.services.AutomationService().SetEnabled(r.Context(), updated.ID, *payload.Enabled)
 				if err != nil {
 					writeError(w, http.StatusBadRequest, err)
 					return

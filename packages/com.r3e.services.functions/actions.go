@@ -14,6 +14,8 @@ import (
 	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
+type actionHandler func(context.Context, function.Definition, map[string]any) (map[string]any, error)
+
 func (s *Service) processActions(ctx context.Context, def function.Definition, actions []function.Action) ([]function.ActionResult, error) {
 	results := make([]function.ActionResult, 0, len(actions))
 	var firstErr error
@@ -24,82 +26,18 @@ func (s *Service) processActions(ctx context.Context, def function.Definition, a
 			Status: function.ActionStatusSucceeded,
 		}
 
-		switch action.Type {
-		case function.ActionTypeGasBankEnsureAccount:
-			accountResult, err := s.handleGasBankEnsure(ctx, def, action.Params)
-			if err != nil {
-				res.Status = function.ActionStatusFailed
-				res.Error = err.Error()
-			} else {
-				res.Result = accountResult
-			}
-		case function.ActionTypeGasBankWithdraw:
-			withdrawResult, err := s.handleGasBankWithdraw(ctx, def, action.Params)
-			if err != nil {
-				res.Status = function.ActionStatusFailed
-				res.Error = err.Error()
-			} else {
-				res.Result = withdrawResult
-			}
-		case function.ActionTypeGasBankBalance:
-			balanceResult, err := s.handleGasBankBalance(ctx, def, action.Params)
-			if err != nil {
-				res.Status = function.ActionStatusFailed
-				res.Error = err.Error()
-			} else {
-				res.Result = balanceResult
-			}
-		case function.ActionTypeGasBankListTx:
-			listResult, err := s.handleGasBankListTransactions(ctx, def, action.Params)
-			if err != nil {
-				res.Status = function.ActionStatusFailed
-				res.Error = err.Error()
-			} else {
-				res.Result = listResult
-			}
-		case function.ActionTypeOracleCreateRequest:
-			oracleResult, err := s.handleOracleCreateRequest(ctx, def, action.Params)
-			if err != nil {
-				res.Status = function.ActionStatusFailed
-				res.Error = err.Error()
-			} else {
-				res.Result = oracleResult
-			}
-		case function.ActionTypeDataFeedSubmit:
-			dfResult, err := s.handleDataFeedSubmit(ctx, def, action.Params)
-			if err != nil {
-				res.Status = function.ActionStatusFailed
-				res.Error = err.Error()
-			} else {
-				res.Result = dfResult
-			}
-		case function.ActionTypeDatastreamPublish:
-			dsResult, err := s.handleDatastreamPublish(ctx, def, action.Params)
-			if err != nil {
-				res.Status = function.ActionStatusFailed
-				res.Error = err.Error()
-			} else {
-				res.Result = dsResult
-			}
-		case function.ActionTypeDatalinkDeliver:
-			dlResult, err := s.handleDatalinkDelivery(ctx, def, action.Params)
-			if err != nil {
-				res.Status = function.ActionStatusFailed
-				res.Error = err.Error()
-			} else {
-				res.Result = dlResult
-			}
-		case function.ActionTypeAutomationSchedule:
-			autoResult, err := s.handleAutomationSchedule(ctx, def, action.Params)
-			if err != nil {
-				res.Status = function.ActionStatusFailed
-				res.Error = err.Error()
-			} else {
-				res.Result = autoResult
-			}
-		default:
+		handler, ok := s.actionHandlers[action.Type]
+		if !ok {
 			res.Status = function.ActionStatusFailed
 			res.Error = fmt.Sprintf("unsupported action type %q", action.Type)
+		} else {
+			output, err := handler(ctx, def, action.Params)
+			if err != nil {
+				res.Status = function.ActionStatusFailed
+				res.Error = err.Error()
+			} else {
+				res.Result = output
+			}
 		}
 
 		results = append(results, res)
@@ -109,6 +47,20 @@ func (s *Service) processActions(ctx context.Context, def function.Definition, a
 	}
 
 	return results, firstErr
+}
+
+func (s *Service) registerActionHandlers() {
+	s.actionHandlers = map[string]actionHandler{
+		function.ActionTypeGasBankEnsureAccount: s.handleGasBankEnsure,
+		function.ActionTypeGasBankWithdraw:      s.handleGasBankWithdraw,
+		function.ActionTypeGasBankBalance:       s.handleGasBankBalance,
+		function.ActionTypeGasBankListTx:        s.handleGasBankListTransactions,
+		function.ActionTypeOracleCreateRequest:  s.handleOracleCreateRequest,
+		function.ActionTypeDataFeedSubmit:       s.handleDataFeedSubmit,
+		function.ActionTypeDatastreamPublish:    s.handleDatastreamPublish,
+		function.ActionTypeDatalinkDeliver:      s.handleDatalinkDelivery,
+		function.ActionTypeAutomationSchedule:   s.handleAutomationSchedule,
+	}
 }
 
 func (s *Service) handleGasBankEnsure(ctx context.Context, def function.Definition, params map[string]any) (map[string]any, error) {

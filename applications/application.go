@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/metrics"
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	"github.com/R3E-Network/service_layer/applications/system"
 	"github.com/R3E-Network/service_layer/domain/function"
 	"github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"

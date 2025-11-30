@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/metrics"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
 	domain "github.com/R3E-Network/service_layer/domain/automation"
 	"github.com/R3E-Network/service_layer/domain/function"
 	"github.com/R3E-Network/service_layer/pkg/logger"

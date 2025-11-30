@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/storage/memory"
+	"github.com/R3E-Network/service_layer/pkg/storage/memory"
 	"github.com/R3E-Network/service_layer/domain/account"
 	"github.com/R3E-Network/service_layer/domain/secret"
 )

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/metrics"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
 	engine "github.com/R3E-Network/service_layer/system/core"
 )
 

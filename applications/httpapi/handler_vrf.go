@@ -8,7 +8,7 @@ import (
 )
 
 func (h *handler) accountVRF(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.VRF == nil {
+	if h.services.VRFService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("vrf service not configured"))
 		return
 	}
@@ -30,7 +30,7 @@ func (h *handler) accountVRFKeys(w http.ResponseWriter, r *http.Request, account
 	if len(rest) == 0 {
 		switch r.Method {
 		case http.MethodGet:
-			keys, err := h.app.VRF.ListKeys(r.Context(), accountID)
+			keys, err := h.services.VRFService().ListKeys(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -58,7 +58,7 @@ func (h *handler) accountVRFKeys(w http.ResponseWriter, r *http.Request, account
 				Attestation:   payload.Attestation,
 				Metadata:      payload.Metadata,
 			}
-			created, err := h.app.VRF.CreateKey(r.Context(), key)
+			created, err := h.services.VRFService().CreateKey(r.Context(), key)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -74,7 +74,7 @@ func (h *handler) accountVRFKeys(w http.ResponseWriter, r *http.Request, account
 	if len(rest) == 1 {
 		switch r.Method {
 		case http.MethodGet:
-			key, err := h.app.VRF.GetKey(r.Context(), accountID, keyID)
+			key, err := h.services.VRFService().GetKey(r.Context(), accountID, keyID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -89,7 +89,7 @@ func (h *handler) accountVRFKeys(w http.ResponseWriter, r *http.Request, account
 				Attestation   string            `json:"attestation"`
 				Metadata      map[string]string `json:"metadata"`
 			}
-			existing, err := h.app.VRF.GetKey(r.Context(), accountID, keyID)
+			existing, err := h.services.VRFService().GetKey(r.Context(), accountID, keyID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -108,7 +108,7 @@ func (h *handler) accountVRFKeys(w http.ResponseWriter, r *http.Request, account
 				Attestation:   payload.Attestation,
 				Metadata:      payload.Metadata,
 			}
-			updated, err := h.app.VRF.UpdateKey(r.Context(), accountID, key)
+			updated, err := h.services.VRFService().UpdateKey(r.Context(), accountID, key)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -134,11 +134,11 @@ func (h *handler) accountVRFKeys(w http.ResponseWriter, r *http.Request, account
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		if _, err := h.app.VRF.GetKey(r.Context(), accountID, keyID); err != nil {
+		if _, err := h.services.VRFService().GetKey(r.Context(), accountID, keyID); err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return
 		}
-		req, err := h.app.VRF.CreateRequest(r.Context(), accountID, keyID, payload.Consumer, payload.Seed, payload.Metadata)
+		req, err := h.services.VRFService().CreateRequest(r.Context(), accountID, keyID, payload.Consumer, payload.Seed, payload.Metadata)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -162,7 +162,7 @@ func (h *handler) accountVRFRequests(w http.ResponseWriter, r *http.Request, acc
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		reqs, err := h.app.VRF.ListRequests(r.Context(), accountID, limit)
+		reqs, err := h.services.VRFService().ListRequests(r.Context(), accountID, limit)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -174,7 +174,7 @@ func (h *handler) accountVRFRequests(w http.ResponseWriter, r *http.Request, acc
 			return
 		}
 		requestID := rest[0]
-		req, err := h.app.VRF.GetRequest(r.Context(), accountID, requestID)
+		req, err := h.services.VRFService().GetRequest(r.Context(), accountID, requestID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return

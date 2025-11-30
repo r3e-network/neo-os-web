@@ -17,7 +17,7 @@ import (
 	app "github.com/R3E-Network/service_layer/applications"
 	"github.com/R3E-Network/service_layer/applications/auth"
 	"github.com/R3E-Network/service_layer/applications/jam"
-	"github.com/R3E-Network/service_layer/applications/storage/postgres"
+	"github.com/R3E-Network/service_layer/pkg/storage/postgres"
 	"github.com/R3E-Network/service_layer/system/platform/database"
 	"github.com/R3E-Network/service_layer/system/platform/migrations"
 	"github.com/joho/godotenv"

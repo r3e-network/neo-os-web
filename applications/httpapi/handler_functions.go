@@ -31,7 +31,7 @@ func (h *handler) accountFunctions(w http.ResponseWriter, r *http.Request, accou
 				Source:      payload.Source,
 				Secrets:     payload.Secrets,
 			}
-			created, err := h.app.Functions.Create(r.Context(), def)
+			created, err := h.services.FunctionsService().Create(r.Context(), def)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -39,7 +39,7 @@ func (h *handler) accountFunctions(w http.ResponseWriter, r *http.Request, accou
 			writeJSON(w, http.StatusCreated, created)
 
 		case http.MethodGet:
-			funcs, err := h.app.Functions.List(r.Context(), accountID)
+			funcs, err := h.services.FunctionsService().List(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -68,7 +68,7 @@ func (h *handler) accountFunctions(w http.ResponseWriter, r *http.Request, accou
 				methodNotAllowed(w, http.MethodPost)
 				return
 			}
-			def, err := h.app.Functions.Get(r.Context(), functionID)
+			def, err := h.services.FunctionsService().Get(r.Context(), functionID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -82,7 +82,7 @@ func (h *handler) accountFunctions(w http.ResponseWriter, r *http.Request, accou
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			result, err := h.app.Functions.Execute(r.Context(), functionID, payload)
+			result, err := h.services.FunctionsService().Execute(r.Context(), functionID, payload)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -100,7 +100,7 @@ func (h *handler) accountFunctions(w http.ResponseWriter, r *http.Request, accou
 }
 
 func (h *handler) accountFunctionExecutions(w http.ResponseWriter, r *http.Request, accountID, functionID string, rest []string) {
-	def, err := h.app.Functions.Get(r.Context(), functionID)
+	def, err := h.services.FunctionsService().Get(r.Context(), functionID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err)
 		return
@@ -121,7 +121,7 @@ func (h *handler) accountFunctionExecutions(w http.ResponseWriter, r *http.Reque
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		execs, err := h.app.Functions.ListExecutions(r.Context(), functionID, limit)
+		execs, err := h.services.FunctionsService().ListExecutions(r.Context(), functionID, limit)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
@@ -132,7 +132,7 @@ func (h *handler) accountFunctionExecutions(w http.ResponseWriter, r *http.Reque
 			methodNotAllowed(w, http.MethodGet)
 			return
 		}
-		exec, err := h.app.Functions.GetExecution(r.Context(), rest[0])
+		exec, err := h.services.FunctionsService().GetExecution(r.Context(), rest[0])
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return
@@ -156,7 +156,7 @@ func (h *handler) accountFunctionExecutionLookup(w http.ResponseWriter, r *http.
 		methodNotAllowed(w, http.MethodGet)
 		return
 	}
-	exec, err := h.app.Functions.GetExecution(r.Context(), rest[0])
+	exec, err := h.services.FunctionsService().GetExecution(r.Context(), rest[0])
 	if err != nil {
 		writeError(w, http.StatusNotFound, err)
 		return
@@ -169,7 +169,7 @@ func (h *handler) accountFunctionExecutionLookup(w http.ResponseWriter, r *http.
 }
 
 func (h *handler) accountSecrets(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.Secrets == nil {
+	if h.services.SecretsService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("secrets service not configured"))
 		return
 	}
@@ -177,7 +177,7 @@ func (h *handler) accountSecrets(w http.ResponseWriter, r *http.Request, account
 	if len(rest) == 0 {
 		switch r.Method {
 		case http.MethodGet:
-			items, err := h.app.Secrets.List(r.Context(), accountID)
+			items, err := h.services.SecretsService().List(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -200,7 +200,7 @@ func (h *handler) accountSecrets(w http.ResponseWriter, r *http.Request, account
 				acl := secret.ACL(*payload.ACL)
 				opts.ACL = acl
 			}
-			meta, err := h.app.Secrets.CreateWithOptions(r.Context(), accountID, payload.Name, payload.Value, opts)
+			meta, err := h.services.SecretsService().CreateWithOptions(r.Context(), accountID, payload.Name, payload.Value, opts)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -220,7 +220,7 @@ func (h *handler) accountSecrets(w http.ResponseWriter, r *http.Request, account
 	name := rest[0]
 	switch r.Method {
 	case http.MethodGet:
-		sec, err := h.app.Secrets.Get(r.Context(), accountID, name)
+		sec, err := h.services.SecretsService().Get(r.Context(), accountID, name)
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return
@@ -250,14 +250,14 @@ func (h *handler) accountSecrets(w http.ResponseWriter, r *http.Request, account
 			writeError(w, http.StatusBadRequest, fmt.Errorf("at least one of 'value' or 'acl' is required"))
 			return
 		}
-		meta, err := h.app.Secrets.UpdateWithOptions(r.Context(), accountID, name, opts)
+		meta, err := h.services.SecretsService().UpdateWithOptions(r.Context(), accountID, name, opts)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, meta)
 	case http.MethodDelete:
-		if err := h.app.Secrets.Delete(r.Context(), accountID, name); err != nil {
+		if err := h.services.SecretsService().Delete(r.Context(), accountID, name); err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return
 		}

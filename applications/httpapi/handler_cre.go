@@ -8,7 +8,7 @@ import (
 )
 
 func (h *handler) accountCRE(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
-	if h.app.CRE == nil {
+	if h.services.CREService() == nil {
 		writeError(w, http.StatusNotImplemented, fmt.Errorf("cre service not configured"))
 		return
 	}
@@ -52,14 +52,14 @@ func (h *handler) accountCREPlaybooks(w http.ResponseWriter, r *http.Request, ac
 				Metadata:    payload.Metadata,
 				Steps:       payload.Steps,
 			}
-			created, err := h.app.CRE.CreatePlaybook(r.Context(), pb)
+			created, err := h.services.CREService().CreatePlaybook(r.Context(), pb)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
 			writeJSON(w, http.StatusCreated, created)
 		case http.MethodGet:
-			playbooks, err := h.app.CRE.ListPlaybooks(r.Context(), accountID)
+			playbooks, err := h.services.CREService().ListPlaybooks(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -84,7 +84,7 @@ func (h *handler) accountCREPlaybooks(w http.ResponseWriter, r *http.Request, ac
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			run, err := h.app.CRE.CreateRun(r.Context(), accountID, playbookID, payload.Params, payload.Tags, payload.ExecutorID)
+			run, err := h.services.CREService().CreateRun(r.Context(), accountID, playbookID, payload.Params, payload.Tags, payload.ExecutorID)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -94,7 +94,7 @@ func (h *handler) accountCREPlaybooks(w http.ResponseWriter, r *http.Request, ac
 		}
 		switch r.Method {
 		case http.MethodGet:
-			pb, err := h.app.CRE.GetPlaybook(r.Context(), accountID, playbookID)
+			pb, err := h.services.CREService().GetPlaybook(r.Context(), accountID, playbookID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -121,7 +121,7 @@ func (h *handler) accountCREPlaybooks(w http.ResponseWriter, r *http.Request, ac
 				Metadata:    payload.Metadata,
 				Steps:       payload.Steps,
 			}
-			updated, err := h.app.CRE.UpdatePlaybook(r.Context(), pb)
+			updated, err := h.services.CREService().UpdatePlaybook(r.Context(), pb)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -143,7 +143,7 @@ func (h *handler) accountCRERuns(w http.ResponseWriter, r *http.Request, account
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			runs, err := h.app.CRE.ListRuns(r.Context(), accountID, limit)
+			runs, err := h.services.CREService().ListRuns(r.Context(), accountID, limit)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -160,7 +160,7 @@ func (h *handler) accountCRERuns(w http.ResponseWriter, r *http.Request, account
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			run, err := h.app.CRE.CreateRun(r.Context(), accountID, payload.PlaybookID, payload.Params, payload.Tags, payload.ExecutorID)
+			run, err := h.services.CREService().CreateRun(r.Context(), accountID, payload.PlaybookID, payload.Params, payload.Tags, payload.ExecutorID)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -175,7 +175,7 @@ func (h *handler) accountCRERuns(w http.ResponseWriter, r *http.Request, account
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		run, err := h.app.CRE.GetRun(r.Context(), accountID, runID)
+		run, err := h.services.CREService().GetRun(r.Context(), accountID, runID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return
@@ -189,7 +189,7 @@ func (h *handler) accountCREExecutors(w http.ResponseWriter, r *http.Request, ac
 	case 0:
 		switch r.Method {
 		case http.MethodGet:
-			execs, err := h.app.CRE.ListExecutors(r.Context(), accountID)
+			execs, err := h.services.CREService().ListExecutors(r.Context(), accountID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				return
@@ -215,7 +215,7 @@ func (h *handler) accountCREExecutors(w http.ResponseWriter, r *http.Request, ac
 				Metadata:  payload.Metadata,
 				Tags:      payload.Tags,
 			}
-			created, err := h.app.CRE.CreateExecutor(r.Context(), exec)
+			created, err := h.services.CREService().CreateExecutor(r.Context(), exec)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -228,7 +228,7 @@ func (h *handler) accountCREExecutors(w http.ResponseWriter, r *http.Request, ac
 		execID := rest[0]
 		switch r.Method {
 		case http.MethodGet:
-			exec, err := h.app.CRE.GetExecutor(r.Context(), accountID, execID)
+			exec, err := h.services.CREService().GetExecutor(r.Context(), accountID, execID)
 			if err != nil {
 				writeError(w, http.StatusNotFound, err)
 				return
@@ -255,7 +255,7 @@ func (h *handler) accountCREExecutors(w http.ResponseWriter, r *http.Request, ac
 				Metadata:  payload.Metadata,
 				Tags:      payload.Tags,
 			}
-			updated, err := h.app.CRE.UpdateExecutor(r.Context(), exec)
+			updated, err := h.services.CREService().UpdateExecutor(r.Context(), exec)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return

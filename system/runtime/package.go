@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	engine "github.com/R3E-Network/service_layer/system/core"
 	"github.com/R3E-Network/service_layer/system/framework"
 )
@@ -219,97 +220,40 @@ func (m *PackageManifest) CheckPermissions(granted map[string]bool) []string {
 // Unlike PackageStorage (generic key-value), StoreProvider offers typed
 // interfaces for each service domain's persistence needs.
 type StoreProvider interface {
-	// Account domain
 	AccountStore() AccountStoreAPI
-
-	// Function domain
 	FunctionStore() FunctionStoreAPI
-
-	// GasBank domain
 	GasBankStore() GasBankStoreAPI
-
-	// Automation domain
 	AutomationStore() AutomationStoreAPI
-
-	// DataFeed domain
 	DataFeedStore() DataFeedStoreAPI
-
-	// DataStream domain
 	DataStreamStore() DataStreamStoreAPI
-
-	// DataLink domain
 	DataLinkStore() DataLinkStoreAPI
-
-	// DTA domain
 	DTAStore() DTAStoreAPI
-
-	// Confidential domain
 	ConfidentialStore() ConfidentialStoreAPI
-
-	// Oracle domain
 	OracleStore() OracleStoreAPI
-
-	// Secret domain
 	SecretStore() SecretStoreAPI
-
-	// CRE domain
 	CREStore() CREStoreAPI
-
-	// CCIP domain
 	CCIPStore() CCIPStoreAPI
-
-	// VRF domain
 	VRFStore() VRFStoreAPI
-
-	// WorkspaceWallet domain
 	WorkspaceWalletStore() WorkspaceWalletStoreAPI
 }
 
-// Store API interfaces - these are implemented by applications/storage
+// Store API interfaces - these are implemented by pkg/storage
 // We define minimal interfaces here to avoid import cycles.
-// The actual implementations come from applications/storage package.
+// The actual implementations come from pkg/storage package.
 
 // AccountStoreAPI is the interface for account persistence.
-type AccountStoreAPI interface{}
-
-// FunctionStoreAPI is the interface for function persistence.
-type FunctionStoreAPI interface{}
-
-// GasBankStoreAPI is the interface for gas bank persistence.
-type GasBankStoreAPI interface{}
-
-// AutomationStoreAPI is the interface for automation persistence.
-type AutomationStoreAPI interface{}
-
-// DataFeedStoreAPI is the interface for data feed persistence.
-type DataFeedStoreAPI interface{}
-
-// DataStreamStoreAPI is the interface for data stream persistence.
-type DataStreamStoreAPI interface{}
-
-// DataLinkStoreAPI is the interface for data link persistence.
-type DataLinkStoreAPI interface{}
-
-// DTAStoreAPI is the interface for DTA persistence.
-type DTAStoreAPI interface{}
-
-// ConfidentialStoreAPI is the interface for confidential persistence.
-type ConfidentialStoreAPI interface{}
-
-// OracleStoreAPI is the interface for oracle persistence.
-type OracleStoreAPI interface{}
-
-// SecretStoreAPI is the interface for secret persistence.
-type SecretStoreAPI interface{}
-
-// CREStoreAPI is the interface for CRE persistence.
-type CREStoreAPI interface{}
-
-// CCIPStoreAPI is the interface for CCIP persistence.
-type CCIPStoreAPI interface{}
-
-// VRFStoreAPI is the interface for VRF persistence.
-type VRFStoreAPI interface{}
-
-// WorkspaceWalletStoreAPI is the interface for workspace wallet persistence.
-type WorkspaceWalletStoreAPI interface{}
+type AccountStoreAPI interface{ storage.AccountStore }
+type FunctionStoreAPI interface{ storage.FunctionStore }
+type GasBankStoreAPI interface{ storage.GasBankStore }
+type AutomationStoreAPI interface{ storage.AutomationStore }
+type DataFeedStoreAPI interface{ storage.DataFeedStore }
+type DataStreamStoreAPI interface{ storage.DataStreamStore }
+type DataLinkStoreAPI interface{ storage.DataLinkStore }
+type DTAStoreAPI interface{ storage.DTAStore }
+type ConfidentialStoreAPI interface{ storage.ConfidentialStore }
+type OracleStoreAPI interface{ storage.OracleStore }
+type SecretStoreAPI interface{ storage.SecretStore }
+type CREStoreAPI interface{ storage.CREStore }
+type CCIPStoreAPI interface{ storage.CCIPStore }
+type VRFStoreAPI interface{ storage.VRFStore }
+type WorkspaceWalletStoreAPI interface{ storage.WorkspaceWalletStore }

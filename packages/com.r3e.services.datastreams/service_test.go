@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/storage/memory"
+	"github.com/R3E-Network/service_layer/pkg/storage/memory"
 	"github.com/R3E-Network/service_layer/domain/account"
 	domainds "github.com/R3E-Network/service_layer/domain/datastreams"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
