@@ -237,3 +237,14 @@ func (s *Service) applyNextRun(job *Job, from time.Time) error {
 	job.NextRun = next
 	return nil
 }
+
+// APIEndpoints declares the HTTP API endpoints for this service.
+// The service engine automatically registers routes based on this declaration.
+func (s *Service) APIEndpoints() []core.APIEndpoint {
+	return []core.APIEndpoint{
+		{core.GET, "jobs", "ListJobs", "List all automation jobs"},
+		{core.POST, "jobs", "CreateJob", "Create a new automation job"},
+		{core.GET, "jobs/{id}", "GetJob", "Get job by ID"},
+		{core.PATCH, "jobs/{id}", "UpdateJob", "Update an existing job"},
+	}
+}
