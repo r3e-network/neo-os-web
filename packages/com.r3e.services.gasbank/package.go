@@ -1,8 +1,14 @@
 // Package gasbank provides the Gas Bank Service as a ServicePackage.
+// This package is self-contained with its own:
+// - Domain types (domain.go)
+// - Store interface and implementation (store.go, store_postgres.go)
+// - Service logic (service.go)
+// - HTTP handlers (http.go)
 package gasbank
 
 import (
 	"context"
+	"net/http"
 
 	engine "github.com/R3E-Network/service_layer/system/core"
 	pkg "github.com/R3E-Network/service_layer/system/runtime"
@@ -11,6 +17,7 @@ import (
 // Package implements the ServicePackage interface using PackageTemplate.
 type Package struct {
 	pkg.PackageTemplate
+	httpHandler *HTTPHandler
 }
 
 func init() {
@@ -40,5 +47,21 @@ func (p *Package) CreateServices(ctx context.Context, runtime pkg.PackageRuntime
 	log := pkg.GetLogger(runtime, "gasbank")
 
 	svc := New(accounts, store, log)
+
+	// Create HTTP handler for this service
+	p.httpHandler = NewHTTPHandler(svc)
+
 	return []engine.ServiceModule{svc}, nil
+}
+
+// RegisterRoutes implements the RouteRegistrar interface.
+func (p *Package) RegisterRoutes(mux *http.ServeMux, basePath string) {
+	// Routes are registered via Handle method called from application layer
+	_ = mux
+	_ = basePath
+}
+
+// HTTPHandler returns the HTTP handler for external registration.
+func (p *Package) HTTPHandler() *HTTPHandler {
+	return p.httpHandler
 }
