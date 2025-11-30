@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/storage/memory"
+	"github.com/R3E-Network/service_layer/pkg/storage/memory"
 	"github.com/R3E-Network/service_layer/domain/account"
 )
 
@@ -15,7 +15,7 @@ import (
 
 func TestNewBase(t *testing.T) {
 	store := memory.New()
-	base := NewBase(store)
+	base := NewBaseFromStore[account.Account](store)
 
 	if base == nil {
 		t.Fatal("expected non-nil Base")
@@ -30,9 +30,9 @@ func TestNewBase(t *testing.T) {
 
 func TestBase_SetWallets(t *testing.T) {
 	store := memory.New()
-	base := NewBase(store)
+	base := NewBaseFromStore[account.Account](store)
 
-	base.SetWallets(store)
+	base.SetWallets(WrapWalletStore[account.WorkspaceWallet](store))
 	if base.wallets == nil {
 		t.Fatal("expected wallets store to be set")
 	}
@@ -58,7 +58,7 @@ func TestBase_SetTracer(t *testing.T) {
 func TestBase_EnsureAccount(t *testing.T) {
 	ctx := context.Background()
 	store := memory.New()
-	base := NewBase(store)
+	base := NewBaseFromStore[account.Account](store)
 
 	// Empty account ID should fail
 	err := base.EnsureAccount(ctx, "")
@@ -98,7 +98,7 @@ func TestBase_EnsureAccount(t *testing.T) {
 func TestBase_NormalizeAccount(t *testing.T) {
 	ctx := context.Background()
 	store := memory.New()
-	base := NewBase(store)
+	base := NewBaseFromStore[account.Account](store)
 
 	// Empty account ID
 	_, err := base.NormalizeAccount(ctx, "")
@@ -138,8 +138,8 @@ func TestBase_NormalizeAccount(t *testing.T) {
 func TestBase_EnsureSignersOwned(t *testing.T) {
 	ctx := context.Background()
 	store := memory.New()
-	base := NewBase(store)
-	base.SetWallets(store)
+	base := NewBaseFromStore[account.Account](store)
+	base.SetWallets(WrapWalletStore[account.WorkspaceWallet](store))
 
 	acct, _ := store.CreateAccount(ctx, account.Account{Owner: "test"})
 	store.CreateWorkspaceWallet(ctx, account.WorkspaceWallet{
@@ -167,7 +167,7 @@ func TestBase_EnsureSignersOwned(t *testing.T) {
 	}
 
 	// With nil wallets store, passes
-	baseNoWallets := NewBase(store)
+	baseNoWallets := NewBaseFromStore[account.Account](store)
 	err = baseNoWallets.EnsureSignersOwned(ctx, acct.ID, []string{"any-signer"})
 	if err != nil {
 		t.Fatalf("expected success with nil wallets: %v", err)

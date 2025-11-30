@@ -1,11 +1,12 @@
 package confidential
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	domainconf "github.com/R3E-Network/service_layer/domain/confidential"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -71,7 +72,7 @@ func New(accounts storage.AccountStore, store storage.ConfidentialStore, log *lo
 		log = logger.NewDefault("confidential")
 	}
 	svc := &Service{
-		base:           core.NewBase(accounts),
+		base:           core.NewBaseFromStore[account.Account](accounts),
 		store:          store,
 		log:            log,
 		sealedKeyHooks: core.NoopObservationHooks,

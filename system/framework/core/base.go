@@ -4,25 +4,74 @@ import (
 	"context"
 	"fmt"
 	"strings"
-
-	"github.com/R3E-Network/service_layer/applications/storage"
 )
+
+// AccountLookup is the minimal interface for account existence checks.
+// Any store with a GetAccount method returning (T, error) can be adapted.
+type AccountLookup interface {
+	LookupAccount(ctx context.Context, id string) error
+}
+
+// WalletLookup is the minimal interface for workspace wallet lookups.
+type WalletLookup interface {
+	LookupWallet(ctx context.Context, workspaceID, wallet string) error
+}
+
+// AccountStoreAdapter wraps any account store to implement AccountLookup.
+type AccountStoreAdapter[T any] struct {
+	Store interface {
+		GetAccount(ctx context.Context, id string) (T, error)
+	}
+}
+
+// LookupAccount checks if an account exists.
+func (a AccountStoreAdapter[T]) LookupAccount(ctx context.Context, id string) error {
+	_, err := a.Store.GetAccount(ctx, id)
+	return err
+}
+
+// WalletStoreAdapter wraps any wallet store to implement WalletLookup.
+type WalletStoreAdapter[T any] struct {
+	Store interface {
+		FindWorkspaceWalletByAddress(ctx context.Context, workspaceID, wallet string) (T, error)
+	}
+}
+
+// LookupWallet checks if a wallet exists.
+func (a WalletStoreAdapter[T]) LookupWallet(ctx context.Context, workspaceID, wallet string) error {
+	_, err := a.Store.FindWorkspaceWalletByAddress(ctx, workspaceID, wallet)
+	return err
+}
 
 // Base bundles shared service helpers (account validation, workspace wallets, etc).
 type Base struct {
-	accounts storage.AccountStore
-	wallets  storage.WorkspaceWalletStore
+	accounts AccountLookup
+	wallets  WalletLookup
 	tracer   Tracer
 }
 
-// NewBase constructs a helper bound to the provided stores.
-func NewBase(accounts storage.AccountStore) *Base {
+// NewBase constructs a helper bound to the provided account lookup.
+func NewBase(accounts AccountLookup) *Base {
 	return &Base{accounts: accounts, tracer: NoopTracer}
 }
 
+// NewBaseFromStore constructs a helper from a typed account store.
+func NewBaseFromStore[T any](store interface {
+	GetAccount(ctx context.Context, id string) (T, error)
+}) *Base {
+	return &Base{accounts: AccountStoreAdapter[T]{Store: store}, tracer: NoopTracer}
+}
+
 // SetWallets wires a workspace wallet store for signer validation.
-func (b *Base) SetWallets(store storage.WorkspaceWalletStore) {
+func (b *Base) SetWallets(store WalletLookup) {
 	b.wallets = store
+}
+
+// WrapWalletStore wraps a typed wallet store to implement WalletLookup.
+func WrapWalletStore[T any](store interface {
+	FindWorkspaceWalletByAddress(ctx context.Context, workspaceID, wallet string) (T, error)
+}) WalletLookup {
+	return WalletStoreAdapter[T]{Store: store}
 }
 
 // SetTracer configures the tracer used for cross-cutting spans.
@@ -42,8 +91,7 @@ func (b *Base) EnsureAccount(ctx context.Context, accountID string) error {
 	if b.accounts == nil {
 		return nil
 	}
-	_, err := b.accounts.GetAccount(ctx, accountID)
-	return err
+	return b.accounts.LookupAccount(ctx, accountID)
 }
 
 // ValidateAccount validates an account ID and wraps errors with context.
@@ -74,7 +122,7 @@ func (b *Base) NormalizeAccount(ctx context.Context, accountID string) (string, 
 	if b.accounts == nil {
 		return trimmed, nil
 	}
-	if _, err := b.accounts.GetAccount(ctx, trimmed); err != nil {
+	if err := b.accounts.LookupAccount(ctx, trimmed); err != nil {
 		return "", err
 	}
 	return trimmed, nil
@@ -86,7 +134,7 @@ func (b *Base) EnsureSignersOwned(ctx context.Context, accountID string, signers
 		return nil
 	}
 	for _, signer := range signers {
-		if _, err := b.wallets.FindWorkspaceWalletByAddress(ctx, accountID, signer); err != nil {
+		if err := b.wallets.LookupWallet(ctx, accountID, signer); err != nil {
 			return fmt.Errorf("signer %s not registered for account %s", signer, accountID)
 		}
 	}

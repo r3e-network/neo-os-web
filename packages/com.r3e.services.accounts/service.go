@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	"github.com/R3E-Network/service_layer/domain/account"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -66,7 +66,7 @@ func New(store storage.AccountStore, log *logger.Logger) *Service {
 	if log == nil {
 		log = logger.NewDefault("accounts")
 	}
-	svc := &Service{store: store, log: log, base: core.NewBase(store)}
+	svc := &Service{store: store, log: log, base: core.NewBaseFromStore[account.Account](store)}
 	svc.SetName(svc.Name())
 	return svc
 }

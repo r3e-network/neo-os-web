@@ -1,11 +1,12 @@
 package vrf
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	domainvrf "github.com/R3E-Network/service_layer/domain/vrf"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -42,7 +43,7 @@ func New(accounts storage.AccountStore, store storage.VRFStore, log *logger.Logg
 		log = logger.NewDefault("vrf")
 	}
 	svc := &Service{
-		base:  core.NewBase(accounts),
+		base:  core.NewBaseFromStore[account.Account](accounts),
 		store: store,
 		dispatcher: DispatcherFunc(func(context.Context, domainvrf.Request, domainvrf.Key) error {
 			return nil
@@ -63,7 +64,7 @@ func (s *Service) WithDispatcher(d Dispatcher) {
 
 // WithWorkspaceWallets injects a wallet store for ownership validation.
 func (s *Service) WithWorkspaceWallets(store storage.WorkspaceWalletStore) {
-	s.base.SetWallets(store)
+	s.base.SetWallets(core.WrapWalletStore[account.WorkspaceWallet](store))
 }
 
 // WithDispatcherRetry configures retry behavior for dispatcher calls.

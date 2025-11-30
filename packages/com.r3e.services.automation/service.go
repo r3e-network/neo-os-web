@@ -1,12 +1,13 @@
 package automation
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	"github.com/R3E-Network/service_layer/domain/automation"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -51,7 +52,7 @@ func New(accounts storage.AccountStore, functions storage.FunctionStore, store s
 		log = logger.NewDefault("automation")
 	}
 	svc := &Service{
-		base:      core.NewBase(accounts),
+		base:      core.NewBaseFromStore[account.Account](accounts),
 		functions: functions,
 		store:     store,
 		log:       log,

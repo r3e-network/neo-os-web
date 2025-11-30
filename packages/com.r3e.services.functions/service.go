@@ -1,6 +1,7 @@
 package functions
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,8 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/metrics"
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
 	"github.com/R3E-Network/service_layer/domain/automation"
 	"github.com/R3E-Network/service_layer/domain/function"
 	"github.com/R3E-Network/service_layer/domain/gasbank"
@@ -22,6 +22,7 @@ import (
 	oraclesvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.oracle"
 	vrfsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.vrf"
 	"github.com/R3E-Network/service_layer/pkg/logger"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	engine "github.com/R3E-Network/service_layer/system/core"
 	"github.com/R3E-Network/service_layer/system/framework"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
@@ -37,18 +38,19 @@ var _ computeInvoker = (*Service)(nil)
 // Service manages function definitions.
 type Service struct {
 	framework.ServiceBase
-	base        *core.Base
-	store       storage.FunctionStore
-	log         *logger.Logger
-	automation  *automationsvc.Service
-	dataFeeds   *datafeedsvc.Service
-	dataStreams *datastreamsvc.Service
-	dataLink    *datalinksvc.Service
-	oracle      *oraclesvc.Service
-	gasBank     *gasbanksvc.Service
-	vrf         *vrfsvc.Service
-	executor    FunctionExecutor
-	secrets     SecretResolver
+	base           *core.Base
+	store          storage.FunctionStore
+	log            *logger.Logger
+	automation     *automationsvc.Service
+	dataFeeds      *datafeedsvc.Service
+	dataStreams    *datastreamsvc.Service
+	dataLink       *datalinksvc.Service
+	oracle         *oraclesvc.Service
+	gasBank        *gasbanksvc.Service
+	vrf            *vrfsvc.Service
+	executor       FunctionExecutor
+	secrets        SecretResolver
+	actionHandlers map[string]actionHandler
 }
 
 // Name returns the stable engine module name.
@@ -79,8 +81,9 @@ func New(accounts storage.AccountStore, store storage.FunctionStore, log *logger
 	if log == nil {
 		log = logger.NewDefault("functions")
 	}
-	svc := &Service{base: core.NewBase(accounts), store: store, log: log}
+	svc := &Service{base: core.NewBaseFromStore[account.Account](accounts), store: store, log: log}
 	svc.SetName(svc.Name())
+	svc.registerActionHandlers()
 	return svc
 }
 
@@ -108,6 +111,7 @@ func (s *Service) AttachDependencies(
 	s.oracle = oracle
 	s.gasBank = gasBank
 	s.vrf = vrf
+	s.registerActionHandlers()
 }
 
 // AttachExecutor injects a function executor implementation.

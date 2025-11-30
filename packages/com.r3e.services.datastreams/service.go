@@ -1,12 +1,13 @@
 package datastreams
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	domainds "github.com/R3E-Network/service_layer/domain/datastreams"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -59,7 +60,7 @@ func New(accounts storage.AccountStore, store storage.DataStreamStore, log *logg
 	if log == nil {
 		log = logger.NewDefault("datastreams")
 	}
-	svc := &Service{base: core.NewBase(accounts), store: store, log: log, hooks: core.NoopObservationHooks}
+	svc := &Service{base: core.NewBaseFromStore[account.Account](accounts), store: store, log: log, hooks: core.NoopObservationHooks}
 	svc.SetName(svc.Name())
 	return svc
 }

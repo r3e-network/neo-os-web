@@ -1,11 +1,12 @@
 package datalink
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	domainlink "github.com/R3E-Network/service_layer/domain/datalink"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -71,7 +72,7 @@ func New(accounts storage.AccountStore, store storage.DataLinkStore, log *logger
 		log = logger.NewDefault("datalink")
 	}
 	svc := &Service{
-		base:  core.NewBase(accounts),
+		base:  core.NewBaseFromStore[account.Account](accounts),
 		store: store,
 		dispatcher: DispatcherFunc(func(context.Context, domainlink.Delivery, domainlink.Channel) error {
 			return nil
@@ -146,7 +147,7 @@ func (s *Service) WithTracer(t core.Tracer) {
 
 // WithWorkspaceWallets injects wallet validation for channels.
 func (s *Service) WithWorkspaceWallets(store storage.WorkspaceWalletStore) {
-	s.base.SetWallets(store)
+	s.base.SetWallets(core.WrapWalletStore[account.WorkspaceWallet](store))
 }
 
 // CreateChannel registers a channel.

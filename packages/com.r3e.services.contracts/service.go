@@ -13,11 +13,12 @@
 package contracts
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	domaincontract "github.com/R3E-Network/service_layer/domain/contract"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -102,7 +103,7 @@ func New(accounts storage.AccountStore, store storage.ContractStore, log *logger
 		log = logger.NewDefault("contracts")
 	}
 	svc := &Service{
-		base:     core.NewBase(accounts),
+		base:     core.NewBaseFromStore[account.Account](accounts),
 		store:    store,
 		log:      log,
 		hooks:    core.NoopObservationHooks,

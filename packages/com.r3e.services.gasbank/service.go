@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	"github.com/R3E-Network/service_layer/domain/account"
 	"github.com/R3E-Network/service_layer/domain/gasbank"
 	"github.com/R3E-Network/service_layer/pkg/logger"
@@ -86,7 +86,7 @@ func New(accounts storage.AccountStore, store storage.GasBankStore, log *logger.
 	if log == nil {
 		log = logger.NewDefault("gasbank")
 	}
-	svc := &Service{base: core.NewBase(accounts), store: store, log: log}
+	svc := &Service{base: core.NewBaseFromStore[account.Account](accounts), store: store, log: log}
 	svc.SetName(svc.Name())
 	return svc
 }

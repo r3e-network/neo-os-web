@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -8,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	"github.com/R3E-Network/service_layer/domain/secret"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -78,7 +79,7 @@ func New(accounts storage.AccountStore, store storage.SecretStore, log *logger.L
 		log = logger.NewDefault("secrets")
 	}
 	svc := &Service{
-		base:   core.NewBase(accounts),
+		base:   core.NewBaseFromStore[account.Account](accounts),
 		store:  store,
 		log:    log,
 		cipher: noopCipher{},

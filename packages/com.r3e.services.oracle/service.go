@@ -1,13 +1,14 @@
 package oracle
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	"github.com/R3E-Network/service_layer/domain/oracle"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -85,7 +86,7 @@ func New(accounts storage.AccountStore, store storage.OracleStore, log *logger.L
 		log = logger.NewDefault("oracle")
 	}
 	svc := &Service{
-		base:       core.NewBase(accounts),
+		base:       core.NewBaseFromStore[account.Account](accounts),
 		store:      store,
 		log:        log,
 		defaultFee: 0, // free by default

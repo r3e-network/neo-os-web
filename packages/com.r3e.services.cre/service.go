@@ -1,11 +1,12 @@
 package cre
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	"github.com/R3E-Network/service_layer/domain/cre"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -74,7 +75,7 @@ func New(accounts storage.AccountStore, store storage.CREStore, log *logger.Logg
 		log = logger.NewDefault("cre")
 	}
 	svc := &Service{
-		base:  core.NewBase(accounts),
+		base:  core.NewBaseFromStore[account.Account](accounts),
 		store: store,
 		log:   log,
 		runner: RunnerFunc(func(context.Context, cre.Run, cre.Playbook, *cre.Executor) error {

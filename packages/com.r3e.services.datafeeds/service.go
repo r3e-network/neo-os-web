@@ -1,6 +1,7 @@
 package datafeeds
 
 import (
+	"github.com/R3E-Network/service_layer/domain/account"
 	"context"
 	"fmt"
 	"math/big"
@@ -9,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/metrics"
-	"github.com/R3E-Network/service_layer/applications/storage"
+	"github.com/R3E-Network/service_layer/pkg/metrics"
+	"github.com/R3E-Network/service_layer/pkg/storage"
 	domaindf "github.com/R3E-Network/service_layer/domain/datafeeds"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -64,14 +65,14 @@ func New(accounts storage.AccountStore, store storage.DataFeedStore, log *logger
 	if log == nil {
 		log = logger.NewDefault("datafeeds")
 	}
-	svc := &Service{base: core.NewBase(accounts), store: store, log: log, hooks: core.NoopObservationHooks}
+	svc := &Service{base: core.NewBaseFromStore[account.Account](accounts), store: store, log: log, hooks: core.NoopObservationHooks}
 	svc.SetName(svc.Name())
 	return svc
 }
 
 // WithWorkspaceWallets enforces signer set ownership when provided.
 func (s *Service) WithWorkspaceWallets(store storage.WorkspaceWalletStore) {
-	s.base.SetWallets(store)
+	s.base.SetWallets(core.WrapWalletStore[account.WorkspaceWallet](store))
 }
 
 // WithAggregationConfig sets baseline aggregation parameters.
