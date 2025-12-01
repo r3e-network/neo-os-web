@@ -390,6 +390,158 @@ func (r *Registry) CryptoEngines() []CryptoEngine {
 	return out
 }
 
+// SecretsEngines returns registered secrets engines.
+func (r *Registry) SecretsEngines() []SecretsEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []SecretsEngine
+	for _, mod := range r.modules {
+		if se, ok := mod.(SecretsEngine); ok {
+			out = append(out, se)
+		}
+	}
+	return out
+}
+
+// =============================================================================
+// Security & Access Control Engine Accessors
+// =============================================================================
+
+// SecurityEngines returns registered security engines.
+func (r *Registry) SecurityEngines() []SecurityEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []SecurityEngine
+	for _, mod := range r.modules {
+		if se, ok := mod.(SecurityEngine); ok {
+			out = append(out, se)
+		}
+	}
+	return out
+}
+
+// PermissionEngines returns registered permission engines.
+func (r *Registry) PermissionEngines() []PermissionEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []PermissionEngine
+	for _, mod := range r.modules {
+		if pe, ok := mod.(PermissionEngine); ok {
+			out = append(out, pe)
+		}
+	}
+	return out
+}
+
+// AuditEngines returns registered audit engines.
+func (r *Registry) AuditEngines() []AuditEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []AuditEngine
+	for _, mod := range r.modules {
+		if ae, ok := mod.(AuditEngine); ok {
+			out = append(out, ae)
+		}
+	}
+	return out
+}
+
+// =============================================================================
+// Infrastructure Engine Accessors
+// =============================================================================
+
+// CacheEngines returns registered cache engines.
+func (r *Registry) CacheEngines() []CacheEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []CacheEngine
+	for _, mod := range r.modules {
+		if ce, ok := mod.(CacheEngine); ok {
+			out = append(out, ce)
+		}
+	}
+	return out
+}
+
+// QueueEngines returns registered queue engines.
+func (r *Registry) QueueEngines() []QueueEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []QueueEngine
+	for _, mod := range r.modules {
+		if qe, ok := mod.(QueueEngine); ok {
+			out = append(out, qe)
+		}
+	}
+	return out
+}
+
+// SchedulerEngines returns registered scheduler engines.
+func (r *Registry) SchedulerEngines() []SchedulerEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []SchedulerEngine
+	for _, mod := range r.modules {
+		if se, ok := mod.(SchedulerEngine); ok {
+			out = append(out, se)
+		}
+	}
+	return out
+}
+
+// NotificationEngines returns registered notification engines.
+func (r *Registry) NotificationEngines() []NotificationEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []NotificationEngine
+	for _, mod := range r.modules {
+		if ne, ok := mod.(NotificationEngine); ok {
+			out = append(out, ne)
+		}
+	}
+	return out
+}
+
+// =============================================================================
+// Observability Engine Accessors
+// =============================================================================
+
+// MetricsEngines returns registered metrics engines.
+func (r *Registry) MetricsEngines() []MetricsEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []MetricsEngine
+	for _, mod := range r.modules {
+		if me, ok := mod.(MetricsEngine); ok {
+			out = append(out, me)
+		}
+	}
+	return out
+}
+
+// TracingEngines returns registered tracing engines.
+func (r *Registry) TracingEngines() []TracingEngine {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var out []TracingEngine
+	for _, mod := range r.modules {
+		if te, ok := mod.(TracingEngine); ok {
+			out = append(out, te)
+		}
+	}
+	return out
+}
+
 // orderedModulesLocked returns module names honoring explicit ordering first,
 // then remaining registration order. Must be called with lock held.
 func (r *Registry) orderedModulesLocked() []string {
@@ -475,6 +627,29 @@ func classify(mod ServiceModule) string {
 		return "gasbank"
 	case CryptoEngine:
 		return "crypto"
+	case SecretsEngine:
+		return "secrets"
+	// Security & Access Control
+	case SecurityEngine:
+		return "security"
+	case PermissionEngine:
+		return "permission"
+	case AuditEngine:
+		return "audit"
+	// Infrastructure
+	case CacheEngine:
+		return "cache"
+	case QueueEngine:
+		return "queue"
+	case SchedulerEngine:
+		return "scheduler"
+	case NotificationEngine:
+		return "notification"
+	// Observability
+	case MetricsEngine:
+		return "metrics"
+	case TracingEngine:
+		return "tracing"
 	default:
 		return ""
 	}
@@ -535,6 +710,39 @@ func enumerateInterfaces(mod ServiceModule) []string {
 	}
 	if _, ok := mod.(CryptoEngine); ok {
 		ifaces = append(ifaces, "crypto")
+	}
+	if _, ok := mod.(SecretsEngine); ok {
+		ifaces = append(ifaces, "secrets")
+	}
+	// Security & Access Control
+	if _, ok := mod.(SecurityEngine); ok {
+		ifaces = append(ifaces, "security")
+	}
+	if _, ok := mod.(PermissionEngine); ok {
+		ifaces = append(ifaces, "permission")
+	}
+	if _, ok := mod.(AuditEngine); ok {
+		ifaces = append(ifaces, "audit")
+	}
+	// Infrastructure
+	if _, ok := mod.(CacheEngine); ok {
+		ifaces = append(ifaces, "cache")
+	}
+	if _, ok := mod.(QueueEngine); ok {
+		ifaces = append(ifaces, "queue")
+	}
+	if _, ok := mod.(SchedulerEngine); ok {
+		ifaces = append(ifaces, "scheduler")
+	}
+	if _, ok := mod.(NotificationEngine); ok {
+		ifaces = append(ifaces, "notification")
+	}
+	// Observability
+	if _, ok := mod.(MetricsEngine); ok {
+		ifaces = append(ifaces, "metrics")
+	}
+	if _, ok := mod.(TracingEngine); ok {
+		ifaces = append(ifaces, "tracing")
 	}
 
 	return ifaces

@@ -56,6 +56,30 @@
 //	│  │  │ Engine  │ │ Engine  │ │ Engine  │ │ Engine  │          ││
 //	│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘          ││
 //	│  └────────────────────────────────────────────────────────────┘│
+//	│                                                                  │
+//	│  ┌────────────────────────────────────────────────────────────┐│
+//	│  │                Security & Access Control                    ││
+//	│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐          ││
+//	│  │  │Security │ │Permissn │ │  Audit  │ │ Secrets │          ││
+//	│  │  │ Engine  │ │ Engine  │ │ Engine  │ │ Engine  │          ││
+//	│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘          ││
+//	│  └────────────────────────────────────────────────────────────┘│
+//	│                                                                  │
+//	│  ┌────────────────────────────────────────────────────────────┐│
+//	│  │                Infrastructure Engines                       ││
+//	│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐          ││
+//	│  │  │  Cache  │ │  Queue  │ │Scheduler│ │ Notify  │          ││
+//	│  │  │ Engine  │ │ Engine  │ │ Engine  │ │ Engine  │          ││
+//	│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘          ││
+//	│  └────────────────────────────────────────────────────────────┘│
+//	│                                                                  │
+//	│  ┌────────────────────────────────────────────────────────────┐│
+//	│  │                Observability Engines                        ││
+//	│  │  ┌─────────┐ ┌─────────┐                                   ││
+//	│  │  │ Metrics │ │ Tracing │                                   ││
+//	│  │  │ Engine  │ │ Engine  │                                   ││
+//	│  │  └─────────┘ └─────────┘                                   ││
+//	│  └────────────────────────────────────────────────────────────┘│
 //	├─────────────────────────────────────────────────────────────────┤
 //	│                    Platform Layer (Drivers)                      │
 //	└─────────────────────────────────────────────────────────────────┘
@@ -138,6 +162,67 @@
 //   - CustodyEngine: Asset custody
 //   - ValuationEngine: Asset valuation
 //   - DistributionEngine: Dividend/yield distribution
+//
+// # Security & Access Control Engines
+//
+// ## SecurityEngine
+// Provides security policy enforcement and threat detection:
+//   - ValidateToken: Validates authentication tokens and returns claims
+//   - EnforcePolicy: Checks if actions are allowed by security policies
+//
+// ## PermissionEngine
+// Manages fine-grained permissions and RBAC:
+//   - CheckPermission: Verifies subject permissions for actions on resources
+//   - GrantPermission/RevokePermission: Manages permission grants
+//   - ListPermissions: Lists permissions for a subject
+//
+// ## AuditEngine
+// Provides audit logging and compliance tracking:
+//   - LogAuditEvent: Records audit events with actor, action, resource details
+//   - QueryAuditLog: Queries audit events with filters
+//
+// ## SecretsEngine
+// Provides secure secret storage and resolution for services:
+//   - StoreSecret: Stores encrypted secrets for accounts
+//   - GetSecret: Retrieves decrypted secrets by name
+//   - DeleteSecret: Removes secrets from storage
+//   - ListSecrets: Lists secret names (not values) for an account
+//   - ResolveSecrets: Resolves multiple secrets by name
+//
+// # Infrastructure Engines
+//
+// ## CacheEngine
+// Abstracts caching operations (Redis, Memcached, in-memory):
+//   - Get/Set/Delete: Basic cache operations
+//   - Exists: Check key existence
+//   - TTL support for automatic expiration
+//
+// ## QueueEngine
+// Abstracts message queue operations (RabbitMQ, Kafka, SQS):
+//   - Enqueue/Dequeue: Basic queue operations
+//   - Subscribe: Register handlers for queue messages
+//
+// ## SchedulerEngine
+// Manages scheduled tasks and cron jobs:
+//   - Schedule: Register tasks with cron expressions
+//   - Cancel: Cancel scheduled tasks
+//   - ListTasks: List all scheduled tasks
+//
+// ## NotificationEngine
+// Handles notifications across channels:
+//   - Send: Send notifications via email, SMS, push, or webhook
+//
+// # Observability Engines
+//
+// ## MetricsEngine
+// Provides metrics collection and export:
+//   - Counter: Increment counter metrics
+//   - Gauge: Set gauge metrics
+//   - Histogram: Record histogram observations
+//
+// ## TracingEngine
+// Provides distributed tracing capabilities:
+//   - StartSpan: Start trace spans with attributes
 //
 // # Usage
 //

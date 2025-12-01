@@ -94,6 +94,209 @@ type CryptoEngine interface {
 	CryptoInfo() string
 }
 
+// SecretsEngine provides secure secret storage and resolution for services.
+// It handles encrypted storage, access control, and secret lifecycle management.
+type SecretsEngine interface {
+	ServiceModule
+	// StoreSecret stores an encrypted secret for an account.
+	StoreSecret(ctx context.Context, accountID, name string, value []byte) error
+	// GetSecret retrieves a decrypted secret by name.
+	GetSecret(ctx context.Context, accountID, name string) ([]byte, error)
+	// DeleteSecret removes a secret.
+	DeleteSecret(ctx context.Context, accountID, name string) error
+	// ListSecrets returns secret names (not values) for an account.
+	ListSecrets(ctx context.Context, accountID string) ([]string, error)
+	// ResolveSecrets resolves multiple secrets by name, returning a map.
+	ResolveSecrets(ctx context.Context, accountID string, names []string) (map[string][]byte, error)
+	// SecretsInfo returns secrets engine metadata.
+	SecretsInfo() string
+}
+
+// =============================================================================
+// Security & Access Control Engines
+// =============================================================================
+
+// SecurityEngine provides security policy enforcement and threat detection.
+// It handles authentication, authorization policies, and security monitoring.
+type SecurityEngine interface {
+	ServiceModule
+	// ValidateToken validates an authentication token and returns claims.
+	ValidateToken(ctx context.Context, token string) (SecurityClaims, error)
+	// EnforcePolicy checks if an action is allowed by security policies.
+	EnforcePolicy(ctx context.Context, subject, action, resource string) error
+	// SecurityInfo returns security engine metadata.
+	SecurityInfo() string
+}
+
+// SecurityClaims represents validated authentication claims.
+type SecurityClaims struct {
+	Subject   string            // User or service identifier
+	Issuer    string            // Token issuer
+	Audience  []string          // Intended audiences
+	ExpiresAt int64             // Expiration timestamp
+	IssuedAt  int64             // Issue timestamp
+	Claims    map[string]any    // Additional claims
+}
+
+// PermissionEngine manages fine-grained permissions and RBAC.
+type PermissionEngine interface {
+	ServiceModule
+	// CheckPermission verifies if a subject has permission for an action on a resource.
+	CheckPermission(ctx context.Context, subject, action, resource string) (bool, error)
+	// GrantPermission grants a permission to a subject.
+	GrantPermission(ctx context.Context, subject, action, resource string) error
+	// RevokePermission revokes a permission from a subject.
+	RevokePermission(ctx context.Context, subject, action, resource string) error
+	// ListPermissions lists permissions for a subject.
+	ListPermissions(ctx context.Context, subject string) ([]Permission, error)
+}
+
+// Permission represents a single permission grant.
+type Permission struct {
+	Subject   string `json:"subject"`
+	Action    string `json:"action"`
+	Resource  string `json:"resource"`
+	GrantedAt int64  `json:"granted_at"`
+	GrantedBy string `json:"granted_by"`
+}
+
+// AuditEngine provides audit logging and compliance tracking.
+type AuditEngine interface {
+	ServiceModule
+	// LogAuditEvent records an audit event.
+	LogAuditEvent(ctx context.Context, event AuditEvent) error
+	// QueryAuditLog queries audit events with filters.
+	QueryAuditLog(ctx context.Context, filter AuditFilter) ([]AuditEvent, error)
+	// AuditInfo returns audit engine metadata.
+	AuditInfo() string
+}
+
+// AuditEvent represents a single audit log entry.
+type AuditEvent struct {
+	ID         string         `json:"id"`
+	Timestamp  int64          `json:"timestamp"`
+	Actor      string         `json:"actor"`       // Who performed the action
+	Action     string         `json:"action"`      // What action was performed
+	Resource   string         `json:"resource"`    // What resource was affected
+	ResourceID string         `json:"resource_id"` // Specific resource identifier
+	Outcome    string         `json:"outcome"`     // success, failure, denied
+	Details    map[string]any `json:"details"`     // Additional context
+	IPAddress  string         `json:"ip_address"`  // Source IP
+	UserAgent  string         `json:"user_agent"`  // Client user agent
+}
+
+// AuditFilter specifies criteria for querying audit logs.
+type AuditFilter struct {
+	Actor      string `json:"actor,omitempty"`
+	Action     string `json:"action,omitempty"`
+	Resource   string `json:"resource,omitempty"`
+	Outcome    string `json:"outcome,omitempty"`
+	StartTime  int64  `json:"start_time,omitempty"`
+	EndTime    int64  `json:"end_time,omitempty"`
+	Limit      int    `json:"limit,omitempty"`
+	Offset     int    `json:"offset,omitempty"`
+}
+
+// =============================================================================
+// Infrastructure Engines
+// =============================================================================
+
+// CacheEngine abstracts caching operations (Redis, Memcached, in-memory).
+type CacheEngine interface {
+	ServiceModule
+	// Get retrieves a value from cache.
+	Get(ctx context.Context, key string) ([]byte, error)
+	// Set stores a value in cache with optional TTL (seconds, 0 = no expiry).
+	Set(ctx context.Context, key string, value []byte, ttlSeconds int) error
+	// Delete removes a value from cache.
+	Delete(ctx context.Context, key string) error
+	// Exists checks if a key exists in cache.
+	Exists(ctx context.Context, key string) (bool, error)
+	// CacheInfo returns cache engine metadata.
+	CacheInfo() string
+}
+
+// QueueEngine abstracts message queue operations (RabbitMQ, Kafka, SQS).
+type QueueEngine interface {
+	ServiceModule
+	// Enqueue adds a message to a queue.
+	Enqueue(ctx context.Context, queue string, message []byte) error
+	// Dequeue retrieves and removes a message from a queue.
+	Dequeue(ctx context.Context, queue string) ([]byte, error)
+	// Subscribe registers a handler for messages on a queue.
+	Subscribe(ctx context.Context, queue string, handler func(context.Context, []byte) error) error
+	// QueueInfo returns queue engine metadata.
+	QueueInfo() string
+}
+
+// SchedulerEngine manages scheduled tasks and cron jobs.
+type SchedulerEngine interface {
+	ServiceModule
+	// Schedule registers a task to run at specified intervals.
+	Schedule(ctx context.Context, task ScheduledTask) (string, error)
+	// Cancel cancels a scheduled task.
+	Cancel(ctx context.Context, taskID string) error
+	// ListTasks lists all scheduled tasks.
+	ListTasks(ctx context.Context) ([]ScheduledTask, error)
+	// SchedulerInfo returns scheduler engine metadata.
+	SchedulerInfo() string
+}
+
+// ScheduledTask represents a scheduled job.
+type ScheduledTask struct {
+	ID       string         `json:"id"`
+	Name     string         `json:"name"`
+	Schedule string         `json:"schedule"` // Cron expression
+	Payload  map[string]any `json:"payload"`
+	Enabled  bool           `json:"enabled"`
+	LastRun  int64          `json:"last_run"`
+	NextRun  int64          `json:"next_run"`
+}
+
+// NotificationEngine handles notifications across channels (email, SMS, push).
+type NotificationEngine interface {
+	ServiceModule
+	// Send sends a notification through the specified channel.
+	Send(ctx context.Context, notification Notification) error
+	// NotificationInfo returns notification engine metadata.
+	NotificationInfo() string
+}
+
+// Notification represents a notification to be sent.
+type Notification struct {
+	Channel   string         `json:"channel"`   // email, sms, push, webhook
+	Recipient string         `json:"recipient"` // Target address/ID
+	Subject   string         `json:"subject"`
+	Body      string         `json:"body"`
+	Metadata  map[string]any `json:"metadata"`
+}
+
+// =============================================================================
+// Observability Engines
+// =============================================================================
+
+// MetricsEngine provides metrics collection and export.
+type MetricsEngine interface {
+	ServiceModule
+	// Counter increments a counter metric.
+	Counter(name string, labels map[string]string, delta float64)
+	// Gauge sets a gauge metric.
+	Gauge(name string, labels map[string]string, value float64)
+	// Histogram records a histogram observation.
+	Histogram(name string, labels map[string]string, value float64)
+	// MetricsInfo returns metrics engine metadata.
+	MetricsInfo() string
+}
+
+// TracingEngine provides distributed tracing capabilities.
+type TracingEngine interface {
+	ServiceModule
+	// StartSpan starts a new trace span.
+	StartSpan(ctx context.Context, name string, attrs map[string]string) (context.Context, func(error))
+	// TracingInfo returns tracing engine metadata.
+	TracingInfo() string
+}
+
 // Capability markers allow adapters to avoid advertising interfaces they cannot serve.
 
 // AccountCapable indicates whether a module supports account operations.
