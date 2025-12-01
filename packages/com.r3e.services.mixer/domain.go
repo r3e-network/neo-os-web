@@ -116,37 +116,52 @@ type MixRequest struct {
 
 // MixTarget represents a destination for mixed funds.
 type MixTarget struct {
-	Address   string `json:"address"`    // Destination wallet address
-	Amount    string `json:"amount"`     // Amount to deliver (decimal string)
-	Delivered bool   `json:"delivered"`  // Whether funds have been delivered
-	TxHash    string `json:"tx_hash"`    // Delivery transaction hash
+	Address     string    `json:"address"`      // Destination wallet address
+	Amount      string    `json:"amount"`       // Amount to deliver (decimal string)
+	Delivered   bool      `json:"delivered"`    // Whether funds have been delivered
+	TxHash      string    `json:"tx_hash"`      // Delivery transaction hash
+	DeliveredAt time.Time `json:"delivered_at"` // When delivery was completed
 }
 
-// PoolAccount represents a TEE-managed mixing pool account.
+// PoolAccount represents a TEE-managed mixing pool account using Double-Blind HD 1/2 Multi-sig.
+//
+// Architecture:
+// - HD Index: Unique derivation index for this pool account
+// - TEE Public Key: Derived from TEE root seed at m/44'/888'/0'/0/{index}
+// - Master Public Key: Derived from Master root seed at same path (offline)
+// - Address: Neo N3 1-of-2 multi-sig address (either key can sign)
+//
+// Security Properties:
+// - TEE handles daily operations (signing transactions)
+// - Master key provides recovery capability (offline, cold storage)
+// - Each pool address is independent (no on-chain linkability)
+// - Standard Neo N3 multi-sig (no contract deployment needed)
 type PoolAccount struct {
-	ID              string            `json:"id"`
-	WalletAddress   string            `json:"wallet_address"`
-	Status          PoolAccountStatus `json:"status"`
+	ID            string            `json:"id"`
+	WalletAddress string            `json:"wallet_address"` // Neo N3 1-of-2 multi-sig address
+	Status        PoolAccountStatus `json:"status"`
+
+	// HD Multi-sig Configuration
+	HDIndex         uint32 `json:"hd_index"`          // HD derivation index (m/44'/888'/0'/0/{index})
+	TEEPublicKey    string `json:"tee_public_key"`    // TEE-derived public key (hex, compressed)
+	MasterPublicKey string `json:"master_public_key"` // Master-derived public key (hex, compressed)
+	MultiSigScript  string `json:"multisig_script"`   // Neo N3 verification script (hex)
 
 	// Balance tracking
-	Balance         string            `json:"balance"`           // Current balance (decimal string)
-	PendingIn       string            `json:"pending_in"`        // Pending incoming amount
-	PendingOut      string            `json:"pending_out"`       // Pending outgoing amount
-
-	// TEE management
-	TEEKeyID        string            `json:"tee_key_id"`        // TEE enclave key identifier
-	EncryptedPrivKey string           `json:"encrypted_priv_key"` // Encrypted private key (TEE sealed)
+	Balance    string `json:"balance"`     // Current balance (decimal string)
+	PendingIn  string `json:"pending_in"`  // Pending incoming amount
+	PendingOut string `json:"pending_out"` // Pending outgoing amount
 
 	// Activity tracking
-	TotalReceived   string            `json:"total_received"`    // Lifetime received
-	TotalSent       string            `json:"total_sent"`        // Lifetime sent
-	TransactionCount int64            `json:"transaction_count"` // Total transactions
+	TotalReceived    string `json:"total_received"`    // Lifetime received
+	TotalSent        string `json:"total_sent"`        // Lifetime sent
+	TransactionCount int64  `json:"transaction_count"` // Total transactions
 
 	// Lifecycle
-	RetireAfter     time.Time         `json:"retire_after"`      // Scheduled retirement time
-	LastActivityAt  time.Time         `json:"last_activity_at"`
-	CreatedAt       time.Time         `json:"created_at"`
-	UpdatedAt       time.Time         `json:"updated_at"`
+	RetireAfter    time.Time `json:"retire_after"` // Scheduled retirement time
+	LastActivityAt time.Time `json:"last_activity_at"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // MixTransaction represents an internal mixing transaction between pool accounts.
@@ -166,6 +181,10 @@ type MixTransaction struct {
 	TxHash          string            `json:"tx_hash"`
 	BlockNumber     int64             `json:"block_number"`
 	GasUsed         string            `json:"gas_used"`
+
+	// Retry handling
+	RetryCount      int               `json:"retry_count"`
+	ErrorMessage    string            `json:"error_message,omitempty"`
 
 	Error           string            `json:"error,omitempty"`
 	ScheduledAt     time.Time         `json:"scheduled_at"`
