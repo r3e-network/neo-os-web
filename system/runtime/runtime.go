@@ -8,6 +8,7 @@ import (
 
 	engine "github.com/R3E-Network/service_layer/system/core"
 	"github.com/R3E-Network/service_layer/system/framework"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // runtime is the default implementation of PackageRuntime.
@@ -25,6 +26,8 @@ type runtime struct {
 
 	// Resource tracking
 	quotaEnforcer *quotaEnforcer
+	tracer        core.Tracer
+	metrics       framework.Metrics
 }
 
 // NewPackageRuntime creates a runtime context for a service package.
@@ -35,6 +38,8 @@ func NewPackageRuntime(
 	config PackageConfig,
 	permissions map[string]bool,
 	storeProvider StoreProvider,
+	tracer core.Tracer,
+	metrics framework.Metrics,
 ) PackageRuntime {
 	r := &runtime{
 		packageID:     packageID,
@@ -44,6 +49,14 @@ func NewPackageRuntime(
 		permissions:   permissions,
 		storeProvider: storeProvider,
 		quotaEnforcer: newQuotaEnforcer(manifest.Resources),
+		tracer:        tracer,
+		metrics:       metrics,
+	}
+	if r.tracer == nil {
+		r.tracer = core.NoopTracer
+	}
+	if r.metrics == nil {
+		r.metrics = framework.NoopMetrics()
 	}
 
 	// Initialize package-specific storage
@@ -112,6 +125,27 @@ func (r *runtime) LedgerClient() (any, error) {
 
 func (r *runtime) EnforceQuota(resource string, amount int64) error {
 	return r.quotaEnforcer.Enforce(resource, amount)
+}
+
+func (r *runtime) Quota() framework.QuotaEnforcer {
+	if r.quotaEnforcer == nil {
+		return framework.NoopQuota()
+	}
+	return r.quotaEnforcer
+}
+
+func (r *runtime) Metrics() framework.Metrics {
+	if r.metrics == nil {
+		return framework.NoopMetrics()
+	}
+	return r.metrics
+}
+
+func (r *runtime) Tracer() core.Tracer {
+	if r.tracer == nil {
+		return core.NoopTracer
+	}
+	return r.tracer
 }
 
 func (r *runtime) hasPermission(perm string) bool {
@@ -295,6 +329,8 @@ type quotaEnforcer struct {
 	quotas   ResourceQuotas
 	counters map[string]*rateLimiter
 }
+
+var _ framework.QuotaEnforcer = (*quotaEnforcer)(nil)
 
 func newQuotaEnforcer(quotas ResourceQuotas) *quotaEnforcer {
 	return &quotaEnforcer{

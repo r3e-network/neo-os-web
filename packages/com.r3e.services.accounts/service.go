@@ -19,45 +19,28 @@ type accountAPI interface {
 var _ accountAPI = (*Service)(nil)
 
 // Service manages account lifecycle operations.
+// Uses ServiceEngine for common functionality (validation, logging, manifest).
 type Service struct {
-	framework.ServiceBase
-	store Store
-	log   *logger.Logger
-	base  *core.Base
+	*framework.ServiceEngine // Provides: Name, Domain, Manifest, Descriptor, ValidateAccount, Logger, etc.
+	store                    Store
+	base                     *core.Base
 }
-
-// Name returns the stable engine module name.
-func (s *Service) Name() string { return "accounts" }
-
-// Domain reports the service domain for engine grouping.
-func (s *Service) Domain() string { return "accounts" }
-
-// Manifest describes how the accounts service plugs into the engine OS.
-func (s *Service) Manifest() *framework.Manifest {
-	return &framework.Manifest{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Description:  "Account registry and metadata",
-		Layer:        "service",
-		DependsOn:    []string{"store"},
-		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceAccount},
-		Capabilities: []string{"accounts"},
-	}
-}
-
-// Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
-
-// Start/Stop/Ready are inherited from framework.ServiceBase.
 
 // New creates an account service backed by the provided store.
-func New(store Store, log *logger.Logger) *Service {
-	if log == nil {
-		log = logger.NewDefault("accounts")
+func New(accounts framework.AccountChecker, store Store, log *logger.Logger) *Service {
+	return &Service{
+		ServiceEngine: framework.NewServiceEngine(framework.ServiceConfig{
+			Name:         "accounts",
+			Description:  "Account registry and metadata",
+			DependsOn:    []string{"store"},
+			RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceAccount},
+			Capabilities: []string{"accounts"},
+			Accounts:     accounts,
+			Logger:       log,
+		}),
+		store: store,
+		base:  core.NewBaseFromStore[Account](store),
 	}
-	svc := &Service{store: store, log: log, base: core.NewBaseFromStore[Account](store)}
-	svc.SetName(svc.Name())
-	return svc
 }
 
 // Create provisions a new account with optional metadata.
@@ -67,14 +50,22 @@ func (s *Service) Create(ctx context.Context, owner string, metadata map[string]
 	}
 
 	acct := Account{Owner: owner, Metadata: metadata}
+	attrs := map[string]string{"resource": "account", "owner": owner}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	created, err := s.store.CreateAccount(ctx, acct)
+	if err == nil {
+		attrs["account_id"] = created.ID
+	}
+	finish(err)
 	if err != nil {
 		return Account{}, err
 	}
 
-	s.log.WithField("account_id", created.ID).
+	s.Logger().WithField("account_id", created.ID).
 		WithField("owner", owner).
 		Info("account created")
+	s.LogCreated("account", created.ID, created.ID)
+	s.IncrementCounter("accounts_created_total", map[string]string{"account_id": created.ID})
 	return created, nil
 }
 
@@ -88,11 +79,16 @@ func (s *Service) UpdateMetadata(ctx context.Context, id string, metadata map[st
 		return Account{}, err
 	}
 	acct.Metadata = metadata
+	attrs := map[string]string{"resource": "account", "account_id": id, "op": "update_metadata"}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	updated, err := s.store.UpdateAccount(ctx, acct)
+	finish(err)
 	if err != nil {
 		return Account{}, err
 	}
-	s.log.WithField("account_id", id).Info("account metadata updated")
+	s.Logger().WithField("account_id", id).Info("account metadata updated")
+	s.LogUpdated("account", id, id)
+	s.IncrementCounter("accounts_metadata_updated_total", map[string]string{"account_id": id})
 	return updated, nil
 }
 
@@ -115,10 +111,16 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	if err := s.base.EnsureAccount(ctx, id); err != nil {
 		return err
 	}
+	attrs := map[string]string{"resource": "account", "account_id": id}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	if err := s.store.DeleteAccount(ctx, id); err != nil {
+		finish(err)
 		return err
 	}
-	s.log.WithField("account_id", id).Info("account deleted")
+	finish(nil)
+	s.Logger().WithField("account_id", id).Info("account deleted")
+	s.LogDeleted("account", id, id)
+	s.IncrementCounter("accounts_deleted_total", map[string]string{"account_id": id})
 	return nil
 }
 
@@ -171,7 +173,19 @@ func (s *Service) CreateWorkspaceWallet(ctx context.Context, wallet WorkspaceWal
 		return WorkspaceWallet{}, err
 	}
 	wallet.WalletAddress = NormalizeWalletAddress(wallet.WalletAddress)
-	return s.store.CreateWorkspaceWallet(ctx, wallet)
+	attrs := map[string]string{"resource": "workspace_wallet", "workspace_id": wallet.WorkspaceID}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	created, err := s.store.CreateWorkspaceWallet(ctx, wallet)
+	if err == nil {
+		attrs["wallet_id"] = created.ID
+	}
+	finish(err)
+	if err != nil {
+		return WorkspaceWallet{}, err
+	}
+	s.LogCreated("workspace_wallet", created.ID, wallet.WorkspaceID)
+	s.IncrementCounter("accounts_workspace_wallets_created_total", map[string]string{"workspace_id": wallet.WorkspaceID})
+	return created, nil
 }
 
 // GetWorkspaceWallet retrieves a workspace wallet by ID.
@@ -195,3 +209,43 @@ func (s *Service) FindWorkspaceWalletByAddress(ctx context.Context, workspaceID,
 	return s.store.FindWorkspaceWalletByAddress(ctx, workspaceID, walletAddr)
 }
 
+// HTTP API Methods
+// These methods follow the HTTP{Method}{Path} naming convention for automatic route discovery.
+
+// HTTPGetWorkspaceWallets handles GET /workspace-wallets - list all wallets for an account.
+func (s *Service) HTTPGetWorkspaceWallets(ctx context.Context, req core.APIRequest) (any, error) {
+	return s.ListWorkspaceWallets(ctx, req.AccountID)
+}
+
+// HTTPPostWorkspaceWallets handles POST /workspace-wallets - create a new workspace wallet.
+func (s *Service) HTTPPostWorkspaceWallets(ctx context.Context, req core.APIRequest) (any, error) {
+	walletAddress, _ := req.Body["wallet_address"].(string)
+	label, _ := req.Body["label"].(string)
+	status, _ := req.Body["status"].(string)
+
+	if err := ValidateWalletAddress(walletAddress); err != nil {
+		return nil, err
+	}
+
+	wallet := WorkspaceWallet{
+		WorkspaceID:   req.AccountID,
+		WalletAddress: NormalizeWalletAddress(walletAddress),
+		Label:         label,
+		Status:        status,
+	}
+
+	return s.CreateWorkspaceWallet(ctx, wallet)
+}
+
+// HTTPGetWorkspaceWalletsById handles GET /workspace-wallets/{id} - get a specific wallet.
+func (s *Service) HTTPGetWorkspaceWalletsById(ctx context.Context, req core.APIRequest) (any, error) {
+	walletID := req.PathParams["id"]
+	wallet, err := s.GetWorkspaceWallet(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	if err := core.EnsureOwnership(wallet.WorkspaceID, req.AccountID, "wallet", walletID); err != nil {
+		return nil, err
+	}
+	return wallet, nil
+}

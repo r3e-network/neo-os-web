@@ -2,6 +2,7 @@ package datafeeds
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -10,67 +11,44 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/pkg/logger"
-	"github.com/R3E-Network/service_layer/pkg/metrics"
 	engine "github.com/R3E-Network/service_layer/system/core"
 	"github.com/R3E-Network/service_layer/system/framework"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // Compile-time check: Service exposes Publish for the core engine adapter.
-type eventPublisher interface {
-	Publish(context.Context, string, any) error
-}
-
-var _ eventPublisher = (*Service)(nil)
+var _ core.EventPublisher = (*Service)(nil)
 
 // Service manages centralized Chainlink data feeds per account.
+// Uses ServiceEngine for common functionality (validation, logging, manifest).
 type Service struct {
-	framework.ServiceBase
-	accounts AccountChecker
-	wallets  WalletChecker
-	store    Store
-	log      *logger.Logger
-	hooks    core.ObservationHooks
+	*framework.ServiceEngine // Provides: Name, Domain, Manifest, Descriptor, ValidateAccount, Logger, etc.
+	store                    Store
 	// aggregation defaults
 	minSigners  int
 	aggregation string
 }
 
-// Name returns the stable engine module name.
-func (s *Service) Name() string { return "datafeeds" }
-
-// Domain reports the service domain for engine grouping.
-func (s *Service) Domain() string { return "datafeeds" }
-
-// Manifest describes the service contract for the engine OS.
-func (s *Service) Manifest() *framework.Manifest {
-	return &framework.Manifest{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Description:  "Aggregated data feed definitions and updates",
-		Layer:        "service",
-		DependsOn:    []string{"store", "svc-accounts"},
-		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceData},
-		Capabilities: []string{"datafeeds"},
-	}
-}
-
-// Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
-
 // New constructs a data feed service.
 func New(accounts AccountChecker, store Store, log *logger.Logger) *Service {
-	if log == nil {
-		log = logger.NewDefault("datafeeds")
+	svc := &Service{
+		ServiceEngine: framework.NewServiceEngine(framework.ServiceConfig{
+			Name:         "datafeeds",
+			Description:  "Aggregated data feed definitions and updates",
+			DependsOn:    []string{"store", "svc-accounts"},
+			RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceData},
+			Capabilities: []string{"datafeeds"},
+			Accounts:     accounts,
+			Logger:       log,
+		}),
+		store: store,
 	}
-	svc := &Service{accounts: accounts, store: store, log: log, hooks: core.NoopObservationHooks}
-	svc.SetName(svc.Name())
 	return svc
 }
 
 // WithWalletChecker injects a wallet checker for ownership validation.
 func (s *Service) WithWalletChecker(w WalletChecker) {
-	s.wallets = w
+	s.ServiceEngine.WithWalletChecker(w)
 }
 
 // WithAggregationConfig sets baseline aggregation parameters.
@@ -80,17 +58,15 @@ func (s *Service) WithAggregationConfig(minSigners int, aggregation string) {
 	}
 	agg, err := normalizeAggregation(aggregation)
 	if err != nil {
-		s.log.WithField("aggregation", aggregation).Warn("unsupported datafeed aggregation; defaulting to median")
+		s.Logger().WithField("aggregation", aggregation).Warn("unsupported datafeed aggregation; defaulting to median")
 	}
 	s.aggregation = agg
 }
 
 // WithObservationHooks configures observability callbacks for updates.
 func (s *Service) WithObservationHooks(h core.ObservationHooks) {
-	s.hooks = core.NormalizeHooks(h)
+	s.ServiceEngine.WithObservationHooks(h)
 }
-
-// Start/Stop/Ready are inherited from framework.ServiceBase.
 
 // Publish implements EventEngine: accept a feed update event.
 func (s *Service) Publish(ctx context.Context, event string, payload any) error {
@@ -119,7 +95,7 @@ func (s *Service) Publish(ctx context.Context, event string, payload any) error 
 
 // CreateFeed validates and creates a feed.
 func (s *Service) CreateFeed(ctx context.Context, feed Feed) (Feed, error) {
-	if err := s.accounts.AccountExists(ctx, feed.AccountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, feed.AccountID); err != nil {
 		return Feed{}, err
 	}
 	if err := s.normalizeFeed(&feed); err != nil {
@@ -128,11 +104,19 @@ func (s *Service) CreateFeed(ctx context.Context, feed Feed) (Feed, error) {
 	if err := s.ensureSignersOwned(ctx, feed.AccountID, feed.SignerSet); err != nil {
 		return Feed{}, err
 	}
+	attrs := map[string]string{"account_id": feed.AccountID, "resource": "datafeed"}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	created, err := s.store.CreateDataFeed(ctx, feed)
+	if err == nil && created.ID != "" {
+		attrs["feed_id"] = created.ID
+	}
+	finish(err)
 	if err != nil {
 		return Feed{}, err
 	}
-	s.log.WithField("feed_id", created.ID).WithField("account_id", created.AccountID).Info("data feed created")
+	s.Logger().WithField("feed_id", created.ID).WithField("account_id", created.AccountID).Info("data feed created")
+	s.LogCreated("datafeed", created.ID, created.AccountID)
+	s.IncrementCounter("datafeeds_created_total", map[string]string{"account_id": created.AccountID})
 	return created, nil
 }
 
@@ -152,16 +136,16 @@ func (s *Service) UpdateFeed(ctx context.Context, feed Feed) (Feed, error) {
 	if err := s.ensureSignersOwned(ctx, feed.AccountID, feed.SignerSet); err != nil {
 		return Feed{}, err
 	}
-	start := time.Now()
-	s.hooks.OnStart(ctx, map[string]string{"account_id": feed.AccountID, "feed_id": feed.ID})
-	defer func() {
-		s.hooks.OnComplete(ctx, map[string]string{"account_id": feed.AccountID, "feed_id": feed.ID}, nil, time.Since(start))
-	}()
+	attrs := map[string]string{"account_id": feed.AccountID, "feed_id": feed.ID, "resource": "datafeed"}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	updated, err := s.store.UpdateDataFeed(ctx, feed)
+	finish(err)
 	if err != nil {
 		return Feed{}, err
 	}
-	s.log.WithField("feed_id", feed.ID).WithField("account_id", feed.AccountID).Info("data feed updated")
+	s.Logger().WithField("feed_id", feed.ID).WithField("account_id", feed.AccountID).Info("data feed updated")
+	s.LogUpdated("datafeed", feed.ID, feed.AccountID)
+	s.IncrementCounter("datafeeds_updated_total", map[string]string{"account_id": feed.AccountID})
 	return updated, nil
 }
 
@@ -179,7 +163,7 @@ func (s *Service) GetFeed(ctx context.Context, accountID, feedID string) (Feed, 
 
 // ListFeeds lists feeds for an account.
 func (s *Service) ListFeeds(ctx context.Context, accountID string) ([]Feed, error) {
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return nil, err
 	}
 	return s.store.ListDataFeeds(ctx, accountID)
@@ -188,7 +172,7 @@ func (s *Service) ListFeeds(ctx context.Context, accountID string) ([]Feed, erro
 // SubmitUpdate stores a price update for a feed, enforcing signer verification,
 // heartbeat/deviation thresholds, and the configured aggregation strategy.
 func (s *Service) SubmitUpdate(ctx context.Context, accountID, feedID string, roundID int64, price string, ts time.Time, signer string, signature string, metadata map[string]string) (Update, error) {
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return Update{}, err
 	}
 	feed, err := s.store.GetDataFeed(ctx, feedID)
@@ -259,7 +243,7 @@ func (s *Service) SubmitUpdate(ctx context.Context, accountID, feedID string, ro
 	}
 	aggregation, aggErr := normalizeAggregation(aggregation)
 	if aggErr != nil {
-		s.log.WithField("aggregation", aggregation).WithError(aggErr).Warn("falling back to median aggregation")
+		s.Logger().WithField("aggregation", aggregation).WithError(aggErr).Warn("falling back to median aggregation")
 	}
 
 	threshold := s.signerThreshold(feed)
@@ -298,16 +282,33 @@ func (s *Service) SubmitUpdate(ctx context.Context, accountID, feedID string, ro
 		Status:    status,
 		Metadata:  meta,
 	}
-	attrs := map[string]string{"feed_id": feedID}
-	finish := core.StartObservation(ctx, s.hooks, attrs)
+	attrs := map[string]string{"feed_id": feedID, "account_id": accountID, "resource": "datafeed_update"}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	created, err := s.store.CreateDataFeedUpdate(ctx, upd)
 	if err != nil {
 		finish(err)
 		return Update{}, err
 	}
 	finish(nil)
-	s.log.WithField("feed_id", feedID).WithField("round_id", roundID).Info("data feed update stored")
+	s.Logger().WithField("feed_id", feedID).WithField("round_id", roundID).Info("data feed update stored")
+	s.IncrementCounter("datafeeds_updates_total", map[string]string{"feed_id": feedID})
 	s.recordStaleness(feedID, upd.Timestamp)
+	dataPayload := map[string]any{
+		"feed_id":   feedID,
+		"round_id":  roundID,
+		"price":     normalizedPrice,
+		"status":    status,
+		"metadata":  meta,
+		"timestamp": ts,
+	}
+	topic := fmt.Sprintf("datafeeds/%s", feedID)
+	if err := s.PushData(ctx, topic, dataPayload); err != nil {
+		if errors.Is(err, core.ErrBusUnavailable) {
+			s.Logger().WithError(err).Warn("bus unavailable for datafeed push")
+		} else {
+			return Update{}, fmt.Errorf("push datafeed update: %w", err)
+		}
+	}
 	return created, nil
 }
 
@@ -342,7 +343,7 @@ func (s *Service) recordStaleness(feedID string, ts time.Time) {
 			age = 0
 		}
 	}
-	metrics.RecordDatafeedStaleness(feedID, status, age)
+	s.SetGauge("datafeeds_feed_staleness_seconds", map[string]string{"feed_id": feedID, "status": status}, age.Seconds())
 }
 
 func (s *Service) signerThreshold(feed Feed) int {
@@ -557,16 +558,140 @@ func (s *Service) normalizeFeed(feed *Feed) error {
 }
 
 func (s *Service) ensureSignersOwned(ctx context.Context, accountID string, signers []string) error {
-	if len(signers) == 0 {
-		return nil
+	return s.ValidateSigners(ctx, accountID, signers)
+}
+
+// HTTP API Methods
+// These methods follow the HTTP{Method}{Path} naming convention for automatic route discovery.
+
+// HTTPGetFeeds handles GET /feeds - list all data feeds for an account.
+func (s *Service) HTTPGetFeeds(ctx context.Context, req core.APIRequest) (any, error) {
+	return s.ListFeeds(ctx, req.AccountID)
+}
+
+// HTTPPostFeeds handles POST /feeds - create a new data feed.
+func (s *Service) HTTPPostFeeds(ctx context.Context, req core.APIRequest) (any, error) {
+	pair, _ := req.Body["pair"].(string)
+	description, _ := req.Body["description"].(string)
+	decimals := 8
+	if d, ok := req.Body["decimals"].(float64); ok {
+		decimals = int(d)
 	}
-	if s.wallets == nil {
-		return nil
-	}
-	for _, signer := range signers {
-		if err := s.wallets.WalletOwnedBy(ctx, accountID, signer); err != nil {
-			return err
+	heartbeat := time.Minute
+	if h, ok := req.Body["heartbeat"].(string); ok {
+		if parsed, err := time.ParseDuration(h); err == nil {
+			heartbeat = parsed
 		}
 	}
-	return nil
+	thresholdPPM := 0
+	if t, ok := req.Body["threshold_ppm"].(float64); ok {
+		thresholdPPM = int(t)
+	}
+	aggregation, _ := req.Body["aggregation"].(string)
+
+	var signerSet []string
+	if rawSigners, ok := req.Body["signer_set"].([]any); ok {
+		for _, s := range rawSigners {
+			if str, ok := s.(string); ok {
+				signerSet = append(signerSet, str)
+			}
+		}
+	}
+
+	var tags []string
+	if rawTags, ok := req.Body["tags"].([]any); ok {
+		for _, t := range rawTags {
+			if str, ok := t.(string); ok {
+				tags = append(tags, str)
+			}
+		}
+	}
+
+	metadata := core.ExtractMetadataRaw(req.Body, "")
+
+	feed := Feed{
+		AccountID:    req.AccountID,
+		Pair:         pair,
+		Description:  description,
+		Decimals:     decimals,
+		Heartbeat:    heartbeat,
+		ThresholdPPM: thresholdPPM,
+		Aggregation:  aggregation,
+		SignerSet:    signerSet,
+		Tags:         tags,
+		Metadata:     metadata,
+	}
+
+	return s.CreateFeed(ctx, feed)
+}
+
+// HTTPGetFeedsById handles GET /feeds/{id} - get a specific data feed.
+func (s *Service) HTTPGetFeedsById(ctx context.Context, req core.APIRequest) (any, error) {
+	feedID := req.PathParams["id"]
+	return s.GetFeed(ctx, req.AccountID, feedID)
+}
+
+// HTTPPatchFeedsById handles PATCH /feeds/{id} - update a data feed.
+func (s *Service) HTTPPatchFeedsById(ctx context.Context, req core.APIRequest) (any, error) {
+	feedID := req.PathParams["id"]
+
+	// Get existing feed first
+	existing, err := s.GetFeed(ctx, req.AccountID, feedID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply updates
+	if pair, ok := req.Body["pair"].(string); ok {
+		existing.Pair = pair
+	}
+	if description, ok := req.Body["description"].(string); ok {
+		existing.Description = description
+	}
+	if decimals, ok := req.Body["decimals"].(float64); ok {
+		existing.Decimals = int(decimals)
+	}
+	if h, ok := req.Body["heartbeat"].(string); ok {
+		if parsed, err := time.ParseDuration(h); err == nil {
+			existing.Heartbeat = parsed
+		}
+	}
+	if t, ok := req.Body["threshold_ppm"].(float64); ok {
+		existing.ThresholdPPM = int(t)
+	}
+	if aggregation, ok := req.Body["aggregation"].(string); ok {
+		existing.Aggregation = aggregation
+	}
+
+	existing.AccountID = req.AccountID
+	return s.UpdateFeed(ctx, existing)
+}
+
+// HTTPGetFeedsIdUpdates handles GET /feeds/{id}/updates - list updates for a feed.
+func (s *Service) HTTPGetFeedsIdUpdates(ctx context.Context, req core.APIRequest) (any, error) {
+	feedID := req.PathParams["id"]
+	limit := core.ParseLimitFromQuery(req.Query)
+	return s.ListUpdates(ctx, req.AccountID, feedID, limit)
+}
+
+// HTTPPostFeedsIdUpdates handles POST /feeds/{id}/updates - submit a price update.
+func (s *Service) HTTPPostFeedsIdUpdates(ctx context.Context, req core.APIRequest) (any, error) {
+	feedID := req.PathParams["id"]
+	roundID := int64(0)
+	if r, ok := req.Body["round_id"].(float64); ok {
+		roundID = int64(r)
+	}
+	price, _ := req.Body["price"].(string)
+	signer, _ := req.Body["signer"].(string)
+	signature, _ := req.Body["signature"].(string)
+
+	metadata := core.ExtractMetadataRaw(req.Body, "")
+
+	return s.SubmitUpdate(ctx, req.AccountID, feedID, roundID, price, time.Now().UTC(), signer, signature, metadata)
+}
+
+// HTTPGetFeedsIdLatest handles GET /feeds/{id}/latest - get latest update.
+func (s *Service) HTTPGetFeedsIdLatest(ctx context.Context, req core.APIRequest) (any, error) {
+	feedID := req.PathParams["id"]
+	return s.LatestUpdate(ctx, req.AccountID, feedID)
 }

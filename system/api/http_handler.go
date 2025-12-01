@@ -1,4 +1,9 @@
 // Package api provides HTTP handlers for the user service API.
+//
+// DEPRECATED: This file contains legacy service-specific HTTP handlers.
+// New services should use the declarative HTTP API pattern with
+// HTTP{Method}{Path} methods in service packages. See ServiceRouter
+// in system/framework/core for the new pattern.
 package api
 
 import (

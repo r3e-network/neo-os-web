@@ -7,6 +7,8 @@ import (
 	"time"
 
 	engine "github.com/R3E-Network/service_layer/system/core"
+	"github.com/R3E-Network/service_layer/system/framework"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // loader is the default implementation of PackageLoader.
@@ -15,6 +17,8 @@ type loader struct {
 	installed     map[string]*installedPackageRecord
 	factories     map[string]PackageFactory // for dynamic loading
 	storeProvider StoreProvider             // shared store provider for all packages
+	tracer        core.Tracer
+	metrics       framework.Metrics
 }
 
 // PackageFactory creates a ServicePackage instance.
@@ -36,6 +40,8 @@ func NewPackageLoader() PackageLoader {
 		installed:     make(map[string]*installedPackageRecord),
 		factories:     make(map[string]PackageFactory),
 		storeProvider: NilStoreProvider(),
+		tracer:        core.NoopTracer,
+		metrics:       framework.NoopMetrics(),
 	}
 }
 
@@ -45,6 +51,8 @@ func NewPackageLoaderWithStores(stores StoreProvider) PackageLoader {
 		installed:     make(map[string]*installedPackageRecord),
 		factories:     make(map[string]PackageFactory),
 		storeProvider: stores,
+		tracer:        core.NoopTracer,
+		metrics:       framework.NoopMetrics(),
 	}
 }
 
@@ -54,6 +62,26 @@ func (l *loader) SetStoreProvider(stores StoreProvider) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.storeProvider = stores
+}
+
+// SetTracer configures the tracer available to package runtimes.
+func (l *loader) SetTracer(t core.Tracer) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if t == nil {
+		t = core.NoopTracer
+	}
+	l.tracer = t
+}
+
+// SetMetrics configures the metrics recorder for package runtimes.
+func (l *loader) SetMetrics(m framework.Metrics) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if m == nil {
+		m = framework.NoopMetrics()
+	}
+	l.metrics = m
 }
 
 // RegisterFactory registers a package factory for dynamic loading.
@@ -120,7 +148,7 @@ func (l *loader) InstallPackage(ctx context.Context, pkg ServicePackage, eng *en
 
 	// Create package runtime
 	config := NewPackageConfig(nil) // TODO: Load from config file
-	runtime := NewPackageRuntime(manifest.PackageID, manifest, eng, config, permissions, l.storeProvider)
+	runtime := NewPackageRuntime(manifest.PackageID, manifest, eng, config, permissions, l.storeProvider, l.tracer, l.metrics)
 
 	// Call OnInstall hook
 	if err := pkg.OnInstall(ctx, runtime); err != nil {
@@ -131,6 +159,12 @@ func (l *loader) InstallPackage(ctx context.Context, pkg ServicePackage, eng *en
 	services, err := pkg.CreateServices(ctx, runtime)
 	if err != nil {
 		return fmt.Errorf("create services failed: %w", err)
+	}
+	env := NewServiceEnvironment(runtime)
+	for _, svc := range services {
+		if aware, ok := svc.(framework.EnvironmentAware); ok {
+			aware.SetEnvironment(env)
+		}
 	}
 
 	// Register services with engine
@@ -264,5 +298,19 @@ func MustRegisterPackage(packageID string, factory PackageFactory) {
 func SetGlobalStoreProvider(stores StoreProvider) {
 	if l, ok := GlobalLoader().(*loader); ok {
 		l.SetStoreProvider(stores)
+	}
+}
+
+// SetGlobalTracer sets the tracer shared across package runtimes.
+func SetGlobalTracer(tracer core.Tracer) {
+	if l, ok := GlobalLoader().(*loader); ok {
+		l.SetTracer(tracer)
+	}
+}
+
+// SetGlobalMetrics sets the metrics recorder shared across package runtimes.
+func SetGlobalMetrics(m framework.Metrics) {
+	if l, ok := GlobalLoader().(*loader); ok {
+		l.SetMetrics(m)
 	}
 }

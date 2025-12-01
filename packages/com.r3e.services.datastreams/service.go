@@ -2,6 +2,7 @@ package datastreams
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -69,7 +70,7 @@ func (s *Service) CreateStream(ctx context.Context, stream Stream) (Stream, erro
 		return Stream{}, err
 	}
 
-	finish := s.StartObservation(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID})
+	ctx, finish := s.StartObservation(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID})
 	created, err := s.store.CreateStream(ctx, stream)
 	finish(err)
 	if err != nil {
@@ -77,6 +78,7 @@ func (s *Service) CreateStream(ctx context.Context, stream Stream) (Stream, erro
 	}
 
 	s.LogCreated("stream", created.ID, created.AccountID)
+	s.IncrementCounter("datastreams_streams_created_total", map[string]string{"account_id": created.AccountID})
 	return created, nil
 }
 
@@ -94,7 +96,7 @@ func (s *Service) UpdateStream(ctx context.Context, stream Stream) (Stream, erro
 		return Stream{}, err
 	}
 
-	finish := s.StartObservation(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID})
+	ctx, finish := s.StartObservation(ctx, map[string]string{"account_id": stream.AccountID, "stream_id": stream.ID})
 	updated, err := s.store.UpdateStream(ctx, stream)
 	finish(err)
 	if err != nil {
@@ -102,6 +104,7 @@ func (s *Service) UpdateStream(ctx context.Context, stream Stream) (Stream, erro
 	}
 
 	s.LogUpdated("stream", stream.ID, stream.AccountID)
+	s.IncrementCounter("datastreams_streams_updated_total", map[string]string{"account_id": stream.AccountID})
 	return updated, nil
 }
 
@@ -149,10 +152,10 @@ func (s *Service) CreateFrame(ctx context.Context, accountID, streamID string, s
 		Payload:   payload,
 		LatencyMS: latencyMS,
 		Status:    status,
-		Metadata:  s.NormalizeMetadata(metadata),
+		Metadata:  core.NormalizeMetadata(metadata),
 	}
 
-	finish := s.StartObservation(ctx, map[string]string{"stream_id": stream.ID})
+	ctx, finish := s.StartObservation(ctx, map[string]string{"stream_id": stream.ID})
 	created, err := s.store.CreateFrame(ctx, frame)
 	finish(err)
 	if err != nil {
@@ -160,6 +163,23 @@ func (s *Service) CreateFrame(ctx context.Context, accountID, streamID string, s
 	}
 
 	s.Logger().WithField("stream_id", stream.ID).WithField("sequence", seq).Info("data stream frame recorded")
+	s.ObserveDuration("datastreams_frame_latency_seconds", map[string]string{"stream_id": stream.ID}, time.Duration(latencyMS)*time.Millisecond)
+	s.IncrementCounter("datastreams_frames_created_total", map[string]string{"stream_id": stream.ID})
+	dataPayload := map[string]any{
+		"stream_id":  stream.ID,
+		"sequence":   seq,
+		"status":     status,
+		"latency_ms": latencyMS,
+		"payload":    payload,
+	}
+	topic := fmt.Sprintf("datastreams/%s", stream.ID)
+	if err := s.PushData(ctx, topic, dataPayload); err != nil {
+		if errors.Is(err, core.ErrBusUnavailable) {
+			s.Logger().WithError(err).Warn("bus unavailable for datastreams push")
+		} else {
+			return Frame{}, fmt.Errorf("push datastream frame: %w", err)
+		}
+	}
 	return created, nil
 }
 
@@ -168,6 +188,9 @@ func (s *Service) ListFrames(ctx context.Context, accountID, streamID string, li
 	if _, err := s.GetStream(ctx, accountID, streamID); err != nil {
 		return nil, err
 	}
+	attrs := map[string]string{"account_id": accountID, "stream_id": streamID, "resource": "datastreams_frames"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer finish(nil)
 	return s.store.ListFrames(ctx, streamID, s.ClampLimit(limit))
 }
 
@@ -176,6 +199,9 @@ func (s *Service) LatestFrame(ctx context.Context, accountID, streamID string) (
 	if _, err := s.GetStream(ctx, accountID, streamID); err != nil {
 		return Frame{}, err
 	}
+	attrs := map[string]string{"account_id": accountID, "stream_id": streamID, "resource": "datastreams_latest_frame"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer finish(nil)
 	return s.store.GetLatestFrame(ctx, streamID)
 }
 
@@ -184,7 +210,7 @@ func (s *Service) normalizeStream(stream *Stream) error {
 	stream.Symbol = strings.ToUpper(strings.TrimSpace(stream.Symbol))
 	stream.Description = strings.TrimSpace(stream.Description)
 	stream.Frequency = strings.TrimSpace(stream.Frequency)
-	stream.Metadata = s.NormalizeMetadata(stream.Metadata)
+	stream.Metadata = core.NormalizeMetadata(stream.Metadata)
 
 	if stream.Name == "" {
 		return core.RequiredError("name")
@@ -207,4 +233,119 @@ func (s *Service) normalizeStream(stream *Stream) error {
 		return fmt.Errorf("invalid status %s", status)
 	}
 	return nil
+}
+
+// HTTP API Methods
+// These methods follow the HTTP{Method}{Path} naming convention for automatic route discovery.
+
+// HTTPGetStreams handles GET /streams - list all streams for an account.
+func (s *Service) HTTPGetStreams(ctx context.Context, req core.APIRequest) (any, error) {
+	return s.ListStreams(ctx, req.AccountID)
+}
+
+// HTTPPostStreams handles POST /streams - create a new stream.
+func (s *Service) HTTPPostStreams(ctx context.Context, req core.APIRequest) (any, error) {
+	name, _ := req.Body["name"].(string)
+	symbol, _ := req.Body["symbol"].(string)
+	description, _ := req.Body["description"].(string)
+	frequency, _ := req.Body["frequency"].(string)
+	status, _ := req.Body["status"].(string)
+	slaMS := 0
+	if s, ok := req.Body["sla_ms"].(float64); ok {
+		slaMS = int(s)
+	}
+
+	metadata := core.ExtractMetadataRaw(req.Body, "")
+
+	stream := Stream{
+		AccountID:   req.AccountID,
+		Name:        name,
+		Symbol:      symbol,
+		Description: description,
+		Frequency:   frequency,
+		Status:      StreamStatus(status),
+		SLAms:       slaMS,
+		Metadata:    metadata,
+	}
+
+	return s.CreateStream(ctx, stream)
+}
+
+// HTTPGetStreamsById handles GET /streams/{id} - get a specific stream.
+func (s *Service) HTTPGetStreamsById(ctx context.Context, req core.APIRequest) (any, error) {
+	streamID := req.PathParams["id"]
+	return s.GetStream(ctx, req.AccountID, streamID)
+}
+
+// HTTPPatchStreamsById handles PATCH /streams/{id} - update a stream.
+func (s *Service) HTTPPatchStreamsById(ctx context.Context, req core.APIRequest) (any, error) {
+	streamID := req.PathParams["id"]
+
+	// Get existing stream first
+	existing, err := s.GetStream(ctx, req.AccountID, streamID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply updates
+	if name, ok := req.Body["name"].(string); ok {
+		existing.Name = name
+	}
+	if symbol, ok := req.Body["symbol"].(string); ok {
+		existing.Symbol = symbol
+	}
+	if description, ok := req.Body["description"].(string); ok {
+		existing.Description = description
+	}
+	if frequency, ok := req.Body["frequency"].(string); ok {
+		existing.Frequency = frequency
+	}
+	if status, ok := req.Body["status"].(string); ok {
+		existing.Status = StreamStatus(status)
+	}
+	if slaMS, ok := req.Body["sla_ms"].(float64); ok {
+		existing.SLAms = int(slaMS)
+	}
+
+	existing.AccountID = req.AccountID
+	return s.UpdateStream(ctx, existing)
+}
+
+// HTTPGetStreamsIdFrames handles GET /streams/{id}/frames - list frames for a stream.
+func (s *Service) HTTPGetStreamsIdFrames(ctx context.Context, req core.APIRequest) (any, error) {
+	streamID := req.PathParams["id"]
+	limit := core.ParseLimitFromQuery(req.Query)
+	return s.ListFrames(ctx, req.AccountID, streamID, limit)
+}
+
+// HTTPPostStreamsIdFrames handles POST /streams/{id}/frames - create a new frame.
+func (s *Service) HTTPPostStreamsIdFrames(ctx context.Context, req core.APIRequest) (any, error) {
+	streamID := req.PathParams["id"]
+	seq := int64(time.Now().UnixNano())
+	if s, ok := req.Body["sequence"].(float64); ok {
+		seq = int64(s)
+	}
+	latencyMS := 0
+	if l, ok := req.Body["latency_ms"].(float64); ok {
+		latencyMS = int(l)
+	}
+	status := FrameStatusOK
+	if st, ok := req.Body["status"].(string); ok {
+		status = FrameStatus(st)
+	}
+
+	var payload map[string]any
+	if p, ok := req.Body["payload"].(map[string]any); ok {
+		payload = p
+	}
+
+	metadata := core.ExtractMetadataRaw(req.Body, "")
+
+	return s.CreateFrame(ctx, req.AccountID, streamID, seq, payload, latencyMS, status, metadata)
+}
+
+// HTTPGetStreamsIdLatest handles GET /streams/{id}/latest - get latest frame.
+func (s *Service) HTTPGetStreamsIdLatest(ctx context.Context, req core.APIRequest) (any, error) {
+	streamID := req.PathParams["id"]
+	return s.LatestFrame(ctx, req.AccountID, streamID)
 }

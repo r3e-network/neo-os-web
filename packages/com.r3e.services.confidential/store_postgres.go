@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // --- ConfidentialStore ------------------------------------------------------
@@ -29,10 +30,6 @@ func (s *PostgresStore) accountTenant(ctx context.Context, accountID string) str
 	return s.accounts.AccountTenant(ctx, accountID)
 }
 
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
-}
 
 func (s *PostgresStore) CreateEnclave(ctx context.Context, enclave Enclave) (Enclave, error) {
 	if enclave.ID == "" {
@@ -246,7 +243,7 @@ func (s *PostgresStore) ListAccountAttestations(ctx context.Context, accountID s
 	return atts, rows.Err()
 }
 
-func scanEnclave(scanner rowScanner) (Enclave, error) {
+func scanEnclave(scanner core.RowScanner) (Enclave, error) {
 	var (
 		enclave Enclave
 		metaRaw []byte
@@ -260,7 +257,7 @@ func scanEnclave(scanner rowScanner) (Enclave, error) {
 	return enclave, nil
 }
 
-func scanSealedKey(scanner rowScanner) (SealedKey, error) {
+func scanSealedKey(scanner core.RowScanner) (SealedKey, error) {
 	var (
 		key     SealedKey
 		metaRaw []byte
@@ -274,7 +271,7 @@ func scanSealedKey(scanner rowScanner) (SealedKey, error) {
 	return key, nil
 }
 
-func scanAttestation(scanner rowScanner) (Attestation, error) {
+func scanAttestation(scanner core.RowScanner) (Attestation, error) {
 	var (
 		att     Attestation
 		valid   *time.Time

@@ -3,10 +3,13 @@ package framework
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 type mockAccountChecker struct {
@@ -266,7 +269,7 @@ func TestServiceEngine_ClampLimit(t *testing.T) {
 		limit int
 		want  int
 	}{
-		{"zero uses default", 0, 25},    // DefaultListLimit = 25
+		{"zero uses default", 0, 25}, // DefaultListLimit = 25
 		{"negative uses default", -1, 25},
 		{"within range", 25, 25},
 		{"above max", 1000, 500}, // MaxListLimit = 500
@@ -333,31 +336,499 @@ func TestServiceEngine_Lifecycle(t *testing.T) {
 	}
 }
 
-func TestServiceEngine_NormalizeMetadata(t *testing.T) {
-	eng := NewServiceEngine(ServiceConfig{Name: "testservice"})
+func TestServiceEngine_ManifestIsolation(t *testing.T) {
+	eng := NewServiceEngine(ServiceConfig{
+		Name:        "isolation",
+		Description: "isolation test",
+		DependsOn:   []string{"store"},
+	})
 
-	input := map[string]string{
-		"  key1  ": "  value1  ",
-		"key2":     "value2",
-		"":         "empty-key",
-	}
+	first := eng.Manifest()
+	first.Name = "mutated"
+	first.DependsOn = append(first.DependsOn, "extra")
 
-	result := eng.NormalizeMetadata(input)
-	if result["key1"] != "value1" {
-		t.Errorf("expected trimmed key and value")
+	second := eng.Manifest()
+	if second.Name == "mutated" {
+		t.Fatal("Manifest mutation should not be reflected in subsequent calls")
 	}
-	if _, ok := result[""]; ok {
-		t.Error("empty key should be removed")
+	for _, dep := range second.DependsOn {
+		if dep == "extra" {
+			t.Fatal("Manifest should not retain caller mutation")
+		}
 	}
 }
 
-func TestServiceEngine_NormalizeTags(t *testing.T) {
-	eng := NewServiceEngine(ServiceConfig{Name: "testservice"})
+func TestServiceEngine_DescriptorIsolation(t *testing.T) {
+	eng := NewServiceEngine(ServiceConfig{
+		Name:         "descriptor",
+		Description:  "descriptor test",
+		Capabilities: []string{"one"},
+	})
 
-	input := []string{"  tag1  ", "TAG1", "tag2", ""}
-	result := eng.NormalizeTags(input)
-
-	if len(result) != 2 {
-		t.Errorf("expected 2 tags after dedup, got %d", len(result))
+	desc := eng.Descriptor()
+	if len(desc.Capabilities) == 0 {
+		t.Fatal("expected descriptor to include at least one capability")
 	}
+	desc.Capabilities[0] = "mutated"
+
+	newDesc := eng.Descriptor()
+	if len(newDesc.Capabilities) == 0 {
+		t.Fatal("expected descriptor capabilities to persist")
+	}
+	if newDesc.Capabilities[0] == "mutated" {
+		t.Fatal("Descriptor mutation should not leak back into ServiceEngine")
+	}
+}
+
+type fakeStoreProvider struct{}
+
+func (fakeStoreProvider) Database() any { return "db-conn" }
+
+func (fakeStoreProvider) AccountExists(ctx context.Context, accountID string) error {
+	if strings.TrimSpace(accountID) == "acct-1" {
+		return nil
+	}
+	return errors.New("missing")
+}
+
+func (fakeStoreProvider) AccountTenant(ctx context.Context, accountID string) string {
+	return "tenant-a"
+}
+
+type recordingBus struct {
+	published       []string
+	dataTopics      []string
+	computePayloads []any
+	computeResults  []ComputeResult
+	publishErr      error
+	pushErr         error
+	computeErr      error
+}
+
+func (b *recordingBus) PublishEvent(ctx context.Context, event string, payload any) error {
+	b.published = append(b.published, event)
+	return b.publishErr
+}
+
+func (b *recordingBus) PushData(ctx context.Context, topic string, payload any) error {
+	b.dataTopics = append(b.dataTopics, topic)
+	return b.pushErr
+}
+
+func (b *recordingBus) InvokeCompute(ctx context.Context, payload any) ([]ComputeResult, error) {
+	b.computePayloads = append(b.computePayloads, payload)
+	if len(b.computeResults) > 0 || b.computeErr != nil {
+		return b.computeResults, b.computeErr
+	}
+	return []ComputeResult{{Module: "test", Result: payload}}, nil
+}
+
+func TestServiceEngine_EnvironmentIntegration(t *testing.T) {
+	eng := NewServiceEngine(ServiceConfig{Name: "env"})
+
+	// Default environment should return bus unavailable
+	if err := eng.PublishEvent(context.Background(), "event", nil); !errors.Is(err, core.ErrBusUnavailable) {
+		t.Fatalf("expected ErrBusUnavailable, got %v", err)
+	}
+
+	bus := &recordingBus{}
+	metrics := &fakeMetrics{}
+	quota := &fakeQuota{}
+	env := Environment{
+		StoreProvider: fakeStoreProvider{},
+		Bus:           bus,
+		Config:        ConfigMap{"foo": "bar"},
+		Tracer:        fakeTracer{},
+		Metrics:       metrics,
+		Quota:         quota,
+	}
+	eng.SetEnvironment(env)
+
+	if sp := eng.StoreProvider(); sp == nil {
+		t.Fatal("expected store provider after environment set")
+	}
+	if db := eng.Database(); db != "db-conn" {
+		t.Fatalf("expected database 'db-conn', got %v", db)
+	}
+
+	if _, err := eng.ValidateAccount(context.Background(), "acct-1"); err != nil {
+		t.Fatalf("Fallback account checker failed: %v", err)
+	}
+
+	if err := eng.PublishEvent(context.Background(), "evt", nil); err != nil {
+		t.Fatalf("PublishEvent failed: %v", err)
+	}
+	if len(bus.published) == 0 || bus.published[0] != "evt" {
+		t.Fatalf("expected event recorded, got %v", bus.published)
+	}
+
+	if val, ok := eng.Config().Get("foo"); !ok || val != "bar" {
+		t.Fatalf("expected config foo=bar, got %q %v", val, ok)
+	}
+
+	if err := eng.EnforceQuota("events", 1); err != nil {
+		t.Fatalf("EnforceQuota failed: %v", err)
+	}
+	if len(quota.calls) != 2 {
+		t.Fatalf("expected quota enforcer called twice, got %d", len(quota.calls))
+	}
+
+	if eng.Tracer() != env.Tracer {
+		t.Fatalf("expected tracer instance propagated")
+	}
+
+	eng.Metrics().Counter("requests", map[string]string{"status": "ok"}, 1)
+	found := false
+	for _, c := range metrics.counters {
+		if c.name == "requests" {
+			found = true
+			if c.labels["status"] != "ok" {
+				t.Fatalf("expected status label, got %#v", c.labels)
+			}
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected metrics recorder to capture counter")
+	}
+}
+
+func TestServiceEngine_MetricHelpers(t *testing.T) {
+	eng := NewServiceEngine(ServiceConfig{Name: "metrics"})
+	fm := &fakeMetrics{}
+	eng.SetEnvironment(Environment{
+		Metrics: fm,
+		Bus:     &recordingBus{},
+	})
+
+	eng.IncrementCounter("requests", map[string]string{"status": "ok"})
+	eng.AddCounter("requests", nil, 2)
+	eng.SetGauge("ready", nil, 1)
+	eng.ObserveHistogram("latency", nil, 42)
+	eng.ObserveDuration("duration", nil, 50*time.Millisecond)
+
+	if len(fm.counters) != 2 {
+		t.Fatalf("expected 2 counter calls, got %d", len(fm.counters))
+	}
+	if fm.counters[0].labels["status"] != "ok" {
+		t.Fatalf("expected status label, got %#v", fm.counters[0].labels)
+	}
+	if len(fm.gauges) != 1 || fm.gauges[0].value != 1 {
+		t.Fatalf("expected gauge recorded")
+	}
+	if len(fm.histograms) != 2 {
+		t.Fatalf("expected histogram samples, got %d", len(fm.histograms))
+	}
+}
+
+func TestServiceEngine_QuotaHelpers(t *testing.T) {
+	eng := NewServiceEngine(ServiceConfig{Name: "quota"})
+	fq := &fakeQuota{}
+	eng.SetEnvironment(Environment{
+		Quota: fq,
+		Bus:   &recordingBus{},
+	})
+
+	_ = eng.EnforceEventQuota(1)
+	_ = eng.EnforceDataQuota(2)
+	_ = eng.EnforceConcurrencyQuota(3)
+
+	if len(fq.calls) != 3 {
+		t.Fatalf("expected quota calls, got %d", len(fq.calls))
+	}
+	if fq.calls[0].resource != QuotaResourceEvents || fq.calls[1].resource != QuotaResourceDataPush || fq.calls[2].resource != QuotaResourceConcurrency {
+		t.Fatalf("unexpected quota resources: %#v", fq.calls)
+	}
+}
+
+func TestServiceEngine_StartObservation_TracerIntegration(t *testing.T) {
+	tracer := &recordingTracer{}
+	eng := NewServiceEngine(ServiceConfig{Name: "accounts"})
+	eng.SetEnvironment(Environment{Tracer: tracer})
+	var startCtx, completeCtx context.Context
+	eng.WithObservationHooks(core.ObservationHooks{
+		OnStart: func(ctx context.Context, meta map[string]string) {
+			startCtx = ctx
+			if meta["service"] != "accounts" {
+				t.Fatalf("expected service metadata propagated, got %v", meta)
+			}
+			if meta["domain"] != "accounts" {
+				t.Fatalf("expected domain metadata propagated, got %v", meta)
+			}
+		},
+		OnComplete: func(ctx context.Context, meta map[string]string, err error, _ time.Duration) {
+			completeCtx = ctx
+			if err == nil {
+				t.Fatal("expected error to propagate to completion hook")
+			}
+		},
+	})
+
+	baseCtx := context.Background()
+	obsCtx, finish := eng.StartObservation(baseCtx, map[string]string{"resource": "account", "operation": "create"})
+	if obsCtx == baseCtx {
+		t.Fatal("expected StartObservation to derive new context")
+	}
+	if tracer.startCount != 1 {
+		t.Fatalf("expected tracer start invoked once, got %d", tracer.startCount)
+	}
+	if tracer.lastName != "accounts.create" {
+		t.Fatalf("unexpected span name %q", tracer.lastName)
+	}
+	if tracer.lastAttrs["domain"] != "accounts" {
+		t.Fatalf("expected tracer attrs to include domain, got %v", tracer.lastAttrs)
+	}
+	if obsCtx.Value(testSpanCtxKey) != "span" {
+		t.Fatal("expected derived context value from tracer")
+	}
+	if startCtx == nil || startCtx.Value(testSpanCtxKey) != "span" {
+		t.Fatal("expected hooks to see span context")
+	}
+
+	finish(errors.New("boom"))
+	if tracer.finishCount != 1 {
+		t.Fatalf("expected tracer finish invoked once, got %d", tracer.finishCount)
+	}
+	if completeCtx == nil || completeCtx.Value(testSpanCtxKey) != "span" {
+		t.Fatal("expected completion hook to run with span context")
+	}
+}
+
+func TestServiceEngine_PublishEvent_InstrumentsBus(t *testing.T) {
+	bus := &recordingBus{}
+	metrics := &fakeMetrics{}
+	quota := &fakeQuota{}
+	eng := NewServiceEngine(ServiceConfig{Name: "events"})
+	eng.SetEnvironment(Environment{
+		Bus:     bus,
+		Metrics: metrics,
+		Quota:   quota,
+	})
+
+	if err := eng.PublishEvent(context.Background(), "orders.created", map[string]string{"id": "123"}); err != nil {
+		t.Fatalf("PublishEvent returned error: %v", err)
+	}
+	if len(bus.published) != 1 || bus.published[0] != "orders.created" {
+		t.Fatalf("expected event recorded, got %#v", bus.published)
+	}
+	if len(quota.calls) != 1 || quota.calls[0].resource != QuotaResourceEvents {
+		t.Fatalf("expected quota enforcement for events, got %#v", quota.calls)
+	}
+	assertCounter(t, metrics.counters, "service_bus_events_total", map[string]string{
+		"event":     "orders.created",
+		"service":   "events",
+		"operation": "publish_event",
+		"status":    "success",
+	})
+}
+
+func TestServiceEngine_PushData_InstrumentsBus(t *testing.T) {
+	bus := &recordingBus{}
+	metrics := &fakeMetrics{}
+	quota := &fakeQuota{}
+	eng := NewServiceEngine(ServiceConfig{Name: "data"})
+	eng.SetEnvironment(Environment{
+		Bus:     bus,
+		Metrics: metrics,
+		Quota:   quota,
+	})
+
+	if err := eng.PushData(context.Background(), "frames", []byte("payload")); err != nil {
+		t.Fatalf("PushData returned error: %v", err)
+	}
+	if len(bus.dataTopics) != 1 || bus.dataTopics[0] != "frames" {
+		t.Fatalf("expected topic recorded, got %#v", bus.dataTopics)
+	}
+	if len(quota.calls) != 1 || quota.calls[0].resource != QuotaResourceDataPush {
+		t.Fatalf("expected data quota enforcement, got %#v", quota.calls)
+	}
+	assertCounter(t, metrics.counters, "service_bus_data_total", map[string]string{
+		"topic":     "frames",
+		"service":   "data",
+		"operation": "push_data",
+		"status":    "success",
+	})
+}
+
+func TestServiceEngine_InvokeCompute_Metrics(t *testing.T) {
+	bus := &recordingBus{
+		computeResults: []ComputeResult{
+			{Module: "one", Result: "ok"},
+			{Module: "two", Err: errors.New("boom")},
+		},
+	}
+	metrics := &fakeMetrics{}
+	quota := &fakeQuota{}
+	eng := NewServiceEngine(ServiceConfig{Name: "compute"})
+	eng.SetEnvironment(Environment{
+		Bus:     bus,
+		Metrics: metrics,
+		Quota:   quota,
+	})
+
+	results, err := eng.InvokeCompute(context.Background(), map[string]string{"job": "123"})
+	if err != nil {
+		t.Fatalf("InvokeCompute returned error: %v", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected compute results propagated, got %#v", results)
+	}
+	if len(bus.computePayloads) != 1 {
+		t.Fatalf("expected compute payload recorded, got %d", len(bus.computePayloads))
+	}
+	if len(quota.calls) != 1 || quota.calls[0].resource != QuotaResourceConcurrency {
+		t.Fatalf("expected concurrency quota enforcement, got %#v", quota.calls)
+	}
+	assertCounter(t, metrics.counters, "service_bus_compute_requests_total", map[string]string{
+		"service":   "compute",
+		"operation": "invoke_compute",
+		"status":    "success",
+	})
+	assertCounter(t, metrics.counters, "service_bus_compute_results_total", map[string]string{
+		"service":   "compute",
+		"operation": "invoke_compute",
+		"status":    "success",
+	}, 1)
+	assertCounter(t, metrics.counters, "service_bus_compute_results_total", map[string]string{
+		"service":   "compute",
+		"operation": "invoke_compute",
+		"status":    "error",
+	}, 1)
+}
+
+func TestServiceEngine_ContextExposesRuntime(t *testing.T) {
+	bus := &recordingBus{}
+	metrics := &fakeMetrics{}
+	quota := &fakeQuota{}
+	eng := NewServiceEngine(ServiceConfig{
+		Name:        "accounts",
+		Description: "Accounts test",
+	})
+	eng.SetEnvironment(Environment{
+		StoreProvider: fakeStoreProvider{},
+		Bus:           bus,
+		Config:        ConfigMap{"foo": "bar"},
+		Tracer:        fakeTracer{},
+		Metrics:       metrics,
+		Quota:         quota,
+	})
+
+	ctx, ok := eng.Context().(EngineContext)
+	if !ok {
+		t.Fatal("ServiceEngine.Context() did not return EngineContext")
+	}
+	if ctx.Name() != "accounts" {
+		t.Fatalf("expected context name 'accounts', got %q", ctx.Name())
+	}
+	if ctx.Domain() != "accounts" {
+		t.Fatalf("expected context domain 'accounts', got %q", ctx.Domain())
+	}
+	if ctx.Logger() != eng.Logger() {
+		t.Fatal("expected logger passthrough")
+	}
+	if err := ctx.PublishEvent(context.Background(), "ctx.event", nil); err != nil {
+		t.Fatalf("PublishEvent via context failed: %v", err)
+	}
+	if len(bus.published) != 1 || bus.published[0] != "ctx.event" {
+		t.Fatalf("expected event published via context, got %#v", bus.published)
+	}
+	if svc := ctx.SystemService(SystemServiceBus); svc != eng.Bus() {
+		t.Fatalf("expected SystemService bus to match engine bus")
+	}
+	eng.SetEnvironment(Environment{Bus: &recordingBus{}})
+	if svc := ctx.SystemService(SystemServiceBus); svc == bus {
+		t.Fatal("expected context services to refresh after SetEnvironment")
+	}
+}
+
+type fakeTracer struct{}
+
+func (fakeTracer) StartSpan(ctx context.Context, name string, attrs map[string]string) (context.Context, func(error)) {
+	return ctx, func(error) {}
+}
+
+type ctxKey string
+
+const testSpanCtxKey ctxKey = "span"
+
+type recordingTracer struct {
+	startCount  int
+	finishCount int
+	lastName    string
+	lastAttrs   map[string]string
+}
+
+func (t *recordingTracer) StartSpan(ctx context.Context, name string, attrs map[string]string) (context.Context, func(error)) {
+	t.startCount++
+	t.lastName = name
+	t.lastAttrs = attrs
+	spanCtx := context.WithValue(ctx, testSpanCtxKey, "span")
+	return spanCtx, func(error) {
+		t.finishCount++
+	}
+}
+
+type quotaCall struct {
+	resource string
+	amount   int64
+}
+
+type fakeQuota struct {
+	calls []quotaCall
+}
+
+func (f *fakeQuota) Enforce(resource string, amount int64) error {
+	f.calls = append(f.calls, quotaCall{resource: resource, amount: amount})
+	return nil
+}
+
+type metricCall struct {
+	name   string
+	labels map[string]string
+	value  float64
+}
+
+type fakeMetrics struct {
+	counters   []metricCall
+	gauges     []metricCall
+	histograms []metricCall
+}
+
+func (f *fakeMetrics) Counter(name string, labels map[string]string, delta float64) {
+	f.counters = append(f.counters, metricCall{name: name, labels: labels, value: delta})
+}
+
+func (f *fakeMetrics) Gauge(name string, labels map[string]string, value float64) {
+	f.gauges = append(f.gauges, metricCall{name: name, labels: labels, value: value})
+}
+
+func (f *fakeMetrics) Histogram(name string, labels map[string]string, value float64) {
+	f.histograms = append(f.histograms, metricCall{name: name, labels: labels, value: value})
+}
+
+func assertCounter(t *testing.T, counters []metricCall, name string, labels map[string]string, expected ...float64) {
+	t.Helper()
+	wanted := 1.0
+	if len(expected) > 0 {
+		wanted = expected[0]
+	}
+	for _, c := range counters {
+		if c.name != name {
+			continue
+		}
+		match := true
+		for k, v := range labels {
+			if c.labels == nil || c.labels[k] != v {
+				match = false
+				break
+			}
+		}
+		if match {
+			if c.value != wanted {
+				t.Fatalf("counter %s value = %f, want %f", name, c.value, wanted)
+			}
+			return
+		}
+	}
+	t.Fatalf("counter %s with labels %v not found. counters: %#v", name, labels, counters)
 }

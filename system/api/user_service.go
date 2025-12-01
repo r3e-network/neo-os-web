@@ -1,6 +1,12 @@
 // Package api provides the user-facing API for direct service layer interaction.
 // This allows users to manage accounts, secrets, contracts, and automation
 // without going through on-chain transactions.
+//
+// DEPRECATED: This package contains legacy service-specific code that violates
+// the "Service Operating System" architecture principle. The framework layer
+// (system/) should be service-agnostic. New code should use the declarative
+// HTTP API pattern in service packages (HTTP{Method}{Path} methods).
+// This package will be refactored to remove service-specific dependencies.
 package api
 
 import (

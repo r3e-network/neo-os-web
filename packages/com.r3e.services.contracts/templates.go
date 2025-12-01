@@ -17,7 +17,7 @@ func (s *Service) CreateTemplate(ctx context.Context, t Template) (Template, err
 	if err != nil {
 		return Template{}, err
 	}
-	s.log.WithField("template_id", created.ID).WithField("name", created.Name).Info("contract template registered")
+	s.Logger().WithField("template_id", created.ID).WithField("name", created.Name).Info("contract template registered")
 	return created, nil
 }
 
@@ -35,7 +35,7 @@ func (s *Service) UpdateTemplate(ctx context.Context, t Template) (Template, err
 	if err != nil {
 		return Template{}, err
 	}
-	s.log.WithField("template_id", t.ID).Info("contract template updated")
+	s.Logger().WithField("template_id", t.ID).Info("contract template updated")
 	return updated, nil
 }
 
@@ -61,7 +61,7 @@ func (s *Service) ListEngineTemplates(ctx context.Context) ([]Template, error) {
 
 // DeployFromTemplate creates a contract from a template and deploys it.
 func (s *Service) DeployFromTemplate(ctx context.Context, accountID, templateID string, name string, constructorArgs map[string]any, gasLimit int64, metadata map[string]string) (Contract, Deployment, error) {
-	if err := s.base.EnsureAccount(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return Contract{}, Deployment{}, err
 	}
 
@@ -125,13 +125,13 @@ func (s *Service) DeployFromTemplate(ctx context.Context, accountID, templateID 
 		return createdContract, deployment, err
 	}
 
-	s.log.WithField("contract_id", createdContract.ID).WithField("template_id", templateID).Info("contract deployed from template")
+	s.Logger().WithField("contract_id", createdContract.ID).WithField("template_id", templateID).Info("contract deployed from template")
 	return createdContract, deployment, nil
 }
 
 // CreateServiceBinding binds a service to a contract.
 func (s *Service) CreateServiceBinding(ctx context.Context, binding ServiceContractBinding) (ServiceContractBinding, error) {
-	if err := s.base.EnsureAccount(ctx, binding.AccountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, binding.AccountID); err != nil {
 		return ServiceContractBinding{}, err
 	}
 	// Verify contract exists and account has access
@@ -154,7 +154,7 @@ func (s *Service) CreateServiceBinding(ctx context.Context, binding ServiceContr
 	if err != nil {
 		return ServiceContractBinding{}, err
 	}
-	s.log.WithField("binding_id", created.ID).WithField("service_id", created.ServiceID).Info("service contract binding created")
+	s.Logger().WithField("binding_id", created.ID).WithField("service_id", created.ServiceID).Info("service contract binding created")
 	return created, nil
 }
 
@@ -170,7 +170,7 @@ func (s *Service) ListServiceBindings(ctx context.Context, serviceID string) ([]
 
 // ListAccountBindings lists all bindings for an account.
 func (s *Service) ListAccountBindings(ctx context.Context, accountID string) ([]ServiceContractBinding, error) {
-	if err := s.base.EnsureAccount(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return nil, err
 	}
 	return s.store.ListAccountBindings(ctx, accountID)

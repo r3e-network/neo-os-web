@@ -34,18 +34,15 @@ type WalletChecker interface {
 	WalletOwnedBy(ctx context.Context, accountID, wallet string) error
 }
 
-// Legacy aliases for backward compatibility - prefer AccountChecker/WalletChecker.
-type (
-	AccountLookup = AccountChecker
-	WalletLookup  = WalletChecker
-)
 
 // AccountStoreAdapter wraps any account store to implement AccountChecker.
-// For full AccountChecker support (including AccountTenant), use FullAccountStoreAdapter.
+// Optionally supports tenant lookup via TenantFunc.
 type AccountStoreAdapter[T any] struct {
 	Store interface {
 		GetAccount(ctx context.Context, id string) (T, error)
 	}
+	// TenantFunc is optional. When set, enables AccountTenant() support.
+	TenantFunc func(ctx context.Context, id string) string
 }
 
 // AccountExists checks if an account exists.
@@ -54,39 +51,15 @@ func (a AccountStoreAdapter[T]) AccountExists(ctx context.Context, id string) er
 	return err
 }
 
-// AccountTenant returns empty string (basic adapter doesn't support tenants).
-// Use FullAccountStoreAdapter for tenant support.
-func (a AccountStoreAdapter[T]) AccountTenant(ctx context.Context, id string) string {
-	return ""
-}
-
-// LookupAccount is an alias for AccountExists (backward compatibility).
-func (a AccountStoreAdapter[T]) LookupAccount(ctx context.Context, id string) error {
-	return a.AccountExists(ctx, id)
-}
-
-// FullAccountStoreAdapter wraps an account store with tenant support.
-// Use this when your store provides tenant information.
-type FullAccountStoreAdapter[T any] struct {
-	Store interface {
-		GetAccount(ctx context.Context, id string) (T, error)
-	}
-	TenantFunc func(ctx context.Context, id string) string
-}
-
-// AccountExists checks if an account exists.
-func (a FullAccountStoreAdapter[T]) AccountExists(ctx context.Context, id string) error {
-	_, err := a.Store.GetAccount(ctx, id)
-	return err
-}
-
 // AccountTenant returns the tenant for an account.
-func (a FullAccountStoreAdapter[T]) AccountTenant(ctx context.Context, id string) string {
+// Returns empty string if TenantFunc is not configured.
+func (a AccountStoreAdapter[T]) AccountTenant(ctx context.Context, id string) string {
 	if a.TenantFunc == nil {
 		return ""
 	}
 	return a.TenantFunc(ctx, id)
 }
+
 
 // WalletStoreAdapter wraps any wallet store to implement WalletChecker.
 type WalletStoreAdapter[T any] struct {
@@ -101,10 +74,6 @@ func (a WalletStoreAdapter[T]) WalletOwnedBy(ctx context.Context, accountID, wal
 	return err
 }
 
-// LookupWallet is an alias for WalletOwnedBy (backward compatibility).
-func (a WalletStoreAdapter[T]) LookupWallet(ctx context.Context, workspaceID, wallet string) error {
-	return a.WalletOwnedBy(ctx, workspaceID, wallet)
-}
 
 // Base bundles shared service helpers (account validation, workspace wallets, etc).
 type Base struct {

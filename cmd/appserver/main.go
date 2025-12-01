@@ -36,6 +36,10 @@ func main() {
 	migrateFlag := flag.Bool("migrate", true, "Run database migrations on startup")
 	apiTokens := flag.String("api-tokens", "", "Comma-separated API tokens")
 	slowThreshold := flag.Int("slow-ms", 1000, "Slow query threshold in ms")
+	otlpEndpoint := flag.String("otlp-endpoint", "", "OTLP gRPC endpoint for tracing (host:port)")
+	otlpInsecure := flag.Bool("otlp-insecure", false, "Use insecure (plaintext) OTLP gRPC connection")
+	otlpService := flag.String("otlp-service-name", "", "Tracing service name override")
+	otlpAttrs := flag.String("otlp-attrs", "", "Comma-separated tracing resource attributes (key=value)")
 	showVersion := flag.Bool("version", false, "Print version and exit")
 	flag.Parse()
 
@@ -57,6 +61,19 @@ func main() {
 		if err != nil {
 			log.Fatalf("load config: %v", err)
 		}
+	}
+
+	if *otlpEndpoint != "" {
+		cfg.Tracing.Endpoint = *otlpEndpoint
+	}
+	if flag.Lookup("otlp-insecure").Value.String() == "true" || *otlpInsecure {
+		cfg.Tracing.Insecure = *otlpInsecure
+	}
+	if *otlpService != "" {
+		cfg.Tracing.ServiceName = *otlpService
+	}
+	if *otlpAttrs != "" {
+		cfg.Tracing.MergeAttributes(*otlpAttrs)
 	}
 
 	// Resolve DSN
@@ -141,6 +158,7 @@ func main() {
 		SupabaseClient: supabaseClient,
 		BlobStorage:    blobStorage,
 		RealtimeClient: eventBus,
+		Tracing:        convertTracingConfig(cfg.Tracing),
 	})
 	if err != nil {
 		log.Fatalf("create engine application: %v", err)
@@ -374,6 +392,19 @@ func splitTokens(value string) []string {
 
 // parseContractTypes parses contract type mappings from a string.
 // Format: "hash1:type1,hash2:type2" (e.g., "0x1234:oraclehub,0x5678:vrf")
+func convertTracingConfig(cfg config.TracingConfig) app.TracingConfig {
+	attrs := cfg.ResourceAttributes
+	if attrs == nil {
+		attrs = map[string]string{}
+	}
+	return app.TracingConfig{
+		Endpoint:           cfg.Endpoint,
+		Insecure:           cfg.Insecure,
+		ServiceName:        cfg.ServiceName,
+		ResourceAttributes: attrs,
+	}
+}
+
 func parseContractTypes(value string) map[string]string {
 	result := make(map[string]string)
 	value = strings.TrimSpace(value)

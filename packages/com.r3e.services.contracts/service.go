@@ -51,50 +51,30 @@ func (f InvokerFunc) Invoke(ctx context.Context, invocation Invocation) (Invocat
 
 // Service manages smart contracts, deployments, and invocations.
 type Service struct {
-	framework.ServiceBase
-	base     *core.Base
-	store    Store
-	deployer Deployer
-	invoker  Invoker
-	dispatch core.DispatchOptions
-	log      *logger.Logger
-	hooks    core.ObservationHooks
+	*framework.ServiceEngine
+	store        Store
+	deployer     Deployer
+	invoker      Invoker
+	dispatch     core.DispatchOptions
+	customTracer core.Tracer
 }
 
-// Name returns the stable service identifier.
-func (s *Service) Name() string { return "contracts" }
-
-// Domain reports the service domain.
-func (s *Service) Domain() string { return "contracts" }
-
-// Manifest describes the service contract for the engine OS.
-func (s *Service) Manifest() *framework.Manifest {
-	return &framework.Manifest{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Description:  "Smart contract deployment, invocation, and lifecycle management",
-		Layer:        "service",
-		DependsOn:    []string{"store", "svc-accounts", "svc-gasbank"},
-		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceContracts, engine.APISurfaceGasBank},
-		Capabilities: []string{"contracts", "deploy", "invoke"},
-	}
-}
-
-// Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
-
-// Start/Stop/Ready are inherited from framework.ServiceBase.
+// Start/Stop/Ready are inherited from framework.ServiceEngine.
 
 // New constructs a contracts service.
 func New(accounts core.AccountChecker, store Store, log *logger.Logger) *Service {
-	if log == nil {
-		log = logger.NewDefault("contracts")
-	}
 	svc := &Service{
-		base:     core.NewBase(accounts),
+		ServiceEngine: framework.NewServiceEngine(framework.ServiceConfig{
+			Name:         "contracts",
+			Domain:       "contracts",
+			Description:  "Smart contract deployment, invocation, and lifecycle management",
+			DependsOn:    []string{"store", "svc-accounts", "svc-gasbank"},
+			RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceContracts, engine.APISurfaceGasBank},
+			Capabilities: []string{"contracts", "deploy", "invoke"},
+			Accounts:     accounts,
+			Logger:       log,
+		}),
 		store:    store,
-		log:      log,
-		hooks:    core.NoopObservationHooks,
 		dispatch: core.NewDispatchOptions(),
 		deployer: DeployerFunc(func(_ context.Context, d Deployment) (Deployment, error) {
 			return d, nil // No-op default
@@ -103,7 +83,6 @@ func New(accounts core.AccountChecker, store Store, log *logger.Logger) *Service
 			return inv, nil // No-op default
 		}),
 	}
-	svc.SetName(svc.Name())
 	return svc
 }
 
@@ -133,17 +112,33 @@ func (s *Service) WithDispatcherHooks(h core.DispatchHooks) {
 
 // WithTracer configures a tracer for operations.
 func (s *Service) WithTracer(t core.Tracer) {
+	if t == nil {
+		s.customTracer = nil
+		t = s.Tracer()
+	} else {
+		s.customTracer = t
+	}
 	s.dispatch.SetTracer(t)
 }
 
 // WithObservationHooks configures callbacks for observability.
 func (s *Service) WithObservationHooks(h core.ObservationHooks) {
-	s.hooks = core.NormalizeHooks(h)
+	s.ServiceEngine.WithObservationHooks(h)
+}
+
+// SetEnvironment satisfies framework.EnvironmentAware so dispatcher-level dependencies track runtime changes.
+func (s *Service) SetEnvironment(env framework.Environment) {
+	s.ServiceEngine.SetEnvironment(env)
+	tracer := s.customTracer
+	if tracer == nil {
+		tracer = s.Tracer()
+	}
+	s.dispatch.SetTracer(tracer)
 }
 
 // CreateContract registers a new contract.
 func (s *Service) CreateContract(ctx context.Context, c Contract) (Contract, error) {
-	if err := s.base.EnsureAccount(ctx, c.AccountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, c.AccountID); err != nil {
 		return Contract{}, err
 	}
 	if err := s.normalizeContract(&c); err != nil {
@@ -153,7 +148,7 @@ func (s *Service) CreateContract(ctx context.Context, c Contract) (Contract, err
 	if err != nil {
 		return Contract{}, err
 	}
-	s.log.WithField("contract_id", created.ID).WithField("account_id", created.AccountID).Info("contract registered")
+	s.Logger().WithField("contract_id", created.ID).WithField("account_id", created.AccountID).Info("contract registered")
 	return created, nil
 }
 
@@ -174,7 +169,7 @@ func (s *Service) UpdateContract(ctx context.Context, c Contract) (Contract, err
 	if err != nil {
 		return Contract{}, err
 	}
-	s.log.WithField("contract_id", c.ID).WithField("account_id", c.AccountID).Info("contract updated")
+	s.Logger().WithField("contract_id", c.ID).WithField("account_id", c.AccountID).Info("contract updated")
 	return updated, nil
 }
 
@@ -201,7 +196,7 @@ func (s *Service) GetContractByAddress(ctx context.Context, network Network, add
 
 // ListContracts lists account contracts.
 func (s *Service) ListContracts(ctx context.Context, accountID string) ([]Contract, error) {
-	if err := s.base.EnsureAccount(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return nil, err
 	}
 	return s.store.ListContracts(ctx, accountID)
@@ -224,7 +219,7 @@ func (s *Service) ListContractsByNetwork(ctx context.Context, network Network) (
 
 // Deploy initiates a contract deployment.
 func (s *Service) Deploy(ctx context.Context, accountID, contractID string, constructorArgs map[string]any, gasLimit int64, metadata map[string]string) (Deployment, error) {
-	if err := s.base.EnsureAccount(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return Deployment{}, err
 	}
 	c, err := s.GetContract(ctx, accountID, contractID)
@@ -255,7 +250,7 @@ func (s *Service) Deploy(ctx context.Context, accountID, contractID string, cons
 	if err := s.dispatch.Run(ctx, "contracts.deploy", attrs, func(spanCtx context.Context) error {
 		result, err := s.deployer.Deploy(spanCtx, created)
 		if err != nil {
-			s.log.WithError(err).WithField("deployment_id", created.ID).Warn("contract deployment failed")
+			s.Logger().WithError(err).WithField("deployment_id", created.ID).Warn("contract deployment failed")
 			return err
 		}
 		// Update with result
@@ -267,13 +262,13 @@ func (s *Service) Deploy(ctx context.Context, accountID, contractID string, cons
 		return created, err
 	}
 
-	s.log.WithField("deployment_id", created.ID).WithField("contract_id", contractID).Info("contract deployment initiated")
+	s.Logger().WithField("deployment_id", created.ID).WithField("contract_id", contractID).Info("contract deployment initiated")
 	return created, nil
 }
 
 // Invoke calls a contract method.
 func (s *Service) Invoke(ctx context.Context, accountID, contractID, methodName string, args map[string]any, gasLimit int64, value string, metadata map[string]string) (Invocation, error) {
-	if err := s.base.EnsureAccount(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return Invocation{}, err
 	}
 	c, err := s.GetContract(ctx, accountID, contractID)
@@ -307,7 +302,7 @@ func (s *Service) Invoke(ctx context.Context, accountID, contractID, methodName 
 	if err := s.dispatch.Run(ctx, "contracts.invoke", attrs, func(spanCtx context.Context) error {
 		result, err := s.invoker.Invoke(spanCtx, created)
 		if err != nil {
-			s.log.WithError(err).WithField("invocation_id", created.ID).Warn("contract invocation failed")
+			s.Logger().WithError(err).WithField("invocation_id", created.ID).Warn("contract invocation failed")
 			return err
 		}
 		created = result
@@ -316,7 +311,7 @@ func (s *Service) Invoke(ctx context.Context, accountID, contractID, methodName 
 		return created, err
 	}
 
-	s.log.WithField("invocation_id", created.ID).WithField("contract_id", contractID).WithField("method", methodName).Info("contract invocation submitted")
+	s.Logger().WithField("invocation_id", created.ID).WithField("contract_id", contractID).WithField("method", methodName).Info("contract invocation submitted")
 	return created, nil
 }
 
@@ -343,7 +338,7 @@ func (s *Service) ListInvocations(ctx context.Context, accountID, contractID str
 
 // ListAccountInvocations lists all invocations for an account.
 func (s *Service) ListAccountInvocations(ctx context.Context, accountID string, limit int) ([]Invocation, error) {
-	if err := s.base.EnsureAccount(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return nil, err
 	}
 	clamped := core.ClampLimit(limit, core.DefaultListLimit, core.MaxListLimit)

@@ -13,7 +13,8 @@ func TestNew(t *testing.T) {
 	store := NewMemoryStore()
 
 	// Test with nil logger - should use default
-	svc := New(store, nil)
+	// Note: accounts service passes nil for AccountChecker since it IS the account authority
+	svc := New(nil, store, nil)
 	if svc == nil {
 		t.Fatal("expected non-nil service")
 	}
@@ -24,15 +25,15 @@ func TestNew(t *testing.T) {
 	// Test with custom logger
 	log := logger.NewDefault("test-accounts")
 	log.SetOutput(io.Discard)
-	svc2 := New(store, log)
-	if svc2.log != log {
+	svc2 := New(nil, store, log)
+	if svc2.Logger() != log {
 		t.Fatal("expected custom logger to be set")
 	}
 }
 
 func TestService_Manifest(t *testing.T) {
 	store := NewMemoryStore()
-	svc := New(store, nil)
+	svc := New(nil, store, nil)
 
 	manifest := svc.Manifest()
 	if manifest == nil {
@@ -51,7 +52,7 @@ func TestService_Manifest(t *testing.T) {
 
 func TestService_Descriptor(t *testing.T) {
 	store := NewMemoryStore()
-	svc := New(store, nil)
+	svc := New(nil, store, nil)
 
 	desc := svc.Descriptor()
 	if desc.Name != "accounts" {
@@ -64,7 +65,7 @@ func TestService_Descriptor(t *testing.T) {
 
 func TestService_StartStop(t *testing.T) {
 	store := NewMemoryStore()
-	svc := New(store, nil)
+	svc := New(nil, store, nil)
 	ctx := context.Background()
 
 	// Initially not ready
@@ -94,7 +95,7 @@ func TestService_Create(t *testing.T) {
 	store := NewMemoryStore()
 	log := logger.NewDefault("test-accounts")
 	log.SetOutput(io.Discard)
-	svc := New(store, log)
+	svc := New(nil, store, log)
 	ctx := context.Background()
 
 	// Empty owner should fail
@@ -123,7 +124,7 @@ func TestService_Get(t *testing.T) {
 	store := NewMemoryStore()
 	log := logger.NewDefault("test-accounts")
 	log.SetOutput(io.Discard)
-	svc := New(store, log)
+	svc := New(nil, store, log)
 	ctx := context.Background()
 
 	// Get non-existent should fail
@@ -153,7 +154,7 @@ func TestService_UpdateMetadata(t *testing.T) {
 	store := NewMemoryStore()
 	log := logger.NewDefault("test-accounts")
 	log.SetOutput(io.Discard)
-	svc := New(store, log)
+	svc := New(nil, store, log)
 	ctx := context.Background()
 
 	// Update non-existent should fail
@@ -186,7 +187,7 @@ func TestService_List(t *testing.T) {
 	store := NewMemoryStore()
 	log := logger.NewDefault("test-accounts")
 	log.SetOutput(io.Discard)
-	svc := New(store, log)
+	svc := New(nil, store, log)
 	ctx := context.Background()
 
 	// List empty
@@ -216,7 +217,7 @@ func TestService_Delete(t *testing.T) {
 	store := NewMemoryStore()
 	log := logger.NewDefault("test-accounts")
 	log.SetOutput(io.Discard)
-	svc := New(store, log)
+	svc := New(nil, store, log)
 	ctx := context.Background()
 
 	// Delete non-existent should fail
@@ -249,7 +250,7 @@ func TestService_DeleteWithWhitespace(t *testing.T) {
 	store := NewMemoryStore()
 	log := logger.NewDefault("test-accounts")
 	log.SetOutput(io.Discard)
-	svc := New(store, log)
+	svc := New(nil, store, log)
 	ctx := context.Background()
 
 	acct, _ := svc.Create(ctx, "eve", nil)
@@ -271,7 +272,7 @@ func TestService_CreateAccount_EngineAPI(t *testing.T) {
 	store := NewMemoryStore()
 	log := logger.NewDefault("test-accounts")
 	log.SetOutput(io.Discard)
-	svc := New(store, log)
+	svc := New(nil, store, log)
 	ctx := context.Background()
 
 	// Test engine API CreateAccount
@@ -297,7 +298,7 @@ func TestService_ListAccounts_EngineAPI(t *testing.T) {
 	store := NewMemoryStore()
 	log := logger.NewDefault("test-accounts")
 	log.SetOutput(io.Discard)
-	svc := New(store, log)
+	svc := New(nil, store, log)
 	ctx := context.Background()
 
 	// Create some accounts
@@ -316,7 +317,7 @@ func TestService_ListAccounts_EngineAPI(t *testing.T) {
 
 func TestService(t *testing.T) {
 	store := NewMemoryStore()
-	svc := New(store, nil)
+	svc := New(nil, store, nil)
 
 	acct, err := svc.Create(context.Background(), "alice", map[string]string{"tier": "pro"})
 	if err != nil {
@@ -347,7 +348,7 @@ func ExampleService_Create() {
 	store := NewMemoryStore()
 	log := logger.NewDefault("example-accounts")
 	log.SetOutput(io.Discard)
-	svc := New(store, log)
+	svc := New(nil, store, log)
 	acct, _ := svc.Create(context.Background(), "alice", map[string]string{"tier": "pro"})
 	fmt.Println(acct.Owner, acct.Metadata["tier"])
 	// Output:

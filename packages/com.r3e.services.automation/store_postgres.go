@@ -3,11 +3,9 @@ package automation
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"time"
 
-	"github.com/R3E-Network/service_layer/domain/account"
-	"github.com/R3E-Network/service_layer/domain/function"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 	"github.com/google/uuid"
 )
 
@@ -34,7 +32,7 @@ func (s *PostgresStore) CreateAutomationJob(ctx context.Context, job Job) (Job, 
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO app_automation_jobs (id, account_id, function_id, name, description, schedule, enabled, last_run, next_run, tenant, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-	`, job.ID, job.AccountID, job.FunctionID, job.Name, job.Description, job.Schedule, job.Enabled, toNullTime(job.LastRun), toNullTime(job.NextRun), tenant, job.CreatedAt, job.UpdatedAt)
+	`, job.ID, job.AccountID, job.FunctionID, job.Name, job.Description, job.Schedule, job.Enabled, core.ToNullTime(job.LastRun), core.ToNullTime(job.NextRun), tenant, job.CreatedAt, job.UpdatedAt)
 	if err != nil {
 		return Job{}, err
 	}
@@ -55,7 +53,7 @@ func (s *PostgresStore) UpdateAutomationJob(ctx context.Context, job Job) (Job, 
 		UPDATE app_automation_jobs
 		SET name = $2, description = $3, schedule = $4, enabled = $5, last_run = $6, next_run = $7, tenant = $8, updated_at = $9
 		WHERE id = $1
-	`, job.ID, job.Name, job.Description, job.Schedule, job.Enabled, toNullTime(job.LastRun), toNullTime(job.NextRun), tenant, job.UpdatedAt)
+	`, job.ID, job.Name, job.Description, job.Schedule, job.Enabled, core.ToNullTime(job.LastRun), core.ToNullTime(job.NextRun), tenant, job.UpdatedAt)
 	if err != nil {
 		return Job{}, err
 	}
@@ -121,64 +119,4 @@ func (s *PostgresStore) ListAutomationJobs(ctx context.Context, accountID string
 		result = append(result, job)
 	}
 	return result, rows.Err()
-}
-
-func toNullTime(t time.Time) sql.NullTime {
-	if t.IsZero() {
-		return sql.NullTime{}
-	}
-	return sql.NullTime{Time: t.UTC(), Valid: true}
-}
-
-// GetAccount retrieves an account by ID (implements AccountStore).
-func (s *PostgresStore) GetAccount(ctx context.Context, id string) (account.Account, error) {
-	row := s.db.QueryRowContext(ctx, `
-		SELECT id, owner, metadata, tenant, created_at, updated_at
-		FROM app_accounts
-		WHERE id = $1
-	`, id)
-
-	var (
-		acct        account.Account
-		metadataRaw []byte
-		tenant      sql.NullString
-	)
-
-	if err := row.Scan(&acct.ID, &acct.Owner, &metadataRaw, &tenant, &acct.CreatedAt, &acct.UpdatedAt); err != nil {
-		return account.Account{}, err
-	}
-
-	if len(metadataRaw) > 0 {
-		_ = json.Unmarshal(metadataRaw, &acct.Metadata)
-	}
-	if tenant.Valid {
-		if acct.Metadata == nil {
-			acct.Metadata = map[string]string{}
-		}
-		acct.Metadata["tenant"] = tenant.String
-	}
-
-	return acct, nil
-}
-
-// GetFunction retrieves a function by ID (implements FunctionStore).
-func (s *PostgresStore) GetFunction(ctx context.Context, id string) (function.Definition, error) {
-	row := s.db.QueryRowContext(ctx, `
-		SELECT id, account_id, name, description, source, secrets, created_at, updated_at
-		FROM app_functions
-		WHERE id = $1
-	`, id)
-
-	var (
-		def        function.Definition
-		secretsRaw []byte
-	)
-
-	if err := row.Scan(&def.ID, &def.AccountID, &def.Name, &def.Description, &def.Source, &secretsRaw, &def.CreatedAt, &def.UpdatedAt); err != nil {
-		return function.Definition{}, err
-	}
-	if len(secretsRaw) > 0 {
-		_ = json.Unmarshal(secretsRaw, &def.Secrets)
-	}
-	return def, nil
 }

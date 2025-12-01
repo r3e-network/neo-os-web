@@ -18,7 +18,7 @@ func setupTest() (*MemoryStore, *MockAccountChecker, *MockWalletChecker) {
 
 func TestService_CreateChannel(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)
@@ -41,7 +41,7 @@ func TestService_CreateChannel(t *testing.T) {
 
 func TestService_CreateDelivery(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)
@@ -74,7 +74,7 @@ func TestService_CreateDelivery(t *testing.T) {
 
 func TestService_ChannelRequiresSignerWallet(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 
 	svc := New(accounts, store, nil)
 	svc.WithWalletChecker(wallets)
@@ -85,7 +85,7 @@ func TestService_ChannelRequiresSignerWallet(t *testing.T) {
 
 func TestService_UpdateChannel(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)
@@ -106,8 +106,8 @@ func TestService_UpdateChannel(t *testing.T) {
 
 func TestService_UpdateChannelOwnership(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
-	accounts.AddAccount("acct-2", "")
+	accounts.AddAccountWithTenant("acct-1", "")
+	accounts.AddAccountWithTenant("acct-2", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)
@@ -121,7 +121,7 @@ func TestService_UpdateChannelOwnership(t *testing.T) {
 
 func TestService_GetChannel(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)
@@ -139,8 +139,8 @@ func TestService_GetChannel(t *testing.T) {
 
 func TestService_GetChannelOwnership(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
-	accounts.AddAccount("acct-2", "")
+	accounts.AddAccountWithTenant("acct-1", "")
+	accounts.AddAccountWithTenant("acct-2", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)
@@ -154,7 +154,7 @@ func TestService_GetChannelOwnership(t *testing.T) {
 
 func TestService_ListDeliveries(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)
@@ -173,8 +173,8 @@ func TestService_ListDeliveries(t *testing.T) {
 
 func TestService_GetDeliveryOwnership(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
-	accounts.AddAccount("acct-2", "")
+	accounts.AddAccountWithTenant("acct-1", "")
+	accounts.AddAccountWithTenant("acct-2", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)
@@ -189,7 +189,7 @@ func TestService_GetDeliveryOwnership(t *testing.T) {
 
 func TestService_ChannelValidation(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)
@@ -215,7 +215,7 @@ func TestService_ChannelValidation(t *testing.T) {
 
 func TestService_Publish(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testChannelSigner)
 
 	svc := New(accounts, store, nil)

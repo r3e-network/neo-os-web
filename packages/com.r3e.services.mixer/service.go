@@ -13,86 +13,68 @@ import (
 	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
-// Service provides privacy-preserving transaction mixing.
+// Service provides privacy-preserving transaction mixing using Double-Blind HD 1/2 Multi-sig.
+//
+// Architecture:
+// - TEE Manager: Handles online HD key derivation and signing (daily operations)
+// - Master Key Provider: Provides offline Master public keys for multi-sig addresses
+// - Each pool account: Neo N3 1-of-2 multi-sig (TEE OR Master can sign)
+//
+// Security Properties:
+// - TEE signs daily transactions (online, automated)
+// - Master key provides recovery capability (offline, cold storage)
+// - No single point of failure
+// - Each pool address is independent (no on-chain linkability)
 type Service struct {
-	framework.ServiceBase
-	base     *core.Base
-	accounts AccountChecker
-	store    Store
-	tee      TEEManager
-	chain    ChainClient
-	log      *logger.Logger
-	hooks    core.ObservationHooks
+	*framework.ServiceEngine // Provides: Name, Domain, Manifest, Descriptor, ValidateAccount, Logger, etc.
+	store                    Store
+	tee                      TEEManager
+	master                   MasterKeyProvider
+	chain                    ChainClient
 }
 
-// Name returns the stable engine module name.
-func (s *Service) Name() string { return "mixer" }
-
-// Domain reports the service domain for engine grouping.
-func (s *Service) Domain() string { return "mixer" }
-
-// Manifest describes the service contract for the engine OS.
-func (s *Service) Manifest() *framework.Manifest {
-	return &framework.Manifest{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Description:  "Privacy-preserving transaction mixing service",
-		Layer:        "service",
-		DependsOn:    []string{"store", "svc-accounts", "svc-confidential"},
-		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore},
-		Capabilities: []string{"mixer.request", "mixer.withdraw"},
-		Quotas:       map[string]string{"mixer": "request-limits"},
-	}
-}
-
-// Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
-
-// WithObservationHooks sets observation hooks for metrics/tracing.
-func (s *Service) WithObservationHooks(hooks core.ObservationHooks) {
-	s.hooks = core.NormalizeHooks(hooks)
-}
-
-// New constructs a mixer service.
-func New(accounts AccountChecker, store Store, tee TEEManager, chain ChainClient, log *logger.Logger) *Service {
-	if log == nil {
-		log = logger.NewDefault("mixer")
-	}
+// New constructs a mixer service with Double-Blind HD 1/2 Multi-sig architecture.
+func New(accounts AccountChecker, store Store, tee TEEManager, master MasterKeyProvider, chain ChainClient, log *logger.Logger) *Service {
 	svc := &Service{
-		accounts: accounts,
-		store:    store,
-		tee:      tee,
-		chain:    chain,
-		log:      log,
-		hooks:    core.NoopObservationHooks,
+		ServiceEngine: framework.NewServiceEngine(framework.ServiceConfig{
+			Name:         "mixer",
+			Description:  "Privacy-preserving transaction mixing service with HD 1/2 multi-sig",
+			DependsOn:    []string{"store", "svc-accounts", "svc-confidential"},
+			RequiresAPIs: []engine.APISurface{engine.APISurfaceStore},
+			Capabilities: []string{"mixer.request", "mixer.withdraw"},
+			Quotas:       map[string]string{"mixer": "request-limits"},
+			Accounts:     accounts,
+			Logger:       log,
+		}),
+		store:  store,
+		tee:    tee,
+		master: master,
+		chain:  chain,
 	}
-	svc.SetName(svc.Name())
 	return svc
 }
 
 // Errors
 var (
-	ErrInvalidAmount      = errors.New("invalid amount")
-	ErrInvalidTargets     = errors.New("invalid targets: at least one target required")
-	ErrTargetAmountMismatch = errors.New("target amounts do not match total amount")
-	ErrInvalidSplitCount  = errors.New("split count must be between 1 and 5")
-	ErrInsufficientCapacity = errors.New("insufficient service capacity")
-	ErrRequestNotFound    = errors.New("mix request not found")
+	ErrInvalidAmount          = errors.New("invalid amount")
+	ErrInvalidTargets         = errors.New("invalid targets: at least one target required")
+	ErrTargetAmountMismatch   = errors.New("target amounts do not match total amount")
+	ErrInvalidSplitCount      = errors.New("split count must be between 1 and 5")
+	ErrInsufficientCapacity   = errors.New("insufficient service capacity")
+	ErrRequestNotFound        = errors.New("mix request not found")
 	ErrRequestNotWithdrawable = errors.New("request is not withdrawable")
-	ErrClaimAlreadyExists = errors.New("withdrawal claim already exists")
-	ErrInvalidProof       = errors.New("invalid proof")
+	ErrClaimAlreadyExists     = errors.New("withdrawal claim already exists")
+	ErrInvalidProof           = errors.New("invalid proof")
 )
 
 // CreateMixRequest creates a new privacy mixing request.
-func (s *Service) CreateMixRequest(ctx context.Context, req MixRequest) (MixRequest, error) {
-	s.hooks.OnStart(ctx, map[string]string{"op": "create_mix_request", "account_id": req.AccountID})
-	start := time.Now()
-	defer func() {
-		s.hooks.OnComplete(ctx, map[string]string{"op": "create_mix_request"}, nil, time.Since(start))
-	}()
+func (s *Service) CreateMixRequest(ctx context.Context, req MixRequest) (_ MixRequest, err error) {
+	attrs := map[string]string{"account_id": req.AccountID, "resource": "mix_request"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
 
 	// Validate account
-	if err := s.accounts.AccountExists(ctx, req.AccountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, req.AccountID); err != nil {
 		return MixRequest{}, fmt.Errorf("account validation: %w", err)
 	}
 
@@ -159,7 +141,7 @@ func (s *Service) CreateMixRequest(ctx context.Context, req MixRequest) (MixRequ
 	if s.tee != nil {
 		proofHash, err := s.tee.GenerateZKProof(ctx, req)
 		if err != nil {
-			s.log.Warn("failed to generate ZK proof", "error", err)
+			s.Logger().Warn("failed to generate ZK proof", "error", err)
 		} else {
 			req.ZKProofHash = proofHash
 		}
@@ -170,21 +152,36 @@ func (s *Service) CreateMixRequest(ctx context.Context, req MixRequest) (MixRequ
 	if err != nil {
 		return MixRequest{}, fmt.Errorf("create mix request: %w", err)
 	}
+	attrs["request_id"] = created.ID
 
-	s.log.Info("mix request created",
+	s.Logger().Info("mix request created",
 		"request_id", created.ID,
 		"account_id", created.AccountID,
 		"amount", created.Amount,
 		"targets", len(created.Targets),
 		"duration", created.MixDuration,
 	)
+	s.LogCreated("mix_request", created.ID, created.AccountID)
+	s.IncrementCounter("mixer_requests_created_total", map[string]string{"account_id": created.AccountID})
+	eventPayload := map[string]any{
+		"request_id": created.ID,
+		"account_id": created.AccountID,
+		"amount":     created.Amount,
+	}
+	if err := s.PublishEvent(ctx, "mixer.request.created", eventPayload); err != nil {
+		if errors.Is(err, core.ErrBusUnavailable) {
+			s.Logger().WithError(err).Warn("bus unavailable for mixer request event")
+		} else {
+			return MixRequest{}, fmt.Errorf("publish mixer event: %w", err)
+		}
+	}
 
 	return created, nil
 }
 
 // GetMixRequest retrieves a mix request by ID.
 func (s *Service) GetMixRequest(ctx context.Context, accountID, requestID string) (MixRequest, error) {
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return MixRequest{}, fmt.Errorf("account validation: %w", err)
 	}
 
@@ -202,7 +199,7 @@ func (s *Service) GetMixRequest(ctx context.Context, accountID, requestID string
 
 // ListMixRequests lists mix requests for an account.
 func (s *Service) ListMixRequests(ctx context.Context, accountID string, limit int) ([]MixRequest, error) {
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return nil, fmt.Errorf("account validation: %w", err)
 	}
 
@@ -214,12 +211,10 @@ func (s *Service) ListMixRequests(ctx context.Context, accountID string, limit i
 }
 
 // ConfirmDeposit confirms that user has deposited funds to pool accounts.
-func (s *Service) ConfirmDeposit(ctx context.Context, requestID string, txHashes []string) (MixRequest, error) {
-	s.hooks.OnStart(ctx, map[string]string{"op": "confirm_deposit", "request_id": requestID})
-	start := time.Now()
-	defer func() {
-		s.hooks.OnComplete(ctx, map[string]string{"op": "confirm_deposit"}, nil, time.Since(start))
-	}()
+func (s *Service) ConfirmDeposit(ctx context.Context, requestID string, txHashes []string) (_ MixRequest, err error) {
+	attrs := map[string]string{"request_id": requestID, "resource": "confirm_deposit"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
 
 	req, err := s.store.GetMixRequest(ctx, requestID)
 	if err != nil {
@@ -254,12 +249,12 @@ func (s *Service) ConfirmDeposit(ctx context.Context, requestID string, txHashes
 	if s.chain != nil && s.tee != nil {
 		signature, err := s.tee.SignAttestation(ctx, []byte(req.ZKProofHash))
 		if err != nil {
-			s.log.Warn("failed to sign attestation", "error", err)
+			s.Logger().Warn("failed to sign attestation", "error", err)
 		} else {
 			req.TEESignature = signature
 			txHash, err := s.chain.SubmitMixProof(ctx, req.ID, req.ZKProofHash, signature)
 			if err != nil {
-				s.log.Warn("failed to submit mix proof", "error", err)
+				s.Logger().Warn("failed to submit mix proof", "error", err)
 			} else {
 				req.OnChainProofTx = txHash
 			}
@@ -270,17 +265,23 @@ func (s *Service) ConfirmDeposit(ctx context.Context, requestID string, txHashes
 	if err != nil {
 		return MixRequest{}, fmt.Errorf("update mix request: %w", err)
 	}
+	attrs["account_id"] = updated.AccountID
 
-	s.log.Info("deposit confirmed",
+	s.Logger().Info("deposit confirmed",
 		"request_id", updated.ID,
 		"tx_count", len(txHashes),
 	)
+	s.LogAction("deposit_confirmed", "mix_request", updated.ID, updated.AccountID)
+	s.IncrementCounter("mixer_deposits_confirmed_total", map[string]string{"account_id": updated.AccountID})
 
 	return updated, nil
 }
 
 // StartMixing begins the mixing process for a deposited request.
-func (s *Service) StartMixing(ctx context.Context, requestID string) (MixRequest, error) {
+func (s *Service) StartMixing(ctx context.Context, requestID string) (_ MixRequest, err error) {
+	attrs := map[string]string{"request_id": requestID, "resource": "start_mixing"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
 	req, err := s.store.GetMixRequest(ctx, requestID)
 	if err != nil {
 		return MixRequest{}, ErrRequestNotFound
@@ -302,8 +303,11 @@ func (s *Service) StartMixing(ctx context.Context, requestID string) (MixRequest
 	if err != nil {
 		return MixRequest{}, fmt.Errorf("update mix request: %w", err)
 	}
+	attrs["account_id"] = updated.AccountID
 
-	s.log.Info("mixing started", "request_id", updated.ID)
+	s.Logger().Info("mixing started", "request_id", updated.ID)
+	s.LogAction("mixing_started", "mix_request", updated.ID, updated.AccountID)
+	s.IncrementCounter("mixer_mixes_started_total", map[string]string{"account_id": updated.AccountID})
 
 	return updated, nil
 }
@@ -369,7 +373,10 @@ func (s *Service) scheduleMixingTransactions(ctx context.Context, req MixRequest
 }
 
 // CompleteMixRequest marks a request as completed after all deliveries.
-func (s *Service) CompleteMixRequest(ctx context.Context, requestID string) (MixRequest, error) {
+func (s *Service) CompleteMixRequest(ctx context.Context, requestID string) (_ MixRequest, err error) {
+	attrs := map[string]string{"request_id": requestID, "resource": "complete_mixing"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
 	req, err := s.store.GetMixRequest(ctx, requestID)
 	if err != nil {
 		return MixRequest{}, ErrRequestNotFound
@@ -396,7 +403,7 @@ func (s *Service) CompleteMixRequest(ctx context.Context, requestID string) (Mix
 	if s.chain != nil {
 		txHash, err := s.chain.SubmitCompletionProof(ctx, req.ID, req.DeliveredAmount)
 		if err != nil {
-			s.log.Warn("failed to submit completion proof", "error", err)
+			s.Logger().Warn("failed to submit completion proof", "error", err)
 		} else {
 			req.CompletionProofTx = txHash
 		}
@@ -410,22 +417,23 @@ func (s *Service) CompleteMixRequest(ctx context.Context, requestID string) (Mix
 	if err != nil {
 		return MixRequest{}, fmt.Errorf("update mix request: %w", err)
 	}
+	attrs["account_id"] = updated.AccountID
 
-	s.log.Info("mix request completed",
+	s.Logger().Info("mix request completed",
 		"request_id", updated.ID,
 		"delivered_amount", updated.DeliveredAmount,
 	)
+	s.LogAction("mix_completed", "mix_request", updated.ID, updated.AccountID)
+	s.IncrementCounter("mixer_requests_completed_total", map[string]string{"account_id": updated.AccountID})
 
 	return updated, nil
 }
 
 // CreateWithdrawalClaim creates an emergency withdrawal claim when service is unavailable.
-func (s *Service) CreateWithdrawalClaim(ctx context.Context, requestID, claimAddress string) (WithdrawalClaim, error) {
-	s.hooks.OnStart(ctx, map[string]string{"op": "create_withdrawal_claim", "request_id": requestID})
-	start := time.Now()
-	defer func() {
-		s.hooks.OnComplete(ctx, map[string]string{"op": "create_withdrawal_claim"}, nil, time.Since(start))
-	}()
+func (s *Service) CreateWithdrawalClaim(ctx context.Context, requestID, claimAddress string) (_ WithdrawalClaim, err error) {
+	attrs := map[string]string{"request_id": requestID, "resource": "withdrawal_claim"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
 
 	req, err := s.store.GetMixRequest(ctx, requestID)
 	if err != nil {
@@ -463,19 +471,22 @@ func (s *Service) CreateWithdrawalClaim(ctx context.Context, requestID, claimAdd
 	if err != nil {
 		return WithdrawalClaim{}, fmt.Errorf("create withdrawal claim: %w", err)
 	}
+	attrs["account_id"] = created.AccountID
 
 	// Update request status
 	req.Status = RequestStatusWithdrawable
 	req.UpdatedAt = now
 	if _, err := s.store.UpdateMixRequest(ctx, req); err != nil {
-		s.log.Warn("failed to update request status", "error", err)
+		s.Logger().Warn("failed to update request status", "error", err)
 	}
 
-	s.log.Info("withdrawal claim created",
+	s.Logger().Info("withdrawal claim created",
 		"claim_id", created.ID,
 		"request_id", created.RequestID,
 		"amount", created.ClaimAmount,
 	)
+	s.LogCreated("withdrawal_claim", created.ID, created.AccountID)
+	s.IncrementCounter("mixer_withdrawal_claims_created_total", map[string]string{"account_id": created.AccountID})
 
 	return created, nil
 }
@@ -490,48 +501,87 @@ func (s *Service) GetPoolAccounts(ctx context.Context) ([]PoolAccount, error) {
 	return s.store.ListActivePoolAccounts(ctx)
 }
 
-// CreatePoolAccount creates a new TEE-managed pool account.
-func (s *Service) CreatePoolAccount(ctx context.Context) (PoolAccount, error) {
+// CreatePoolAccount creates a new pool account using Double-Blind HD 1/2 Multi-sig.
+//
+// Process:
+// 1. Get next available HD index from TEE
+// 2. Get Master public key at that index (from offline-derived public key store)
+// 3. Derive TEE public key at that index
+// 4. Create Neo N3 1-of-2 multi-sig address from both keys
+// 5. Store pool account with HD configuration
+//
+// The resulting address can be signed by either:
+// - TEE key (daily operations, automated)
+// - Master key (recovery, offline signing)
+func (s *Service) CreatePoolAccount(ctx context.Context) (_ PoolAccount, err error) {
 	if s.tee == nil {
 		return PoolAccount{}, fmt.Errorf("TEE manager not configured")
 	}
+	if s.master == nil {
+		return PoolAccount{}, fmt.Errorf("Master key provider not configured")
+	}
+	attrs := map[string]string{"resource": "pool_account"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
 
-	keyID, walletAddress, encryptedKey, err := s.tee.GeneratePoolKey(ctx)
+	// Step 1: Get next HD index
+	hdIndex, err := s.tee.GetNextPoolIndex(ctx)
 	if err != nil {
-		return PoolAccount{}, fmt.Errorf("generate pool key: %w", err)
+		return PoolAccount{}, fmt.Errorf("get next pool index: %w", err)
+	}
+
+	// Step 2: Get Master public key at this index
+	masterPubKey, err := s.master.GetMasterPublicKey(ctx, hdIndex)
+	if err != nil {
+		return PoolAccount{}, fmt.Errorf("get master public key at index %d: %w", hdIndex, err)
+	}
+
+	// Step 3: Derive TEE keys and create multi-sig address
+	keyPair, err := s.tee.DerivePoolKeys(ctx, hdIndex, masterPubKey)
+	if err != nil {
+		return PoolAccount{}, fmt.Errorf("derive pool keys at index %d: %w", hdIndex, err)
 	}
 
 	now := time.Now()
 	pool := PoolAccount{
-		WalletAddress:    walletAddress,
-		Status:           PoolAccountStatusActive,
-		TEEKeyID:         keyID,
-		EncryptedPrivKey: encryptedKey,
-		Balance:          "0",
-		PendingIn:        "0",
-		PendingOut:       "0",
-		TotalReceived:    "0",
-		TotalSent:        "0",
-		RetireAfter:      now.Add(30 * 24 * time.Hour), // Retire after 30 days
-		CreatedAt:        now,
-		UpdatedAt:        now,
+		WalletAddress:   keyPair.Address,
+		Status:          PoolAccountStatusActive,
+		HDIndex:         keyPair.Index,
+		TEEPublicKey:    fmt.Sprintf("%x", keyPair.TEEPublicKey),
+		MasterPublicKey: fmt.Sprintf("%x", keyPair.MasterPublicKey),
+		MultiSigScript:  fmt.Sprintf("%x", keyPair.MultiSigScript),
+		Balance:         "0",
+		PendingIn:       "0",
+		PendingOut:      "0",
+		TotalReceived:   "0",
+		TotalSent:       "0",
+		RetireAfter:     now.Add(30 * 24 * time.Hour), // Retire after 30 days
+		CreatedAt:       now,
+		UpdatedAt:       now,
 	}
 
 	created, err := s.store.CreatePoolAccount(ctx, pool)
 	if err != nil {
 		return PoolAccount{}, fmt.Errorf("create pool account: %w", err)
 	}
+	attrs["pool_id"] = created.ID
 
-	s.log.Info("pool account created",
+	s.Logger().Info("pool account created with HD 1/2 multi-sig",
 		"pool_id", created.ID,
+		"hd_index", created.HDIndex,
 		"wallet", created.WalletAddress,
 	)
+	s.LogCreated("pool_account", created.ID, "")
+	s.IncrementCounter("mixer_pool_accounts_created_total", nil)
 
 	return created, nil
 }
 
 // RetirePoolAccount marks a pool account for retirement.
-func (s *Service) RetirePoolAccount(ctx context.Context, poolID string) (PoolAccount, error) {
+func (s *Service) RetirePoolAccount(ctx context.Context, poolID string) (_ PoolAccount, err error) {
+	attrs := map[string]string{"pool_id": poolID, "resource": "retire_pool_account"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
 	pool, err := s.store.GetPoolAccount(ctx, poolID)
 	if err != nil {
 		return PoolAccount{}, fmt.Errorf("get pool account: %w", err)
@@ -545,7 +595,111 @@ func (s *Service) RetirePoolAccount(ctx context.Context, poolID string) (PoolAcc
 		return PoolAccount{}, fmt.Errorf("update pool account: %w", err)
 	}
 
-	s.log.Info("pool account retiring", "pool_id", updated.ID)
+	s.Logger().Info("pool account retiring", "pool_id", updated.ID)
+	s.LogUpdated("pool_account", updated.ID, "")
+	s.IncrementCounter("mixer_pool_accounts_retired_total", nil)
 
 	return updated, nil
+}
+
+// HTTP API Methods
+// These methods follow the HTTP{Method}{Path} naming convention for automatic route discovery.
+
+// HTTPGetRequests handles GET /requests - list mix requests for an account.
+func (s *Service) HTTPGetRequests(ctx context.Context, req core.APIRequest) (any, error) {
+	limit := core.ParseLimitFromQuery(req.Query)
+	return s.ListMixRequests(ctx, req.AccountID, limit)
+}
+
+// HTTPPostRequests handles POST /requests - create a new mix request.
+func (s *Service) HTTPPostRequests(ctx context.Context, req core.APIRequest) (any, error) {
+	sourceWallet, _ := req.Body["source_wallet"].(string)
+	amount, _ := req.Body["amount"].(string)
+	tokenAddress, _ := req.Body["token_address"].(string)
+	mixDurationStr, _ := req.Body["mix_duration"].(string)
+	splitCount := 0
+	if sc, ok := req.Body["split_count"].(float64); ok {
+		splitCount = int(sc)
+	}
+
+	var targets []MixTarget
+	if rawTargets, ok := req.Body["targets"].([]any); ok {
+		for _, rt := range rawTargets {
+			if t, ok := rt.(map[string]any); ok {
+				target := MixTarget{
+					Address: core.GetString(t, "address"),
+					Amount:  core.GetString(t, "amount"),
+				}
+				targets = append(targets, target)
+			}
+		}
+	}
+
+	metadata := core.ExtractMetadataRaw(req.Body, "")
+
+	mixReq := MixRequest{
+		AccountID:    req.AccountID,
+		SourceWallet: sourceWallet,
+		Amount:       amount,
+		TokenAddress: tokenAddress,
+		MixDuration:  ParseMixDuration(mixDurationStr),
+		SplitCount:   splitCount,
+		Targets:      targets,
+		Metadata:     metadata,
+	}
+
+	return s.CreateMixRequest(ctx, mixReq)
+}
+
+// HTTPGetRequestsById handles GET /requests/{id} - get a specific mix request.
+func (s *Service) HTTPGetRequestsById(ctx context.Context, req core.APIRequest) (any, error) {
+	requestID := req.PathParams["id"]
+	return s.GetMixRequest(ctx, req.AccountID, requestID)
+}
+
+// HTTPPostRequestsIdDeposit handles POST /requests/{id}/deposit - confirm deposit.
+func (s *Service) HTTPPostRequestsIdDeposit(ctx context.Context, req core.APIRequest) (any, error) {
+	requestID := req.PathParams["id"]
+
+	// Verify ownership first
+	mixReq, err := s.GetMixRequest(ctx, req.AccountID, requestID)
+	if err != nil {
+		return nil, err
+	}
+	if mixReq.AccountID != req.AccountID {
+		return nil, fmt.Errorf("forbidden: request belongs to different account")
+	}
+
+	var txHashes []string
+	if rawHashes, ok := req.Body["tx_hashes"].([]any); ok {
+		for _, h := range rawHashes {
+			if str, ok := h.(string); ok {
+				txHashes = append(txHashes, str)
+			}
+		}
+	}
+
+	return s.ConfirmDeposit(ctx, requestID, txHashes)
+}
+
+// HTTPPostRequestsIdClaim handles POST /requests/{id}/claim - create withdrawal claim.
+func (s *Service) HTTPPostRequestsIdClaim(ctx context.Context, req core.APIRequest) (any, error) {
+	requestID := req.PathParams["id"]
+
+	// Verify ownership first
+	mixReq, err := s.GetMixRequest(ctx, req.AccountID, requestID)
+	if err != nil {
+		return nil, err
+	}
+	if mixReq.AccountID != req.AccountID {
+		return nil, fmt.Errorf("forbidden: request belongs to different account")
+	}
+
+	claimAddress, _ := req.Body["claim_address"].(string)
+	return s.CreateWithdrawalClaim(ctx, requestID, claimAddress)
+}
+
+// HTTPGetStats handles GET /stats - get mixer statistics.
+func (s *Service) HTTPGetStats(ctx context.Context, req core.APIRequest) (any, error) {
+	return s.GetMixStats(ctx)
 }

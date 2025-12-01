@@ -9,6 +9,7 @@ import (
 
 	"github.com/R3E-Network/service_layer/applications/auth"
 	"github.com/R3E-Network/service_layer/pkg/logger"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -69,7 +70,7 @@ func wrapWithAuth(next http.Handler, tokens []string, log *logger.Logger, valida
 				ctx = context.WithValue(ctx, ctxTokenKey, token)
 				ctx = withTenant(ctx, r)
 				if requireTenantHeaderEnabled() && strings.TrimSpace(tenantFromCtx(ctx)) == "" {
-					writeError(w, http.StatusForbidden, fmt.Errorf("tenant header required"))
+					core.WriteError(w, http.StatusForbidden, fmt.Errorf("tenant header required"))
 					return
 				}
 				if enforceRole(w, r, ctx) {
@@ -88,7 +89,7 @@ func wrapWithAuth(next http.Handler, tokens []string, log *logger.Logger, valida
 						ctx = withTenant(ctx, r)
 					}
 					if requireTenantHeaderEnabled() && strings.TrimSpace(tenantFromCtx(ctx)) == "" {
-						writeError(w, http.StatusForbidden, fmt.Errorf("tenant header required"))
+						core.WriteError(w, http.StatusForbidden, fmt.Errorf("tenant header required"))
 						return
 					}
 					if enforceRole(w, r, ctx) {
@@ -278,15 +279,15 @@ func enforceRole(w http.ResponseWriter, r *http.Request, ctx context.Context) bo
 	role, _ := ctx.Value(ctxRoleKey).(string)
 	tenant, _ := ctx.Value(ctxTenantKey).(string)
 	if isAdminPath(path) && role != "admin" {
-		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: admin only"))
+		core.WriteError(w, http.StatusForbidden, fmt.Errorf("forbidden: admin only"))
 		return false
 	}
 	if isAdminPath(path) && strings.TrimSpace(tenant) == "" {
-		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: tenant required"))
+		core.WriteError(w, http.StatusForbidden, fmt.Errorf("forbidden: tenant required"))
 		return false
 	}
 	if requireTenantHeaderEnabled() && strings.TrimSpace(tenant) == "" {
-		writeError(w, http.StatusForbidden, fmt.Errorf("tenant header required"))
+		core.WriteError(w, http.StatusForbidden, fmt.Errorf("tenant header required"))
 		return false
 	}
 	return true
@@ -325,5 +326,5 @@ func normaliseTokens(tokens []string) map[string]struct{} {
 
 func unauthorised(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", "Bearer")
-	writeError(w, http.StatusUnauthorized, fmt.Errorf("unauthorised"))
+	core.WriteError(w, http.StatusUnauthorized, fmt.Errorf("unauthorised"))
 }

@@ -10,7 +10,18 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/R3E-Network/service_layer/pkg/admin"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
+
+// Store implements the AdminConfigStore interface backed by PostgreSQL.
+type Store struct {
+	db *sql.DB
+}
+
+// New creates a Store using the provided database handle.
+func New(db *sql.DB) *Store {
+	return &Store{db: db}
+}
 
 // AdminConfigStore implementation
 
@@ -57,7 +68,7 @@ func (s *Store) UpdateChainRPC(ctx context.Context, rpc admin.ChainRPC) (admin.C
 		WHERE id = $1
 	`, rpc.ID, rpc.ChainID, rpc.Name, rpc.RPCURL, rpc.WSURL, rpc.ChainType, rpc.NetworkID,
 		rpc.Priority, rpc.Weight, rpc.MaxRPS, rpc.Timeout, rpc.Enabled, rpc.Healthy,
-		metadataJSON, rpc.UpdatedAt, toNullTime(rpc.LastCheckAt))
+		metadataJSON, rpc.UpdatedAt, core.ToNullTime(rpc.LastCheckAt))
 	if err != nil {
 		return admin.ChainRPC{}, err
 	}
@@ -192,7 +203,7 @@ func (s *Store) UpdateDataProvider(ctx context.Context, p admin.DataProvider) (a
 			updated_at = $13, last_check_at = $14
 		WHERE id = $1
 	`, p.ID, p.Name, p.Type, p.BaseURL, p.APIKey, p.RateLimit, p.Timeout, p.Retries,
-		p.Enabled, p.Healthy, pq.Array(p.Features), metadataJSON, p.UpdatedAt, toNullTime(p.LastCheckAt))
+		p.Enabled, p.Healthy, pq.Array(p.Features), metadataJSON, p.UpdatedAt, core.ToNullTime(p.LastCheckAt))
 	if err != nil {
 		return admin.DataProvider{}, err
 	}

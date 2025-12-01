@@ -9,12 +9,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
+
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // Config controls the indexer polling loop.
@@ -37,13 +38,13 @@ const (
 
 func main() {
 	var cfg Config
-	flag.StringVar(&cfg.RPCURL, "rpc", envDefault("NEO_RPC_URL", "http://localhost:10332"), "NEO RPC endpoint")
-	flag.StringVar(&cfg.Network, "network", envDefault("NEO_NETWORK", "mainnet"), "network label (mainnet|testnet)")
+	flag.StringVar(&cfg.RPCURL, "rpc", core.EnvDefault("NEO_RPC_URL", "http://localhost:10332"), "NEO RPC endpoint")
+	flag.StringVar(&cfg.Network, "network", core.EnvDefault("NEO_NETWORK", "mainnet"), "network label (mainnet|testnet)")
 	flag.Int64Var(&cfg.StartHeight, "start-height", 0, "height to start indexing from (0 means current height)")
-	flag.DurationVar(&cfg.PollInterval, "poll", durationEnv("NEO_POLL_INTERVAL", 5*time.Second), "poll interval for new blocks")
-	flag.StringVar(&cfg.DSN, "dsn", envDefault("NEO_INDEXER_DSN", ""), "Postgres DSN for persisting chain data (optional)")
+	flag.DurationVar(&cfg.PollInterval, "poll", core.EnvDuration("NEO_POLL_INTERVAL", 5*time.Second), "poll interval for new blocks")
+	flag.StringVar(&cfg.DSN, "dsn", core.EnvDefault("NEO_INDEXER_DSN", ""), "Postgres DSN for persisting chain data (optional)")
 	flag.Int64Var(&cfg.BatchSize, "batch", 50, "max blocks to process per tick")
-	flag.Int64Var(&cfg.StableBuffer, "stable-buffer", int64(envIntDefault("NEO_STABLE_BUFFER", 12)), "min blocks behind head to consider stable (also used by API)")
+	flag.Int64Var(&cfg.StableBuffer, "stable-buffer", int64(core.EnvInt("NEO_STABLE_BUFFER", 12)), "min blocks behind head to consider stable (also used by API)")
 	flag.Parse()
 
 	log.Printf("neo-indexer (network=%s rpc=%s start=%d poll=%s batch=%d)", cfg.Network, cfg.RPCURL, cfg.StartHeight, cfg.PollInterval, cfg.BatchSize)
@@ -151,30 +152,6 @@ func main() {
 	}
 }
 
-func envDefault(key, def string) string {
-	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
-		return v
-	}
-	return def
-}
-
-func durationEnv(key string, def time.Duration) time.Duration {
-	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			return d
-		}
-	}
-	return def
-}
-
-func envIntDefault(key string, def int) int {
-	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			return i
-		}
-	}
-	return def
-}
 
 type rpcClient struct {
 	url string

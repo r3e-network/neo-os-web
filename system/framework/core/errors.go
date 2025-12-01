@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -251,4 +252,18 @@ func NewHookError(service, hookType string, err error) *HookError {
 // IsHookError returns true if the error is a hook error.
 func IsHookError(err error) bool {
 	return errors.Is(err, ErrHookFailed)
+}
+
+// EventPublisher is the standard interface for services that publish events.
+// This consolidates the duplicate eventPublisher interfaces across services.
+// Services implementing this interface can be used with the core engine adapter.
+type EventPublisher interface {
+	Publish(ctx context.Context, event string, payload any) error
+}
+
+// RowScanner is the standard interface for database row scanning.
+// This consolidates the duplicate rowScanner interfaces across 12 service packages.
+// Compatible with *sql.Row and *sql.Rows.
+type RowScanner interface {
+	Scan(dest ...any) error
 }

@@ -13,57 +13,37 @@ import (
 )
 
 // Service coordinates automation jobs.
+// Uses ServiceEngine for common functionality (validation, logging, manifest).
 type Service struct {
-	framework.ServiceBase
-	accounts AccountChecker
-	store    Store
-	log      *logger.Logger
+	*framework.ServiceEngine // Provides: Name, Domain, Manifest, Descriptor, ValidateAccount, Logger, etc.
+	store                    Store
 }
-
-// Name returns the stable engine module name.
-func (s *Service) Name() string { return "automation" }
-
-// Domain reports the service domain for engine grouping.
-func (s *Service) Domain() string { return "automation" }
-
-// Manifest describes the service contract for the engine OS.
-func (s *Service) Manifest() *framework.Manifest {
-	return &framework.Manifest{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Description:  "Automation jobs and schedulers",
-		Layer:        "service",
-		DependsOn:    []string{"store", "svc-accounts", "svc-functions"},
-		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceEvent, engine.APISurfaceCompute},
-		Capabilities: []string{"automation"},
-	}
-}
-
-// Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
 
 // New creates a configured automation service.
 func New(accounts AccountChecker, store Store, log *logger.Logger) *Service {
-	if log == nil {
-		log = logger.NewDefault("automation")
+	return &Service{
+		ServiceEngine: framework.NewServiceEngine(framework.ServiceConfig{
+			Name:         "automation",
+			Description:  "Automation jobs and schedulers",
+			DependsOn:    []string{"store", "svc-accounts", "svc-functions"},
+			RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceEvent, engine.APISurfaceCompute},
+			Capabilities: []string{"automation"},
+			Accounts:     accounts,
+			Logger:       log,
+		}),
+		store: store,
 	}
-	svc := &Service{
-		accounts: accounts,
-		store:    store,
-		log:      log,
-	}
-	svc.SetName(svc.Name())
-	return svc
 }
 
-// Start/Stop/Ready are inherited from framework.ServiceBase.
-
 // CreateJob provisions a new automation job tied to a function.
-func (s *Service) CreateJob(ctx context.Context, accountID, functionID, name, schedule, description string) (Job, error) {
+func (s *Service) CreateJob(ctx context.Context, accountID, functionID, name, schedule, description string) (job Job, err error) {
 	accountID = strings.TrimSpace(accountID)
 	functionID = strings.TrimSpace(functionID)
 	name = strings.TrimSpace(name)
 	schedule = strings.TrimSpace(schedule)
+	attrs := map[string]string{"account_id": accountID, "resource": "automation_job"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
 
 	if accountID == "" {
 		return Job{}, core.RequiredError("account_id")
@@ -78,7 +58,7 @@ func (s *Service) CreateJob(ctx context.Context, accountID, functionID, name, sc
 		return Job{}, core.RequiredError("schedule")
 	}
 
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return Job{}, fmt.Errorf("account validation failed: %w", err)
 	}
 	// Note: Function validation is handled by the caller (application layer)
@@ -94,7 +74,7 @@ func (s *Service) CreateJob(ctx context.Context, accountID, functionID, name, sc
 		}
 	}
 
-	job := Job{
+	job = Job{
 		AccountID:   accountID,
 		FunctionID:  functionID,
 		Name:        name,
@@ -109,16 +89,22 @@ func (s *Service) CreateJob(ctx context.Context, accountID, functionID, name, sc
 	if err != nil {
 		return Job{}, err
 	}
-	s.log.WithField("job_id", job.ID).
+	attrs["job_id"] = job.ID
+	s.Logger().WithField("job_id", job.ID).
 		WithField("account_id", accountID).
 		WithField("function_id", job.FunctionID).
 		Info("automation job created")
+	s.LogCreated("automation_job", job.ID, job.AccountID)
+	s.IncrementCounter("automation_jobs_created_total", map[string]string{"account_id": accountID})
 	return job, nil
 }
 
 // UpdateJob applies modifications to an automation job.
-func (s *Service) UpdateJob(ctx context.Context, jobID string, name, schedule, description *string, nextRun *time.Time) (Job, error) {
-	job, err := s.store.GetAutomationJob(ctx, jobID)
+func (s *Service) UpdateJob(ctx context.Context, jobID string, name, schedule, description *string, nextRun *time.Time) (job Job, err error) {
+	attrs := map[string]string{"job_id": jobID, "resource": "automation_job"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
+	job, err = s.store.GetAutomationJob(ctx, jobID)
 	if err != nil {
 		return Job{}, err
 	}
@@ -161,15 +147,21 @@ func (s *Service) UpdateJob(ctx context.Context, jobID string, name, schedule, d
 	if err != nil {
 		return Job{}, err
 	}
-	s.log.WithField("job_id", job.ID).
+	attrs["account_id"] = job.AccountID
+	s.Logger().WithField("job_id", job.ID).
 		WithField("account_id", job.AccountID).
 		Info("automation job updated")
+	s.LogUpdated("automation_job", job.ID, job.AccountID)
+	s.IncrementCounter("automation_jobs_updated_total", map[string]string{"account_id": job.AccountID})
 	return job, nil
 }
 
 // SetEnabled toggles a job's enabled flag.
-func (s *Service) SetEnabled(ctx context.Context, jobID string, enabled bool) (Job, error) {
-	job, err := s.store.GetAutomationJob(ctx, jobID)
+func (s *Service) SetEnabled(ctx context.Context, jobID string, enabled bool) (job Job, err error) {
+	attrs := map[string]string{"job_id": jobID, "resource": "automation_job_enable"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
+	job, err = s.store.GetAutomationJob(ctx, jobID)
 	if err != nil {
 		return Job{}, err
 	}
@@ -181,28 +173,43 @@ func (s *Service) SetEnabled(ctx context.Context, jobID string, enabled bool) (J
 	if err != nil {
 		return Job{}, err
 	}
-	s.log.WithField("job_id", job.ID).
+	attrs["account_id"] = job.AccountID
+	s.Logger().WithField("job_id", job.ID).
 		WithField("account_id", job.AccountID).
 		WithField("enabled", enabled).
 		Info("automation job state changed")
+	action := "disabled"
+	if enabled {
+		action = "enabled"
+	}
+	s.LogAction("job_"+action, "automation_job", job.ID, job.AccountID)
+	value := 0.0
+	if enabled {
+		value = 1
+	}
+	s.SetGauge("automation_job_enabled", map[string]string{"job_id": job.ID, "account_id": job.AccountID}, value)
 	return job, nil
 }
 
 // RecordExecution stores execution metadata for a job.
-func (s *Service) RecordExecution(ctx context.Context, jobID string, runAt time.Time) (Job, error) {
-	job, err := s.store.GetAutomationJob(ctx, jobID)
+func (s *Service) RecordExecution(ctx context.Context, jobID string, runAt time.Time) (job Job, err error) {
+	attrs := map[string]string{"job_id": jobID, "resource": "automation_job_run"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	defer func() { finish(err) }()
+	job, err = s.store.GetAutomationJob(ctx, jobID)
 	if err != nil {
 		return Job{}, err
 	}
 
 	job.LastRun = runAt.UTC()
 	if err := s.applyNextRun(&job, job.LastRun); err != nil {
-		s.log.WithError(err).
+		s.Logger().WithError(err).
 			WithField("job_id", job.ID).
 			Warn("failed to compute next run; clearing value")
 		job.NextRun = time.Time{}
 	}
-
+	attrs["account_id"] = job.AccountID
+	s.IncrementCounter("automation_job_runs_total", map[string]string{"job_id": job.ID, "account_id": job.AccountID})
 	return s.store.UpdateAutomationJob(ctx, job)
 }
 
@@ -220,7 +227,7 @@ func (s *Service) ListJobs(ctx context.Context, accountID string) ([]Job, error)
 		}
 		return nil, core.RequiredError("account_id")
 	}
-	if err := s.accounts.AccountExists(ctx, trimmed); err != nil {
+	if err := s.ValidateAccountExists(ctx, trimmed); err != nil {
 		return nil, err
 	}
 	return s.store.ListAutomationJobs(ctx, trimmed)
@@ -238,13 +245,84 @@ func (s *Service) applyNextRun(job *Job, from time.Time) error {
 	return nil
 }
 
-// APIEndpoints declares the HTTP API endpoints for this service.
-// The service engine automatically registers routes based on this declaration.
-func (s *Service) APIEndpoints() []core.APIEndpoint {
-	return []core.APIEndpoint{
-		{core.GET, "jobs", "ListJobs", "List all automation jobs"},
-		{core.POST, "jobs", "CreateJob", "Create a new automation job"},
-		{core.GET, "jobs/{id}", "GetJob", "Get job by ID"},
-		{core.PATCH, "jobs/{id}", "UpdateJob", "Update an existing job"},
+// HTTP API Methods
+// These methods follow the HTTP{Method}{Path} naming convention for automatic route discovery.
+// Method signature: func (s *Service) HTTP{Method}{Path}(ctx context.Context, req core.APIRequest) (any, error)
+
+// HTTPGetJobs handles GET /jobs - list all automation jobs for an account.
+func (s *Service) HTTPGetJobs(ctx context.Context, req core.APIRequest) (any, error) {
+	return s.ListJobs(ctx, req.AccountID)
+}
+
+// HTTPPostJobs handles POST /jobs - create a new automation job.
+func (s *Service) HTTPPostJobs(ctx context.Context, req core.APIRequest) (any, error) {
+	functionID, _ := req.Body["function_id"].(string)
+	name, _ := req.Body["name"].(string)
+	schedule, _ := req.Body["schedule"].(string)
+	description, _ := req.Body["description"].(string)
+	return s.CreateJob(ctx, req.AccountID, functionID, name, schedule, description)
+}
+
+// HTTPGetJobsById handles GET /jobs/{id} - get a specific job.
+func (s *Service) HTTPGetJobsById(ctx context.Context, req core.APIRequest) (any, error) {
+	jobID := req.PathParams["id"]
+	job, err := s.GetJob(ctx, jobID)
+	if err != nil {
+		return nil, err
 	}
+	// Verify ownership
+	if job.AccountID != req.AccountID {
+		return nil, fmt.Errorf("forbidden: job belongs to different account")
+	}
+	return job, nil
+}
+
+// HTTPPatchJobsById handles PATCH /jobs/{id} - update a job.
+func (s *Service) HTTPPatchJobsById(ctx context.Context, req core.APIRequest) (any, error) {
+	jobID := req.PathParams["id"]
+
+	// Verify ownership first
+	job, err := s.GetJob(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	if job.AccountID != req.AccountID {
+		return nil, fmt.Errorf("forbidden: job belongs to different account")
+	}
+
+	// Extract optional update fields
+	var name, schedule, description *string
+	if v, ok := req.Body["name"].(string); ok {
+		name = &v
+	}
+	if v, ok := req.Body["schedule"].(string); ok {
+		schedule = &v
+	}
+	if v, ok := req.Body["description"].(string); ok {
+		description = &v
+	}
+
+	// Handle enabled toggle separately
+	if enabled, ok := req.Body["enabled"].(bool); ok {
+		return s.SetEnabled(ctx, jobID, enabled)
+	}
+
+	return s.UpdateJob(ctx, jobID, name, schedule, description, nil)
+}
+
+// HTTPDeleteJobsById handles DELETE /jobs/{id} - delete a job (if supported).
+func (s *Service) HTTPDeleteJobsById(ctx context.Context, req core.APIRequest) (any, error) {
+	jobID := req.PathParams["id"]
+
+	// Verify ownership first
+	job, err := s.GetJob(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	if job.AccountID != req.AccountID {
+		return nil, fmt.Errorf("forbidden: job belongs to different account")
+	}
+
+	// Disable the job (soft delete)
+	return s.SetEnabled(ctx, jobID, false)
 }

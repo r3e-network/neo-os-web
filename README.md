@@ -59,6 +59,12 @@ DATABASE_URL=postgres://user:pass@localhost:5432/service_layer
 API_TOKENS=your-api-token
 SECRETS_ENCRYPT_KEY=***REMOVED***
 CONTRACT_TYPE_MAPPINGS=0x1234:oraclehub,0x5678:vrf
+
+# Enable OTLP tracing
+TRACING_OTLP_ENDPOINT=otel-collector:4317
+TRACING_OTLP_INSECURE=true          # set false when using TLS
+TRACING_SERVICE_NAME=service-layer
+TRACING_OTLP_ATTRIBUTES=env=prod,region=us-east-1
 ```
 
 ## API Endpoints

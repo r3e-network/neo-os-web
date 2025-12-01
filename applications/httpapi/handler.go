@@ -23,6 +23,7 @@ import (
 	"github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
 	oraclesvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.oracle"
 	engine "github.com/R3E-Network/service_layer/system/core"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 	"github.com/R3E-Network/service_layer/system/platform/database"
 	"github.com/R3E-Network/service_layer/system/platform/migrations"
 )
@@ -30,6 +31,7 @@ import (
 // handler bundles HTTP endpoints for the application services.
 type handler struct {
 	services          app.ServiceProvider
+	serviceRouter     *core.ServiceRouter // Auto-discovered service routes
 	jamCfg            jam.Config
 	jamAuth           []string
 	jamStore          jam.PackageStore
@@ -152,6 +154,15 @@ func WithExtraRoutes(registrars ...RouteRegistrar) HandlerOption {
 	}
 }
 
+// WithServiceRouter sets the service router for automatic API endpoint discovery.
+// Services registered with the router will have their HTTP* methods automatically
+// invoked when matching requests arrive.
+func WithServiceRouter(router *core.ServiceRouter) HandlerOption {
+	return func(h *handler) {
+		h.serviceRouter = router
+	}
+}
+
 // NewHandler returns a mux exposing the core REST API.
 func NewHandler(
 	services app.ServiceProvider,
@@ -169,6 +180,10 @@ func NewHandler(
 		if opt != nil {
 			opt(h)
 		}
+	}
+	// Auto-wire ServiceRouter from ServiceProvider if not explicitly set
+	if h.serviceRouter == nil && services != nil {
+		h.serviceRouter = services.GetServiceRouter()
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", metrics.Handler())
@@ -290,7 +305,7 @@ func (h *handler) maybeMountJAM(mux *http.ServeMux) {
 func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 	tenant := tenantFromCtx(r.Context())
 	if tenant == "" {
-		writeError(w, http.StatusForbidden, fmt.Errorf("tenant required"))
+		core.WriteError(w, http.StatusForbidden, fmt.Errorf("tenant required"))
 		return
 	}
 	switch r.Method {
@@ -300,7 +315,7 @@ func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 			Metadata map[string]string `json:"metadata"`
 		}
 		if err := decodeJSON(r.Body, &payload); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		if tenant != "" {
@@ -312,7 +327,7 @@ func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 
 		acct, err := h.services.AccountsService().Create(r.Context(), payload.Owner, payload.Metadata)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		if tenant != "" {
@@ -323,7 +338,7 @@ func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		accts, err := h.services.AccountsService().List(r.Context())
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		filtered := make([]accounts.Account, 0, len(accts))
@@ -354,16 +369,16 @@ func (h *handler) accountResources(w http.ResponseWriter, r *http.Request) {
 		if isNotFound(err) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		core.WriteError(w, status, err)
 		return
 	}
 	requestTenant := strings.TrimSpace(tenantFromCtx(r.Context()))
 	if requestTenant == "" {
-		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: tenant required"))
+		core.WriteError(w, http.StatusForbidden, fmt.Errorf("forbidden: tenant required"))
 		return
 	}
 	if accountTenant != "" && accountTenant != requestTenant {
-		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: tenant mismatch"))
+		core.WriteError(w, http.StatusForbidden, fmt.Errorf("forbidden: tenant mismatch"))
 		return
 	}
 
@@ -372,7 +387,7 @@ func (h *handler) accountResources(w http.ResponseWriter, r *http.Request) {
 		case http.MethodGet:
 			acct, err := h.services.AccountsService().Get(r.Context(), accountID)
 			if err != nil {
-				writeError(w, http.StatusNotFound, err)
+				core.WriteError(w, http.StatusNotFound, err)
 				return
 			}
 			writeJSON(w, http.StatusOK, acct)
@@ -382,7 +397,7 @@ func (h *handler) accountResources(w http.ResponseWriter, r *http.Request) {
 				if errors.Is(err, sql.ErrNoRows) {
 					status = http.StatusNotFound
 				}
-				writeError(w, status, err)
+				core.WriteError(w, status, err)
 				return
 			}
 			w.WriteHeader(http.StatusNoContent)
@@ -392,41 +407,14 @@ func (h *handler) accountResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resource := parts[1]
-	switch resource {
-	case "functions":
-		h.accountFunctions(w, r, accountID, parts[2:])
-	case "gasbank":
-		h.accountGasBank(w, r, accountID, parts[2:])
-	case "automation":
-		h.accountAutomation(w, r, accountID, parts[2:])
-	case "datafeeds":
-		h.accountDataFeeds(w, r, accountID, parts[2:])
-	case "oracle":
-		h.accountOracle(w, r, accountID, parts[2:])
-	case "secrets":
-		h.accountSecrets(w, r, accountID, parts[2:])
-	case "cre":
-		h.accountCRE(w, r, accountID, parts[2:])
-	case "ccip":
-		h.accountCCIP(w, r, accountID, parts[2:])
-	case "vrf":
-		h.accountVRF(w, r, accountID, parts[2:])
-	case "datastreams":
-		h.accountDataStreams(w, r, accountID, parts[2:])
-	case "datalink":
-		h.accountDataLink(w, r, accountID, parts[2:])
-	case "dta":
-		h.accountDTA(w, r, accountID, parts[2:])
-	case "confcompute":
-		h.accountConfCompute(w, r, accountID, parts[2:])
-	case "mixer":
-		h.accountMixer(w, r, accountID, parts[2:])
-	case "workspace-wallets":
-		h.accountWorkspaceWallets(w, r, accountID, parts[2:])
-	default:
-		w.WriteHeader(http.StatusNotFound)
+	// Route to ServiceRouter for auto-discovered endpoints
+	resourcePath := strings.Join(parts[1:], "/")
+	if h.serviceRouter != nil && h.serviceRouter.Handle(w, r, accountID, resourcePath) {
+		return
 	}
+
+	// No matching endpoint found
+	w.WriteHeader(http.StatusNotFound)
 }
 
 // accountTenant returns the tenant string for an account (from metadata) or an empty string if none.
@@ -457,7 +445,7 @@ func isNotFound(err error) bool {
 
 func (h *handler) accountOracle(w http.ResponseWriter, r *http.Request, accountID string, rest []string) {
 	if h.services.OracleService() == nil {
-		writeError(w, http.StatusNotImplemented, fmt.Errorf("oracle service not configured"))
+		core.WriteError(w, http.StatusNotImplemented, fmt.Errorf("oracle service not configured"))
 		return
 	}
 
@@ -482,7 +470,7 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 		case http.MethodGet:
 			sources, err := h.services.OracleService().ListSources(r.Context(), accountID)
 			if err != nil {
-				writeError(w, http.StatusInternalServerError, err)
+				core.WriteError(w, http.StatusInternalServerError, err)
 				return
 			}
 			writeJSON(w, http.StatusOK, sources)
@@ -496,12 +484,12 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 				Body        string            `json:"body"`
 			}
 			if err := decodeJSON(r.Body, &payload); err != nil {
-				writeError(w, http.StatusBadRequest, err)
+				core.WriteError(w, http.StatusBadRequest, err)
 				return
 			}
 			src, err := h.services.OracleService().CreateSource(r.Context(), accountID, payload.Name, payload.URL, payload.Method, payload.Description, payload.Headers, payload.Body)
 			if err != nil {
-				writeError(w, http.StatusBadRequest, err)
+				core.WriteError(w, http.StatusBadRequest, err)
 				return
 			}
 			writeJSON(w, http.StatusCreated, src)
@@ -514,7 +502,7 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 	sourceID := rest[0]
 	src, err := h.services.OracleService().GetSource(r.Context(), sourceID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, err)
+		core.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 	if src.AccountID != accountID {
@@ -541,7 +529,7 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 			Enabled     *bool             `json:"enabled"`
 		}
 		if err := decodeJSON(r.Body, &payload); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 
@@ -549,14 +537,14 @@ func (h *handler) accountOracleSources(w http.ResponseWriter, r *http.Request, a
 		if payload.Name != nil || payload.URL != nil || payload.Method != nil || payload.Description != nil || payload.Headers != nil || payload.Body != nil {
 			updated, err = h.services.OracleService().UpdateSource(r.Context(), sourceID, payload.Name, payload.URL, payload.Method, payload.Description, payload.Headers, payload.Body)
 			if err != nil {
-				writeError(w, http.StatusBadRequest, err)
+				core.WriteError(w, http.StatusBadRequest, err)
 				return
 			}
 		}
 		if payload.Enabled != nil {
 			updated, err = h.services.OracleService().SetSourceEnabled(r.Context(), sourceID, *payload.Enabled)
 			if err != nil {
-				writeError(w, http.StatusBadRequest, err)
+				core.WriteError(w, http.StatusBadRequest, err)
 				return
 			}
 		}
@@ -574,7 +562,7 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 			cursorID := strings.TrimSpace(r.URL.Query().Get("cursor"))
 			limit, err := parseLimitParam(r.URL.Query().Get("limit"), 100)
 			if err != nil {
-				writeError(w, http.StatusBadRequest, err)
+				core.WriteError(w, http.StatusBadRequest, err)
 				return
 			}
 			fetchLimit := limit
@@ -583,7 +571,7 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 			}
 			reqs, err := h.services.OracleService().ListRequests(r.Context(), accountID, fetchLimit, status)
 			if err != nil {
-				writeError(w, http.StatusInternalServerError, err)
+				core.WriteError(w, http.StatusInternalServerError, err)
 				return
 			}
 			if cursorID != "" {
@@ -613,12 +601,12 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 				Payload      string `json:"payload"`
 			}
 			if err := decodeJSON(r.Body, &payload); err != nil {
-				writeError(w, http.StatusBadRequest, err)
+				core.WriteError(w, http.StatusBadRequest, err)
 				return
 			}
 			req, err := h.services.OracleService().CreateRequest(r.Context(), accountID, payload.DataSourceID, payload.Payload)
 			if err != nil {
-				writeError(w, http.StatusBadRequest, err)
+				core.WriteError(w, http.StatusBadRequest, err)
 				return
 			}
 			writeJSON(w, http.StatusCreated, req)
@@ -631,7 +619,7 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 	requestID := rest[0]
 	req, err := h.services.OracleService().GetRequest(r.Context(), requestID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, err)
+		core.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 	if req.AccountID != accountID {
@@ -654,11 +642,11 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 			Error  *string `json:"error"`
 		}
 		if err := decodeJSON(r.Body, &payload); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		if payload.Status == nil {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("status is required"))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("status is required"))
 			return
 		}
 		status := strings.ToLower(strings.TrimSpace(*payload.Status))
@@ -666,23 +654,23 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 		switch status {
 		case "running":
 			if !h.requireOracleRunner(r) {
-				writeError(w, http.StatusUnauthorized, fmt.Errorf("oracle runner token required"))
+				core.WriteError(w, http.StatusUnauthorized, fmt.Errorf("oracle runner token required"))
 				return
 			}
 			updated, err = h.services.OracleService().MarkRunning(r.Context(), requestID)
 		case "succeeded", "completed":
 			if !h.requireOracleRunner(r) {
-				writeError(w, http.StatusUnauthorized, fmt.Errorf("oracle runner token required"))
+				core.WriteError(w, http.StatusUnauthorized, fmt.Errorf("oracle runner token required"))
 				return
 			}
 			if payload.Result == nil {
-				writeError(w, http.StatusBadRequest, fmt.Errorf("result is required for succeeded status"))
+				core.WriteError(w, http.StatusBadRequest, fmt.Errorf("result is required for succeeded status"))
 				return
 			}
 			updated, err = h.services.OracleService().CompleteRequest(r.Context(), requestID, *payload.Result)
 		case "failed":
 			if !h.requireOracleRunner(r) {
-				writeError(w, http.StatusUnauthorized, fmt.Errorf("oracle runner token required"))
+				core.WriteError(w, http.StatusUnauthorized, fmt.Errorf("oracle runner token required"))
 				return
 			}
 			errMsg := ""
@@ -693,11 +681,11 @@ func (h *handler) accountOracleRequests(w http.ResponseWriter, r *http.Request, 
 		case "retry":
 			updated, err = h.services.OracleService().RetryRequest(r.Context(), requestID)
 		default:
-			writeError(w, http.StatusBadRequest, fmt.Errorf("unsupported status %s", status))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("unsupported status %s", status))
 			return
 		}
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, updated)
@@ -719,11 +707,6 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	_ = json.NewEncoder(w).Encode(data)
 }
 
-func writeError(w http.ResponseWriter, status int, err error) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-}
 
 func (h *handler) requireOracleRunner(r *http.Request) bool {
 	tokens := h.services.OracleRunnerTokensValue()
@@ -755,14 +738,14 @@ func (h *handler) adminAudit(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, err := parseLimitParam(r.URL.Query().Get("limit"), 200)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		core.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	offset := 0
 	if raw := strings.TrimSpace(r.URL.Query().Get("offset")); raw != "" {
 		val, convErr := strconv.Atoi(raw)
 		if convErr != nil || val < 0 {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("offset must be a non-negative integer"))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("offset must be a non-negative integer"))
 			return
 		}
 		offset = val
@@ -780,7 +763,7 @@ func (h *handler) adminAudit(w http.ResponseWriter, r *http.Request) {
 		if v, convErr := strconv.Atoi(statusStr); convErr == nil && v > 0 {
 			statusFilter = &v
 		} else {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("status must be a positive integer"))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("status must be a positive integer"))
 			return
 		}
 	}

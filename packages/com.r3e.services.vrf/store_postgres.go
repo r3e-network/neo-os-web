@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // PostgresStore implements Store using PostgreSQL.
@@ -177,12 +178,8 @@ func (s *PostgresStore) ListRequests(ctx context.Context, accountID string, limi
 	return result, rows.Err()
 }
 
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
-}
 
-func (s *PostgresStore) scanKey(scanner rowScanner) (Key, error) {
+func (s *PostgresStore) scanKey(scanner core.RowScanner) (Key, error) {
 	var (
 		key       Key
 		metaJSON  []byte
@@ -201,7 +198,7 @@ func (s *PostgresStore) scanKey(scanner rowScanner) (Key, error) {
 	return key, nil
 }
 
-func (s *PostgresStore) scanRequest(scanner rowScanner) (Request, error) {
+func (s *PostgresStore) scanRequest(scanner core.RowScanner) (Request, error) {
 	var (
 		req       Request
 		metaJSON  []byte

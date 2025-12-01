@@ -1,6 +1,14 @@
 package gasbank
 
-import "time"
+import (
+	"strings"
+	"time"
+)
+
+// normalizeWalletAddress trims whitespace and lowercases a wallet address.
+func normalizeWalletAddress(addr string) string {
+	return strings.ToLower(strings.TrimSpace(addr))
+}
 
 // AccountStatus represents the lifecycle state of a gas bank account/wallet.
 // Aligned with AccountManager.cs contract Wallet.Status byte.

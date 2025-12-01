@@ -1,4 +1,9 @@
 // Package api provides implementations of manager interfaces for the user service.
+//
+// DEPRECATED: This file contains legacy service-specific manager implementations.
+// New services should implement their own stores in packages/com.r3e.services.*/
+// using the store_postgres.go pattern. This file will be removed once all
+// consumers migrate to service-specific implementations.
 package api
 
 import (
@@ -11,6 +16,7 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/pkg/logger"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // PostgresAccountManager implements AccountManager using PostgreSQL.
@@ -752,8 +758,8 @@ func (m *PostgresAutomationManager) CreateTrigger(ctx context.Context, functionI
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now()
 		)
-	`, id, functionID, spec.Type, nullString(spec.Schedule), nullString(spec.EventType),
-		nullString(spec.Contract), nullString(spec.WebhookURL), spec.Enabled, configJSON)
+	`, id, functionID, spec.Type, core.ToNullString(spec.Schedule), core.ToNullString(spec.EventType),
+		core.ToNullString(spec.Contract), core.ToNullString(spec.WebhookURL), spec.Enabled, configJSON)
 	if err != nil {
 		return "", fmt.Errorf("create trigger: %w", err)
 	}
@@ -770,8 +776,8 @@ func (m *PostgresAutomationManager) UpdateTrigger(ctx context.Context, triggerID
 			type = $2, schedule = $3, event_type = $4, contract = $5, webhook_url = $6,
 			enabled = $7, config = $8, updated_at = now()
 		WHERE id = $1
-	`, triggerID, spec.Type, nullString(spec.Schedule), nullString(spec.EventType),
-		nullString(spec.Contract), nullString(spec.WebhookURL), spec.Enabled, configJSON)
+	`, triggerID, spec.Type, core.ToNullString(spec.Schedule), core.ToNullString(spec.EventType),
+		core.ToNullString(spec.Contract), core.ToNullString(spec.WebhookURL), spec.Enabled, configJSON)
 	return err
 }
 
@@ -831,14 +837,6 @@ func generateFunctionID(accountID, name string) string {
 func generateTriggerID(functionID, triggerType string) string {
 	hash := sha256.Sum256([]byte(functionID + triggerType + time.Now().String()))
 	return "trg_" + hex.EncodeToString(hash[:8])
-}
-
-// nullString converts a string to sql.NullString.
-func nullString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: s, Valid: true}
 }
 
 // Compile-time interface checks

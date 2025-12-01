@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // PostgresStore implements Store using PostgreSQL.
@@ -181,12 +182,8 @@ func (s *PostgresStore) GetLatestFrame(ctx context.Context, streamID string) (Fr
 	return s.scanDataStreamFrame(row)
 }
 
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
-}
 
-func (s *PostgresStore) scanDataStream(scanner rowScanner) (Stream, error) {
+func (s *PostgresStore) scanDataStream(scanner core.RowScanner) (Stream, error) {
 	var (
 		stream  Stream
 		metaRaw []byte
@@ -200,7 +197,7 @@ func (s *PostgresStore) scanDataStream(scanner rowScanner) (Stream, error) {
 	return stream, nil
 }
 
-func (s *PostgresStore) scanDataStreamFrame(scanner rowScanner) (Frame, error) {
+func (s *PostgresStore) scanDataStreamFrame(scanner core.RowScanner) (Frame, error) {
 	var (
 		frame   Frame
 		payload []byte

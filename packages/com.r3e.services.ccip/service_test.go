@@ -18,7 +18,7 @@ func setupTest() (*MemoryStore, *MockAccountChecker, *MockWalletChecker) {
 
 func TestService_CreateLane(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -48,7 +48,7 @@ func TestService_CreateLane(t *testing.T) {
 
 func TestService_CreateLaneValidation(t *testing.T) {
 	store, accounts, _ := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 
 	svc := New(accounts, store, nil)
 	if _, err := svc.CreateLane(context.Background(), Lane{AccountID: "acct-1"}); err == nil {
@@ -58,8 +58,8 @@ func TestService_CreateLaneValidation(t *testing.T) {
 
 func TestService_SendMessageOwnership(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
-	accounts.AddAccount("acct-2", "")
+	accounts.AddAccountWithTenant("acct-1", "")
+	accounts.AddAccountWithTenant("acct-2", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -82,7 +82,7 @@ func TestService_SendMessageOwnership(t *testing.T) {
 
 func TestService_SendMessageDispatch(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -128,7 +128,7 @@ func TestService_SendMessageDispatch(t *testing.T) {
 
 func TestService_UpdateLane(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -149,8 +149,8 @@ func TestService_UpdateLane(t *testing.T) {
 
 func TestService_UpdateLaneOwnership(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
-	accounts.AddAccount("acct-2", "")
+	accounts.AddAccountWithTenant("acct-1", "")
+	accounts.AddAccountWithTenant("acct-2", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -164,7 +164,7 @@ func TestService_UpdateLaneOwnership(t *testing.T) {
 
 func TestService_GetLane(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -182,8 +182,8 @@ func TestService_GetLane(t *testing.T) {
 
 func TestService_GetLaneOwnership(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
-	accounts.AddAccount("acct-2", "")
+	accounts.AddAccountWithTenant("acct-1", "")
+	accounts.AddAccountWithTenant("acct-2", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -197,7 +197,7 @@ func TestService_GetLaneOwnership(t *testing.T) {
 
 func TestService_GetMessage(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -216,8 +216,8 @@ func TestService_GetMessage(t *testing.T) {
 
 func TestService_GetMessageOwnership(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
-	accounts.AddAccount("acct-2", "")
+	accounts.AddAccountWithTenant("acct-1", "")
+	accounts.AddAccountWithTenant("acct-2", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -267,7 +267,7 @@ func TestService_Descriptor(t *testing.T) {
 
 func TestService_LaneValidation(t *testing.T) {
 	store, accounts, _ := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 
 	svc := New(accounts, store, nil)
 
@@ -302,7 +302,7 @@ func TestService_WithTracer(t *testing.T) {
 
 func TestService_TokenTransferNormalization(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -326,7 +326,7 @@ func TestService_TokenTransferNormalization(t *testing.T) {
 
 func TestService_CreateLane_DuplicateSigners(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	wallets.AddWallet("acct-1", testLaneWallet)
 
 	svc := New(accounts, store, nil)
@@ -350,7 +350,7 @@ func TestService_CreateLane_DuplicateSigners(t *testing.T) {
 
 func TestService_CreateLane_EmptySigners(t *testing.T) {
 	store, accounts, wallets := setupTest()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 
 	svc := New(accounts, store, nil)
 	svc.WithWalletChecker(wallets)

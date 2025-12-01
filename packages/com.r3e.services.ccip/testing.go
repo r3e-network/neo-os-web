@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/R3E-Network/service_layer/pkg/testutil"
 	"github.com/google/uuid"
 )
 
@@ -146,80 +147,12 @@ func (s *MemoryStore) ListMessages(ctx context.Context, accountID string, limit 
 // Compile-time check that MemoryStore implements Store.
 var _ Store = (*MemoryStore)(nil)
 
-// MockAccountChecker is a mock implementation of AccountChecker for testing.
-type MockAccountChecker struct {
-	mu       sync.RWMutex
-	accounts map[string]string // accountID -> tenant
-}
+// Re-export centralized mocks for convenience.
+type MockAccountChecker = testutil.MockAccountChecker
+type MockWalletChecker = testutil.MockWalletChecker
 
 // NewMockAccountChecker creates a new mock account checker.
-func NewMockAccountChecker() *MockAccountChecker {
-	return &MockAccountChecker{
-		accounts: make(map[string]string),
-	}
-}
-
-// AddAccount adds an account to the mock.
-func (m *MockAccountChecker) AddAccount(id, tenant string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.accounts[id] = tenant
-}
-
-// AccountExists checks if an account exists.
-func (m *MockAccountChecker) AccountExists(ctx context.Context, accountID string) error {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if _, ok := m.accounts[accountID]; !ok {
-		return fmt.Errorf("account not found: %s", accountID)
-	}
-	return nil
-}
-
-// AccountTenant returns the tenant for an account.
-func (m *MockAccountChecker) AccountTenant(ctx context.Context, accountID string) string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.accounts[accountID]
-}
-
-// Compile-time check that MockAccountChecker implements AccountChecker.
-var _ AccountChecker = (*MockAccountChecker)(nil)
-
-// MockWalletChecker is a mock implementation of WalletChecker for testing.
-type MockWalletChecker struct {
-	mu      sync.RWMutex
-	wallets map[string]map[string]bool // accountID -> walletAddr -> exists
-}
+var NewMockAccountChecker = testutil.NewMockAccountChecker
 
 // NewMockWalletChecker creates a new mock wallet checker.
-func NewMockWalletChecker() *MockWalletChecker {
-	return &MockWalletChecker{
-		wallets: make(map[string]map[string]bool),
-	}
-}
-
-// AddWallet adds a wallet to the mock.
-func (m *MockWalletChecker) AddWallet(accountID, walletAddr string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.wallets[accountID] == nil {
-		m.wallets[accountID] = make(map[string]bool)
-	}
-	m.wallets[accountID][walletAddr] = true
-}
-
-// WalletOwnedBy checks if a wallet is owned by an account.
-func (m *MockWalletChecker) WalletOwnedBy(ctx context.Context, accountID, walletAddr string) error {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if wallets, ok := m.wallets[accountID]; ok {
-		if wallets[walletAddr] {
-			return nil
-		}
-	}
-	return fmt.Errorf("wallet %s not owned by account %s", walletAddr, accountID)
-}
-
-// Compile-time check that MockWalletChecker implements WalletChecker.
-var _ WalletChecker = (*MockWalletChecker)(nil)
+var NewMockWalletChecker = testutil.NewMockWalletChecker

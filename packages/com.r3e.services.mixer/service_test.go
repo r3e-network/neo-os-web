@@ -34,7 +34,7 @@ func TestService_CreateWithdrawalClaim(t *testing.T) {
 }
 
 func TestService_Lifecycle(t *testing.T) {
-	svc := New(nil, nil, nil, nil, nil)
+	svc := New(nil, nil, nil, nil, nil, nil)
 	if err := svc.Start(context.Background()); err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestService_Lifecycle(t *testing.T) {
 }
 
 func TestService_Manifest(t *testing.T) {
-	svc := New(nil, nil, nil, nil, nil)
+	svc := New(nil, nil, nil, nil, nil, nil)
 	m := svc.Manifest()
 	if m.Name != "mixer" {
 		t.Fatalf("expected name mixer, got %s", m.Name)
@@ -55,7 +55,7 @@ func TestService_Manifest(t *testing.T) {
 }
 
 func TestService_Descriptor(t *testing.T) {
-	svc := New(nil, nil, nil, nil, nil)
+	svc := New(nil, nil, nil, nil, nil, nil)
 	d := svc.Descriptor()
 	if d.Name != "mixer" {
 		t.Fatalf("expected name mixer, got %s", d.Name)
@@ -63,7 +63,7 @@ func TestService_Descriptor(t *testing.T) {
 }
 
 func TestService_Domain(t *testing.T) {
-	svc := New(nil, nil, nil, nil, nil)
+	svc := New(nil, nil, nil, nil, nil, nil)
 	if svc.Domain() != "mixer" {
 		t.Fatalf("expected domain mixer")
 	}

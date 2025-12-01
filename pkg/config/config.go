@@ -68,6 +68,15 @@ type SupabaseConfig struct {
 	StorageURL     string `json:"storage_url" env:"SUPABASE_STORAGE_URL"`
 }
 
+// TracingConfig configures OTLP/Tracing exporters.
+type TracingConfig struct {
+	Endpoint           string            `json:"endpoint" env:"TRACING_OTLP_ENDPOINT"`
+	Insecure           bool              `json:"insecure" env:"TRACING_OTLP_INSECURE"`
+	ServiceName        string            `json:"service_name" env:"TRACING_SERVICE_NAME"`
+	ResourceAttributes map[string]string `json:"resource_attributes" mapstructure:"resource_attributes"`
+	AttributesEnv      string            `json:"-" yaml:"-" env:"TRACING_OTLP_ATTRIBUTES"`
+}
+
 type UserSpec struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -83,6 +92,7 @@ type Config struct {
 	Security SecurityConfig `json:"security"`
 	Auth     AuthConfig     `json:"auth"`
 	Supabase SupabaseConfig `json:"supabase"`
+	Tracing  TracingConfig  `json:"tracing"`
 }
 
 // New returns a configuration populated with defaults.
@@ -111,6 +121,7 @@ func New() *Config {
 		Security: SecurityConfig{},
 		Auth:     AuthConfig{},
 		Supabase: SupabaseConfig{},
+		Tracing:  TracingConfig{},
 	}
 }
 
@@ -146,6 +157,7 @@ func Load() (*Config, error) {
 	}
 
 	applyDatabaseURLOverride(cfg)
+	cfg.normalize()
 
 	return cfg, nil
 }
@@ -157,6 +169,7 @@ func LoadFile(path string) (*Config, error) {
 		return nil, err
 	}
 	applyDatabaseURLOverride(cfg)
+	cfg.normalize()
 	return cfg, nil
 }
 
@@ -189,6 +202,7 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 	applyDatabaseURLOverride(cfg)
+	cfg.normalize()
 	return cfg, nil
 }
 
@@ -201,4 +215,59 @@ func applyDatabaseURLOverride(cfg *Config) {
 	if dsn := strings.TrimSpace(os.Getenv("DATABASE_URL")); dsn != "" {
 		cfg.Database.DSN = dsn
 	}
+}
+
+func (t *TracingConfig) normalize() {
+	if t == nil {
+		return
+	}
+	t.MergeAttributes(t.AttributesEnv)
+}
+
+// MergeAttributes merges comma-separated key=value pairs into ResourceAttributes.
+func (t *TracingConfig) MergeAttributes(raw string) {
+	if t == nil {
+		return
+	}
+	pairs := parseAttributePairs(raw)
+	if len(pairs) == 0 {
+		return
+	}
+	if t.ResourceAttributes == nil {
+		t.ResourceAttributes = make(map[string]string, len(pairs))
+	}
+	for k, v := range pairs {
+		if k == "" {
+			continue
+		}
+		t.ResourceAttributes[k] = v
+	}
+}
+
+func parseAttributePairs(raw string) map[string]string {
+	result := make(map[string]string)
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		kv := strings.SplitN(part, "=", 2)
+		key := strings.TrimSpace(kv[0])
+		if key == "" {
+			continue
+		}
+		val := ""
+		if len(kv) > 1 {
+			val = strings.TrimSpace(kv[1])
+		}
+		result[key] = val
+	}
+	return result
+}
+
+func (c *Config) normalize() {
+	if c == nil {
+		return
+	}
+	c.Tracing.normalize()
 }

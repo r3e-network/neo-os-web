@@ -3,9 +3,12 @@ package secrets
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/R3E-Network/service_layer/pkg/logger"
 )
 
 // mockAccountChecker implements AccountChecker for testing.
@@ -260,7 +263,9 @@ func TestService_AccountIDValidation(t *testing.T) {
 func ExampleService_Create() {
 	acctChecker := newMockAccountChecker("acct")
 	store := newMockStore()
-	svc := New(acctChecker, store, nil)
+	log := logger.NewDefault("secrets-example")
+	log.SetOutput(io.Discard)
+	svc := New(acctChecker, store, log)
 	meta, _ := svc.Create(context.Background(), "acct", "apiKey", "secret")
 	resolved, _ := svc.ResolveSecrets(context.Background(), "acct", []string{"apiKey"})
 	fmt.Println(meta.Name, len(resolved["apiKey"]))

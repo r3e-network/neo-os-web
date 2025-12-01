@@ -23,7 +23,6 @@ import (
 	"github.com/R3E-Network/service_layer/packages/com.r3e.services.cre"
 	"github.com/R3E-Network/service_layer/packages/com.r3e.services.datastreams"
 	"github.com/R3E-Network/service_layer/packages/com.r3e.services.dta"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.functions"
 	"github.com/R3E-Network/service_layer/packages/com.r3e.services.vrf"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
@@ -1401,9 +1400,9 @@ func TestIntegration_AutomationExecutesFunction(t *testing.T) {
 
 	execResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/functions/"+functionID+"/execute", map[string]any{"input": "manual"})
 	assertStatus(t, execResp, http.StatusOK)
-	manualExec := decodeResponse[functions.Execution](t, execResp)
-	if output := manualExec.Output["secret"]; output != "super-secret" {
-		t.Fatalf("expected function to read secret, got %v", output)
+	manualExec := decodeResponse[map[string]any](t, execResp)
+	if output, ok := manualExec["output"].(map[string]any); !ok || output["secret"] != "super-secret" {
+		t.Fatalf("expected function to read secret, got %v", manualExec["output"])
 	}
 
 	jobResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/automation/jobs", map[string]any{
@@ -1433,17 +1432,21 @@ func TestIntegration_AutomationExecutesFunction(t *testing.T) {
 		if execsResp.Code != http.StatusOK {
 			continue
 		}
-		executions := decodeResponse[[]functions.Execution](t, execsResp)
+		executions := decodeResponse[[]map[string]any](t, execsResp)
 		if len(executions) == 0 {
 			continue
 		}
 		latest := executions[0]
-		if jobID, ok := latest.Input["automation_job"]; ok && jobID == job.ID {
-			if secret := latest.Output["secret"]; secret != "super-secret" {
-				t.Fatalf("automation execution missing secret, got %v", secret)
+		input, _ := latest["input"].(map[string]any)
+		output, _ := latest["output"].(map[string]any)
+		if input != nil {
+			if jobID, ok := input["automation_job"]; ok && jobID == job.ID {
+				if output == nil || output["secret"] != "super-secret" {
+					t.Fatalf("automation execution missing secret, got %v", output)
+				}
+				automationRun = true
+				break
 			}
-			automationRun = true
-			break
 		}
 	}
 
@@ -1488,9 +1491,15 @@ func marshal(v any) []byte {
 }
 
 func getFunctionID(body []byte) string {
-	var def functions.Definition
+	var def map[string]any
 	_ = json.Unmarshal(body, &def)
-	return def.ID
+	if id, ok := def["id"].(string); ok {
+		return id
+	}
+	if id, ok := def["ID"].(string); ok {
+		return id
+	}
+	return ""
 }
 
 func createAccount(t *testing.T, handler http.Handler, owner string) string {

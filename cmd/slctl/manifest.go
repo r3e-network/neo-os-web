@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -16,6 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 type manifest struct {
@@ -192,11 +193,11 @@ func downloadBundle(ctx context.Context, client *apiClient, url string, expected
 }
 
 func verifyManifestSignature(m manifest) error {
-	pub, err := decodeKey(m.SigningPublicKey)
+	pub, err := core.DecodeKey(m.SigningPublicKey)
 	if err != nil {
 		return err
 	}
-	sig, err := decodeKey(m.Signature)
+	sig, err := core.DecodeKey(m.Signature)
 	if err != nil {
 		return err
 	}
@@ -211,18 +212,4 @@ func verifyManifestSignature(m manifest) error {
 		return fmt.Errorf("signature mismatch")
 	}
 	return nil
-}
-
-func decodeKey(value string) ([]byte, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return nil, fmt.Errorf("empty key")
-	}
-	if b, err := hex.DecodeString(value); err == nil {
-		return b, nil
-	}
-	if b, err := base64.StdEncoding.DecodeString(value); err == nil {
-		return b, nil
-	}
-	return nil, fmt.Errorf("key must be hex or base64")
 }

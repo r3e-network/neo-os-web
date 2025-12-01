@@ -1,5 +1,10 @@
 // Package bootstrap provides Service Engine initialization with PackageLoader integration.
 // This is the Android-style bootstrapper that loads service packages dynamically.
+//
+// ARCHITECTURE NOTE: This package is service-agnostic. It provides generic bootstrap
+// infrastructure without knowledge of specific services. Service packages should be
+// imported in the application layer (e.g., applications/services.go) to trigger
+// self-registration via init().
 package bootstrap
 
 import (
@@ -8,23 +13,9 @@ import (
 	"log"
 
 	engine "github.com/R3E-Network/service_layer/system/core"
+	"github.com/R3E-Network/service_layer/system/framework"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 	pkg "github.com/R3E-Network/service_layer/system/runtime"
-
-	// Import packages to trigger self-registration in init()
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.automation"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.ccip"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.confidential"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.cre"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.datafeeds"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.datalink"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.datastreams"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.dta"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.functions"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.gasbank"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.oracle"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.secrets"
-	_ "github.com/R3E-Network/service_layer/packages/com.r3e.services.vrf"
 )
 
 // Config holds bootstrap configuration.
@@ -41,13 +32,18 @@ type Config struct {
 	// StoreProvider provides typed database access to packages.
 	// If nil, packages will receive a nil store provider.
 	StoreProvider pkg.StoreProvider
+
+	// Tracer propagates tracing spans into package runtimes.
+	Tracer core.Tracer
+
+	// Metrics records service-level metrics.
+	Metrics framework.Metrics
 }
 
 // DefaultPackageIDs returns the list of all core service package IDs.
 func DefaultPackageIDs() []string {
 	return []string{
 		"com.r3e.services.accounts",
-		"com.r3e.services.functions",
 		"com.r3e.services.secrets",
 		"com.r3e.services.gasbank",
 		"com.r3e.services.automation",
@@ -79,6 +75,12 @@ func Bootstrap(ctx context.Context, cfg Config) (*engine.Engine, pkg.PackageLoad
 	// Set the store provider BEFORE installing packages
 	if cfg.StoreProvider != nil {
 		pkg.SetGlobalStoreProvider(cfg.StoreProvider)
+	}
+	if cfg.Tracer != nil {
+		pkg.SetGlobalTracer(cfg.Tracer)
+	}
+	if cfg.Metrics != nil {
+		pkg.SetGlobalMetrics(cfg.Metrics)
 	}
 
 	// Determine which packages to load

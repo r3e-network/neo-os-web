@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // PostgresRequestStore implements RequestStore using PostgreSQL.
@@ -75,8 +77,8 @@ func (s *PostgresRequestStore) Create(ctx context.Context, req *Request) error {
 			$12, $13, $14, $15, $16
 		)
 	`,
-		req.ID, nullString(req.ExternalID), req.AccountID, req.ServiceType, nullString(req.ServiceID),
-		req.Status, payload, req.Fee, nullString(req.FeeID), nullString(req.TxHash), nullString(req.CallbackHash),
+		req.ID, core.ToNullString(req.ExternalID), req.AccountID, req.ServiceType, core.ToNullString(req.ServiceID),
+		req.Status, payload, req.Fee, core.ToNullString(req.FeeID), core.ToNullString(req.TxHash), core.ToNullString(req.CallbackHash),
 		metadata, req.Attempts, req.MaxAttempts, req.CreatedAt, req.UpdatedAt,
 	)
 	return err
@@ -133,7 +135,7 @@ func (s *PostgresRequestStore) Update(ctx context.Context, req *Request) error {
 			completed_at = $9
 		WHERE id = $1
 	`,
-		req.ID, req.Status, result, nullString(req.Error), nullString(req.FeeID),
+		req.ID, req.Status, result, core.ToNullString(req.Error), core.ToNullString(req.FeeID),
 		metadata, req.Attempts, req.UpdatedAt, completedAt,
 	)
 	return err
@@ -301,14 +303,6 @@ func (s *PostgresRequestStore) scanRequests(ctx context.Context, query string, a
 	}
 
 	return requests, rows.Err()
-}
-
-// nullString converts a string to sql.NullString.
-func nullString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: s, Valid: true}
 }
 
 // Compile-time interface check

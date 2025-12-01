@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"time"
 
-	
 	"github.com/google/uuid"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // --- DTAStore ----------------------------------------------------------------
@@ -30,10 +30,6 @@ func (s *PostgresStore) accountTenant(ctx context.Context, accountID string) str
 	return s.accounts.AccountTenant(ctx, accountID)
 }
 
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
-}
 
 func (s *PostgresStore) CreateProduct(ctx context.Context, product Product) (Product, error) {
 	if product.ID == "" {
@@ -182,7 +178,7 @@ func (s *PostgresStore) ListOrders(ctx context.Context, accountID string, limit 
 	return orders, rows.Err()
 }
 
-func scanDTAProduct(scanner rowScanner) (Product, error) {
+func scanDTAProduct(scanner core.RowScanner) (Product, error) {
 	var (
 		product Product
 		metaRaw []byte
@@ -196,7 +192,7 @@ func scanDTAProduct(scanner rowScanner) (Product, error) {
 	return product, nil
 }
 
-func scanDTAOrder(scanner rowScanner) (Order, error) {
+func scanDTAOrder(scanner core.RowScanner) (Order, error) {
 	var (
 		order   Order
 		metaRaw []byte

@@ -2,10 +2,10 @@ package dta
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
-	
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
 	"github.com/R3E-Network/service_layer/system/framework"
@@ -14,71 +14,59 @@ import (
 
 // Service manages DTA products and orders.
 type Service struct {
-	framework.ServiceBase
-	accounts AccountChecker
-	wallets  WalletChecker
-	store    Store
-	log      *logger.Logger
-	hooks    core.ObservationHooks
+	*framework.ServiceEngine
+	wallets WalletChecker
+	store   Store
 }
-
-// Name returns the stable service identifier.
-func (s *Service) Name() string { return "dta" }
-
-// Domain reports the service domain.
-func (s *Service) Domain() string { return "dta" }
-
-// Manifest describes the service contract for the engine OS.
-func (s *Service) Manifest() *framework.Manifest {
-	return &framework.Manifest{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Description:  "DTA products and orders",
-		Layer:        "service",
-		DependsOn:    []string{"store", "svc-accounts"},
-		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore},
-		Capabilities: []string{"dta"},
-	}
-}
-
-// Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
-
-// Start/Stop/Ready are inherited from framework.ServiceBase.
 
 // New constructs a DTA service.
 func New(accounts AccountChecker, store Store, log *logger.Logger) *Service {
-	if log == nil {
-		log = logger.NewDefault("dta")
+	return &Service{
+		ServiceEngine: framework.NewServiceEngine(framework.ServiceConfig{
+			Name:         "dta",
+			Description:  "DTA products and orders",
+			DependsOn:    []string{"store", "svc-accounts"},
+			RequiresAPIs: []engine.APISurface{engine.APISurfaceStore},
+			Capabilities: []string{"dta"},
+			Accounts:     accounts,
+			Logger:       log,
+		}),
+		store: store,
 	}
-	svc := &Service{accounts: accounts, store: store, log: log, hooks: core.NoopObservationHooks}
-	svc.SetName(svc.Name())
-	return svc
 }
 
 // WithWalletChecker injects a wallet checker for ownership validation.
 func (s *Service) WithWalletChecker(w WalletChecker) {
 	s.wallets = w
+	s.ServiceEngine.WithWalletChecker(w)
 }
 
 // WithObservationHooks configures callbacks for order creation observability.
 func (s *Service) WithObservationHooks(h core.ObservationHooks) {
-	s.hooks = core.NormalizeHooks(h)
+	s.ServiceEngine.WithObservationHooks(h)
 }
 
 // CreateProduct registers a product for an account.
 func (s *Service) CreateProduct(ctx context.Context, product Product) (Product, error) {
-	if err := s.accounts.AccountExists(ctx, product.AccountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, product.AccountID); err != nil {
 		return Product{}, err
 	}
 	if err := s.normalizeProduct(&product); err != nil {
 		return Product{}, err
 	}
+	attrs := map[string]string{"account_id": product.AccountID, "resource": "product"}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	created, err := s.store.CreateProduct(ctx, product)
+	if err == nil && created.ID != "" {
+		attrs["product_id"] = created.ID
+	}
+	finish(err)
 	if err != nil {
 		return Product{}, err
 	}
-	s.log.WithField("product_id", created.ID).WithField("account_id", created.AccountID).Info("dta product created")
+	s.Logger().WithField("product_id", created.ID).WithField("account_id", created.AccountID).Info("dta product created")
+	s.LogCreated("dta_product", created.ID, created.AccountID)
+	s.IncrementCounter("dta_products_created_total", map[string]string{"account_id": created.AccountID})
 	return created, nil
 }
 
@@ -95,11 +83,16 @@ func (s *Service) UpdateProduct(ctx context.Context, product Product) (Product, 
 	if err := s.normalizeProduct(&product); err != nil {
 		return Product{}, err
 	}
+	attrs := map[string]string{"account_id": product.AccountID, "product_id": product.ID, "resource": "product"}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	updated, err := s.store.UpdateProduct(ctx, product)
+	finish(err)
 	if err != nil {
 		return Product{}, err
 	}
-	s.log.WithField("product_id", product.ID).WithField("account_id", product.AccountID).Info("dta product updated")
+	s.Logger().WithField("product_id", product.ID).WithField("account_id", product.AccountID).Info("dta product updated")
+	s.LogUpdated("dta_product", product.ID, product.AccountID)
+	s.IncrementCounter("dta_products_updated_total", map[string]string{"account_id": product.AccountID})
 	return updated, nil
 }
 
@@ -117,7 +110,7 @@ func (s *Service) GetProduct(ctx context.Context, accountID, productID string) (
 
 // ListProducts lists account products.
 func (s *Service) ListProducts(ctx context.Context, accountID string) ([]Product, error) {
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return nil, err
 	}
 	return s.store.ListProducts(ctx, accountID)
@@ -125,7 +118,7 @@ func (s *Service) ListProducts(ctx context.Context, accountID string) ([]Product
 
 // CreateOrder creates a subscription/redemption order.
 func (s *Service) CreateOrder(ctx context.Context, accountID, productID string, typ OrderType, amount string, walletAddr string, metadata map[string]string) (Order, error) {
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return Order{}, err
 	}
 	product, err := s.GetProduct(ctx, accountID, productID)
@@ -159,14 +152,31 @@ func (s *Service) CreateOrder(ctx context.Context, accountID, productID string, 
 		Metadata:  core.NormalizeMetadata(metadata),
 	}
 	attrs := map[string]string{"product_id": product.ID, "order_type": string(typ)}
-	finish := core.StartObservation(ctx, s.hooks, attrs)
+	ctx, finish := s.StartObservation(ctx, attrs)
 	created, err := s.store.CreateOrder(ctx, order)
+	if err == nil && created.ID != "" {
+		attrs["order_id"] = created.ID
+	}
+	finish(err)
 	if err != nil {
-		finish(err)
 		return Order{}, err
 	}
-	finish(nil)
-	s.log.WithField("order_id", created.ID).WithField("product_id", product.ID).Info("dta order created")
+	s.Logger().WithField("order_id", created.ID).WithField("product_id", product.ID).Info("dta order created")
+	s.LogCreated("dta_order", created.ID, accountID)
+	s.IncrementCounter("dta_orders_created_total", map[string]string{"account_id": accountID, "product_id": product.ID})
+	eventPayload := map[string]any{
+		"order_id":   created.ID,
+		"account_id": accountID,
+		"product_id": product.ID,
+		"type":       string(typ),
+	}
+	if err := s.PublishEvent(ctx, "dta.order.created", eventPayload); err != nil {
+		if errors.Is(err, core.ErrBusUnavailable) {
+			s.Logger().WithError(err).Warn("bus unavailable for dta.order.created event")
+		} else {
+			return Order{}, fmt.Errorf("publish order event: %w", err)
+		}
+	}
 	return created, nil
 }
 
@@ -184,7 +194,7 @@ func (s *Service) GetOrder(ctx context.Context, accountID, orderID string) (Orde
 
 // ListOrders lists recent orders.
 func (s *Service) ListOrders(ctx context.Context, accountID string, limit int) ([]Order, error) {
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return nil, err
 	}
 	clamped := core.ClampLimit(limit, core.DefaultListLimit, core.MaxListLimit)
@@ -224,4 +234,96 @@ func (s *Service) ensureWalletOwned(ctx context.Context, accountID, wallet strin
 		return nil
 	}
 	return s.wallets.WalletOwnedBy(ctx, accountID, wallet)
+}
+
+// HTTP API Methods
+// These methods follow the HTTP{Method}{Path} naming convention for automatic route discovery.
+
+// HTTPGetProducts handles GET /products - list all products for an account.
+func (s *Service) HTTPGetProducts(ctx context.Context, req core.APIRequest) (any, error) {
+	return s.ListProducts(ctx, req.AccountID)
+}
+
+// HTTPPostProducts handles POST /products - create a new product.
+func (s *Service) HTTPPostProducts(ctx context.Context, req core.APIRequest) (any, error) {
+	name, _ := req.Body["name"].(string)
+	symbol, _ := req.Body["symbol"].(string)
+	typ, _ := req.Body["type"].(string)
+	settlementTerms, _ := req.Body["settlement_terms"].(string)
+	status, _ := req.Body["status"].(string)
+
+	metadata := core.ExtractMetadataRaw(req.Body, "")
+
+	product := Product{
+		AccountID:       req.AccountID,
+		Name:            name,
+		Symbol:          symbol,
+		Type:            typ,
+		SettlementTerms: settlementTerms,
+		Status:          ProductStatus(status),
+		Metadata:        metadata,
+	}
+
+	return s.CreateProduct(ctx, product)
+}
+
+// HTTPGetProductsById handles GET /products/{id} - get a specific product.
+func (s *Service) HTTPGetProductsById(ctx context.Context, req core.APIRequest) (any, error) {
+	productID := req.PathParams["id"]
+	return s.GetProduct(ctx, req.AccountID, productID)
+}
+
+// HTTPPatchProductsById handles PATCH /products/{id} - update a product.
+func (s *Service) HTTPPatchProductsById(ctx context.Context, req core.APIRequest) (any, error) {
+	productID := req.PathParams["id"]
+
+	// Get existing product first
+	existing, err := s.GetProduct(ctx, req.AccountID, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply updates
+	if name, ok := req.Body["name"].(string); ok {
+		existing.Name = name
+	}
+	if symbol, ok := req.Body["symbol"].(string); ok {
+		existing.Symbol = symbol
+	}
+	if typ, ok := req.Body["type"].(string); ok {
+		existing.Type = typ
+	}
+	if settlementTerms, ok := req.Body["settlement_terms"].(string); ok {
+		existing.SettlementTerms = settlementTerms
+	}
+	if status, ok := req.Body["status"].(string); ok {
+		existing.Status = ProductStatus(status)
+	}
+
+	existing.AccountID = req.AccountID
+	return s.UpdateProduct(ctx, existing)
+}
+
+// HTTPGetOrders handles GET /orders - list all orders for an account.
+func (s *Service) HTTPGetOrders(ctx context.Context, req core.APIRequest) (any, error) {
+	limit := core.ParseLimitFromQuery(req.Query)
+	return s.ListOrders(ctx, req.AccountID, limit)
+}
+
+// HTTPPostOrders handles POST /orders - create a new order.
+func (s *Service) HTTPPostOrders(ctx context.Context, req core.APIRequest) (any, error) {
+	productID, _ := req.Body["product_id"].(string)
+	typ, _ := req.Body["type"].(string)
+	amount, _ := req.Body["amount"].(string)
+	walletAddr, _ := req.Body["wallet_address"].(string)
+
+	metadata := core.ExtractMetadataRaw(req.Body, "")
+
+	return s.CreateOrder(ctx, req.AccountID, productID, OrderType(typ), amount, walletAddr, metadata)
+}
+
+// HTTPGetOrdersById handles GET /orders/{id} - get a specific order.
+func (s *Service) HTTPGetOrdersById(ctx context.Context, req core.APIRequest) (any, error) {
+	orderID := req.PathParams["id"]
+	return s.GetOrder(ctx, req.AccountID, orderID)
 }

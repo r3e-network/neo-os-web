@@ -170,6 +170,17 @@ type GasBankProvider interface {
 	Withdraw(ctx context.Context, accountID string, amount float64) error
 }
 
+// FeeCollector is the interface for collecting service fees from gas accounts.
+// Used by Oracle service to charge fees for oracle requests.
+// Implemented by GasBank service.
+type FeeCollector interface {
+	// CollectFee deducts a fee from the account's gas bank.
+	// Returns error if insufficient funds.
+	CollectFee(ctx context.Context, accountID string, amount int64, reference string) error
+	// RefundFee returns a previously collected fee (e.g., on request failure).
+	RefundFee(ctx context.Context, accountID string, amount int64, reference string) error
+}
+
 // =============================================================================
 // Compile-time interface checks
 // =============================================================================

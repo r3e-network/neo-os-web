@@ -38,6 +38,7 @@ func (p *Package) CreateServices(ctx context.Context, runtime pkg.PackageRuntime
 	store := NewPostgresStore(db)
 	log := pkg.GetLogger(runtime, "accounts")
 
-	svc := New(store, log)
+	// Accounts service doesn't need an external AccountChecker since it IS the account authority
+	svc := New(nil, store, log)
 	return []engine.ServiceModule{svc}, nil
 }

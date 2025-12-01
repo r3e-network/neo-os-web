@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // PostgresStore implements Store using PostgreSQL.
@@ -189,12 +190,8 @@ func (s *PostgresStore) ListDeliveries(ctx context.Context, accountID string, li
 	return dels, rows.Err()
 }
 
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
-}
 
-func (s *PostgresStore) scanDataLinkChannel(scanner rowScanner) (Channel, error) {
+func (s *PostgresStore) scanDataLinkChannel(scanner core.RowScanner) (Channel, error) {
 	var (
 		ch        Channel
 		metaRaw   []byte
@@ -212,7 +209,7 @@ func (s *PostgresStore) scanDataLinkChannel(scanner rowScanner) (Channel, error)
 	return ch, nil
 }
 
-func (s *PostgresStore) scanDataLinkDelivery(scanner rowScanner) (Delivery, error) {
+func (s *PostgresStore) scanDataLinkDelivery(scanner core.RowScanner) (Delivery, error) {
 	var (
 		del     Delivery
 		payload []byte

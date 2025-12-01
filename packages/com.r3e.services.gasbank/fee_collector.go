@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.oracle"
+	engine "github.com/R3E-Network/service_layer/system/core"
 )
 
-// Compile-time check: FeeCollector implements oracle.FeeCollector.
-var _ oracle.FeeCollector = (*FeeCollector)(nil)
+// Compile-time check: FeeCollector implements engine.FeeCollector.
+var _ engine.FeeCollector = (*FeeCollector)(nil)
 
-// FeeCollector implements oracle.FeeCollector using the gasbank service.
+// FeeCollector implements engine.FeeCollector using the gasbank service.
 // This adapter allows oracle requests to be charged against gas accounts.
 // Aligned with OracleHub.cs contract fee model.
 type FeeCollector struct {
@@ -71,14 +71,14 @@ func (fc *FeeCollector) CollectFee(ctx context.Context, accountID string, amount
 		gasAccount.Available += feeAmount
 		gasAccount.Locked -= feeAmount
 		if _, rollbackErr := fc.svc.store.UpdateGasAccount(ctx, gasAccount); rollbackErr != nil {
-			fc.svc.log.WithError(rollbackErr).
+			fc.svc.Logger().WithError(rollbackErr).
 				WithField("account_id", accountID).
 				Error("failed to rollback fee collection")
 		}
 		return fmt.Errorf("create fee transaction: %w", err)
 	}
 
-	fc.svc.log.WithField("account_id", accountID).
+	fc.svc.Logger().WithField("account_id", accountID).
 		WithField("gas_account_id", updated.ID).
 		WithField("fee", feeAmount).
 		WithField("reference", reference).
@@ -130,13 +130,13 @@ func (fc *FeeCollector) RefundFee(ctx context.Context, accountID string, amount 
 		Notes:         reference,
 	}
 	if _, err := fc.svc.store.CreateGasTransaction(ctx, tx); err != nil {
-		fc.svc.log.WithError(err).
+		fc.svc.Logger().WithError(err).
 			WithField("account_id", accountID).
 			WithField("reference", reference).
 			Warn("failed to record refund transaction (balance already updated)")
 	}
 
-	fc.svc.log.WithField("account_id", accountID).
+	fc.svc.Logger().WithField("account_id", accountID).
 		WithField("gas_account_id", updated.ID).
 		WithField("refund", refundAmount).
 		WithField("reference", reference).
@@ -175,7 +175,7 @@ func (fc *FeeCollector) SettleFee(ctx context.Context, accountID string, amount 
 		return fmt.Errorf("update gas account: %w", err)
 	}
 
-	fc.svc.log.WithField("account_id", accountID).
+	fc.svc.Logger().WithField("account_id", accountID).
 		WithField("fee", feeAmount).
 		WithField("reference", reference).
 		Debug("oracle fee settled")

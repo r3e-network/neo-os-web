@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 	"github.com/google/uuid"
 )
 
@@ -141,7 +142,7 @@ func (s *PostgresStore) CreateRequest(ctx context.Context, req Request) (Request
 	_, err := s.db.ExecContext(ctx, `
         INSERT INTO app_oracle_requests (id, account_id, data_source_id, status, attempts, payload, result, error, tenant, created_at, updated_at, completed_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-    `, req.ID, req.AccountID, req.DataSourceID, req.Status, req.Attempts, req.Payload, req.Result, req.Error, tenant, req.CreatedAt, req.UpdatedAt, toNullTime(req.CompletedAt))
+    `, req.ID, req.AccountID, req.DataSourceID, req.Status, req.Attempts, req.Payload, req.Result, req.Error, tenant, req.CreatedAt, req.UpdatedAt, core.ToNullTime(req.CompletedAt))
 	if err != nil {
 		return Request{}, err
 	}
@@ -165,7 +166,7 @@ func (s *PostgresStore) UpdateRequest(ctx context.Context, req Request) (Request
         UPDATE app_oracle_requests
         SET status = $2, attempts = $3, payload = $4, result = $5, error = $6, tenant = $7, updated_at = $8, completed_at = $9
         WHERE id = $1
-    `, req.ID, req.Status, req.Attempts, req.Payload, req.Result, req.Error, tenant, req.UpdatedAt, toNullTime(req.CompletedAt))
+    `, req.ID, req.Status, req.Attempts, req.Payload, req.Result, req.Error, tenant, req.UpdatedAt, core.ToNullTime(req.CompletedAt))
 	if err != nil {
 		return Request{}, err
 	}
@@ -260,12 +261,4 @@ func (s *PostgresStore) ListPendingRequests(ctx context.Context) ([]Request, err
 		result = append(result, req)
 	}
 	return result, rows.Err()
-}
-
-// toNullTime converts time.Time to sql.NullTime.
-func toNullTime(t time.Time) sql.NullTime {
-	if t.IsZero() {
-		return sql.NullTime{}
-	}
-	return sql.NullTime{Time: t.UTC(), Valid: true}
 }

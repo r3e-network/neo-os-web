@@ -7,63 +7,32 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
+	"strings"
 
 	"github.com/R3E-Network/service_layer/applications/system"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
-	automationsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.automation"
-	ccipsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.ccip"
-	confsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.confidential"
-	cresvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.cre"
-	datafeedsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.datafeeds"
-	datalinksvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.datalink"
-	datastreamsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.datastreams"
-	dtasvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.dta"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.functions"
-	gasbanksvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.gasbank"
-	mixersvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.mixer"
-	oraclesvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.oracle"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.secrets"
-	vrfsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.vrf"
 	"github.com/R3E-Network/service_layer/pkg/logger"
+	appmetrics "github.com/R3E-Network/service_layer/pkg/metrics"
+	"github.com/R3E-Network/service_layer/pkg/tracing"
 	"github.com/R3E-Network/service_layer/system/bootstrap"
 	engine "github.com/R3E-Network/service_layer/system/core"
+	framework "github.com/R3E-Network/service_layer/system/framework"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
 	pkg "github.com/R3E-Network/service_layer/system/runtime"
+
+	otel "go.opentelemetry.io/otel"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 // EngineApplication wraps the Service Engine and PackageLoader, providing
 // access to services loaded via the Android-style package architecture.
 // It implements a similar interface to Application for backward compatibility.
 type EngineApplication struct {
-	engine *engine.Engine
-	loader pkg.PackageLoader
-	log    *logger.Logger
-
-	// Service references (populated after bootstrap)
-	// These provide typed access to services for the HTTP handlers.
-	Accounts     *accounts.Service
-	Functions    *functions.Service
-	GasBank      *gasbanksvc.Service
-	Automation   *automationsvc.Service
-	DataFeeds    *datafeedsvc.Service
-	DataStreams  *datastreamsvc.Service
-	DataLink     *datalinksvc.Service
-	DTA          *dtasvc.Service
-	Confidential *confsvc.Service
-	Oracle       *oraclesvc.Service
-	Secrets      *secrets.Service
-	CRE          *cresvc.Service
-	CCIP         *ccipsvc.Service
-	VRF          *vrfsvc.Service
-	Mixer        *mixersvc.Service
-
-	// Additional components
-	OracleRunnerTokens []string
-
-	// Background runners
-	AutomationRunner  *automationsvc.Scheduler
-	OracleRunner      *oraclesvc.Dispatcher
-	GasBankSettlement system.Service
+	ServiceBundle // Embedded for ServiceProvider implementation
+	engine        *engine.Engine
+	loader        pkg.PackageLoader
+	log           *logger.Logger
+	traceShutdown func(context.Context) error
 }
 
 // EngineAppConfig configures the EngineApplication.
@@ -79,6 +48,18 @@ type EngineAppConfig struct {
 
 	// PackageIDs to load. If empty, loads all default packages.
 	PackageIDs []string
+
+	// Tracer enables cross-service observability.
+	Tracer core.Tracer
+
+	// TracerProvider allows callers to supply an OpenTelemetry provider.
+	TracerProvider oteltrace.TracerProvider
+
+	// Tracing configures OTLP tracing exporter when no tracer provider is supplied.
+	Tracing TracingConfig
+
+	// Metrics recorder for service-level metrics.
+	Metrics framework.Metrics
 
 	// Supabase integration components (optional)
 	// SupabaseClient provides unified access to Supabase services
@@ -107,12 +88,50 @@ func NewEngineApplication(ctx context.Context, cfg EngineAppConfig) (*EngineAppl
 	// Create StoreProvider from Stores (Android ContentResolver pattern)
 	storeProvider := storesToStoreProvider(cfg.Stores)
 
+	appTracer := cfg.Tracer
+	var tracerProvider oteltrace.TracerProvider
+	var traceShutdown func(context.Context) error
+	if cfg.TracerProvider != nil {
+		tracerProvider = cfg.TracerProvider
+	}
+	if tracerProvider == nil && strings.TrimSpace(cfg.Tracing.Endpoint) != "" {
+		otlpProvider, shutdown, err := tracing.NewOTLPTracerProvider(ctx, tracing.OTLPConfig{
+			Endpoint:           cfg.Tracing.Endpoint,
+			Insecure:           cfg.Tracing.Insecure,
+			ServiceName:        cfg.Tracing.ServiceName,
+			ResourceAttributes: cfg.Tracing.ResourceAttributes,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("configure tracing: %w", err)
+		}
+		tracerProvider = otlpProvider
+		traceShutdown = shutdown
+	}
+	if appTracer == nil {
+		if tracerProvider == nil {
+			tracerProvider = otel.GetTracerProvider()
+		}
+		if tracerProvider != nil {
+			appTracer = tracing.ConfigureGlobalTracer(tracerProvider, "service-layer")
+		}
+	}
+	if appTracer == nil {
+		appTracer = core.NoopTracer
+	}
+
+	appMetrics := cfg.Metrics
+	if appMetrics == nil {
+		appMetrics = appmetrics.NewRecorder(appmetrics.Registry)
+	}
+
 	// Bootstrap the engine with packages
 	bootCfg := bootstrap.Config{
 		Logger:        stdLog,
 		PackageIDs:    cfg.PackageIDs,
 		SkipStart:     true, // We'll start manually after wiring
 		StoreProvider: storeProvider,
+		Tracer:        appTracer,
+		Metrics:       appMetrics,
 	}
 
 	result, err := bootstrap.BootstrapWithResult(ctx, bootCfg)
@@ -121,9 +140,10 @@ func NewEngineApplication(ctx context.Context, cfg EngineAppConfig) (*EngineAppl
 	}
 
 	app := &EngineApplication{
-		engine: result.Engine,
-		loader: result.Loader,
-		log:    appLog,
+		engine:        result.Engine,
+		loader:        result.Loader,
+		log:           appLog,
+		traceShutdown: traceShutdown,
 	}
 
 	// Extract typed service references from the engine
@@ -134,83 +154,59 @@ func NewEngineApplication(ctx context.Context, cfg EngineAppConfig) (*EngineAppl
 	return app, nil
 }
 
-// wireServices extracts typed service references from the engine.
+// serviceMapping defines the relationship between engine module names,
+// struct field names, and router registration names.
+// Format: engineName -> fieldName -> routerName (empty means same as engineName)
+var serviceMapping = []struct {
+	engineName string
+	fieldName  string
+	routerName string // empty = use engineName
+}{
+	{"accounts", "Accounts", "accounts"},
+	{"gasbank", "GasBank", "gasbank"},
+	{"automation", "Automation", "automation"},
+	{"datafeeds", "DataFeeds", "datafeeds"},
+	{"datastreams", "DataStreams", "datastreams"},
+	{"datalink", "DataLink", "datalink"},
+	{"dta", "DTA", "dta"},
+	{"confidential", "Confidential", "confcompute"},
+	{"oracle", "Oracle", "oracle"},
+	{"secrets", "Secrets", "secrets"},
+	{"cre", "CRE", "cre"},
+	{"ccip", "CCIP", "ccip"},
+	{"vrf", "VRF", "vrf"},
+	{"mixer", "Mixer", ""},
+}
+
+// wireServices extracts typed service references from the engine using reflection.
 // This enables backward-compatible access for HTTP handlers.
 func (a *EngineApplication) wireServices(eng *engine.Engine) error {
-	// Look up each service module and cast to the appropriate type
-	if mod := eng.Lookup("accounts"); mod != nil {
-		if svc, ok := mod.(*accounts.Service); ok {
-			a.Accounts = svc
+	// Access the embedded ServiceBundle fields
+	bundleVal := reflect.ValueOf(&a.ServiceBundle).Elem()
+
+	// Initialize ServiceRouter for automatic HTTP endpoint discovery
+	a.ServiceRouter = core.NewServiceRouter("/accounts/{accountID}")
+
+	for _, m := range serviceMapping {
+		mod := eng.Lookup(m.engineName)
+		if mod == nil {
+			continue
 		}
-	}
-	if mod := eng.Lookup("functions"); mod != nil {
-		if svc, ok := mod.(*functions.Service); ok {
-			a.Functions = svc
+
+		// Set the field in the embedded ServiceBundle using reflection
+		field := bundleVal.FieldByName(m.fieldName)
+		if !field.IsValid() || !field.CanSet() {
+			continue
 		}
-	}
-	if mod := eng.Lookup("gasbank"); mod != nil {
-		if svc, ok := mod.(*gasbanksvc.Service); ok {
-			a.GasBank = svc
-		}
-	}
-	if mod := eng.Lookup("automation"); mod != nil {
-		if svc, ok := mod.(*automationsvc.Service); ok {
-			a.Automation = svc
-		}
-	}
-	if mod := eng.Lookup("datafeeds"); mod != nil {
-		if svc, ok := mod.(*datafeedsvc.Service); ok {
-			a.DataFeeds = svc
-		}
-	}
-	if mod := eng.Lookup("datastreams"); mod != nil {
-		if svc, ok := mod.(*datastreamsvc.Service); ok {
-			a.DataStreams = svc
-		}
-	}
-	if mod := eng.Lookup("datalink"); mod != nil {
-		if svc, ok := mod.(*datalinksvc.Service); ok {
-			a.DataLink = svc
-		}
-	}
-	if mod := eng.Lookup("dta"); mod != nil {
-		if svc, ok := mod.(*dtasvc.Service); ok {
-			a.DTA = svc
-		}
-	}
-	if mod := eng.Lookup("confidential"); mod != nil {
-		if svc, ok := mod.(*confsvc.Service); ok {
-			a.Confidential = svc
-		}
-	}
-	if mod := eng.Lookup("oracle"); mod != nil {
-		if svc, ok := mod.(*oraclesvc.Service); ok {
-			a.Oracle = svc
-		}
-	}
-	if mod := eng.Lookup("secrets"); mod != nil {
-		if svc, ok := mod.(*secrets.Service); ok {
-			a.Secrets = svc
-		}
-	}
-	if mod := eng.Lookup("cre"); mod != nil {
-		if svc, ok := mod.(*cresvc.Service); ok {
-			a.CRE = svc
-		}
-	}
-	if mod := eng.Lookup("ccip"); mod != nil {
-		if svc, ok := mod.(*ccipsvc.Service); ok {
-			a.CCIP = svc
-		}
-	}
-	if mod := eng.Lookup("vrf"); mod != nil {
-		if svc, ok := mod.(*vrfsvc.Service); ok {
-			a.VRF = svc
-		}
-	}
-	if mod := eng.Lookup("mixer"); mod != nil {
-		if svc, ok := mod.(*mixersvc.Service); ok {
-			a.Mixer = svc
+
+		modVal := reflect.ValueOf(mod)
+		if modVal.Type().AssignableTo(field.Type()) {
+			field.Set(modVal)
+
+			// Register with ServiceRouter if routerName is specified
+			if m.routerName != "" {
+				a.ServiceRouter.Register(m.routerName, mod)
+			}
 		}
 	}
 
@@ -224,7 +220,13 @@ func (a *EngineApplication) Start(ctx context.Context) error {
 
 // Stop stops the engine and all services.
 func (a *EngineApplication) Stop(ctx context.Context) error {
-	return bootstrap.Shutdown(ctx, a.engine, a.loader)
+	err := bootstrap.Shutdown(ctx, a.engine, a.loader)
+	if a.traceShutdown != nil {
+		if shutdownErr := a.traceShutdown(ctx); shutdownErr != nil && err == nil {
+			err = shutdownErr
+		}
+	}
+	return err
 }
 
 // Engine returns the underlying engine.
@@ -276,4 +278,12 @@ func storesToStoreProvider(stores Stores) pkg.StoreProvider {
 	return pkg.NewStoreProvider(pkg.StoreProviderConfig{
 		Database: stores.Database,
 	})
+}
+
+// TracingConfig controls OTLP tracing exporter wiring.
+type TracingConfig struct {
+	Endpoint           string
+	Insecure           bool
+	ServiceName        string
+	ResourceAttributes map[string]string
 }

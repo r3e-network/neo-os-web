@@ -2,6 +2,7 @@ package datalink
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -12,11 +13,7 @@ import (
 )
 
 // Compile-time check: Service exposes Publish for the core engine adapter.
-type eventPublisher interface {
-	Publish(context.Context, string, any) error
-}
-
-var _ eventPublisher = (*Service)(nil)
+var _ core.EventPublisher = (*Service)(nil)
 
 // Dispatcher handles delivery attempts.
 type Dispatcher interface {
@@ -33,56 +30,36 @@ func (f DispatcherFunc) Dispatch(ctx context.Context, delivery Delivery, channel
 
 // Service manages datalink channels and deliveries.
 type Service struct {
-	framework.ServiceBase
-	accounts   AccountChecker
-	wallets    WalletChecker
-	store      Store
-	dispatcher Dispatcher
-	dispatch   core.DispatchOptions
-	log        *logger.Logger
+	*framework.ServiceEngine
+	wallets      WalletChecker
+	store        Store
+	dispatcher   Dispatcher
+	dispatch     core.DispatchOptions
+	customTracer core.Tracer
 }
-
-// Name returns the stable engine module name.
-func (s *Service) Name() string { return "datalink" }
-
-// Domain reports the service domain for engine grouping.
-func (s *Service) Domain() string { return "datalink" }
-
-// Manifest describes the service contract for the engine OS.
-func (s *Service) Manifest() *framework.Manifest {
-	return &framework.Manifest{
-		Name:         s.Name(),
-		Domain:       s.Domain(),
-		Description:  "DataLink channels and deliveries",
-		Layer:        "service",
-		DependsOn:    []string{"store", "svc-accounts"},
-		RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceData, engine.APISurfaceEvent},
-		Capabilities: []string{"datalink"},
-	}
-}
-
-// Descriptor advertises the service for system discovery.
-func (s *Service) Descriptor() core.Descriptor { return s.Manifest().ToDescriptor() }
 
 // New constructs a service.
 func New(accounts AccountChecker, store Store, log *logger.Logger) *Service {
-	if log == nil {
-		log = logger.NewDefault("datalink")
-	}
-	svc := &Service{
-		accounts: accounts,
-		store:    store,
+	return &Service{
+		ServiceEngine: framework.NewServiceEngine(framework.ServiceConfig{
+			Name:         "datalink",
+			Domain:       "datalink",
+			Description:  "DataLink channels and deliveries",
+			DependsOn:    []string{"store", "svc-accounts"},
+			RequiresAPIs: []engine.APISurface{engine.APISurfaceStore, engine.APISurfaceData, engine.APISurfaceEvent},
+			Capabilities: []string{"datalink"},
+			Accounts:     accounts,
+			Logger:       log,
+		}),
+		store: store,
 		dispatcher: DispatcherFunc(func(context.Context, Delivery, Channel) error {
 			return nil
 		}),
 		dispatch: core.NewDispatchOptions(),
-		log:      log,
 	}
-	svc.SetName(svc.Name())
-	return svc
 }
 
-// Start/Stop/Ready are inherited from framework.ServiceBase.
+// Start/Stop/Ready are inherited from framework.ServiceEngine.
 
 // Publish implements EventEngine for the core engine by enqueuing a delivery.
 func (s *Service) Publish(ctx context.Context, event string, payload any) error {
@@ -131,22 +108,45 @@ func (s *Service) WithDispatcherHooks(h core.DispatchHooks) {
 
 // WithTracer configures a tracer for dispatcher operations.
 func (s *Service) WithTracer(t core.Tracer) {
+	if t == nil {
+		s.customTracer = nil
+		t = s.Tracer()
+	} else {
+		s.customTracer = t
+	}
 	s.dispatch.SetTracer(t)
 }
 
 // WithWallets injects wallet validation for channels.
 func (s *Service) WithWallets(wallets WalletChecker) {
 	s.wallets = wallets
+	s.ServiceEngine.WithWalletChecker(wallets)
 }
 
 // WithWalletChecker is an alias for WithWallets for API consistency.
 func (s *Service) WithWalletChecker(w WalletChecker) {
 	s.wallets = w
+	s.ServiceEngine.WithWalletChecker(w)
+}
+
+// WithObservationHooks configures optional observability hooks.
+func (s *Service) WithObservationHooks(h core.ObservationHooks) {
+	s.ServiceEngine.WithObservationHooks(h)
+}
+
+// SetEnvironment ensures dispatcher dependencies follow the runtime environment.
+func (s *Service) SetEnvironment(env framework.Environment) {
+	s.ServiceEngine.SetEnvironment(env)
+	tracer := s.customTracer
+	if tracer == nil {
+		tracer = s.Tracer()
+	}
+	s.dispatch.SetTracer(tracer)
 }
 
 // CreateChannel registers a channel.
 func (s *Service) CreateChannel(ctx context.Context, ch Channel) (Channel, error) {
-	if err := s.accounts.AccountExists(ctx, ch.AccountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, ch.AccountID); err != nil {
 		return Channel{}, err
 	}
 	if err := s.normalizeChannel(&ch); err != nil {
@@ -163,7 +163,8 @@ func (s *Service) CreateChannel(ctx context.Context, ch Channel) (Channel, error
 	if err != nil {
 		return Channel{}, err
 	}
-	s.log.WithField("channel_id", created.ID).WithField("account_id", created.AccountID).Info("datalink channel created")
+	s.Logger().WithField("channel_id", created.ID).WithField("account_id", created.AccountID).Info("datalink channel created")
+	s.IncrementCounter("datalink_channels_created_total", map[string]string{"account_id": created.AccountID})
 	return created, nil
 }
 
@@ -191,7 +192,8 @@ func (s *Service) UpdateChannel(ctx context.Context, ch Channel) (Channel, error
 	if err != nil {
 		return Channel{}, err
 	}
-	s.log.WithField("channel_id", ch.ID).WithField("account_id", ch.AccountID).Info("datalink channel updated")
+	s.Logger().WithField("channel_id", ch.ID).WithField("account_id", ch.AccountID).Info("datalink channel updated")
+	s.IncrementCounter("datalink_channels_updated_total", map[string]string{"account_id": ch.AccountID})
 	return updated, nil
 }
 
@@ -209,7 +211,7 @@ func (s *Service) GetChannel(ctx context.Context, accountID, channelID string) (
 
 // ListChannels lists account channels.
 func (s *Service) ListChannels(ctx context.Context, accountID string) ([]Channel, error) {
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return nil, err
 	}
 	return s.store.ListChannels(ctx, accountID)
@@ -233,9 +235,22 @@ func (s *Service) CreateDelivery(ctx context.Context, accountID, channelID strin
 		return Delivery{}, err
 	}
 	attrs := map[string]string{"delivery_id": created.ID, "channel_id": ch.ID}
+	s.IncrementCounter("datalink_deliveries_created_total", map[string]string{"channel_id": ch.ID})
+	eventPayload := map[string]any{
+		"delivery_id": created.ID,
+		"account_id":  accountID,
+		"channel_id":  ch.ID,
+	}
+	if err := s.PublishEvent(ctx, "datalink.delivery.created", eventPayload); err != nil {
+		if errors.Is(err, core.ErrBusUnavailable) {
+			s.Logger().WithError(err).Warn("bus unavailable for datalink delivery event")
+		} else {
+			return Delivery{}, fmt.Errorf("publish delivery event: %w", err)
+		}
+	}
 	if err := s.dispatch.Run(ctx, "datalink.dispatch", attrs, func(spanCtx context.Context) error {
 		if err := s.dispatcher.Dispatch(spanCtx, created, ch); err != nil {
-			s.log.WithError(err).WithField("delivery_id", created.ID).Warn("datalink dispatcher error")
+			s.Logger().WithError(err).WithField("delivery_id", created.ID).Warn("datalink dispatcher error")
 			return err
 		}
 		return nil
@@ -259,7 +274,7 @@ func (s *Service) GetDelivery(ctx context.Context, accountID, deliveryID string)
 
 // ListDeliveries lists account deliveries.
 func (s *Service) ListDeliveries(ctx context.Context, accountID string, limit int) ([]Delivery, error) {
-	if err := s.accounts.AccountExists(ctx, accountID); err != nil {
+	if err := s.ValidateAccountExists(ctx, accountID); err != nil {
 		return nil, err
 	}
 	clamped := core.ClampLimit(limit, core.DefaultListLimit, core.MaxListLimit)
@@ -292,4 +307,112 @@ func (s *Service) normalizeChannel(ch *Channel) error {
 		return fmt.Errorf("invalid status %s", status)
 	}
 	return nil
+}
+
+// HTTP API Methods
+// These methods follow the HTTP{Method}{Path} naming convention for automatic route discovery.
+
+// HTTPGetChannels handles GET /channels - list all channels for an account.
+func (s *Service) HTTPGetChannels(ctx context.Context, req core.APIRequest) (any, error) {
+	return s.ListChannels(ctx, req.AccountID)
+}
+
+// HTTPPostChannels handles POST /channels - create a new channel.
+func (s *Service) HTTPPostChannels(ctx context.Context, req core.APIRequest) (any, error) {
+	name, _ := req.Body["name"].(string)
+	endpoint, _ := req.Body["endpoint"].(string)
+	authToken, _ := req.Body["auth_token"].(string)
+	status, _ := req.Body["status"].(string)
+
+	var signerSet []string
+	if rawSigners, ok := req.Body["signer_set"].([]any); ok {
+		for _, s := range rawSigners {
+			if str, ok := s.(string); ok {
+				signerSet = append(signerSet, str)
+			}
+		}
+	}
+
+	metadata := core.ExtractMetadataRaw(req.Body, "")
+
+	ch := Channel{
+		AccountID: req.AccountID,
+		Name:      name,
+		Endpoint:  endpoint,
+		AuthToken: authToken,
+		Status:    ChannelStatus(status),
+		SignerSet: signerSet,
+		Metadata:  metadata,
+	}
+
+	return s.CreateChannel(ctx, ch)
+}
+
+// HTTPGetChannelsById handles GET /channels/{id} - get a specific channel.
+func (s *Service) HTTPGetChannelsById(ctx context.Context, req core.APIRequest) (any, error) {
+	channelID := req.PathParams["id"]
+	return s.GetChannel(ctx, req.AccountID, channelID)
+}
+
+// HTTPPatchChannelsById handles PATCH /channels/{id} - update a channel.
+func (s *Service) HTTPPatchChannelsById(ctx context.Context, req core.APIRequest) (any, error) {
+	channelID := req.PathParams["id"]
+
+	// Get existing channel first
+	existing, err := s.GetChannel(ctx, req.AccountID, channelID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply updates
+	if name, ok := req.Body["name"].(string); ok {
+		existing.Name = name
+	}
+	if endpoint, ok := req.Body["endpoint"].(string); ok {
+		existing.Endpoint = endpoint
+	}
+	if authToken, ok := req.Body["auth_token"].(string); ok {
+		existing.AuthToken = authToken
+	}
+	if status, ok := req.Body["status"].(string); ok {
+		existing.Status = ChannelStatus(status)
+	}
+	if rawSigners, ok := req.Body["signer_set"].([]any); ok {
+		var signerSet []string
+		for _, s := range rawSigners {
+			if str, ok := s.(string); ok {
+				signerSet = append(signerSet, str)
+			}
+		}
+		existing.SignerSet = signerSet
+	}
+
+	existing.AccountID = req.AccountID
+	return s.UpdateChannel(ctx, existing)
+}
+
+// HTTPGetDeliveries handles GET /deliveries - list all deliveries for an account.
+func (s *Service) HTTPGetDeliveries(ctx context.Context, req core.APIRequest) (any, error) {
+	limit := core.ParseLimitFromQuery(req.Query)
+	return s.ListDeliveries(ctx, req.AccountID, limit)
+}
+
+// HTTPPostDeliveries handles POST /deliveries - create a new delivery.
+func (s *Service) HTTPPostDeliveries(ctx context.Context, req core.APIRequest) (any, error) {
+	channelID, _ := req.Body["channel_id"].(string)
+
+	var payload map[string]any
+	if p, ok := req.Body["payload"].(map[string]any); ok {
+		payload = p
+	}
+
+	metadata := core.ExtractMetadataRaw(req.Body, "")
+
+	return s.CreateDelivery(ctx, req.AccountID, channelID, payload, metadata)
+}
+
+// HTTPGetDeliveriesById handles GET /deliveries/{id} - get a specific delivery.
+func (s *Service) HTTPGetDeliveriesById(ctx context.Context, req core.APIRequest) (any, error) {
+	deliveryID := req.PathParams["id"]
+	return s.GetDelivery(ctx, req.AccountID, deliveryID)
 }

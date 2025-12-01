@@ -8,7 +8,7 @@ import (
 func TestService_CreatePlaybook(t *testing.T) {
 	store := NewMemoryStore()
 	accounts := NewMockAccountChecker()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	svc := New(accounts, store, nil)
 
 	pb, err := svc.CreatePlaybook(context.Background(), Playbook{

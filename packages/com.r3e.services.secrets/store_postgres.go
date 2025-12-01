@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 
@@ -28,10 +29,6 @@ func (s *PostgresStore) accountTenant(ctx context.Context, accountID string) str
 	return s.accounts.AccountTenant(ctx, accountID)
 }
 
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
-}
 
 // SecretStore implementation
 
@@ -155,7 +152,7 @@ func (s *PostgresStore) DeleteSecret(ctx context.Context, accountID, name string
 	return nil
 }
 
-func scanSecret(scanner rowScanner) (Secret, error) {
+func scanSecret(scanner core.RowScanner) (Secret, error) {
 	var sec Secret
 	if err := scanner.Scan(&sec.ID, &sec.AccountID, &sec.Name, &sec.Value, &sec.Version, &sec.CreatedAt, &sec.UpdatedAt); err != nil {
 		return Secret{}, err

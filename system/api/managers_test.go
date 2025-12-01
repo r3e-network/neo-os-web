@@ -3,6 +3,8 @@ package api
 import (
 	"testing"
 	"time"
+
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // Unit tests for helper functions and data types.
@@ -22,12 +24,12 @@ func TestNullString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ns := nullString(tt.input)
+			ns := core.ToNullString(tt.input)
 			if ns.Valid != tt.wantValid {
-				t.Errorf("nullString(%q).Valid = %v, want %v", tt.input, ns.Valid, tt.wantValid)
+				t.Errorf("core.ToNullString(%q).Valid = %v, want %v", tt.input, ns.Valid, tt.wantValid)
 			}
 			if tt.wantValid && ns.String != tt.input {
-				t.Errorf("nullString(%q).String = %q, want %q", tt.input, ns.String, tt.input)
+				t.Errorf("core.ToNullString(%q).String = %q, want %q", tt.input, ns.String, tt.input)
 			}
 		})
 	}
@@ -374,6 +376,6 @@ func BenchmarkGenerateTriggerID(b *testing.B) {
 
 func BenchmarkNullString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		nullString("test-value")
+		core.ToNullString("test-value")
 	}
 }

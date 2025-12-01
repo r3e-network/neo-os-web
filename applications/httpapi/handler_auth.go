@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/applications/auth"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 var refreshHTTPClient = &http.Client{Timeout: 5 * time.Second}
@@ -28,7 +29,7 @@ var errUnauthorised = auth.ErrUnauthorised
 // it rejects requests to avoid giving a false sense of auth.
 func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 	if h.authManager == nil || !h.authManager.HasUsers() {
-		writeError(w, http.StatusUnauthorized, errUnauthorised)
+		core.WriteError(w, http.StatusUnauthorized, errUnauthorised)
 		return
 	}
 	var payload struct {
@@ -36,17 +37,17 @@ func (h *handler) login(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := decodeJSON(r.Body, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		core.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	user, err := h.authManager.Authenticate(payload.Username, payload.Password)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, err)
+		core.WriteError(w, http.StatusUnauthorized, err)
 		return
 	}
 	token, exp, err := h.authManager.Issue(user, 24*time.Hour)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		core.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 	resp := map[string]any{
@@ -63,7 +64,7 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	if err := decodeJSON(r.Body, &payload); err != nil || strings.TrimSpace(payload.RefreshToken) == "" {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("refresh_token required"))
+		core.WriteError(w, http.StatusBadRequest, fmt.Errorf("refresh_token required"))
 		return
 	}
 	goTrueURL := strings.TrimSpace(h.supabaseGoTrueURL)
@@ -71,7 +72,7 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 		goTrueURL = strings.TrimSpace(os.Getenv("SUPABASE_GOTRUE_URL"))
 	}
 	if goTrueURL == "" {
-		writeError(w, http.StatusNotImplemented, fmt.Errorf("supabase gotrue url not configured"))
+		core.WriteError(w, http.StatusNotImplemented, fmt.Errorf("supabase gotrue url not configured"))
 		return
 	}
 	reqBody := map[string]string{
@@ -81,13 +82,13 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 	body, _ := json.Marshal(reqBody)
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, strings.TrimRight(goTrueURL, "/")+"/token?grant_type=refresh_token", strings.NewReader(string(body)))
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		core.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := refreshHTTPClient.Do(req)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err)
+		core.WriteError(w, http.StatusBadGateway, err)
 		return
 	}
 	defer resp.Body.Close()
@@ -98,19 +99,19 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 // walletChallenge returns a nonce for the wallet to sign (HMAC-based in this implementation).
 func (h *handler) walletChallenge(w http.ResponseWriter, r *http.Request) {
 	if h.authManager == nil || !h.authManager.HasUsers() {
-		writeError(w, http.StatusUnauthorized, errUnauthorised)
+		core.WriteError(w, http.StatusUnauthorized, errUnauthorised)
 		return
 	}
 	var payload struct {
 		Wallet string `json:"wallet"`
 	}
 	if err := decodeJSON(r.Body, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		core.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	nonce, exp, err := h.authManager.IssueWalletChallenge(payload.Wallet, 5*time.Minute)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		core.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{
@@ -122,7 +123,7 @@ func (h *handler) walletChallenge(w http.ResponseWriter, r *http.Request) {
 // walletLogin verifies a signed nonce and returns a JWT.
 func (h *handler) walletLogin(w http.ResponseWriter, r *http.Request) {
 	if h.authManager == nil || !h.authManager.HasUsers() {
-		writeError(w, http.StatusUnauthorized, errUnauthorised)
+		core.WriteError(w, http.StatusUnauthorized, errUnauthorised)
 		return
 	}
 	var payload struct {
@@ -131,17 +132,17 @@ func (h *handler) walletLogin(w http.ResponseWriter, r *http.Request) {
 		PubKey    string `json:"pubkey"`
 	}
 	if err := decodeJSON(r.Body, &payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		core.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	user, err := h.authManager.VerifyWalletSignature(payload.Wallet, payload.Signature, payload.PubKey)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, err)
+		core.WriteError(w, http.StatusUnauthorized, err)
 		return
 	}
 	token, exp, err := h.authManager.Issue(user, 24*time.Hour)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		core.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{

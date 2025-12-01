@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 const defaultBusMaxBytes = int64(1 << 20) // 1 MiB
@@ -124,7 +126,7 @@ func (h *handler) limitedBody(w http.ResponseWriter, r *http.Request) io.ReadClo
 func requireAdminRole(w http.ResponseWriter, r *http.Request) bool {
 	role, _ := r.Context().Value(ctxRoleKey).(string)
 	if role != "admin" {
-		writeError(w, http.StatusForbidden, fmt.Errorf("forbidden: admin only"))
+		core.WriteError(w, http.StatusForbidden, fmt.Errorf("forbidden: admin only"))
 		return false
 	}
 	return true

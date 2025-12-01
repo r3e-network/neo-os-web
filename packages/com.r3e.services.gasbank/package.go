@@ -2,13 +2,13 @@
 // This package is self-contained with its own:
 // - Domain types (domain.go)
 // - Store interface and implementation (store.go, store_postgres.go)
-// - Service logic (service.go)
-// - HTTP handlers (http.go)
+// - Service logic with HTTP API methods (service.go)
+//
+// HTTP API endpoints are automatically discovered via HTTP{Method}{Path} naming convention.
 package gasbank
 
 import (
 	"context"
-	"net/http"
 
 	engine "github.com/R3E-Network/service_layer/system/core"
 	pkg "github.com/R3E-Network/service_layer/system/runtime"
@@ -17,7 +17,6 @@ import (
 // Package implements the ServicePackage interface using PackageTemplate.
 type Package struct {
 	pkg.PackageTemplate
-	httpHandler *HTTPHandler
 }
 
 func init() {
@@ -48,20 +47,13 @@ func (p *Package) CreateServices(ctx context.Context, runtime pkg.PackageRuntime
 
 	svc := New(accounts, store, log)
 
-	// Create HTTP handler for this service
-	p.httpHandler = NewHTTPHandler(svc)
+	// HTTP API endpoints are automatically discovered via HTTP{Method}{Path} methods on the service:
+	// - HTTPGetAccounts: GET /accounts
+	// - HTTPPostAccounts: POST /accounts
+	// - HTTPGetAccountsById: GET /accounts/{id}
+	// - HTTPGetAccountsIdTransactions: GET /accounts/{id}/transactions
+	// - HTTPPostDeposit: POST /deposit
+	// - HTTPPostWithdraw: POST /withdraw
 
 	return []engine.ServiceModule{svc}, nil
-}
-
-// RegisterRoutes implements the RouteRegistrar interface.
-func (p *Package) RegisterRoutes(mux *http.ServeMux, basePath string) {
-	// Routes are registered via Handle method called from application layer
-	_ = mux
-	_ = basePath
-}
-
-// HTTPHandler returns the HTTP handler for external registration.
-func (p *Package) HTTPHandler() *HTTPHandler {
-	return p.httpHandler
 }

@@ -1,5 +1,10 @@
 // Package bootstrap provides component wiring for the event system and user API.
 // This file connects the IndexerBridge, Dispatcher, RequestRouter, and UserService.
+//
+// DEPRECATED: This file contains legacy service-specific wiring code (automation,
+// gasbank managers). New services should be self-contained in packages/ and use
+// the ServiceRouter pattern for HTTP endpoints. This file will be refactored to
+// remove service-specific dependencies.
 package bootstrap
 
 import (

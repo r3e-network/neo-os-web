@@ -8,8 +8,6 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -22,6 +20,8 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // Config controls snapshot generation for a given block height.
@@ -57,14 +57,14 @@ type snapshotManifest struct {
 
 func main() {
 	var cfg Config
-	flag.StringVar(&cfg.RPCURL, "rpc", envDefault("NEO_RPC_URL", "http://localhost:10332"), "NEO RPC endpoint")
+	flag.StringVar(&cfg.RPCURL, "rpc", core.EnvDefault("NEO_RPC_URL", "http://localhost:10332"), "NEO RPC endpoint")
 	flag.Int64Var(&cfg.Height, "height", 0, "block height to snapshot (required)")
-	flag.StringVar(&cfg.OutputDir, "out", envDefault("NEO_SNAPSHOT_OUT", "./snapshots"), "output directory for KV bundle + manifest")
-	flag.StringVar(&cfg.Network, "network", envDefault("NEO_NETWORK", "mainnet"), "network label (mainnet|testnet)")
-	flag.StringVar(&cfg.KVURLBase, "kv-url-base", envDefault("NEO_KV_URL_BASE", ""), "optional base URL to publish KV bundle links")
-	flag.StringVar(&cfg.DSN, "dsn", envDefault("NEO_SNAPSHOT_DSN", ""), "Postgres DSN to reuse captured storage from neo_storage (optional)")
-	flag.StringVar(&cfg.SigningKey, "signing-key", envDefault("NEO_SNAPSHOT_SIGNING_KEY", ""), "optional ed25519 private key (hex/base64) to sign manifest")
-	contracts := flag.String("contracts", envDefault("NEO_CONTRACTS", ""), "comma-separated contract hashes to include (optional; empty means skip kv bundle)")
+	flag.StringVar(&cfg.OutputDir, "out", core.EnvDefault("NEO_SNAPSHOT_OUT", "./snapshots"), "output directory for KV bundle + manifest")
+	flag.StringVar(&cfg.Network, "network", core.EnvDefault("NEO_NETWORK", "mainnet"), "network label (mainnet|testnet)")
+	flag.StringVar(&cfg.KVURLBase, "kv-url-base", core.EnvDefault("NEO_KV_URL_BASE", ""), "optional base URL to publish KV bundle links")
+	flag.StringVar(&cfg.DSN, "dsn", core.EnvDefault("NEO_SNAPSHOT_DSN", ""), "Postgres DSN to reuse captured storage from neo_storage (optional)")
+	flag.StringVar(&cfg.SigningKey, "signing-key", core.EnvDefault("NEO_SNAPSHOT_SIGNING_KEY", ""), "optional ed25519 private key (hex/base64) to sign manifest")
+	contracts := flag.String("contracts", core.EnvDefault("NEO_CONTRACTS", ""), "comma-separated contract hashes to include (optional; empty means skip kv bundle)")
 	flag.Parse()
 
 	if cfg.Height <= 0 {
@@ -166,12 +166,6 @@ func main() {
 	log.Printf("snapshot written: height=%d state_root=%s manifest=%s kv=%s bytes=%d", cfg.Height, stateRoot, manifestPath, manifest.KVPath, manifest.KVBytes)
 }
 
-func envDefault(key, def string) string {
-	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
-		return v
-	}
-	return def
-}
 
 type rpcRequest struct {
 	JSONRPC string        `json:"jsonrpc"`
@@ -352,7 +346,7 @@ func signManifest(cfg Config, manifest snapshotManifest) (string, string, error)
 	if key == "" {
 		return "", "", nil
 	}
-	raw, err := decodeKey(key)
+	raw, err := core.DecodeKey(key)
 	if err != nil {
 		return "", "", fmt.Errorf("decode signing key: %w", err)
 	}
@@ -364,18 +358,4 @@ func signManifest(cfg Config, manifest snapshotManifest) (string, string, error)
 	payload := fmt.Sprintf("%s|%d|%s|%s|%s", manifest.Network, manifest.Height, manifest.StateRoot, manifest.KVHash, manifest.KVDiffHash)
 	sig := ed25519.Sign(priv, []byte(payload))
 	return fmt.Sprintf("%x", pub), fmt.Sprintf("%x", sig), nil
-}
-
-func decodeKey(value string) ([]byte, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return nil, fmt.Errorf("empty key")
-	}
-	if b, err := hex.DecodeString(value); err == nil {
-		return b, nil
-	}
-	if b, err := base64.StdEncoding.DecodeString(value); err == nil {
-		return b, nil
-	}
-	return nil, fmt.Errorf("key must be hex or base64")
 }

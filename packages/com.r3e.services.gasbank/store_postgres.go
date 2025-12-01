@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	accountsvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // PostgresStore implements Store using PostgreSQL.
@@ -33,11 +33,11 @@ func (s *PostgresStore) CreateGasAccount(ctx context.Context, acct GasBankAccoun
 	}
 	acct.AccountID = strings.TrimSpace(acct.AccountID)
 	acct.WalletAddress = normalizeWallet(acct.WalletAddress)
-	flagsJSON, err := json.Marshal(mapOrEmptyBool(acct.Flags))
+	flagsJSON, err := json.Marshal(core.MapOrEmptyBool(acct.Flags))
 	if err != nil {
 		return GasBankAccount{}, err
 	}
-	metaJSON, err := json.Marshal(mapOrEmptyString(acct.Metadata))
+	metaJSON, err := json.Marshal(core.MapOrEmptyString(acct.Metadata))
 	if err != nil {
 		return GasBankAccount{}, err
 	}
@@ -57,9 +57,9 @@ func (s *PostgresStore) CreateGasAccount(ctx context.Context, acct GasBankAccoun
 			$8, $9, $10, $11,
 			$12, $13, $14, $15, $16, $17, $18
 		)
-	`, acct.ID, acct.AccountID, toNullString(acct.WalletAddress), acct.Balance, acct.Available, acct.Pending, acct.Locked,
+	`, acct.ID, acct.AccountID, core.ToNullString(acct.WalletAddress), acct.Balance, acct.Available, acct.Pending, acct.Locked,
 		acct.MinBalance, acct.DailyLimit, acct.DailyWithdrawal, acct.NotificationThreshold,
-		acct.RequiredApprovals, flagsJSON, metaJSON, tenant, toNullTime(acct.LastWithdrawal), acct.CreatedAt, acct.UpdatedAt); err != nil {
+		acct.RequiredApprovals, flagsJSON, metaJSON, tenant, core.ToNullTime(acct.LastWithdrawal), acct.CreatedAt, acct.UpdatedAt); err != nil {
 		return GasBankAccount{}, err
 	}
 	return acct, nil
@@ -80,11 +80,11 @@ func (s *PostgresStore) UpdateGasAccount(ctx context.Context, acct GasBankAccoun
 	acct.UpdatedAt = time.Now().UTC()
 	tenant := s.accounts.AccountTenant(ctx, acct.AccountID)
 
-	flagsJSON, err := json.Marshal(mapOrEmptyBool(acct.Flags))
+	flagsJSON, err := json.Marshal(core.MapOrEmptyBool(acct.Flags))
 	if err != nil {
 		return GasBankAccount{}, err
 	}
-	metaJSON, err := json.Marshal(mapOrEmptyString(acct.Metadata))
+	metaJSON, err := json.Marshal(core.MapOrEmptyString(acct.Metadata))
 	if err != nil {
 		return GasBankAccount{}, err
 	}
@@ -107,7 +107,7 @@ func (s *PostgresStore) UpdateGasAccount(ctx context.Context, acct GasBankAccoun
 		    last_withdrawal = $15,
 		    updated_at = $16
 		WHERE id = $1
-	`, acct.ID, toNullString(acct.WalletAddress), acct.Balance, acct.Available, acct.Pending, acct.Locked, acct.MinBalance, acct.DailyLimit, acct.DailyWithdrawal, acct.NotificationThreshold, acct.RequiredApprovals, flagsJSON, metaJSON, tenant, toNullTime(acct.LastWithdrawal), acct.UpdatedAt)
+	`, acct.ID, core.ToNullString(acct.WalletAddress), acct.Balance, acct.Available, acct.Pending, acct.Locked, acct.MinBalance, acct.DailyLimit, acct.DailyWithdrawal, acct.NotificationThreshold, acct.RequiredApprovals, flagsJSON, metaJSON, tenant, core.ToNullTime(acct.LastWithdrawal), acct.UpdatedAt)
 	if err != nil {
 		return GasBankAccount{}, err
 	}
@@ -192,7 +192,7 @@ func (s *PostgresStore) CreateGasTransaction(ctx context.Context, tx Transaction
 	if err != nil {
 		return Transaction{}, err
 	}
-	metaJSON, err := json.Marshal(mapOrEmptyString(tx.Metadata))
+	metaJSON, err := json.Marshal(core.MapOrEmptyString(tx.Metadata))
 	if err != nil {
 		return Transaction{}, err
 	}
@@ -216,11 +216,11 @@ func (s *PostgresStore) CreateGasTransaction(ctx context.Context, tx Transaction
 			$17, $18, $19, $20,
 			$21, $22, $23, $24, $25, $26, $27
 		)
-	`, tx.ID, tx.AccountID, toNullString(tx.UserAccountID), tx.Type, tx.Amount, tx.NetAmount, tx.Status,
-		toNullString(tx.BlockchainTxID), toNullString(tx.FromAddress), toNullString(tx.ToAddress), toNullString(tx.Notes), toNullString(tx.Error),
-		toNullTime(tx.ScheduleAt), toNullString(tx.CronExpression), approvalJSON, tx.ResolverAttempt,
-		toNullString(tx.ResolverError), toNullTime(tx.LastAttemptAt), toNullTime(tx.NextAttemptAt), toNullString(tx.DeadLetterReason),
-		metaJSON, tenant, toNullTime(tx.DispatchedAt), toNullTime(tx.ResolvedAt), toNullTime(tx.CompletedAt), tx.CreatedAt, tx.UpdatedAt); err != nil {
+	`, tx.ID, tx.AccountID, core.ToNullString(tx.UserAccountID), tx.Type, tx.Amount, tx.NetAmount, tx.Status,
+		core.ToNullString(tx.BlockchainTxID), core.ToNullString(tx.FromAddress), core.ToNullString(tx.ToAddress), core.ToNullString(tx.Notes), core.ToNullString(tx.Error),
+		core.ToNullTime(tx.ScheduleAt), core.ToNullString(tx.CronExpression), approvalJSON, tx.ResolverAttempt,
+		core.ToNullString(tx.ResolverError), core.ToNullTime(tx.LastAttemptAt), core.ToNullTime(tx.NextAttemptAt), core.ToNullString(tx.DeadLetterReason),
+		metaJSON, tenant, core.ToNullTime(tx.DispatchedAt), core.ToNullTime(tx.ResolvedAt), core.ToNullTime(tx.CompletedAt), tx.CreatedAt, tx.UpdatedAt); err != nil {
 		return Transaction{}, err
 	}
 	return tx, nil
@@ -247,7 +247,7 @@ func (s *PostgresStore) UpdateGasTransaction(ctx context.Context, tx Transaction
 	if err != nil {
 		return Transaction{}, err
 	}
-	metaJSON, err := json.Marshal(mapOrEmptyString(tx.Metadata))
+	metaJSON, err := json.Marshal(core.MapOrEmptyString(tx.Metadata))
 	if err != nil {
 		return Transaction{}, err
 	}
@@ -281,7 +281,7 @@ func (s *PostgresStore) UpdateGasTransaction(ctx context.Context, tx Transaction
 		    completed_at = $23,
 		    updated_at = $24
 		WHERE id = $1
-	`, tx.ID, tx.Type, tx.Amount, tx.NetAmount, tx.Status, toNullString(tx.BlockchainTxID), toNullString(tx.FromAddress), toNullString(tx.ToAddress), toNullString(tx.Notes), toNullString(tx.Error), toNullTime(tx.ScheduleAt), toNullString(tx.CronExpression), approvalJSON, tx.ResolverAttempt, toNullString(tx.ResolverError), toNullTime(tx.LastAttemptAt), toNullTime(tx.NextAttemptAt), toNullString(tx.DeadLetterReason), metaJSON, tenant, toNullTime(tx.DispatchedAt), toNullTime(tx.ResolvedAt), toNullTime(tx.CompletedAt), tx.UpdatedAt)
+	`, tx.ID, tx.Type, tx.Amount, tx.NetAmount, tx.Status, core.ToNullString(tx.BlockchainTxID), core.ToNullString(tx.FromAddress), core.ToNullString(tx.ToAddress), core.ToNullString(tx.Notes), core.ToNullString(tx.Error), core.ToNullTime(tx.ScheduleAt), core.ToNullString(tx.CronExpression), approvalJSON, tx.ResolverAttempt, core.ToNullString(tx.ResolverError), core.ToNullTime(tx.LastAttemptAt), core.ToNullTime(tx.NextAttemptAt), core.ToNullString(tx.DeadLetterReason), metaJSON, tenant, core.ToNullTime(tx.DispatchedAt), core.ToNullTime(tx.ResolvedAt), core.ToNullTime(tx.CompletedAt), tx.UpdatedAt)
 	if err != nil {
 		return Transaction{}, err
 	}
@@ -391,7 +391,7 @@ func (s *PostgresStore) UpsertWithdrawalApproval(ctx context.Context, approval W
 		               tenant = EXCLUDED.tenant,
 		               updated_at = EXCLUDED.updated_at
 		RETURNING created_at
-	`, approval.TransactionID, approval.Approver, approval.Status, toNullString(approval.Signature), toNullString(approval.Note), toNullTime(approval.DecidedAt), tenant, approval.CreatedAt, approval.UpdatedAt).Scan(&createdAt)
+	`, approval.TransactionID, approval.Approver, approval.Status, core.ToNullString(approval.Signature), core.ToNullString(approval.Note), core.ToNullTime(approval.DecidedAt), tenant, approval.CreatedAt, approval.UpdatedAt).Scan(&createdAt)
 	if err != nil {
 		return WithdrawalApproval{}, err
 	}
@@ -442,7 +442,7 @@ func (s *PostgresStore) SaveWithdrawalSchedule(ctx context.Context, schedule Wit
 		               tenant = EXCLUDED.tenant,
 		               updated_at = EXCLUDED.updated_at
 		RETURNING created_at
-	`, schedule.TransactionID, toNullTime(schedule.ScheduleAt), toNullString(schedule.CronExpression), toNullTime(schedule.NextRunAt), toNullTime(schedule.LastRunAt), tenant, schedule.CreatedAt, schedule.UpdatedAt).Scan(&createdAt)
+	`, schedule.TransactionID, core.ToNullTime(schedule.ScheduleAt), core.ToNullString(schedule.CronExpression), core.ToNullTime(schedule.NextRunAt), core.ToNullTime(schedule.LastRunAt), tenant, schedule.CreatedAt, schedule.UpdatedAt).Scan(&createdAt)
 	if err != nil {
 		return WithdrawalSchedule{}, err
 	}
@@ -521,7 +521,7 @@ func (s *PostgresStore) RecordSettlementAttempt(ctx context.Context, attempt Set
 		               status = EXCLUDED.status,
 		               error = EXCLUDED.error,
 		               tenant = EXCLUDED.tenant
-	`, attempt.TransactionID, attempt.Attempt, attempt.StartedAt, attempt.CompletedAt, durationToMillis(latency), toNullString(attempt.Status), toNullString(attempt.Error), tenant)
+	`, attempt.TransactionID, attempt.Attempt, attempt.StartedAt, attempt.CompletedAt, durationToMillis(latency), core.ToNullString(attempt.Status), core.ToNullString(attempt.Error), tenant)
 	if err != nil {
 		return SettlementAttempt{}, err
 	}
@@ -577,7 +577,7 @@ func (s *PostgresStore) UpsertDeadLetter(ctx context.Context, entry DeadLetter) 
 		               tenant = EXCLUDED.tenant,
 		               updated_at = EXCLUDED.updated_at
 		RETURNING created_at
-	`, entry.TransactionID, entry.AccountID, entry.Reason, toNullString(entry.LastError), toNullTime(entry.LastAttemptAt), entry.Retries, tenant, entry.CreatedAt, entry.UpdatedAt).Scan(&createdAt)
+	`, entry.TransactionID, entry.AccountID, entry.Reason, core.ToNullString(entry.LastError), core.ToNullTime(entry.LastAttemptAt), entry.Retries, tenant, entry.CreatedAt, entry.UpdatedAt).Scan(&createdAt)
 	if err != nil {
 		return DeadLetter{}, err
 	}
@@ -651,30 +651,13 @@ func (s *PostgresStore) gasTransactionTenant(ctx context.Context, txID string) s
 	return ""
 }
 
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
-}
 
-func mapOrEmptyBool(m map[string]bool) map[string]bool {
-	if m == nil {
-		return map[string]bool{}
-	}
-	return m
-}
-
-func mapOrEmptyString(m map[string]string) map[string]string {
-	if m == nil {
-		return map[string]string{}
-	}
-	return m
-}
 
 func durationToMillis(d time.Duration) int64 {
 	return d.Milliseconds()
 }
 
-func scanWithdrawalApproval(scanner rowScanner) (WithdrawalApproval, error) {
+func scanWithdrawalApproval(scanner core.RowScanner) (WithdrawalApproval, error) {
 	var (
 		approval  WithdrawalApproval
 		signature sql.NullString
@@ -700,7 +683,7 @@ func scanWithdrawalApproval(scanner rowScanner) (WithdrawalApproval, error) {
 	return approval, nil
 }
 
-func scanWithdrawalSchedule(scanner rowScanner) (WithdrawalSchedule, error) {
+func scanWithdrawalSchedule(scanner core.RowScanner) (WithdrawalSchedule, error) {
 	var (
 		schedule   WithdrawalSchedule
 		scheduleAt sql.NullTime
@@ -730,7 +713,7 @@ func scanWithdrawalSchedule(scanner rowScanner) (WithdrawalSchedule, error) {
 	return schedule, nil
 }
 
-func scanSettlementAttempt(scanner rowScanner) (SettlementAttempt, error) {
+func scanSettlementAttempt(scanner core.RowScanner) (SettlementAttempt, error) {
 	var (
 		attempt     SettlementAttempt
 		completedAt sql.NullTime
@@ -757,7 +740,7 @@ func scanSettlementAttempt(scanner rowScanner) (SettlementAttempt, error) {
 	return attempt, nil
 }
 
-func scanDeadLetter(scanner rowScanner) (DeadLetter, error) {
+func scanDeadLetter(scanner core.RowScanner) (DeadLetter, error) {
 	var (
 		entry       DeadLetter
 		lastError   sql.NullString
@@ -798,24 +781,11 @@ func (s *PostgresStore) accountTenant(ctx context.Context, accountID string) str
 }
 
 func normalizeWallet(addr string) string {
-	return accountsvc.NormalizeWalletAddress(addr)
+	return normalizeWalletAddress(addr)
 }
 
-func toNullString(value string) sql.NullString {
-	if strings.TrimSpace(value) == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: value, Valid: true}
-}
 
-func toNullTime(t time.Time) sql.NullTime {
-	if t.IsZero() {
-		return sql.NullTime{}
-	}
-	return sql.NullTime{Time: t.UTC(), Valid: true}
-}
-
-func scanGasAccount(scanner rowScanner) (GasBankAccount, error) {
+func scanGasAccount(scanner core.RowScanner) (GasBankAccount, error) {
 	var (
 		acct         GasBankAccount
 		wallet       sql.NullString
@@ -869,7 +839,7 @@ func scanGasAccount(scanner rowScanner) (GasBankAccount, error) {
 	return acct, nil
 }
 
-func scanGasTransaction(scanner rowScanner) (Transaction, error) {
+func scanGasTransaction(scanner core.RowScanner) (Transaction, error) {
 	var (
 		tx           Transaction
 		userAccount  sql.NullString

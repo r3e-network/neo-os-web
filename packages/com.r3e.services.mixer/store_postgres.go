@@ -165,7 +165,7 @@ func (s *PostgresStore) scanMixRequestIDs(ctx context.Context, rows *sql.Rows) (
 	return result, rows.Err()
 }
 
-// CreatePoolAccount inserts a new pool account.
+// CreatePoolAccount inserts a new pool account with HD multi-sig configuration.
 func (s *PostgresStore) CreatePoolAccount(ctx context.Context, pool PoolAccount) (PoolAccount, error) {
 	if pool.ID == "" {
 		pool.ID = uuid.NewString()
@@ -176,12 +176,14 @@ func (s *PostgresStore) CreatePoolAccount(ctx context.Context, pool PoolAccount)
 
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO mixer_pool_accounts
-		(id, wallet_address, status, balance, pending_in, pending_out, tee_key_id, encrypted_priv_key,
-		 total_received, total_sent, transaction_count, retire_after, last_activity_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-	`, pool.ID, pool.WalletAddress, pool.Status, pool.Balance, pool.PendingIn, pool.PendingOut,
-		pool.TEEKeyID, pool.EncryptedPrivKey, pool.TotalReceived, pool.TotalSent, pool.TransactionCount,
-		pool.RetireAfter, pool.LastActivityAt, pool.CreatedAt, pool.UpdatedAt)
+		(id, wallet_address, status, hd_index, tee_public_key, master_public_key, multisig_script,
+		 balance, pending_in, pending_out, total_received, total_sent, transaction_count,
+		 retire_after, last_activity_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+	`, pool.ID, pool.WalletAddress, pool.Status, pool.HDIndex, pool.TEEPublicKey, pool.MasterPublicKey,
+		pool.MultiSigScript, pool.Balance, pool.PendingIn, pool.PendingOut, pool.TotalReceived,
+		pool.TotalSent, pool.TransactionCount, pool.RetireAfter, pool.LastActivityAt,
+		pool.CreatedAt, pool.UpdatedAt)
 	if err != nil {
 		return PoolAccount{}, err
 	}
@@ -208,12 +210,14 @@ func (s *PostgresStore) UpdatePoolAccount(ctx context.Context, pool PoolAccount)
 func (s *PostgresStore) GetPoolAccount(ctx context.Context, id string) (PoolAccount, error) {
 	var pool PoolAccount
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, wallet_address, status, balance, pending_in, pending_out, tee_key_id, encrypted_priv_key,
-		       total_received, total_sent, transaction_count, retire_after, last_activity_at, created_at, updated_at
+		SELECT id, wallet_address, status, hd_index, tee_public_key, master_public_key, multisig_script,
+		       balance, pending_in, pending_out, total_received, total_sent, transaction_count,
+		       retire_after, last_activity_at, created_at, updated_at
 		FROM mixer_pool_accounts WHERE id = $1
-	`, id).Scan(&pool.ID, &pool.WalletAddress, &pool.Status, &pool.Balance, &pool.PendingIn, &pool.PendingOut,
-		&pool.TEEKeyID, &pool.EncryptedPrivKey, &pool.TotalReceived, &pool.TotalSent, &pool.TransactionCount,
-		&pool.RetireAfter, &pool.LastActivityAt, &pool.CreatedAt, &pool.UpdatedAt)
+	`, id).Scan(&pool.ID, &pool.WalletAddress, &pool.Status, &pool.HDIndex, &pool.TEEPublicKey,
+		&pool.MasterPublicKey, &pool.MultiSigScript, &pool.Balance, &pool.PendingIn, &pool.PendingOut,
+		&pool.TotalReceived, &pool.TotalSent, &pool.TransactionCount, &pool.RetireAfter,
+		&pool.LastActivityAt, &pool.CreatedAt, &pool.UpdatedAt)
 	return pool, err
 }
 

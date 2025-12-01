@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	engine "github.com/R3E-Network/service_layer/system/core"
+	framework "github.com/R3E-Network/service_layer/system/framework"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 	pkg "github.com/R3E-Network/service_layer/system/runtime"
 )
 
@@ -258,7 +260,7 @@ func TestPackageRuntime_Storage(t *testing.T) {
 	permissions := map[string]bool{"engine.api.storage": true}
 	eng := engine.New()
 	config := pkg.NewPackageConfig(nil)
-	runtime := pkg.NewPackageRuntime("com.test.storage", manifest, eng, config, permissions, pkg.NilStoreProvider())
+	runtime := pkg.NewPackageRuntime("com.test.storage", manifest, eng, config, permissions, pkg.NilStoreProvider(), core.NoopTracer, framework.NoopMetrics())
 
 	// Get storage
 	storage, err := runtime.Storage()
@@ -306,7 +308,7 @@ func TestPackageRuntime_PermissionDenied(t *testing.T) {
 	permissions := map[string]bool{} // No permissions granted
 	eng := engine.New()
 	config := pkg.NewPackageConfig(nil)
-	runtime := pkg.NewPackageRuntime("com.test.noperm", manifest, eng, config, permissions, pkg.NilStoreProvider())
+	runtime := pkg.NewPackageRuntime("com.test.noperm", manifest, eng, config, permissions, pkg.NilStoreProvider(), nil, nil)
 
 	// Try to access storage without permission
 	_, err := runtime.Storage()
@@ -318,6 +320,52 @@ func TestPackageRuntime_PermissionDenied(t *testing.T) {
 	_, err = runtime.Bus()
 	if err == nil {
 		t.Error("Expected permission denied error")
+	}
+}
+
+type stubMetrics struct {
+	counterCalls int
+}
+
+func (s *stubMetrics) Counter(string, map[string]string, float64) {
+	s.counterCalls++
+}
+
+func (s *stubMetrics) Gauge(string, map[string]string, float64) {}
+
+func (s *stubMetrics) Histogram(string, map[string]string, float64) {}
+
+type stubTracer struct{}
+
+func (stubTracer) StartSpan(ctx context.Context, name string, attrs map[string]string) (context.Context, func(error)) {
+	return ctx, func(error) {}
+}
+
+func TestPackageRuntime_Instrumentation(t *testing.T) {
+	tracer := stubTracer{}
+	metrics := &stubMetrics{}
+
+	manifest := pkg.PackageManifest{
+		PackageID: "com.test.instrumentation",
+		Version:   "1.0.0",
+	}
+	eng := engine.New()
+	config := pkg.NewPackageConfig(nil)
+	runtime := pkg.NewPackageRuntime("com.test.instrumentation", manifest, eng, config, nil, pkg.NilStoreProvider(), tracer, metrics)
+
+	if runtime.Tracer() != tracer {
+		t.Fatal("expected tracer passthrough")
+	}
+	if runtime.Metrics() != metrics {
+		t.Fatal("expected metrics passthrough")
+	}
+	if runtime.Quota() == nil {
+		t.Fatal("expected quota enforcer")
+	}
+
+	runtime.Metrics().Counter("test", nil, 1)
+	if metrics.counterCalls != 1 {
+		t.Fatalf("expected counter to increment, got %d", metrics.counterCalls)
 	}
 }
 

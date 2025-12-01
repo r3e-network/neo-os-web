@@ -54,6 +54,11 @@ type ServiceDependencies interface {
 
 	// HTTPClient returns a shared HTTP client.
 	HTTPClient() *http.Client
+
+	// TEEProvider returns the TEE engine provider for confidential computing.
+	// Services use this to execute scripts in the TEE and manage secrets.
+	// Returns nil if TEE is not configured.
+	TEEProvider() TEEProvider
 }
 
 // Service is the minimal interface all services must implement.
@@ -188,4 +193,72 @@ type Logger interface {
 	Debug(msg string, args ...any)
 	WithField(key string, value any) Logger
 	WithError(err error) Logger
+}
+
+// TEEProvider provides access to the Trusted Execution Environment (TEE) engine.
+// Services use this interface to execute confidential computations and manage secrets.
+type TEEProvider interface {
+	// Execute runs a JavaScript function within the TEE enclave.
+	// The execution context includes isolated secrets for the caller service.
+	Execute(ctx context.Context, req TEEExecutionRequest) (*TEEExecutionResult, error)
+
+	// StoreSecret stores a secret for a service/account in the TEE vault.
+	StoreSecret(ctx context.Context, serviceID, accountID, name string, value []byte) error
+
+	// GetSecret retrieves a secret from the TEE vault.
+	GetSecret(ctx context.Context, serviceID, accountID, name string) ([]byte, error)
+
+	// DeleteSecret removes a secret from the TEE vault.
+	DeleteSecret(ctx context.Context, serviceID, accountID, name string) error
+
+	// ListSecrets lists secret names for a service/account.
+	ListSecrets(ctx context.Context, serviceID, accountID string) ([]string, error)
+
+	// GrantAccess grants another service access to a secret.
+	GrantAccess(ctx context.Context, ownerServiceID, targetServiceID, accountID, secretPattern string) error
+
+	// RevokeAccess revokes another service's access to a secret.
+	RevokeAccess(ctx context.Context, ownerServiceID, targetServiceID, accountID, secretPattern string) error
+
+	// Health checks if the TEE enclave is operational.
+	Health(ctx context.Context) error
+}
+
+// TEEExecutionRequest represents a request to execute code in the TEE.
+type TEEExecutionRequest struct {
+	// ServiceID identifies the calling service (for secret isolation)
+	ServiceID string `json:"service_id"`
+
+	// AccountID identifies the account context
+	AccountID string `json:"account_id"`
+
+	// Script is the JavaScript code to execute
+	Script string `json:"script"`
+
+	// EntryPoint is the function name to call (default: "main")
+	EntryPoint string `json:"entry_point"`
+
+	// Input is the JSON-serializable input to the function
+	Input map[string]any `json:"input"`
+
+	// Secrets lists the secret names this execution needs access to
+	Secrets []string `json:"secrets"`
+
+	// Metadata for tracing and auditing
+	Metadata map[string]string `json:"metadata"`
+}
+
+// TEEExecutionResult contains the result of a TEE execution.
+type TEEExecutionResult struct {
+	// Output is the JSON-serializable return value
+	Output map[string]any `json:"output"`
+
+	// Logs captured during execution
+	Logs []string `json:"logs"`
+
+	// Error message if execution failed
+	Error string `json:"error,omitempty"`
+
+	// Status of the execution
+	Status string `json:"status"`
 }

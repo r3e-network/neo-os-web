@@ -12,6 +12,7 @@ import (
 
 	"github.com/R3E-Network/service_layer/pkg/metrics"
 	engine "github.com/R3E-Network/service_layer/system/core"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 type rpcRequest struct {
@@ -22,31 +23,31 @@ type rpcRequest struct {
 
 func (h *handler) handleChainRPC(w http.ResponseWriter, r *http.Request) {
 	if h.rpcEngines == nil {
-		writeError(w, http.StatusNotImplemented, fmt.Errorf("rpc hub not configured"))
+		core.WriteError(w, http.StatusNotImplemented, fmt.Errorf("rpc hub not configured"))
 		return
 	}
 	rpcs := h.rpcEngines()
 	if len(rpcs) == 0 {
-		writeError(w, http.StatusNotImplemented, fmt.Errorf("rpc hub not available"))
+		core.WriteError(w, http.StatusNotImplemented, fmt.Errorf("rpc hub not available"))
 		return
 	}
 	start := time.Now()
 	var req rpcRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		metrics.RecordRPCCall("unknown", "bad_request", time.Since(start))
-		writeError(w, http.StatusBadRequest, fmt.Errorf("decode rpc request: %w", err))
+		core.WriteError(w, http.StatusBadRequest, fmt.Errorf("decode rpc request: %w", err))
 		return
 	}
 	req.Chain = strings.TrimSpace(req.Chain)
 	req.Method = strings.TrimSpace(req.Method)
 	if req.Chain == "" || req.Method == "" {
 		metrics.RecordRPCCall(req.Chain, "bad_request", time.Since(start))
-		writeError(w, http.StatusBadRequest, fmt.Errorf("chain and method are required"))
+		core.WriteError(w, http.StatusBadRequest, fmt.Errorf("chain and method are required"))
 		return
 	}
 	if h.rpcPolicy != nil && !h.rpcPolicy.methodAllowed(req.Chain, req.Method) {
 		metrics.RecordRPCCall(req.Chain, "blocked", time.Since(start))
-		writeError(w, http.StatusForbidden, fmt.Errorf("rpc method %q not allowed for chain %q", req.Method, req.Chain))
+		core.WriteError(w, http.StatusForbidden, fmt.Errorf("rpc method %q not allowed for chain %q", req.Method, req.Chain))
 		return
 	}
 
@@ -59,7 +60,7 @@ func (h *handler) handleChainRPC(w http.ResponseWriter, r *http.Request) {
 		var params any
 		if err := json.Unmarshal(req.Params, &params); err != nil {
 			metrics.RecordRPCCall(req.Chain, "bad_request", time.Since(start))
-			writeError(w, http.StatusBadRequest, fmt.Errorf("invalid params: %w", err))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid params: %w", err))
 			return
 		}
 		payload["params"] = params
@@ -76,7 +77,7 @@ func (h *handler) handleChainRPC(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Retry-After", fmt.Sprintf("%.0f", retry.Seconds()))
 		}
 		metrics.RecordRPCCall(req.Chain, "limited", time.Since(start))
-		writeError(w, status, fmt.Errorf("rpc request blocked: %s", reason))
+		core.WriteError(w, status, fmt.Errorf("rpc request blocked: %s", reason))
 		return
 	}
 
@@ -89,10 +90,10 @@ func (h *handler) handleChainRPC(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var cfgErr rpcConfigError
 		if errors.As(err, &cfgErr) {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
-		writeError(w, http.StatusBadGateway, err)
+		core.WriteError(w, http.StatusBadGateway, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, resp)

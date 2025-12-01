@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // PostgresStore implements Store using PostgreSQL.
@@ -25,10 +25,6 @@ func (s *PostgresStore) accountTenant(ctx context.Context, accountID string) str
 	return s.accounts.AccountTenant(ctx, accountID)
 }
 
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
-}
 
 func (s *PostgresStore) CreatePlaybook(ctx context.Context, pb Playbook) (Playbook, error) {
 	if pb.ID == "" {
@@ -161,7 +157,7 @@ func (s *PostgresStore) CreateRun(ctx context.Context, run Run) (Run, error) {
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO app_cre_runs (id, account_id, playbook_id, executor_id, status, parameters, tags, results, metadata, created_at, updated_at, completed_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-	`, run.ID, run.AccountID, run.PlaybookID, toNullString(run.ExecutorID), run.Status, paramsJSON, tagsJSON, resultsJSON, metaJSON, tenant, run.CreatedAt, run.UpdatedAt, toNullTime(ptrTime(run.CompletedAt)))
+	`, run.ID, run.AccountID, run.PlaybookID, core.ToNullString(run.ExecutorID), run.Status, paramsJSON, tagsJSON, resultsJSON, metaJSON, tenant, run.CreatedAt, run.UpdatedAt, core.ToNullTime(core.PtrTime(run.CompletedAt)))
 	if err != nil {
 		return Run{}, err
 	}
@@ -198,7 +194,7 @@ func (s *PostgresStore) UpdateRun(ctx context.Context, run Run) (Run, error) {
 		UPDATE app_cre_runs
 		SET status = $2, executor_id = $3, parameters = $4, tags = $5, results = $6, metadata = $7, tenant = $8, updated_at = $9, completed_at = $10
 		WHERE id = $1
-	`, run.ID, run.Status, toNullString(run.ExecutorID), paramsJSON, tagsJSON, resultsJSON, metaJSON, tenant, run.UpdatedAt, toNullTime(ptrTime(run.CompletedAt)))
+	`, run.ID, run.Status, core.ToNullString(run.ExecutorID), paramsJSON, tagsJSON, resultsJSON, metaJSON, tenant, run.UpdatedAt, core.ToNullTime(core.PtrTime(run.CompletedAt)))
 	if err != nil {
 		return Run{}, err
 	}
@@ -332,28 +328,8 @@ func (s *PostgresStore) ListExecutors(ctx context.Context, accountID string) ([]
 	return result, rows.Err()
 }
 
-func toNullString(value string) sql.NullString {
-	if strings.TrimSpace(value) == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: value, Valid: true}
-}
 
-func toNullTime(t time.Time) sql.NullTime {
-	if t.IsZero() {
-		return sql.NullTime{}
-	}
-	return sql.NullTime{Time: t.UTC(), Valid: true}
-}
-
-func ptrTime(t *time.Time) time.Time {
-	if t == nil {
-		return time.Time{}
-	}
-	return *t
-}
-
-func scanPlaybook(scanner rowScanner) (Playbook, error) {
+func scanPlaybook(scanner core.RowScanner) (Playbook, error) {
 	var (
 		pb          Playbook
 		stepsJSON   []byte
@@ -385,7 +361,7 @@ func scanPlaybook(scanner rowScanner) (Playbook, error) {
 	return pb, nil
 }
 
-func scanRun(scanner rowScanner) (Run, error) {
+func scanRun(scanner core.RowScanner) (Run, error) {
 	var (
 		run         Run
 		executorID  sql.NullString
@@ -424,7 +400,7 @@ func scanRun(scanner rowScanner) (Run, error) {
 	return run, nil
 }
 
-func scanExecutor(scanner rowScanner) (Executor, error) {
+func scanExecutor(scanner core.RowScanner) (Executor, error) {
 	var (
 		exec      Executor
 		metaJSON  []byte

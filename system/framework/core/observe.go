@@ -27,13 +27,16 @@ func StartObservation(ctx context.Context, hooks ObservationHooks, meta map[stri
 	}
 }
 
-// DispatchHooks is retained for backwards compatibility with dispatcher-specific code.
+// Deprecated: DispatchHooks is an alias for ObservationHooks.
+// Use ObservationHooks directly in new code.
 type DispatchHooks = ObservationHooks
 
-// NoopDispatchHooks provides a safe default for dispatchers.
+// Deprecated: NoopDispatchHooks is an alias for NoopObservationHooks.
+// Use NoopObservationHooks directly in new code.
 var NoopDispatchHooks = NoopObservationHooks
 
-// StartDispatch triggers dispatcher-specific hooks and defers to StartObservation.
+// Deprecated: StartDispatch is an alias for StartObservation.
+// Use StartObservation directly in new code.
 func StartDispatch(ctx context.Context, hooks DispatchHooks, meta map[string]string) func(error) {
 	return StartObservation(ctx, hooks, meta)
 }

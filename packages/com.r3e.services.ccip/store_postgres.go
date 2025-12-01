@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // CCIPStore implementation
@@ -26,11 +27,6 @@ func NewPostgresStore(db *sql.DB, accounts AccountChecker) *PostgresStore {
 
 func (s *PostgresStore) accountTenant(ctx context.Context, accountID string) string {
 	return s.accounts.AccountTenant(ctx, accountID)
-}
-
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
 }
 
 
@@ -186,7 +182,7 @@ func (s *PostgresStore) CreateMessage(ctx context.Context, msg Message) (Message
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO app_ccip_messages (id, account_id, lane_id, status, payload, token_transfers, trace, error, metadata, tags, tenant, created_at, updated_at, delivered_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-	`, msg.ID, msg.AccountID, msg.LaneID, msg.Status, payloadJSON, tokensJSON, traceJSON, msg.Error, metaJSON, tagsJSON, tenant, msg.CreatedAt, msg.UpdatedAt, toNullTime(ptrTime(msg.DeliveredAt)))
+	`, msg.ID, msg.AccountID, msg.LaneID, msg.Status, payloadJSON, tokensJSON, traceJSON, msg.Error, metaJSON, tagsJSON, tenant, msg.CreatedAt, msg.UpdatedAt, core.ToNullTime(core.PtrTime(msg.DeliveredAt)))
 	if err != nil {
 		return Message{}, err
 	}
@@ -229,7 +225,7 @@ func (s *PostgresStore) UpdateMessage(ctx context.Context, msg Message) (Message
 		UPDATE app_ccip_messages
 		SET status = $2, payload = $3, token_transfers = $4, trace = $5, error = $6, metadata = $7, tags = $8, tenant = $9, updated_at = $10, delivered_at = $11
 		WHERE id = $1
-	`, msg.ID, msg.Status, payloadJSON, tokensJSON, traceJSON, msg.Error, metaJSON, tagsJSON, tenant, msg.UpdatedAt, toNullTime(ptrTime(msg.DeliveredAt)))
+	`, msg.ID, msg.Status, payloadJSON, tokensJSON, traceJSON, msg.Error, metaJSON, tagsJSON, tenant, msg.UpdatedAt, core.ToNullTime(core.PtrTime(msg.DeliveredAt)))
 	if err != nil {
 		return Message{}, err
 	}
@@ -273,7 +269,7 @@ func (s *PostgresStore) ListMessages(ctx context.Context, accountID string, limi
 	return result, rows.Err()
 }
 
-func scanLane(scanner rowScanner) (Lane, error) {
+func scanLane(scanner core.RowScanner) (Lane, error) {
 	var (
 		lane       Lane
 		signerJSON []byte
@@ -307,7 +303,7 @@ func scanLane(scanner rowScanner) (Lane, error) {
 	return lane, nil
 }
 
-func scanMessage(scanner rowScanner) (Message, error) {
+func scanMessage(scanner core.RowScanner) (Message, error) {
 	var (
 		msg         Message
 		payloadJSON []byte
@@ -346,16 +342,3 @@ func scanMessage(scanner rowScanner) (Message, error) {
 	return msg, nil
 }
 
-func toNullTime(t time.Time) sql.NullTime {
-	if t.IsZero() {
-		return sql.NullTime{Valid: false}
-	}
-	return sql.NullTime{Time: t, Valid: true}
-}
-
-func ptrTime(t *time.Time) time.Time {
-	if t == nil {
-		return time.Time{}
-	}
-	return *t
-}

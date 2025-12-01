@@ -7,16 +7,18 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 func (h *handler) neoStatus(w http.ResponseWriter, r *http.Request) {
 	if h.neo == nil {
-		writeError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
+		core.WriteError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
 		return
 	}
 	status, err := h.neo.Status(r.Context())
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err)
+		core.WriteError(w, http.StatusBadGateway, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, status)
@@ -29,14 +31,14 @@ func (h *handler) neoCheckpoint(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) neoBlocks(w http.ResponseWriter, r *http.Request) {
 	if h.neo == nil {
-		writeError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
+		core.WriteError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
 		return
 	}
 	limit := parseIntDefault(r.URL.Query().Get("limit"), 20, 200)
 	offset := parseIntDefault(r.URL.Query().Get("offset"), 0, 10_000_000)
 	blocks, err := h.neo.ListBlocks(r.Context(), limit, offset)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err)
+		core.WriteError(w, http.StatusBadGateway, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, blocks)
@@ -44,17 +46,17 @@ func (h *handler) neoBlocks(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) neoBlock(w http.ResponseWriter, r *http.Request) {
 	if h.neo == nil {
-		writeError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
+		core.WriteError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
 		return
 	}
 	path := trimPath(r.URL.Path, "/neo/blocks")
 	if path == "" {
-		writeError(w, http.StatusBadRequest, ErrMissingHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrMissingHeight)
 		return
 	}
 	height, err := strconv.ParseInt(path, 10, 64)
 	if err != nil || height < 0 {
-		writeError(w, http.StatusBadRequest, ErrInvalidHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrInvalidHeight)
 		return
 	}
 	block, err := h.neo.GetBlock(r.Context(), height)
@@ -63,7 +65,7 @@ func (h *handler) neoBlock(w http.ResponseWriter, r *http.Request) {
 		if isNotFound(err) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		core.WriteError(w, status, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, block)
@@ -71,13 +73,13 @@ func (h *handler) neoBlock(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) neoSnapshots(w http.ResponseWriter, r *http.Request) {
 	if h.neo == nil {
-		writeError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
+		core.WriteError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
 		return
 	}
 	limit := parseIntDefault(r.URL.Query().Get("limit"), 50, 500)
 	snaps, err := h.neo.ListSnapshots(r.Context(), limit)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err)
+		core.WriteError(w, http.StatusBadGateway, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, snaps)
@@ -85,19 +87,19 @@ func (h *handler) neoSnapshots(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) neoSnapshot(w http.ResponseWriter, r *http.Request) {
 	if h.neo == nil {
-		writeError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
+		core.WriteError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
 		return
 	}
 	path := trimPath(r.URL.Path, "/neo/snapshots")
 	if path == "" {
-		writeError(w, http.StatusBadRequest, ErrMissingHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrMissingHeight)
 		return
 	}
 	parts := strings.Split(path, "/")
 	heightStr := parts[0]
 	height, err := strconv.ParseInt(heightStr, 10, 64)
 	if err != nil || height < 0 {
-		writeError(w, http.StatusBadRequest, ErrInvalidHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrInvalidHeight)
 		return
 	}
 
@@ -119,7 +121,7 @@ func (h *handler) neoSnapshot(w http.ResponseWriter, r *http.Request) {
 		if os.IsNotExist(err) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		core.WriteError(w, status, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, snap)
@@ -127,17 +129,17 @@ func (h *handler) neoSnapshot(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) neoStorage(w http.ResponseWriter, r *http.Request) {
 	if h.neo == nil {
-		writeError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
+		core.WriteError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
 		return
 	}
 	path := trimPath(r.URL.Path, "/neo/storage")
 	if path == "" {
-		writeError(w, http.StatusBadRequest, ErrMissingHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrMissingHeight)
 		return
 	}
 	height, err := strconv.ParseInt(path, 10, 64)
 	if err != nil || height < 0 {
-		writeError(w, http.StatusBadRequest, ErrInvalidHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrInvalidHeight)
 		return
 	}
 	items, err := h.neo.ListStorage(r.Context(), height)
@@ -146,7 +148,7 @@ func (h *handler) neoStorage(w http.ResponseWriter, r *http.Request) {
 		if isNotFound(err) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		core.WriteError(w, status, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, items)
@@ -154,17 +156,17 @@ func (h *handler) neoStorage(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) neoStorageDiff(w http.ResponseWriter, r *http.Request) {
 	if h.neo == nil {
-		writeError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
+		core.WriteError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
 		return
 	}
 	path := trimPath(r.URL.Path, "/neo/storage-diff")
 	if path == "" {
-		writeError(w, http.StatusBadRequest, ErrMissingHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrMissingHeight)
 		return
 	}
 	height, err := strconv.ParseInt(path, 10, 64)
 	if err != nil || height < 0 {
-		writeError(w, http.StatusBadRequest, ErrInvalidHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrInvalidHeight)
 		return
 	}
 	items, err := h.neo.ListStorageDiff(r.Context(), height)
@@ -173,7 +175,7 @@ func (h *handler) neoStorageDiff(w http.ResponseWriter, r *http.Request) {
 		if isNotFound(err) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		core.WriteError(w, status, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, items)
@@ -181,17 +183,17 @@ func (h *handler) neoStorageDiff(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) neoStorageSummary(w http.ResponseWriter, r *http.Request) {
 	if h.neo == nil {
-		writeError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
+		core.WriteError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
 		return
 	}
 	path := trimPath(r.URL.Path, "/neo/storage-summary")
 	if path == "" {
-		writeError(w, http.StatusBadRequest, ErrMissingHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrMissingHeight)
 		return
 	}
 	height, err := strconv.ParseInt(path, 10, 64)
 	if err != nil || height < 0 {
-		writeError(w, http.StatusBadRequest, ErrInvalidHeight)
+		core.WriteError(w, http.StatusBadRequest, ErrInvalidHeight)
 		return
 	}
 	items, err := h.neo.StorageSummary(r.Context(), height)
@@ -200,7 +202,7 @@ func (h *handler) neoStorageSummary(w http.ResponseWriter, r *http.Request) {
 		if isNotFound(err) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		core.WriteError(w, status, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, items)
@@ -225,7 +227,7 @@ func trimPath(path, prefix string) string {
 
 func (h *handler) serveSnapshotBundle(w http.ResponseWriter, r *http.Request, height int64, diff bool) {
 	if h.neo == nil {
-		writeError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
+		core.WriteError(w, http.StatusServiceUnavailable, ErrNeoUnavailable)
 		return
 	}
 	path, err := h.neo.SnapshotBundlePath(r.Context(), height, diff)
@@ -234,7 +236,7 @@ func (h *handler) serveSnapshotBundle(w http.ResponseWriter, r *http.Request, he
 		if os.IsNotExist(err) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		core.WriteError(w, status, err)
 		return
 	}
 	file, err := os.Open(path)
@@ -243,7 +245,7 @@ func (h *handler) serveSnapshotBundle(w http.ResponseWriter, r *http.Request, he
 		if os.IsNotExist(err) {
 			status = http.StatusNotFound
 		}
-		writeError(w, status, err)
+		core.WriteError(w, status, err)
 		return
 	}
 	defer file.Close()

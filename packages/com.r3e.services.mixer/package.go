@@ -2,14 +2,14 @@
 // This package is self-contained with its own:
 // - Domain types (domain.go)
 // - Store interface and implementation (store.go, store_postgres.go)
-// - Service logic (service.go)
-// - HTTP handlers (http.go)
+// - Service logic with HTTP API methods (service.go)
 // - Documentation (doc.go)
+//
+// HTTP API endpoints are automatically discovered via HTTP{Method}{Path} naming convention.
 package mixer
 
 import (
 	"context"
-	"net/http"
 
 	engine "github.com/R3E-Network/service_layer/system/core"
 	pkg "github.com/R3E-Network/service_layer/system/runtime"
@@ -18,7 +18,6 @@ import (
 // Package implements the ServicePackage interface using PackageTemplate.
 type Package struct {
 	pkg.PackageTemplate
-	httpHandler *HTTPHandler
 }
 
 func init() {
@@ -47,29 +46,21 @@ func (p *Package) CreateServices(ctx context.Context, runtime pkg.PackageRuntime
 	store := NewPostgresStore(db)
 	log := pkg.GetLogger(runtime, "mixer")
 
-	// TEE and Chain clients would be injected from runtime config
-	// For now, pass nil - they will be configured separately
+	// TEE, Master key provider, and Chain clients would be injected from runtime config
+	// For now, pass nil - they will be configured separately via dependency injection
 	var tee TEEManager
+	var master MasterKeyProvider
 	var chain ChainClient
 
-	svc := New(accounts, store, tee, chain, log)
+	svc := New(accounts, store, tee, master, chain, log)
 
-	// Create HTTP handler for this service
-	p.httpHandler = NewHTTPHandler(svc)
+	// HTTP API endpoints are automatically discovered via HTTP{Method}{Path} methods on the service:
+	// - HTTPGetRequests: GET /requests
+	// - HTTPPostRequests: POST /requests
+	// - HTTPGetRequestsById: GET /requests/{id}
+	// - HTTPPostRequestsIdDeposit: POST /requests/{id}/deposit
+	// - HTTPPostRequestsIdClaim: POST /requests/{id}/claim
+	// - HTTPGetStats: GET /stats
 
 	return []engine.ServiceModule{svc}, nil
-}
-
-// RegisterRoutes implements the RouteRegistrar interface.
-// This allows the service to register its own HTTP routes.
-func (p *Package) RegisterRoutes(mux *http.ServeMux, basePath string) {
-	if p.httpHandler != nil {
-		p.httpHandler.RegisterRoutes(mux, basePath)
-	}
-}
-
-// HTTPHandler returns the HTTP handler for external registration.
-// This is used when the application layer needs to integrate routes.
-func (p *Package) HTTPHandler() *HTTPHandler {
-	return p.httpHandler
 }

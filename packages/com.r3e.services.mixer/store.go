@@ -3,6 +3,8 @@ package mixer
 import (
 	"context"
 	"time"
+
+	"github.com/R3E-Network/service_layer/system/framework"
 )
 
 // Store defines the persistence interface for the mixer service.
@@ -52,19 +54,29 @@ type Store interface {
 	GetMixStats(ctx context.Context) (MixStats, error)
 }
 
-// AccountChecker validates account existence.
-type AccountChecker interface {
-	AccountExists(ctx context.Context, accountID string) error
-	AccountTenant(ctx context.Context, accountID string) string
-}
+// AccountChecker is an alias for the canonical framework.AccountChecker interface.
+type AccountChecker = framework.AccountChecker
 
-// TEEManager handles TEE operations for key management and signing.
+// TEEManager handles TEE operations for HD key management and signing.
+// Implements the Double-Blind HD 1/2 Multi-sig architecture where:
+// - TEE manages the online root seed for daily operations
+// - Master root seed is kept offline for recovery
+// - Each pool account uses HD-derived keys at the same index from both seeds
 type TEEManager interface {
-	// GeneratePoolKey creates a new key pair in TEE and returns the public address.
-	GeneratePoolKey(ctx context.Context) (keyID string, walletAddress string, encryptedPrivKey string, err error)
+	// DerivePoolKeys derives HD keys at the given index and creates a 1-of-2 multi-sig address.
+	// Returns the TEE public key, and expects the Master public key to be provided.
+	// The multi-sig address is generated from both keys.
+	DerivePoolKeys(ctx context.Context, index uint32, masterPublicKey []byte) (*PoolKeyPair, error)
 
-	// SignTransaction signs a transaction using TEE-managed key.
-	SignTransaction(ctx context.Context, keyID string, txData []byte) (signature []byte, err error)
+	// SignTransaction signs a transaction using the TEE-derived key at the given HD index.
+	// This is the primary signing method for daily operations.
+	SignTransaction(ctx context.Context, hdIndex uint32, txData []byte) (signature []byte, err error)
+
+	// GetTEEPublicKey returns the TEE public key at the given HD index.
+	GetTEEPublicKey(ctx context.Context, hdIndex uint32) ([]byte, error)
+
+	// GetNextPoolIndex returns the next available HD index for pool accounts.
+	GetNextPoolIndex(ctx context.Context) (uint32, error)
 
 	// GenerateZKProof generates a zero-knowledge proof for the mix request.
 	GenerateZKProof(ctx context.Context, req MixRequest) (proofHash string, err error)
@@ -74,6 +86,17 @@ type TEEManager interface {
 
 	// VerifyAttestation verifies a TEE attestation.
 	VerifyAttestation(ctx context.Context, data []byte, signature string) (bool, error)
+}
+
+// MasterKeyProvider provides Master public keys for multi-sig address generation.
+// The Master private key is kept offline; only public keys are available to the service.
+type MasterKeyProvider interface {
+	// GetMasterPublicKey returns the Master public key at the given HD index.
+	// This is derived from the offline Master root seed at path m/44'/888'/0'/0/{index}.
+	GetMasterPublicKey(ctx context.Context, hdIndex uint32) ([]byte, error)
+
+	// VerifyMasterSignature verifies a signature made by the Master key (for recovery operations).
+	VerifyMasterSignature(ctx context.Context, hdIndex uint32, data, signature []byte) (bool, error)
 }
 
 // ChainClient handles blockchain interactions.

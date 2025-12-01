@@ -29,6 +29,11 @@ func (o *DispatchOptions) SetTracer(tracer Tracer) {
 	o.tracer = tracer
 }
 
+// Tracer returns the configured tracer (primarily for tests).
+func (o DispatchOptions) Tracer() Tracer {
+	return o.tracer
+}
+
 // SetHooks configures observation hooks for dispatch attempts.
 func (o *DispatchOptions) SetHooks(h ObservationHooks) {
 	if h.OnStart == nil && h.OnComplete == nil {

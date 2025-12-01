@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/R3E-Network/service_layer/pkg/testutil"
 	"github.com/google/uuid"
 )
 
@@ -83,42 +84,8 @@ func (s *MemoryStore) ListAutomationJobs(ctx context.Context, accountID string) 
 // Compile-time check that MemoryStore implements Store.
 var _ Store = (*MemoryStore)(nil)
 
-// MockAccountChecker is a mock implementation of AccountChecker for testing.
-type MockAccountChecker struct {
-	mu       sync.RWMutex
-	accounts map[string]string // accountID -> tenant
-}
+// Re-export centralized mock for convenience.
+type MockAccountChecker = testutil.MockAccountChecker
 
 // NewMockAccountChecker creates a new mock account checker.
-func NewMockAccountChecker() *MockAccountChecker {
-	return &MockAccountChecker{
-		accounts: make(map[string]string),
-	}
-}
-
-// AddAccount adds an account to the mock.
-func (m *MockAccountChecker) AddAccount(id, tenant string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.accounts[id] = tenant
-}
-
-// AccountExists checks if an account exists.
-func (m *MockAccountChecker) AccountExists(ctx context.Context, accountID string) error {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if _, ok := m.accounts[accountID]; !ok {
-		return fmt.Errorf("account not found: %s", accountID)
-	}
-	return nil
-}
-
-// AccountTenant returns the tenant for an account.
-func (m *MockAccountChecker) AccountTenant(ctx context.Context, accountID string) string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.accounts[accountID]
-}
-
-// Compile-time check that MockAccountChecker implements AccountChecker.
-var _ AccountChecker = (*MockAccountChecker)(nil)
+var NewMockAccountChecker = testutil.NewMockAccountChecker

@@ -9,6 +9,7 @@ import (
 
 	"github.com/R3E-Network/service_layer/pkg/admin"
 	"github.com/R3E-Network/service_layer/pkg/storage"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // adminConfigStore provides access to admin config storage.
@@ -62,7 +63,7 @@ func (h *AdminConfigHandler) handleChains(w http.ResponseWriter, r *http.Request
 	case http.MethodGet:
 		chains, err := h.store.ListChainRPCs(r.Context())
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		if chains == nil {
@@ -73,11 +74,11 @@ func (h *AdminConfigHandler) handleChains(w http.ResponseWriter, r *http.Request
 	case http.MethodPost:
 		var rpc admin.ChainRPC
 		if err := json.NewDecoder(r.Body).Decode(&rpc); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		if rpc.ChainID == "" || rpc.RPCURL == "" {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("chain_id and rpc_url are required"))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("chain_id and rpc_url are required"))
 			return
 		}
 		if rpc.Name == "" {
@@ -91,7 +92,7 @@ func (h *AdminConfigHandler) handleChains(w http.ResponseWriter, r *http.Request
 
 		created, err := h.store.CreateChainRPC(r.Context(), rpc)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, created)
@@ -104,7 +105,7 @@ func (h *AdminConfigHandler) handleChains(w http.ResponseWriter, r *http.Request
 func (h *AdminConfigHandler) handleChainByID(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/admin/config/chains/")
 	if id == "" {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("chain id required"))
+		core.WriteError(w, http.StatusBadRequest, fmt.Errorf("chain id required"))
 		return
 	}
 
@@ -112,7 +113,7 @@ func (h *AdminConfigHandler) handleChainByID(w http.ResponseWriter, r *http.Requ
 	case http.MethodGet:
 		rpc, err := h.store.GetChainRPC(r.Context(), id)
 		if err != nil {
-			writeError(w, http.StatusNotFound, err)
+			core.WriteError(w, http.StatusNotFound, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, rpc)
@@ -120,20 +121,20 @@ func (h *AdminConfigHandler) handleChainByID(w http.ResponseWriter, r *http.Requ
 	case http.MethodPut, http.MethodPatch:
 		var rpc admin.ChainRPC
 		if err := json.NewDecoder(r.Body).Decode(&rpc); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		rpc.ID = id
 		updated, err := h.store.UpdateChainRPC(r.Context(), rpc)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, updated)
 
 	case http.MethodDelete:
 		if err := h.store.DeleteChainRPC(r.Context(), id); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -159,7 +160,7 @@ func (h *AdminConfigHandler) handleProviders(w http.ResponseWriter, r *http.Requ
 			providers, err = h.store.ListDataProviders(r.Context())
 		}
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		if providers == nil {
@@ -170,11 +171,11 @@ func (h *AdminConfigHandler) handleProviders(w http.ResponseWriter, r *http.Requ
 	case http.MethodPost:
 		var provider admin.DataProvider
 		if err := json.NewDecoder(r.Body).Decode(&provider); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		if provider.Name == "" || provider.BaseURL == "" || provider.Type == "" {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("name, type, and base_url are required"))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("name, type, and base_url are required"))
 			return
 		}
 		provider.Enabled = true
@@ -182,7 +183,7 @@ func (h *AdminConfigHandler) handleProviders(w http.ResponseWriter, r *http.Requ
 
 		created, err := h.store.CreateDataProvider(r.Context(), provider)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, created)
@@ -195,7 +196,7 @@ func (h *AdminConfigHandler) handleProviders(w http.ResponseWriter, r *http.Requ
 func (h *AdminConfigHandler) handleProviderByID(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/admin/config/providers/")
 	if id == "" {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("provider id required"))
+		core.WriteError(w, http.StatusBadRequest, fmt.Errorf("provider id required"))
 		return
 	}
 
@@ -203,7 +204,7 @@ func (h *AdminConfigHandler) handleProviderByID(w http.ResponseWriter, r *http.R
 	case http.MethodGet:
 		provider, err := h.store.GetDataProvider(r.Context(), id)
 		if err != nil {
-			writeError(w, http.StatusNotFound, err)
+			core.WriteError(w, http.StatusNotFound, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, provider)
@@ -211,20 +212,20 @@ func (h *AdminConfigHandler) handleProviderByID(w http.ResponseWriter, r *http.R
 	case http.MethodPut, http.MethodPatch:
 		var provider admin.DataProvider
 		if err := json.NewDecoder(r.Body).Decode(&provider); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		provider.ID = id
 		updated, err := h.store.UpdateDataProvider(r.Context(), provider)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, updated)
 
 	case http.MethodDelete:
 		if err := h.store.DeleteDataProvider(r.Context(), id); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -244,7 +245,7 @@ func (h *AdminConfigHandler) handleSettings(w http.ResponseWriter, r *http.Reque
 		category := r.URL.Query().Get("category")
 		settings, err := h.store.ListSettings(r.Context(), category)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		if settings == nil {
@@ -255,11 +256,11 @@ func (h *AdminConfigHandler) handleSettings(w http.ResponseWriter, r *http.Reque
 	case http.MethodPost:
 		var setting admin.SystemSetting
 		if err := json.NewDecoder(r.Body).Decode(&setting); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		if setting.Key == "" {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("key is required"))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("key is required"))
 			return
 		}
 		if setting.Type == "" {
@@ -271,7 +272,7 @@ func (h *AdminConfigHandler) handleSettings(w http.ResponseWriter, r *http.Reque
 		setting.UpdatedBy = userFromCtx(r.Context())
 
 		if err := h.store.SetSetting(r.Context(), setting); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, setting)
@@ -284,7 +285,7 @@ func (h *AdminConfigHandler) handleSettings(w http.ResponseWriter, r *http.Reque
 func (h *AdminConfigHandler) handleSettingByKey(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimPrefix(r.URL.Path, "/admin/config/settings/")
 	if key == "" {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("setting key required"))
+		core.WriteError(w, http.StatusBadRequest, fmt.Errorf("setting key required"))
 		return
 	}
 
@@ -292,7 +293,7 @@ func (h *AdminConfigHandler) handleSettingByKey(w http.ResponseWriter, r *http.R
 	case http.MethodGet:
 		setting, err := h.store.GetSetting(r.Context(), key)
 		if err != nil {
-			writeError(w, http.StatusNotFound, err)
+			core.WriteError(w, http.StatusNotFound, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, setting)
@@ -300,21 +301,21 @@ func (h *AdminConfigHandler) handleSettingByKey(w http.ResponseWriter, r *http.R
 	case http.MethodPut, http.MethodPatch:
 		var setting admin.SystemSetting
 		if err := json.NewDecoder(r.Body).Decode(&setting); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		setting.Key = key
 		setting.UpdatedBy = userFromCtx(r.Context())
 
 		if err := h.store.SetSetting(r.Context(), setting); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, setting)
 
 	case http.MethodDelete:
 		if err := h.store.DeleteSetting(r.Context(), key); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -333,7 +334,7 @@ func (h *AdminConfigHandler) handleFeatures(w http.ResponseWriter, r *http.Reque
 	case http.MethodGet:
 		flags, err := h.store.ListFeatureFlags(r.Context())
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		if flags == nil {
@@ -344,11 +345,11 @@ func (h *AdminConfigHandler) handleFeatures(w http.ResponseWriter, r *http.Reque
 	case http.MethodPost:
 		var flag admin.FeatureFlag
 		if err := json.NewDecoder(r.Body).Decode(&flag); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		if flag.Key == "" {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("key is required"))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("key is required"))
 			return
 		}
 		if flag.Rollout == 0 && flag.Enabled {
@@ -357,7 +358,7 @@ func (h *AdminConfigHandler) handleFeatures(w http.ResponseWriter, r *http.Reque
 		flag.UpdatedBy = userFromCtx(r.Context())
 
 		if err := h.store.SetFeatureFlag(r.Context(), flag); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, flag)
@@ -370,7 +371,7 @@ func (h *AdminConfigHandler) handleFeatures(w http.ResponseWriter, r *http.Reque
 func (h *AdminConfigHandler) handleFeatureByKey(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimPrefix(r.URL.Path, "/admin/config/features/")
 	if key == "" {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("feature key required"))
+		core.WriteError(w, http.StatusBadRequest, fmt.Errorf("feature key required"))
 		return
 	}
 
@@ -378,7 +379,7 @@ func (h *AdminConfigHandler) handleFeatureByKey(w http.ResponseWriter, r *http.R
 	case http.MethodGet:
 		flag, err := h.store.GetFeatureFlag(r.Context(), key)
 		if err != nil {
-			writeError(w, http.StatusNotFound, err)
+			core.WriteError(w, http.StatusNotFound, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, flag)
@@ -386,14 +387,14 @@ func (h *AdminConfigHandler) handleFeatureByKey(w http.ResponseWriter, r *http.R
 	case http.MethodPut, http.MethodPatch:
 		var flag admin.FeatureFlag
 		if err := json.NewDecoder(r.Body).Decode(&flag); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		flag.Key = key
 		flag.UpdatedBy = userFromCtx(r.Context())
 
 		if err := h.store.SetFeatureFlag(r.Context(), flag); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, flag)
@@ -412,7 +413,7 @@ func (h *AdminConfigHandler) handleQuotas(w http.ResponseWriter, r *http.Request
 	case http.MethodGet:
 		quotas, err := h.store.ListTenantQuotas(r.Context())
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		if quotas == nil {
@@ -423,17 +424,17 @@ func (h *AdminConfigHandler) handleQuotas(w http.ResponseWriter, r *http.Request
 	case http.MethodPost:
 		var quota admin.TenantQuota
 		if err := json.NewDecoder(r.Body).Decode(&quota); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		if quota.TenantID == "" {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("tenant_id is required"))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("tenant_id is required"))
 			return
 		}
 		quota.UpdatedBy = userFromCtx(r.Context())
 
 		if err := h.store.SetTenantQuota(r.Context(), quota); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, quota)
@@ -446,7 +447,7 @@ func (h *AdminConfigHandler) handleQuotas(w http.ResponseWriter, r *http.Request
 func (h *AdminConfigHandler) handleQuotaByTenant(w http.ResponseWriter, r *http.Request) {
 	tenantID := strings.TrimPrefix(r.URL.Path, "/admin/config/quotas/")
 	if tenantID == "" {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("tenant id required"))
+		core.WriteError(w, http.StatusBadRequest, fmt.Errorf("tenant id required"))
 		return
 	}
 
@@ -454,7 +455,7 @@ func (h *AdminConfigHandler) handleQuotaByTenant(w http.ResponseWriter, r *http.
 	case http.MethodGet:
 		quota, err := h.store.GetTenantQuota(r.Context(), tenantID)
 		if err != nil {
-			writeError(w, http.StatusNotFound, err)
+			core.WriteError(w, http.StatusNotFound, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, quota)
@@ -462,21 +463,21 @@ func (h *AdminConfigHandler) handleQuotaByTenant(w http.ResponseWriter, r *http.
 	case http.MethodPut, http.MethodPatch:
 		var quota admin.TenantQuota
 		if err := json.NewDecoder(r.Body).Decode(&quota); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		quota.TenantID = tenantID
 		quota.UpdatedBy = userFromCtx(r.Context())
 
 		if err := h.store.SetTenantQuota(r.Context(), quota); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, quota)
 
 	case http.MethodDelete:
 		if err := h.store.DeleteTenantQuota(r.Context(), tenantID); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -495,7 +496,7 @@ func (h *AdminConfigHandler) handleMethods(w http.ResponseWriter, r *http.Reques
 	case http.MethodGet:
 		methods, err := h.store.ListAllowedMethods(r.Context())
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		if methods == nil {
@@ -506,16 +507,16 @@ func (h *AdminConfigHandler) handleMethods(w http.ResponseWriter, r *http.Reques
 	case http.MethodPost:
 		var methods admin.AllowedMethod
 		if err := json.NewDecoder(r.Body).Decode(&methods); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		if methods.ChainID == "" {
-			writeError(w, http.StatusBadRequest, fmt.Errorf("chain_id is required"))
+			core.WriteError(w, http.StatusBadRequest, fmt.Errorf("chain_id is required"))
 			return
 		}
 
 		if err := h.store.SetAllowedMethods(r.Context(), methods); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, methods)
@@ -528,7 +529,7 @@ func (h *AdminConfigHandler) handleMethods(w http.ResponseWriter, r *http.Reques
 func (h *AdminConfigHandler) handleMethodsByChain(w http.ResponseWriter, r *http.Request) {
 	chainID := strings.TrimPrefix(r.URL.Path, "/admin/config/methods/")
 	if chainID == "" {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("chain id required"))
+		core.WriteError(w, http.StatusBadRequest, fmt.Errorf("chain id required"))
 		return
 	}
 
@@ -536,7 +537,7 @@ func (h *AdminConfigHandler) handleMethodsByChain(w http.ResponseWriter, r *http
 	case http.MethodGet:
 		methods, err := h.store.GetAllowedMethods(r.Context(), chainID)
 		if err != nil {
-			writeError(w, http.StatusNotFound, err)
+			core.WriteError(w, http.StatusNotFound, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, methods)
@@ -544,13 +545,13 @@ func (h *AdminConfigHandler) handleMethodsByChain(w http.ResponseWriter, r *http
 	case http.MethodPut, http.MethodPatch:
 		var methods admin.AllowedMethod
 		if err := json.NewDecoder(r.Body).Decode(&methods); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			core.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 		methods.ChainID = chainID
 
 		if err := h.store.SetAllowedMethods(r.Context(), methods); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			core.WriteError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, methods)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/R3E-Network/service_layer/pkg/testutil"
 	"github.com/google/uuid"
 )
 
@@ -118,30 +119,8 @@ func (s *MemoryStore) ListAccountAttestations(ctx context.Context, accountID str
 	return result, nil
 }
 
-// MockAccountChecker is a mock implementation of AccountChecker for testing.
-type MockAccountChecker struct {
-	accounts map[string]string // accountID -> tenant
-}
+// Re-export centralized mock for convenience.
+type MockAccountChecker = testutil.MockAccountChecker
 
 // NewMockAccountChecker creates a new mock account checker.
-func NewMockAccountChecker() *MockAccountChecker {
-	return &MockAccountChecker{accounts: make(map[string]string)}
-}
-
-// AddAccount adds an account to the mock.
-func (m *MockAccountChecker) AddAccount(accountID, tenant string) {
-	m.accounts[accountID] = tenant
-}
-
-// AccountExists checks if an account exists.
-func (m *MockAccountChecker) AccountExists(ctx context.Context, accountID string) error {
-	if _, ok := m.accounts[accountID]; ok {
-		return nil
-	}
-	return nil // Allow all accounts for testing
-}
-
-// AccountTenant returns the tenant for an account.
-func (m *MockAccountChecker) AccountTenant(ctx context.Context, accountID string) string {
-	return m.accounts[accountID]
-}
+var NewMockAccountChecker = testutil.NewMockAccountChecker

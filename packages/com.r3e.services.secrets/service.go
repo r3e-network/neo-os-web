@@ -111,10 +111,18 @@ func (s *Service) CreateWithOptions(ctx context.Context, accountID, name, value 
 		ACL:       opts.ACL,
 	}
 
+	attrs := map[string]string{"account_id": accountID, "resource": "secret"}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	stored, err := s.store.CreateSecret(ctx, record)
+	if err == nil && stored.ID != "" {
+		attrs["secret_id"] = stored.ID
+	}
+	finish(err)
 	if err != nil {
 		return Metadata{}, err
 	}
+	s.LogCreated("secret", stored.ID, accountID)
+	s.IncrementCounter("secrets_created_total", map[string]string{"account_id": accountID})
 	return stored.ToMetadata(), nil
 }
 
@@ -173,10 +181,15 @@ func (s *Service) UpdateWithOptions(ctx context.Context, accountID, name string,
 		record.ACL = *opts.ACL
 	}
 
+	attrs := map[string]string{"account_id": accountID, "resource": "secret", "secret_id": record.ID}
+	ctx, finish := s.StartObservation(ctx, attrs)
 	updated, err := s.store.UpdateSecret(ctx, record)
+	finish(err)
 	if err != nil {
 		return Metadata{}, err
 	}
+	s.LogUpdated("secret", record.ID, accountID)
+	s.IncrementCounter("secrets_updated_total", map[string]string{"account_id": accountID})
 	return updated.ToMetadata(), nil
 }
 
@@ -234,7 +247,16 @@ func (s *Service) Delete(ctx context.Context, accountID, name string) error {
 	if err := validateName(name); err != nil {
 		return err
 	}
-	return s.store.DeleteSecret(ctx, accountID, name)
+	attrs := map[string]string{"account_id": accountID, "resource": "secret"}
+	ctx, finish := s.StartObservation(ctx, attrs)
+	if err := s.store.DeleteSecret(ctx, accountID, name); err != nil {
+		finish(err)
+		return err
+	}
+	finish(nil)
+	s.LogDeleted("secret", name, accountID)
+	s.IncrementCounter("secrets_deleted_total", map[string]string{"account_id": accountID})
+	return nil
 }
 
 // ResolveSecrets returns a map of secret name -> plaintext value.
@@ -262,6 +284,9 @@ func (s *Service) ResolveSecrets(ctx context.Context, accountID string, names []
 			return nil, err
 		}
 		resolved[name] = plaintext
+	}
+	if len(resolved) > 0 {
+		s.AddCounter("secrets_resolved_total", map[string]string{"account_id": accountID}, float64(len(resolved)))
 	}
 	return resolved, nil
 }
@@ -300,6 +325,9 @@ func (s *Service) ResolveSecretsWithACL(ctx context.Context, accountID string, n
 			return nil, err
 		}
 		resolved[name] = plaintext
+	}
+	if len(resolved) > 0 {
+		s.AddCounter("secrets_resolved_total", map[string]string{"account_id": accountID, "caller": string(caller)}, float64(len(resolved)))
 	}
 	return resolved, nil
 }
@@ -352,4 +380,62 @@ func validateName(name string) error {
 		return fmt.Errorf("name cannot contain '|'")
 	}
 	return nil
+}
+
+// HTTP API Methods
+// These methods follow the HTTP{Method}{Path} naming convention for automatic route discovery.
+
+// HTTPGetSecrets handles GET /secrets - list all secrets metadata for an account.
+func (s *Service) HTTPGetSecrets(ctx context.Context, req core.APIRequest) (any, error) {
+	return s.List(ctx, req.AccountID)
+}
+
+// HTTPPostSecrets handles POST /secrets - create a new secret.
+func (s *Service) HTTPPostSecrets(ctx context.Context, req core.APIRequest) (any, error) {
+	name, _ := req.Body["name"].(string)
+	value, _ := req.Body["value"].(string)
+
+	// Parse ACL if provided
+	var opts CreateOptions
+	if aclVal, ok := req.Body["acl"].(float64); ok {
+		opts.ACL = ACL(int(aclVal))
+	}
+
+	return s.CreateWithOptions(ctx, req.AccountID, name, value, opts)
+}
+
+// HTTPGetSecretsByName handles GET /secrets/{name} - get a specific secret.
+func (s *Service) HTTPGetSecretsByName(ctx context.Context, req core.APIRequest) (any, error) {
+	name := req.PathParams["name"]
+	secret, err := s.Get(ctx, req.AccountID, name)
+	if err != nil {
+		return nil, err
+	}
+	// Return metadata only (don't expose value via HTTP)
+	return secret.ToMetadata(), nil
+}
+
+// HTTPPutSecretsByName handles PUT /secrets/{name} - update a secret.
+func (s *Service) HTTPPutSecretsByName(ctx context.Context, req core.APIRequest) (any, error) {
+	name := req.PathParams["name"]
+
+	var opts UpdateOptions
+	if value, ok := req.Body["value"].(string); ok {
+		opts.Value = &value
+	}
+	if aclVal, ok := req.Body["acl"].(float64); ok {
+		acl := ACL(int(aclVal))
+		opts.ACL = &acl
+	}
+
+	return s.UpdateWithOptions(ctx, req.AccountID, name, opts)
+}
+
+// HTTPDeleteSecretsByName handles DELETE /secrets/{name} - delete a secret.
+func (s *Service) HTTPDeleteSecretsByName(ctx context.Context, req core.APIRequest) (any, error) {
+	name := req.PathParams["name"]
+	if err := s.Delete(ctx, req.AccountID, name); err != nil {
+		return nil, err
+	}
+	return map[string]string{"status": "deleted", "name": name}, nil
 }

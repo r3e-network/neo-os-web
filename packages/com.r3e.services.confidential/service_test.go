@@ -8,7 +8,7 @@ import (
 func TestService_CreateEnclave(t *testing.T) {
 	store := NewMemoryStore()
 	accounts := NewMockAccountChecker()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	svc := New(accounts, store, nil)
 
 	enclave, err := svc.CreateEnclave(context.Background(), Enclave{AccountID: "acct-1", Name: "test-enclave", Endpoint: "http://localhost:8080"})
@@ -23,7 +23,7 @@ func TestService_CreateEnclave(t *testing.T) {
 func TestService_CreateSealedKey(t *testing.T) {
 	store := NewMemoryStore()
 	accounts := NewMockAccountChecker()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	svc := New(accounts, store, nil)
 
 	enclave, _ := svc.CreateEnclave(context.Background(), Enclave{AccountID: "acct-1", Name: "test-enclave", Endpoint: "http://localhost:8080"})
@@ -39,7 +39,7 @@ func TestService_CreateSealedKey(t *testing.T) {
 func TestService_CreateAttestation(t *testing.T) {
 	store := NewMemoryStore()
 	accounts := NewMockAccountChecker()
-	accounts.AddAccount("acct-1", "")
+	accounts.AddAccountWithTenant("acct-1", "")
 	svc := New(accounts, store, nil)
 
 	enclave, _ := svc.CreateEnclave(context.Background(), Enclave{AccountID: "acct-1", Name: "test-enclave", Endpoint: "http://localhost:8080"})

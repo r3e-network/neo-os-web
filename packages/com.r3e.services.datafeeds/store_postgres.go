@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // --- DataFeedStore ----------------------------------------------------------
@@ -29,10 +30,6 @@ func (s *PostgresStore) accountTenant(ctx context.Context, accountID string) str
 	return s.accounts.AccountTenant(ctx, accountID)
 }
 
-// rowScanner abstracts *sql.Row and *sql.Rows for scanning.
-type rowScanner interface {
-	Scan(dest ...any) error
-}
 
 func (s *PostgresStore) CreateDataFeed(ctx context.Context, feed Feed) (Feed, error) {
 	if feed.ID == "" {
@@ -227,7 +224,7 @@ func (s *PostgresStore) GetLatestDataFeedUpdate(ctx context.Context, feedID stri
 	return scanDataFeedUpdate(row)
 }
 
-func scanDataFeed(scanner rowScanner) (Feed, error) {
+func scanDataFeed(scanner core.RowScanner) (Feed, error) {
 	var (
 		feed               Feed
 		heartbeatSeconds   int64
@@ -250,7 +247,7 @@ func scanDataFeed(scanner rowScanner) (Feed, error) {
 	return feed, nil
 }
 
-func scanDataFeedUpdate(scanner rowScanner) (Update, error) {
+func scanDataFeedUpdate(scanner core.RowScanner) (Update, error) {
 	var (
 		upd     Update
 		metaRaw []byte

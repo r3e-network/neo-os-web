@@ -9,6 +9,7 @@ import (
 
 	engine "github.com/R3E-Network/service_layer/system/core"
 	"github.com/R3E-Network/service_layer/system/framework"
+	core "github.com/R3E-Network/service_layer/system/framework/core"
 )
 
 // PackageManifest describes a service package - analogous to Android AndroidManifest.xml.
@@ -126,6 +127,15 @@ type PackageRuntime interface {
 
 	// Resource enforcement
 	EnforceQuota(resource string, amount int64) error
+
+	// Quota returns the quota enforcer for manual checks.
+	Quota() framework.QuotaEnforcer
+
+	// Metrics access
+	Metrics() framework.Metrics
+
+	// Tracer access
+	Tracer() core.Tracer
 }
 
 // PackageConfig provides configuration for the package.
@@ -212,24 +222,5 @@ func (m *PackageManifest) CheckPermissions(granted map[string]bool) []string {
 // Store Provider Interface (Android ContentResolver equivalent)
 // =============================================================================
 
-// StoreProvider provides generic database access to service packages.
-// This is analogous to Android's ContentResolver, providing only generic
-// database access. Each service package is responsible for creating its own
-// typed store implementation using the database connection.
-//
-// Design Principle: The Service Engine knows NOTHING about service-specific
-// types or interfaces. Each service package defines its own model, store
-// interface, and store implementation internally.
-type StoreProvider interface {
-	// Database returns the underlying database connection (*sql.DB).
-	// Service packages use this to create their own typed stores.
-	Database() any
-
-	// AccountExists checks if an account exists by ID.
-	// This is a shared utility since most services need account validation.
-	AccountExists(ctx context.Context, accountID string) error
-
-	// AccountTenant returns the tenant for an account (empty if none).
-	// This supports multi-tenancy filtering in service stores.
-	AccountTenant(ctx context.Context, accountID string) string
-}
+// StoreProvider mirrors framework.StoreProvider for compatibility.
+type StoreProvider = framework.StoreProvider
