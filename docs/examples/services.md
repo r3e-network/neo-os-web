@@ -141,7 +141,7 @@ curl -s -X PATCH http://localhost:8080/accounts/<ACCOUNT_ID>/pricefeeds/$FEED_ID
   -d '{"deviation_percent": 0.5, "active": false}'
 ```
 
-See [Price Feeds Quickstart](pricefeeds.md) for the complete guide.
+See [DataFeeds Quickstart](datafeeds.md) for the complete guide on data feeds.
 
 ## Gasbank
 ```bash

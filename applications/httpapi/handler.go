@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -18,23 +17,17 @@ import (
 
 	app "github.com/R3E-Network/service_layer/applications"
 	"github.com/R3E-Network/service_layer/applications/auth"
-	"github.com/R3E-Network/service_layer/applications/jam"
 	"github.com/R3E-Network/service_layer/pkg/metrics"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
-	oraclesvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.oracle"
+	"github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts/service"
+	oraclesvc "github.com/R3E-Network/service_layer/packages/com.r3e.services.oracle/service"
 	engine "github.com/R3E-Network/service_layer/system/core"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
-	"github.com/R3E-Network/service_layer/system/platform/database"
-	"github.com/R3E-Network/service_layer/system/platform/migrations"
 )
 
 // handler bundles HTTP endpoints for the application services.
 type handler struct {
 	services          app.ServiceProvider
 	serviceRouter     *core.ServiceRouter // Auto-discovered service routes
-	jamCfg            jam.Config
-	jamAuth           []string
-	jamStore          jam.PackageStore
 	neo               neoProvider
 	supabaseGoTrueURL string
 	authManager       authManager
@@ -166,7 +159,6 @@ func WithServiceRouter(router *core.ServiceRouter) HandlerOption {
 // NewHandler returns a mux exposing the core REST API.
 func NewHandler(
 	services app.ServiceProvider,
-	jamCfg jam.Config,
 	tokens []string,
 	authMgr authManager,
 	audit *auditLog,
@@ -174,8 +166,7 @@ func NewHandler(
 	modules ModuleProvider,
 	opts ...HandlerOption,
 ) http.Handler {
-	jamCfg.Normalize()
-	h := &handler{services: services, jamCfg: jamCfg, jamAuth: tokens, authManager: authMgr, audit: audit, neo: neo, modulesFn: modules, busMaxBytes: parseMaxBytes(os.Getenv("BUS_MAX_BYTES"), 1<<20)}
+	h := &handler{services: services, authManager: authMgr, audit: audit, neo: neo, modulesFn: modules, busMaxBytes: parseMaxBytes(os.Getenv("BUS_MAX_BYTES"), 1<<20)}
 	for _, opt := range opts {
 		if opt != nil {
 			opt(h)
@@ -219,7 +210,6 @@ func NewHandler(
 	mux.HandleFunc("/accounts", h.accounts)
 	mux.HandleFunc("/accounts/", h.accountResources)
 
-	h.maybeMountJAM(mux)
 	h.maybeMountAdminConfig(mux)
 	h.mountExtraRoutes(mux)
 	return mux
@@ -234,73 +224,6 @@ func (h *handler) mountExtraRoutes(mux *http.ServeMux) {
 	}
 }
 
-func (h *handler) maybeMountJAM(mux *http.ServeMux) {
-	if !h.jamCfg.Enabled {
-		return
-	}
-
-	storeChoice := strings.ToLower(strings.TrimSpace(h.jamCfg.Store))
-	var (
-		pkgStore  jam.PackageStore  = jam.NewInMemoryStore()
-		blobStore jam.PreimageStore = jam.NewMemPreimageStore()
-	)
-
-	if storeChoice == "postgres" {
-		dsn := strings.TrimSpace(h.jamCfg.PGDSN)
-		if dsn == "" {
-			dsn = strings.TrimSpace(os.Getenv("DATABASE_URL"))
-		}
-		if dsn == "" {
-			log.Printf("jam: JAM_STORE=postgres set but no JAM_PG_DSN or DATABASE_URL; JAM endpoints disabled")
-			h.jamCfg.Enabled = false
-			return
-		}
-		db, err := database.Open(context.Background(), dsn)
-		if err != nil {
-			log.Printf("jam: postgres open failed; JAM endpoints disabled: %v", err)
-			h.jamCfg.Enabled = false
-			return
-		}
-		if err := migrations.Apply(context.Background(), db); err != nil {
-			log.Printf("jam: migration failed; JAM endpoints disabled: %v", err)
-			db.Close()
-			h.jamCfg.Enabled = false
-			return
-		}
-		pkgStore = jam.NewPGStore(db)
-		blobStore = jam.NewPGPreimageStore(db)
-	}
-
-	allowedTokens := h.jamCfg.AllowedTokens
-	if len(allowedTokens) == 0 {
-		allowedTokens = h.jamAuth
-	}
-
-	if memStore, ok := pkgStore.(*jam.InMemoryStore); ok {
-		memStore.SetAccumulatorHash(h.jamCfg.AccumulatorHash)
-		memStore.SetAccumulatorsEnabled(h.jamCfg.AccumulatorsEnabled)
-	}
-	if pgStore, ok := pkgStore.(*jam.PGStore); ok {
-		pgStore.SetAccumulatorHash(h.jamCfg.AccumulatorHash)
-		pgStore.SetAccumulatorsEnabled(h.jamCfg.AccumulatorsEnabled)
-	}
-
-	h.jamStore = pkgStore
-
-	engine := jam.Engine{
-		Preimages:   blobStore,
-		Refiner:     jam.HashRefiner{},
-		Attestors:   []jam.Attestor{jam.StaticAttestor{WorkerID: "local", Weight: 1}},
-		Accumulator: jam.NoopAccumulator{},
-		Threshold:   1,
-	}
-	coord := jam.Coordinator{
-		Store:               pkgStore,
-		Engine:              engine,
-		AccumulatorsEnabled: h.jamCfg.AccumulatorsEnabled,
-	}
-	mux.Handle("/jam/", jam.NewHTTPHandler(pkgStore, blobStore, coord, h.jamCfg, allowedTokens))
-}
 
 func (h *handler) accounts(w http.ResponseWriter, r *http.Request) {
 	tenant := tenantFromCtx(r.Context())

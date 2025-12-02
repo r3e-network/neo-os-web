@@ -1,11 +1,11 @@
-# Service Layer - New Directory Structure
+# Service Layer - Directory Structure
 
 ## Overview
 
-The codebase has been reorganized to follow **Android OS + APK architecture**:
+The codebase follows **Android OS + APK architecture** with **TEE (Trusted Execution Environment) enclave** support:
 
 - **`system/`** = Android OS (Service Engine)
-- **`packages/`** = Android APK files (Service Implementations)
+- **`packages/`** = Android APK files (Service Implementations with Enclave)
 - **`applications/`** = System Apps (API Servers)
 
 ## Complete Directory Structure
@@ -13,7 +13,7 @@ The codebase has been reorganized to follow **Android OS + APK architecture**:
 ```
 service_layer/
 │
-├── system/                          # 🤖 Android OS equivalent - Service Engine
+├── system/                          # Service Engine (Android OS equivalent)
 │   ├── core/                        # Engine core components
 │   │   ├── engine.go                # Main engine coordinator
 │   │   ├── registry.go              # Service registry
@@ -23,12 +23,17 @@ service_layer/
 │   │   ├── dependency.go            # Dependency resolution
 │   │   ├── metadata.go              # Metadata management
 │   │   ├── interfaces.go            # Core interfaces
-│   │   ├── apis.go                  # API surface definitions
-│   │   ├── options.go               # Engine options
+│   │   ├── api.go                   # API surface definitions
+│   │   ├── api_router.go            # API routing
+│   │   ├── service_router.go        # Service routing
 │   │   └── *_test.go                # Tests
 │   │
-│   ├── framework/                   # 🛠️ Service Framework (SDK)
-│   │   ├── base.go                  # ServiceBase implementation
+│   ├── framework/                   # Service Framework (SDK)
+│   │   ├── core/                    # Core framework components
+│   │   │   ├── base.go              # ServiceBase implementation
+│   │   │   ├── api.go               # API definitions
+│   │   │   ├── api_router.go        # API routing
+│   │   │   └── service_router.go    # Service routing
 │   │   ├── manifest.go              # Manifest definitions
 │   │   ├── bus.go                   # BusClient interface
 │   │   ├── bus_impl.go              # Bus implementation
@@ -37,103 +42,107 @@ service_layer/
 │   │   ├── lifecycle/               # Lifecycle helpers
 │   │   └── testing/                 # Testing utilities
 │   │
-│   ├── runtime/                     # 📦 Package Runtime (PackageManager + Context)
+│   ├── runtime/                     # Package Runtime (PackageManager + Context)
 │   │   ├── package.go               # PackageManifest, ServicePackage interfaces
 │   │   ├── runtime.go               # PackageRuntime implementation
 │   │   ├── loader.go                # PackageLoader implementation
 │   │   └── package_test.go          # Runtime tests
 │   │
-│   ├── platform/                    # 🏗️ Platform Services (HAL)
-���   │   ├── database/                # Database abstractions
-│   │   └── migrations/              # Database migrations
-│   │
-│   └── apis/                        # 🔌 System API Definitions
-│       └── (API contracts)
+│   └── platform/                    # Platform Services (HAL)
+│       ├── database/                # Database abstractions
+│       └── migrations/              # Database migrations
 │
-├── packages/                        # 📱 Service Packages (Android APK equivalent)
-│   ├── com.r3e.services.accounts/
-│   │   ├── manifest.yaml            # ✨ Package manifest (like AndroidManifest.xml)
-│   │   ├── package.go               # Package implementation
-│   │   ├── service.go               # Service business logic
-│   │   ├── service_test.go          # Service tests
-│   │   ├── handlers.go              # (optional) API handlers
-│   │   ├── store.go                 # (optional) Storage interface
-│   │   └── README.md                # Package documentation
+├── packages/                        # Service Packages (Android APK equivalent)
+│   ├── README.md                    # Package architecture documentation
 │   │
-│   ├── com.r3e.services.functions/
-│   │   ├── manifest.yaml
-│   │   ├── package.go
-│   │   ├── service.go
-│   │   ├── service_test.go
-│   │   └── devpack/                 # Function runtime
+│   ├── com.r3e.services.accounts/   # Account management service
+│   │   ├── manifest.yaml            # Package manifest
+│   │   ├── README.md                # Service documentation
+│   │   ├── contract/                # Smart contracts (Neo N3)
+│   │   │   ├── *.cs                 # Contract source
+│   │   │   ├── *.nef                # Compiled contract
+│   │   │   └── *.manifest.json      # Contract manifest
+│   │   ├── enclave/                 # TEE enclave code
+│   │   │   └── enclave.go           # Account key derivation, message signing
+│   │   └── service/                 # Go service implementation
+│   │       ├── domain.go            # Type definitions
+│   │       ├── store.go             # Store interface
+│   │       ├── store_postgres.go    # PostgreSQL implementation
+│   │       ├── service.go           # Business logic
+│   │       ├── package.go           # Service registration
+│   │       └── *_test.go            # Tests
 │   │
-│   ├── com.r3e.services.vrf/
-│   ├── com.r3e.services.oracle/
-│   ├── com.r3e.services.triggers/
-│   ├── com.r3e.services.gasbank/
-│   ├── com.r3e.services.automation/
-│   ├── com.r3e.services.pricefeed/
-│   ├── com.r3e.services.datafeeds/
-│   ├── com.r3e.services.datastreams/
-│   ├── com.r3e.services.datalink/
-│   ├── com.r3e.services.dta/
-│   ├── com.r3e.services.confidential/
-│   ├── com.r3e.services.cre/
-│   ├── com.r3e.services.ccip/
-│   ├── com.r3e.services.secrets/
-│   └── com.r3e.services.random/
+│   ├── com.r3e.services.automation/ # Task automation service
+│   ├── com.r3e.services.ccip/       # Cross-chain interoperability
+│   ├── com.r3e.services.confidential/ # Confidential computing
+│   ├── com.r3e.services.cre/        # Chainlink Runtime Environment
+│   ├── com.r3e.services.datafeeds/  # Price data feeds
+│   ├── com.r3e.services.datalink/   # External data linking
+│   ├── com.r3e.services.datastreams/ # Data streaming
+│   ├── com.r3e.services.dta/        # Data Trust Authority
+│   ├── com.r3e.services.functions/  # Serverless functions (CRE)
+│   ├── com.r3e.services.gasbank/    # Gas fee sponsorship
+│   ├── com.r3e.services.mixer/      # Privacy mixer service
+│   ├── com.r3e.services.oracle/     # Oracle data feeds
+│   ├── com.r3e.services.secrets/    # Secret management
+│   └── com.r3e.services.vrf/        # Verifiable random functions
 │
-├── applications/                    # 🖥️ Presentation Layer
+├── applications/                    # Presentation Layer
+│   ├── application.go               # Application interface
+│   ├── engine_app.go                # Engine application
+│   ├── services.go                  # ServiceProvider contracts
 │   ├── httpapi/                     # HTTP API server
-│   ├── services.go                  # ServiceProvider contracts for transports
+│   │   ├── handler.go               # Main handler
+│   │   ├── middleware.go            # Middleware
+│   │   └── routes.go                # Route definitions
 │   ├── grpcapi/                     # (future) gRPC API server
 │   └── dashboard/                   # (future) Web UI
 │
-├── domain/                          # 📚 Domain Models (Shared)
-│   ├── account/
-│   ├── function/
-│   ├── trigger/
-│   ├── automation/
-│   ├── oracle/
-│   ├── pricefeed/
-│   ├── gasbank/
-│   ├── vrf/
-│   └── .../
-│
-├── sdk/                             # 👨‍💻 SDKs for External Developers
+├── sdk/                             # SDKs for External Developers
 │   ├── go/                          # Go SDK
 │   ├── rust/                        # Rust SDK
 │   └── typescript/                  # TypeScript SDK
 │
-├── cmd/                             # 🚀 Command-line Tools
+├── cmd/                             # Command-line Tools
 │   ├── appserver/                   # Main application server
 │   │   └── main.go
 │   ├── neo-indexer/                 # Blockchain indexer
 │   └── neo-snapshot/                # State snapshot tool
 │
-├── pkg/                             # 📦 Public Libraries
-│   ├── storage/                     # Storage interfaces + adapters (memory/Postgres)
+├── pkg/                             # Public Libraries
+│   ├── storage/                     # Storage interfaces + adapters
+│   │   ├── crud.go                  # CRUD operations
+│   │   ├── interfaces_admin.go      # Admin interfaces
+│   │   └── postgres/                # PostgreSQL implementation
 │   ├── logger/                      # Logging utilities
 │   └── utils/                       # Common utilities
 │
-├── configs/                         # ⚙️ Configuration Files
+├── frontend/                        # Web Frontend
+│   └── (React/Vue/etc. application)
+│
+├── contracts/                       # Shared Smart Contracts
+│   └── neo-n3/                      # Neo N3 contracts
+│
+├── configs/                         # Configuration Files
 │   └── *.yaml
 │
-├── scripts/                         # 🔧 Build and Deployment Scripts
+├── scripts/                         # Build and Deployment Scripts
 │   ├── generate_packages.go         # Generate package.go files
-│   └── generate_manifests.sh        # Generate manifest.yaml files
+│   ├── generate_manifests.sh        # Generate manifest.yaml files
+│   └── detect_similar_dirs.sh       # Detect duplicate directories
 │
-├── docs/                            # 📖 Documentation
-│   ├── NEW_DIRECTORY_STRUCTURE.md   # This file
-│   ├── android-style-refactoring.md # Architecture guide
-│   ├── IMPLEMENTATION_COMPLETE.md   # Implementation report
-│   └── service-engine-architecture.md
+├── docs/                            # Documentation
+│   ├── architecture/                # Architecture docs
+│   └── api/                         # API documentation
 │
-├── test/                            # 🧪 Integration Tests
+├── test/                            # Integration Tests
 │   └── integration/
 │
-├── internal/                        # (Legacy - to be deprecated)
-│   └── (old structure preserved for transition)
+├── tools/                           # Development Tools
+│
+├── devops/                          # DevOps Configuration
+│   ├── docker/                      # Docker files
+│   └── k8s/                         # Kubernetes manifests
 │
 ├── go.mod
 ├── go.sum
@@ -142,55 +151,77 @@ service_layer/
 └── LICENSE
 ```
 
-## Directory Purpose
+## Service Package Structure
 
-### System Layer (`system/`)
+Each service package follows a standardized structure with **service** and **enclave** separation:
 
-| Directory | Purpose | Lines | Android Equivalent |
-|-----------|---------|-------|--------------------|
-| `system/core/` | Engine orchestration, registry, lifecycle | ~1500 | Android Framework (system/core) |
-| `system/framework/` | Service SDK, base classes, helpers | ~800 | Android SDK (framework/base) |
-| `system/runtime/` | Package loading, permissions, quotas | ~850 | PackageManager + Context |
-| `system/platform/` | Infrastructure abstractions | ~500 | HAL (hardware abstraction) |
-| `system/apis/` | System API contracts | - | AIDL interfaces |
+```
+packages/com.r3e.services.<name>/
+├── manifest.yaml       # Service manifest and configuration
+├── README.md           # Service documentation
+├── contract/           # Smart contracts (if applicable)
+│   ├── *.cs            # Neo N3 contract source
+│   ├── *.nef           # Compiled contract
+│   └── *.manifest.json # Contract manifest
+├── enclave/            # TEE enclave code (confidential computing)
+│   └── enclave.go      # Core cryptographic operations
+└── service/            # Go service implementation
+    ├── domain.go       # Type definitions (models, enums, constants)
+    ├── store.go        # Store interface and dependency interfaces
+    ├── store_postgres.go # PostgreSQL implementation
+    ├── service.go      # Core business logic
+    ├── service_test.go # Unit tests
+    ├── package.go      # Service registration and initialization
+    └── testing.go      # Test helpers and mocks
+```
 
-### Package Layer (`packages/`)
+## Enclave Architecture
 
-**Format**: `com.r3e.services.<service_name>/`
+Each service has an `enclave/` directory containing TEE-protected operations:
 
-Each package contains:
-- `manifest.yaml` - Declarative package configuration (permissions, resources, dependencies)
-- `package.go` - ServicePackage implementation (init, lifecycle hooks)
-- `service.go` - Business logic
-- `*_test.go` - Tests
-- `README.md` - Documentation
+| Service | Enclave Core Functions |
+|---------|------------------------|
+| **accounts** | Account key derivation, message signing |
+| **automation** | Job execution signing, execution verification |
+| **ccip** | Cross-chain message validation/signing |
+| **confidential** | Confidential data encryption/decryption |
+| **cre** | Function execution, result signing, execution proofs |
+| **datafeeds** | Price aggregation, data signing |
+| **datalink** | External data fetch/signing |
+| **datastreams** | Stream data validation/signing |
+| **dta** | Data integrity attestation |
+| **functions** | Function execution within TEE |
+| **gasbank** | Balance calculations, fee deductions, settlement signing |
+| **mixer** | HD key derivation, transaction signing, mixing pool encryption |
+| **oracle** | Data validation/signing, multi-source aggregation |
+| **secrets** | Secret encryption/decryption, key derivation, secure storage |
+| **vrf** | VRF key generation, verifiable randomness, proof verification |
 
-**17 Service Packages**:
-1. `com.r3e.services.accounts` - Account management
-2. `com.r3e.services.functions` - Serverless functions
-3. `com.r3e.services.vrf` - Verifiable random functions
-4. `com.r3e.services.oracle` - Oracle data feeds
-5. `com.r3e.services.triggers` - Event triggers
-6. `com.r3e.services.gasbank` - Gas fee sponsorship
-7. `com.r3e.services.automation` - Task automation
-8. `com.r3e.services.pricefeed` - Price data
-9. `com.r3e.services.datafeeds` - Data feeds
-10. `com.r3e.services.datastreams` - Data streaming
-11. `com.r3e.services.datalink` - Cross-chain linking
-12. `com.r3e.services.dta` - Token automation
-13. `com.r3e.services.confidential` - Confidential computing
-14. `com.r3e.services.cre` - Contract runtime
-15. `com.r3e.services.ccip` - Cross-chain protocol
-16. `com.r3e.services.secrets` - Secret management
-17. `com.r3e.services.random` - Random number generation
+### Enclave Design Principles
 
-### Application Layer (`applications/`)
+1. **Confidentiality**: All sensitive operations (key management, signing, encryption) execute inside TEE
+2. **Integrity**: Every operation generates verifiable signatures/proofs
+3. **Remote Attestation**: Each enclave supports `GenerateAttestationReport()` for TEE verification
+4. **Isolation**: `service/` handles business logic, `enclave/` handles security-sensitive operations
 
-Presentation layer servers that expose services via APIs:
-- `httpapi/` - RESTful HTTP API
-- `services.go` - Shared `ServiceProvider` surface implemented by application/engine runtime
-- `grpcapi/` - (future) gRPC API
-- `dashboard/` - (future) Web management UI
+## Service List (14 Services)
+
+| # | Service | Description | Contract | Enclave |
+|---|---------|-------------|----------|---------|
+| 1 | `accounts` | Account management | ✅ | ✅ |
+| 2 | `automation` | Task automation (Chainlink Automation) | ✅ | ✅ |
+| 3 | `ccip` | Cross-chain interoperability protocol | - | ✅ |
+| 4 | `confidential` | Confidential computing | - | ✅ |
+| 5 | `cre` | Chainlink Runtime Environment | ✅ | ✅ |
+| 6 | `datafeeds` | Price data feeds | ✅ | ✅ |
+| 7 | `datalink` | External data linking | - | ✅ |
+| 8 | `datastreams` | Data streaming | - | ✅ |
+| 9 | `dta` | Data Trust Authority | - | ✅ |
+| 10 | `gasbank` | Gas fee sponsorship | ✅ | ✅ |
+| 11 | `mixer` | Privacy mixer service | - | ✅ |
+| 12 | `oracle` | Oracle data feeds | ✅ | ✅ |
+| 13 | `secrets` | Secret management | ✅ | ✅ |
+| 14 | `vrf` | Verifiable random functions | ✅ | ✅ |
 
 ## Key Architectural Principles
 
@@ -199,112 +230,64 @@ Presentation layer servers that expose services via APIs:
 ```
 System (Android OS)  →  Provides APIs and infrastructure
    ↓ (controlled access)
-Packages (Apps)      →  Business logic, depends on System APIs
+Packages (Apps)      →  Business logic + Enclave (TEE)
    ↓ (expose via)
 Applications         →  External interfaces (HTTP, gRPC, etc.)
 ```
 
-### 2. Android-Style Isolation
+### 2. Service/Enclave Isolation
 
-- ✅ Each package has its own namespace (`com.r3e.services.*`)
-- ✅ Packages access system resources via `PackageRuntime` (like Android Context)
-- ✅ Permissions declared in `manifest.yaml` and enforced at runtime
-- ✅ Resource quotas (storage, CPU, events) per package
+- **Service Layer** (`service/`): Business logic, API handlers, storage
+- **Enclave Layer** (`enclave/`): Cryptographic operations, key management, signing
 
 ### 3. Self-Contained Packages
 
 Each package is a complete unit:
 ```
-com.r3e.services.accounts/
+com.r3e.services.xxx/
 ├── manifest.yaml      # What I need and provide
-├── package.go         # How to install/run me
-├── service.go         # What I do
-└── *_test.go          # How to test me
+├── contract/          # My smart contracts
+├── enclave/           # My TEE-protected operations
+└── service/           # My business logic
 ```
 
-### 4. Declarative Configuration
+### 4. Self-Registration Pattern
 
-`manifest.yaml` declares everything upfront:
-- Services provided
-- Permissions required
-- Resource quotas
-- Dependencies
-- Metadata
-
-No code changes needed to adjust these!
-
-## Usage Examples
-
-### Importing System Components
+Services register themselves via `init()` functions:
 
 ```go
-// Before (old structure)
-import engine "github.com/R3E-Network/service_layer/internal/engine"
-import "github.com/R3E-Network/service_layer/internal/framework"
+// service/package.go
+func init() {
+    pkg.MustRegisterPackage("com.r3e.services.myservice", func() (pkg.ServicePackage, error) {
+        return &Package{...}, nil
+    })
+}
+```
 
-// After (new structure)
-import engine "github.com/R3E-Network/service_layer/system/core"
+## Import Paths
+
+```go
+// Service code
+import "github.com/R3E-Network/service_layer/packages/com.r3e.services.xxx/service"
+
+// Enclave code
+import "github.com/R3E-Network/service_layer/packages/com.r3e.services.xxx/enclave"
+
+// System framework
 import "github.com/R3E-Network/service_layer/system/framework"
 import pkg "github.com/R3E-Network/service_layer/system/runtime"
 ```
 
-### Importing Service Packages
+## Runtime Modes
 
-```go
-// Before
-import "github.com/R3E-Network/service_layer/internal/services/accounts"
-
-// After
-import accounts "github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
-
-// Or with blank import for auto-registration
-import _ "github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
-```
-
-### Creating a New Service Package
-
-1. Create directory:
-```bash
-mkdir -p packages/com.r3e.services.myservice
-```
-
-2. Create `manifest.yaml`:
-```yaml
-package_id: com.r3e.services.myservice
-version: "1.0.0"
-services:
-  - name: myservice
-    domain: myservice
-permissions:
-  - name: system.api.storage
-    required: true
-```
-
-3. Create `package.go`:
-```go
-package myservice
-
-import pkg "github.com/R3E-Network/service_layer/system/runtime"
-
-func init() {
-    pkg.MustRegisterPackage("com.r3e.services.myservice", ...)
-}
-```
-
-4. Done! Package auto-registers on import.
-
-### 5. Transition to Engine Mode
-
-The system now supports two runtime modes:
-
-#### Legacy Mode (default)
+### Legacy Mode (default)
 ```bash
 ./appserver --dsn="postgresql://..."
 ```
 - Direct service instantiation
 - Services managed by `system.Manager`
 
-#### Engine Mode (Android-style)
+### Engine Mode (Android-style)
 ```bash
 ./appserver --dsn="postgresql://..." --engine-mode
 ```
@@ -313,74 +296,7 @@ The system now supports two runtime modes:
 - Package permissions and quotas enforced
 - Module health visible via `/system/status`
 
-## Migration Status
-
-### ✅ Completed
-
-- [x] Created new directory structure
-- [x] Copied all system components to `system/`
-- [x] Reorganized 17 services into `packages/`
-- [x] Generated `manifest.yaml` for all packages
-- [x] Preserved `internal/` for backward compatibility
-
-### 🔄 In Progress
-
-- [ ] Update import paths across codebase
-- [ ] Move applications to `applications/`
-- [ ] Consolidate domain models
-
-### 📋 Future
-
-- [ ] Deprecate `internal/` completely
-- [ ] Add `applications/grpcapi`
-- [ ] Add `applications/dashboard`
-- [ ] Package signing and verification
-
-## Benefits of New Structure
-
-### 1. **Discoverability**
-- Services at top-level `packages/` (not buried in `internal/services`)
-- Clear naming: `com.r3e.services.*` like Android packages
-
-### 2. **Modularity**
-- Each package is self-contained
-- Easy to extract into separate repository if needed
-
-### 3. **Clarity**
-- System vs Packages vs Applications
-- Reflects the architectural model directly
-
-### 4. **Maintainability**
-- Related files grouped together
-- `manifest.yaml` provides package overview
-
-### 5. **Android Familiarity**
-- Developers familiar with Android will immediately understand the structure
-
-## Transition Strategy
-
-### Phase 1 (Current): Dual Structure
-- Both `internal/` and new structure coexist
-- Old imports still work
-- New code uses new structure
-
-### Phase 2: Gradual Migration
-- Update imports file by file
-- Run tests after each batch
-- Use `go mod tidy` to clean up
-
-### Phase 3: Deprecation
-- Mark `internal/` as deprecated
-- Remove after all imports migrated
-
-## Notes
-
-- **Backward Compatible**: Old `internal/` structure preserved
-- **Files Copied**: Not moved, to avoid breaking existing code
-- **Import Paths**: Can be updated gradually
-- **Testing**: All tests should still pass with either import path
-
 ---
 
-**Last Updated**: 2025-01-28
-**Status**: ✅ Directory structure created, ready for import migration
+**Last Updated**: 2025-12-02
+**Status**: ✅ All services have service/ and enclave/ directories

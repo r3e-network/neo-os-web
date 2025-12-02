@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/applications/jam"
 	"github.com/R3E-Network/service_layer/pkg/metrics"
 	"github.com/R3E-Network/service_layer/pkg/version"
 )
@@ -94,26 +93,6 @@ func (h *handler) systemStatus(w http.ResponseWriter, r *http.Request) {
 	if h.modulesFn != nil {
 		modules = h.modulesFn()
 	}
-	jamStatus := map[string]any{
-		"enabled":              h.jamCfg.Enabled,
-		"store":                h.jamCfg.Store,
-		"rate_limit_per_min":   h.jamCfg.RateLimitPerMinute,
-		"max_preimage_bytes":   h.jamCfg.MaxPreimageBytes,
-		"max_pending_packages": h.jamCfg.MaxPendingPackages,
-		"auth_required":        h.jamCfg.AuthRequired,
-		"legacy_list_response": h.jamCfg.LegacyListResponse,
-		"accumulators_enabled": h.jamCfg.AccumulatorsEnabled,
-		"accumulator_hash":     h.jamCfg.AccumulatorHash,
-	}
-	if h.jamCfg.AccumulatorsEnabled && h.jamStore != nil {
-		if lister, ok := h.jamStore.(interface {
-			AccumulatorRoots(context.Context) ([]jam.AccumulatorRoot, error)
-		}); ok {
-			if roots, err := lister.AccumulatorRoots(r.Context()); err == nil && len(roots) > 0 {
-				jamStatus["accumulator_roots"] = roots
-			}
-		}
-	}
 	payload := map[string]any{
 		"status": "ok",
 		"version": map[string]string{
@@ -123,7 +102,6 @@ func (h *handler) systemStatus(w http.ResponseWriter, r *http.Request) {
 			"go_version": version.GoVersion,
 		},
 		"services": h.services.DescriptorSnapshot(),
-		"jam":      jamStatus,
 	}
 	if h.listenAddr != nil {
 		if addr := strings.TrimSpace(h.listenAddr()); addr != "" {

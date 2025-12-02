@@ -5,20 +5,55 @@ Each service package is **self-contained** and follows the principle:
 
 ## Package Structure
 
-Every service package should contain:
+Every service package follows a standardized structure with **service** and **enclave** separation:
 
 ```
 packages/com.r3e.services.<name>/
-├── doc.go              # Package documentation and API reference
-├── domain.go           # Type definitions (models, enums, constants)
-├── store.go            # Store interface and dependency interfaces
-├── store_postgres.go   # PostgreSQL implementation
-├── service.go          # Core business logic
-├── service_test.go     # Unit tests
-├── http.go             # HTTP API handlers (self-registered)
-├── package.go          # Service registration and initialization
-└── testing.go          # Test helpers and mocks
+├── manifest.yaml       # Service manifest and configuration
+├── README.md           # Service documentation
+├── contract/           # Smart contracts (if applicable)
+│   ├── *.cs            # Neo N3 contract source
+│   ├── *.nef           # Compiled contract
+│   └── *.manifest.json # Contract manifest
+├── enclave/            # TEE enclave code (confidential computing)
+│   └── enclave.go      # Core cryptographic operations
+└── service/            # Go service implementation
+    ├── domain.go       # Type definitions (models, enums, constants)
+    ├── store.go        # Store interface and dependency interfaces
+    ├── store_postgres.go # PostgreSQL implementation
+    ├── service.go      # Core business logic
+    ├── service_test.go # Unit tests
+    ├── package.go      # Service registration and initialization
+    └── testing.go      # Test helpers and mocks
 ```
+
+## Enclave Architecture
+
+Each service has an `enclave/` directory containing TEE-protected operations:
+
+| Service | Enclave Core Functions |
+|---------|------------------------|
+| **secrets** | Secret encryption/decryption, key derivation, secure storage |
+| **vrf** | VRF key generation, verifiable randomness, proof verification |
+| **mixer** | HD key derivation, transaction signing, mixing pool encryption |
+| **cre** | Function execution, result signing, execution proofs |
+| **gasbank** | Balance calculations, fee deductions, settlement signing |
+| **oracle** | Data validation/signing, multi-source aggregation |
+| **automation** | Job execution signing, execution verification |
+| **accounts** | Account key derivation, message signing |
+| **datafeeds** | Price aggregation, data signing |
+| **datastreams** | Stream data validation/signing |
+| **dta** | Data integrity attestation |
+| **ccip** | Cross-chain message validation/signing |
+| **datalink** | External data fetch/signing |
+| **confidential** | Confidential data encryption/decryption |
+
+### Enclave Design Principles
+
+1. **Confidentiality**: All sensitive operations (key management, signing, encryption) execute inside TEE
+2. **Integrity**: Every operation generates verifiable signatures/proofs
+3. **Remote Attestation**: Each enclave supports `GenerateAttestationReport()` for TEE verification
+4. **Isolation**: `service/` handles business logic, `enclave/` handles security-sensitive operations
 
 ## Self-Registration Pattern
 
@@ -33,49 +68,43 @@ func init() {
 }
 ```
 
-## HTTP Handler Registration
-
-Each service registers its own HTTP routes:
+## Import Paths
 
 ```go
-// http.go
-type HTTPHandler struct {
-    svc *Service
-}
+// Service code
+import "github.com/R3E-Network/service_layer/packages/com.r3e.services.xxx/service"
 
-func (h *HTTPHandler) RegisterRoutes(mux *http.ServeMux, basePath string) {
-    mux.HandleFunc(basePath, h.handleRoot)
-    mux.HandleFunc(basePath+"/", h.handleWithID)
-}
+// Enclave code
+import "github.com/R3E-Network/service_layer/packages/com.r3e.services.xxx/enclave"
 ```
 
 ## Key Principles
 
 1. **No service-specific code in engine layer** - Engine is generic
 2. **Services own their HTTP handlers** - Not in applications/httpapi/
-3. **Services own their documentation** - doc.go in each package
-4. **Services own their contracts** - domain.go defines all types
-5. **Services self-register** - Via init() functions
-6. **Services declare dependencies** - Via interfaces, not concrete types
+3. **Services own their documentation** - README.md in each package
+4. **Services own their contracts** - contract/ directory
+5. **Services own their enclave code** - enclave/ directory
+6. **Services self-register** - Via init() functions
+7. **Services declare dependencies** - Via interfaces, not concrete types
 
-## Migration Status
+## Service Status
 
-| Service | Self-Contained | HTTP Handler | Documentation |
-|---------|---------------|--------------|---------------|
-| mixer | ✅ | ✅ | ✅ |
-| accounts | ⏳ | ❌ | ❌ |
-| functions | ⏳ | ❌ | ❌ |
-| gasbank | ⏳ | ❌ | ❌ |
-| automation | ⏳ | ❌ | ❌ |
-| oracle | ⏳ | ❌ | ❌ |
-| vrf | ⏳ | ❌ | ❌ |
-| datafeeds | ⏳ | ❌ | ❌ |
-| datastreams | ⏳ | ❌ | ❌ |
-| datalink | ⏳ | ❌ | ❌ |
-| ccip | ⏳ | ❌ | ❌ |
-| cre | ⏳ | ❌ | ❌ |
-| dta | ⏳ | ❌ | ❌ |
-| confidential | ⏳ | ❌ | ❌ |
-| secrets | ⏳ | ❌ | ❌ |
+| Service | Service | Enclave | Contract | Documentation |
+|---------|---------|---------|----------|---------------|
+| accounts | ✅ | ✅ | ✅ | ✅ |
+| automation | ✅ | ✅ | ✅ | ✅ |
+| ccip | ✅ | ✅ | - | ✅ |
+| confidential | ✅ | ✅ | - | ✅ |
+| cre | ✅ | ✅ | ✅ | ✅ |
+| datafeeds | ✅ | ✅ | ✅ | ✅ |
+| datalink | ✅ | ✅ | - | ✅ |
+| datastreams | ✅ | ✅ | - | ✅ |
+| dta | ✅ | ✅ | - | ✅ |
+| gasbank | ✅ | ✅ | ✅ | ✅ |
+| mixer | ✅ | ✅ | - | ✅ |
+| oracle | ✅ | ✅ | ✅ | ✅ |
+| secrets | ✅ | ✅ | ✅ | ✅ |
+| vrf | ✅ | ✅ | ✅ | ✅ |
 
-Legend: ✅ Complete | ⏳ Partial | ❌ Not Started
+Legend: ✅ Complete | ⏳ Partial | - Not Applicable

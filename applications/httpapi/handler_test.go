@@ -3,8 +3,6 @@ package httpapi
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,14 +14,13 @@ import (
 
 	app "github.com/R3E-Network/service_layer/applications"
 	"github.com/R3E-Network/service_layer/applications/auth"
-	"github.com/R3E-Network/service_layer/applications/jam"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.automation"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.ccip"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.confidential"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.cre"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.datastreams"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.dta"
-	"github.com/R3E-Network/service_layer/packages/com.r3e.services.vrf"
+	"github.com/R3E-Network/service_layer/packages/com.r3e.services.automation/service"
+	"github.com/R3E-Network/service_layer/packages/com.r3e.services.ccip/service"
+	"github.com/R3E-Network/service_layer/packages/com.r3e.services.confidential/service"
+	"github.com/R3E-Network/service_layer/packages/com.r3e.services.cre/service"
+	"github.com/R3E-Network/service_layer/packages/com.r3e.services.datastreams/service"
+	"github.com/R3E-Network/service_layer/packages/com.r3e.services.dta/service"
+	"github.com/R3E-Network/service_layer/packages/com.r3e.services.vrf/service"
 	"github.com/R3E-Network/service_layer/pkg/logger"
 	engine "github.com/R3E-Network/service_layer/system/core"
 )
@@ -63,152 +60,10 @@ func (staticAdminValidator) Validate(string) (*auth.Claims, error) {
 	return &auth.Claims{Username: "admin", Role: "admin"}, nil
 }
 
-func TestJAMEndpointsEnabled(t *testing.T) {
-	application := newTestApplication(t)
-
-	audit := newAuditLog(50, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{Enabled: true}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
-	server := httptest.NewServer(handler)
-	defer server.Close()
-
-	// Upload preimage
-	content := []byte("hello-jam")
-	sum := sha256.Sum256(content)
-	hash := hex.EncodeToString(sum[:])
-	req, _ := http.NewRequest(http.MethodPut, server.URL+"/jam/preimages/"+hash, bytes.NewReader(content))
-	req.Header.Set("Authorization", "Bearer "+testAuthToken)
-	req.Header.Set("Content-Type", "text/plain")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatalf("preimage put: %v", err)
-	}
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("preimage status %d", resp.StatusCode)
-	}
-	resp.Body.Close()
-
-	// Submit package
-	body := marshal(map[string]any{
-		"service_id": "svc-1",
-		"items": []map[string]any{
-			{"kind": "demo", "params_hash": "abc"},
-		},
-	})
-	req, _ = http.NewRequest(http.MethodPost, server.URL+"/jam/packages", bytes.NewReader(body))
-	req.Header.Set("Authorization", "Bearer "+testAuthToken)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatalf("package post: %v", err)
-	}
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("package status %d", resp.StatusCode)
-	}
-	var pkg jam.WorkPackage
-	if err := json.NewDecoder(resp.Body).Decode(&pkg); err != nil {
-		t.Fatalf("decode package: %v", err)
-	}
-	resp.Body.Close()
-
-	// Process next
-	req, _ = http.NewRequest(http.MethodPost, server.URL+"/jam/process", nil)
-	req.Header.Set("Authorization", "Bearer "+testAuthToken)
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatalf("process: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("process status %d", resp.StatusCode)
-	}
-	resp.Body.Close()
-
-	// Fetch report
-	req, _ = http.NewRequest(http.MethodGet, server.URL+"/jam/packages/"+pkg.ID+"/report", nil)
-	req.Header.Set("Authorization", "Bearer "+testAuthToken)
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatalf("get report: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("report status %d", resp.StatusCode)
-	}
-	var payload struct {
-		Report       jam.WorkReport    `json:"report"`
-		Attestations []jam.Attestation `json:"attestations"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode report: %v", err)
-	}
-	resp.Body.Close()
-	if payload.Report.PackageID != pkg.ID {
-		t.Fatalf("report package mismatch")
-	}
-	if len(payload.Attestations) != 1 {
-		t.Fatalf("expected 1 attestation, got %d", len(payload.Attestations))
-	}
-}
-
-func TestJAMPostgresDisabledWithoutDSN(t *testing.T) {
-	t.Setenv("DATABASE_URL", "")
-
-	application := newTestApplication(t)
-
-	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{Enabled: true, Store: "postgres"}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
-	server := httptest.NewServer(handler)
-	t.Cleanup(server.Close)
-
-	// JAM endpoints should not be mounted when postgres store is requested without a DSN.
-	req, _ := http.NewRequest(http.MethodPut, server.URL+"/jam/preimages/abc", bytes.NewReader([]byte("data")))
-	req.Header.Set("Authorization", "Bearer "+testAuthToken)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatalf("jam request: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("expected jam to be disabled without DSN, got status %d", resp.StatusCode)
-	}
-}
-
-func TestJAMDisabledReflectedInStatus(t *testing.T) {
-	t.Setenv("DATABASE_URL", "")
-
-	application := newTestApplication(t)
-
-	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{Enabled: true, Store: "postgres"}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
-	server := httptest.NewServer(handler)
-	t.Cleanup(server.Close)
-
-	req, _ := http.NewRequest(http.MethodGet, server.URL+"/system/status", nil)
-	req.Header.Set("Authorization", "Bearer "+testAuthToken)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatalf("status: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status code %d", resp.StatusCode)
-	}
-
-	var payload map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	jamSection, ok := payload["jam"].(map[string]any)
-	if !ok {
-		t.Fatalf("jam section missing")
-	}
-	if enabled, _ := jamSection["enabled"].(bool); enabled {
-		t.Fatalf("expected jam.enabled=false when postgres store is misconfigured")
-	}
-}
-
 func TestSystemTenantEndpoint(t *testing.T) {
 	application := newTestApplication(t)
 	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 
@@ -246,7 +101,7 @@ func TestHandlerLifecycle(t *testing.T) {
 	t.Cleanup(func() { stopApplication(t, application) })
 
 	audit := newAuditLog(50, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
 
 	body := marshal(map[string]any{"owner": "alice"})
 	req := authedRequest(http.MethodPost, "/accounts", body)
@@ -658,7 +513,7 @@ func TestHandlerLifecycle(t *testing.T) {
 
 	// Oracle runner auth + retry path
 	application.OracleRunnerTokens = []string{"runner-secret"}
-	handler = wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler = wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts", marshal(map[string]any{"owner": "runner-auth"})))
 	assertStatus(t, resp, http.StatusCreated)
@@ -711,7 +566,7 @@ func TestHandlerLifecycle(t *testing.T) {
 	}
 
 	// Workspace wallet + DTA flow
-	handler = wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler = wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	resp = httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodPost, "/accounts", marshal(map[string]any{"owner": "dta-owner"})))
 	if resp.Code != http.StatusCreated {
@@ -772,7 +627,7 @@ func TestHandlerLifecycle(t *testing.T) {
 
 func TestSystemDescriptors(t *testing.T) {
 	application := newTestApplication(t)
-	handler := NewHandler(application, jam.Config{}, []string{}, nil, newAuditLog(50, nil), nil, nil)
+	handler := NewHandler(application, []string{}, nil, newAuditLog(50, nil), nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/system/descriptors", nil)
 	resp := httptest.NewRecorder()
@@ -797,7 +652,7 @@ func TestWorkspaceWallets(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	acctBody := marshal(map[string]any{"owner": "wallet-owner"})
 	resp := httptest.NewRecorder()
@@ -857,7 +712,7 @@ func TestCREPlaybooksAndRunsHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "cre-owner")
 
 	execResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/cre/executors", map[string]any{
@@ -912,7 +767,7 @@ func TestTenantIsolationEnforced(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	accountA := createAccountWithTenant(t, handler, "alice", "tenant-a")
 	accountB := createAccountWithTenant(t, handler, "bob", "tenant-b")
@@ -941,7 +796,7 @@ func TestDataFeedsWalletGatedHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "datafeeds-owner")
 
 	// register wallet for signer_set
@@ -1001,7 +856,7 @@ func TestVRFWalletGatedHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "vrf-owner")
 
 	// register wallet required for keys
@@ -1049,7 +904,7 @@ func TestDataLinkChannelAndDeliveryHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "datalink-owner")
 
 	assertStatus(t, doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/workspace-wallets", map[string]any{
@@ -1099,7 +954,7 @@ func TestCCIPLaneAndMessageHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "ccip-owner")
 
 	assertStatus(t, doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/workspace-wallets", map[string]any{
@@ -1149,7 +1004,7 @@ func TestDataStreamsHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "streams-owner")
 
 	streamResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/datastreams", map[string]any{
@@ -1182,7 +1037,7 @@ func TestConfidentialComputeHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "conf-owner")
 
 	enclaveResp := doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/confcompute/enclaves", map[string]any{
@@ -1220,7 +1075,7 @@ func TestDTAWalletGatedHTTP(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 	accountID := createAccount(t, handler, "dta-owner-http")
 
 	assertStatus(t, doJSON(handler, http.MethodPost, "/accounts/"+accountID+"/workspace-wallets", map[string]any{
@@ -1262,7 +1117,7 @@ func TestCCIPLanesRequireRegisteredSigner(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	// Create account
 	acctBody := marshal(map[string]any{"owner": "lane-owner"})
@@ -1312,7 +1167,7 @@ func TestCCIPLanesRequireRegisteredSigner(t *testing.T) {
 
 func TestHandlerAuthRequired(t *testing.T) {
 	application := newTestApplication(t)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/accounts", nil)
 	resp := httptest.NewRecorder()
@@ -1329,7 +1184,7 @@ func TestHandler_PreventCrossAccountExecution(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	createAccount := func(owner string) string {
 		reqBody := marshal(map[string]any{"owner": owner})
@@ -1375,7 +1230,7 @@ func TestIntegration_AutomationExecutesFunction(t *testing.T) {
 	}
 	t.Cleanup(func() { stopApplication(t, application) })
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, newAuditLog(50, nil), nil, nil), authTokens, testLogger, nil)
 
 	accountID := createAccount(t, handler, "integration-owner")
 
@@ -1526,7 +1381,7 @@ func TestSystemStatusModules(t *testing.T) {
 			{Name: "svc-automation", Domain: "automation", Category: "data", Status: "failed", Error: "boom"},
 		}
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
 
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
@@ -1571,7 +1426,7 @@ func TestSystemStatusModuleSummaryUsesInterfaces(t *testing.T) {
 			},
 		}
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
 
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
@@ -1625,7 +1480,7 @@ func TestSystemStatusAPISummary(t *testing.T) {
 			},
 		}
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
 
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
@@ -1690,7 +1545,7 @@ func TestSystemStatusRespectsEngineCapabilities(t *testing.T) {
 
 	modulesFn := EngineModuleProvider(eng)
 
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
 
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
@@ -1723,7 +1578,7 @@ func TestSystemStatusModuleMeta(t *testing.T) {
 			{Name: "svc-stop", Status: "stop-error", Ready: "ready", StopNanos: 4_000_000, StartedAt: &start, StoppedAt: &stop},
 		}
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
 
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
@@ -1769,7 +1624,7 @@ func TestSystemStatusSlowThresholdEnv(t *testing.T) {
 			{Name: "svc-ok", Status: "started", Ready: "ready", StartNanos: 2_500_000_000, StartedAt: &start},
 		}
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
 
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/system/status", nil))
@@ -1797,7 +1652,7 @@ func TestSystemStatusSlowThresholdEnv(t *testing.T) {
 func TestSystemStatusIncludesListenAddr(t *testing.T) {
 	application := newTestApplication(t)
 	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil,
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil,
 		WithListenAddrProvider(func() string { return "127.0.0.1:1234" })),
 		authTokens, testLogger, nil)
 
@@ -1817,7 +1672,7 @@ func TestSystemStatusIncludesListenAddr(t *testing.T) {
 func TestSystemStatusMethodGuard(t *testing.T) {
 	application := newTestApplication(t)
 	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
 
 	okResp := httptest.NewRecorder()
 	handler.ServeHTTP(okResp, authedRequest(http.MethodGet, "/system/status", nil))
@@ -1838,7 +1693,7 @@ func TestSystemBusEvents(t *testing.T) {
 		gotPayload = payload
 		return nil
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(publish, nil, nil)), nil, testLogger, staticAdminValidator{})
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil, WithBusEndpoints(publish, nil, nil)), nil, testLogger, staticAdminValidator{})
 
 	resp := httptest.NewRecorder()
 	body := marshal(map[string]any{
@@ -1858,7 +1713,7 @@ func TestSystemBusEvents(t *testing.T) {
 func TestSystemBusEventsMethodGuard(t *testing.T) {
 	application := newTestApplication(t)
 	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), nil, testLogger, staticAdminValidator{})
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil), nil, testLogger, staticAdminValidator{})
 
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, adminRequest(http.MethodGet, "/system/events", nil))
@@ -1879,7 +1734,7 @@ func TestSystemBusCompute(t *testing.T) {
 			{Module: "compute-fail", Error: "boom"},
 		}, fmt.Errorf("aggregate failure")
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, nil, invoker)), nil, testLogger, staticAdminValidator{})
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, nil, invoker)), nil, testLogger, staticAdminValidator{})
 
 	resp := httptest.NewRecorder()
 	body := marshal(map[string]any{"payload": map[string]any{"job": 1}})
@@ -1905,7 +1760,7 @@ func TestSystemBusCompute(t *testing.T) {
 func TestAuthLoginMethodGuard(t *testing.T) {
 	application := newTestApplication(t)
 	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil), authTokens, testLogger, nil)
 
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/auth/login", nil))
@@ -1925,7 +1780,7 @@ func TestSystemBusData(t *testing.T) {
 		gotPayload = payload
 		return nil
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, push, nil)), nil, testLogger, staticAdminValidator{})
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil, WithBusEndpoints(nil, push, nil)), nil, testLogger, staticAdminValidator{})
 
 	resp := httptest.NewRecorder()
 	body := marshal(map[string]any{
@@ -1942,7 +1797,7 @@ func TestSystemBusData(t *testing.T) {
 func TestSystemBusPayloadLimit(t *testing.T) {
 	application := newTestApplication(t)
 	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(func(ctx context.Context, event string, payload any) error {
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil, WithBusEndpoints(func(ctx context.Context, event string, payload any) error {
 		return nil
 	}, nil, nil), WithBusMaxBytes(32)), nil, testLogger, staticAdminValidator{})
 
@@ -1960,7 +1815,7 @@ func TestSystemBusPayloadLimit(t *testing.T) {
 func TestSystemBusRequiresAdminRole(t *testing.T) {
 	application := newTestApplication(t)
 	audit := newAuditLog(10, nil)
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, nil, WithBusEndpoints(func(ctx context.Context, event string, payload any) error {
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, nil, WithBusEndpoints(func(ctx context.Context, event string, payload any) error {
 		return nil
 	}, nil, nil)), authTokens, testLogger, nil)
 
@@ -1983,7 +1838,7 @@ func TestReadyzAndLivez(t *testing.T) {
 			{Name: "svc-bad", Ready: "not-ready", Error: "boom"},
 		}
 	}
-	handler := wrapWithAuth(NewHandler(application, jam.Config{}, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
+	handler := wrapWithAuth(NewHandler(application, authTokens, nil, audit, nil, modulesFn), authTokens, testLogger, nil)
 
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, authedRequest(http.MethodGet, "/livez", nil))

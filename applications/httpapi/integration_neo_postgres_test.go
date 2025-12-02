@@ -16,7 +16,6 @@ import (
 
 	app "github.com/R3E-Network/service_layer/applications"
 	"github.com/R3E-Network/service_layer/applications/auth"
-	"github.com/R3E-Network/service_layer/applications/jam"
 	"github.com/R3E-Network/service_layer/pkg/storage/postgres"
 	"github.com/R3E-Network/service_layer/system/platform/database"
 	"github.com/R3E-Network/service_layer/system/platform/migrations"
@@ -125,7 +124,7 @@ func TestIntegrationNeoPostgres(t *testing.T) {
 	tokens := []string{"dev-token"}
 	authMgr := auth.NewManager("integration-secret", []auth.User{{Username: "admin", Password: "pass", Role: "admin"}})
 	auditBuf := newAuditLog(10, nil)
-	handler := NewHandler(appInstance, jam.Config{}, tokens, authMgr, auditBuf, newNeoReader(db, snapDir, ""), nil)
+	handler := NewHandler(appInstance, tokens, authMgr, auditBuf, newNeoReader(db, snapDir, ""), nil)
 	handler = wrapWithAuth(handler, tokens, nil, authMgr)
 	handler = wrapWithAudit(handler, auditBuf)
 	handler = wrapWithCORS(handler)

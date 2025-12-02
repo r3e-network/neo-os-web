@@ -619,8 +619,8 @@ import (
 
     "engine "github.com/R3E-Network/service_layer/system/core""
     "engine "github.com/R3E-Network/service_layer/system/core"/runtime"
-    "github.com/R3E-Network/service_layer/packages/com.r3e.services.accounts"
-    "github.com/R3E-Network/service_layer/packages/com.r3e.services.functions"
+    "github.com/R3E-Network/service_layer/service/com.r3e.services.accounts"
+    "github.com/R3E-Network/service_layer/service/com.r3e.services.functions"
     "github.com/R3E-Network/service_layer/pkg/logger"
 )
 

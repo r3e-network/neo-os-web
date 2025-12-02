@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sync"
 	"time"
@@ -9,6 +10,7 @@ import (
 	engine "github.com/R3E-Network/service_layer/system/core"
 	"github.com/R3E-Network/service_layer/system/framework"
 	core "github.com/R3E-Network/service_layer/system/framework/core"
+	"github.com/R3E-Network/service_layer/system/sandbox"
 )
 
 // loader is the default implementation of PackageLoader.
@@ -19,6 +21,11 @@ type loader struct {
 	storeProvider StoreProvider             // shared store provider for all packages
 	tracer        core.Tracer
 	metrics       framework.Metrics
+
+	// Sandbox integration (optional - for enhanced isolation)
+	sandboxManager *sandbox.Manager
+	useSandbox     bool // feature flag for sandbox mode
+	db             *sql.DB
 }
 
 // PackageFactory creates a ServicePackage instance.
@@ -54,6 +61,48 @@ func NewPackageLoaderWithStores(stores StoreProvider) PackageLoader {
 		tracer:        core.NoopTracer,
 		metrics:       framework.NoopMetrics(),
 	}
+}
+
+// NewSandboxedPackageLoader creates a package loader with sandbox isolation enabled.
+// This provides Android-style service isolation for enhanced security.
+func NewSandboxedPackageLoader(db *sql.DB, stores StoreProvider) PackageLoader {
+	sandboxMgr := sandbox.NewManager(db, sandbox.DefaultManagerConfig())
+	return &loader{
+		installed:      make(map[string]*installedPackageRecord),
+		factories:      make(map[string]PackageFactory),
+		storeProvider:  stores,
+		tracer:         core.NoopTracer,
+		metrics:        framework.NoopMetrics(),
+		sandboxManager: sandboxMgr,
+		useSandbox:     true,
+		db:             db,
+	}
+}
+
+// EnableSandbox enables sandbox mode for the loader.
+// Must be called before installing packages.
+func (l *loader) EnableSandbox(db *sql.DB) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.sandboxManager == nil {
+		l.sandboxManager = sandbox.NewManager(db, sandbox.DefaultManagerConfig())
+	}
+	l.db = db
+	l.useSandbox = true
+}
+
+// DisableSandbox disables sandbox mode (for backward compatibility).
+func (l *loader) DisableSandbox() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.useSandbox = false
+}
+
+// SandboxManager returns the sandbox manager (nil if sandbox not enabled).
+func (l *loader) SandboxManager() *sandbox.Manager {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.sandboxManager
 }
 
 // SetStoreProvider sets the store provider for the loader.
@@ -146,18 +195,47 @@ func (l *loader) InstallPackage(ctx context.Context, pkg ServicePackage, eng *en
 		return fmt.Errorf("missing required permissions: %v", missing)
 	}
 
-	// Create package runtime
+	// Create package runtime (sandbox or legacy mode)
 	config := NewPackageConfig(nil) // TODO: Load from config file
-	runtime := NewPackageRuntime(manifest.PackageID, manifest, eng, config, permissions, l.storeProvider, l.tracer, l.metrics)
+	var runtime PackageRuntime
+
+	if l.useSandbox && l.sandboxManager != nil {
+		// Create sandboxed runtime with Android-style isolation
+		sandboxedRuntime, err := NewSandboxedRuntime(ctx, l.sandboxManager, SandboxedRuntimeConfig{
+			PackageID:     manifest.PackageID,
+			Manifest:      manifest,
+			Engine:        eng,
+			Config:        config,
+			StoreProvider: l.storeProvider,
+			Tracer:        l.tracer,
+			Metrics:       l.metrics,
+			DB:            l.db,
+		})
+		if err != nil {
+			return fmt.Errorf("create sandboxed runtime: %w", err)
+		}
+		runtime = sandboxedRuntime
+	} else {
+		// Legacy runtime (backward compatibility)
+		runtime = NewPackageRuntime(manifest.PackageID, manifest, eng, config, permissions, l.storeProvider, l.tracer, l.metrics)
+	}
 
 	// Call OnInstall hook
 	if err := pkg.OnInstall(ctx, runtime); err != nil {
+		// Cleanup sandbox on failure
+		if l.useSandbox && l.sandboxManager != nil {
+			_ = l.sandboxManager.DestroySandbox(ctx, manifest.PackageID)
+		}
 		return fmt.Errorf("install hook failed: %w", err)
 	}
 
 	// Create services
 	services, err := pkg.CreateServices(ctx, runtime)
 	if err != nil {
+		// Cleanup sandbox on failure
+		if l.useSandbox && l.sandboxManager != nil {
+			_ = l.sandboxManager.DestroySandbox(ctx, manifest.PackageID)
+		}
 		return fmt.Errorf("create services failed: %w", err)
 	}
 	env := NewServiceEnvironment(runtime)
@@ -174,6 +252,10 @@ func (l *loader) InstallPackage(ctx context.Context, pkg ServicePackage, eng *en
 			// Rollback: unregister already registered services
 			for _, name := range serviceNames {
 				_ = eng.Unregister(name)
+			}
+			// Cleanup sandbox on failure
+			if l.useSandbox && l.sandboxManager != nil {
+				_ = l.sandboxManager.DestroySandbox(ctx, manifest.PackageID)
 			}
 			return fmt.Errorf("register service %s: %w", svc.Name(), err)
 		}
@@ -213,6 +295,16 @@ func (l *loader) UninstallPackage(ctx context.Context, packageID string, eng *en
 			// Log but continue
 			if log := eng.Logger(); log != nil {
 				log.Printf("warning: failed to unregister service %s: %v", svcName, err)
+			}
+		}
+	}
+
+	// Destroy sandbox if enabled
+	if l.useSandbox && l.sandboxManager != nil {
+		if err := l.sandboxManager.DestroySandbox(ctx, packageID); err != nil {
+			// Log but continue - sandbox may not exist for legacy packages
+			if log := eng.Logger(); log != nil {
+				log.Printf("warning: failed to destroy sandbox for %s: %v", packageID, err)
 			}
 		}
 	}

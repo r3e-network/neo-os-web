@@ -32,7 +32,7 @@ as the single source of truth for the platform.
 | Accounts | [API Examples](examples/services.md#accounts) | Account management |
 | Functions | [API Examples](examples/services.md#functions) | Serverless function execution |
 | Automation | [Automation Guide](examples/automation.md) | Cron-style job scheduling |
-| Triggers | [Triggers Guide](examples/triggers.md) | Event/webhook routing |
+| Triggers | [Automation Guide](examples/automation.md) | Event/webhook routing |
 | Secrets | [Secrets Guide](examples/secrets.md) | Encrypted secret storage |
 
 ### Oracle & Data Services
@@ -40,15 +40,15 @@ as the single source of truth for the platform.
 |---------|----------|-------------|
 | Oracle | [API Examples](examples/services.md#oracle-http-adapter) | HTTP data adapters |
 | DataFeeds | [DataFeeds Quickstart](examples/datafeeds.md) | Chainlink-style signed feeds |
-| PriceFeeds | [PriceFeeds Quickstart](examples/pricefeeds.md) | Deviation-based price aggregation |
+| PriceFeeds | [API Examples](examples/services.md#pricefeeds) | Deviation-based price aggregation |
 | DataStreams | [API Examples](examples/services.md#data-streams) | Real-time data streams |
 | DataLink | [DataLink Quickstart](examples/datalink.md) | Data delivery channels |
 
 ### Randomness Services
 | Service | Tutorial | Description |
 |---------|----------|-------------|
-| Random | [Randomness Guide](examples/randomness.md#random-service) | ED25519 signed random |
-| VRF | [Randomness Guide](examples/randomness.md#vrf-service) | Verifiable random functions |
+| Random | [API Examples](examples/services.md#randomness) | ED25519 signed random |
+| VRF | [API Examples](examples/services.md#randomness) | Verifiable random functions |
 
 ### Financial Services
 | Service | Tutorial | Description |
@@ -134,11 +134,13 @@ pkg/              # Shared libraries (storage, supabase, pgnotify, blob)
 - [NEO Contract Set](neo-n3-contract-set.md) - Smart contract layout
 - [Contract ↔ Service Alignment](neo-contracts-alignment.md) - Field mappings
 
-### JAM Integration
-- [JAM Integration Design](jam/polkadot-jam-integration-design.md) - Overview
-- [JAM Accumulator Plan](jam/jam-accumulator-plan.md) - Implementation plan
-- [JAM Receipts and Roots](jam/jam-receipts-and-roots.md) - Receipt system
-- [JAM Hardening](jam/jam-hardening.md) - Security hardening
+### TEE & Enclave Security
+- [Enclave Attestation](enclave-attestation.md) - SGX remote attestation and enclave verification
+- [Confidential Computing](examples/confidential.md) - TEE enclave management
+
+### Service Isolation & Security
+- [Sandbox Architecture](sandbox-architecture.md) - **NEW**: Android-style service isolation and IPC security
+
 
 ---
 

@@ -18,7 +18,6 @@ import (
 	app "github.com/R3E-Network/service_layer/applications"
 	"github.com/R3E-Network/service_layer/applications/auth"
 	"github.com/R3E-Network/service_layer/applications/httpapi"
-	"github.com/R3E-Network/service_layer/applications/jam"
 	"github.com/R3E-Network/service_layer/pkg/blob"
 	"github.com/R3E-Network/service_layer/pkg/config"
 	"github.com/R3E-Network/service_layer/pkg/logger"
@@ -213,11 +212,6 @@ func main() {
 		tokens = cfg.Auth.Tokens
 	}
 
-	// Configure JAM (disabled by default)
-	jamCfg := jam.Config{
-		Enabled: false,
-	}
-
 	// Create auth manager
 	authMgr := auth.NewManager("", nil)
 
@@ -270,7 +264,6 @@ func main() {
 		engineApp,
 		listenAddr,
 		tokens,
-		jamCfg,
 		authMgr,
 		jwtValidator,
 		appLogger,

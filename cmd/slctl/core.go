@@ -97,8 +97,6 @@ func run(ctx context.Context, args []string) error {
 		return handleConfCompute(ctx, client, remaining[1:])
 	case "workspace-wallets":
 		return handleWorkspaceWallets(ctx, client, remaining[1:])
-	case "jam":
-		return handleJAM(ctx, client, remaining[1:])
 	case "status":
 		return handleStatus(ctx, client, remaining[1:])
 	case "tenant":
@@ -162,7 +160,6 @@ Commands:
   datastreams  Inspect stream configurations and frames
   confcompute  Inspect confidential-compute enclaves
   workspace-wallets Inspect linked signing wallets
-  jam          Interact with JAM prototype (preimages, packages, reports)
   services     Introspect service descriptors
   bus          Publish events, push data, and invoke compute fan-out (admin only)
   audit        Fetch recent audit entries (admin JWT required)

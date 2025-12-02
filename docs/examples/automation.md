@@ -234,5 +234,4 @@ curl -s -X POST $API/accounts/$ACCOUNT_ID/automation/jobs \
 ## Related Documentation
 
 - [Functions Service](../service-catalog.md#2-functions-service)
-- [Triggers Service](triggers.md)
 - [Service Catalog](../service-catalog.md)

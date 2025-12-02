@@ -456,7 +456,7 @@ func TestNextRunFromSpec_Every(t *testing.T) {
 ### Creating a Job
 
 ```go
-import "github.com/R3E-Network/service_layer/packages/com.r3e.services.automation"
+import "github.com/R3E-Network/service_layer/service/com.r3e.services.automation"
 
 // Initialize service
 svc := automation.New(accountChecker, store, logger)

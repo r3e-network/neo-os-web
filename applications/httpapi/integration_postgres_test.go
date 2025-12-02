@@ -15,7 +15,6 @@ import (
 
 	app "github.com/R3E-Network/service_layer/applications"
 	"github.com/R3E-Network/service_layer/applications/auth"
-	"github.com/R3E-Network/service_layer/applications/jam"
 	"github.com/R3E-Network/service_layer/pkg/storage/postgres"
 	"github.com/R3E-Network/service_layer/system/platform/database"
 	"github.com/R3E-Network/service_layer/system/platform/migrations"
@@ -74,7 +73,7 @@ func TestIntegrationPostgres(t *testing.T) {
 	tokens := []string{"dev-token"}
 	authMgr := auth.NewManager("integration-secret", []auth.User{{Username: "admin", Password: "pass", Role: "admin"}})
 	auditBuf := newAuditLog(100, newPostgresAuditSink(db))
-	handler := NewHandler(appInstance, jam.Config{}, tokens, authMgr, auditBuf, nil, nil)
+	handler := NewHandler(appInstance, tokens, authMgr, auditBuf, nil, nil)
 	handler = wrapWithAuth(handler, tokens, nil, authMgr)
 	handler = wrapWithAudit(handler, auditBuf)
 	handler = wrapWithCORS(handler)

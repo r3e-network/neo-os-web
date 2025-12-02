@@ -264,7 +264,7 @@ DELETE /secrets/{name}
 
 ```go
 import (
-    "github.com/R3E-Network/service_layer/packages/com.r3e.services.secrets"
+    "github.com/R3E-Network/service_layer/service/com.r3e.services.secrets"
 )
 
 // Basic setup (noop cipher)

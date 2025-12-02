@@ -355,7 +355,7 @@ package main
 
 import (
     "context"
-    "github.com/R3E-Network/service_layer/packages/com.r3e.services.dta"
+    "github.com/R3E-Network/service_layer/service/com.r3e.services.dta"
     "github.com/R3E-Network/service_layer/pkg/logger"
 )
 
