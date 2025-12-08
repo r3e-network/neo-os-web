@@ -11,6 +11,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -81,6 +82,16 @@ type RPCError struct {
 
 func (e *RPCError) Error() string {
 	return fmt.Sprintf("RPC error %d: %s", e.Code, e.Message)
+}
+
+func isNotFoundError(err error) bool {
+	if rpcErr, ok := err.(*RPCError); ok {
+		msg := strings.ToLower(rpcErr.Message)
+		if strings.Contains(msg, "unknown transaction") || rpcErr.Code == -100 {
+			return true
+		}
+	}
+	return false
 }
 
 // =============================================================================
@@ -254,6 +265,50 @@ func (c *Client) SendRawTransaction(ctx context.Context, txHex string) (string, 
 		return "", err
 	}
 	return response.Hash, nil
+}
+
+// WaitForApplicationLog polls for a transaction application log until it is available or context is done.
+// A missing transaction is treated as transient and retried until the context deadline/timeout expires.
+func (c *Client) WaitForApplicationLog(ctx context.Context, txHash string, pollInterval time.Duration) (*ApplicationLog, error) {
+	if pollInterval <= 0 {
+		pollInterval = 2 * time.Second
+	}
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			log, err := c.GetApplicationLog(ctx, txHash)
+			if err != nil {
+				if isNotFoundError(err) {
+					continue
+				}
+				return nil, err
+			}
+			return log, nil
+		}
+	}
+}
+
+// SendRawTransactionAndWait broadcasts a signed transaction and waits for its application log.
+// If waitTimeout is 0, a default of 60s is used. pollInterval <=0 defaults to 2s.
+func (c *Client) SendRawTransactionAndWait(ctx context.Context, txHex string, pollInterval, waitTimeout time.Duration) (*ApplicationLog, error) {
+	txHash, err := c.SendRawTransaction(ctx, txHex)
+	if err != nil {
+		return nil, err
+	}
+
+	if waitTimeout <= 0 {
+		waitTimeout = 60 * time.Second
+	}
+
+	wctx, cancel := context.WithTimeout(ctx, waitTimeout)
+	defer cancel()
+
+	return c.WaitForApplicationLog(wctx, txHash, pollInterval)
 }
 
 // =============================================================================
