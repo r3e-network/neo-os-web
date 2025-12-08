@@ -2,6 +2,7 @@
 package secrets
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -18,6 +19,8 @@ func (s *Service) registerRoutes() {
 	r.HandleFunc("/secrets", s.handleListSecrets).Methods("GET")
 	r.HandleFunc("/secrets", s.handleCreateSecret).Methods("POST")
 	r.HandleFunc("/secrets/{name}", s.handleGetSecret).Methods("GET")
+	r.HandleFunc("/secrets/{name}/permissions", s.handleGetSecretPermissions).Methods("GET")
+	r.HandleFunc("/secrets/{name}/permissions", s.handleSetSecretPermissions).Methods("PUT")
 }
 
 // marbleHealth wraps the base health handler without importing marble in this file.
@@ -103,6 +106,8 @@ func (s *Service) handleCreateSecret(w http.ResponseWriter, r *http.Request) {
 		httputil.InternalError(w, "failed to store secret")
 		return
 	}
+	// Reset permissions to empty on create
+	_ = s.db.SetSecretPolicies(r.Context(), userID, input.Name, nil)
 
 	httputil.WriteJSON(w, http.StatusCreated, SecretRecord{
 		ID:        rec.ID,
@@ -146,6 +151,19 @@ func (s *Service) handleGetSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If a service is calling, enforce per-secret policy.
+	if svc := r.Header.Get(ServiceIDHeader); svc != "" {
+		allowed, err := s.isServiceAllowedForSecret(r.Context(), userID, name, svc)
+		if err != nil {
+			httputil.InternalError(w, "failed to check permissions")
+			return
+		}
+		if !allowed {
+			httputil.Unauthorized(w, "service not allowed for secret")
+			return
+		}
+	}
+
 	plain, err := s.decrypt(rec.EncryptedValue)
 	if err != nil {
 		httputil.InternalError(w, "failed to decrypt secret")
@@ -172,4 +190,68 @@ func (s *Service) authorizeServiceCaller(w http.ResponseWriter, r *http.Request)
 		return false
 	}
 	return true
+}
+
+func (s *Service) isServiceAllowedForSecret(ctx context.Context, userID, secretName, serviceID string) (bool, error) {
+	policies, err := s.db.GetSecretPolicies(ctx, userID, secretName)
+	if err != nil {
+		return false, err
+	}
+	for _, svc := range policies {
+		if strings.EqualFold(svc, serviceID) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// handleGetSecretPermissions lists allowed services for a secret (user only).
+func (s *Service) handleGetSecretPermissions(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
+		return
+	}
+	if r.Header.Get(ServiceIDHeader) != "" {
+		httputil.Unauthorized(w, "only user may manage permissions")
+		return
+	}
+	name := mux.Vars(r)["name"]
+	if name == "" {
+		httputil.BadRequest(w, "name required")
+		return
+	}
+	policies, err := s.db.GetSecretPolicies(r.Context(), userID, name)
+	if err != nil {
+		httputil.InternalError(w, "failed to load permissions")
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, map[string]any{"services": policies})
+}
+
+// handleSetSecretPermissions replaces the allowed service list (user only).
+func (s *Service) handleSetSecretPermissions(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
+		return
+	}
+	if r.Header.Get(ServiceIDHeader) != "" {
+		httputil.Unauthorized(w, "only user may manage permissions")
+		return
+	}
+	name := mux.Vars(r)["name"]
+	if name == "" {
+		httputil.BadRequest(w, "name required")
+		return
+	}
+	var body struct {
+		Services []string `json:"services"`
+	}
+	if !httputil.DecodeJSON(w, r, &body) {
+		return
+	}
+	if err := s.db.SetSecretPolicies(r.Context(), userID, name, body.Services); err != nil {
+		httputil.InternalError(w, "failed to set permissions")
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, map[string]any{"services": body.Services})
 }

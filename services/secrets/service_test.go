@@ -13,13 +13,27 @@ import (
 
 // mockRepo only satisfies the methods we call; no persistence needed for auth tests.
 type mockRepo struct {
-	secrets []database.Secret
+	secrets  []database.Secret
+	policies map[string][]string
 }
 
 func (m *mockRepo) GetSecrets(_ context.Context, _ string) ([]database.Secret, error) {
 	return m.secrets, nil
 }
 func (m *mockRepo) CreateSecret(_ context.Context, _ *database.Secret) error { return nil }
+func (m *mockRepo) GetSecretPolicies(_ context.Context, _ string, name string) ([]string, error) {
+	if m.policies == nil {
+		return nil, nil
+	}
+	return m.policies[name], nil
+}
+func (m *mockRepo) SetSecretPolicies(_ context.Context, _ string, name string, services []string) error {
+	if m.policies == nil {
+		m.policies = map[string][]string{}
+	}
+	m.policies[name] = services
+	return nil
+}
 
 func newTestService(t *testing.T) *Service {
 	t.Helper()
