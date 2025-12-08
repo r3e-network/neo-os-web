@@ -42,6 +42,8 @@ type Service struct {
 type Store interface {
 	GetSecrets(ctx context.Context, userID string) ([]database.Secret, error)
 	CreateSecret(ctx context.Context, secret *database.Secret) error
+	GetSecretPolicies(ctx context.Context, userID, name string) ([]string, error)
+	SetSecretPolicies(ctx context.Context, userID, name string, services []string) error
 }
 
 // Config configures the Secrets service.

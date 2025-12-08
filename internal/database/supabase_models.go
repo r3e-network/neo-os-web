@@ -42,6 +42,15 @@ type Secret struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
+// SecretPolicy represents an allowed service for a secret.
+type SecretPolicy struct {
+	ID         string    `json:"id"`
+	UserID     string    `json:"user_id"`
+	SecretName string    `json:"secret_name"`
+	ServiceID  string    `json:"service_id"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
 // ServiceRequest represents a service request.
 type ServiceRequest struct {
 	ID          string          `json:"id"`
