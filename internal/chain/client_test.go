@@ -6,7 +6,9 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewClient(t *testing.T) {
@@ -221,6 +223,62 @@ func TestParseByteArray(t *testing.T) {
 	}
 	if string(result) != "Hello" {
 		t.Errorf("Expected 'Hello', got %q", string(result))
+	}
+}
+
+func TestSendRawTransactionAndWait(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req RPCRequest
+		json.NewDecoder(r.Body).Decode(&req)
+		callCount++
+
+		switch req.Method {
+		case "sendrawtransaction":
+			json.NewEncoder(w).Encode(RPCResponse{JSONRPC: "2.0", ID: req.ID, Result: json.RawMessage(`{"hash":"0xabc"}`)})
+		case "getapplicationlog":
+			if callCount < 3 {
+				json.NewEncoder(w).Encode(RPCResponse{JSONRPC: "2.0", ID: req.ID, Error: &RPCError{Code: -100, Message: "Unknown transaction"}})
+				return
+			}
+			log := ApplicationLog{TxID: "0xabc", Executions: []Execution{{VMState: "HALT"}}}
+			raw, _ := json.Marshal(log)
+			json.NewEncoder(w).Encode(RPCResponse{JSONRPC: "2.0", ID: req.ID, Result: raw})
+		default:
+			json.NewEncoder(w).Encode(RPCResponse{JSONRPC: "2.0", ID: req.ID, Error: &RPCError{Code: -1, Message: "unknown"}})
+		}
+	}))
+	defer server.Close()
+
+	client, _ := NewClient(Config{RPCURL: server.URL})
+	ctx := context.Background()
+	log, err := client.SendRawTransactionAndWait(ctx, "deadbeef", time.Millisecond*10, time.Second)
+	if err != nil {
+		t.Fatalf("SendRawTransactionAndWait error: %v", err)
+	}
+	if log.TxID != "0xabc" || len(log.Executions) != 1 || log.Executions[0].VMState != "HALT" {
+		t.Fatalf("unexpected log %+v", log)
+	}
+}
+
+func TestWaitForApplicationLogTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req RPCRequest
+		json.NewDecoder(r.Body).Decode(&req)
+		if req.Method == "getapplicationlog" {
+			json.NewEncoder(w).Encode(RPCResponse{JSONRPC: "2.0", ID: req.ID, Error: &RPCError{Code: -100, Message: "Unknown transaction"}})
+			return
+		}
+		json.NewEncoder(w).Encode(RPCResponse{JSONRPC: "2.0", ID: req.ID, Result: json.RawMessage(`{"hash":"0xabc"}`)})
+	}))
+	defer server.Close()
+
+	client, _ := NewClient(Config{RPCURL: server.URL})
+	wctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+	defer cancel()
+	_, err := client.WaitForApplicationLog(wctx, "0xabc", time.Millisecond*10)
+	if err == nil || !strings.Contains(err.Error(), "deadline exceeded") {
+		t.Fatalf("expected timeout error, got %v", err)
 	}
 }
 
