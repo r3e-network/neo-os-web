@@ -11,6 +11,8 @@ This repo now uses a shared `pool_accounts` table managed by the AccountPool ser
   - Adds missing `locked_by` and `locked_at` columns.
   - Ensures lock/retiring indexes exist.
 - No data is dropped; rows are preserved.
+- Apply `007_secret_permissions.sql` for per-secret service allowlists.
+- Apply `008_cleanup_legacy_pool.sql` to drop any leftover `mixer_pool_accounts` table after the rename/lock-column migration.
 
 ## Verification checklist
 - Table `pool_accounts` exists with columns: `id`, `address`, `balance`, `created_at`, `last_used_at`, `tx_count`, `is_retiring`, `locked_by`, `locked_at`.
