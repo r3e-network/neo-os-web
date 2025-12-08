@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/deploy/testnet"
+	"github.com/R3E-Network/service_layer/internal/chain"
 )
 
 var contracts = []string{
@@ -67,7 +68,7 @@ func main() {
 		return
 	}
 
-	result := testnet.DeploymentResult{
+	result := chain.DeploymentResult{
 		Network:  "testnet",
 		Deployer: deployer.GetAddress(),
 	}

@@ -33,19 +33,7 @@ type Deployer struct {
 	client     *http.Client
 }
 
-type DeployedContract struct {
-	Name        string `json:"name"`
-	Hash        string `json:"hash"`
-	TxHash      string `json:"tx_hash"`
-	GasConsumed string `json:"gas_consumed"`
-	DeployedAt  string `json:"deployed_at"`
-}
-
-type DeploymentResult struct {
-	Contracts []DeployedContract `json:"contracts"`
-	Network   string             `json:"network"`
-	Deployer  string             `json:"deployer"`
-}
+// DeployedContract and DeploymentResult are imported from internal/chain package
 
 func NewDeployer(rpcURL string) (*Deployer, error) {
 	if rpcURL == "" {
@@ -185,7 +173,7 @@ func (d *Deployer) GetBlockCount() (int64, error) {
 
 // DeployContract simulates deployment and returns estimated gas costs.
 // For actual deployment, use neo-go CLI.
-func (d *Deployer) DeployContract(nefPath, manifestPath string) (*DeployedContract, error) {
+func (d *Deployer) DeployContract(nefPath, manifestPath string) (*chain.DeployedContract, error) {
 	nefData, err := os.ReadFile(nefPath)
 	if err != nil {
 		return nil, fmt.Errorf("read nef: %w", err)
@@ -236,7 +224,7 @@ func (d *Deployer) DeployContract(nefPath, manifestPath string) (*DeployedContra
 	json.Unmarshal(manifestData, &m)
 	contractHash := CalculateContractHash(d.GetAccountHash(), nefFile.Checksum, m.Name)
 
-	return &DeployedContract{
+	return &chain.DeployedContract{
 		Hash:        "0x" + contractHash.StringLE(),
 		GasConsumed: invokeResult.GasConsumed,
 	}, nil

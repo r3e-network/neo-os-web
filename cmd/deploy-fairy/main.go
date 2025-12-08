@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/chain"
 	"github.com/R3E-Network/service_layer/test/fairy"
 )
 
@@ -21,19 +22,7 @@ var coreContracts = []string{
 	"AutomationService",
 }
 
-type DeployedContract struct {
-	Name        string `json:"name"`
-	Hash        string `json:"hash"`
-	GasConsumed string `json:"gas_consumed"`
-	State       string `json:"state"`
-}
-
-type DeploymentResult struct {
-	SessionID string             `json:"session_id"`
-	Contracts []DeployedContract `json:"contracts"`
-	Account   string             `json:"account"`
-	Timestamp string             `json:"timestamp"`
-}
+// DeployedContract and DeploymentResult are imported from internal/chain package
 
 func main() {
 	fairyURL := flag.String("fairy", "http://127.0.0.1:16868", "Fairy RPC URL")
@@ -76,7 +65,7 @@ func main() {
 		}()
 	}
 
-	result := DeploymentResult{
+	result := chain.DeploymentResult{
 		SessionID: sessionID,
 		Account:   accountHash,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
@@ -99,7 +88,7 @@ func main() {
 			continue
 		}
 
-		contract := DeployedContract{
+		contract := chain.DeployedContract{
 			Name:        name,
 			Hash:        deployed.ContractHash,
 			GasConsumed: deployed.GasConsumed,

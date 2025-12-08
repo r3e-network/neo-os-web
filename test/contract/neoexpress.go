@@ -12,6 +12,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/R3E-Network/service_layer/internal/chain"
 )
 
 const (
@@ -27,11 +29,7 @@ type NeoExpress struct {
 	rpcURL  string
 }
 
-type DeployedContract struct {
-	Name    string
-	Hash    string
-	Address string
-}
+// DeployedContract is imported from internal/chain package
 
 func NewNeoExpress(t *testing.T) *NeoExpress {
 	t.Helper()
@@ -140,7 +138,7 @@ func (n *NeoExpress) TransferGAS(from, to string, amount float64) error {
 	return nil
 }
 
-func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*DeployedContract, error) {
+func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*chain.DeployedContract, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -155,7 +153,7 @@ func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*DeployedCon
 			parts := strings.Fields(line)
 			for _, part := range parts {
 				if strings.HasPrefix(part, "0x") && len(part) == 42 {
-					return &DeployedContract{
+					return &chain.DeployedContract{
 						Hash: part,
 					}, nil
 				}
@@ -163,7 +161,7 @@ func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*DeployedCon
 		}
 	}
 
-	return &DeployedContract{}, nil
+	return &chain.DeployedContract{}, nil
 }
 
 func (n *NeoExpress) Invoke(contract, method string, args ...interface{}) (string, error) {
