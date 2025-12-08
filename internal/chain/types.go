@@ -165,3 +165,28 @@ type TxResult struct {
 	AppLog  *ApplicationLog // Application log (nil if wait=false)
 	VMState string          // VM state from execution (HALT = success)
 }
+
+// =============================================================================
+// Deployment Types
+// =============================================================================
+
+// DeployedContract represents a deployed smart contract.
+type DeployedContract struct {
+	Name        string `json:"name,omitempty"`
+	Hash        string `json:"hash"`
+	Address     string `json:"address,omitempty"`
+	TxHash      string `json:"tx_hash,omitempty"`
+	GasConsumed string `json:"gas_consumed,omitempty"`
+	State       string `json:"state,omitempty"`
+	DeployedAt  string `json:"deployed_at,omitempty"`
+}
+
+// DeploymentResult represents the result of a contract deployment operation.
+type DeploymentResult struct {
+	Contracts []DeployedContract `json:"contracts"`
+	Network   string             `json:"network,omitempty"`
+	Deployer  string             `json:"deployer,omitempty"`
+	SessionID string             `json:"session_id,omitempty"`
+	Account   string             `json:"account,omitempty"`
+	Timestamp string             `json:"timestamp,omitempty"`
+}
