@@ -1,214 +1,486 @@
 # Neo Service Layer
 
-A production-grade confidential computing platform for Neo N3 blockchain services.
+A production-ready, TEE-protected service layer for Neo N3 blockchain, built with **MarbleRun**, **EGo**, **Supabase**, and **Netlify**.
 
-## Architecture
-
-**Stack**: MarbleRun + EGo + Supabase + Netlify + Neo N3
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Frontend (React + Netlify)                   │
-│  • TypeScript + Vite + TailwindCSS                              │
-│  • Supabase Auth (OAuth, Email/Password)                        │
-│  • Supabase Realtime (WebSocket subscriptions)                  │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ HTTPS
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Supabase (PostgreSQL)                        │
-│  • service_requests table (14 service types)                    │
-│  • Row-Level Security (user isolation)                          │
-│  • Realtime notifications                                       │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ Polling
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              Service Layer (MarbleRun + EGo)                    │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              Coordinator (MarbleRun)                     │   │
-│  │  • Quote verification • Secret provisioning • mTLS       │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│  ┌───────────┬───────────┬───────────┬───────────┬─────────┐   │
-│  │  Oracle   │    VRF    │  Secrets  │  GasBank  │  ...    │   │
-│  │  Marble   │  Marble   │  Marble   │  Marble   │ (14)    │   │
-│  │  EGo SGX  │  EGo SGX  │  EGo SGX  │  EGo SGX  │         │   │
-│  └───────────┴───────────┴───────────┴───────────┴─────────┘   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ RPC
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       Neo N3 Blockchain                         │
-│  • Smart contracts • On-chain TEE signature verification        │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         NETLIFY (Frontend)                                   │
+│                    React + TypeScript + Vite + TailwindCSS                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │ HTTPS
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      MARBLERUN COORDINATOR                                   │
+│  • Manifest-based topology verification                                      │
+│  • Remote attestation for all Marbles                                       │
+│  • Secrets injection & certificate management                               │
+│  • Single attestation statement for entire cluster                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │ mTLS (auto-provisioned)
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
+┌─────────────────────┐ ┌─────────────────────┐ ┌─────────────────────┐
+│   GATEWAY MARBLE    │ │  SERVICE MARBLES    │ │   WORKER MARBLES    │
+│   (EGo Enclave)     │ │  (EGo Enclaves)     │ │   (EGo Enclaves)    │
+│                     │ │                     │ │                     │
+│ • API Gateway       │ │ • Oracle            │ │ • Automation Jobs   │
+│ • Auth/JWT          │ │ • VRF               │ │ • DataFeeds Push    │
+│ • Rate Limiting     │ │ • Mixer             │ │ • Event Processing  │
+│ • Request Routing   │ │ • Secrets           │ │                     │
+│                     │ │ • DataFeeds         │ │                     │
+│                     │ │ • GasBank           │ │                     │
+│                     │ │ • Automation        │ │                     │
+│                     │ │ • Confidential      │ │                     │
+│                     │ │ • Accounts          │ │                     │
+│                     │ │ • CCIP              │ │                     │
+│                     │ │ • DataLink          │ │                     │
+│                     │ │ • DataStreams       │ │                     │
+│                     │ │ • DTA               │ │                     │
+│                     │ │ • CRE               │ │                     │
+└─────────────────────┘ └─────────────────────┘ └─────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         SUPABASE (Database)                                  │
+│  • PostgreSQL with Row Level Security                                       │
+│  • Real-time subscriptions                                                  │
+│  • Auth (backup, primary is TEE-based)                                      │
+│  • Storage for encrypted blobs                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Project Structure
+## 🚀 Quick Start
 
-```
-service_layer/
-├── coordinator/           # MarbleRun Coordinator
-│   └── coordinator.go     # Quote verification, secret provisioning
-│
-├── marble/                # Marble SDK
-│   └── sdk/               # Activation, heartbeat, TLS management
-│
-├── ego/                   # EGo Runtime
-│   └── ego.go             # SGX sealing (AES-256-GCM), quotes
-│
-├── services/              # 14 Service Implementations
-│   ├── common/            # Shared interfaces and registry
-│   ├── oracle/            # External data fetching
-│   ├── vrf/               # Verifiable random functions
-│   ├── secrets/           # Encrypted secret storage
-│   ├── gasbank/           # Gas fee management
-│   ├── mixer/             # Privacy mixing
-│   ├── datafeeds/         # Price feed aggregation
-│   ├── accounts/          # Account management
-│   ├── automation/        # Task scheduling
-│   ├── ccip/              # Cross-chain messaging
-│   ├── confidential/      # Confidential compute
-│   ├── cre/               # Chainlink runtime
-│   ├── datalink/          # Data linking
-│   ├── datastreams/       # Real-time streaming
-│   └── dta/               # Data trust authority
-│
-├── supabase/              # Supabase Integration
-│   ├── client/            # Go client with resilience patterns
-│   └── migrations/        # Database schema
-│
-├── frontend/              # React Frontend (Netlify)
-│   └── src/
-│       ├── lib/           # Supabase client
-│       ├── pages/         # Service pages
-│       └── components/    # UI components
-│
-├── tee/                   # TEE Abstractions
-│   ├── enclave/           # Enclave runtime
-│   ├── vault/             # Secret management
-│   └── attestation/       # Remote attestation
-│
-└── docs/                  # Documentation
-    ├── architecture/      # Architecture docs
-    └── services/          # Per-service documentation
-```
+### Prerequisites
 
-## 14 Services
-
-| Service | Description | Operations |
-|---------|-------------|------------|
-| **oracle** | External data fetching | fetch, callback |
-| **vrf** | Verifiable random functions | random, verify |
-| **secrets** | Encrypted secret storage | store, get, delete |
-| **gasbank** | Gas fee management | deposit, withdraw, balance |
-| **mixer** | Privacy mixing | create_request, get_status |
-| **datafeeds** | Price feed aggregation | get_value, create_feed |
-| **accounts** | Account management | create, get, list |
-| **automation** | Task scheduling | create_task, run_task |
-| **ccip** | Cross-chain messaging | send_message, get_status |
-| **confidential** | Confidential compute | execute, get_result |
-| **cre** | Chainlink runtime | deploy_function, invoke |
-| **datalink** | Data linking | create, fetch |
-| **datastreams** | Real-time streaming | create, subscribe |
-| **dta** | Data trust authority | register, query, verify |
-
-## Quick Start
+- Go 1.22+
+- Docker & Docker Compose
+- Node.js 20+
+- EGo SDK (for SGX development)
+- MarbleRun CLI
 
 ### Development (Simulation Mode)
 
 ```bash
-# 1. Start Supabase
-docker-compose up -d supabase
+# Clone the repository
+git clone https://github.com/R3E-Network/service_layer.git
+cd service_layer
 
-# 2. Start Coordinator
-SIMULATION_MODE=true go run ./cmd/coordinator
+# Start services in simulation mode
+make docker-up
 
-# 3. Start a Service Marble
-SIMULATION_MODE=true MARBLE_TYPE=oracle go run ./cmd/marble
+# Set the MarbleRun manifest
+make marblerun-manifest
 
-# 4. Start Frontend
-cd frontend && npm install && npm run dev
+# Start frontend development server
+make frontend-dev
 ```
 
 ### Production (SGX Hardware)
 
 ```bash
-# Build EGo enclave
-ego-go build -o marble ./cmd/marble
-ego sign marble
+# Build with EGo
+make build-ego
 
-# Deploy with MarbleRun
-kubectl apply -f devops/kubernetes/
+# Sign enclaves
+make sign-enclaves
 
-# Deploy Frontend to Netlify
-netlify deploy --prod
+# Start with SGX hardware
+make docker-up-sgx
 ```
 
-## Key Features
+## 📦 Services
 
-### Security
-- **SGX Enclaves**: All sensitive operations run in Intel SGX
-- **AES-256-GCM Sealing**: Secure data encryption (not mock XOR)
-- **DCAP Attestation**: Structured quote generation and verification
-- **mTLS**: Marble-to-Marble and Marble-to-Coordinator encryption
-- **RLS**: Row-Level Security for user data isolation
+| Service | Description | Port |
+|---------|-------------|------|
+| **Gateway** | API Gateway with JWT auth | 8080 |
+| **Oracle** | External data fetching | - |
+| **VRF** | Verifiable random function | - |
+| **Mixer** | Deterministic Shared Seed Privacy Mixer (v4.1) | - |
+| **Secrets** | Secure secret management | - |
+| **DataFeeds** | Price feed aggregation | - |
+| **GasBank** | Gas fee management | - |
+| **Automation** | Task automation | - |
+| **Confidential** | Confidential compute | - |
+| **Accounts** | User account management | - |
+| **CCIP** | Cross-chain interoperability | - |
+| **DataLink** | Data linking service | - |
+| **DataStreams** | Real-time data streams | - |
+| **DTA** | Data trust authority | - |
+| **CRE** | Chainlink runtime environment | - |
 
-### Resilience
-- **Retry Logic**: Exponential backoff with jitter
-- **Circuit Breaker**: Closed → Open → Half-Open pattern
-- **Connection Pooling**: 100 connections, 10 per host
-- **Heartbeat**: Regular health checks to Coordinator
+### Internal Services
 
-### Architecture
-- **KISS**: Clear separation of concerns
-- **DRY**: Shared base components
-- **SOLID**: Interface segregation (SecretsAPI, NetworkAPI, etc.)
+| Service | Description |
+|---------|-------------|
+| **AccountPool** | Shared account pool service (owns HD keys; other services request/lock/sign via API) |
 
-## Configuration
+## 📜 Smart Contracts
 
-### Environment Variables
+Neo N3 smart contracts for on-chain service integration:
 
-**Coordinator**:
+```
+contracts/
+├── ServiceLayerGateway/    # Main entry point - fee management, routing
+├── OracleService/          # Oracle request/fulfillment
+├── VRFService/             # VRF request/fulfillment with proof storage
+├── MixerService/           # Deterministic Shared Seed Privacy Mixer (v4.1)
+├── DataFeedsService/       # Price feed aggregation
+└── examples/               # Example consumer contracts
+```
+
+### Contract Workflow
+
+The Service Layer supports three different service patterns:
+
+| Pattern | Services | Description |
+|---------|----------|-------------|
+| **Request-Response** | Oracle, VRF, Mixer, Confidential | User initiates request → TEE processes → Callback |
+| **Push (Auto-Update)** | DataFeeds | TEE periodically updates on-chain data, no user request needed |
+| **Trigger-Based** | Automation | User registers trigger → TEE monitors conditions → Periodic callbacks |
+
+#### Pattern 1: Request-Response (Oracle, VRF, Mixer)
+
+Complete request flow from User to Callback:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           REQUEST FLOW (Steps 1-4)                            │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────┐    ┌───────────────┐    ┌─────────────────────┐    ┌────────────┐ │
+│  │ User │───►│ User Contract │───►│ ServiceLayerGateway │───►│  Service   │ │
+│  └──────┘    │               │    │     (Gateway)       │    │  Contract  │ │
+│     1        │ RequestPrice()│    │  RequestService()   │    │ OnRequest()│ │
+│              └───────────────┘    └─────────────────────┘    └─────┬──────┘ │
+│                     2                       3                      4 │      │
+│                                                                      ▼      │
+│                                                              ┌────────────┐ │
+│                                                              │   Event    │ │
+│                                                              │ (on-chain) │ │
+│                                                              └─────┬──────┘ │
+└────────────────────────────────────────────────────────────────────┼────────┘
+                                                                     │
+┌────────────────────────────────────────────────────────────────────┼────────┐
+│                        SERVICE LAYER (Off-chain TEE)               │        │
+├────────────────────────────────────────────────────────────────────┼────────┤
+│                                                                    ▼        │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                    Service Layer (TEE Enclave)                       │   │
+│  │  5. Monitor blockchain events                                        │   │
+│  │  6. Process request (HTTP fetch / VRF compute / Mix execution)       │   │
+│  │  7. Sign result with TEE private key                                 │   │
+│  └──────────────────────────────────┬──────────────────────────────────┘   │
+│                                     │                                       │
+└─────────────────────────────────────┼───────────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────┼───────────────────────────────────────┐
+│                        CALLBACK FLOW (Steps 8-11)                │          │
+├─────────────────────────────────────┼───────────────────────────────────────┤
+│                                     ▼                                       │
+│  ┌──────┐    ┌───────────────┐    ┌─────────────────────┐    ┌────────────┐│
+│  │ User │◄───│ User Contract │◄───│ ServiceLayerGateway │◄───│  Service   ││
+│  └──────┘    │               │    │     (Gateway)       │    │  Contract  ││
+│    11        │   Callback()  │    │  FulfillRequest()   │    │ OnFulfill()││
+│              └───────────────┘    └─────────────────────┘    └────────────┘│
+│                    10                       9                      8        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Step-by-Step Flow:**
+
+| Step | Component | Action | Description |
+|------|-----------|--------|-------------|
+| 1 | User | Initiate | User calls their contract method |
+| 2 | User Contract | `RequestPrice()` | Builds payload, calls Gateway |
+| 3 | ServiceLayerGateway | `RequestService()` | Validates, charges fee, routes to service |
+| 4 | Service Contract | `OnRequest()` | Stores request, emits event |
+| 5 | Service Layer (TEE) | Monitor | Listens for on-chain events |
+| 6 | Service Layer (TEE) | Process | Executes off-chain logic |
+| 7 | Service Layer (TEE) | Sign | Signs result with TEE key |
+| 8 | Service Contract | `OnFulfill()` | Receives fulfillment from Gateway |
+| 9 | ServiceLayerGateway | `FulfillRequest()` | Verifies TEE signature, routes callback |
+| 10 | User Contract | `Callback()` | Receives result, updates state |
+| 11 | User | Complete | Transaction confirmed |
+
+#### Pattern 2: Push / Auto-Update (DataFeeds)
+
+DataFeeds service automatically updates on-chain price data without user requests:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SERVICE LAYER (TEE) - Continuous Loop                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  1. Fetch prices from multiple sources (Binance, Coinbase, etc.)    │   │
+│  │  2. Aggregate and validate data (median, outlier removal)           │   │
+│  │  3. Sign aggregated price with TEE key                              │   │
+│  │  4. Submit to DataFeedsService contract periodically                │   │
+│  └──────────────────────────────────┬──────────────────────────────────┘   │
+└─────────────────────────────────────┼───────────────────────────────────────┘
+                                      │ UpdatePrice()
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      DataFeedsService Contract                               │
+│  • Stores latest prices (BTC/USD, ETH/USD, NEO/USD, GAS/USD, etc.)         │
+│  • Verifies TEE signature                                                   │
+│  • Emits PriceUpdated event                                                 │
+└─────────────────────────────────────┬───────────────────────────────────────┘
+                                      │ getLatestPrice()
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         User Contracts (Read Only)                           │
+│  • DeFi protocols read prices directly                                      │
+│  • No callback needed - just query current price                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Pattern 3: Trigger-Based (Automation)
+
+Users register triggers, TEE monitors conditions and invokes callbacks:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      TRIGGER REGISTRATION (One-time)                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────┐    ┌───────────────┐    ┌─────────────────────┐    ┌────────────┐│
+│  │ User │───►│ User Contract │───►│ ServiceLayerGateway │───►│ Automation ││
+│  └──────┘    │               │    │  RequestService()   │    │  Service   ││
+│              │RegisterTrigger│    └─────────────────────┘    │ OnRequest()││
+│              └───────────────┘                               └─────┬──────┘│
+│                                                                    │       │
+│  Trigger Types:                                                    ▼       │
+│  • Time-based: "Every Friday 00:00 UTC"                    ┌────────────┐  │
+│  • Price-based: "When BTC > $100,000"                      │  Trigger   │  │
+│  • Event-based: "When contract X emits event Y"            │ Registered │  │
+│                                                            └────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────┼───────────────────────────────────────┐
+│              SERVICE LAYER (TEE) - Continuous Monitoring    │               │
+├─────────────────────────────────────┼───────────────────────────────────────┤
+│                                     ▼                                       │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  Loop: Check all registered triggers                                 │   │
+│  │  • Time triggers: Compare current time                               │   │
+│  │  • Price triggers: Check DataFeeds prices                            │   │
+│  │  • Event triggers: Monitor blockchain events                         │   │
+│  │  When condition met → Execute callback                               │   │
+│  └──────────────────────────────────┬──────────────────────────────────┘   │
+└─────────────────────────────────────┼───────────────────────────────────────┘
+                                      │ Condition Met
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         CALLBACK EXECUTION (Periodic)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────┐    ┌───────────────┐    ┌─────────────────────┐    ┌────────────┐│
+│  │ User │◄───│ User Contract │◄───│ ServiceLayerGateway │◄───│ Automation ││
+│  └──────┘    │   Callback()  │    │  FulfillRequest()   │    │  Service   ││
+│              │ (e.g. rebase) │    └─────────────────────┘    └────────────┘│
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Automation Trigger Examples:**
+
+| Trigger Type | Example | Use Case |
+|--------------|---------|----------|
+| Time-based | `cron: "0 0 * * FRI"` | Weekly token distribution |
+| Price-based | `price: BTC > 100000` | Auto-sell when price target hit |
+| Threshold | `balance < 10 GAS` | Auto-refill gas bank |
+| Event-based | `event: LiquidityAdded` | React to on-chain events |
+
+### Mixer Service (v4.1) - Deterministic Shared Seed
+
+The Mixer uses **standard single-sig addresses** (identical to ordinary users) for maximum privacy:
+
+- **No on-chain pool registration** - Pool accounts managed entirely off-chain
+- **Standard single-sig addresses** - No multisig fingerprint, indistinguishable from regular users
+- **Deterministic shared seed** - `Shared_Seed = HKDF(Master_Secret, TEE_Attestation_Hash)`
+- **Master recovery** - Master can reconstruct seed and recover all accounts if TEE fails
+
+```
+1. Admin: RegisterService + DepositBond
+2. User: CreateRequest(encryptedTargets, mixOption) + GAS
+3. TEE: ClaimRequest → funds to standard single-sig pool accounts
+4. TEE: Random transfers + noise transactions (off-chain)
+5. TEE: SubmitCompletion(outputsHash)
+6. User (timeout): ClaimRefundByUser → refund from bond
+```
+
+## 🔐 Security Features
+
+### TEE Protection (Intel SGX)
+
+- All services run inside EGo SGX enclaves
+- Remote attestation via MarbleRun
+- Secrets never leave the enclave
+- TLS termination inside enclave
+
+### MarbleRun Integration
+
+- Manifest-based topology verification
+- Automatic certificate provisioning
+- Secrets injection at runtime
+- Single attestation for entire cluster
+
+### Cryptographic Operations
+
+- ECDSA secp256r1 (Neo N3 compatible)
+- AES-256-GCM encryption
+- HKDF key derivation
+- VRF (ECVRF-P256-SHA256-TAI)
+
+## 📁 Project Structure
+
+```
+service_layer/
+├── cmd/
+│   └── gateway/          # API Gateway entry point
+├── internal/
+│   ├── marble/           # Marble SDK & service framework
+│   ├── database/         # Supabase client & repository
+│   ├── crypto/           # Cryptographic operations
+│   └── attestation/      # Remote attestation
+├── services/
+│   ├── oracle/           # Oracle service
+│   ├── vrf/              # VRF service
+│   ├── mixer/            # Mixer service
+│   ├── accountpool/      # Shared account pool service (locks/signs on behalf of others)
+│   ├── secrets/          # Secrets service
+│   ├── datafeeds/        # DataFeeds service
+│   ├── gasbank/          # GasBank service
+│   ├── automation/       # Automation service
+│   ├── confidential/     # Confidential compute
+│   ├── accounts/         # Accounts service
+│   ├── ccip/             # CCIP service
+│   ├── datalink/         # DataLink service
+│   ├── datastreams/      # DataStreams service
+│   ├── dta/              # DTA service
+│   └── cre/              # CRE service
+├── manifests/
+│   └── manifest.json     # MarbleRun manifest
+├── migrations/
+│   └── 001_initial_schema.sql
+├── docker/
+│   ├── Dockerfile.gateway
+│   ├── Dockerfile.service
+│   └── docker-compose.yaml
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── api/
+│   │   └── stores/
+│   └── package.json
+└── Makefile
+```
+
+## 🛠️ Development
+
+### Build Commands
+
 ```bash
-COORDINATOR_ADDR=0.0.0.0:4433
+make build          # Build all services
+make build-ego      # Build with EGo for SGX
+make test           # Run tests
+make lint           # Run linter
+make fmt            # Format code
+```
+
+### Docker Commands
+
+```bash
+make docker-build   # Build Docker images
+make docker-up      # Start in simulation mode
+make docker-up-sgx  # Start with SGX hardware
+make docker-down    # Stop all services
+make docker-logs    # View logs
+```
+
+### MarbleRun Commands
+
+```bash
+make marblerun-manifest  # Set manifest
+make marblerun-status    # Check status
+make marblerun-recover   # Recover coordinator
+```
+
+## 🌐 API Reference
+
+### Authentication
+
+```bash
+# Register/Login
+POST /api/v1/auth/register
+{
+  "address": "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq",
+  "signature": "..."
+}
+```
+
+### Oracle
+
+```bash
+# Fetch external data
+POST /api/v1/oracle/fetch
+{
+  "url": "https://api.example.com/data",
+  "json_path": "data.price"
+}
+```
+
+### VRF
+
+```bash
+# Generate random numbers
+POST /api/v1/vrf/random
+{
+  "seed": "0x...",
+  "num_words": 3
+}
+```
+
+### Secrets
+
+```bash
+# Create secret
+POST /api/v1/secrets/secrets
+{
+  "name": "API_KEY",
+  "value": "secret_value"
+}
+```
+
+## 📊 Environment Variables
+
+```bash
+# Supabase
 SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJ...
-SIMULATION_MODE=false
+SUPABASE_SERVICE_KEY=xxx
+
+# Neo N3
+NEO_RPC_URL=https://testnet1.neo.coz.io:443
+NEO_NETWORK_MAGIC=894710606
+
+# MarbleRun
+COORDINATOR_ADDR=:4433
+OE_SIMULATION=1  # Set to 0 for SGX hardware
 ```
 
-**Marble**:
-```bash
-MARBLE_TYPE=oracle
-COORDINATOR_ADDR=coordinator:4433
-SIMULATION_MODE=false
-```
+## 🔄 Upgrade Notes
 
-**Frontend** (Netlify):
-```bash
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...
-VITE_NEO_RPC_URL=https://mainnet1.neo.coz.io:443
-```
+- AccountPool shared table: new deployments use `pool_accounts` (see `migrations/003_service_persistence.sql`). Existing deployments should apply `migrations/006_accountpool_schema.sql` to rename any legacy `mixer_pool_accounts` table and add lock columns/indexes expected by the AccountPool service.
 
-## Documentation
+## 📄 License
 
-- [Architecture Overview](docs/architecture/MARBLERUN_ARCHITECTURE.md)
-- [Service Documentation](docs/services/README.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
+MIT License - see [LICENSE](LICENSE) for details.
 
-## Building
+## 🤝 Contributing
 
-```bash
-# Build all Go packages
-go build ./...
-
-# Run tests
-go test ./...
-
-# Build frontend
-cd frontend && npm run build
-```
-
-## License
-
-See [LICENSE](LICENSE) file.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
