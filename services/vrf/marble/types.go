@@ -12,10 +12,6 @@ import (
 // =============================================================================
 
 const (
-	ServiceID   = "vrf"
-	ServiceName = "VRF Service"
-	Version     = "2.0.0"
-
 	// Request status
 	StatusPending   = "pending"
 	StatusFulfilled = "fulfilled"

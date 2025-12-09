@@ -380,7 +380,12 @@ func (s *Service) handleDispute(w http.ResponseWriter, r *http.Request) {
 	requestID := parts[0]
 
 	var input DisputeInput
-	_ = json.NewDecoder(r.Body).Decode(&input) // Optional body
+	if r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			httputil.BadRequest(w, "invalid JSON body")
+			return
+		}
+	}
 
 	rec, err := s.repo.GetByID(r.Context(), requestID)
 	if err != nil {

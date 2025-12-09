@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -55,7 +56,9 @@ func (s *Service) executeTrigger(ctx context.Context, trigger *automationsupabas
 		next, _ := s.parseNextCronExecution(trigger.Schedule)
 		trigger.NextExecution = next
 	}
-	_ = s.repo.UpdateTrigger(ctx, trigger)
+	if updateErr := s.repo.UpdateTrigger(ctx, trigger); updateErr != nil {
+		log.Printf("[automation] failed to update trigger %s: %v", trigger.ID, updateErr)
+	}
 
 	// Persist execution log
 	if s.repo != nil {
@@ -70,7 +73,9 @@ func (s *Service) executeTrigger(ctx context.Context, trigger *automationsupabas
 		if err != nil {
 			exec.Error = err.Error()
 		}
-		_ = s.repo.CreateExecution(ctx, exec)
+		if execErr := s.repo.CreateExecution(ctx, exec); execErr != nil {
+			log.Printf("[automation] failed to persist execution log for trigger %s: %v", trigger.ID, execErr)
+		}
 	}
 }
 

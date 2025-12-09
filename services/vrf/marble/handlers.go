@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/internal/crypto"
+	"github.com/R3E-Network/service_layer/internal/httputil"
 	"github.com/google/uuid"
 )
 
@@ -59,20 +60,18 @@ func (s *Service) handlePublicKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleCreateRequest(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 
 	var input CreateRequestInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	if !httputil.DecodeJSON(w, r, &input) {
 		return
 	}
 
 	if input.Seed == "" {
-		http.Error(w, "seed is required", http.StatusBadRequest)
+		httputil.BadRequest(w, "seed is required")
 		return
 	}
 	if input.NumWords <= 0 {
@@ -111,7 +110,7 @@ func (s *Service) handleCreateRequest(w http.ResponseWriter, r *http.Request) {
 	select {
 	case s.pendingRequests <- request:
 	default:
-		http.Error(w, "service busy", http.StatusServiceUnavailable)
+		httputil.ServiceUnavailable(w, "service busy")
 		return
 	}
 
@@ -139,18 +138,16 @@ func (s *Service) handleGetRequest(w http.ResponseWriter, r *http.Request) {
 		s.mu.RUnlock()
 	}
 	if request == nil {
-		http.Error(w, "request not found", http.StatusNotFound)
+		httputil.NotFound(w, "request not found")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(request)
+	httputil.WriteJSON(w, http.StatusOK, request)
 }
 
 func (s *Service) handleListRequests(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 
@@ -179,13 +176,12 @@ func (s *Service) handleListRequests(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) handleDirectRandom(w http.ResponseWriter, r *http.Request) {
 	var req DirectRandomRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
 	if req.Seed == "" {
-		http.Error(w, "seed is required", http.StatusBadRequest)
+		httputil.BadRequest(w, "seed is required")
 		return
 	}
 
@@ -195,12 +191,11 @@ func (s *Service) handleDirectRandom(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.GenerateRandomness(r.Context(), req.Seed, req.NumWords)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.InternalError(w, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	httputil.WriteJSON(w, http.StatusOK, result)
 }
 
 // handleRandom is a backward-compatible alias for handleDirectRandom.
@@ -210,8 +205,7 @@ func (s *Service) handleRandom(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) handleVerify(w http.ResponseWriter, r *http.Request) {
 	var req VerifyRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
@@ -221,6 +215,5 @@ func (s *Service) handleVerify(w http.ResponseWriter, r *http.Request) {
 		resp.Error = err.Error()
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	httputil.WriteJSON(w, http.StatusOK, resp)
 }

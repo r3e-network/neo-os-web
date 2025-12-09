@@ -29,12 +29,29 @@ namespace ServiceLayer.Gateway
     /// 1. User Contract → ServiceLayerGateway.requestService() → Service Contract (emit event)
     /// 2. TEE monitors events, verifies off-chain balance, processes
     /// 3. TEE → ServiceLayerGateway.fulfillRequest() → Service Contract → User Contract callback
+    ///
+    /// SECURITY NOTE - ContractPermission("*", "*"):
+    /// This contract requires broad permissions because it is a ROUTER that must:
+    /// 1. Call dynamically registered service contracts (onRequest, onFulfill methods)
+    /// 2. Execute user-specified callback methods on arbitrary user contracts
+    ///
+    /// Security measures in place to prevent abuse:
+    /// - RequireAdmin(): Only admin can register TEE accounts and services
+    /// - RequireTEE(): Only registered TEE accounts can fulfill/fail requests
+    /// - RequireNotPaused(): Emergency pause capability for admin
+    /// - TEE signature verification: All fulfillments require valid TEE signature
+    /// - Nonce replay protection: Prevents replay attacks on fulfillments
+    /// - Service registration: Only admin-registered services can be called
+    ///
+    /// The broad permission is architecturally necessary and mitigated by these controls.
     /// </summary>
     [DisplayName("ServiceLayerGateway")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Description", "Service Layer Gateway - Main entry for all services")]
-    [ManifestExtra("Version", "3.0.0")]
+    [ManifestExtra("Version", "3.0.1")]
+    // SECURITY: Broad permission required for router functionality.
+    // See SECURITY NOTE in class documentation for justification and mitigations.
     [ContractPermission("*", "*")]
     public class ServiceLayerGateway : SmartContract
     {

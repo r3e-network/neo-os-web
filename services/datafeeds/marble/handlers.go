@@ -4,6 +4,8 @@ package datafeedsmarble
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/R3E-Network/service_layer/internal/httputil"
 )
 
 // =============================================================================
@@ -51,13 +53,13 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 	// Extract pair from URL (e.g., /price/BTCUSDT)
 	pair := r.URL.Path[len("/price/"):]
 	if pair == "" {
-		http.Error(w, "pair required", http.StatusBadRequest)
+		httputil.BadRequest(w, "pair required")
 		return
 	}
 
 	price, err := s.GetPrice(r.Context(), pair)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.InternalError(w, err.Error())
 		return
 	}
 

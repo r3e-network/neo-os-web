@@ -5,11 +5,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/chain"
 	"github.com/R3E-Network/service_layer/internal/marble"
 	automationsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
 )
@@ -45,7 +48,7 @@ func (m *mockAutomationRepo) GetTrigger(_ context.Context, id, userID string) (*
 	if t, ok := m.triggers[id]; ok && t.UserID == userID {
 		return t, nil
 	}
-	return nil, nil
+	return nil, fmt.Errorf("trigger not found")
 }
 
 func (m *mockAutomationRepo) CreateTrigger(_ context.Context, trigger *automationsupabase.Trigger) error {
@@ -925,5 +928,614 @@ func TestHandleListTriggersWithMock(t *testing.T) {
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
+// =============================================================================
+// Trigger Execution Tests
+// =============================================================================
+
+func TestDispatchActionEmpty(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	err := svc.dispatchAction(context.Background(), nil)
+	if err != nil {
+		t.Errorf("dispatchAction(nil) error = %v, want nil", err)
+	}
+
+	err = svc.dispatchAction(context.Background(), json.RawMessage{})
+	if err != nil {
+		t.Errorf("dispatchAction(empty) error = %v, want nil", err)
+	}
+}
+
+func TestDispatchActionInvalidJSON(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	err := svc.dispatchAction(context.Background(), json.RawMessage(`{invalid`))
+	if err == nil {
+		t.Error("dispatchAction(invalid json) should return error")
+	}
+}
+
+func TestDispatchActionWebhookMissingURL(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	action := json.RawMessage(`{"type":"webhook","method":"POST"}`)
+	err := svc.dispatchAction(context.Background(), action)
+	if err == nil {
+		t.Error("dispatchAction(webhook without url) should return error")
+	}
+	if err.Error() != "webhook url required" {
+		t.Errorf("error = %v, want 'webhook url required'", err)
+	}
+}
+
+func TestDispatchActionUnknownType(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	action := json.RawMessage(`{"type":"unknown"}`)
+	err := svc.dispatchAction(context.Background(), action)
+	if err != nil {
+		t.Errorf("dispatchAction(unknown type) error = %v, want nil", err)
+	}
+}
+
+func TestDispatchActionWebhookSuccess(t *testing.T) {
+	// Create test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("method = %s, want POST", r.Method)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	action := json.RawMessage(fmt.Sprintf(`{"type":"webhook","url":"%s","method":"POST"}`, server.URL))
+	err := svc.dispatchAction(context.Background(), action)
+	if err != nil {
+		t.Errorf("dispatchAction() error = %v", err)
+	}
+}
+
+func TestDispatchActionWebhookDefaultMethod(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("method = %s, want POST (default)", r.Method)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	// No method specified - should default to POST
+	action := json.RawMessage(fmt.Sprintf(`{"type":"webhook","url":"%s"}`, server.URL))
+	err := svc.dispatchAction(context.Background(), action)
+	if err != nil {
+		t.Errorf("dispatchAction() error = %v", err)
+	}
+}
+
+func TestDispatchActionWebhookError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	action := json.RawMessage(fmt.Sprintf(`{"type":"webhook","url":"%s"}`, server.URL))
+	err := svc.dispatchAction(context.Background(), action)
+	if err == nil {
+		t.Error("dispatchAction() should return error for 500 status")
+	}
+}
+
+// =============================================================================
+// Chain Trigger Tests
+// =============================================================================
+
+func TestRegisterUnregisterChainTrigger(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	trigger := &chain.Trigger{
+		TriggerID:      big.NewInt(123),
+		Owner:          "owner",
+		TriggerType:    TriggerTypeTime,
+		Condition:      "0 * * * *",
+		Status:         1,
+		ExecutionCount: big.NewInt(0),
+		MaxExecutions:  big.NewInt(10),
+	}
+
+	// Register
+	svc.RegisterChainTrigger(trigger)
+
+	svc.scheduler.mu.RLock()
+	if _, ok := svc.scheduler.chainTriggers[123]; !ok {
+		t.Error("trigger should be registered")
+	}
+	svc.scheduler.mu.RUnlock()
+
+	// Unregister
+	svc.UnregisterChainTrigger(123)
+
+	svc.scheduler.mu.RLock()
+	if _, ok := svc.scheduler.chainTriggers[123]; ok {
+		t.Error("trigger should be unregistered")
+	}
+	svc.scheduler.mu.RUnlock()
+}
+
+func TestEvaluateTriggerConditionUnknownType(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	trigger := &chain.Trigger{
+		TriggerID:   big.NewInt(1),
+		TriggerType: 99, // Unknown type
+	}
+
+	shouldExecute, data := svc.evaluateTriggerCondition(context.Background(), trigger)
+	if shouldExecute {
+		t.Error("unknown trigger type should not execute")
+	}
+	if data != nil {
+		t.Error("unknown trigger type should return nil data")
+	}
+}
+
+func TestEvaluateTriggerConditionEventType(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	trigger := &chain.Trigger{
+		TriggerID:   big.NewInt(1),
+		TriggerType: TriggerTypeEvent,
+	}
+
+	shouldExecute, data := svc.evaluateTriggerCondition(context.Background(), trigger)
+	if shouldExecute {
+		t.Error("event trigger should not execute via condition check")
+	}
+	if data != nil {
+		t.Error("event trigger should return nil data")
+	}
+}
+
+func TestEvaluateTimeTriggerEmptyCondition(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	trigger := &chain.Trigger{
+		TriggerID:   big.NewInt(1),
+		TriggerType: TriggerTypeTime,
+		Condition:   "",
+	}
+
+	shouldExecute, _ := svc.evaluateTimeTrigger(trigger)
+	if shouldExecute {
+		t.Error("empty condition should not execute")
+	}
+}
+
+func TestEvaluateTimeTriggerInvalidCron(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	trigger := &chain.Trigger{
+		TriggerID:   big.NewInt(1),
+		TriggerType: TriggerTypeTime,
+		Condition:   "invalid",
+	}
+
+	shouldExecute, _ := svc.evaluateTimeTrigger(trigger)
+	if shouldExecute {
+		t.Error("invalid cron should not execute")
+	}
+}
+
+func TestEvaluatePriceTriggerNoContract(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	trigger := &chain.Trigger{
+		TriggerID:   big.NewInt(1),
+		TriggerType: TriggerTypePrice,
+		Condition:   `{"feed_id":"BTC/USD","operator":">","threshold":100000}`,
+	}
+
+	shouldExecute, _ := svc.evaluatePriceTrigger(context.Background(), trigger)
+	if shouldExecute {
+		t.Error("should not execute without datafeeds contract")
+	}
+}
+
+func TestEvaluatePriceTriggerInvalidCondition(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	trigger := &chain.Trigger{
+		TriggerID:   big.NewInt(1),
+		TriggerType: TriggerTypePrice,
+		Condition:   "invalid json",
+	}
+
+	shouldExecute, _ := svc.evaluatePriceTrigger(context.Background(), trigger)
+	if shouldExecute {
+		t.Error("invalid condition should not execute")
+	}
+}
+
+func TestEvaluateThresholdTriggerInvalidCondition(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	trigger := &chain.Trigger{
+		TriggerID:   big.NewInt(1),
+		TriggerType: TriggerTypeThreshold,
+		Condition:   "invalid json",
+	}
+
+	shouldExecute, _ := svc.evaluateThresholdTrigger(context.Background(), trigger)
+	if shouldExecute {
+		t.Error("invalid condition should not execute")
+	}
+}
+
+func TestEvaluateThresholdTriggerValidCondition(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	trigger := &chain.Trigger{
+		TriggerID:   big.NewInt(1),
+		TriggerType: TriggerTypeThreshold,
+		Condition:   `{"address":"NAddr123","asset":"GAS","operator":"<","threshold":1000000000}`,
+	}
+
+	// Currently returns false because no balance source is available
+	shouldExecute, _ := svc.evaluateThresholdTrigger(context.Background(), trigger)
+	if shouldExecute {
+		t.Error("threshold trigger should not execute without balance source")
+	}
+}
+
+func TestCheckChainTriggersDisabled(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m, EnableChainExec: false})
+
+	// Should return early without panic
+	svc.checkChainTriggers(context.Background())
+}
+
+func TestCheckAndExecuteTriggersNoRepo(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	// Empty repo - should return without panic
+	svc.checkAndExecuteTriggers(context.Background())
+}
+
+func TestCheckAndExecuteTriggersWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+
+	// Add a trigger that should NOT execute (future execution time)
+	futureTime := time.Now().Add(1 * time.Hour)
+	mockRepo.triggers["trigger-1"] = &automationsupabase.Trigger{
+		ID:            "trigger-1",
+		UserID:        "user-123",
+		Name:          "Future Trigger",
+		TriggerType:   "cron",
+		Schedule:      "0 * * * *",
+		Enabled:       true,
+		NextExecution: futureTime,
+	}
+
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+	svc.checkAndExecuteTriggers(context.Background())
+	// No panic means success
+}
+
+func TestExecuteTriggerWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+
+	trigger := &automationsupabase.Trigger{
+		ID:          "trigger-1",
+		UserID:      "user-123",
+		Name:        "Test Trigger",
+		TriggerType: "cron",
+		Schedule:    "0 * * * *",
+		Enabled:     true,
+		Action:      json.RawMessage(`{"type":"unknown"}`), // Unknown type - no-op
+	}
+	mockRepo.triggers[trigger.ID] = trigger
+
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+	svc.executeTrigger(context.Background(), trigger)
+
+	// Verify execution was logged
+	execs := mockRepo.executions[trigger.ID]
+	if len(execs) != 1 {
+		t.Errorf("expected 1 execution, got %d", len(execs))
+	}
+	if !execs[0].Success {
+		t.Error("execution should be successful")
+	}
+}
+
+func TestSetupEventTriggerListenerNil(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	// Should return early without panic when eventListener is nil
+	svc.SetupEventTriggerListener()
+}
+
+// =============================================================================
+// Handler Tests with Mock - Enable Previously Skipped Tests
+// =============================================================================
+
+func TestHandleCreateTriggerWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	reqBody, _ := json.Marshal(TriggerRequest{
+		Name:        "Test Trigger",
+		TriggerType: "cron",
+		Schedule:    "30 * * * *",
+		Action:      json.RawMessage(`{"type":"webhook","url":"https://example.com"}`),
+	})
+
+	req := httptest.NewRequest("POST", "/triggers", bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleCreateTrigger(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Errorf("status = %d, want %d, body: %s", rr.Code, http.StatusCreated, rr.Body.String())
+	}
+
+	var resp TriggerResponse
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if resp.Name != "Test Trigger" {
+		t.Errorf("Name = %s, want Test Trigger", resp.Name)
+	}
+	if !resp.Enabled {
+		t.Error("Enabled = false, want true")
+	}
+}
+
+func TestHandleCreateTriggerNonCronWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	reqBody, _ := json.Marshal(TriggerRequest{
+		Name:        "Event Trigger",
+		TriggerType: "event",
+		Action:      json.RawMessage(`{"type":"callback"}`),
+	})
+
+	req := httptest.NewRequest("POST", "/triggers", bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleCreateTrigger(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusCreated)
+	}
+}
+
+func TestHandleGetTriggerWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	mockRepo.triggers["trigger-123"] = &automationsupabase.Trigger{
+		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron",
+	}
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	req := httptest.NewRequest("GET", "/triggers/trigger-123", nil)
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleGetTrigger(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
+func TestHandleGetTriggerNotFound(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	req := httptest.NewRequest("GET", "/triggers/nonexistent", nil)
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleGetTrigger(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusNotFound)
+	}
+}
+
+func TestHandleUpdateTriggerWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	mockRepo.triggers["trigger-123"] = &automationsupabase.Trigger{
+		ID: "trigger-123", UserID: "user-123", Name: "Old Name", TriggerType: "cron", Schedule: "0 * * * *",
+	}
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	reqBody, _ := json.Marshal(TriggerRequest{
+		Name:        "New Name",
+		TriggerType: "cron",
+		Schedule:    "30 * * * *",
+	})
+
+	req := httptest.NewRequest("PUT", "/triggers/trigger-123", bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleUpdateTrigger(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
+func TestHandleDeleteTriggerWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	mockRepo.triggers["trigger-123"] = &automationsupabase.Trigger{
+		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron",
+	}
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	req := httptest.NewRequest("DELETE", "/triggers/trigger-123", nil)
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleDeleteTrigger(rr, req)
+
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusNoContent)
+	}
+
+	// Verify trigger was deleted
+	if _, ok := mockRepo.triggers["trigger-123"]; ok {
+		t.Error("trigger should be deleted")
+	}
+}
+
+func TestHandleEnableDisableTriggerWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	mockRepo.triggers["trigger-123"] = &automationsupabase.Trigger{
+		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron", Enabled: true,
+	}
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	// Disable - handler expects /triggers/{id} format
+	req := httptest.NewRequest("POST", "/triggers/trigger-123", nil)
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+	svc.handleDisableTrigger(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("disable status = %d, want %d", rr.Code, http.StatusOK)
+	}
+	if mockRepo.triggers["trigger-123"].Enabled {
+		t.Error("trigger should be disabled")
+	}
+
+	// Enable
+	req = httptest.NewRequest("POST", "/triggers/trigger-123", nil)
+	req.Header.Set("X-User-ID", "user-123")
+	rr = httptest.NewRecorder()
+	svc.handleEnableTrigger(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("enable status = %d, want %d", rr.Code, http.StatusOK)
+	}
+	if !mockRepo.triggers["trigger-123"].Enabled {
+		t.Error("trigger should be enabled")
+	}
+}
+
+func TestHandleListExecutionsWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	mockRepo.triggers["trigger-123"] = &automationsupabase.Trigger{
+		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron",
+	}
+	mockRepo.executions["trigger-123"] = []automationsupabase.Execution{
+		{ID: "exec-1", TriggerID: "trigger-123", Success: true},
+		{ID: "exec-2", TriggerID: "trigger-123", Success: false},
+	}
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	// Handler expects /triggers/{id} format
+	req := httptest.NewRequest("GET", "/triggers/trigger-123", nil)
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleListExecutions(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
+func TestHandleResumeTriggerWithMock(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	mockRepo := newMockAutomationRepo()
+	mockRepo.triggers["trigger-123"] = &automationsupabase.Trigger{
+		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron",
+	}
+	svc, _ := New(Config{Marble: m, AutomationRepo: mockRepo})
+
+	// Handler expects /triggers/{id} format
+	req := httptest.NewRequest("POST", "/triggers/trigger-123", nil)
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleResumeTrigger(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+
+	// Verify trigger was added to scheduler
+	svc.scheduler.mu.RLock()
+	if _, ok := svc.scheduler.triggers["trigger-123"]; !ok {
+		t.Error("trigger should be in scheduler")
+	}
+	svc.scheduler.mu.RUnlock()
+}
+
+func TestHandleInfoEndpoint(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "automation"})
+	svc, _ := New(Config{Marble: m})
+
+	req := httptest.NewRequest("GET", "/info", nil)
+	rr := httptest.NewRecorder()
+
+	svc.handleInfo(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+
+	var resp map[string]interface{}
+	json.NewDecoder(rr.Body).Decode(&resp)
+
+	if resp["status"] != "active" {
+		t.Errorf("status = %v, want active", resp["status"])
 	}
 }
