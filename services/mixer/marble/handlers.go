@@ -238,6 +238,11 @@ func (s *Service) handleCreateRequest(w http.ResponseWriter, r *http.Request) {
 
 // handleGetStatus returns the status of a mix request (simplified endpoint).
 func (s *Service) handleGetStatus(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
+		return
+	}
+
 	requestID := httputil.PathParam(r.URL.Path, "/status/", "")
 
 	rec, err := s.repo.GetByID(r.Context(), requestID)
@@ -246,6 +251,12 @@ func (s *Service) handleGetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	request := RequestFromRecord(rec)
+
+	// Verify ownership
+	if request.UserID != userID {
+		httputil.WriteError(w, http.StatusForbidden, "not authorized to view this request")
+		return
+	}
 
 	httputil.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"request_id":   request.ID,
@@ -259,6 +270,11 @@ func (s *Service) handleGetStatus(w http.ResponseWriter, r *http.Request) {
 
 // handleGetRequest returns the full details of a mix request.
 func (s *Service) handleGetRequest(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
+		return
+	}
+
 	requestID := httputil.PathParam(r.URL.Path, "/request/", "")
 
 	rec, err := s.repo.GetByID(r.Context(), requestID)
@@ -268,11 +284,22 @@ func (s *Service) handleGetRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	request := RequestFromRecord(rec)
 
+	// Verify ownership
+	if request.UserID != userID {
+		httputil.WriteError(w, http.StatusForbidden, "not authorized to view this request")
+		return
+	}
+
 	httputil.WriteJSON(w, http.StatusOK, request)
 }
 
 // handleConfirmDeposit confirms a deposit for a mix request.
 func (s *Service) handleConfirmDeposit(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
+		return
+	}
+
 	path := strings.TrimPrefix(r.URL.Path, "/request/")
 	parts := strings.Split(path, "/")
 	if len(parts) < 2 {
@@ -292,6 +319,12 @@ func (s *Service) handleConfirmDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	request := RequestFromRecord(rec)
+
+	// Verify ownership
+	if request.UserID != userID {
+		httputil.WriteError(w, http.StatusForbidden, "not authorized to modify this request")
+		return
+	}
 
 	if request.Status != StatusPending {
 		httputil.BadRequest(w, "request already processed")
@@ -346,6 +379,11 @@ func (s *Service) handleListRequests(w http.ResponseWriter, r *http.Request) {
 
 // handleResumeRequest re-queues a mixing/delivery for a given request.
 func (s *Service) handleResumeRequest(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
+		return
+	}
+
 	requestID := httputil.PathParam(r.URL.Path, "/request/", "/resume")
 
 	rec, err := s.repo.GetByID(r.Context(), requestID)
@@ -354,6 +392,12 @@ func (s *Service) handleResumeRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req := RequestFromRecord(rec)
+
+	// Verify ownership
+	if req.UserID != userID {
+		httputil.WriteError(w, http.StatusForbidden, "not authorized to resume this request")
+		return
+	}
 
 	switch req.Status {
 	case StatusDeposited:
@@ -371,6 +415,11 @@ func (s *Service) handleResumeRequest(w http.ResponseWriter, r *http.Request) {
 
 // handleDispute processes a user dispute and submits completion proof on-chain.
 func (s *Service) handleDispute(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
+		return
+	}
+
 	path := strings.TrimPrefix(r.URL.Path, "/request/")
 	parts := strings.Split(path, "/")
 	if len(parts) < 2 {
@@ -393,6 +442,12 @@ func (s *Service) handleDispute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	request := RequestFromRecord(rec)
+
+	// Verify ownership
+	if request.UserID != userID {
+		httputil.WriteError(w, http.StatusForbidden, "not authorized to dispute this request")
+		return
+	}
 
 	// Check if within dispute deadline
 	if time.Now().Unix() > request.Deadline {
@@ -442,6 +497,11 @@ func (s *Service) handleDispute(w http.ResponseWriter, r *http.Request) {
 
 // handleGetCompletionProof returns the completion proof for a delivered request.
 func (s *Service) handleGetCompletionProof(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
+		return
+	}
+
 	path := strings.TrimPrefix(r.URL.Path, "/request/")
 	parts := strings.Split(path, "/")
 	if len(parts) < 2 {
@@ -456,6 +516,12 @@ func (s *Service) handleGetCompletionProof(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	request := RequestFromRecord(rec)
+
+	// Verify ownership
+	if request.UserID != userID {
+		httputil.WriteError(w, http.StatusForbidden, "not authorized to view this proof")
+		return
+	}
 
 	if request.Status != StatusDelivered {
 		httputil.BadRequest(w, fmt.Sprintf("request not delivered yet (status: %s)", request.Status))
