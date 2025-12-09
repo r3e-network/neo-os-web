@@ -668,8 +668,429 @@ func BenchmarkMixRequestMarshal(b *testing.B) {
 	}
 }
 
-// Suppress unused import warnings
-var (
-	_ = bytes.NewReader
-	_ = context.Background
-)
+// =============================================================================
+// Additional AccountPoolClient Tests
+// =============================================================================
+
+func TestAccountPoolClientGetLockedAccounts(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/accounts" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("service_id") != "mixer" {
+			t.Errorf("service_id = %s, want mixer", r.URL.Query().Get("service_id"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(accountpool.ListAccountsResponse{
+			Accounts: []accountpool.AccountInfo{
+				{ID: "acc-1", Address: "NAddr1", Balance: 1000},
+				{ID: "acc-2", Address: "NAddr2", Balance: 2000},
+			},
+		})
+	}))
+	defer mockServer.Close()
+
+	client := NewAccountPoolClient(mockServer.URL, "mixer")
+	accounts, err := client.GetLockedAccounts(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("GetLockedAccounts() error = %v", err)
+	}
+	if len(accounts) != 2 {
+		t.Errorf("len(accounts) = %d, want 2", len(accounts))
+	}
+}
+
+func TestAccountPoolClientGetLockedAccountsWithMinBalance(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("min_balance") != "1000" {
+			t.Errorf("min_balance = %s, want 1000", r.URL.Query().Get("min_balance"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(accountpool.ListAccountsResponse{
+			Accounts: []accountpool.AccountInfo{
+				{ID: "acc-1", Address: "NAddr1", Balance: 2000},
+			},
+		})
+	}))
+	defer mockServer.Close()
+
+	client := NewAccountPoolClient(mockServer.URL, "mixer")
+	minBalance := int64(1000)
+	accounts, err := client.GetLockedAccounts(context.Background(), &minBalance)
+	if err != nil {
+		t.Fatalf("GetLockedAccounts() error = %v", err)
+	}
+	if len(accounts) != 1 {
+		t.Errorf("len(accounts) = %d, want 1", len(accounts))
+	}
+}
+
+func TestAccountPoolClientSignTransaction(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sign" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Method != "POST" {
+			t.Errorf("unexpected method: %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(SignTransactionResult{
+			AccountID: "acc-1",
+			Signature: "c2lnbmF0dXJl", // base64 "signature"
+			PublicKey: "cHVia2V5",     // base64 "pubkey"
+		})
+	}))
+	defer mockServer.Close()
+
+	client := NewAccountPoolClient(mockServer.URL, "mixer")
+	result, err := client.SignTransaction(context.Background(), "acc-1", []byte("txhash"))
+	if err != nil {
+		t.Fatalf("SignTransaction() error = %v", err)
+	}
+	if result.AccountID != "acc-1" {
+		t.Errorf("AccountID = %s, want acc-1", result.AccountID)
+	}
+	if result.Signature == "" {
+		t.Error("Signature should not be empty")
+	}
+}
+
+func TestAccountPoolClientTransfer(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/transfer" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Method != "POST" {
+			t.Errorf("unexpected method: %s", r.Method)
+		}
+
+		var body TransferRequest
+		json.NewDecoder(r.Body).Decode(&body)
+		if body.ServiceID != "mixer" {
+			t.Errorf("ServiceID = %s, want mixer", body.ServiceID)
+		}
+		if body.Amount != 1000 {
+			t.Errorf("Amount = %d, want 1000", body.Amount)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(TransferResult{
+			TxHash:    "0x123abc",
+			AccountID: "acc-1",
+			Amount:    1000,
+		})
+	}))
+	defer mockServer.Close()
+
+	client := NewAccountPoolClient(mockServer.URL, "mixer")
+	result, err := client.Transfer(context.Background(), "acc-1", "NTargetAddr", 1000, "")
+	if err != nil {
+		t.Fatalf("Transfer() error = %v", err)
+	}
+	if result.TxHash != "0x123abc" {
+		t.Errorf("TxHash = %s, want 0x123abc", result.TxHash)
+	}
+	if result.Amount != 1000 {
+		t.Errorf("Amount = %d, want 1000", result.Amount)
+	}
+}
+
+func TestAccountPoolClientTransferError(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("insufficient balance"))
+	}))
+	defer mockServer.Close()
+
+	client := NewAccountPoolClient(mockServer.URL, "mixer")
+	_, err := client.Transfer(context.Background(), "acc-1", "NTargetAddr", 1000, "")
+	if err == nil {
+		t.Error("Transfer() should return error on 400")
+	}
+}
+
+func TestAccountPoolClientSignTransactionError(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("account not locked by service"))
+	}))
+	defer mockServer.Close()
+
+	client := NewAccountPoolClient(mockServer.URL, "mixer")
+	_, err := client.SignTransaction(context.Background(), "acc-1", []byte("txhash"))
+	if err == nil {
+		t.Error("SignTransaction() should return error on 403")
+	}
+}
+
+func TestAccountPoolClientUpdateBalanceWithAbsolute(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if body["absolute"] == nil {
+			t.Error("absolute should be set")
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer mockServer.Close()
+
+	client := NewAccountPoolClient(mockServer.URL, "mixer")
+	absolute := int64(5000)
+	err := client.UpdateBalance(context.Background(), "acc-1", 0, &absolute)
+	if err != nil {
+		t.Fatalf("UpdateBalance() error = %v", err)
+	}
+}
+
+// =============================================================================
+// Handler Tests (Basic validation only - handlers require full service setup)
+// =============================================================================
+
+func TestHandleCreateRequestUnauthorized(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "mixer"})
+	svc, _ := New(Config{Marble: m})
+
+	reqBody, _ := json.Marshal(CreateRequestInput{
+		TokenType:   "GAS",
+		UserAddress: "NAddr123",
+		Targets:     []TargetAddress{{Address: "target1", Amount: 1000}},
+	})
+
+	req := httptest.NewRequest("POST", "/request", bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	// No X-User-ID header
+	rr := httptest.NewRecorder()
+
+	svc.handleCreateRequest(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestHandleCreateRequestInvalidJSON(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "mixer"})
+	svc, _ := New(Config{Marble: m})
+
+	req := httptest.NewRequest("POST", "/request", bytes.NewReader([]byte("invalid json")))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleCreateRequest(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleCreateRequestMissingTargets(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "mixer"})
+	svc, _ := New(Config{Marble: m})
+
+	reqBody, _ := json.Marshal(CreateRequestInput{
+		TokenType:   "GAS",
+		UserAddress: "NAddr123",
+		Targets:     []TargetAddress{}, // Empty targets
+	})
+
+	req := httptest.NewRequest("POST", "/request", bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", "user-123")
+	rr := httptest.NewRecorder()
+
+	svc.handleCreateRequest(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleListRequestsUnauthorized(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "mixer"})
+	svc, _ := New(Config{Marble: m})
+
+	req := httptest.NewRequest("GET", "/requests", nil)
+	// No X-User-ID header
+	rr := httptest.NewRecorder()
+
+	svc.handleListRequests(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
+	}
+}
+
+// Note: TestHandleDisputeUnauthorized removed - handler requires full service setup with repo
+
+// =============================================================================
+// Pool Account Conversion Tests
+// =============================================================================
+
+func TestPoolAccountConversion(t *testing.T) {
+	now := time.Now()
+	acc := accountpool.AccountInfo{
+		ID:         "acc-1",
+		Address:    "NAddr123",
+		Balance:    1000,
+		CreatedAt:  now,
+		LastUsedAt: now,
+		TxCount:    5,
+		IsRetiring: false,
+	}
+
+	poolAcc := &PoolAccount{
+		ID:         acc.ID,
+		Address:    acc.Address,
+		Balance:    acc.Balance,
+		CreatedAt:  acc.CreatedAt,
+		LastUsedAt: acc.LastUsedAt,
+		TxCount:    acc.TxCount,
+		IsRetiring: acc.IsRetiring,
+	}
+
+	if poolAcc.ID != "acc-1" {
+		t.Errorf("ID = %s, want acc-1", poolAcc.ID)
+	}
+	if poolAcc.Balance != 1000 {
+		t.Errorf("Balance = %d, want 1000", poolAcc.Balance)
+	}
+}
+
+// =============================================================================
+// Additional Type Tests
+// =============================================================================
+
+func TestTokenConfigJSON(t *testing.T) {
+	cfg := TokenConfig{
+		TokenType:      "GAS",
+		ServiceFeeRate: 0.005,
+	}
+
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+	}
+
+	var decoded TokenConfig
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if decoded.TokenType != cfg.TokenType {
+		t.Errorf("TokenType = %s, want %s", decoded.TokenType, cfg.TokenType)
+	}
+	if decoded.ServiceFeeRate != cfg.ServiceFeeRate {
+		t.Errorf("ServiceFeeRate = %f, want %f", decoded.ServiceFeeRate, cfg.ServiceFeeRate)
+	}
+}
+
+func TestMixOptionDurations(t *testing.T) {
+	// Test common mixing duration options in milliseconds
+	tests := []struct {
+		name     string
+		optionMs int64
+		expected time.Duration
+	}{
+		{"30 minutes", 1800000, 30 * time.Minute},
+		{"1 hour", 3600000, 1 * time.Hour},
+		{"6 hours", 21600000, 6 * time.Hour},
+		{"24 hours", 86400000, 24 * time.Hour},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			duration := time.Duration(tt.optionMs) * time.Millisecond
+			if duration != tt.expected {
+				t.Errorf("MixOption %d = %v, want %v", tt.optionMs, duration, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSignTransactionRequestJSON(t *testing.T) {
+	req := SignTransactionRequest{
+		ServiceID: "mixer",
+		AccountID: "acc-1",
+		TxHash:    "dHhoYXNo", // base64 "txhash"
+	}
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+	}
+
+	var decoded SignTransactionRequest
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if decoded.ServiceID != req.ServiceID {
+		t.Errorf("ServiceID = %s, want %s", decoded.ServiceID, req.ServiceID)
+	}
+	if decoded.TxHash != req.TxHash {
+		t.Errorf("TxHash = %s, want %s", decoded.TxHash, req.TxHash)
+	}
+}
+
+func TestTransferRequestJSON(t *testing.T) {
+	req := TransferRequest{
+		ServiceID: "mixer",
+		AccountID: "acc-1",
+		ToAddress: "NTargetAddr",
+		Amount:    1000,
+		TokenHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+	}
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+	}
+
+	var decoded TransferRequest
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if decoded.Amount != req.Amount {
+		t.Errorf("Amount = %d, want %d", decoded.Amount, req.Amount)
+	}
+	if decoded.TokenHash != req.TokenHash {
+		t.Errorf("TokenHash = %s, want %s", decoded.TokenHash, req.TokenHash)
+	}
+}
+
+// =============================================================================
+// Additional Benchmarks
+// =============================================================================
+
+func BenchmarkAccountPoolClientRequestAccounts(b *testing.B) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(accountpool.RequestAccountsResponse{
+			Accounts: []accountpool.AccountInfo{{ID: "acc-1", Address: "NAddr1", Balance: 1000}},
+			LockID:   "lock-123",
+		})
+	}))
+	defer mockServer.Close()
+
+	client := NewAccountPoolClient(mockServer.URL, "mixer")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = client.RequestAccounts(context.Background(), 1, "test")
+	}
+}
+
+func BenchmarkConvertTargetsToDB(b *testing.B) {
+	targets := []TargetAddress{
+		{Address: "addr1", Amount: 100},
+		{Address: "addr2", Amount: 200},
+		{Address: "addr3", Amount: 300},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = convertTargetsToDB(targets)
+	}
+}

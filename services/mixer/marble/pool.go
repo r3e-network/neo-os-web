@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -321,6 +322,7 @@ func (c *AccountPoolClient) Transfer(ctx context.Context, accountID, toAddress s
 // =============================================================================
 
 // getAccountPoolClient returns the accountpool client.
+// SECURITY: Inter-service calls should use Marble mTLS client for authentication.
 func (s *Service) getAccountPoolClient() *AccountPoolClient {
 	client := NewAccountPoolClient(s.accountPoolURL, ServiceID)
 
@@ -332,7 +334,11 @@ func (s *Service) getAccountPoolClient() *AccountPoolClient {
 				hc.Timeout = 30 * time.Second
 			}
 			client = client.WithHTTPClient(hc)
+		} else {
+			log.Printf("[mixer] WARNING: Marble mTLS client not available, using plain HTTP for accountpool calls")
 		}
+	} else {
+		log.Printf("[mixer] WARNING: Marble not initialized, using plain HTTP for accountpool calls (insecure in production)")
 	}
 	return client
 }

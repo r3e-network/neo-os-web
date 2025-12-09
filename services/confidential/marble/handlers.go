@@ -2,8 +2,9 @@
 package confidentialmarble
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"github.com/R3E-Network/service_layer/internal/httputil"
 )
 
 // =============================================================================
@@ -11,20 +12,18 @@ import (
 // =============================================================================
 
 func (s *Service) handleExecute(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 
 	var req ExecuteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
 	if req.Script == "" {
-		http.Error(w, "script required", http.StatusBadRequest)
+		httputil.BadRequest(w, "script required")
 		return
 	}
 
@@ -34,20 +33,17 @@ func (s *Service) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.Execute(r.Context(), userID, &req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.InternalError(w, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	httputil.WriteJSON(w, http.StatusOK, result)
 }
 
 func (s *Service) handleGetJob(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "not found"})
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "not found"})
 }
 
 func (s *Service) handleListJobs(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode([]interface{}{})
+	httputil.WriteJSON(w, http.StatusOK, []interface{}{})
 }

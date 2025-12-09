@@ -27,7 +27,9 @@ func (s *Service) startMixing(ctx context.Context, request *MixRequest) {
 	request.MixingStartAt = time.Now()
 
 	// Persist status
-	_ = s.repo.Update(ctx, RequestToRecord(request))
+	if err := s.repo.Update(ctx, RequestToRecord(request)); err != nil {
+		log.Printf("[mixer] failed to update request status to mixing: %v", err)
+	}
 
 	// Get deposit account info from accountpool
 	depositAccountID := request.PoolAccounts[0]
@@ -45,13 +47,19 @@ func (s *Service) startMixing(ctx context.Context, request *MixRequest) {
 			request.PoolAccounts = append(request.PoolAccounts, acc.ID)
 		}
 		// Update balance via accountpool
-		_ = s.updateAccountBalance(ctx, acc.ID, splitAmounts[i])
+		if err := s.updateAccountBalance(ctx, acc.ID, splitAmounts[i]); err != nil {
+			log.Printf("[mixer] failed to update balance for account %s: %v", acc.ID, err)
+		}
 	}
 	// Deduct from deposit account
-	_ = s.updateAccountBalance(ctx, depositAccountID, -request.NetAmount)
+	if err := s.updateAccountBalance(ctx, depositAccountID, -request.NetAmount); err != nil {
+		log.Printf("[mixer] failed to deduct from deposit account %s: %v", depositAccountID, err)
+	}
 
 	// Persist updated pool accounts list
-	_ = s.repo.Update(ctx, RequestToRecord(request))
+	if err := s.repo.Update(ctx, RequestToRecord(request)); err != nil {
+		log.Printf("[mixer] failed to persist pool accounts list: %v", err)
+	}
 }
 
 // runMixingLoop continuously generates random mixing transactions.
@@ -110,8 +118,13 @@ func (s *Service) executeMixingTransaction(ctx context.Context) {
 	amount := cfg.MinTxAmount + mrand.Int63n(maxAmount-cfg.MinTxAmount)
 
 	// Update balances via accountpool service
-	_ = s.updateAccountBalance(ctx, source.ID, -amount)
-	_ = s.updateAccountBalance(ctx, dest.ID, amount)
+	if err := s.updateAccountBalance(ctx, source.ID, -amount); err != nil {
+		log.Printf("[mixer] mixing tx: failed to deduct from source %s: %v", source.ID, err)
+		return
+	}
+	if err := s.updateAccountBalance(ctx, dest.ID, amount); err != nil {
+		log.Printf("[mixer] mixing tx: failed to credit dest %s: %v", dest.ID, err)
+	}
 }
 
 // =============================================================================
@@ -242,10 +255,14 @@ func (s *Service) deliverTokens(ctx context.Context, request *MixRequest) {
 	request.DeliveredAt = time.Now()
 	request.OutputTxIDs = outputTxIDs
 	request.CompletionProof = completionProof
-	_ = s.repo.Update(ctx, RequestToRecord(request))
+	if err := s.repo.Update(ctx, RequestToRecord(request)); err != nil {
+		log.Printf("[mixer] failed to update request %s to delivered status: %v", request.ID, err)
+	}
 
 	// Release accounts back to accountpool service
-	_ = s.releasePoolAccounts(ctx, request.PoolAccounts)
+	if err := s.releasePoolAccounts(ctx, request.PoolAccounts); err != nil {
+		log.Printf("[mixer] failed to release pool accounts for request %s: %v", request.ID, err)
+	}
 }
 
 // collectFeeFromPool collects the service fee from a randomly selected pool account

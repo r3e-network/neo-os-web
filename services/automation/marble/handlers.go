@@ -1,12 +1,11 @@
 package automationmarble
 
 import (
-	"encoding/json"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/httputil"
 	automationsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
 	"github.com/google/uuid"
 )
@@ -28,8 +27,7 @@ func (s *Service) handleInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	s.scheduler.mu.RUnlock()
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	httputil.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"status":           "active",
 		"active_triggers":  activeTriggers,
 		"chain_triggers":   chainTriggers,
@@ -45,15 +43,14 @@ func (s *Service) handleInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleListTriggers(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 
 	triggers, err := s.repo.GetTriggers(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputil.InternalError(w, err.Error())
 		return
 	}
 
@@ -71,25 +68,22 @@ func (s *Service) handleListTriggers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(responses)
+	httputil.WriteJSON(w, http.StatusOK, responses)
 }
 
 func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 
 	var req TriggerRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
 	if req.Name == "" || req.TriggerType == "" {
-		http.Error(w, "name and trigger_type required", http.StatusBadRequest)
+		httputil.BadRequest(w, "name and trigger_type required")
 		return
 	}
 
@@ -98,7 +92,7 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 	if req.TriggerType == "cron" && req.Schedule != "" {
 		next, err := s.parseNextCronExecution(req.Schedule)
 		if err != nil {
-			http.Error(w, "invalid cron schedule: "+err.Error(), http.StatusBadRequest)
+			httputil.BadRequest(w, "invalid cron schedule: "+err.Error())
 			return
 		}
 		nextExec = next
@@ -118,13 +112,11 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.repo.CreateTrigger(r.Context(), trigger); err != nil {
-		http.Error(w, "failed to persist trigger", http.StatusInternalServerError)
+		httputil.InternalError(w, "failed to persist trigger")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(TriggerResponse{
+	httputil.WriteJSON(w, http.StatusCreated, TriggerResponse{
 		ID:          trigger.ID,
 		Name:        trigger.Name,
 		TriggerType: trigger.TriggerType,
@@ -136,38 +128,34 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleGetTrigger(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/triggers/")
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil {
-		http.Error(w, "trigger not found", http.StatusNotFound)
+		httputil.NotFound(w, "trigger not found")
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(trigger)
+	httputil.WriteJSON(w, http.StatusOK, trigger)
 }
 
 func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/triggers/")
 
 	var req TriggerRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil {
-		http.Error(w, "trigger not found", http.StatusNotFound)
+		httputil.NotFound(w, "trigger not found")
 		return
 	}
 
@@ -184,96 +172,85 @@ func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.repo.UpdateTrigger(r.Context(), trigger); err != nil {
-		http.Error(w, "failed to update trigger", http.StatusInternalServerError)
+		httputil.InternalError(w, "failed to update trigger")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(trigger)
+	httputil.WriteJSON(w, http.StatusOK, trigger)
 }
 
 func (s *Service) handleDeleteTrigger(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/triggers/")
 	if err := s.repo.DeleteTrigger(r.Context(), id, userID); err != nil {
-		http.Error(w, "trigger not found", http.StatusNotFound)
+		httputil.NotFound(w, "trigger not found")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Service) handleEnableTrigger(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/triggers/")
 	if err := s.repo.SetTriggerEnabled(r.Context(), id, userID, true); err != nil {
-		http.Error(w, "trigger not found", http.StatusNotFound)
+		httputil.NotFound(w, "trigger not found")
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "enabled"})
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "enabled"})
 }
 
 func (s *Service) handleDisableTrigger(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/triggers/")
 	if err := s.repo.SetTriggerEnabled(r.Context(), id, userID, false); err != nil {
-		http.Error(w, "trigger not found", http.StatusNotFound)
+		httputil.NotFound(w, "trigger not found")
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "disabled"})
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "disabled"})
 }
 
 func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/triggers/")
 	// Ensure trigger belongs to user
 	if _, err := s.repo.GetTrigger(r.Context(), id, userID); err != nil {
-		http.Error(w, "trigger not found", http.StatusNotFound)
+		httputil.NotFound(w, "trigger not found")
 		return
 	}
-	limit := 50
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 500 {
-			limit = n
-		}
+	limit := httputil.QueryInt(r, "limit", 50)
+	if limit > 500 {
+		limit = 500
 	}
 	execs, err := s.repo.GetExecutions(r.Context(), id, limit)
 	if err != nil {
-		http.Error(w, "failed to load executions", http.StatusInternalServerError)
+		httputil.InternalError(w, "failed to load executions")
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(execs)
+	httputil.WriteJSON(w, http.StatusOK, execs)
 }
 
 // handleResumeTrigger re-enqueues a trigger by id (e.g., after restart).
 func (s *Service) handleResumeTrigger(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	userID, ok := httputil.RequireUserID(w, r)
+	if !ok {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/triggers/")
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil {
-		http.Error(w, "trigger not found", http.StatusNotFound)
+		httputil.NotFound(w, "trigger not found")
 		return
 	}
 	// Add to scheduler cache for in-memory checks
@@ -281,6 +258,5 @@ func (s *Service) handleResumeTrigger(w http.ResponseWriter, r *http.Request) {
 	s.scheduler.triggers[trigger.ID] = trigger
 	s.scheduler.mu.Unlock()
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "resumed"})
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "resumed"})
 }

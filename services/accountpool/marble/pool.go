@@ -4,6 +4,7 @@ package accountpoolmarble
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -51,6 +52,7 @@ func (s *Service) RequestAccounts(ctx context.Context, serviceID string, count i
 		acc.LockedAt = time.Now()
 
 		if err := s.repo.Update(ctx, acc); err != nil {
+			log.Printf("[accountpool] failed to lock account %s: %v", acc.ID, err)
 			continue
 		}
 
@@ -96,6 +98,7 @@ func (s *Service) ReleaseAccounts(ctx context.Context, serviceID string, account
 		acc.LastUsedAt = time.Now()
 
 		if err := s.repo.Update(ctx, acc); err != nil {
+			log.Printf("[accountpool] failed to release account %s: %v", accID, err)
 			continue
 		}
 		released++
@@ -122,6 +125,7 @@ func (s *Service) ReleaseAllByService(ctx context.Context, serviceID string) (in
 		acc.LastUsedAt = time.Now()
 
 		if err := s.repo.Update(ctx, acc); err != nil {
+			log.Printf("[accountpool] failed to release account %s for service %s: %v", acc.ID, serviceID, err)
 			continue
 		}
 		released++
@@ -283,7 +287,9 @@ func (s *Service) rotateAccounts(ctx context.Context) {
 		if !acc.IsRetiring && acc.Balance < minBalance && time.Since(acc.CreatedAt) > minAge {
 			acc.IsRetiring = true
 			retired++
-			_ = s.repo.Update(ctx, acc)
+			if err := s.repo.Update(ctx, acc); err != nil {
+				log.Printf("[accountpool] failed to mark account %s as retiring: %v", acc.ID, err)
+			}
 		}
 	}
 
@@ -298,7 +304,9 @@ func (s *Service) rotateAccounts(ctx context.Context) {
 	// Delete empty retiring accounts (only if not locked)
 	for _, acc := range accounts {
 		if acc.IsRetiring && acc.Balance == 0 && acc.LockedBy == "" {
-			_ = s.repo.Delete(ctx, acc.ID)
+			if err := s.repo.Delete(ctx, acc.ID); err != nil {
+				log.Printf("[accountpool] failed to delete retiring account %s: %v", acc.ID, err)
+			}
 		}
 	}
 }
@@ -338,7 +346,9 @@ func (s *Service) cleanupStaleLocks(ctx context.Context) {
 				// Force release stale lock
 				acc.LockedBy = ""
 				acc.LockedAt = time.Time{}
-				_ = s.repo.Update(ctx, acc)
+				if err := s.repo.Update(ctx, acc); err != nil {
+					log.Printf("[accountpool] failed to release stale lock on account %s: %v", acc.ID, err)
+				}
 			}
 		}
 	}

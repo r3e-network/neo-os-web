@@ -3,6 +3,7 @@ package vrfmarble
 import (
 	"context"
 	"encoding/hex"
+	"log"
 	"strconv"
 	"time"
 
@@ -57,7 +58,9 @@ func (s *Service) handleVRFRequestEvent(ctx context.Context, event *vrfchain.VRF
 	}
 
 	if s.repo != nil {
-		_ = s.repo.Create(ctx, vrfRecordFromReq(request))
+		if err := s.repo.Create(ctx, vrfRecordFromReq(request)); err != nil {
+			log.Printf("[vrf] failed to persist VRF request %s: %v", request.RequestID, err)
+		}
 	}
 
 	s.mu.Lock()
