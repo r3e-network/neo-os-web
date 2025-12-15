@@ -5,9 +5,16 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
+	"time"
 
+	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
+	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
+
+	"github.com/R3E-Network/service_layer/internal/chain"
 	intcrypto "github.com/R3E-Network/service_layer/internal/crypto"
 )
 
@@ -97,22 +104,36 @@ func verifySignature(pub *ecdsa.PublicKey, hash, signature []byte) bool {
 }
 
 // Transfer transfers tokens from a pool account to a target address.
-// This is a stub implementation - actual chain interaction requires chain client integration.
 // The account must be locked by the requesting service.
+//
+// The transfer is executed as an on-chain NEP-17 `transfer(from,to,amount,data)` invocation
+// signed by the pool account's derived private key.
 func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress string, amount int64, tokenHash string) (string, error) {
 	if s.repo == nil {
 		return "", fmt.Errorf("repository not configured")
 	}
+	if s.chainClient == nil {
+		return "", fmt.Errorf("chain client not configured")
+	}
+	if accountID == "" {
+		return "", fmt.Errorf("account_id required")
+	}
+	if toAddress == "" {
+		return "", fmt.Errorf("to_address required")
+	}
+	if amount <= 0 {
+		return "", fmt.Errorf("amount must be positive")
+	}
 
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	acc, err := s.repo.GetByID(ctx, accountID)
 	if err != nil {
+		s.mu.RUnlock()
 		return "", fmt.Errorf("account not found: %w", err)
 	}
 
 	if acc.LockedBy != serviceID {
+		s.mu.RUnlock()
 		return "", fmt.Errorf("account not locked by service %s", serviceID)
 	}
 
@@ -120,21 +141,80 @@ func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress 
 	if tokenHash == "" {
 		tokenHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf" // GAS script hash
 	}
+	tokenHash = strings.TrimSpace(tokenHash)
+	tokenHash = strings.TrimPrefix(strings.TrimPrefix(tokenHash, "0x"), "0X")
+	if tokenHash == "" {
+		return "", fmt.Errorf("token_hash required")
+	}
+	tokenHash = "0x" + tokenHash
 
-	// TODO: Implement actual chain transfer via chain client
-	// For now, return a placeholder indicating the transfer would be executed
-	// This requires integration with the chain client to:
-	// 1. Build NEP-17 transfer transaction
-	// 2. Sign with account's private key
-	// 3. Broadcast to network
-	// 4. Return transaction hash
+	// Copy required account fields while holding the lock; do not hold the lock across RPC calls.
+	fromAddress := strings.TrimSpace(acc.Address)
+	s.mu.RUnlock()
+
+	// Derive pool account private key and build a neo-go signer account.
+	priv, err := s.getPrivateKey(accountID)
+	if err != nil {
+		return "", fmt.Errorf("derive key: %w", err)
+	}
+
+	dBytes := priv.D.Bytes()
+	keyBytes := make([]byte, 32)
+	copy(keyBytes[32-len(dBytes):], dBytes)
+	signer, err := chain.AccountFromPrivateKey(hex.EncodeToString(keyBytes))
+	if err != nil {
+		return "", fmt.Errorf("create signer account: %w", err)
+	}
+
+	// Convert addresses to script-hash strings for RPC params.
+	fromU160, err := address.StringToUint160(fromAddress)
+	if err != nil {
+		return "", fmt.Errorf("invalid from address %q: %w", fromAddress, err)
+	}
+	toU160, err := address.StringToUint160(strings.TrimSpace(toAddress))
+	if err != nil {
+		return "", fmt.Errorf("invalid to address %q: %w", toAddress, err)
+	}
+
+	params := []chain.ContractParam{
+		chain.NewHash160Param("0x" + fromU160.StringLE()),
+		chain.NewHash160Param("0x" + toU160.StringLE()),
+		chain.NewIntegerParam(big.NewInt(amount)),
+		chain.NewAnyParam(),
+	}
+
+	txResult, err := s.chainClient.InvokeFunctionWithSignerAndWait(
+		ctx,
+		tokenHash,
+		"transfer",
+		params,
+		signer,
+		transaction.CalledByEntry,
+		true,
+	)
+	if err != nil {
+		return "", fmt.Errorf("transfer invoke failed: %w", err)
+	}
+
+	// Best-effort account metadata update; the chain tx succeeded regardless.
+	s.mu.Lock()
+	acc.LastUsedAt = time.Now()
+	acc.TxCount++
+	if updateErr := s.repo.Update(ctx, acc); updateErr != nil {
+		s.Logger().WithContext(ctx).WithError(updateErr).WithFields(map[string]interface{}{
+			"account_id": accountID,
+			"tx_hash":    txResult.TxHash,
+		}).Warn("failed to update account metadata after transfer")
+	}
+	s.mu.Unlock()
 
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 		"account_id": accountID,
 		"to_address": toAddress,
 		"amount":     amount,
 		"token_hash": tokenHash,
-	}).Info("transfer requested (chain integration pending)")
+		"tx_hash":    txResult.TxHash,
+	}).Info("transfer completed")
 
-	return "", fmt.Errorf("transfer not yet implemented: chain client integration required")
+	return txResult.TxHash, nil
 }

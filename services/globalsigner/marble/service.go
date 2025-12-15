@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"net/http"
 	"sync"
 	"time"
 
@@ -101,6 +102,11 @@ func New(cfg Config) (*Service, error) {
 	if cfg.RotationConfig.AutoRotate {
 		s.AddTickerWorker(24*time.Hour, s.rotationWorkerWithError)
 	}
+
+	// Attach ServeMux routes to the marble router.
+	mux := http.NewServeMux()
+	s.RegisterRoutes(mux)
+	s.Router().NotFoundHandler = mux
 
 	return s, nil
 }

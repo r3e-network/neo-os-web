@@ -93,13 +93,12 @@ func ParseNeoVaultBondDepositedEvent(event *chain.ContractEvent) (*NeoVaultBondD
 }
 
 // NeoVaultDisputeSubmittedEvent represents a DisputeSubmitted event.
-// Event: DisputeSubmitted(requestHash, user, amount, serviceId, deadline)
+// Event: DisputeSubmitted(requestHash, user, amount, deadline)
 // This event is emitted when a user submits a dispute for an incomplete mix request.
 type NeoVaultDisputeSubmittedEvent struct {
 	RequestHash []byte
 	User        string
 	Amount      uint64
-	ServiceID   []byte
 	Deadline    uint64
 }
 
@@ -108,8 +107,8 @@ func ParseNeoVaultDisputeSubmittedEvent(event *chain.ContractEvent) (*NeoVaultDi
 	if event.EventName != "DisputeSubmitted" {
 		return nil, fmt.Errorf("not a DisputeSubmitted event")
 	}
-	if len(event.State) < 5 {
-		return nil, fmt.Errorf("invalid event state: expected 5 items, got %d", len(event.State))
+	if len(event.State) < 4 {
+		return nil, fmt.Errorf("invalid event state: expected 4 items, got %d", len(event.State))
 	}
 
 	requestHash, err := chain.ParseByteArray(event.State[0])
@@ -127,12 +126,7 @@ func ParseNeoVaultDisputeSubmittedEvent(event *chain.ContractEvent) (*NeoVaultDi
 		return nil, fmt.Errorf("parse amount: %w", err)
 	}
 
-	serviceID, err := chain.ParseByteArray(event.State[3])
-	if err != nil {
-		return nil, fmt.Errorf("parse serviceId: %w", err)
-	}
-
-	deadline, err := chain.ParseInteger(event.State[4])
+	deadline, err := chain.ParseInteger(event.State[3])
 	if err != nil {
 		return nil, fmt.Errorf("parse deadline: %w", err)
 	}
@@ -141,18 +135,17 @@ func ParseNeoVaultDisputeSubmittedEvent(event *chain.ContractEvent) (*NeoVaultDi
 		RequestHash: requestHash,
 		User:        user,
 		Amount:      amount.Uint64(),
-		ServiceID:   serviceID,
 		Deadline:    deadline.Uint64(),
 	}, nil
 }
 
 // NeoVaultDisputeResolvedEvent represents a DisputeResolved event.
-// Event: DisputeResolved(requestHash, serviceId, outputsHash)
+// Event: DisputeResolved(requestHash, serviceId, completionProof)
 // This event is emitted when the TEE submits completion proof to resolve a dispute.
 type NeoVaultDisputeResolvedEvent struct {
-	RequestHash []byte
-	ServiceID   []byte
-	OutputsHash []byte
+	RequestHash     []byte
+	ServiceID       []byte
+	CompletionProof []byte
 }
 
 // ParseNeoVaultDisputeResolvedEvent parses a DisputeResolved event.
@@ -174,31 +167,31 @@ func ParseNeoVaultDisputeResolvedEvent(event *chain.ContractEvent) (*NeoVaultDis
 		return nil, fmt.Errorf("parse serviceId: %w", err)
 	}
 
-	outputsHash, err := chain.ParseByteArray(event.State[2])
+	completionProof, err := chain.ParseByteArray(event.State[2])
 	if err != nil {
-		return nil, fmt.Errorf("parse outputsHash: %w", err)
+		return nil, fmt.Errorf("parse completionProof: %w", err)
 	}
 
 	return &NeoVaultDisputeResolvedEvent{
-		RequestHash: requestHash,
-		ServiceID:   serviceID,
-		OutputsHash: outputsHash,
+		RequestHash:     requestHash,
+		ServiceID:       serviceID,
+		CompletionProof: completionProof,
 	}, nil
 }
 
-// NeoVaultRefundClaimedEvent represents a RefundClaimed event.
-// Event: RefundClaimed(requestHash, user, amount)
+// NeoVaultDisputeRefundedEvent represents a DisputeRefunded event.
+// Event: DisputeRefunded(requestHash, user, amount)
 // This event is emitted when a user claims a refund after dispute deadline passes.
-type NeoVaultRefundClaimedEvent struct {
+type NeoVaultDisputeRefundedEvent struct {
 	RequestHash []byte
 	User        string
 	Amount      uint64
 }
 
-// ParseNeoVaultRefundClaimedEvent parses a RefundClaimed event.
-func ParseNeoVaultRefundClaimedEvent(event *chain.ContractEvent) (*NeoVaultRefundClaimedEvent, error) {
-	if event.EventName != "RefundClaimed" {
-		return nil, fmt.Errorf("not a RefundClaimed event")
+// ParseNeoVaultDisputeRefundedEvent parses a DisputeRefunded event.
+func ParseNeoVaultDisputeRefundedEvent(event *chain.ContractEvent) (*NeoVaultDisputeRefundedEvent, error) {
+	if event.EventName != "DisputeRefunded" {
+		return nil, fmt.Errorf("not a DisputeRefunded event")
 	}
 	if len(event.State) < 3 {
 		return nil, fmt.Errorf("invalid event state: expected 3 items, got %d", len(event.State))
@@ -219,7 +212,7 @@ func ParseNeoVaultRefundClaimedEvent(event *chain.ContractEvent) (*NeoVaultRefun
 		return nil, fmt.Errorf("parse amount: %w", err)
 	}
 
-	return &NeoVaultRefundClaimedEvent{
+	return &NeoVaultDisputeRefundedEvent{
 		RequestHash: requestHash,
 		User:        user,
 		Amount:      amount.Uint64(),

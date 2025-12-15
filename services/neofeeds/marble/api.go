@@ -6,7 +6,7 @@ package neofeeds
 // =============================================================================
 
 // registerRoutes registers service-specific HTTP routes.
-// Note: /health and /info are registered by BaseService.RegisterStandardRoutes()
+// Note: /health, /ready, and /info are registered by BaseService.RegisterStandardRoutes().
 func (s *Service) registerRoutes() {
 	router := s.Router()
 	// Match both feed IDs with slashes (e.g., BTC/USD) and pairs without (e.g., BTCUSDT).

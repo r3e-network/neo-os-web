@@ -4,6 +4,8 @@ package txsubmitter
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/R3E-Network/service_layer/internal/chain"
 )
 
 // =============================================================================
@@ -161,6 +163,13 @@ type ServiceStatus struct {
 	TxsFailed        int64          `json:"txs_failed"`
 	RateLimitStatus  map[string]any `json:"rate_limit_status"`
 	Uptime           time.Duration  `json:"uptime"`
+}
+
+// RPCHealthResponse is returned by GET /rpc/health.
+type RPCHealthResponse struct {
+	Total     int                 `json:"total"`
+	Healthy   int                 `json:"healthy"`
+	Endpoints []chain.RPCEndpoint `json:"endpoints"`
 }
 
 // =============================================================================

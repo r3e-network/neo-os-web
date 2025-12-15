@@ -90,6 +90,26 @@ func NewClient(cfg Config) (*Client, error) {
 	}, nil
 }
 
+// CloneWithRPCURL returns a new Client that uses the provided RPC URL while
+// retaining the existing client's NetworkID and HTTP client configuration.
+func (c *Client) CloneWithRPCURL(rpcURL string) (*Client, error) {
+	if c == nil {
+		return nil, fmt.Errorf("chain client is nil")
+	}
+
+	timeout := time.Duration(0)
+	if c.httpClient != nil {
+		timeout = c.httpClient.Timeout
+	}
+
+	return NewClient(Config{
+		RPCURL:     rpcURL,
+		NetworkID:  c.networkID,
+		Timeout:    timeout,
+		HTTPClient: c.httpClient,
+	})
+}
+
 // =============================================================================
 // Core RPC Methods
 // =============================================================================

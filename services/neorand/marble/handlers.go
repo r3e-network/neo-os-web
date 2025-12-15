@@ -42,20 +42,18 @@ func (s *Service) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	pubKey := crypto.PublicKeyToBytes(&s.privateKey.PublicKey)
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]any{
-		"status":             "active",
-		"public_key":         hex.EncodeToString(pubKey),
-		"pending_requests":   pendingCount,
-		"fulfilled_requests": fulfilledCount,
-		"service_fee":        ServiceFeePerRequest,
+	httputil.WriteJSON(w, http.StatusOK, InfoResponse{
+		Status:            "active",
+		PublicKey:         hex.EncodeToString(pubKey),
+		PendingRequests:   pendingCount,
+		FulfilledRequests: fulfilledCount,
+		ServiceFee:        ServiceFeePerRequest,
 	})
 }
 
 func (s *Service) handlePublicKey(w http.ResponseWriter, r *http.Request) {
 	pubKey := crypto.PublicKeyToBytes(&s.privateKey.PublicKey)
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{
-		"public_key": hex.EncodeToString(pubKey),
-	})
+	httputil.WriteJSON(w, http.StatusOK, PublicKeyResponse{PublicKey: hex.EncodeToString(pubKey)})
 }
 
 func (s *Service) handleCreateRequest(w http.ResponseWriter, r *http.Request) {
@@ -116,10 +114,10 @@ func (s *Service) handleCreateRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusCreated, map[string]any{
-		"request_id":  requestID,
-		"status":      StatusPending,
-		"service_fee": ServiceFeePerRequest,
+	httputil.WriteJSON(w, http.StatusCreated, CreateRequestResponse{
+		RequestID:  requestID,
+		Status:     StatusPending,
+		ServiceFee: ServiceFeePerRequest,
 	})
 }
 

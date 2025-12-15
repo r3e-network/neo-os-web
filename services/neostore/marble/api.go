@@ -6,7 +6,7 @@ package neostoremarble
 // =============================================================================
 
 // registerRoutes registers service-specific HTTP handlers.
-// Note: /health and /info are registered by BaseService.RegisterStandardRoutes()
+// Note: /health, /ready, and /info are registered by BaseService.RegisterStandardRoutes().
 func (s *Service) registerRoutes() {
 	r := s.Router()
 	r.HandleFunc("/secrets", s.handleListSecrets).Methods("GET")

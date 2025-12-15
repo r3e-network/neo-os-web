@@ -94,6 +94,13 @@ func New(cfg ServiceConfig) (*Service, error) {
 		rpcEndpoints: cfg.Config.RPCEndpoints,
 	}
 
+	// If multiple endpoints are configured, ensure the client uses the first one.
+	if s.chainClient != nil && len(s.rpcEndpoints) > 0 && s.rpcEndpoints[0].URL != "" {
+		if client, err := s.chainClient.CloneWithRPCURL(s.rpcEndpoints[0].URL); err == nil {
+			s.chainClient = client
+		}
+	}
+
 	// Set up hydration to load progress on startup
 	s.WithHydrate(s.hydrate)
 
@@ -104,6 +111,8 @@ func New(cfg ServiceConfig) (*Service, error) {
 	s.AddTickerWorker(cfg.Config.PollInterval, s.pollBlocksWithError)
 	s.AddTickerWorker(30*time.Second, s.healthCheckRPCsWithError)
 
+	base.RegisterStandardRoutes()
+	s.RegisterRoutes()
 	return s, nil
 }
 
@@ -368,21 +377,41 @@ func (s *Service) isMonitoredContract(address string) bool {
 
 // healthCheckRPCsWithError checks the health of all RPC endpoints.
 func (s *Service) healthCheckRPCsWithError(ctx context.Context) error {
-	for i := range s.rpcEndpoints {
+	s.mu.RLock()
+	baseClient := s.chainClient
+	endpoints := make([]RPCEndpoint, len(s.rpcEndpoints))
+	copy(endpoints, s.rpcEndpoints)
+	s.mu.RUnlock()
+
+	for i := range endpoints {
 		start := time.Now()
-		healthy := s.checkRPCHealth(ctx, s.rpcEndpoints[i].URL)
-		s.rpcEndpoints[i].Latency = time.Since(start).Milliseconds()
-		s.rpcEndpoints[i].Healthy = healthy
+		healthy := s.checkRPCHealth(ctx, baseClient, endpoints[i].URL)
+		endpoints[i].Latency = time.Since(start).Milliseconds()
+		endpoints[i].Healthy = healthy
 	}
+
+	s.mu.Lock()
+	s.rpcEndpoints = endpoints
+	s.mu.Unlock()
+
 	return nil
 }
 
 // checkRPCHealth verifies an RPC endpoint is responsive.
-func (s *Service) checkRPCHealth(ctx context.Context, url string) bool {
-	if s.chainClient == nil {
+func (s *Service) checkRPCHealth(ctx context.Context, baseClient *chain.Client, url string) bool {
+	if url == "" {
+		return false
+	}
+	if baseClient == nil {
 		return true
 	}
-	_, err := s.chainClient.GetBlockCount(ctx)
+
+	client, err := baseClient.CloneWithRPCURL(url)
+	if err != nil {
+		return false
+	}
+
+	_, err = client.GetBlockCount(ctx)
 	return err == nil
 }
 
@@ -391,11 +420,26 @@ func (s *Service) switchRPC() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.chainClient == nil || len(s.rpcEndpoints) == 0 {
+		return
+	}
+
 	for i := 0; i < len(s.rpcEndpoints); i++ {
 		next := (s.currentRPC + 1 + i) % len(s.rpcEndpoints)
 		if s.rpcEndpoints[next].Healthy {
+			url := s.rpcEndpoints[next].URL
+			if url == "" {
+				continue
+			}
+
+			client, err := s.chainClient.CloneWithRPCURL(url)
+			if err != nil {
+				continue
+			}
+
+			s.chainClient = client
 			s.currentRPC = next
-			s.Logger().Info(context.Background(), "Switched to RPC endpoint", map[string]interface{}{"url": s.rpcEndpoints[next].URL})
+			s.Logger().Info(context.Background(), "Switched to RPC endpoint", map[string]interface{}{"url": url})
 			return
 		}
 	}

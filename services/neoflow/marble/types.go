@@ -50,3 +50,8 @@ type ThresholdCondition struct {
 	Operator  string `json:"operator"`
 	Threshold int64  `json:"threshold"`
 }
+
+// StatusResponse is a generic response for endpoints that only return a status string.
+type StatusResponse struct {
+	Status string `json:"status"`
+}

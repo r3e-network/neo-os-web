@@ -68,6 +68,10 @@ data:
   NEOCOMPUTE_SERVICE_URL: "https://neocompute:8086"
   NEOSTORE_SERVICE_URL: "https://neostore:8087"
   NEOORACLE_SERVICE_URL: "https://neooracle:8088"
+  NEOINDEXER_SERVICE_URL: "https://neoindexer:8089"
+  TXSUBMITTER_SERVICE_URL: "https://txsubmitter:8090"
+  GASACCOUNTING_SERVICE_URL: "https://gasaccounting:8091"
+  GLOBALSIGNER_SERVICE_URL: "https://globalsigner:8092"
   SECRETS_BASE_URL: "https://neostore:8087"
 
   # New infrastructure services
@@ -75,6 +79,8 @@ data:
   TX_SUBMITTER_PORT: "8090"
   MIXER_SCHEDULER_PORT: "8091"
   MIXER_EXECUTOR_PORT: "8092"
+  GASACCOUNTING_PORT: "8091"
+  GLOBALSIGNER_PORT: "8092"
   TEE_SIGNER_PORT: "9443"
 
   # NATS JetStream configuration

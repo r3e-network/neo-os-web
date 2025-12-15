@@ -6,9 +6,8 @@ package neooracle
 // =============================================================================
 
 // registerRoutes registers service-specific HTTP handlers.
-// Note: /health and /info are registered by BaseService.RegisterStandardRoutes()
+// Note: /health, /ready, and /info are registered by BaseService.RegisterStandardRoutes().
 func (s *Service) registerRoutes() {
-	s.RegisterStandardRoutes()
 	r := s.Router()
 	r.HandleFunc("/query", s.handleQuery).Methods("POST")
 	// Backward-compatible alias used by older clients/UI.

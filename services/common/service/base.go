@@ -261,6 +261,12 @@ func (b *BaseService) WorkerCount() int {
 	return len(b.workers)
 }
 
+// Workers returns the number of registered background workers.
+// It is an alias for WorkerCount to satisfy the BackgroundWorker interface.
+func (b *BaseService) Workers() int {
+	return b.WorkerCount()
+}
+
 // CheckHealth refreshes the cached health state by probing critical dependencies.
 func (b *BaseService) CheckHealth() {
 	ctx, cancel := context.WithTimeout(context.Background(), healthCheckTimeout)

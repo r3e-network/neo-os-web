@@ -123,6 +123,7 @@ func New(cfg Config) (*Service, error) {
 		return nil
 	}, commonservice.WithTickerWorkerName("lock-cleanup"))
 
+	base.RegisterStandardRoutes()
 	s.registerRoutes()
 	return s, nil
 }

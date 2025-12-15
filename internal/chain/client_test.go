@@ -175,6 +175,12 @@ func TestContractParams(t *testing.T) {
 	if hashParam.Type != "Hash160" {
 		t.Errorf("NewHash160Param failed")
 	}
+
+	// Test any param
+	anyParam := NewAnyParam()
+	if anyParam.Type != "Any" || anyParam.Value != nil {
+		t.Errorf("NewAnyParam failed")
+	}
 }
 
 func TestRPCError(t *testing.T) {

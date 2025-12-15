@@ -330,21 +330,27 @@ The NeoVault uses **standard single-sig addresses** (identical to ordinary users
 ```
 service_layer/
 ├── cmd/
-│   └── gateway/          # API Gateway entry point
+│   ├── gateway/          # API Gateway entry point
+│   └── marble/           # Unified Marble entry point (MARBLE_TYPE)
 ├── internal/
 │   ├── marble/           # Marble SDK & service framework
 │   ├── database/         # Supabase client & repository
 │   ├── crypto/           # Cryptographic operations
 │   └── secretstore/      # NeoStore (secrets) client
 ├── services/
+│   ├── gasaccounting/    # GasAccounting service
+│   ├── globalsigner/     # GlobalSigner service
 │   ├── neooracle/        # NeoOracle service
 │   ├── neorand/          # NeoRand (VRF) service
 │   ├── neovault/         # NeoVault service
 │   ├── neoaccounts/      # NeoAccounts (AccountPool) service
+│   ├── neoindexer/       # NeoIndexer service
 │   ├── neostore/         # NeoStore (Secrets) service
 │   ├── neofeeds/         # NeoFeeds service
 │   ├── neoflow/          # NeoFlow service
-│   └── neocompute/       # NeoCompute service
+│   ├── neocompute/       # NeoCompute service
+│   ├── teesigner/        # TEE signer utility/service
+│   └── txsubmitter/      # TxSubmitter service
 ├── manifests/
 │   └── manifest.json     # MarbleRun manifest
 ├── migrations/

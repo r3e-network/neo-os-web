@@ -73,10 +73,22 @@ func (s *Service) fulfillRequestViaTxSubmitter(ctx context.Context, request *Req
 		randomWordsBig[i] = new(big.Int).SetBytes(wordHash)
 	}
 
-	// Parse request ID
-	requestIDBig := new(big.Int)
-	if _, ok := requestIDBig.SetString(request.RequestID, 10); !ok {
-		requestIDBig.SetString(request.RequestID, 16)
+	requestIDBig, isOnChain := parseOnChainRequestID(request.RequestID)
+	if !isOnChain {
+		// Off-chain request (API-initiated): fulfill locally without a chain callback.
+		s.mu.Lock()
+		request.Status = StatusFulfilled
+		request.RandomWords = randomWords
+		request.Proof = hex.EncodeToString(vrfProof.Proof)
+		request.FulfilledAt = time.Now()
+		s.mu.Unlock()
+
+		if s.repo != nil {
+			if err := s.repo.Update(ctx, neorandRecordFromReq(request)); err != nil {
+				s.Logger().WithContext(ctx).WithError(err).WithField("request_id", request.RequestID).Warn("failed to persist fulfilled request")
+			}
+		}
+		return
 	}
 
 	// Encode random words as bytes for callback
@@ -110,6 +122,7 @@ func (s *Service) fulfillRequestViaTxSubmitter(ctx context.Context, request *Req
 	request.Status = StatusFulfilled
 	request.RandomWords = randomWords
 	request.Proof = hex.EncodeToString(vrfProof.Proof)
+	request.FulfillTxHash = txHash
 	request.FulfilledAt = time.Now()
 	s.mu.Unlock()
 
@@ -127,9 +140,12 @@ func (s *Service) markRequestFailedViaTxSubmitter(ctx context.Context, request *
 		return
 	}
 
-	requestIDBig := new(big.Int)
-	if _, ok := requestIDBig.SetString(request.RequestID, 10); !ok {
-		requestIDBig.SetString(request.RequestID, 16)
+	// Always update local state/persistence even if the chain callback fails.
+	s.markRequestFailed(ctx, request, errorMsg)
+
+	requestIDBig, isOnChain := parseOnChainRequestID(request.RequestID)
+	if !isOnChain {
+		return
 	}
 
 	_, err := s.txSubmitterAdapter.FailRequest(ctx, requestIDBig, errorMsg)

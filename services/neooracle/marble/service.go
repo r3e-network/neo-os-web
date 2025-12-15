@@ -99,6 +99,8 @@ func New(cfg Config) (*Service, error) {
 		maxBodyBytes: maxBytes,
 		allowlist:    cfg.URLAllowlist,
 	}
+
+	base.RegisterStandardRoutes()
 	s.registerRoutes()
 	return s, nil
 }

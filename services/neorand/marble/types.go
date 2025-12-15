@@ -63,6 +63,32 @@ type CreateRequestInput struct {
 }
 
 // =============================================================================
+// Simple Handler Response Types
+// =============================================================================
+
+// InfoResponse represents the response returned by GET /info.
+type InfoResponse struct {
+	Status            string `json:"status"`
+	PublicKey         string `json:"public_key"`
+	PendingRequests   int    `json:"pending_requests"`
+	FulfilledRequests int    `json:"fulfilled_requests"`
+	ServiceFee        int64  `json:"service_fee"`
+}
+
+// PublicKeyResponse represents the response returned by GET /pubkey.
+type PublicKeyResponse struct {
+	PublicKey string `json:"public_key"`
+}
+
+// CreateRequestResponse represents the response returned by POST /request.
+type CreateRequestResponse struct {
+	RequestID   string `json:"request_id"`
+	Status      string `json:"status"`
+	ServiceFee  int64  `json:"service_fee"`
+	SubmittedAt string `json:"submitted_at,omitempty"`
+}
+
+// =============================================================================
 // API Types
 // =============================================================================
 

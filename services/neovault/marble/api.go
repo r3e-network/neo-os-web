@@ -12,8 +12,8 @@ import (
 // =============================================================================
 
 // registerRoutes registers service-specific HTTP routes.
-// Note: /health is registered by BaseService.RegisterStandardRoutes()
-// /info is custom because it requires async network calls to neoaccounts service
+// Note: /health and /ready are registered by BaseService.RegisterStandardRoutesWithOptions().
+// /info is custom because it requires async network calls to neoaccounts service.
 func (s *Service) registerRoutes() {
 	router := s.Router()
 

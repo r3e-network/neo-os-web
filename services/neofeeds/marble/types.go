@@ -26,3 +26,18 @@ type PriceResponse struct {
 	Signature []byte    `json:"signature,omitempty"`
 	PublicKey []byte    `json:"public_key,omitempty"`
 }
+
+// FeedSummary represents a feed entry returned by GET /feeds.
+type FeedSummary struct {
+	ID       string `json:"id"`
+	Pair     string `json:"pair"`
+	Enabled  bool   `json:"enabled"`
+	Decimals int    `json:"decimals"`
+}
+
+// SourceSummary represents a configured source returned by GET /sources.
+type SourceSummary struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Weight int    `json:"weight"`
+}

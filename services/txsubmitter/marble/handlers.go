@@ -18,7 +18,7 @@ import (
 // RegisterRoutes registers the TxSubmitter HTTP routes.
 func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 	// Standard endpoints (from BaseService)
-	s.BaseService.RegisterStandardRoutes()
+	s.BaseService.RegisterStandardRoutesOnServeMux(mux)
 
 	// TxSubmitter-specific endpoints
 	mux.HandleFunc("/submit", s.handleSubmit)
@@ -145,10 +145,10 @@ func (s *Service) handleRPCHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	endpoints := s.rpcPool.GetEndpoints()
-	httputil.WriteJSON(w, http.StatusOK, map[string]any{
-		"total":     len(endpoints),
-		"healthy":   s.rpcPool.HealthyCount(),
-		"endpoints": endpoints,
+	httputil.WriteJSON(w, http.StatusOK, RPCHealthResponse{
+		Total:     len(endpoints),
+		Healthy:   s.rpcPool.HealthyCount(),
+		Endpoints: endpoints,
 	})
 }
 

@@ -6,11 +6,9 @@ package neoaccountsmarble
 // =============================================================================
 
 // registerRoutes registers service-specific HTTP handlers.
-// Note: /health and standard /info are registered by BaseService.RegisterStandardRoutes()
-// /pool-info is the neoaccounts-specific endpoint for pool statistics
+// Note: /health, /ready, and standard /info are registered by BaseService.RegisterStandardRoutes().
+// /pool-info is the neoaccounts-specific endpoint for pool statistics.
 func (s *Service) registerRoutes() {
-	s.BaseService.RegisterStandardRoutes()
-
 	router := s.Router()
 	router.HandleFunc("/master-key", s.handleMasterKey).Methods("GET")
 	router.HandleFunc("/pool-info", s.handleInfo).Methods("GET")

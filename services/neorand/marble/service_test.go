@@ -356,17 +356,18 @@ func TestHandlePublicKey(t *testing.T) {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
 	}
 
-	var resp map[string]string
-	json.NewDecoder(rr.Body).Decode(&resp)
+	var resp PublicKeyResponse
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
 
-	pubKey := resp["public_key"]
-	if pubKey == "" {
+	if resp.PublicKey == "" {
 		t.Error("public_key is empty")
 	}
 
 	// Public key should be 66 hex characters (33 bytes compressed)
-	if len(pubKey) != 66 {
-		t.Errorf("public_key length = %d, want 66", len(pubKey))
+	if len(resp.PublicKey) != 66 {
+		t.Errorf("public_key length = %d, want 66", len(resp.PublicKey))
 	}
 }
 
@@ -538,14 +539,16 @@ func TestHandleInfo(t *testing.T) {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
 	}
 
-	var resp map[string]interface{}
-	json.NewDecoder(rr.Body).Decode(&resp)
-
-	if resp["status"] != "active" {
-		t.Errorf("status = %v, want active", resp["status"])
+	var resp InfoResponse
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
 	}
-	if resp["public_key"] == nil {
-		t.Error("public_key should not be nil")
+
+	if resp.Status != "active" {
+		t.Errorf("status = %q, want %q", resp.Status, "active")
+	}
+	if resp.PublicKey == "" {
+		t.Error("public_key should not be empty")
 	}
 }
 

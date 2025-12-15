@@ -70,7 +70,11 @@ func (s *Service) SetTxSubmitterClient(client *txclient.Client) {
 // pushPricesToChainViaTxSubmitter pushes prices using TxSubmitter.
 func (s *Service) pushPricesToChainViaTxSubmitter(ctx context.Context) {
 	if s.txSubmitterAdapter == nil {
-		// Fallback to legacy TEEFulfiller if TxSubmitter not configured
+		// Fallback to legacy TEEFulfiller if TxSubmitter not configured.
+		if s.teeFulfiller == nil {
+			s.Logger().WithContext(ctx).Warn("chain push not configured (missing txsubmitter client and tee fulfiller)")
+			return
+		}
 		s.pushPricesToChain(ctx)
 		return
 	}
@@ -96,14 +100,14 @@ func (s *Service) pushPricesToChainViaTxSubmitter(ctx context.Context) {
 			continue
 		}
 
-		timestampMillis := price.Timestamp.UnixMilli()
-		if timestampMillis < 0 {
+		timestampSecs := price.Timestamp.Unix()
+		if timestampSecs < 0 {
 			continue
 		}
 
 		feedIDs = append(feedIDs, feed.ID)
 		prices = append(prices, big.NewInt(price.Price))
-		timestamps = append(timestamps, uint64(timestampMillis))
+		timestamps = append(timestamps, uint64(timestampSecs))
 	}
 
 	if len(feedIDs) == 0 {
@@ -136,11 +140,11 @@ func (s *Service) PushSinglePriceViaTxSubmitter(ctx context.Context, feedID stri
 		return fmt.Errorf("get price: %w", err)
 	}
 
-	timestampMillis := price.Timestamp.UnixMilli()
-	if timestampMillis < 0 {
+	timestampSecs := price.Timestamp.Unix()
+	if timestampSecs < 0 {
 		return fmt.Errorf("invalid timestamp for feed %s", feedID)
 	}
 
-	_, err = s.txSubmitterAdapter.UpdatePrice(ctx, feedID, big.NewInt(price.Price), uint64(timestampMillis))
+	_, err = s.txSubmitterAdapter.UpdatePrice(ctx, feedID, big.NewInt(price.Price), uint64(timestampSecs))
 	return err
 }

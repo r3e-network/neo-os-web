@@ -299,7 +299,7 @@ func (s *Service) handleGetSecretPermissions(w http.ResponseWriter, r *http.Requ
 		httputil.InternalError(w, "failed to load permissions")
 		return
 	}
-	httputil.WriteJSON(w, http.StatusOK, map[string]any{"services": allowedServices})
+	httputil.WriteJSON(w, http.StatusOK, ServicesResponse{Services: allowedServices})
 }
 
 // handleSetSecretPermissions replaces the allowed service list (user only).
@@ -362,7 +362,7 @@ func (s *Service) handleSetSecretPermissions(w http.ResponseWriter, r *http.Requ
 		httputil.InternalError(w, "failed to set permissions")
 		return
 	}
-	httputil.WriteJSON(w, http.StatusOK, map[string]any{"services": normalized})
+	httputil.WriteJSON(w, http.StatusOK, ServicesResponse{Services: normalized})
 }
 
 // handleDeleteSecret deletes a secret (user only).
@@ -413,7 +413,7 @@ func (s *Service) handleDeleteSecret(w http.ResponseWriter, r *http.Request) {
 	// Log successful deletion
 	s.logAudit(r.Context(), userID, name, "delete", "", true, "", r)
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]any{"deleted": true})
+	httputil.WriteJSON(w, http.StatusOK, DeleteResponse{Deleted: true})
 }
 
 // handleGetAuditLogs retrieves audit logs for the user.

@@ -77,8 +77,8 @@ func (s *Service) PushSinglePrice(ctx context.Context, feedID string) error {
 		return fmt.Errorf("get price: %w", err)
 	}
 
-	timestampMillis := price.Timestamp.UnixMilli()
-	if timestampMillis < 0 {
+	timestampSecs := price.Timestamp.Unix()
+	if timestampSecs < 0 {
 		return fmt.Errorf("invalid timestamp for feed %s", feedID)
 	}
 
@@ -87,7 +87,7 @@ func (s *Service) PushSinglePrice(ctx context.Context, feedID string) error {
 		s.neoFeedsHash,
 		feedID,
 		big.NewInt(price.Price),
-		uint64(timestampMillis),
+		uint64(timestampSecs),
 	)
 	return err
 }

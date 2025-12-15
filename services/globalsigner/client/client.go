@@ -6,39 +6,93 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
+
+	slhttputil "github.com/R3E-Network/service_layer/internal/httputil"
+	"github.com/R3E-Network/service_layer/internal/serviceauth"
 )
 
 // Client is a client for the GlobalSigner service.
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
-	serviceID  string
+	baseURL      string
+	httpClient   *http.Client
+	serviceID    string
+	maxBodyBytes int64
 }
 
 // Config holds client configuration.
 type Config struct {
-	BaseURL   string
+	BaseURL string
+	// ServiceID identifies the caller. In strict identity mode this is redundant
+	// (caller identity is enforced by MarbleRun mTLS), but it's still useful for
+	// local development and debugging.
 	ServiceID string
 	Timeout   time.Duration
+	// HTTPClient optionally overrides the client used to execute requests.
+	// For MarbleRun mesh calls, prefer using `marble.Marble.HTTPClient()` so
+	// requests are sent over verified mTLS.
+	HTTPClient *http.Client
+	// MaxBodyBytes caps responses to prevent memory exhaustion.
+	MaxBodyBytes int64
 }
 
+const (
+	defaultTimeout     = 30 * time.Second
+	defaultMaxBodySize = 1 << 20 // 1MiB
+)
+
 // New creates a new GlobalSigner client.
-func New(cfg Config) *Client {
+func New(cfg Config) (*Client, error) {
 	timeout := cfg.Timeout
 	if timeout == 0 {
-		timeout = 30 * time.Second
+		timeout = defaultTimeout
+	}
+
+	baseURL := strings.TrimRight(strings.TrimSpace(cfg.BaseURL), "/")
+	if baseURL == "" {
+		return nil, fmt.Errorf("globalsigner: BaseURL is required")
+	}
+
+	parsed, err := url.Parse(baseURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return nil, fmt.Errorf("globalsigner: BaseURL must be a valid URL")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return nil, fmt.Errorf("globalsigner: BaseURL scheme must be http or https")
+	}
+	if parsed.User != nil {
+		return nil, fmt.Errorf("globalsigner: BaseURL must not include user info")
+	}
+	if slhttputil.StrictIdentityMode() && parsed.Scheme != "https" {
+		return nil, fmt.Errorf("globalsigner: BaseURL must use https in strict identity mode")
+	}
+
+	client := cfg.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: timeout}
+	} else {
+		// Avoid mutating a caller-supplied client.
+		copied := *client
+		if copied.Timeout == 0 || cfg.Timeout != 0 {
+			copied.Timeout = timeout
+		}
+		client = &copied
+	}
+
+	maxBodyBytes := cfg.MaxBodyBytes
+	if maxBodyBytes <= 0 {
+		maxBodyBytes = defaultMaxBodySize
 	}
 
 	return &Client{
-		baseURL:   cfg.BaseURL,
-		serviceID: cfg.ServiceID,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
-	}
+		baseURL:      baseURL,
+		serviceID:    strings.TrimSpace(cfg.ServiceID),
+		httpClient:   client,
+		maxBodyBytes: maxBodyBytes,
+	}, nil
 }
 
 // =============================================================================
@@ -103,6 +157,13 @@ type KeyVersion struct {
 
 // Sign performs domain-separated signing.
 func (c *Client) Sign(ctx context.Context, req *SignRequest) (*SignResponse, error) {
+	if c == nil {
+		return nil, fmt.Errorf("globalsigner: client is nil")
+	}
+	if c.httpClient == nil {
+		return nil, fmt.Errorf("globalsigner: http client not configured")
+	}
+
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
@@ -114,7 +175,9 @@ func (c *Client) Sign(ctx context.Context, req *SignRequest) (*SignResponse, err
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("X-Service-ID", c.serviceID)
+	if c.serviceID != "" {
+		httpReq.Header.Set(serviceauth.ServiceIDHeader, c.serviceID)
+	}
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -122,13 +185,24 @@ func (c *Client) Sign(ctx context.Context, req *SignRequest) (*SignResponse, err
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
+	if resp.StatusCode != http.StatusOK {
+		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
+		if readErr != nil {
+			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+		}
+		msg := strings.TrimSpace(string(body))
+		if truncated {
+			msg += "...(truncated)"
+		}
+		if msg != "" {
+			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+		}
+		return nil, fmt.Errorf("request failed: %s", resp.Status)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("request failed: %s - %s", resp.Status, string(respBody))
+	respBody, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
 	}
 
 	var result SignResponse
@@ -141,6 +215,13 @@ func (c *Client) Sign(ctx context.Context, req *SignRequest) (*SignResponse, err
 
 // Derive performs deterministic key derivation.
 func (c *Client) Derive(ctx context.Context, req *DeriveRequest) (*DeriveResponse, error) {
+	if c == nil {
+		return nil, fmt.Errorf("globalsigner: client is nil")
+	}
+	if c.httpClient == nil {
+		return nil, fmt.Errorf("globalsigner: http client not configured")
+	}
+
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
@@ -152,7 +233,9 @@ func (c *Client) Derive(ctx context.Context, req *DeriveRequest) (*DeriveRespons
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("X-Service-ID", c.serviceID)
+	if c.serviceID != "" {
+		httpReq.Header.Set(serviceauth.ServiceIDHeader, c.serviceID)
+	}
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -161,11 +244,24 @@ func (c *Client) Derive(ctx context.Context, req *DeriveRequest) (*DeriveRespons
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
+		if readErr != nil {
+			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+		}
+		msg := strings.TrimSpace(string(body))
+		if truncated {
+			msg += "...(truncated)"
+		}
+		if msg != "" {
+			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+		}
 		return nil, fmt.Errorf("request failed: %s", resp.Status)
 	}
 
 	var result DeriveResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if body, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes); err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	} else if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
@@ -174,12 +270,21 @@ func (c *Client) Derive(ctx context.Context, req *DeriveRequest) (*DeriveRespons
 
 // GetAttestation gets the attestation for the active key.
 func (c *Client) GetAttestation(ctx context.Context) (*AttestationResponse, error) {
+	if c == nil {
+		return nil, fmt.Errorf("globalsigner: client is nil")
+	}
+	if c.httpClient == nil {
+		return nil, fmt.Errorf("globalsigner: http client not configured")
+	}
+
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/attestation", nil)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	httpReq.Header.Set("X-Service-ID", c.serviceID)
+	if c.serviceID != "" {
+		httpReq.Header.Set(serviceauth.ServiceIDHeader, c.serviceID)
+	}
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -188,11 +293,24 @@ func (c *Client) GetAttestation(ctx context.Context) (*AttestationResponse, erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
+		if readErr != nil {
+			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+		}
+		msg := strings.TrimSpace(string(body))
+		if truncated {
+			msg += "...(truncated)"
+		}
+		if msg != "" {
+			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+		}
 		return nil, fmt.Errorf("request failed: %s", resp.Status)
 	}
 
 	var result AttestationResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if body, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes); err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	} else if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
@@ -201,12 +319,21 @@ func (c *Client) GetAttestation(ctx context.Context) (*AttestationResponse, erro
 
 // ListKeys lists all key versions.
 func (c *Client) ListKeys(ctx context.Context) ([]KeyVersion, error) {
+	if c == nil {
+		return nil, fmt.Errorf("globalsigner: client is nil")
+	}
+	if c.httpClient == nil {
+		return nil, fmt.Errorf("globalsigner: http client not configured")
+	}
+
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/keys", nil)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	httpReq.Header.Set("X-Service-ID", c.serviceID)
+	if c.serviceID != "" {
+		httpReq.Header.Set(serviceauth.ServiceIDHeader, c.serviceID)
+	}
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -215,6 +342,17 @@ func (c *Client) ListKeys(ctx context.Context) ([]KeyVersion, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
+		if readErr != nil {
+			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+		}
+		msg := strings.TrimSpace(string(body))
+		if truncated {
+			msg += "...(truncated)"
+		}
+		if msg != "" {
+			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+		}
 		return nil, fmt.Errorf("request failed: %s", resp.Status)
 	}
 
@@ -222,7 +360,9 @@ func (c *Client) ListKeys(ctx context.Context) ([]KeyVersion, error) {
 		ActiveVersion string       `json:"active_version"`
 		KeyVersions   []KeyVersion `json:"key_versions"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if body, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes); err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	} else if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
@@ -231,6 +371,13 @@ func (c *Client) ListKeys(ctx context.Context) ([]KeyVersion, error) {
 
 // Health checks if GlobalSigner is healthy.
 func (c *Client) Health(ctx context.Context) error {
+	if c == nil {
+		return fmt.Errorf("globalsigner: client is nil")
+	}
+	if c.httpClient == nil {
+		return fmt.Errorf("globalsigner: http client not configured")
+	}
+
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)
 	if err != nil {
 		return err

@@ -238,13 +238,14 @@ func TestHandleListFeeds(t *testing.T) {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
 	}
 
-	var feeds []map[string]string
+	var feeds []FeedSummary
 	if err := json.NewDecoder(rr.Body).Decode(&feeds); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if len(feeds) != 1 {
-		t.Errorf("len(feeds) = %d, want 1", len(feeds))
+	expected := len(svc.GetEnabledFeeds())
+	if len(feeds) != expected {
+		t.Errorf("len(feeds) = %d, want %d", len(feeds), expected)
 	}
 }
 

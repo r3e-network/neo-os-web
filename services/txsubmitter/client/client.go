@@ -6,39 +6,93 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
+
+	slhttputil "github.com/R3E-Network/service_layer/internal/httputil"
+	"github.com/R3E-Network/service_layer/internal/serviceauth"
 )
 
 // Client is a client for the TxSubmitter service.
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
-	serviceID  string // Calling service identifier
+	baseURL      string
+	httpClient   *http.Client
+	serviceID    string // Calling service identifier
+	maxBodyBytes int64
 }
 
 // Config holds client configuration.
 type Config struct {
-	BaseURL   string
+	BaseURL string
+	// ServiceID identifies the caller. In strict identity mode this is redundant
+	// (caller identity is enforced by MarbleRun mTLS), but it's still useful for
+	// local development and debugging.
 	ServiceID string
 	Timeout   time.Duration
+	// HTTPClient optionally overrides the client used to execute requests.
+	// For MarbleRun mesh calls, prefer using `marble.Marble.HTTPClient()` so
+	// requests are sent over verified mTLS.
+	HTTPClient *http.Client
+	// MaxBodyBytes caps responses to prevent memory exhaustion.
+	MaxBodyBytes int64
 }
 
+const (
+	defaultTimeout     = 30 * time.Second
+	defaultMaxBodySize = 1 << 20 // 1MiB
+)
+
 // New creates a new TxSubmitter client.
-func New(cfg Config) *Client {
+func New(cfg Config) (*Client, error) {
 	timeout := cfg.Timeout
 	if timeout == 0 {
-		timeout = 30 * time.Second
+		timeout = defaultTimeout
+	}
+
+	baseURL := strings.TrimRight(strings.TrimSpace(cfg.BaseURL), "/")
+	if baseURL == "" {
+		return nil, fmt.Errorf("txsubmitter: BaseURL is required")
+	}
+
+	parsed, err := url.Parse(baseURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return nil, fmt.Errorf("txsubmitter: BaseURL must be a valid URL")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return nil, fmt.Errorf("txsubmitter: BaseURL scheme must be http or https")
+	}
+	if parsed.User != nil {
+		return nil, fmt.Errorf("txsubmitter: BaseURL must not include user info")
+	}
+	if slhttputil.StrictIdentityMode() && parsed.Scheme != "https" {
+		return nil, fmt.Errorf("txsubmitter: BaseURL must use https in strict identity mode")
+	}
+
+	client := cfg.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: timeout}
+	} else {
+		// Avoid mutating a caller-supplied client.
+		copied := *client
+		if copied.Timeout == 0 || cfg.Timeout != 0 {
+			copied.Timeout = timeout
+		}
+		client = &copied
+	}
+
+	maxBodyBytes := cfg.MaxBodyBytes
+	if maxBodyBytes <= 0 {
+		maxBodyBytes = defaultMaxBodySize
 	}
 
 	return &Client{
-		baseURL:   cfg.BaseURL,
-		serviceID: cfg.ServiceID,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
-	}
+		baseURL:      baseURL,
+		serviceID:    strings.TrimSpace(cfg.ServiceID),
+		httpClient:   client,
+		maxBodyBytes: maxBodyBytes,
+	}, nil
 }
 
 // =============================================================================
@@ -74,6 +128,12 @@ type FulfillParams struct {
 	Result    string `json:"result"` // hex-encoded
 }
 
+// FailParams are parameters for fail_request transactions.
+type FailParams struct {
+	RequestID string `json:"request_id"`
+	Reason    string `json:"reason"`
+}
+
 // SetMasterKeyParams are parameters for set_tee_master_key transactions.
 type SetMasterKeyParams struct {
 	PubKey     string `json:"pubkey"`      // hex-encoded
@@ -85,7 +145,13 @@ type SetMasterKeyParams struct {
 type UpdatePricesParams struct {
 	FeedIDs    []string `json:"feed_ids"`
 	Prices     []string `json:"prices"`     // big.Int as string
-	Timestamps []uint64 `json:"timestamps"` // milliseconds
+	Timestamps []uint64 `json:"timestamps"` // seconds since Unix epoch
+}
+
+// ResolveDisputeParams are parameters for resolve_dispute transactions.
+type ResolveDisputeParams struct {
+	RequestHash     string `json:"request_hash"`     // hex-encoded (32 bytes)
+	CompletionProof string `json:"completion_proof"` // hex-encoded
 }
 
 // =============================================================================
@@ -94,6 +160,13 @@ type UpdatePricesParams struct {
 
 // Submit submits a transaction to the blockchain via TxSubmitter.
 func (c *Client) Submit(ctx context.Context, req *SubmitRequest) (*SubmitResponse, error) {
+	if c == nil {
+		return nil, fmt.Errorf("txsubmitter: client is nil")
+	}
+	if c.httpClient == nil {
+		return nil, fmt.Errorf("txsubmitter: http client not configured")
+	}
+
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
@@ -105,7 +178,9 @@ func (c *Client) Submit(ctx context.Context, req *SubmitRequest) (*SubmitRespons
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("X-Service-ID", c.serviceID)
+	if c.serviceID != "" {
+		httpReq.Header.Set(serviceauth.ServiceIDHeader, c.serviceID)
+	}
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -113,13 +188,24 @@ func (c *Client) Submit(ctx context.Context, req *SubmitRequest) (*SubmitRespons
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
+	if resp.StatusCode != http.StatusOK {
+		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
+		if readErr != nil {
+			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+		}
+		msg := strings.TrimSpace(string(body))
+		if truncated {
+			msg += "...(truncated)"
+		}
+		if msg != "" {
+			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+		}
+		return nil, fmt.Errorf("request failed: %s", resp.Status)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("request failed: %s - %s", resp.Status, string(respBody))
+	respBody, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
 	}
 
 	var result SubmitResponse
@@ -153,9 +239,9 @@ func (c *Client) FulfillRequest(ctx context.Context, requestID string, resultHex
 
 // FailRequest submits a fail_request transaction.
 func (c *Client) FailRequest(ctx context.Context, requestID string, errorMsg string) (*SubmitResponse, error) {
-	params, err := json.Marshal(FulfillParams{
+	params, err := json.Marshal(FailParams{
 		RequestID: requestID,
-		Result:    errorMsg,
+		Reason:    errorMsg,
 	})
 	if err != nil {
 		return nil, err
@@ -205,16 +291,42 @@ func (c *Client) UpdatePrices(ctx context.Context, feedIDs []string, prices []st
 	})
 }
 
+// ResolveDispute submits a resolve_dispute transaction.
+func (c *Client) ResolveDispute(ctx context.Context, requestHashHex string, completionProofHex string) (*SubmitResponse, error) {
+	params, err := json.Marshal(ResolveDisputeParams{
+		RequestHash:     requestHashHex,
+		CompletionProof: completionProofHex,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Submit(ctx, &SubmitRequest{
+		RequestID: fmt.Sprintf("%s:dispute:%s", c.serviceID, requestHashHex),
+		TxType:    "resolve_dispute",
+		Params:    params,
+	})
+}
+
 // GetStatus gets the status of a submitted transaction.
 func (c *Client) GetStatus(ctx context.Context, txID int64) (*SubmitResponse, error) {
-	url := fmt.Sprintf("%s/tx/%d", c.baseURL, txID)
+	if c == nil {
+		return nil, fmt.Errorf("txsubmitter: client is nil")
+	}
+	if c.httpClient == nil {
+		return nil, fmt.Errorf("txsubmitter: http client not configured")
+	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	endpoint := fmt.Sprintf("%s/tx/%d", c.baseURL, txID)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	httpReq.Header.Set("X-Service-ID", c.serviceID)
+	if c.serviceID != "" {
+		httpReq.Header.Set(serviceauth.ServiceIDHeader, c.serviceID)
+	}
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -223,11 +335,27 @@ func (c *Client) GetStatus(ctx context.Context, txID int64) (*SubmitResponse, er
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
+		if readErr != nil {
+			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+		}
+		msg := strings.TrimSpace(string(body))
+		if truncated {
+			msg += "...(truncated)"
+		}
+		if msg != "" {
+			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+		}
 		return nil, fmt.Errorf("request failed: %s", resp.Status)
 	}
 
+	respBody, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
 	var result SubmitResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
@@ -236,6 +364,13 @@ func (c *Client) GetStatus(ctx context.Context, txID int64) (*SubmitResponse, er
 
 // Health checks if TxSubmitter is healthy.
 func (c *Client) Health(ctx context.Context) error {
+	if c == nil {
+		return fmt.Errorf("txsubmitter: client is nil")
+	}
+	if c.httpClient == nil {
+		return fmt.Errorf("txsubmitter: http client not configured")
+	}
+
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)
 	if err != nil {
 		return err

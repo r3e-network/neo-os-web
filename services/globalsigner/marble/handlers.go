@@ -15,7 +15,7 @@ import (
 // RegisterRoutes registers the GlobalSigner HTTP routes.
 func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 	// Standard endpoints (from BaseService)
-	s.BaseService.RegisterStandardRoutes()
+	s.BaseService.RegisterStandardRoutesOnServeMux(mux)
 
 	// SECURITY: Sensitive endpoints require service authentication
 	// These endpoints can sign data, rotate keys, or derive keys - must be protected
@@ -118,9 +118,9 @@ func (s *Service) handleListKeys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	versions := s.ListKeyVersions()
-	httputil.WriteJSON(w, http.StatusOK, map[string]any{
-		"active_version": s.ActiveVersion(),
-		"key_versions":   versions,
+	httputil.WriteJSON(w, http.StatusOK, KeysResponse{
+		ActiveVersion: s.ActiveVersion(),
+		KeyVersions:   versions,
 	})
 }
 

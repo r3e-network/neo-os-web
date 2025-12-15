@@ -25,8 +25,12 @@ type TEEFulfiller struct {
 	gatewayHash  string
 	account      *wallet.Account // neo-go wallet account for signing
 	legacyWallet *Wallet         // Legacy wallet for message signing (not tx signing)
-	nonceCounter *big.Int
-	nonceMu      sync.Mutex // Protects nonceCounter for concurrent access
+	nonce        *nonceState
+}
+
+type nonceState struct {
+	mu      sync.Mutex
+	counter *big.Int
 }
 
 // NewTEEFulfiller creates a new TEE fulfiller.
@@ -49,7 +53,7 @@ func NewTEEFulfiller(client *Client, gatewayHash, privateKeyHex string) (*TEEFul
 		gatewayHash:  gatewayHash,
 		account:      account,
 		legacyWallet: legacyWallet,
-		nonceCounter: big.NewInt(0),
+		nonce:        &nonceState{counter: big.NewInt(0)},
 	}, nil
 }
 
@@ -69,14 +73,55 @@ func NewTEEFulfillerFromWallet(client *Client, gatewayHash string, w *Wallet) (*
 		gatewayHash:  gatewayHash,
 		account:      account,
 		legacyWallet: w,
-		nonceCounter: big.NewInt(0),
+		nonce:        &nonceState{counter: big.NewInt(0)},
 	}, nil
+}
+
+// WithClient returns a copy of the fulfiller that uses the provided client while
+// keeping the same signer keys and nonce state (safe for retries/failover).
+func (t *TEEFulfiller) WithClient(client *Client) *TEEFulfiller {
+	if t == nil || client == nil {
+		return t
+	}
+
+	cloned := *t
+	cloned.client = client
+	return &cloned
+}
+
+func (t *TEEFulfiller) invokeWithWait(ctx context.Context, contractHash, method string, params []ContractParam, wait bool) (*TxResult, error) {
+	if t == nil || t.client == nil {
+		return nil, fmt.Errorf("tee fulfiller client not configured")
+	}
+	if t.account == nil {
+		return nil, fmt.Errorf("tee fulfiller account not configured")
+	}
+
+	return t.client.InvokeFunctionWithSignerAndWait(
+		ctx,
+		contractHash,
+		method,
+		params,
+		t.account,
+		transaction.CalledByEntry,
+		wait,
+	)
 }
 
 // FulfillRequest fulfills a service request via the Gateway contract.
 // This is called by TEE after processing a request.
 // Returns the transaction hash after waiting for execution (2 minute timeout).
 func (t *TEEFulfiller) FulfillRequest(ctx context.Context, requestID *big.Int, result []byte) (string, error) {
+	return t.fulfillRequest(ctx, requestID, result, true)
+}
+
+// FulfillRequestNoWait fulfills a service request via the Gateway contract and returns
+// once the transaction has been broadcast (confirmation is not awaited).
+func (t *TEEFulfiller) FulfillRequestNoWait(ctx context.Context, requestID *big.Int, result []byte) (string, error) {
+	return t.fulfillRequest(ctx, requestID, result, false)
+}
+
+func (t *TEEFulfiller) fulfillRequest(ctx context.Context, requestID *big.Int, result []byte, wait bool) (string, error) {
 	nonce := t.nextNonce()
 
 	// Use little-endian encoding to match .NET BigInteger.ToByteArray() in Neo N3 contracts
@@ -95,16 +140,7 @@ func (t *TEEFulfiller) FulfillRequest(ctx context.Context, requestID *big.Int, r
 		NewByteArrayParam(signature),
 	}
 
-	// Use proper transaction building and broadcasting
-	txResult, err := t.client.InvokeFunctionWithSignerAndWait(
-		ctx,
-		t.gatewayHash,
-		"fulfillRequest",
-		params,
-		t.account,
-		transaction.CalledByEntry,
-		true,
-	)
+	txResult, err := t.invokeWithWait(ctx, t.gatewayHash, "fulfillRequest", params, wait)
 	if err != nil {
 		return "", err
 	}
@@ -115,6 +151,16 @@ func (t *TEEFulfiller) FulfillRequest(ctx context.Context, requestID *big.Int, r
 // FailRequest marks a request as failed via the Gateway contract.
 // Returns the transaction hash after waiting for execution (2 minute timeout).
 func (t *TEEFulfiller) FailRequest(ctx context.Context, requestID *big.Int, reason string) (string, error) {
+	return t.failRequest(ctx, requestID, reason, true)
+}
+
+// FailRequestNoWait marks a request as failed via the Gateway contract and returns
+// once the transaction has been broadcast (confirmation is not awaited).
+func (t *TEEFulfiller) FailRequestNoWait(ctx context.Context, requestID *big.Int, reason string) (string, error) {
+	return t.failRequest(ctx, requestID, reason, false)
+}
+
+func (t *TEEFulfiller) failRequest(ctx context.Context, requestID *big.Int, reason string, wait bool) (string, error) {
 	nonce := t.nextNonce()
 
 	// Use little-endian encoding to match .NET BigInteger.ToByteArray() in Neo N3 contracts
@@ -133,15 +179,7 @@ func (t *TEEFulfiller) FailRequest(ctx context.Context, requestID *big.Int, reas
 		NewByteArrayParam(signature),
 	}
 
-	txResult, err := t.client.InvokeFunctionWithSignerAndWait(
-		ctx,
-		t.gatewayHash,
-		"failRequest",
-		params,
-		t.account,
-		transaction.CalledByEntry,
-		true,
-	)
+	txResult, err := t.invokeWithWait(ctx, t.gatewayHash, "failRequest", params, wait)
 	if err != nil {
 		return "", err
 	}
@@ -153,14 +191,24 @@ func (t *TEEFulfiller) FailRequest(ctx context.Context, requestID *big.Int, reas
 // This is called ONLY when a user disputes a mix request.
 // Normal flow has ZERO on-chain transactions.
 // Returns the transaction hash after waiting for execution (2 minute timeout).
-func (t *TEEFulfiller) ResolveDispute(ctx context.Context, neovaultHash string, requestHash, outputsHash []byte) (string, error) {
+func (t *TEEFulfiller) ResolveDispute(ctx context.Context, neovaultHash string, serviceID, requestHash, completionProof []byte) (string, error) {
+	return t.resolveDispute(ctx, neovaultHash, serviceID, requestHash, completionProof, true)
+}
+
+// ResolveDisputeNoWait submits completion proof to resolve a neovault dispute on-chain and returns
+// once the transaction has been broadcast (confirmation is not awaited).
+func (t *TEEFulfiller) ResolveDisputeNoWait(ctx context.Context, neovaultHash string, serviceID, requestHash, completionProof []byte) (string, error) {
+	return t.resolveDispute(ctx, neovaultHash, serviceID, requestHash, completionProof, false)
+}
+
+func (t *TEEFulfiller) resolveDispute(ctx context.Context, neovaultHash string, serviceID, requestHash, completionProof []byte, wait bool) (string, error) {
 	nonce := t.nextNonce()
 
 	// Use little-endian encoding to match .NET BigInteger.ToByteArray() in Neo N3 contracts
 	nonceLE := bigIntToLittleEndian(nonce)
-	message := make([]byte, 0, len(requestHash)+len(outputsHash)+len(nonceLE))
+	message := make([]byte, 0, len(requestHash)+len(completionProof)+len(nonceLE))
 	message = append(message, requestHash...)
-	message = append(message, outputsHash...)
+	message = append(message, completionProof...)
 	message = append(message, nonceLE...)
 
 	signature, err := t.legacyWallet.Sign(message)
@@ -169,21 +217,14 @@ func (t *TEEFulfiller) ResolveDispute(ctx context.Context, neovaultHash string, 
 	}
 
 	params := []ContractParam{
+		NewByteArrayParam(serviceID),
 		NewByteArrayParam(requestHash),
-		NewByteArrayParam(outputsHash),
+		NewByteArrayParam(completionProof),
 		NewIntegerParam(nonce),
 		NewByteArrayParam(signature),
 	}
 
-	txResult, err := t.client.InvokeFunctionWithSignerAndWait(
-		ctx,
-		neovaultHash,
-		"resolveDispute",
-		params,
-		t.account,
-		transaction.CalledByEntry,
-		true,
-	)
+	txResult, err := t.invokeWithWait(ctx, neovaultHash, "resolveDispute", params, wait)
 	if err != nil {
 		return "", err
 	}
@@ -192,10 +233,19 @@ func (t *TEEFulfiller) ResolveDispute(ctx context.Context, neovaultHash string, 
 }
 
 func (t *TEEFulfiller) nextNonce() *big.Int {
-	t.nonceMu.Lock()
-	defer t.nonceMu.Unlock()
-	t.nonceCounter.Add(t.nonceCounter, big.NewInt(1))
-	return new(big.Int).Set(t.nonceCounter)
+	if t == nil {
+		return big.NewInt(0)
+	}
+
+	if t.nonce == nil {
+		t.nonce = &nonceState{counter: big.NewInt(0)}
+	}
+
+	t.nonce.mu.Lock()
+	defer t.nonce.mu.Unlock()
+
+	t.nonce.counter.Add(t.nonce.counter, big.NewInt(1))
+	return new(big.Int).Set(t.nonce.counter)
 }
 
 // =============================================================================
@@ -205,6 +255,15 @@ func (t *TEEFulfiller) nextNonce() *big.Int {
 // UpdatePrice updates a price feed on-chain (NeoFeeds push pattern).
 // Returns the transaction hash after waiting for execution (2 minute timeout).
 func (t *TEEFulfiller) UpdatePrice(ctx context.Context, neoFeedsHash, feedID string, price *big.Int, timestamp uint64) (string, error) {
+	return t.updatePrice(ctx, neoFeedsHash, feedID, price, timestamp, true)
+}
+
+// UpdatePriceNoWait updates a price feed on-chain and returns once the transaction has been broadcast.
+func (t *TEEFulfiller) UpdatePriceNoWait(ctx context.Context, neoFeedsHash, feedID string, price *big.Int, timestamp uint64) (string, error) {
+	return t.updatePrice(ctx, neoFeedsHash, feedID, price, timestamp, false)
+}
+
+func (t *TEEFulfiller) updatePrice(ctx context.Context, neoFeedsHash, feedID string, price *big.Int, timestamp uint64, wait bool) (string, error) {
 	nonce := t.nextNonce()
 
 	// Use little-endian encoding to match .NET BigInteger.ToByteArray() in Neo N3 contracts
@@ -229,15 +288,7 @@ func (t *TEEFulfiller) UpdatePrice(ctx context.Context, neoFeedsHash, feedID str
 		NewByteArrayParam(signature),
 	}
 
-	txResult, err := t.client.InvokeFunctionWithSignerAndWait(
-		ctx,
-		neoFeedsHash,
-		"updatePrice",
-		params,
-		t.account,
-		transaction.CalledByEntry,
-		true,
-	)
+	txResult, err := t.invokeWithWait(ctx, neoFeedsHash, "updatePrice", params, wait)
 	if err != nil {
 		return "", err
 	}
@@ -248,6 +299,15 @@ func (t *TEEFulfiller) UpdatePrice(ctx context.Context, neoFeedsHash, feedID str
 // UpdatePrices batch updates multiple price feeds (NeoFeeds push pattern).
 // Returns the transaction hash after waiting for execution (2 minute timeout).
 func (t *TEEFulfiller) UpdatePrices(ctx context.Context, neoFeedsHash string, feedIDs []string, prices []*big.Int, timestamps []uint64) (string, error) {
+	return t.updatePrices(ctx, neoFeedsHash, feedIDs, prices, timestamps, true)
+}
+
+// UpdatePricesNoWait batch updates multiple price feeds and returns once the transaction has been broadcast.
+func (t *TEEFulfiller) UpdatePricesNoWait(ctx context.Context, neoFeedsHash string, feedIDs []string, prices []*big.Int, timestamps []uint64) (string, error) {
+	return t.updatePrices(ctx, neoFeedsHash, feedIDs, prices, timestamps, false)
+}
+
+func (t *TEEFulfiller) updatePrices(ctx context.Context, neoFeedsHash string, feedIDs []string, prices []*big.Int, timestamps []uint64, wait bool) (string, error) {
 	if len(feedIDs) != len(prices) || len(feedIDs) != len(timestamps) {
 		return "", fmt.Errorf("array length mismatch")
 	}
@@ -294,15 +354,7 @@ func (t *TEEFulfiller) UpdatePrices(ctx context.Context, neoFeedsHash string, fe
 		NewByteArrayParam(signature),
 	}
 
-	txResult, err := t.client.InvokeFunctionWithSignerAndWait(
-		ctx,
-		neoFeedsHash,
-		"updatePrices",
-		params,
-		t.account,
-		transaction.CalledByEntry,
-		true,
-	)
+	txResult, err := t.invokeWithWait(ctx, neoFeedsHash, "updatePrices", params, wait)
 	if err != nil {
 		return "", err
 	}
@@ -313,6 +365,15 @@ func (t *TEEFulfiller) UpdatePrices(ctx context.Context, neoFeedsHash string, fe
 // ExecuteTrigger executes an neoflow trigger (NeoFlow trigger pattern).
 // Returns the transaction hash after waiting for execution (2 minute timeout).
 func (t *TEEFulfiller) ExecuteTrigger(ctx context.Context, neoflowHash string, triggerID *big.Int, executionData []byte) (string, error) {
+	return t.executeTrigger(ctx, neoflowHash, triggerID, executionData, true)
+}
+
+// ExecuteTriggerNoWait executes an neoflow trigger and returns once the transaction has been broadcast.
+func (t *TEEFulfiller) ExecuteTriggerNoWait(ctx context.Context, neoflowHash string, triggerID *big.Int, executionData []byte) (string, error) {
+	return t.executeTrigger(ctx, neoflowHash, triggerID, executionData, false)
+}
+
+func (t *TEEFulfiller) executeTrigger(ctx context.Context, neoflowHash string, triggerID *big.Int, executionData []byte, wait bool) (string, error) {
 	nonce := t.nextNonce()
 
 	// Use little-endian encoding to match .NET BigInteger.ToByteArray() in Neo N3 contracts
@@ -331,15 +392,7 @@ func (t *TEEFulfiller) ExecuteTrigger(ctx context.Context, neoflowHash string, t
 		NewByteArrayParam(signature),
 	}
 
-	txResult, err := t.client.InvokeFunctionWithSignerAndWait(
-		ctx,
-		neoflowHash,
-		"executeTrigger",
-		params,
-		t.account,
-		transaction.CalledByEntry,
-		true,
-	)
+	txResult, err := t.invokeWithWait(ctx, neoflowHash, "executeTrigger", params, wait)
 	if err != nil {
 		return "", err
 	}
@@ -355,6 +408,15 @@ func (t *TEEFulfiller) ExecuteTrigger(ctx context.Context, neoflowHash string, t
 // This is called during initial setup to register the TEE's master public key.
 // Returns the transaction result after waiting for execution.
 func (t *TEEFulfiller) SetTEEMasterKey(ctx context.Context, pubKey, pubKeyHash, attestHash []byte) (*TxResult, error) {
+	return t.setTEEMasterKey(ctx, pubKey, pubKeyHash, attestHash, true)
+}
+
+// SetTEEMasterKeyNoWait anchors the TEE master key and returns once the transaction has been broadcast.
+func (t *TEEFulfiller) SetTEEMasterKeyNoWait(ctx context.Context, pubKey, pubKeyHash, attestHash []byte) (*TxResult, error) {
+	return t.setTEEMasterKey(ctx, pubKey, pubKeyHash, attestHash, false)
+}
+
+func (t *TEEFulfiller) setTEEMasterKey(ctx context.Context, pubKey, pubKeyHash, attestHash []byte, wait bool) (*TxResult, error) {
 	nonce := t.nextNonce()
 
 	// Use little-endian encoding to match .NET BigInteger.ToByteArray() in Neo N3 contracts
@@ -378,20 +440,18 @@ func (t *TEEFulfiller) SetTEEMasterKey(ctx context.Context, pubKey, pubKeyHash, 
 		NewByteArrayParam(signature),
 	}
 
-	txResult, err := t.client.InvokeFunctionWithSignerAndWait(
-		ctx,
-		t.gatewayHash,
-		"setTEEMasterKey",
-		params,
-		t.account,
-		transaction.CalledByEntry,
-		true,
-	)
+	txResult, err := t.invokeWithWait(ctx, t.gatewayHash, "setTEEMasterKey", params, wait)
 	if err != nil {
 		return nil, err
 	}
 
 	return txResult, nil
+}
+
+// InvokeContract invokes an arbitrary contract method using the fulfiller's signer account.
+// This is useful for TxSubmitter-style centralized chain writes.
+func (t *TEEFulfiller) InvokeContract(ctx context.Context, contractHash, method string, params []ContractParam, wait bool) (*TxResult, error) {
+	return t.invokeWithWait(ctx, contractHash, method, params, wait)
 }
 
 func safeInt64FromUint64(v uint64) (int64, error) {

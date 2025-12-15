@@ -116,12 +116,12 @@ func (a *ServiceAdapter) FulfillRequest(ctx context.Context, requestID *big.Int,
 }
 
 // ResolveDispute submits a dispute resolution via TxSubmitter.
-func (a *ServiceAdapter) ResolveDispute(ctx context.Context, requestID string, completionProof []byte) (string, error) {
+func (a *ServiceAdapter) ResolveDispute(ctx context.Context, requestHash []byte, completionProof []byte) (string, error) {
 	if a.txClient == nil {
 		return "", fmt.Errorf("txsubmitter client not configured")
 	}
 
-	resp, err := a.txClient.FulfillRequest(ctx, requestID, hex.EncodeToString(completionProof))
+	resp, err := a.txClient.ResolveDispute(ctx, hex.EncodeToString(requestHash), hex.EncodeToString(completionProof))
 	if err != nil {
 		return "", fmt.Errorf("resolve dispute: %w", err)
 	}

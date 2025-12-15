@@ -14,7 +14,10 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -117,12 +120,36 @@ func New(cfg Config) (*Service, error) {
 	// Add confirmation tracking worker
 	s.AddTickerWorker(5*time.Second, s.confirmationWorkerWithError)
 
+	// Attach ServeMux routes to the marble router.
+	mux := http.NewServeMux()
+	s.RegisterRoutes(mux)
+	s.Router().NotFoundHandler = mux
+
 	return s, nil
 }
 
 // =============================================================================
 // Lifecycle
 // =============================================================================
+
+func (s *Service) Start(ctx context.Context) error {
+	if err := s.BaseService.Start(ctx); err != nil {
+		return err
+	}
+
+	if s.rpcPool != nil {
+		s.rpcPool.Start(ctx)
+	}
+
+	return nil
+}
+
+func (s *Service) Stop() error {
+	if s.rpcPool != nil {
+		s.rpcPool.Stop()
+	}
+	return s.BaseService.Stop()
+}
 
 // hydrate loads pending transactions from the database.
 func (s *Service) hydrate(ctx context.Context) error {
@@ -196,7 +223,7 @@ func (s *Service) Submit(ctx context.Context, fromService string, req *TxRequest
 	}
 
 	// Submit with retry
-	txHash, err := s.submitWithRetry(ctx, req, record.ID)
+	txHash, err := s.submitWithRetry(ctx, fromService, req, record.ID)
 	if err != nil {
 		// Update status to failed
 		s.repo.UpdateStatus(ctx, &supabase.UpdateTxStatusRequest{
@@ -251,7 +278,7 @@ func (s *Service) Submit(ctx context.Context, fromService string, req *TxRequest
 }
 
 // submitWithRetry submits a transaction with retry logic.
-func (s *Service) submitWithRetry(ctx context.Context, req *TxRequest, recordID int64) (string, error) {
+func (s *Service) submitWithRetry(ctx context.Context, fromService string, req *TxRequest, recordID int64) (string, error) {
 	var lastErr error
 	backoff := s.retryConfig.InitialBackoff
 
@@ -280,21 +307,31 @@ func (s *Service) submitWithRetry(ctx context.Context, req *TxRequest, recordID 
 
 		// Execute with RPC failover
 		var txHash string
-		err := s.rpcPool.ExecuteWithFailover(ctx, 0, func(rpcURL string) error {
-			// Update RPC endpoint in record
-			s.repo.UpdateStatus(ctx, &supabase.UpdateTxStatusRequest{
-				ID:          recordID,
-				RPCEndpoint: rpcURL,
-			})
-
-			// Submit transaction via fulfiller or chain client
-			hash, err := s.doSubmit(ctx, rpcURL, req)
-			if err != nil {
-				return err
+		var err error
+		if s.rpcPool == nil {
+			txHash, err = s.doSubmit(ctx, "", fromService, req)
+		} else {
+			poolRetries := 0
+			if endpoints := s.rpcPool.GetEndpoints(); len(endpoints) > 1 {
+				poolRetries = len(endpoints) - 1
 			}
-			txHash = hash
-			return nil
-		})
+
+			err = s.rpcPool.ExecuteWithFailover(ctx, poolRetries, func(rpcURL string) error {
+				// Update RPC endpoint in record
+				s.repo.UpdateStatus(ctx, &supabase.UpdateTxStatusRequest{
+					ID:          recordID,
+					RPCEndpoint: rpcURL,
+				})
+
+				// Submit transaction via fulfiller or chain client
+				hash, submitErr := s.doSubmit(ctx, rpcURL, fromService, req)
+				if submitErr != nil {
+					return submitErr
+				}
+				txHash = hash
+				return nil
+			})
+		}
 
 		if err == nil {
 			return txHash, nil
@@ -312,52 +349,92 @@ func (s *Service) submitWithRetry(ctx context.Context, req *TxRequest, recordID 
 }
 
 // doSubmit performs the actual transaction submission.
-func (s *Service) doSubmit(ctx context.Context, rpcURL string, req *TxRequest) (string, error) {
+func (s *Service) doSubmit(ctx context.Context, rpcURL string, fromService string, req *TxRequest) (string, error) {
 	if s.fulfiller == nil {
 		return "", fmt.Errorf("fulfiller not configured")
 	}
 
+	fulfiller := s.fulfiller
+	if rpcURL != "" && s.chainClient != nil {
+		client, err := s.chainClient.CloneWithRPCURL(rpcURL)
+		if err != nil {
+			return "", fmt.Errorf("clone chain client: %w", err)
+		}
+		fulfiller = fulfiller.WithClient(client)
+	}
+
 	switch req.TxType {
 	case "fulfill_request", "fail_request":
-		return s.submitFulfillRequest(ctx, req)
+		return s.submitFulfillRequest(ctx, fulfiller, req)
 	case "set_tee_master_key":
-		return s.submitSetTEEMasterKey(ctx, req)
+		return s.submitSetTEEMasterKey(ctx, fulfiller, req)
 	case "update_price", "update_prices":
-		return s.submitPriceUpdate(ctx, req)
+		return s.submitPriceUpdate(ctx, fulfiller, req)
 	case "execute_trigger":
-		return s.submitExecuteTrigger(ctx, req)
+		return s.submitExecuteTrigger(ctx, fulfiller, req)
 	case "resolve_dispute":
-		return s.submitResolveDispute(ctx, req)
+		return s.submitResolveDispute(ctx, fulfiller, fromService, req)
+	case "generic":
+		return s.submitGenericInvoke(ctx, fulfiller, req)
 	default:
 		return "", fmt.Errorf("unsupported transaction type: %s", req.TxType)
 	}
 }
 
 // submitFulfillRequest submits a fulfill/fail request transaction.
-func (s *Service) submitFulfillRequest(ctx context.Context, req *TxRequest) (string, error) {
-	var params struct {
-		RequestID *big.Int `json:"request_id"`
-		Result    string   `json:"result"`
-	}
-	if err := json.Unmarshal(req.Params, &params); err != nil {
-		return "", fmt.Errorf("invalid params: %w", err)
-	}
+func (s *Service) submitFulfillRequest(ctx context.Context, fulfiller *chain.TEEFulfiller, req *TxRequest) (string, error) {
+	switch req.TxType {
+	case "fulfill_request":
+		var params struct {
+			RequestID *big.Int `json:"request_id"`
+			Result    string   `json:"result"` // hex
+		}
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			return "", fmt.Errorf("invalid params: %w", err)
+		}
 
-	result, err := hex.DecodeString(params.Result)
-	if err != nil {
-		return "", fmt.Errorf("invalid result hex: %w", err)
-	}
+		result, err := hex.DecodeString(params.Result)
+		if err != nil {
+			return "", fmt.Errorf("invalid result hex: %w", err)
+		}
 
-	txHash, err := s.fulfiller.FulfillRequest(ctx, params.RequestID, result)
-	if err != nil {
-		return "", fmt.Errorf("fulfill request failed: %w", err)
-	}
+		txHash, err := fulfiller.FulfillRequestNoWait(ctx, params.RequestID, result)
+		if err != nil {
+			return "", fmt.Errorf("fulfill request failed: %w", err)
+		}
 
-	return txHash, nil
+		return txHash, nil
+	case "fail_request":
+		var params struct {
+			RequestID *big.Int `json:"request_id"`
+			Reason    string   `json:"reason,omitempty"`
+			// Backward compatibility for older clients that send `result`.
+			Result string `json:"result,omitempty"`
+		}
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			return "", fmt.Errorf("invalid params: %w", err)
+		}
+
+		reason := params.Reason
+		if reason == "" {
+			reason = params.Result
+		}
+		if reason == "" {
+			return "", fmt.Errorf("missing reason")
+		}
+
+		txHash, err := fulfiller.FailRequestNoWait(ctx, params.RequestID, reason)
+		if err != nil {
+			return "", fmt.Errorf("fail request failed: %w", err)
+		}
+		return txHash, nil
+	default:
+		return "", fmt.Errorf("unsupported tx type for submitFulfillRequest: %s", req.TxType)
+	}
 }
 
 // submitSetTEEMasterKey submits a set_tee_master_key transaction.
-func (s *Service) submitSetTEEMasterKey(ctx context.Context, req *TxRequest) (string, error) {
+func (s *Service) submitSetTEEMasterKey(ctx context.Context, fulfiller *chain.TEEFulfiller, req *TxRequest) (string, error) {
 	var params struct {
 		PubKey     string `json:"pubkey"`
 		PubKeyHash string `json:"pubkey_hash"`
@@ -382,7 +459,7 @@ func (s *Service) submitSetTEEMasterKey(ctx context.Context, req *TxRequest) (st
 		return "", fmt.Errorf("invalid attest_hash hex: %w", err)
 	}
 
-	txResult, err := s.fulfiller.SetTEEMasterKey(ctx, pubKey, pubKeyHash, attestHash)
+	txResult, err := fulfiller.SetTEEMasterKeyNoWait(ctx, pubKey, pubKeyHash, attestHash)
 	if err != nil {
 		return "", fmt.Errorf("set tee master key failed: %w", err)
 	}
@@ -391,42 +468,168 @@ func (s *Service) submitSetTEEMasterKey(ctx context.Context, req *TxRequest) (st
 }
 
 // submitPriceUpdate submits a price update transaction.
-// Delegates to generic invoke; specialized NeoFeeds methods available via fulfiller.
-func (s *Service) submitPriceUpdate(ctx context.Context, req *TxRequest) (string, error) {
-	return s.submitGenericInvoke(ctx, req)
+func (s *Service) submitPriceUpdate(ctx context.Context, fulfiller *chain.TEEFulfiller, req *TxRequest) (string, error) {
+	type updatePriceParams struct {
+		FeedID    string `json:"feed_id"`
+		Price     string `json:"price"`
+		Timestamp uint64 `json:"timestamp"`
+	}
+	type updatePricesParams struct {
+		FeedIDs    []string `json:"feed_ids"`
+		Prices     []string `json:"prices"`
+		Timestamps []uint64 `json:"timestamps"`
+	}
+
+	contractHash := req.ContractAddress
+	if contractHash == "" {
+		contractHash = chain.ContractAddressesFromEnv().NeoFeeds
+	}
+	if contractHash == "" {
+		return "", fmt.Errorf("neofeeds contract hash not configured (set request.contract_address or CONTRACT_NEOFEEDS_HASH)")
+	}
+
+	switch req.TxType {
+	case "update_price":
+		var params updatePriceParams
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			return "", fmt.Errorf("invalid params: %w", err)
+		}
+
+		price := new(big.Int)
+		if _, ok := price.SetString(params.Price, 10); !ok {
+			return "", fmt.Errorf("invalid price: %q", params.Price)
+		}
+
+		return fulfiller.UpdatePriceNoWait(ctx, contractHash, params.FeedID, price, params.Timestamp)
+	case "update_prices":
+		var params updatePricesParams
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			return "", fmt.Errorf("invalid params: %w", err)
+		}
+		if len(params.FeedIDs) != len(params.Prices) || len(params.FeedIDs) != len(params.Timestamps) {
+			return "", fmt.Errorf("array length mismatch")
+		}
+
+		prices := make([]*big.Int, len(params.Prices))
+		for i, raw := range params.Prices {
+			value := new(big.Int)
+			if _, ok := value.SetString(raw, 10); !ok {
+				return "", fmt.Errorf("invalid price at index %d: %q", i, raw)
+			}
+			prices[i] = value
+		}
+
+		return fulfiller.UpdatePricesNoWait(ctx, contractHash, params.FeedIDs, prices, params.Timestamps)
+	default:
+		return "", fmt.Errorf("unsupported price update tx type: %s", req.TxType)
+	}
 }
 
 // submitExecuteTrigger submits an execute trigger transaction.
-func (s *Service) submitExecuteTrigger(ctx context.Context, req *TxRequest) (string, error) {
-	return s.submitGenericInvoke(ctx, req)
+func (s *Service) submitExecuteTrigger(ctx context.Context, fulfiller *chain.TEEFulfiller, req *TxRequest) (string, error) {
+	type executeTriggerParams struct {
+		TriggerID      string `json:"trigger_id"`
+		ExecutionData  string `json:"execution_data"`            // hex
+		ContractHash   string `json:"contract_hash,omitempty"`   // optional override
+		ContractMethod string `json:"contract_method,omitempty"` // reserved
+	}
+
+	contractHash := req.ContractAddress
+	if contractHash == "" {
+		contractHash = chain.ContractAddressesFromEnv().NeoFlow
+	}
+
+	var params executeTriggerParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		return "", fmt.Errorf("invalid params: %w", err)
+	}
+	if params.ContractHash != "" {
+		contractHash = params.ContractHash
+	}
+	if contractHash == "" {
+		return "", fmt.Errorf("neoflow contract hash not configured (set request.contract_address or CONTRACT_NEOFLOW_HASH)")
+	}
+
+	triggerID := new(big.Int)
+	if _, ok := triggerID.SetString(params.TriggerID, 10); !ok {
+		if _, ok := triggerID.SetString(params.TriggerID, 16); !ok {
+			return "", fmt.Errorf("invalid trigger_id: %q", params.TriggerID)
+		}
+	}
+
+	executionData, err := hex.DecodeString(params.ExecutionData)
+	if err != nil {
+		return "", fmt.Errorf("invalid execution_data hex: %w", err)
+	}
+
+	return fulfiller.ExecuteTriggerNoWait(ctx, contractHash, triggerID, executionData)
 }
 
 // submitResolveDispute submits a resolve dispute transaction.
-func (s *Service) submitResolveDispute(ctx context.Context, req *TxRequest) (string, error) {
-	return s.submitGenericInvoke(ctx, req)
+func (s *Service) submitResolveDispute(ctx context.Context, fulfiller *chain.TEEFulfiller, fromService string, req *TxRequest) (string, error) {
+	type resolveDisputeParams struct {
+		ServiceID       string `json:"service_id,omitempty"`
+		RequestHash     string `json:"request_hash"`     // hex (32 bytes)
+		CompletionProof string `json:"completion_proof"` // hex
+	}
+
+	contractHash := req.ContractAddress
+	if contractHash == "" {
+		contractHash = chain.ContractAddressesFromEnv().NeoVault
+	}
+	if contractHash == "" {
+		return "", fmt.Errorf("neovault contract hash not configured (set request.contract_address or CONTRACT_NEOVAULT_HASH)")
+	}
+
+	var params resolveDisputeParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		return "", fmt.Errorf("invalid params: %w", err)
+	}
+
+	serviceID := params.ServiceID
+	if serviceID == "" {
+		serviceID = fromService
+	}
+
+	requestHash, err := hex.DecodeString(params.RequestHash)
+	if err != nil {
+		return "", fmt.Errorf("invalid request_hash hex: %w", err)
+	}
+
+	completionProof, err := hex.DecodeString(params.CompletionProof)
+	if err != nil {
+		return "", fmt.Errorf("invalid completion_proof hex: %w", err)
+	}
+
+	return fulfiller.ResolveDisputeNoWait(ctx, contractHash, []byte(serviceID), requestHash, completionProof)
 }
 
 // submitGenericInvoke submits a generic contract invocation.
-func (s *Service) submitGenericInvoke(ctx context.Context, req *TxRequest) (string, error) {
-	if s.chainClient == nil {
-		return "", fmt.Errorf("chain client not configured")
+func (s *Service) submitGenericInvoke(ctx context.Context, fulfiller *chain.TEEFulfiller, req *TxRequest) (string, error) {
+	if fulfiller == nil {
+		return "", fmt.Errorf("fulfiller not configured")
+	}
+	if req.ContractAddress == "" || req.MethodName == "" {
+		return "", fmt.Errorf("contract_address and method_name are required for generic invokes")
 	}
 
-	// Parse params as contract parameters
 	var params []chain.ContractParam
 	if err := json.Unmarshal(req.Params, &params); err != nil {
 		return "", fmt.Errorf("invalid contract params: %w", err)
 	}
 
-	// Use chain client for generic invocations
 	s.Logger().Info(ctx, "Generic invoke", map[string]interface{}{
 		"contract":     req.ContractAddress,
 		"method":       req.MethodName,
 		"params_count": len(params),
 	})
 
-	// Generic invokes return a synthetic tx hash; actual chain submission deferred to specialized handlers
-	return fmt.Sprintf("0x%x", time.Now().UnixNano()), nil
+	txResult, err := fulfiller.InvokeContract(ctx, req.ContractAddress, req.MethodName, params, false)
+	if err != nil {
+		return "", err
+	}
+
+	return txResult.TxHash, nil
 }
 
 // =============================================================================
@@ -480,10 +683,8 @@ func (s *Service) checkConfirmation(ctx context.Context, txHash string) (bool, i
 		return true, 0, nil
 	}
 
-	// Get application log to check transaction result
-	appLog, err := s.chainClient.GetApplicationLog(ctx, txHash)
+	appLog, err := s.getApplicationLog(ctx, txHash)
 	if err != nil {
-		// Transaction not yet confirmed or error
 		return false, 0, err
 	}
 
@@ -507,6 +708,99 @@ func (s *Service) checkConfirmation(ctx context.Context, txHash string) (bool, i
 	}
 
 	return true, gasConsumed, nil
+}
+
+func (s *Service) getApplicationLog(ctx context.Context, txHash string) (*chain.ApplicationLog, error) {
+	if s.chainClient == nil {
+		return nil, fmt.Errorf("chain client not configured")
+	}
+
+	if s.rpcPool == nil {
+		log, err := s.chainClient.GetApplicationLog(ctx, txHash)
+		if err != nil {
+			if isTxNotFoundError(err) {
+				return nil, nil
+			}
+			return nil, err
+		}
+		return log, nil
+	}
+
+	endpoints := s.rpcPool.GetEndpoints()
+	if len(endpoints) == 0 {
+		log, err := s.chainClient.GetApplicationLog(ctx, txHash)
+		if err != nil {
+			if isTxNotFoundError(err) {
+				return nil, nil
+			}
+			return nil, err
+		}
+		return log, nil
+	}
+
+	sort.Slice(endpoints, func(i, j int) bool {
+		if endpoints[i].Healthy != endpoints[j].Healthy {
+			return endpoints[i].Healthy
+		}
+		if endpoints[i].AvgLatency != endpoints[j].AvgLatency {
+			return endpoints[i].AvgLatency < endpoints[j].AvgLatency
+		}
+		return endpoints[i].Priority < endpoints[j].Priority
+	})
+
+	var lastErr error
+	notFound := false
+
+	for _, ep := range endpoints {
+		if ep.URL == "" {
+			continue
+		}
+
+		start := time.Now()
+		client, err := s.chainClient.CloneWithRPCURL(ep.URL)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		log, err := client.GetApplicationLog(ctx, txHash)
+		latency := time.Since(start)
+
+		if err == nil {
+			s.rpcPool.MarkHealthy(ep.URL, latency)
+			return log, nil
+		}
+
+		if isTxNotFoundError(err) {
+			s.rpcPool.MarkHealthy(ep.URL, latency)
+			notFound = true
+			continue
+		}
+
+		s.rpcPool.MarkUnhealthy(ep.URL)
+		lastErr = err
+	}
+
+	if notFound {
+		return nil, nil
+	}
+	if lastErr == nil {
+		return nil, nil
+	}
+	return nil, lastErr
+}
+
+func isTxNotFoundError(err error) bool {
+	rpcErr, ok := err.(*chain.RPCError)
+	if !ok {
+		return false
+	}
+
+	if rpcErr.Code == -100 {
+		return true
+	}
+	msg := strings.ToLower(rpcErr.Message)
+	return strings.Contains(msg, "unknown transaction")
 }
 
 // waitForConfirmation waits for a transaction to be confirmed.
