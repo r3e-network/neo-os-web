@@ -2,7 +2,6 @@
 package gasaccounting
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -68,8 +67,7 @@ func (s *Service) handleDeposit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req DepositRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
@@ -90,8 +88,7 @@ func (s *Service) handleConsume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req ConsumeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
@@ -116,8 +113,7 @@ func (s *Service) handleReserve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req ReserveRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
@@ -138,8 +134,7 @@ func (s *Service) handleRelease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req ReleaseRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
