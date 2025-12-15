@@ -2,7 +2,7 @@ package txsubmitter
 
 import (
 	"context"
-	"encoding/json"
+	
 	"net/http"
 	"strconv"
 	"time"
@@ -42,8 +42,7 @@ func (s *Service) handleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req TxRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 

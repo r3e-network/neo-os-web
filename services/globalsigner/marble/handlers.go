@@ -1,7 +1,7 @@
 package globalsigner
 
 import (
-	"encoding/json"
+	
 	"net/http"
 	"time"
 
@@ -35,8 +35,7 @@ func (s *Service) handleRotate(w http.ResponseWriter, r *http.Request) {
 
 	var req RotateRequest
 	if r.Body != nil && r.ContentLength > 0 {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+		if !httputil.DecodeJSON(w, r, &req) {
 			return
 		}
 	}
@@ -58,8 +57,7 @@ func (s *Service) handleSign(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req SignRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
@@ -80,8 +78,7 @@ func (s *Service) handleDerive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req DeriveRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+	if !httputil.DecodeJSON(w, r, &req) {
 		return
 	}
 
