@@ -25,8 +25,8 @@ Normal mixing operations happen entirely **off-chain** for privacy.
 │  │ IsPaused        │              │ BondDeposited    │          │
 │  │ GetService      │              │ DisputeSubmitted │          │
 │  │ GetDispute      │              │ DisputeResolved  │          │
-│  │ IsDisputeResolved│             │ RefundClaimed    │          │
-│  │ ResolveDispute  │              │ BondSlashed      │          │
+│  │ IsRequestResolved│             │ DisputeRefunded  │          │
+│  │ CanClaimDisputeRefund│         │ BondSlashed      │          │
 │  └────────┬────────┘              └─────────────────┘          │
 │           │                                                     │
 └───────────┼─────────────────────────────────────────────────────┘
@@ -59,7 +59,6 @@ Normal mixing operations happen entirely **off-chain** for privacy.
 type NeoVaultContract struct {
     client       *chain.Client
     contractHash string
-    wallet       *chain.Wallet
 }
 ```
 
@@ -105,22 +104,17 @@ Checks if a dispute has been resolved.
 func (m *NeoVaultContract) IsDisputeResolved(ctx context.Context, requestHash []byte) (bool, error)
 ```
 
-### Write Methods (TEE Only)
+#### IsRequestResolved
 
-#### ResolveDispute
-
-Submits completion proof to resolve a dispute. Only callable by registered TEE service.
+Checks if a request hash has been marked resolved on-chain.
 
 ```go
-func (m *NeoVaultContract) ResolveDispute(
-    ctx context.Context,
-    requestHash []byte,
-    outputsHash []byte,
-    proofSignature []byte,
-) (string, error)
+func (m *NeoVaultContract) IsRequestResolved(ctx context.Context, requestHash []byte) (bool, error)
 ```
 
-**Returns**: Transaction hash after execution (2 minute timeout).
+### Dispute Resolution (TEE)
+
+State-changing operations are executed by the TEE via centralized chain writers (TxSubmitter) or via `chain.TEEFulfiller`.
 
 ## Data Types
 
@@ -130,11 +124,13 @@ Represents a registered mixing service.
 
 ```go
 type NeoVaultServiceInfo struct {
-    ServiceID  []byte
-    TeePubKey  []byte
-    Bond       *big.Int
-    Active     bool
-    RegisterAt uint64
+    ServiceID         []byte
+    TeePubKey         []byte
+    BondAmount        *big.Int
+    OutstandingAmount *big.Int
+    Status            uint8
+    Active            bool
+    RegisteredAt      uint64
 }
 ```
 
@@ -144,15 +140,16 @@ Represents a dispute record.
 
 ```go
 type NeoVaultDisputeInfo struct {
-    RequestHash    []byte
-    User           string
-    Amount         *big.Int
-    ServiceID      []byte
-    Deadline       uint64
-    Status         uint8     // 0=Pending, 1=Resolved, 2=Refunded
-    SubmittedAt    uint64
-    OutputsHash    []byte    // Set when resolved
-    ProofSignature []byte    // Set when resolved
+    RequestHash     []byte
+    User            string
+    Amount          *big.Int
+    RequestProof    []byte
+    ServiceID       []byte
+    SubmittedAt     uint64
+    Deadline        uint64
+    Status          uint8     // 0=Pending, 1=Resolved, 2=Refunded
+    CompletionProof []byte
+    ResolvedAt      uint64
 }
 ```
 
@@ -200,7 +197,6 @@ type NeoVaultDisputeSubmittedEvent struct {
     RequestHash []byte
     User        string
     Amount      uint64
-    ServiceID   []byte
     Deadline    uint64
 }
 ```
@@ -213,16 +209,16 @@ Emitted when TEE resolves a dispute with completion proof.
 type NeoVaultDisputeResolvedEvent struct {
     RequestHash []byte
     ServiceID   []byte
-    OutputsHash []byte
+    CompletionProof []byte
 }
 ```
 
-### RefundClaimed
+### DisputeRefunded
 
 Emitted when user claims refund after deadline.
 
 ```go
-type NeoVaultRefundClaimedEvent struct {
+type NeoVaultDisputeRefundedEvent struct {
     RequestHash []byte
     User        string
     Amount      uint64
@@ -256,20 +252,16 @@ if err != nil {
     return err
 }
 
-contract := neovaultchain.NewNeoVaultContract(client, contractHash, wallet)
+contract := neovaultchain.NewNeoVaultContract(client, contractHash, nil)
 ```
 
-### Resolving a Dispute
+### Resolving a Dispute (TEE)
 
 ```go
 ctx := context.Background()
 
 // Only called when user disputes - normal flow is off-chain
-txHash, err := contract.ResolveDispute(ctx,
-    requestHash,
-    outputsHash,
-    proofSignature,
-)
+txHash, err := fulfiller.ResolveDispute(ctx, contractHash, []byte("neovault"), requestHash, completionProof)
 if err != nil {
     return fmt.Errorf("resolve dispute: %w", err)
 }
@@ -328,9 +320,9 @@ User                           Contract
   │ ClaimRefund (after deadline)  │
   │──────────────────────────────>│
   │                               │
-  │                  RefundClaimed Event
-  │                  BondSlashed Event
-  │                               │
+      │                  DisputeRefunded Event
+      │                  BondSlashed Event
+      │                               │
 ```
 
 ## Dependencies

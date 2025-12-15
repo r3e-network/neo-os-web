@@ -4,6 +4,7 @@ package gasaccounting
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -83,6 +84,11 @@ func New(cfg Config) (*Service, error) {
 
 	// Add reservation cleanup worker
 	s.AddTickerWorker(1*time.Minute, s.cleanupExpiredReservations)
+
+	// Attach ServeMux routes to the marble router.
+	mux := http.NewServeMux()
+	s.RegisterRoutes(mux)
+	s.Router().NotFoundHandler = mux
 
 	return s, nil
 }

@@ -43,6 +43,12 @@ type (
 	StatusResponse       = types.StatusResponse
 )
 
+// KeysResponse is returned by GET /keys.
+type KeysResponse struct {
+	ActiveVersion string        `json:"active_version"`
+	KeyVersions   []*KeyVersion `json:"key_versions"`
+}
+
 // DefaultRotationConfig returns sensible defaults.
 func DefaultRotationConfig() *RotationConfig {
 	return types.DefaultRotationConfig()

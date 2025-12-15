@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/R3E-Network/service_layer/internal/crypto"
@@ -23,13 +24,37 @@ func (s *Service) runRequestFulfiller(ctx context.Context) {
 		case <-s.StopChan():
 			return
 		case request := <-s.pendingRequests:
-			s.fulfillRequest(ctx, request)
+			s.fulfillRequestViaTxSubmitter(ctx, request)
 		}
 	}
 }
 
+func parseOnChainRequestID(value string) (*big.Int, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, false
+	}
+
+	trimmed := value
+	lower := strings.ToLower(trimmed)
+	if strings.HasPrefix(lower, "0x") {
+		trimmed = trimmed[2:]
+	}
+
+	requestID := new(big.Int)
+	if _, ok := requestID.SetString(trimmed, 10); ok && requestID.Sign() > 0 {
+		return requestID, true
+	}
+	if _, ok := requestID.SetString(trimmed, 16); ok && requestID.Sign() > 0 {
+		return requestID, true
+	}
+	return nil, false
+}
+
 // fulfillRequest generates randomness and submits callback to user contract.
 func (s *Service) fulfillRequest(ctx context.Context, request *Request) {
+	requestIDBig, isOnChain := parseOnChainRequestID(request.RequestID)
+
 	// Generate VRF proof
 	seedBytes, err := hex.DecodeString(request.Seed)
 	if err != nil {
@@ -38,7 +63,16 @@ func (s *Service) fulfillRequest(ctx context.Context, request *Request) {
 
 	vrfProof, err := crypto.GenerateVRF(s.privateKey, seedBytes)
 	if err != nil {
-		s.markRequestFailed(ctx, request, fmt.Sprintf("generate VRF: %v", err))
+		errMsg := fmt.Sprintf("generate VRF: %v", err)
+
+		// On-chain requests should be marked failed on-chain as well.
+		if isOnChain && s.teeFulfiller != nil {
+			if _, failErr := s.teeFulfiller.FailRequest(ctx, requestIDBig, errMsg); failErr != nil {
+				s.Logger().WithContext(ctx).WithError(failErr).WithField("request_id", request.RequestID).Warn("failed to mark request failed on-chain")
+			}
+		}
+
+		s.markRequestFailed(ctx, request, errMsg)
 		return
 	}
 
@@ -54,13 +88,11 @@ func (s *Service) fulfillRequest(ctx context.Context, request *Request) {
 		randomWordsBig[i] = new(big.Int).SetBytes(wordHash)
 	}
 
-	// Submit callback to user contract via TEE fulfiller (if available)
-	if s.teeFulfiller != nil && request.RequestID != "" {
-		// Parse request ID to big.Int
-		requestIDBig := new(big.Int)
-		if _, ok := requestIDBig.SetString(request.RequestID, 10); !ok {
-			// Try hex format
-			requestIDBig.SetString(request.RequestID, 16)
+	// Submit callback to user contract (on-chain requests only).
+	if isOnChain {
+		if s.teeFulfiller == nil {
+			s.markRequestFailed(ctx, request, "chain callback not configured")
+			return
 		}
 
 		// Encode random words as bytes for callback
@@ -78,7 +110,14 @@ func (s *Service) fulfillRequest(ctx context.Context, request *Request) {
 		// Submit to chain
 		txHash, err := s.teeFulfiller.FulfillRequest(ctx, requestIDBig, resultBytes)
 		if err != nil {
-			s.markRequestFailed(ctx, request, fmt.Sprintf("chain callback failed: %v", err))
+			errMsg := fmt.Sprintf("chain callback failed: %v", err)
+
+			// Best-effort mark failed on-chain too.
+			if _, failErr := s.teeFulfiller.FailRequest(ctx, requestIDBig, errMsg); failErr != nil {
+				s.Logger().WithContext(ctx).WithError(failErr).WithField("request_id", request.RequestID).Warn("failed to mark request failed on-chain")
+			}
+
+			s.markRequestFailed(ctx, request, errMsg)
 			return
 		}
 
@@ -87,6 +126,10 @@ func (s *Service) fulfillRequest(ctx context.Context, request *Request) {
 			"request_id": request.RequestID,
 			"tx_hash":    txHash,
 		}).Info("request fulfilled on-chain")
+
+		s.mu.Lock()
+		request.FulfillTxHash = txHash
+		s.mu.Unlock()
 	}
 
 	// Update request status after successful chain submission

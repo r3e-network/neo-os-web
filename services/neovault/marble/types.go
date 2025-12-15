@@ -140,6 +140,57 @@ type DisputeResponse struct {
 }
 
 // =============================================================================
+// Additional Response Types
+// =============================================================================
+
+// ComplianceLimits describes compliance and safety limits for the service.
+type ComplianceLimits struct {
+	MaxRequestAmount int64 `json:"max_request_amount"`
+	MaxPoolBalance   int64 `json:"max_pool_balance"`
+}
+
+// InfoResponse is returned by GET /info.
+type InfoResponse struct {
+	Status            string                                  `json:"status"`
+	Version           string                                  `json:"version"`
+	PoolAccounts      int                                     `json:"pool_accounts"`
+	PoolBalance       int64                                   `json:"pool_balance"`
+	TokenStats        map[string]neoaccountsclient.TokenStats `json:"token_stats"`
+	AvailableCapacity int64                                   `json:"available_capacity"`
+	PendingRequests   int                                     `json:"pending_requests"`
+	MixingRequests    int                                     `json:"mixing_requests"`
+	ServiceFeeRate    float64                                 `json:"service_fee_rate"`
+	SupportedTokens   []string                                `json:"supported_tokens"`
+	ComplianceLimits  ComplianceLimits                        `json:"compliance_limits"`
+	MinAmount         int64                                   `json:"min_amount"`
+	MaxAmount         int64                                   `json:"max_amount"`
+}
+
+// RequestStatusResponse is returned by GET /status/{id}.
+type RequestStatusResponse struct {
+	RequestID   string           `json:"request_id"`
+	Status      MixRequestStatus `json:"status"`
+	RequestHash string           `json:"request_hash"`
+	Deadline    int64            `json:"deadline"`
+	CreatedAt   time.Time        `json:"created_at"`
+	DeliveredAt time.Time        `json:"delivered_at,omitempty"`
+}
+
+// StatusMessageResponse is used for simple status-only responses.
+type StatusMessageResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+}
+
+// CompletionProofResponse is returned by GET /request/{id}/proof.
+type CompletionProofResponse struct {
+	RequestID       string           `json:"request_id"`
+	Status          MixRequestStatus `json:"status"`
+	CompletionProof *CompletionProof `json:"completion_proof"`
+	Message         string           `json:"message"`
+}
+
+// =============================================================================
 // Database Conversion Functions
 // =============================================================================
 

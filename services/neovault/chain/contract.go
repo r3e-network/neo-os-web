@@ -33,15 +33,13 @@ import (
 type NeoVaultContract struct {
 	client       *chain.Client
 	contractHash string
-	wallet       *chain.Wallet
 }
 
 // NewNeoVaultContract creates a new neovault contract interface.
-func NewNeoVaultContract(client *chain.Client, contractHash string, wallet *chain.Wallet) *NeoVaultContract {
+func NewNeoVaultContract(client *chain.Client, contractHash string, _ *chain.Wallet) *NeoVaultContract {
 	return &NeoVaultContract{
 		client:       client,
 		contractHash: contractHash,
-		wallet:       wallet,
 	}
 }
 
@@ -51,7 +49,7 @@ func NewNeoVaultContract(client *chain.Client, contractHash string, wallet *chai
 
 // GetAdmin returns the contract admin address.
 func (m *NeoVaultContract) GetAdmin(ctx context.Context) (string, error) {
-	result, err := m.client.InvokeFunction(ctx, m.contractHash, "getAdmin", nil)
+	result, err := m.client.InvokeFunction(ctx, m.contractHash, "admin", nil)
 	if err != nil {
 		return "", err
 	}
@@ -66,7 +64,7 @@ func (m *NeoVaultContract) GetAdmin(ctx context.Context) (string, error) {
 
 // IsPaused returns whether the contract is paused.
 func (m *NeoVaultContract) IsPaused(ctx context.Context) (bool, error) {
-	result, err := m.client.InvokeFunction(ctx, m.contractHash, "isPaused", nil)
+	result, err := m.client.InvokeFunction(ctx, m.contractHash, "paused", nil)
 	if err != nil {
 		return false, err
 	}
@@ -111,10 +109,10 @@ func (m *NeoVaultContract) GetDispute(ctx context.Context, requestHash []byte) (
 	return parseNeoVaultDisputeInfo(result.Stack[0])
 }
 
-// IsDisputeResolved checks if a dispute has been resolved.
-func (m *NeoVaultContract) IsDisputeResolved(ctx context.Context, requestHash []byte) (bool, error) {
+// IsRequestResolved checks if a request hash has been marked resolved on-chain.
+func (m *NeoVaultContract) IsRequestResolved(ctx context.Context, requestHash []byte) (bool, error) {
 	params := []chain.ContractParam{chain.NewByteArrayParam(requestHash)}
-	result, err := m.client.InvokeFunction(ctx, m.contractHash, "isDisputeResolved", params)
+	result, err := m.client.InvokeFunction(ctx, m.contractHash, "isRequestResolved", params)
 	if err != nil {
 		return false, err
 	}
@@ -127,30 +125,27 @@ func (m *NeoVaultContract) IsDisputeResolved(ctx context.Context, requestHash []
 	return chain.ParseBoolean(result.Stack[0])
 }
 
-// =============================================================================
-// Write Methods (TEE Only)
-// =============================================================================
-
-// ResolveDispute submits completion proof to resolve a dispute.
-// This method can only be called by the registered TEE service.
-// Returns the transaction hash after waiting for execution (2 minute timeout).
-func (m *NeoVaultContract) ResolveDispute(ctx context.Context, requestHash, outputsHash, proofSignature []byte) (string, error) {
-	if m.wallet == nil {
-		return "", fmt.Errorf("wallet required for write operations")
-	}
-
-	params := []chain.ContractParam{
-		chain.NewByteArrayParam(requestHash),
-		chain.NewByteArrayParam(outputsHash),
-		chain.NewByteArrayParam(proofSignature),
-	}
-
-	txResult, err := m.client.InvokeFunctionAndWait(ctx, m.contractHash, "resolveDispute", params, true)
+// CanClaimDisputeRefund checks whether a dispute refund is currently claimable
+// (i.e. the dispute exists, is pending, and the deadline has passed).
+func (m *NeoVaultContract) CanClaimDisputeRefund(ctx context.Context, requestHash []byte) (bool, error) {
+	params := []chain.ContractParam{chain.NewByteArrayParam(requestHash)}
+	result, err := m.client.InvokeFunction(ctx, m.contractHash, "canClaimDisputeRefund", params)
 	if err != nil {
-		return "", err
+		return false, err
 	}
+	if result.State != "HALT" {
+		return false, fmt.Errorf("execution failed: %s", result.Exception)
+	}
+	if len(result.Stack) == 0 {
+		return false, fmt.Errorf("no result")
+	}
+	return chain.ParseBoolean(result.Stack[0])
+}
 
-	return txResult.TxHash, nil
+// IsDisputeResolved is kept for backward compatibility with older wrappers.
+// It is equivalent to IsRequestResolved.
+func (m *NeoVaultContract) IsDisputeResolved(ctx context.Context, requestHash []byte) (bool, error) {
+	return m.IsRequestResolved(ctx, requestHash)
 }
 
 // =============================================================================
@@ -159,24 +154,27 @@ func (m *NeoVaultContract) ResolveDispute(ctx context.Context, requestHash, outp
 
 // NeoVaultServiceInfo represents registered service information.
 type NeoVaultServiceInfo struct {
-	ServiceID  []byte
-	TeePubKey  []byte
-	Bond       *big.Int
-	Active     bool
-	RegisterAt uint64
+	ServiceID         []byte
+	TeePubKey         []byte
+	BondAmount        *big.Int
+	OutstandingAmount *big.Int
+	Status            uint8
+	Active            bool
+	RegisteredAt      uint64
 }
 
 // NeoVaultDisputeInfo represents dispute information.
 type NeoVaultDisputeInfo struct {
-	RequestHash    []byte
-	User           string
-	Amount         *big.Int
-	ServiceID      []byte
-	Deadline       uint64
-	Status         uint8 // 0=Pending, 1=Resolved, 2=Refunded
-	SubmittedAt    uint64
-	OutputsHash    []byte // Set when resolved
-	ProofSignature []byte // Set when resolved
+	RequestHash     []byte
+	User            string
+	Amount          *big.Int
+	RequestProof    []byte
+	ServiceID       []byte
+	SubmittedAt     uint64
+	Deadline        uint64
+	Status          uint8 // 0=Pending, 1=Resolved, 2=Refunded
+	CompletionProof []byte
+	ResolvedAt      uint64
 }
 
 // DisputeStatus constants
@@ -192,6 +190,9 @@ const (
 
 // parseNeoVaultServiceInfo parses service info from contract result.
 func parseNeoVaultServiceInfo(item chain.StackItem) (*NeoVaultServiceInfo, error) {
+	if item.Type == "Null" {
+		return nil, nil
+	}
 	if item.Type != "Array" && item.Type != "Struct" {
 		return nil, fmt.Errorf("expected Array or Struct, got %s", item.Type)
 	}
@@ -200,8 +201,8 @@ func parseNeoVaultServiceInfo(item chain.StackItem) (*NeoVaultServiceInfo, error
 	if err := json.Unmarshal(item.Value, &arr); err != nil {
 		return nil, fmt.Errorf("unmarshal array: %w", err)
 	}
-	if len(arr) < 5 {
-		return nil, fmt.Errorf("invalid NeoVaultServiceInfo: expected 5 items, got %d", len(arr))
+	if len(arr) < 6 {
+		return nil, fmt.Errorf("invalid NeoVaultServiceInfo: expected 6 items, got %d", len(arr))
 	}
 
 	serviceID, err := chain.ParseByteArray(arr[0])
@@ -214,32 +215,44 @@ func parseNeoVaultServiceInfo(item chain.StackItem) (*NeoVaultServiceInfo, error
 		return nil, fmt.Errorf("parse teePubKey: %w", err)
 	}
 
-	bond, err := chain.ParseInteger(arr[2])
+	bondAmount, err := chain.ParseInteger(arr[2])
 	if err != nil {
-		return nil, fmt.Errorf("parse bond: %w", err)
+		return nil, fmt.Errorf("parse bondAmount: %w", err)
 	}
 
-	active, err := chain.ParseBoolean(arr[3])
+	outstandingAmount, err := chain.ParseInteger(arr[3])
 	if err != nil {
-		return nil, fmt.Errorf("parse active: %w", err)
+		return nil, fmt.Errorf("parse outstandingAmount: %w", err)
 	}
 
-	registerAt, err := chain.ParseInteger(arr[4])
+	status, err := chain.ParseInteger(arr[4])
 	if err != nil {
-		return nil, fmt.Errorf("parse registerAt: %w", err)
+		return nil, fmt.Errorf("parse status: %w", err)
 	}
+
+	registeredAt, err := chain.ParseInteger(arr[5])
+	if err != nil {
+		return nil, fmt.Errorf("parse registeredAt: %w", err)
+	}
+
+	statusByte := uint8(status.Uint64())
 
 	return &NeoVaultServiceInfo{
-		ServiceID:  serviceID,
-		TeePubKey:  teePubKey,
-		Bond:       bond,
-		Active:     active,
-		RegisterAt: registerAt.Uint64(),
+		ServiceID:         serviceID,
+		TeePubKey:         teePubKey,
+		BondAmount:        bondAmount,
+		OutstandingAmount: outstandingAmount,
+		Status:            statusByte,
+		Active:            statusByte == 1,
+		RegisteredAt:      registeredAt.Uint64(),
 	}, nil
 }
 
 // parseNeoVaultDisputeInfo parses dispute info from contract result.
 func parseNeoVaultDisputeInfo(item chain.StackItem) (*NeoVaultDisputeInfo, error) {
+	if item.Type == "Null" {
+		return nil, nil
+	}
 	if item.Type != "Array" && item.Type != "Struct" {
 		return nil, fmt.Errorf("expected Array or Struct, got %s", item.Type)
 	}
@@ -248,8 +261,8 @@ func parseNeoVaultDisputeInfo(item chain.StackItem) (*NeoVaultDisputeInfo, error
 	if err := json.Unmarshal(item.Value, &arr); err != nil {
 		return nil, fmt.Errorf("unmarshal array: %w", err)
 	}
-	if len(arr) < 8 {
-		return nil, fmt.Errorf("invalid NeoVaultDisputeInfo: expected 8 items, got %d", len(arr))
+	if len(arr) < 10 {
+		return nil, fmt.Errorf("invalid NeoVaultDisputeInfo: expected 10 items, got %d", len(arr))
 	}
 
 	requestHash, err := chain.ParseByteArray(arr[0])
@@ -267,44 +280,51 @@ func parseNeoVaultDisputeInfo(item chain.StackItem) (*NeoVaultDisputeInfo, error
 		return nil, fmt.Errorf("parse amount: %w", err)
 	}
 
-	serviceID, err := chain.ParseByteArray(arr[3])
+	requestProof, err := chain.ParseByteArray(arr[3])
+	if err != nil {
+		return nil, fmt.Errorf("parse requestProof: %w", err)
+	}
+
+	serviceID, err := chain.ParseByteArray(arr[4])
 	if err != nil {
 		return nil, fmt.Errorf("parse serviceId: %w", err)
 	}
 
-	deadline, err := chain.ParseInteger(arr[4])
-	if err != nil {
-		return nil, fmt.Errorf("parse deadline: %w", err)
-	}
-
-	status, err := chain.ParseInteger(arr[5])
-	if err != nil {
-		return nil, fmt.Errorf("parse status: %w", err)
-	}
-
-	submittedAt, err := chain.ParseInteger(arr[6])
+	submittedAt, err := chain.ParseInteger(arr[5])
 	if err != nil {
 		return nil, fmt.Errorf("parse submittedAt: %w", err)
 	}
 
-	// Optional fields (may be empty if not resolved)
-	var outputsHash, proofSignature []byte
-	if len(arr) > 7 {
-		outputsHash, _ = chain.ParseByteArray(arr[7])
+	deadline, err := chain.ParseInteger(arr[6])
+	if err != nil {
+		return nil, fmt.Errorf("parse deadline: %w", err)
 	}
-	if len(arr) > 8 {
-		proofSignature, _ = chain.ParseByteArray(arr[8])
+
+	status, err := chain.ParseInteger(arr[7])
+	if err != nil {
+		return nil, fmt.Errorf("parse status: %w", err)
+	}
+
+	completionProof, err := chain.ParseByteArray(arr[8])
+	if err != nil {
+		return nil, fmt.Errorf("parse completionProof: %w", err)
+	}
+
+	resolvedAt, err := chain.ParseInteger(arr[9])
+	if err != nil {
+		return nil, fmt.Errorf("parse resolvedAt: %w", err)
 	}
 
 	return &NeoVaultDisputeInfo{
-		RequestHash:    requestHash,
-		User:           user,
-		Amount:         amount,
-		ServiceID:      serviceID,
-		Deadline:       deadline.Uint64(),
-		Status:         uint8(status.Uint64()),
-		SubmittedAt:    submittedAt.Uint64(),
-		OutputsHash:    outputsHash,
-		ProofSignature: proofSignature,
+		RequestHash:     requestHash,
+		User:            user,
+		Amount:          amount,
+		RequestProof:    requestProof,
+		ServiceID:       serviceID,
+		SubmittedAt:     submittedAt.Uint64(),
+		Deadline:        deadline.Uint64(),
+		Status:          uint8(status.Uint64()),
+		CompletionProof: completionProof,
+		ResolvedAt:      resolvedAt.Uint64(),
 	}, nil
 }

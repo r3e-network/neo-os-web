@@ -142,6 +142,8 @@ func New(cfg Config) (*Service, error) {
 	base.AddWorker(s.runEventListener)
 	base.AddWorker(s.runRequestFulfiller)
 
+	base.RegisterStandardRoutesWithOptions(commonservice.RouteOptions{SkipInfo: true})
+
 	// Register routes
 	s.registerRoutes()
 

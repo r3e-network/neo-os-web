@@ -24,3 +24,13 @@ type GetSecretResponse struct {
 	Value   string `json:"value"`
 	Version int    `json:"version"`
 }
+
+// ServicesResponse returns a list of allowed services for a secret.
+type ServicesResponse struct {
+	Services []string `json:"services"`
+}
+
+// DeleteResponse confirms deletion.
+type DeleteResponse struct {
+	Deleted bool `json:"deleted"`
+}

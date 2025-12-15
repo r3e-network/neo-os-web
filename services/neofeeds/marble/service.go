@@ -173,9 +173,9 @@ func New(cfg *Config) (*Service, error) {
 	}
 
 	// Register chain push worker if enabled
-	if s.enableChainPush && s.teeFulfiller != nil && s.neoFeedsHash != "" {
+	if s.enableChainPush && s.neoFeedsHash != "" {
 		base.AddTickerWorker(s.updateInterval, func(ctx context.Context) error {
-			s.pushPricesToChain(ctx)
+			s.pushPricesToChainViaTxSubmitter(ctx)
 			return nil
 		}, commonservice.WithTickerWorkerName("chain-push"), commonservice.WithTickerWorkerImmediate())
 	}

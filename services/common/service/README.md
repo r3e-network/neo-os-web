@@ -8,7 +8,7 @@ The `common/service` package provides a consistent foundation for all marble ser
 - Standardized lifecycle management (Start/Stop)
 - Background worker registration and management
 - Hydration hooks for state loading
-- Standard HTTP endpoints (/health, /info)
+- Standard HTTP endpoints (/health, /ready, /info)
 - Statistics provider interface
 
 ## File Structure
@@ -225,6 +225,14 @@ Returns service health status.
 }
 ```
 
+### GET /ready
+
+Readiness probe suitable for Kubernetes.
+
+Notes:
+- Returns `200` when healthy.
+- Returns `503` when degraded/unhealthy.
+
 ### GET /info
 
 Returns service status with statistics.
@@ -242,6 +250,18 @@ Returns service status with statistics.
         "total_requests": 1000
     }
 }
+```
+
+## net/http ServeMux Integration
+
+Some services are composed into an existing `net/http` server rather than being served directly
+from the embedded Gorilla router. In those cases you can register the standard endpoints on a
+`*http.ServeMux`:
+
+```go
+base.RegisterStandardRoutesOnServeMux(mux)
+// or:
+base.RegisterStandardRoutesOnServeMuxWithOptions(mux, commonservice.RouteOptions{SkipInfo: true})
 ```
 
 ## Lifecycle Management

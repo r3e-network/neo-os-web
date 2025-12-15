@@ -50,6 +50,12 @@ func NewPublicKeyParam(value string) ContractParam {
 	return ContractParam{Type: "PublicKey", Value: value}
 }
 
+// NewAnyParam creates an "Any" parameter (encoded as JSON null).
+// Useful for optional parameters like NEP-17 transfer `data` when unused.
+func NewAnyParam() ContractParam {
+	return ContractParam{Type: "Any", Value: nil}
+}
+
 // NewArrayParam creates an array parameter.
 func NewArrayParam(values []ContractParam) ContractParam {
 	return ContractParam{Type: "Array", Value: values}

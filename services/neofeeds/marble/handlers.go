@@ -3,6 +3,7 @@ package neofeeds
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/gorilla/mux"
 
@@ -18,12 +19,19 @@ func (s *Service) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleListSources(w http.ResponseWriter, r *http.Request) {
-	sources := make([]map[string]interface{}, 0, len(s.sources))
-	for id, src := range s.sources {
-		sources = append(sources, map[string]interface{}{
-			"id":     id,
-			"name":   src.Name,
-			"weight": src.Weight,
+	ids := make([]string, 0, len(s.sources))
+	for id := range s.sources {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	sources := make([]SourceSummary, 0, len(ids))
+	for _, id := range ids {
+		src := s.sources[id]
+		sources = append(sources, SourceSummary{
+			ID:     id,
+			Name:   src.Name,
+			Weight: src.Weight,
 		})
 	}
 	httputil.WriteJSON(w, http.StatusOK, sources)
@@ -74,14 +82,14 @@ func (s *Service) handleGetPrices(w http.ResponseWriter, r *http.Request) {
 func (s *Service) handleListFeeds(w http.ResponseWriter, r *http.Request) {
 	// Return configured feeds, not sources
 	enabledFeeds := s.GetEnabledFeeds()
-	feeds := make([]map[string]interface{}, 0, len(enabledFeeds))
+	feeds := make([]FeedSummary, 0, len(enabledFeeds))
 	for i := range enabledFeeds {
 		feed := &enabledFeeds[i]
-		feeds = append(feeds, map[string]interface{}{
-			"id":       feed.ID,
-			"pair":     feed.Pair,
-			"enabled":  feed.Enabled,
-			"decimals": feed.Decimals,
+		feeds = append(feeds, FeedSummary{
+			ID:       feed.ID,
+			Pair:     feed.Pair,
+			Enabled:  feed.Enabled,
+			Decimals: feed.Decimals,
 		})
 	}
 	httputil.WriteJSON(w, http.StatusOK, feeds)

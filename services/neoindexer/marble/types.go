@@ -126,3 +126,41 @@ func DefaultConfig() *Config {
 		BatchSize:         100,
 	}
 }
+
+// =============================================================================
+// HTTP Response Types
+// =============================================================================
+
+// IndexerStatusResponse is returned by GET /status.
+type IndexerStatusResponse struct {
+	Service            string `json:"service"`
+	Version            string `json:"version"`
+	ChainID            string `json:"chain_id"`
+	LastProcessedBlock int64  `json:"last_processed_block"`
+	LastBlockHash      string `json:"last_block_hash"`
+	BlocksProcessed    int64  `json:"blocks_processed"`
+	EventsPublished    int64  `json:"events_published"`
+	ConfirmationDepth  int    `json:"confirmation_depth"`
+	PollInterval       string `json:"poll_interval"`
+}
+
+// ReplayResponse is returned by POST /replay.
+type ReplayResponse struct {
+	Status     string `json:"status"`
+	StartBlock int64  `json:"start_block"`
+}
+
+// RPCEndpointStatus describes a configured RPC endpoint.
+type RPCEndpointStatus struct {
+	URL       string `json:"url"`
+	Priority  int    `json:"priority"`
+	Healthy   bool   `json:"healthy"`
+	LatencyMS int64  `json:"latency_ms"`
+	Active    bool   `json:"active"`
+}
+
+// RPCHealthResponse is returned by GET /rpc/health.
+type RPCHealthResponse struct {
+	Endpoints  []RPCEndpointStatus `json:"endpoints"`
+	CurrentRPC int                 `json:"current_rpc"`
+}

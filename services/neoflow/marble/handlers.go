@@ -172,7 +172,7 @@ func (s *Service) handleEnableTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "enabled"})
+	httputil.WriteJSON(w, http.StatusOK, StatusResponse{Status: "enabled"})
 }
 
 func (s *Service) handleDisableTrigger(w http.ResponseWriter, r *http.Request) {
@@ -185,7 +185,7 @@ func (s *Service) handleDisableTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "disabled"})
+	httputil.WriteJSON(w, http.StatusOK, StatusResponse{Status: "disabled"})
 }
 
 func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request) {
@@ -228,5 +228,5 @@ func (s *Service) handleResumeTrigger(w http.ResponseWriter, r *http.Request) {
 	s.scheduler.triggers[trigger.ID] = trigger
 	s.scheduler.mu.Unlock()
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "resumed"})
+	httputil.WriteJSON(w, http.StatusOK, StatusResponse{Status: "resumed"})
 }

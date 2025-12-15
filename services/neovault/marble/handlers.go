@@ -69,23 +69,23 @@ func (s *Service) handleInfo(w http.ResponseWriter, r *http.Request) {
 		availableCapacity = 0
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"status":             "active",
-		"version":            Version,
-		"pool_accounts":      poolInfo.TotalAccounts,
-		"pool_balance":       totalBalance,
-		"token_stats":        poolInfo.TokenStats,
-		"available_capacity": availableCapacity,
-		"pending_requests":   pendingRequests,
-		"mixing_requests":    mixingRequests,
-		"service_fee_rate":   cfg.ServiceFeeRate,
-		"supported_tokens":   s.GetSupportedTokens(),
-		"compliance_limits": map[string]interface{}{
-			"max_request_amount": cfg.MaxRequestAmount,
-			"max_pool_balance":   cfg.MaxPoolBalance,
+	httputil.WriteJSON(w, http.StatusOK, InfoResponse{
+		Status:            "active",
+		Version:           Version,
+		PoolAccounts:      poolInfo.TotalAccounts,
+		PoolBalance:       totalBalance,
+		TokenStats:        poolInfo.TokenStats,
+		AvailableCapacity: availableCapacity,
+		PendingRequests:   pendingRequests,
+		MixingRequests:    mixingRequests,
+		ServiceFeeRate:    cfg.ServiceFeeRate,
+		SupportedTokens:   s.GetSupportedTokens(),
+		ComplianceLimits: ComplianceLimits{
+			MaxRequestAmount: cfg.MaxRequestAmount,
+			MaxPoolBalance:   cfg.MaxPoolBalance,
 		},
-		"min_amount": cfg.MinTxAmount * 10,
-		"max_amount": cfg.MaxRequestAmount,
+		MinAmount: cfg.MinTxAmount * 10,
+		MaxAmount: cfg.MaxRequestAmount,
 	})
 }
 
@@ -271,13 +271,13 @@ func (s *Service) handleGetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"request_id":   request.ID,
-		"status":       request.Status,
-		"request_hash": request.RequestHash,
-		"deadline":     request.Deadline,
-		"created_at":   request.CreatedAt,
-		"delivered_at": request.DeliveredAt,
+	httputil.WriteJSON(w, http.StatusOK, RequestStatusResponse{
+		RequestID:   request.ID,
+		Status:      request.Status,
+		RequestHash: request.RequestHash,
+		Deadline:    request.Deadline,
+		CreatedAt:   request.CreatedAt,
+		DeliveredAt: request.DeliveredAt,
 	})
 }
 
@@ -363,9 +363,9 @@ func (s *Service) handleConfirmDeposit(w http.ResponseWriter, r *http.Request) {
 	// Start mixing process asynchronously after deposit confirmation
 	go s.startMixing(context.Background(), request)
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{
-		"status":  "deposited",
-		"message": "Mixing will begin shortly",
+	httputil.WriteJSON(w, http.StatusOK, StatusMessageResponse{
+		Status:  "deposited",
+		Message: "Mixing will begin shortly",
 	})
 }
 
@@ -575,7 +575,7 @@ func (s *Service) handleResumeRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "resumed"})
+	httputil.WriteJSON(w, http.StatusOK, StatusMessageResponse{Status: "resumed"})
 }
 
 // handleDispute processes a user dispute and submits completion proof on-chain.
@@ -683,10 +683,10 @@ func (s *Service) handleGetCompletionProof(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"request_id":       request.ID,
-		"status":           request.Status,
-		"completion_proof": request.CompletionProof,
-		"message":          "Proof generated. Not submitted on-chain unless you file a dispute.",
+	httputil.WriteJSON(w, http.StatusOK, CompletionProofResponse{
+		RequestID:       request.ID,
+		Status:          request.Status,
+		CompletionProof: request.CompletionProof,
+		Message:         "Proof generated. Not submitted on-chain unless you file a dispute.",
 	})
 }

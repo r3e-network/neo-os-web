@@ -91,6 +91,26 @@ func DefaultServicesConfig() *plugin.ServicesConfig {
 				Port:        8088,
 				Description: "External data delivery with proofs",
 			},
+			"neoindexer": {
+				Enabled:     true,
+				Port:        8089,
+				Description: "Unified chain event indexing",
+			},
+			"txsubmitter": {
+				Enabled:     true,
+				Port:        8090,
+				Description: "Centralized chain transaction submission",
+			},
+			"gasaccounting": {
+				Enabled:     true,
+				Port:        8091,
+				Description: "GAS ledger and accounting",
+			},
+			"globalsigner": {
+				Enabled:     true,
+				Port:        8092,
+				Description: "TEE master key management and signing",
+			},
 		},
 	}
 }

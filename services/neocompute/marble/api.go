@@ -6,7 +6,7 @@ package neocomputemarble
 // =============================================================================
 
 // registerRoutes registers service-specific HTTP handlers.
-// Note: /health and /info are registered by BaseService.RegisterStandardRoutes()
+// Note: /health, /ready, and /info are registered by BaseService.RegisterStandardRoutes().
 func (s *Service) registerRoutes() {
 	router := s.Router()
 	router.HandleFunc("/execute", s.handleExecute).Methods("POST")

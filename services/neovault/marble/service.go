@@ -31,10 +31,10 @@ package neovaultmarble
 
 import (
 	"context"
-	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
+	"sort"
 	"sync"
 	"time"
 
@@ -147,6 +147,7 @@ func (s *Service) GetSupportedTokens() []string {
 	for t := range s.tokenConfigs {
 		tokens = append(tokens, t)
 	}
+	sort.Strings(tokens)
 	return tokens
 }
 
@@ -239,9 +240,8 @@ func New(cfg *Config) (*Service, error) {
 		return nil
 	}, commonservice.WithTickerWorkerName("delivery-checker"))
 
-	// Register service-specific routes, then standard routes (skip /info since we have custom implementation)
-	s.registerRoutes()
 	base.RegisterStandardRoutesWithOptions(commonservice.RouteOptions{SkipInfo: true})
+	s.registerRoutes()
 
 	return s, nil
 }
@@ -264,10 +264,6 @@ func (s *Service) resumeRequests(ctx context.Context) {
 // submitCompletionProofOnChain submits the completion proof to the on-chain contract.
 // This is called ONLY during dispute resolution.
 func (s *Service) submitCompletionProofOnChain(ctx context.Context, request *MixRequest) (string, error) {
-	if s.teeFulfiller == nil {
-		return "", fmt.Errorf("TEE fulfiller not configured")
-	}
-
 	proof := request.CompletionProof
 	if proof == nil {
 		return "", fmt.Errorf("no completion proof")
@@ -279,16 +275,33 @@ func (s *Service) submitCompletionProofOnChain(ctx context.Context, request *Mix
 		return "", fmt.Errorf("marshal proof: %w", err)
 	}
 
-	// Parse request ID as big.Int for contract call
-	requestIDBigInt := new(big.Int)
-	// Use hash of request ID as numeric identifier
-	idHash := sha256.Sum256([]byte(request.ID))
-	requestIDBigInt.SetBytes(idHash[:8])
-
-	// Submit via TEE fulfiller (this is the ONLY on-chain submission in normal neovault flow)
-	txHash, err := s.teeFulfiller.FulfillRequest(ctx, requestIDBigInt, proofBytes)
+	requestHash, err := hex.DecodeString(request.RequestHash)
 	if err != nil {
-		return "", fmt.Errorf("fulfill request: %w", err)
+		return "", fmt.Errorf("decode request hash: %w", err)
+	}
+
+	// Preferred: submit via TxSubmitter (centralized chain writes).
+	if s.serviceAdapter != nil && s.serviceAdapter.txClient != nil {
+		txHash, submitErr := s.serviceAdapter.ResolveDispute(ctx, requestHash, proofBytes)
+		if submitErr != nil {
+			return "", submitErr
+		}
+		return txHash, nil
+	}
+
+	// Fallback: direct TEE fulfiller (legacy mode).
+	if s.teeFulfiller == nil {
+		return "", fmt.Errorf("no txsubmitter client and no TEE fulfiller configured")
+	}
+
+	neovaultHash := chain.ContractAddressesFromEnv().NeoVault
+	if neovaultHash == "" {
+		return "", fmt.Errorf("CONTRACT_NEOVAULT_HASH not configured")
+	}
+
+	txHash, err := s.teeFulfiller.ResolveDisputeNoWait(ctx, neovaultHash, []byte(ServiceID), requestHash, proofBytes)
+	if err != nil {
+		return "", fmt.Errorf("resolve dispute: %w", err)
 	}
 
 	return txHash, nil

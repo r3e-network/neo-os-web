@@ -14,6 +14,9 @@ import (
 
 // RegisterRoutes registers GasAccounting HTTP routes.
 func (s *Service) RegisterRoutes(mux *http.ServeMux) {
+	// Standard endpoints (from BaseService)
+	s.BaseService.RegisterStandardRoutesOnServeMux(mux)
+
 	// Balance operations
 	mux.HandleFunc("/balance", s.handleBalance)
 	mux.HandleFunc("/deposit", s.handleDeposit)

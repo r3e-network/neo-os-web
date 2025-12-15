@@ -77,6 +77,7 @@ cat > enclave.json <<JSON
         {"name": "LOG_LEVEL", "fromHost": true},
         {"name": "LOG_FORMAT", "fromHost": true},
         {"name": "NEO_RPC_URL", "fromHost": true},
+        {"name": "NEO_RPC_URLS", "fromHost": true},
         {"name": "NEO_NETWORK_MAGIC", "fromHost": true},
         {"name": "CONTRACT_GATEWAY_HASH", "fromHost": true},
         {"name": "CONTRACT_NEOFEEDS_HASH", "fromHost": true},
@@ -86,7 +87,11 @@ cat > enclave.json <<JSON
         {"name": "ARBITRUM_RPC", "fromHost": true},
         {"name": "NEOCOMPUTE_RESULT_TTL", "fromHost": true},
         {"name": "NEOFLOW_SCHEDULER_USER_ID", "fromHost": true},
-        {"name": "NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS", "fromHost": true}
+        {"name": "NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS", "fromHost": true},
+        {"name": "TXSUBMITTER_SERVICE_URL", "fromHost": true},
+        {"name": "GLOBALSIGNER_SERVICE_URL", "fromHost": true},
+        {"name": "GASACCOUNTING_SERVICE_URL", "fromHost": true},
+        {"name": "NEOINDEXER_SERVICE_URL", "fromHost": true}
     ],
     "files": [
         {
