@@ -10,10 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/marble"
-	neoaccounts "github.com/R3E-Network/service_layer/services/neoaccounts/marble"
-	vrf "github.com/R3E-Network/service_layer/services/neorand/marble"
-	neovault "github.com/R3E-Network/service_layer/services/neovault/marble"
+	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
+	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	vrf "github.com/R3E-Network/service_layer/services/vrf/marble"
 )
 
 // TestServiceContractIntegration tests the integration between services and contracts.
@@ -43,27 +42,6 @@ func TestServiceContractIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("neovault service generates valid signatures", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neovault"})
-		if err != nil {
-			t.Fatalf("marble.New: %v", err)
-		}
-		m.SetTestSecret("NEOVAULT_MASTER_KEY", []byte("test-neovault-master-key-32bytes!!!"))
-
-		svc, err := neovault.New(&neovault.Config{
-			Marble:         m,
-			NeoAccountsURL: "http://localhost:8081",
-		})
-		if err != nil {
-			t.Fatalf("neovault.New: %v", err)
-		}
-
-		tokens := svc.GetSupportedTokens()
-		if len(tokens) == 0 {
-			t.Error("no supported tokens configured")
-		}
-	})
-
 	t.Run("neoaccounts can derive contract-compatible keys", func(t *testing.T) {
 		m, err := marble.New(marble.Config{MarbleType: "neoaccounts"})
 		if err != nil {
@@ -78,58 +56,6 @@ func TestServiceContractIntegration(t *testing.T) {
 
 		if svc.ID() != "neoaccounts" {
 			t.Errorf("expected ID 'neoaccounts', got '%s'", svc.ID())
-		}
-	})
-}
-
-// TestNeoVaultContractFlow tests the neovault service flow that would interact with contracts.
-func TestNeoVaultContractFlow(t *testing.T) {
-	apMarble, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
-	apMarble.SetTestSecret("POOL_MASTER_KEY", []byte("contract-test-pool-key-32bytes!!"))
-
-	apSvc, err := neoaccounts.New(neoaccounts.Config{Marble: apMarble})
-	if err != nil {
-		t.Fatalf("neoaccounts.New: %v", err)
-	}
-
-	apServer := httptest.NewServer(apSvc.Router())
-	defer apServer.Close()
-
-	neovaultMarble, _ := marble.New(marble.Config{MarbleType: "neovault"})
-	neovaultMarble.SetTestSecret("NEOVAULT_MASTER_KEY", []byte("contract-test-neovault-key-32bytes!"))
-
-	neovaultSvc, err := neovault.New(&neovault.Config{
-		Marble:         neovaultMarble,
-		NeoAccountsURL: apServer.URL,
-	})
-	if err != nil {
-		t.Fatalf("neovault.New: %v", err)
-	}
-
-	t.Run("neovault health endpoint", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/health", nil)
-		w := httptest.NewRecorder()
-		neovaultSvc.Router().ServeHTTP(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", w.Code)
-		}
-	})
-
-	t.Run("neovault token config for contract interaction", func(t *testing.T) {
-		cfg := neovaultSvc.GetTokenConfig("GAS")
-		if cfg == nil {
-			t.Fatal("GAS config should not be nil")
-		}
-
-		if cfg.MinTxAmount <= 0 {
-			t.Error("min amount should be positive")
-		}
-		if cfg.MaxTxAmount <= 0 {
-			t.Error("max amount should be positive")
-		}
-		if cfg.ServiceFeeRate <= 0 {
-			t.Error("service fee rate should be positive")
 		}
 	})
 }
@@ -157,7 +83,7 @@ func TestNeoAccountsSigningForContracts(t *testing.T) {
 		}()
 
 		input := neoaccounts.SignTransactionInput{
-			ServiceID: "neovault",
+			ServiceID: "neorand",
 			AccountID: "test-account-1",
 			TxHash:    []byte("mock-transaction-hash-for-contract"),
 		}
@@ -187,7 +113,7 @@ func TestNeoAccountsSigningForContracts(t *testing.T) {
 		}()
 
 		input := neoaccounts.BatchSignInput{
-			ServiceID: "neovault",
+			ServiceID: "neorand",
 			Requests: []neoaccounts.SignRequest{
 				{AccountID: "account-1", TxHash: []byte("tx-hash-1")},
 				{AccountID: "account-2", TxHash: []byte("tx-hash-2")},

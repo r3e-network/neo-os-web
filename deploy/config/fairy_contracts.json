@@ -8,7 +8,7 @@
       "state": "HALT"
     },
     {
-      "name": "NeoFeedsService",
+      "name": "DataFeedsService",
       "hash": "0x7507972a4c97ccaffe7af5d1179081492882b1d6",
       "gas_consumed": "1048756280",
       "state": "HALT"
@@ -20,16 +20,22 @@
       "state": "HALT"
     },
     {
-      "name": "NeoVaultService",
-      "hash": "0xce78ec48b222e3afc7c3eca90c40ea128c1b15f2",
-      "gas_consumed": "1004604430",
-      "state": "HALT"
-    },
-    {
       "name": "NeoFlowService",
       "hash": "0x85c4697f9a2b0b1fe7325ffb73b362e198b16bf7",
       "gas_consumed": "1004595910",
       "state": "HALT"
+    },
+    {
+      "name": "ConfidentialService",
+      "hash": "",
+      "gas_consumed": "",
+      "state": ""
+    },
+    {
+      "name": "OracleService",
+      "hash": "",
+      "gas_consumed": "",
+      "state": ""
     }
   ],
   "account": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",

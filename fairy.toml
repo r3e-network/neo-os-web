@@ -43,27 +43,33 @@ order = 1
 
 [[contracts]]
 name = "VRFService"
-source = "contracts/vrf/VRFService.cs"
+source = "services/vrf/contract/NeoRandService.cs"
 output = "contracts/build/VRFService"
 order = 2
 
 [[contracts]]
-name = "NeoVaultService"
-source = "contracts/mixer/NeoVaultService.cs"
-output = "contracts/build/NeoVaultService"
+name = "DataFeedsService"
+source = "services/datafeed/contract/NeoFeedsService.cs"
+output = "contracts/build/DataFeedsService"
 order = 3
 
 [[contracts]]
-name = "DataFeedsService"
-source = "contracts/datafeeds/DataFeedsService.cs"
-output = "contracts/build/DataFeedsService"
+name = "NeoFlowService"
+source = "services/automation/contract/NeoFlowService.cs"
+output = "contracts/build/NeoFlowService"
 order = 4
 
 [[contracts]]
-name = "NeoFlowService"
-source = "contracts/automation/NeoFlowService.cs"
-output = "contracts/build/NeoFlowService"
+name = "ConfidentialService"
+source = "services/confcompute/contract/NeoComputeService.cs"
+output = "contracts/build/ConfidentialService"
 order = 5
+
+[[contracts]]
+name = "OracleService"
+source = "services/conforacle/contract/NeoOracleService.cs"
+output = "contracts/build/OracleService"
+order = 6
 
 # Example contracts (user contracts that consume services)
 [[contracts]]
@@ -77,12 +83,6 @@ name = "VRFLottery"
 source = "contracts/examples/VRFLottery.cs"
 output = "contracts/build/VRFLottery"
 order = 11
-
-[[contracts]]
-name = "MixerClient"
-source = "contracts/examples/MixerClient.cs"
-output = "contracts/build/MixerClient"
-order = 12
 
 [[contracts]]
 name = "DeFiPriceConsumer"
@@ -111,7 +111,6 @@ user = { path = "deploy/wallets/user.json", password = "test" }
 [services.fees]
 oracle = 10000000      # 0.1 GAS
 vrf = 10000000         # 0.1 GAS
-mixer = 50000000       # 0.5 GAS
 datafeeds = 5000000    # 0.05 GAS
 automation = 20000000  # 0.2 GAS
 confidential = 100000000  # 1.0 GAS

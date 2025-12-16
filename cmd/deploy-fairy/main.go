@@ -10,16 +10,17 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/chain"
+	"github.com/R3E-Network/service_layer/infrastructure/chain"
 	"github.com/R3E-Network/service_layer/test/fairy"
 )
 
 var coreContracts = []string{
 	"ServiceLayerGateway",
-	"NeoFeedsService",
 	"VRFService",
-	"NeoVaultService",
+	"DataFeedsService",
 	"NeoFlowService",
+	"ConfidentialService",
+	"OracleService",
 }
 
 // DeployedContract and DeploymentResult are imported from internal/chain package

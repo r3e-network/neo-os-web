@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
 )
 
 // requirePrimaryWalletMiddleware enforces that the authenticated user has a bound

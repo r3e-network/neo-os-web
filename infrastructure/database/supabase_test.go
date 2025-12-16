@@ -1,0 +1,505 @@
+// Package database provides Supabase database integration.
+package database
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+)
+
+func newClientWithHandler(t *testing.T, handler http.Handler) *Client {
+	t.Helper()
+
+	client, err := NewClient(Config{
+		URL:        "http://supabase.test",
+		ServiceKey: "test-key",
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	client.httpClient.Transport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, r)
+		return rr.Result(), nil
+	})
+
+	return client
+}
+
+// =============================================================================
+// Client Tests
+// =============================================================================
+
+func TestNewClient(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     Config
+		env     string
+		wantErr bool
+		wantURL string
+	}{
+		{
+			name: "valid config",
+			cfg: Config{
+				URL:        "https://test.supabase.co",
+				ServiceKey: "test-key",
+			},
+			env:     "production",
+			wantErr: false,
+		},
+		{
+			name: "missing URL",
+			cfg: Config{
+				URL:        "",
+				ServiceKey: "test-key",
+			},
+			env:     "production",
+			wantErr: true,
+		},
+		{
+			name:    "dev missing URL uses mock",
+			cfg:     Config{},
+			env:     "development",
+			wantErr: false,
+			wantURL: "http://localhost:54321",
+		},
+		{
+			name: "prod missing service key",
+			cfg: Config{
+				URL:        "https://test.supabase.co",
+				ServiceKey: "",
+			},
+			env:     "production",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.env != "" {
+				t.Setenv("MARBLE_ENV", tt.env)
+			}
+			client, err := NewClient(tt.cfg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && client == nil {
+				t.Error("NewClient() returned nil client")
+			}
+			if !tt.wantErr && tt.wantURL != "" && client.url != tt.wantURL {
+				t.Errorf("client.url = %q, want %q", client.url, tt.wantURL)
+			}
+		})
+	}
+}
+
+func TestClientRequest(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify headers
+		if r.Header.Get("apikey") != "test-key" {
+			t.Errorf("apikey header = %s, want test-key", r.Header.Get("apikey"))
+		}
+		if r.Header.Get("Content-Type") != "application/json" {
+			t.Errorf("Content-Type header = %s, want application/json", r.Header.Get("Content-Type"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode([]map[string]string{{"id": "123"}})
+	}))
+
+	ctx := context.Background()
+	data, err := client.request(ctx, "GET", "test_table", nil, "")
+	if err != nil {
+		t.Fatalf("request() error = %v", err)
+	}
+
+	if len(data) == 0 {
+		t.Error("request() returned empty data")
+	}
+}
+
+func TestClientRequestWithBody(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("Method = %s, want POST", r.Method)
+		}
+
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("Failed to decode body: %v", err)
+		}
+
+		if body["name"] != "test" {
+			t.Errorf("body[name] = %s, want test", body["name"])
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(body)
+	}))
+
+	ctx := context.Background()
+	_, err := client.request(ctx, "POST", "test_table", map[string]string{"name": "test"}, "")
+	if err != nil {
+		t.Fatalf("request() error = %v", err)
+	}
+}
+
+func TestClientRequestError(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "bad request"}`))
+	}))
+
+	ctx := context.Background()
+	_, err := client.request(ctx, "GET", "test_table", nil, "")
+	if err == nil {
+		t.Error("request() should return error for 400 status")
+	}
+}
+
+// =============================================================================
+// Domain Model Tests
+// =============================================================================
+
+func TestUserJSON(t *testing.T) {
+	user := User{
+		ID:        "user-123",
+		Address:   "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR",
+		Email:     "test@example.com",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	data, err := json.Marshal(user)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+	}
+
+	var decoded User
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if decoded.ID != user.ID {
+		t.Errorf("ID = %s, want %s", decoded.ID, user.ID)
+	}
+	if decoded.Address != user.Address {
+		t.Errorf("Address = %s, want %s", decoded.Address, user.Address)
+	}
+}
+
+func TestAPIKeyJSON(t *testing.T) {
+	apiKey := APIKey{
+		ID:      "key-123",
+		UserID:  "user-456",
+		Name:    "Test Key",
+		KeyHash: "hash123",
+		Prefix:  "sk_test",
+		Scopes:  []string{"read", "write"},
+	}
+
+	data, err := json.Marshal(apiKey)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+	}
+
+	var decoded APIKey
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if decoded.Name != apiKey.Name {
+		t.Errorf("Name = %s, want %s", decoded.Name, apiKey.Name)
+	}
+	if len(decoded.Scopes) != len(apiKey.Scopes) {
+		t.Errorf("Scopes length = %d, want %d", len(decoded.Scopes), len(apiKey.Scopes))
+	}
+}
+
+func TestServiceRequestJSON(t *testing.T) {
+	req := ServiceRequest{
+		ID:          "req-123",
+		UserID:      "user-456",
+		ServiceType: "vrf",
+		Status:      "pending",
+		Payload:     json.RawMessage(`{"pair":"BTC/USD"}`),
+		GasUsed:     1000,
+	}
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+	}
+
+	var decoded ServiceRequest
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if decoded.ServiceType != req.ServiceType {
+		t.Errorf("ServiceType = %s, want %s", decoded.ServiceType, req.ServiceType)
+	}
+	if decoded.GasUsed != req.GasUsed {
+		t.Errorf("GasUsed = %d, want %d", decoded.GasUsed, req.GasUsed)
+	}
+}
+
+func TestPriceFeedJSON(t *testing.T) {
+	feed := PriceFeed{
+		ID:        "feed-123",
+		FeedID:    "BTC-USD",
+		Pair:      "BTC/USD",
+		Price:     5000000000000, // $50,000 with 8 decimals
+		Decimals:  8,
+		Timestamp: time.Now(),
+		Sources:   []string{"binance", "coinbase"},
+	}
+
+	data, err := json.Marshal(feed)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+	}
+
+	var decoded PriceFeed
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if decoded.Price != feed.Price {
+		t.Errorf("Price = %d, want %d", decoded.Price, feed.Price)
+	}
+	if len(decoded.Sources) != len(feed.Sources) {
+		t.Errorf("Sources length = %d, want %d", len(decoded.Sources), len(feed.Sources))
+	}
+}
+
+func TestGasBankAccountJSON(t *testing.T) {
+	account := GasBankAccount{
+		ID:       "account-123",
+		UserID:   "user-456",
+		Balance:  1000000,
+		Reserved: 100000,
+	}
+
+	data, err := json.Marshal(account)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+	}
+
+	var decoded GasBankAccount
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if decoded.Balance != account.Balance {
+		t.Errorf("Balance = %d, want %d", decoded.Balance, account.Balance)
+	}
+	if decoded.Reserved != account.Reserved {
+		t.Errorf("Reserved = %d, want %d", decoded.Reserved, account.Reserved)
+	}
+}
+
+// =============================================================================
+// Repository Tests with Mock Server
+// =============================================================================
+
+func TestRepositoryGetUser(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/rest/v1/users" {
+			t.Errorf("Path = %s, want /rest/v1/users", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]User{{
+			ID:      "user-123",
+			Address: "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR",
+		}})
+	}))
+	repo := NewRepository(client)
+
+	ctx := context.Background()
+	user, err := repo.GetUser(ctx, "user-123")
+	if err != nil {
+		t.Fatalf("GetUser() error = %v", err)
+	}
+
+	if user.ID != "user-123" {
+		t.Errorf("ID = %s, want user-123", user.ID)
+	}
+}
+
+func TestRepositoryGetUserNotFound(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]User{})
+	}))
+	repo := NewRepository(client)
+
+	ctx := context.Background()
+	_, err := repo.GetUser(ctx, "nonexistent")
+	if err == nil {
+		t.Error("GetUser() should return error for nonexistent user")
+	}
+}
+
+func TestRepositoryGetUserByAddress(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/rest/v1/user_wallets":
+			_ = json.NewEncoder(w).Encode([]UserWallet{{
+				UserID:  "user-123",
+				Address: "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR",
+			}})
+		case "/rest/v1/users":
+			_ = json.NewEncoder(w).Encode([]User{{
+				ID:      "user-123",
+				Address: "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR",
+			}})
+		default:
+			_ = json.NewEncoder(w).Encode([]User{})
+		}
+	}))
+	repo := NewRepository(client)
+
+	ctx := context.Background()
+	user, err := repo.GetUserByAddress(ctx, "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR")
+	if err != nil {
+		t.Fatalf("GetUserByAddress() error = %v", err)
+	}
+
+	if user.Address != "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR" {
+		t.Errorf("Address = %s, want NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR", user.Address)
+	}
+}
+
+func TestRepositoryCreateUser(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("Method = %s, want POST", r.Method)
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode([]User{})
+	}))
+	repo := NewRepository(client)
+
+	ctx := context.Background()
+	err := repo.CreateUser(ctx, &User{
+		ID:      "user-123",
+		Address: "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR",
+	})
+	if err != nil {
+		t.Fatalf("CreateUser() error = %v", err)
+	}
+}
+
+func TestRepositoryGetServiceRequests(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]ServiceRequest{
+			{ID: "req-1", ServiceType: "vrf"},
+			{ID: "req-2", ServiceType: "neofeeds"},
+		})
+	}))
+	repo := NewRepository(client)
+
+	ctx := context.Background()
+	requests, err := repo.GetServiceRequests(ctx, "user-123", 10)
+	if err != nil {
+		t.Fatalf("GetServiceRequests() error = %v", err)
+	}
+
+	if len(requests) != 2 {
+		t.Errorf("len(requests) = %d, want 2", len(requests))
+	}
+}
+
+func TestRepositoryGetLatestPrice(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]PriceFeed{{
+			ID:     "feed-123",
+			FeedID: "BTC-USD",
+			Price:  5000000000000,
+		}})
+	}))
+	repo := NewRepository(client)
+
+	ctx := context.Background()
+	feed, err := repo.GetLatestPrice(ctx, "BTC-USD")
+	if err != nil {
+		t.Fatalf("GetLatestPrice() error = %v", err)
+	}
+
+	if feed.FeedID != "BTC-USD" {
+		t.Errorf("FeedID = %s, want BTC-USD", feed.FeedID)
+	}
+}
+
+func TestRepositoryGetGasBankAccount(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GasBankAccount{{
+			ID:       "account-123",
+			UserID:   "user-456",
+			Balance:  1000000,
+			Reserved: 100000,
+		}})
+	}))
+	repo := NewRepository(client)
+
+	ctx := context.Background()
+	account, err := repo.GetGasBankAccount(ctx, "user-456")
+	if err != nil {
+		t.Fatalf("GetGasBankAccount() error = %v", err)
+	}
+
+	if account.Balance != 1000000 {
+		t.Errorf("Balance = %d, want 1000000", account.Balance)
+	}
+}
+
+// =============================================================================
+// Benchmarks
+// =============================================================================
+
+func BenchmarkNewClient(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = NewClient(Config{
+			URL:        "https://test.supabase.co",
+			ServiceKey: "test-key",
+		})
+	}
+}
+
+func BenchmarkUserMarshal(b *testing.B) {
+	user := User{
+		ID:        "user-123",
+		Address:   "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR",
+		Email:     "test@example.com",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = json.Marshal(user)
+	}
+}
+
+func BenchmarkUserUnmarshal(b *testing.B) {
+	data := []byte(`{"id":"user-123","address":"NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR","email":"test@example.com"}`)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var user User
+		_ = json.Unmarshal(data, &user)
+	}
+}

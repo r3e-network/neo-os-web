@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Home, Server, Key, Wallet, Zap, Settings, LogOut, Shield, Shuffle, Moon, Sun, Dices } from 'lucide-react';
+import { Home, Server, Key, Wallet, Zap, Settings, LogOut, Shield, Moon, Sun, Dices } from 'lucide-react';
 import { useAuthStore } from '../stores/auth';
 import { useThemeStore } from '../stores/theme';
 import { api } from '../api/client';
@@ -8,11 +8,10 @@ import { useEffect } from 'react';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Services', href: '/services', icon: Server },
-  { name: 'NeoVault', href: '/neovault', icon: Shuffle },
-  { name: 'NeoRand', href: '/neorand', icon: Dices },
-  { name: 'NeoStore', href: '/neostore', icon: Key },
+  { name: 'VRF', href: '/neorand', icon: Dices },
+  { name: 'Automation', href: '/neoflow', icon: Zap },
+  { name: 'Secrets', href: '/secrets', icon: Key },
   { name: 'Gas Bank', href: '/gasbank', icon: Wallet },
-  { name: 'NeoFlow', href: '/neoflow', icon: Zap },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

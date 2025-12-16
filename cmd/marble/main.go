@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -20,38 +19,30 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/R3E-Network/service_layer/internal/chain"
-	"github.com/R3E-Network/service_layer/internal/config"
-	"github.com/R3E-Network/service_layer/internal/database"
-	sllogging "github.com/R3E-Network/service_layer/internal/logging"
-	"github.com/R3E-Network/service_layer/internal/marble"
-	slmetrics "github.com/R3E-Network/service_layer/internal/metrics"
-	slmiddleware "github.com/R3E-Network/service_layer/internal/middleware"
-	"github.com/R3E-Network/service_layer/internal/runtime"
+	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	"github.com/R3E-Network/service_layer/infrastructure/config"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
+	sllogging "github.com/R3E-Network/service_layer/infrastructure/logging"
+	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	slmetrics "github.com/R3E-Network/service_layer/infrastructure/metrics"
+	slmiddleware "github.com/R3E-Network/service_layer/infrastructure/middleware"
+	"github.com/R3E-Network/service_layer/infrastructure/runtime"
+	"github.com/R3E-Network/service_layer/infrastructure/secrets"
+	secretssupabase "github.com/R3E-Network/service_layer/infrastructure/secrets/supabase"
 
 	// Neo service imports
-	gsclient "github.com/R3E-Network/service_layer/services/globalsigner/client"
-	globalsigner "github.com/R3E-Network/service_layer/services/globalsigner/marble"
-	globalsignersupabase "github.com/R3E-Network/service_layer/services/globalsigner/supabase"
-	neoaccounts "github.com/R3E-Network/service_layer/services/neoaccounts/marble"
-	neoaccountssupabase "github.com/R3E-Network/service_layer/services/neoaccounts/supabase"
-	neocompute "github.com/R3E-Network/service_layer/services/neocompute/marble"
-	neofeedschain "github.com/R3E-Network/service_layer/services/neofeeds/chain"
-	neofeeds "github.com/R3E-Network/service_layer/services/neofeeds/marble"
-	neoflow "github.com/R3E-Network/service_layer/services/neoflow/marble"
-	neoflowsupabase "github.com/R3E-Network/service_layer/services/neoflow/supabase"
-	neoindexer "github.com/R3E-Network/service_layer/services/neoindexer/marble"
-	neoindexersupabase "github.com/R3E-Network/service_layer/services/neoindexer/supabase"
-	neooracle "github.com/R3E-Network/service_layer/services/neooracle/marble"
-	neorand "github.com/R3E-Network/service_layer/services/neorand/marble"
-	neorandsupabase "github.com/R3E-Network/service_layer/services/neorand/supabase"
-	neostore "github.com/R3E-Network/service_layer/services/neostore/marble"
-	neostoresupabase "github.com/R3E-Network/service_layer/services/neostore/supabase"
-	neovault "github.com/R3E-Network/service_layer/services/neovault/marble"
-	neovaultsupabase "github.com/R3E-Network/service_layer/services/neovault/supabase"
-	txclient "github.com/R3E-Network/service_layer/services/txsubmitter/client"
-	txsubmitter "github.com/R3E-Network/service_layer/services/txsubmitter/marble"
-	txsubmittersupabase "github.com/R3E-Network/service_layer/services/txsubmitter/supabase"
+	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
+	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
+	globalsigner "github.com/R3E-Network/service_layer/infrastructure/globalsigner/marble"
+	globalsignersupabase "github.com/R3E-Network/service_layer/infrastructure/globalsigner/supabase"
+	neoflow "github.com/R3E-Network/service_layer/services/automation/marble"
+	neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
+	neocompute "github.com/R3E-Network/service_layer/services/confcompute/marble"
+	neooracle "github.com/R3E-Network/service_layer/services/conforacle/marble"
+	neofeedschain "github.com/R3E-Network/service_layer/services/datafeed/chain"
+	neofeeds "github.com/R3E-Network/service_layer/services/datafeed/marble"
+	neorand "github.com/R3E-Network/service_layer/services/vrf/marble"
+	neorandsupabase "github.com/R3E-Network/service_layer/services/vrf/supabase"
 )
 
 // ServiceRunner interface for all Neo services
@@ -64,31 +55,12 @@ type ServiceRunner interface {
 // Available Neo services
 var availableServices = []string{
 	"globalsigner",
-	"neoaccounts", "neocompute", "neofeeds", "neoflow", "neoindexer",
-	"neooracle", "neorand", "neostore", "neovault",
-	"txsubmitter",
-}
-
-func normalizeServiceURLForMTLS(m *marble.Marble, raw string) string {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return ""
-	}
-
-	useMTLS := m != nil && m.TLSConfig() != nil
-	if !useMTLS {
-		return raw
-	}
-
-	parsed, err := url.Parse(raw)
-	if err != nil {
-		return raw
-	}
-	if parsed.Scheme == "http" {
-		parsed.Scheme = "https"
-		return parsed.String()
-	}
-	return raw
+	"neoaccounts",
+	"neocompute",
+	"neofeeds",
+	"neoflow",
+	"neooracle",
+	"neorand",
 }
 
 func main() {
@@ -158,11 +130,7 @@ func main() {
 	globalSignerRepo := globalsignersupabase.NewRepository(db)
 	neoaccountsRepo := neoaccountssupabase.NewRepository(db)
 	neorandRepo := neorandsupabase.NewRepository(db)
-	neovaultRepo := neovaultsupabase.NewRepository(db)
 	neoflowRepo := neoflowsupabase.NewRepository(db)
-	neostoreRepo := newNeoStoreRepositoryAdapter(db)
-	neoindexerRepo := neoindexersupabase.NewRepository(db)
-	txsubmitterRepo := txsubmittersupabase.NewRepository(db)
 
 	// Chain configuration
 	neoRPCURLs := chain.ParseEndpoints(strings.TrimSpace(os.Getenv("NEO_RPC_URLS")))
@@ -199,26 +167,9 @@ func main() {
 		chainClient = client
 	}
 
-	// RPC pool for failover-aware services (TxSubmitter, indexing).
-	rpcPoolEndpoints := neoRPCURLs
-	if len(rpcPoolEndpoints) == 0 && neoRPCURL != "" {
-		rpcPoolEndpoints = []string{neoRPCURL}
-	}
+	contracts := chain.ContractAddressesFromEnv()
 
-	var rpcPool *chain.RPCPool
-	if len(rpcPoolEndpoints) > 0 {
-		pool, poolErr := chain.NewRPCPool(&chain.RPCPoolConfig{
-			Endpoints:  rpcPoolEndpoints,
-			HTTPClient: m.ExternalHTTPClient(),
-		})
-		if poolErr != nil {
-			log.Printf("Warning: failed to initialize RPC pool: %v", poolErr)
-		} else {
-			rpcPool = pool
-		}
-	}
-
-	gatewayHash := trimHexPrefix(os.Getenv("CONTRACT_GATEWAY_HASH"))
+	gatewayHash := trimHexPrefix(contracts.Gateway)
 	if gatewayHash == "" {
 		if secret, ok := m.Secret("CONTRACT_GATEWAY_HASH"); ok && len(secret) > 0 {
 			gatewayHash = trimHexPrefix(string(secret))
@@ -227,17 +178,29 @@ func main() {
 	if chainClient != nil && gatewayHash == "" {
 		log.Printf("Warning: CONTRACT_GATEWAY_HASH not set; TEE callbacks disabled")
 	}
-	neoFeedsHash := trimHexPrefix(os.Getenv("CONTRACT_NEOFEEDS_HASH"))
-	if neoFeedsHash == "" {
-		if secret, ok := m.Secret("CONTRACT_NEOFEEDS_HASH"); ok && len(secret) > 0 {
-			neoFeedsHash = trimHexPrefix(string(secret))
+
+	vrfHash := trimHexPrefix(contracts.VRF)
+	if vrfHash == "" {
+		if secret, ok := m.Secret("CONTRACT_VRF_HASH"); ok && len(secret) > 0 {
+			vrfHash = trimHexPrefix(string(secret))
 		}
 	}
 
-	neoflowHash := trimHexPrefix(os.Getenv("CONTRACT_NEOFLOW_HASH"))
-	if neoflowHash == "" {
-		if secret, ok := m.Secret("CONTRACT_NEOFLOW_HASH"); ok && len(secret) > 0 {
-			neoflowHash = trimHexPrefix(string(secret))
+	dataFeedsHash := trimHexPrefix(contracts.NeoFeeds)
+	if dataFeedsHash == "" {
+		if secret, ok := m.Secret("CONTRACT_DATAFEEDS_HASH"); ok && len(secret) > 0 {
+			dataFeedsHash = trimHexPrefix(string(secret))
+		} else if secret, ok := m.Secret("CONTRACT_NEOFEEDS_HASH"); ok && len(secret) > 0 {
+			dataFeedsHash = trimHexPrefix(string(secret))
+		}
+	}
+
+	automationHash := trimHexPrefix(contracts.NeoFlow)
+	if automationHash == "" {
+		if secret, ok := m.Secret("CONTRACT_AUTOMATION_HASH"); ok && len(secret) > 0 {
+			automationHash = trimHexPrefix(string(secret))
+		} else if secret, ok := m.Secret("CONTRACT_NEOFLOW_HASH"); ok && len(secret) > 0 {
+			automationHash = trimHexPrefix(string(secret))
 		}
 	}
 
@@ -255,80 +218,41 @@ func main() {
 		}
 	}
 
-	var gatewayContract *chain.GatewayContract
-	if chainClient != nil && gatewayHash != "" {
-		gatewayContract = chain.NewGatewayContract(chainClient, gatewayHash, nil)
+	var eventListener *chain.EventListener
+	if chainClient != nil {
+		startBlock := uint64(0)
+		if raw := strings.TrimSpace(os.Getenv("NEO_EVENT_START_BLOCK")); raw != "" {
+			if parsed, err := strconv.ParseUint(raw, 10, 64); err == nil {
+				startBlock = parsed
+			} else {
+				log.Printf("Warning: invalid NEO_EVENT_START_BLOCK %q: %v", raw, err)
+			}
+		} else if height, err := chainClient.GetBlockCount(ctx); err == nil && height > 0 {
+			startBlock = height - 1
+		}
+
+		eventListener = chain.NewEventListener(&chain.ListenerConfig{
+			Client: chainClient,
+			Contracts: chain.ContractAddresses{
+				Gateway:  gatewayHash,
+				VRF:      vrfHash,
+				NeoFeeds: dataFeedsHash,
+				NeoFlow:  automationHash,
+			},
+			StartBlock:   startBlock,
+			PollInterval: 5 * time.Second,
+		})
 	}
 
 	var neoFeedsContract *neofeedschain.NeoFeedsContract
-	if chainClient != nil && neoFeedsHash != "" {
-		neoFeedsContract = neofeedschain.NewNeoFeedsContract(chainClient, neoFeedsHash, nil)
+	if chainClient != nil && dataFeedsHash != "" {
+		neoFeedsContract = neofeedschain.NewNeoFeedsContract(chainClient, dataFeedsHash, nil)
 	}
 
-	enableChainPush := chainClient != nil && teeFulfiller != nil && neoFeedsHash != ""
-	enableChainExec := chainClient != nil && teeFulfiller != nil && neoflowHash != ""
+	enableChainPush := chainClient != nil && teeFulfiller != nil && dataFeedsHash != ""
+	enableChainExec := chainClient != nil && teeFulfiller != nil && automationHash != ""
 	arbitrumRPC := strings.TrimSpace(os.Getenv("ARBITRUM_RPC"))
-	secretsBaseURL := normalizeServiceURLForMTLS(m, strings.TrimSpace(os.Getenv("SECRETS_BASE_URL")))
 
-	// Internal service clients (optional, for service-to-service calls).
-	// Use Marble mTLS client when available so cross-marble identity is verified.
-	txsubmitterBaseURL := strings.TrimSpace(os.Getenv("TXSUBMITTER_SERVICE_URL"))
-	if txsubmitterBaseURL == "" {
-		if secret, ok := m.Secret("TXSUBMITTER_SERVICE_URL"); ok && len(secret) > 0 {
-			txsubmitterBaseURL = strings.TrimSpace(string(secret))
-		}
-	}
-	txsubmitterBaseURL = normalizeServiceURLForMTLS(m, txsubmitterBaseURL)
-
-	globalsignerBaseURL := strings.TrimSpace(os.Getenv("GLOBALSIGNER_SERVICE_URL"))
-	if globalsignerBaseURL == "" {
-		if secret, ok := m.Secret("GLOBALSIGNER_SERVICE_URL"); ok && len(secret) > 0 {
-			globalsignerBaseURL = strings.TrimSpace(string(secret))
-		}
-	}
-	globalsignerBaseURL = normalizeServiceURLForMTLS(m, globalsignerBaseURL)
-
-	var txsubmitterClient *txclient.Client
-	if txsubmitterBaseURL != "" {
-		client, clientErr := txclient.New(txclient.Config{
-			BaseURL:      txsubmitterBaseURL,
-			ServiceID:    serviceType,
-			HTTPClient:   m.HTTPClient(),
-			Timeout:      30 * time.Second,
-			MaxBodyBytes: 1 << 20,
-		})
-		if clientErr != nil {
-			log.Printf("Warning: failed to initialize TxSubmitter client: %v", clientErr)
-		} else {
-			txsubmitterClient = client
-		}
-	}
-
-	var globalsignerClient *gsclient.Client
-	if globalsignerBaseURL != "" {
-		client, clientErr := gsclient.New(gsclient.Config{
-			BaseURL:      globalsignerBaseURL,
-			ServiceID:    serviceType,
-			HTTPClient:   m.HTTPClient(),
-			Timeout:      30 * time.Second,
-			MaxBodyBytes: 1 << 20,
-		})
-		if clientErr != nil {
-			log.Printf("Warning: failed to initialize GlobalSigner client: %v", clientErr)
-		} else {
-			globalsignerClient = client
-		}
-	}
-
-	// Allow enabling chain push via TxSubmitter even when local TEE fulfiller is disabled.
-	if neoFeedsHash != "" && txsubmitterClient != nil {
-		enableChainPush = true
-	}
-	if neoflowHash != "" && txsubmitterClient != nil {
-		enableChainExec = true
-	}
-
-	// Create service based on type
 	var svc ServiceRunner
 	switch serviceType {
 	case "globalsigner":
@@ -345,19 +269,12 @@ func main() {
 			NeoAccountsRepo: neoaccountsRepo,
 			ChainClient:     chainClient,
 		})
-		if err == nil && txsubmitterClient != nil {
-			accountsSvc.SetTxSubmitterClient(txsubmitterClient)
-		}
 		svc = accountsSvc
 	case "neocompute":
-		if secretsBaseURL == "" {
-			log.Printf("Warning: SECRETS_BASE_URL not set; NeoCompute cannot inject NeoStore secrets")
-		}
 		svc, err = neocompute.New(neocompute.Config{
-			Marble:            m,
-			DB:                db,
-			SecretsBaseURL:    secretsBaseURL,
-			SecretsHTTPClient: m.HTTPClient(),
+			Marble:         m,
+			DB:             db,
+			SecretProvider: newServiceSecretsProvider(m, db, neocompute.ServiceID),
 		})
 	case "neofeeds":
 		var feedsSvc *neofeeds.Service
@@ -367,12 +284,9 @@ func main() {
 			ArbitrumRPC:     arbitrumRPC,
 			ChainClient:     chainClient,
 			TEEFulfiller:    teeFulfiller,
-			NeoFeedsHash:    neoFeedsHash,
+			NeoFeedsHash:    dataFeedsHash,
 			EnableChainPush: enableChainPush,
 		})
-		if err == nil && txsubmitterClient != nil {
-			feedsSvc.SetTxSubmitterClient(txsubmitterClient)
-		}
 		svc = feedsSvc
 	case "neoflow":
 		var flowSvc *neoflow.Service
@@ -382,46 +296,13 @@ func main() {
 			NeoFlowRepo:      neoflowRepo,
 			ChainClient:      chainClient,
 			TEEFulfiller:     teeFulfiller,
-			NeoFlowHash:      neoflowHash,
+			NeoFlowHash:      automationHash,
 			NeoFeedsContract: neoFeedsContract,
+			EventListener:    eventListener,
 			EnableChainExec:  enableChainExec,
 		})
-		if err == nil && txsubmitterClient != nil {
-			flowSvc.SetTxSubmitterClient(txsubmitterClient)
-		}
 		svc = flowSvc
-	case "neoindexer":
-		indexerCfg := neoindexer.DefaultConfig()
-		if len(neoRPCURLs) > 0 {
-			endpoints := make([]neoindexer.RPCEndpoint, 0, len(neoRPCURLs))
-			for i, url := range neoRPCURLs {
-				endpoints = append(endpoints, neoindexer.RPCEndpoint{
-					URL:      url,
-					Priority: i,
-					Healthy:  true,
-				})
-			}
-			indexerCfg.RPCEndpoints = endpoints
-		} else if neoRPCURL != "" {
-			indexerCfg.RPCEndpoints = []neoindexer.RPCEndpoint{{
-				URL:      neoRPCURL,
-				Priority: 0,
-				Healthy:  true,
-			}}
-		}
-
-		svc, err = neoindexer.New(neoindexer.ServiceConfig{
-			Marble:      m,
-			DB:          db,
-			ChainClient: chainClient,
-			Config:      indexerCfg,
-			Repository:  neoindexerRepo,
-		})
 	case "neooracle":
-		if secretsBaseURL == "" {
-			log.Printf("Warning: SECRETS_BASE_URL not set; NeoOracle cannot reach NeoStore API")
-		}
-
 		oracleAllowlistRaw := strings.TrimSpace(os.Getenv("ORACLE_HTTP_ALLOWLIST"))
 		oracleAllowlist := neooracle.URLAllowlist{Prefixes: splitAndTrimCSV(oracleAllowlistRaw)}
 		if len(oracleAllowlist.Prefixes) == 0 {
@@ -432,10 +313,9 @@ func main() {
 		}
 
 		svc, err = neooracle.New(neooracle.Config{
-			Marble:            m,
-			SecretsBaseURL:    secretsBaseURL,
-			SecretsHTTPClient: m.HTTPClient(),
-			URLAllowlist:      oracleAllowlist,
+			Marble:         m,
+			SecretProvider: newServiceSecretsProvider(m, db, neooracle.ServiceID),
+			URLAllowlist:   oracleAllowlist,
 		})
 	case "neorand":
 		var randSvc *neorand.Service
@@ -445,57 +325,9 @@ func main() {
 			NeoRandRepo:   neorandRepo,
 			ChainClient:   chainClient,
 			TEEFulfiller:  teeFulfiller,
-			EventListener: nil,
+			EventListener: eventListener,
 		})
-		if err == nil && txsubmitterClient != nil {
-			randSvc.SetTxSubmitterClient(txsubmitterClient)
-		}
 		svc = randSvc
-	case "neostore":
-		svc, err = neostore.New(neostore.Config{
-			Marble: m,
-			DB:     neostoreRepo,
-		})
-	case "neovault":
-		accountPoolURL := strings.TrimSpace(os.Getenv("ACCOUNTPOOL_URL"))
-		if accountPoolURL == "" {
-			log.Printf("Warning: ACCOUNTPOOL_URL not set; NeoVault pool integration disabled")
-		}
-		accountPoolURL = normalizeServiceURLForMTLS(m, accountPoolURL)
-
-		var vaultSvc *neovault.Service
-		vaultSvc, err = neovault.New(&neovault.Config{
-			Marble:         m,
-			DB:             db,
-			NeoVaultRepo:   neovaultRepo,
-			ChainClient:    chainClient,
-			TEEFulfiller:   teeFulfiller,
-			Gateway:        gatewayContract,
-			NeoAccountsURL: accountPoolURL,
-		})
-		if err == nil && txsubmitterClient != nil {
-			vaultSvc.SetTxSubmitterClient(txsubmitterClient)
-		}
-		if err == nil && globalsignerClient != nil {
-			vaultSvc.SetGlobalSignerClient(globalsignerClient)
-		}
-		svc = vaultSvc
-	case "txsubmitter":
-		if chainClient == nil {
-			log.Fatalf("CRITICAL: TxSubmitter requires NEO_RPC_URL or NEO_RPC_URLS to be configured")
-		}
-		if teeFulfiller == nil {
-			log.Fatalf("CRITICAL: TxSubmitter requires TEE_PRIVATE_KEY and CONTRACT_GATEWAY_HASH to be configured")
-		}
-
-		svc, err = txsubmitter.New(txsubmitter.Config{
-			Marble:      m,
-			DB:          db,
-			ChainClient: chainClient,
-			RPCPool:     rpcPool,
-			Fulfiller:   teeFulfiller,
-			Repository:  txsubmitterRepo,
-		})
 	default:
 		log.Fatalf("Unknown service: %s. Available: %v", serviceType, availableServices)
 	}
@@ -621,50 +453,33 @@ func loadTEEPrivateKey(m *marble.Marble) string {
 	return ""
 }
 
-type neoStoreRepositoryAdapter struct {
-	repo neostoresupabase.RepositoryInterface
-}
+func newServiceSecretsProvider(m *marble.Marble, db *database.Repository, serviceID string) secrets.Provider {
+	if db == nil {
+		return nil
+	}
 
-func newNeoStoreRepositoryAdapter(base *database.Repository) *neoStoreRepositoryAdapter {
-	return &neoStoreRepositoryAdapter{repo: neostoresupabase.NewRepository(base)}
-}
+	var rawKey []byte
+	if m != nil {
+		if secret, ok := m.Secret(secrets.MasterKeyEnv); ok && len(secret) > 0 {
+			rawKey = secret
+		}
+	}
+	if len(rawKey) == 0 {
+		rawKey = []byte(strings.TrimSpace(os.Getenv(secrets.MasterKeyEnv)))
+	}
 
-func (a *neoStoreRepositoryAdapter) GetSecrets(ctx context.Context, userID string) ([]neostoresupabase.Secret, error) {
-	return a.repo.GetSecrets(ctx, userID)
-}
+	if len(rawKey) == 0 {
+		strict := runtime.StrictIdentityMode() || (m != nil && m.IsEnclave())
+		if strict {
+			log.Fatalf("CRITICAL: %s is required for %s secret access in production/SGX mode", secrets.MasterKeyEnv, serviceID)
+		}
+		return nil
+	}
 
-func (a *neoStoreRepositoryAdapter) GetSecretByName(ctx context.Context, userID, name string) (*neostoresupabase.Secret, error) {
-	return a.repo.GetSecretByName(ctx, userID, name)
-}
-
-func (a *neoStoreRepositoryAdapter) CreateSecret(ctx context.Context, secret *neostoresupabase.Secret) error {
-	return a.repo.CreateSecret(ctx, secret)
-}
-
-func (a *neoStoreRepositoryAdapter) UpdateSecret(ctx context.Context, secret *neostoresupabase.Secret) error {
-	return a.repo.UpdateSecret(ctx, secret)
-}
-
-func (a *neoStoreRepositoryAdapter) DeleteSecret(ctx context.Context, userID, name string) error {
-	return a.repo.DeleteSecret(ctx, userID, name)
-}
-
-func (a *neoStoreRepositoryAdapter) GetAllowedServices(ctx context.Context, userID, secretName string) ([]string, error) {
-	return a.repo.GetAllowedServices(ctx, userID, secretName)
-}
-
-func (a *neoStoreRepositoryAdapter) SetAllowedServices(ctx context.Context, userID, secretName string, services []string) error {
-	return a.repo.SetAllowedServices(ctx, userID, secretName, services)
-}
-
-func (a *neoStoreRepositoryAdapter) CreateAuditLog(ctx context.Context, logEntry *neostoresupabase.AuditLog) error {
-	return a.repo.CreateAuditLog(ctx, logEntry)
-}
-
-func (a *neoStoreRepositoryAdapter) GetAuditLogs(ctx context.Context, userID string, limit int) ([]neostoresupabase.AuditLog, error) {
-	return a.repo.GetAuditLogs(ctx, userID, limit)
-}
-
-func (a *neoStoreRepositoryAdapter) GetAuditLogsForSecret(ctx context.Context, userID, secretName string, limit int) ([]neostoresupabase.AuditLog, error) {
-	return a.repo.GetAuditLogsForSecret(ctx, userID, secretName, limit)
+	repo := secretssupabase.NewRepository(db)
+	manager, err := secrets.NewManager(repo, rawKey)
+	if err != nil {
+		log.Fatalf("CRITICAL: initialize secrets manager for %s: %v", serviceID, err)
+	}
+	return secrets.ServiceProvider{Manager: manager, ServiceID: serviceID}
 }

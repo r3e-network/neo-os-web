@@ -28,5 +28,4 @@ CREATE INDEX IF NOT EXISTS processed_events_contract_event_idx
 CREATE INDEX IF NOT EXISTS processed_events_processed_at_idx
   ON processed_events (processed_at DESC);
 
-COMMENT ON TABLE processed_events IS 'Chain event idempotency table for NeoIndexer';
-
+COMMENT ON TABLE processed_events IS 'Chain event idempotency table for service-layer event processors';

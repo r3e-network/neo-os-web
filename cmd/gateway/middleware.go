@@ -12,10 +12,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/internal/database"
-	"github.com/R3E-Network/service_layer/internal/httputil"
-	sllogging "github.com/R3E-Network/service_layer/internal/logging"
-	slmiddleware "github.com/R3E-Network/service_layer/internal/middleware"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
+	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	sllogging "github.com/R3E-Network/service_layer/infrastructure/logging"
+	slmiddleware "github.com/R3E-Network/service_layer/infrastructure/middleware"
 )
 
 func HeaderGateMiddleware(sharedSecret string) func(http.Handler) http.Handler {

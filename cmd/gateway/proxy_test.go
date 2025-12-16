@@ -25,11 +25,11 @@ func TestProxyHandler_ForwardsIdentityAndStripsSpoofableHeaders(t *testing.T) {
 	})
 	t.Cleanup(func() { http.DefaultTransport = prevTransport })
 
-	prev := serviceEndpoints["neovault"]
-	serviceEndpoints["neovault"] = "http://neovault.example"
-	t.Cleanup(func() { serviceEndpoints["neovault"] = prev })
+	prev := serviceEndpoints["neorand"]
+	serviceEndpoints["neorand"] = "http://neorand.example"
+	t.Cleanup(func() { serviceEndpoints["neorand"] = prev })
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/neovault/admin/registrations", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/neorand/admin/registrations", nil)
 	req = mux.SetURLVars(req, map[string]string{"path": "admin/registrations"})
 
 	req.Header.Set("X-User-ID", "user-123")
@@ -43,7 +43,7 @@ func TestProxyHandler_ForwardsIdentityAndStripsSpoofableHeaders(t *testing.T) {
 	req.RemoteAddr = "203.0.113.10:1234"
 
 	rr := httptest.NewRecorder()
-	proxyHandler("neovault", nil).ServeHTTP(rr, req)
+	proxyHandler("neorand", nil).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rr.Code, http.StatusOK)

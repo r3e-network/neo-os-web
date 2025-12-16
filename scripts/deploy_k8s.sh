@@ -38,13 +38,12 @@ OVERLAY_PATH=""
 SERVICES=(
     "gateway"
     "neorand"
-    "neovault"
     "neofeeds"
     "neoflow"
     "neoaccounts"
     "neocompute"
-    "neostore"
     "neooracle"
+    "globalsigner"
 )
 
 # =============================================================================

@@ -93,11 +93,13 @@ export function Settings() {
   };
 
   const availableScopes = [
-    { id: 'neooracle', label: 'NeoOracle Service' },
-    { id: 'neorand', label: 'NeoRand Service' },
-    { id: 'neostore', label: 'NeoStore (Secrets)' },
-    { id: 'neoflow', label: 'NeoFlow' },
-    { id: 'neofeeds', label: 'Data Feeds' },
+    { id: 'neorand', label: 'VRF (neorand)' },
+    { id: 'neofeeds', label: 'DataFeeds (neofeeds)' },
+    { id: 'neoflow', label: 'Automation (neoflow)' },
+    { id: 'neocompute', label: 'ConfCompute (neocompute)' },
+    { id: 'neooracle', label: 'ConfOracle (neooracle)' },
+    { id: 'neoaccounts', label: 'Account Pool (neoaccounts)' },
+    { id: 'secrets', label: 'Secrets' },
     { id: 'gasbank', label: 'Gas Bank' },
   ];
 

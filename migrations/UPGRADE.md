@@ -1,6 +1,8 @@
 # AccountPool Migration Notes
 
-This repo now uses a shared `pool_accounts` table managed by the AccountPool service. NeoVault no longer owns its own pool table.
+This repo uses a shared `pool_accounts` table managed by the AccountPool (NeoAccounts) service.
+Older deployments may contain legacy tables from previous service scopes; migrations keep the
+final schema consistent.
 
 ## Fresh deployments
 - Apply migrations in order. `003_service_persistence.sql` creates `pool_accounts` with lock columns and indexes.
@@ -13,8 +15,9 @@ This repo now uses a shared `pool_accounts` table managed by the AccountPool ser
 - No data is dropped; rows are preserved.
 - Apply `007_secret_permissions.sql` for per-secret service allowlists.
 - Apply `008_cleanup_legacy_pool.sql` to drop any leftover `neovault_pool_accounts` table after the rename/lock-column migration.
+- Apply `019_remove_neovault.sql` to remove out-of-scope legacy NeoVault/Mixer tables (if present).
 
 ## Verification checklist
-- Table `pool_accounts` exists with columns: `id`, `address`, `balance`, `created_at`, `last_used_at`, `tx_count`, `is_retiring`, `locked_by`, `locked_at`.
+- Table `pool_accounts` exists with columns: `id`, `address`, `created_at`, `last_used_at`, `tx_count`, `is_retiring`, `locked_by`, `locked_at`.
 - Indexes `pool_accounts_locked_by_idx` and `pool_accounts_is_retiring_idx` exist.
-- NeoVault is configured with `AccountPoolURL` and uses the AccountPool API for locking/releasing and balance updates.
+- Optional: table `pool_account_balances` exists when multi-token balances are enabled (`011_multi_token_balances.sql`).

@@ -162,46 +162,36 @@ spec:
                 configMapKeyRef:
                   name: service-layer-config
                   key: NEO_RPC_URL
-            - name: NEORAND_SERVICE_URL
+            - name: VRF_SERVICE_URL
               valueFrom:
                 configMapKeyRef:
                   name: service-layer-config
-                  key: NEORAND_SERVICE_URL
-            - name: NEOVAULT_SERVICE_URL
+                  key: VRF_SERVICE_URL
+            - name: DATAFEEDS_SERVICE_URL
               valueFrom:
                 configMapKeyRef:
                   name: service-layer-config
-                  key: NEOVAULT_SERVICE_URL
-            - name: NEOFEEDS_SERVICE_URL
+                  key: DATAFEEDS_SERVICE_URL
+            - name: AUTOMATION_SERVICE_URL
               valueFrom:
                 configMapKeyRef:
                   name: service-layer-config
-                  key: NEOFEEDS_SERVICE_URL
-            - name: NEOFLOW_SERVICE_URL
+                  key: AUTOMATION_SERVICE_URL
+            - name: ACCOUNTPOOL_SERVICE_URL
               valueFrom:
                 configMapKeyRef:
                   name: service-layer-config
-                  key: NEOFLOW_SERVICE_URL
-            - name: NEOACCOUNTS_SERVICE_URL
+                  key: ACCOUNTPOOL_SERVICE_URL
+            - name: CONFIDENTIAL_SERVICE_URL
               valueFrom:
                 configMapKeyRef:
                   name: service-layer-config
-                  key: NEOACCOUNTS_SERVICE_URL
-            - name: NEOCOMPUTE_SERVICE_URL
+                  key: CONFIDENTIAL_SERVICE_URL
+            - name: ORACLE_SERVICE_URL
               valueFrom:
                 configMapKeyRef:
                   name: service-layer-config
-                  key: NEOCOMPUTE_SERVICE_URL
-            - name: NEOSTORE_SERVICE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: service-layer-config
-                  key: NEOSTORE_SERVICE_URL
-            - name: NEOORACLE_SERVICE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: service-layer-config
-                  key: NEOORACLE_SERVICE_URL
+                  key: ORACLE_SERVICE_URL
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:

@@ -2,15 +2,15 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"encoding/hex"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/internal/crypto"
-	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/infrastructure/crypto"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
 )
 
 func TestLogoutHandlerCookieAuthClearsCookieAndDeletesSession(t *testing.T) {
@@ -228,7 +228,7 @@ func TestHeaderGateMiddleware_MetricsBypassesValidation(t *testing.T) {
 }
 
 func TestHeaderGateMiddleware_UsesConstantTimeCompare(t *testing.T) {
-	src, err := os.ReadFile("../../internal/middleware/headergate.go")
+	src, err := os.ReadFile("../../infrastructure/middleware/headergate.go")
 	if err != nil {
 		t.Fatalf("read internal header gate middleware: %v", err)
 	}

@@ -1,5 +1,5 @@
 -- Chain transactions audit table.
--- Records all transactions submitted through TxSubmitter.
+-- Records all service-layer transactions submitted by enclave-managed signers.
 
 CREATE TABLE IF NOT EXISTS chain_txs (
   id BIGSERIAL PRIMARY KEY,
@@ -37,5 +37,4 @@ CREATE INDEX IF NOT EXISTS chain_txs_pending_idx
   ON chain_txs (status, submitted_at)
   WHERE status IN ('pending', 'submitted');
 
-COMMENT ON TABLE chain_txs IS 'Transaction audit table for TxSubmitter';
-
+COMMENT ON TABLE chain_txs IS 'Transaction audit table for service-layer chain writes';

@@ -20,13 +20,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/R3E-Network/service_layer/internal/crypto"
-	"github.com/R3E-Network/service_layer/internal/database"
-	sllogging "github.com/R3E-Network/service_layer/internal/logging"
-	"github.com/R3E-Network/service_layer/internal/marble"
-	slmetrics "github.com/R3E-Network/service_layer/internal/metrics"
-	slmiddleware "github.com/R3E-Network/service_layer/internal/middleware"
-	"github.com/R3E-Network/service_layer/internal/runtime"
+	"github.com/R3E-Network/service_layer/infrastructure/crypto"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
+	sllogging "github.com/R3E-Network/service_layer/infrastructure/logging"
+	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	slmetrics "github.com/R3E-Network/service_layer/infrastructure/metrics"
+	slmiddleware "github.com/R3E-Network/service_layer/infrastructure/middleware"
+	"github.com/R3E-Network/service_layer/infrastructure/runtime"
 )
 
 var (
@@ -471,16 +471,25 @@ func registerRoutes(router *mux.Router, db *database.Repository, m *marble.Marbl
 	// Service proxy routes
 	services := protected.PathPrefix("").Subrouter()
 	services.Use(requirePrimaryWalletMiddleware(db))
+
+	// Secrets management lives in the gateway (no dedicated secret service).
+	secretsManager := newGatewaySecretsManager(db, m)
+	services.HandleFunc("/secrets", listSecretsHandler(secretsManager)).Methods("GET")
+	services.HandleFunc("/secrets", upsertSecretHandler(secretsManager)).Methods("POST")
+	services.HandleFunc("/secrets/{name}", getSecretHandler(secretsManager)).Methods("GET")
+	services.HandleFunc("/secrets/{name}", deleteSecretHandler(secretsManager)).Methods("DELETE")
+	services.HandleFunc("/secrets/{name}/permissions", getSecretPermissionsHandler(secretsManager)).Methods("GET")
+	services.HandleFunc("/secrets/{name}/permissions", setSecretPermissionsHandler(secretsManager)).Methods("PUT")
+	services.HandleFunc("/secrets/audit", auditLogsHandler(secretsManager)).Methods("GET")
+	services.HandleFunc("/secrets/{name}/audit", secretAuditLogsHandler(secretsManager)).Methods("GET")
+
 	services.HandleFunc("/vrf/{path:.*}", proxyHandler("vrf", m)).Methods("GET", "POST")
 	services.HandleFunc("/neorand/{path:.*}", proxyHandler("neorand", m)).Methods("GET", "POST")
-	services.HandleFunc("/neovault/{path:.*}", proxyHandler("neovault", m)).Methods("GET", "POST")
 	services.HandleFunc("/neofeeds/{path:.*}", proxyHandler("neofeeds", m)).Methods("GET", "POST")
 	services.HandleFunc("/neoflow/{path:.*}", proxyHandler("neoflow", m)).Methods("GET", "POST", "PUT", "DELETE")
 	services.HandleFunc("/neocompute/{path:.*}", proxyHandler("neocompute", m)).Methods("GET", "POST")
-	services.HandleFunc("/neostore/{path:.*}", proxyHandler("neostore", m)).Methods("GET", "POST", "PUT", "DELETE")
 	services.HandleFunc("/neooracle/{path:.*}", proxyHandler("neooracle", m)).Methods("GET", "POST")
 
 	// Backward-compatible aliases.
-	services.HandleFunc("/secrets/{path:.*}", proxyHandler("secrets", m)).Methods("GET", "POST", "PUT", "DELETE")
 	services.HandleFunc("/oracle/{path:.*}", proxyHandler("oracle", m)).Methods("GET", "POST")
 }

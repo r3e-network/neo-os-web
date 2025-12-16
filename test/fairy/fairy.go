@@ -10,8 +10,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/chain"
-	"github.com/R3E-Network/service_layer/internal/httputil"
+	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	"github.com/R3E-Network/service_layer/infrastructure/httputil"
 )
 
 const (
@@ -38,7 +38,7 @@ func NewClient(url string) *Client {
 	}
 }
 
-// RPC types (RPCRequest, RPCResponse, RPCError) imported from internal/chain package
+// RPC types (RPCRequest, RPCResponse, RPCError) imported from infrastructure/chain package
 
 func (c *Client) call(method string, params ...interface{}) (*chain.RPCResponse, error) {
 	if params == nil {
@@ -228,7 +228,7 @@ func (c *Client) VirtualDeploy(sessionID, nefPath, manifestPath string) (*Virtua
 	return &result, nil
 }
 
-// InvokeResult and StackItem imported from internal/chain package
+// InvokeResult and StackItem imported from infrastructure/chain package
 
 // InvokeFunctionWithSession invokes a contract method in a session.
 func (c *Client) InvokeFunctionWithSession(sessionID string, writeSnapshot bool, contractHash, method string, args []interface{}) (*chain.InvokeResult, error) {

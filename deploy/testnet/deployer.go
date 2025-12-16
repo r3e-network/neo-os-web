@@ -19,8 +19,8 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/smartcontract/nef"
 	"github.com/nspcc-dev/neo-go/pkg/util"
 
-	"github.com/R3E-Network/service_layer/internal/chain"
-	"github.com/R3E-Network/service_layer/internal/httputil"
+	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	"github.com/R3E-Network/service_layer/infrastructure/httputil"
 )
 
 const (
@@ -35,7 +35,7 @@ type Deployer struct {
 	client     *http.Client
 }
 
-// DeployedContract and DeploymentResult are imported from internal/chain package
+// DeployedContract and DeploymentResult are imported from infrastructure/chain package
 
 func NewDeployer(rpcURL string) (*Deployer, error) {
 	if rpcURL == "" {
@@ -73,7 +73,7 @@ func (d *Deployer) GetAccountHash() util.Uint160 {
 	return d.privateKey.GetScriptHash()
 }
 
-// RPC types imported from internal/chain package
+// RPC types imported from infrastructure/chain package
 
 func (d *Deployer) call(method string, params ...interface{}) (*chain.RPCResponse, error) {
 	if params == nil {
@@ -170,7 +170,7 @@ func (d *Deployer) GetGASBalanceFloat() (float64, error) {
 	return float64(amt) / 1e8, nil
 }
 
-// InvokeResult and StackItem imported from internal/chain package
+// InvokeResult and StackItem imported from infrastructure/chain package
 
 func (d *Deployer) GetBlockCount() (int64, error) {
 	resp, err := d.call("getblockcount")

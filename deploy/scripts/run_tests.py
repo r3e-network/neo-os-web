@@ -129,10 +129,11 @@ class ServiceLayerTestBase(ABC):
 
         # Deploy service contracts
         services = {
+            "oracle": "OracleService",
             "vrf": "VRFService",
-            "mixer": "NeoVaultService",
             "datafeeds": "DataFeedsService",
             "automation": "NeoFlowService",
+            "confidential": "ConfidentialService",
         }
 
         for service_type, contract_name in services.items():
@@ -253,93 +254,6 @@ class VRFServiceTests(ServiceLayerTestBase):
             return TestResult("lottery_lifecycle", False, (time.time() - start) * 1000, error=str(e))
 
 
-class MixerServiceTests(ServiceLayerTestBase):
-    """Tests for Mixer Service and MixerClient example."""
-
-    def run_tests(self) -> List[TestResult]:
-        results = []
-
-        # Test: Mixer Request Creation
-        result = self._test_mixer_request()
-        results.append(result)
-
-        # Test: Mixer Token Validation
-        result = self._test_token_validation()
-        results.append(result)
-
-        # Test: MixerClient Flow
-        result = self._test_mixer_client_flow()
-        results.append(result)
-
-        return results
-
-    def _test_mixer_request(self) -> TestResult:
-        """Test mixer request creation."""
-        start = time.time()
-        try:
-            self.setup()
-
-            result = self.client.invoke(
-                self.gateway_hash,
-                "requestService",
-                "mixer",
-                b'{"amount": 500000000, "token_type": "GAS"}',
-                "onMixCallback"
-            )
-
-            return TestResult("mixer_request", True, (time.time() - start) * 1000,
-                            gas_used=result.get("gas_consumed", 0))
-
-        except Exception as e:
-            return TestResult("mixer_request", False, (time.time() - start) * 1000, error=str(e))
-
-    def _test_token_validation(self) -> TestResult:
-        """Test mixer token validation."""
-        start = time.time()
-        try:
-            self.setup()
-
-            # Test GAS config
-            result = self.client.invoke(self.service_hashes.get("mixer", ""), "getTokenConfig", "GAS")
-
-            # Test NEO config
-            result = self.client.invoke(self.service_hashes.get("mixer", ""), "getTokenConfig", "NEO")
-
-            return TestResult("token_validation", True, (time.time() - start) * 1000)
-
-        except Exception as e:
-            return TestResult("token_validation", False, (time.time() - start) * 1000, error=str(e))
-
-    def _test_mixer_client_flow(self) -> TestResult:
-        """Test MixerClient contract flow."""
-        start = time.time()
-        try:
-            self.setup()
-
-            # Deploy MixerClient
-            client_hash = self.client.virtual_deploy(
-                str(BUILD_DIR / "MixerClient.nef"),
-                str(BUILD_DIR / "MixerClient.manifest.json"),
-            )
-
-            # Set gateway
-            self.client.invoke(client_hash, "setGateway", self.gateway_hash)
-
-            # Deposit GAS
-            self.client.deal("NUser1", "GAS", 500000000)
-            self.client.prank("NUser1")
-            # NEP17 transfer to contract would trigger deposit
-
-            # Create mix request
-            encrypted_targets = b"encrypted-target-data"
-            self.client.invoke(client_hash, "createMixRequest", 1, encrypted_targets, 3)
-
-            return TestResult("mixer_client_flow", True, (time.time() - start) * 1000)
-
-        except Exception as e:
-            return TestResult("mixer_client_flow", False, (time.time() - start) * 1000, error=str(e))
-
-
 class DataFeedsServiceTests(ServiceLayerTestBase):
     """Tests for DataFeeds Service and DeFiPriceConsumer example."""
 
@@ -437,7 +351,6 @@ class TestRunner:
         self.test_filter = test_filter
         self.test_classes = [
             VRFServiceTests,
-            MixerServiceTests,
             DataFeedsServiceTests,
         ]
 

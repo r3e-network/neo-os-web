@@ -134,11 +134,11 @@ This will:
 Run a specific service:
 
 ```bash
-# Run VRF service
-OE_SIMULATION=1 go run ./services/neorand/marble/main.go
+# Run VRF service (NeoRand)
+OE_SIMULATION=1 SERVICE_TYPE=neorand go run ./cmd/marble
 
-# Run NeoVault service
-OE_SIMULATION=1 go run ./services/neovault/marble/main.go
+# Run confidential oracle (NeoOracle)
+OE_SIMULATION=1 SERVICE_TYPE=neooracle go run ./cmd/marble
 ```
 
 ### Stopping Development Environment
@@ -311,7 +311,8 @@ curl http://localhost:8080/metrics
 # - errors_total: Total errors
 # - blockchain_transactions_total: Blockchain transactions
 # - neorand_requests_total: VRF requests
-# - neovault_operations_total: NeoVault operations
+# - neofeeds_updates_total: NeoFeeds updates (if enabled)
+# - neoflow_executions_total: NeoFlow executions
 ```
 
 ### Logging
@@ -346,19 +347,19 @@ service_layer/
 ├── cmd/                    # Service entry points
 │   ├── gateway/           # API Gateway
 │   └── marble/            # Generic marble runner
-├── services/              # Service implementations
-│   ├── neorand/              # VRF service
-│   ├── neovault/            # NeoVault service
-│   ├── oracle/           # Oracle service
-│   └── ...
-├── internal/              # Internal packages
-│   ├── marble/           # MarbleRun integration
-│   ├── crypto/           # Cryptography utilities
-│   ├── database/         # Database layer
-│   ├── logging/          # Structured logging
-│   ├── metrics/          # Prometheus metrics
-│   ├── middleware/       # HTTP middleware
-│   └── cli/              # CLI utilities
+├── services/              # Product services (enclave workloads)
+│   ├── vrf/               # VRF (NeoRand)
+│   ├── datafeed/          # Data feeds (NeoFeeds)
+│   ├── automation/        # Automation (NeoFlow)
+│   ├── confcompute/       # Confidential compute (NeoCompute)
+│   └── conforacle/        # Confidential oracle (NeoOracle)
+├── infrastructure/        # Shared building blocks (chain, runtime, middleware, storage)
+│   ├── chain/             # Neo N3 RPC + tx + event monitoring
+│   ├── middleware/        # HTTP middleware
+│   ├── runtime/           # strict identity + runtime helpers
+│   ├── accountpool/       # Account pool service + repo
+│   ├── globalsigner/      # Global signer service + repo
+│   └── secrets/           # Secrets manager + repo
 ├── contracts/             # Smart contracts
 ├── manifests/             # MarbleRun manifests
 ├── k8s/                   # Kubernetes manifests
@@ -367,7 +368,7 @@ service_layer/
 ├── scripts/               # Deployment scripts
 ├── test/                  # Tests
 │   ├── integration/      # Integration tests
-│   └── e2e/              # End-to-end tests
+│   └── contract/         # Contract-flow tests
 └── docs/                  # Documentation
 ```
 
@@ -394,10 +395,9 @@ func NewService() *Service {
 }
 ```
 
-3. Add to Makefile:
-```makefile
-SERVICES := gateway oracle neorand neovault myservice
-```
+3. Register it in the marble entrypoint + config:
+- Add the service ID to `cmd/marble/main.go` (`availableServices` + switch)
+- Add a default entry to `config/services.yaml`
 
 4. Add Kubernetes manifests:
 ```bash
@@ -561,7 +561,7 @@ export OE_SIMULATION=1
 
 ### Security
 
-- Never commit neostore
+- Never commit secrets/keys or `.env` files with real values
 - Use environment variables for configuration
 - Validate all inputs
 - Use prepared statements for SQL queries

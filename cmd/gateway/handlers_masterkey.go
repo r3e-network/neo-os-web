@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/internal/marble"
+	"github.com/R3E-Network/service_layer/infrastructure/marble"
 )
 
 func masterKeyHandler(m *marble.Marble) http.HandlerFunc {

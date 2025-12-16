@@ -277,4 +277,3 @@ func TestCoordinatorBackupRestoreScriptsHaveValidBashSyntax(t *testing.T) {
 		})
 	}
 }
-

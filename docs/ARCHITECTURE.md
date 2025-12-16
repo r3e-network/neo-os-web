@@ -1,831 +1,175 @@
-# Architecture Documentation
+# Service Layer Architecture
 
-## Overview
+This document describes the **current** architecture of the Neo Service Layer.
+For a quick map of directory responsibilities, see `docs/LAYERING.md`.
 
-The Neo Service Layer is a production-ready, TEE-protected service platform built on:
+## Goals
 
-- **MarbleRun**: NeoCompute computing orchestration
-- **EGo**: Go MarbleRun TEE runtime
-- **Supabase**: PostgreSQL database with RLS
-- **Vercel**: Frontend hosting
+- **Clean layering**: one module = one responsibility.
+- **Minimal TEE surface**: only sensitive computation + signing runs in enclaves.
+- **No duplicated chain I/O**: Neo RPC, tx building, and event monitoring live in one place.
+- **Consistent service shape**: same patterns for config, routing, storage, and workers.
 
-## Core Principles
-
-### 1. Defense in Depth
-
-Every layer provides security:
-
-- Network: mTLS between all services
-- Compute: MarbleRun TEEs for all code execution
-- Storage: Encrypted at rest, RLS policies
-- Secrets: Never leave TEE memory
-
-### 2. Zero Trust Architecture
-
-- All services authenticate via MarbleRun attestation
-- No implicit trust between components
-- Secrets injected only after attestation
-
-### 3. Minimal Attack Surface
-
-- Services have minimal capabilities
-- Network access restricted by manifest
-- File system access limited to memfs
-
-## Codebase Layout & Responsibilities
-
-This section defines **where code belongs** to avoid duplication and keep modules cohesive.
-
-### Top-Level Layout
-
-- `cmd/`: entrypoints/binaries (`gateway`, `marble`, tooling).
-- `internal/`: shared libraries used across services; **no service-specific business logic**.
-- `services/`: service modules (NeoRand, NeoVault, NeoFeeds, etc.) and shared service framework.
-- `docs/`: architecture, deployment and operational guidance.
-
-### Shared Packages (Single Responsibility)
-
-- `internal/runtime`: runtime/environment detection (e.g., `MARBLE_ENV`), strict identity mode gating, and other runtime-only helpers.
-- `internal/middleware`: **all HTTP middleware** (logging, recovery, auth/service-auth, CORS, body limits, rate limiting, metrics instrumentation).
-- `internal/httputil`: HTTP handler utilities (JSON envelopes, request decoding, safe body reads, identity extraction from verified mTLS).
-- `internal/marble`: MarbleRun integration (secrets, attestation identity, mTLS HTTP clients) + minimal `marble.Service` base.
-- `services/common/service`: service framework (`BaseService`) with lifecycle hooks, worker helpers, and standard endpoints (`/health`, `/ready`, `/info`). This package intentionally does **not** define generic HTTP middleware.
-- `internal/chain`: Neo RPC + contract execution helpers. Services should avoid direct chain writes and instead submit transactions via `services/txsubmitter`.
-
-### Per-Service Module Structure
-
-Each service should follow the same package breakdown:
-
-- `services/<svc>/marble`: HTTP surface + orchestration (route registration, background workers, adapters to other services).
-- `services/<svc>/supabase`: service-specific repository interface + models (database only, no HTTP).
-- `services/<svc>/chain`: contract wrappers/event parsing (chain only, no DB/HTTP).
-- `services/<svc>/client`: service-to-service client SDKs (mTLS-ready), with strict URL validation and bounded response reads.
-
-### Conventions (Enforced by Refactors)
-
-- Services embed `*services/common/service.BaseService` and call `RegisterStandardRoutes()` (or the ServeMux variants) for standard probes.
-- New middleware must live in `internal/middleware` (avoid ad-hoc middleware in service packages).
-- New environment/running-mode detection must live in `internal/runtime` (avoid repeating `MARBLE_ENV` parsing across modules).
-- Use `internal/httputil` for response envelopes and identity extraction to keep handler behavior consistent and secure.
-
-## Component Details
-
-### MarbleRun Coordinator
-
-The Coordinator is the trust anchor:
+## High-Level Topology
 
 ```
-┌─────────────────────────────────────┐
-│         COORDINATOR                  │
-│                                      │
-│  ┌─────────────┐  ┌─────────────┐   │
-│  │  Manifest   │  │   Secrets   │   │
-│  │   Store     │  │    Store    │   │
-│  └─────────────┘  └─────────────┘   │
-│                                      │
-│  ┌─────────────┐  ┌─────────────┐   │
-│  │ Attestation │  │    PKI      │   │
-│  │   Engine    │  │   Manager   │   │
-│  └─────────────┘  └─────────────┘   │
-└─────────────────────────────────────┘
-```
-
-**Responsibilities:**
-
-- Verify Marble attestation quotes
-- Inject secrets based on manifest
-- Issue TLS certificates
-- Maintain cluster state
-
-### Marble SDK
-
-Each service uses the Marble SDK:
-
-```go
-type Marble struct {
-    // Identity
-    marbleType string
-    uuid       string
-
-    // TLS credentials from Coordinator
-    cert       tls.Certificate
-    rootCA     *x509.CertPool
-    tlsConfig  *tls.Config
-
-    // Secrets injected by Coordinator
-    secrets    map[string][]byte
-
-    // TEE report
-    report     *enclave.Report
-}
-```
-
-**Key Features:**
-
-- Automatic TLS configuration
-- Secret access via callback pattern
-- TEE self-report for attestation
-
-### Service Architecture
-
-Each service follows a consistent pattern:
-
-```
-┌─────────────────────────────────────┐
-│           SERVICE                    │
-│                                      │
-│  ┌─────────────────────────────┐    │
-│  │        HTTP Router          │    │
-│  └─────────────────────────────┘    │
-│              │                       │
-│  ┌───────────┴───────────┐          │
-│  │                       │          │
-│  ▼                       ▼          │
-│  ┌─────────┐      ┌─────────┐       │
-│  │ Handler │      │ Handler │       │
-│  └─────────┘      └─────────┘       │
-│       │                │            │
-│       ▼                ▼            │
-│  ┌─────────────────────────────┐    │
-│  │      Core Logic             │    │
-│  │  (Crypto, Business Logic)   │    │
-│  └─────────────────────────────┘    │
-│              │                       │
-│              ▼                       │
-│  ┌─────────────────────────────┐    │
-│  │      Database Layer         │    │
-│  │      (Supabase)             │    │
-│  └─────────────────────────────┘    │
-└─────────────────────────────────────┘
-```
-
-## Security Model
-
-### Attestation Flow
-
-```
-1. Marble starts inside EGo TEE
-2. Marble generates attestation quote
-3. Marble connects to Coordinator
-4. Coordinator verifies quote against manifest
-5. Coordinator injects secrets and certificates
-6. Marble begins serving requests
-```
-
-### Secret Management
-
-Secrets follow the "Use" callback pattern:
-
-```go
-// Secrets never leave TEE memory
-err := marble.UseSecret("API_KEY", func(secret []byte) error {
-    // Use secret here
-    // Automatically zeroed after callback
-    return nil
-})
-```
-
-### Network Security
-
-- All inter-service communication uses mTLS
-- Certificates auto-provisioned by MarbleRun
-- External TLS terminates inside TEE
-
-## Data Flow
-
-### Request Flow
-
-```
-Client → Gateway → Service → Database
-   │        │         │         │
-   │        │         │         └── RLS enforced
-   │        │         └── TEE protected
-   │        └── JWT validated
-   └── HTTPS
-```
-
-### Secret Flow
-
-```
-Manifest → Coordinator → Marble → Memory
-    │           │           │        │
-    │           │           │        └── Zeroed after use
-    │           │           └── Decrypted in TEE
-    │           └── Encrypted at rest
-    └── Defines access
-```
-
-## Upgrade Safety
-
-TEE upgrades (changing MRENCLAVE) must NOT affect business keys. All cryptographic keys remain stable across upgrades.
-
-### Design Principles
-
-1. **Global Master Keys from MarbleRun** - All business keys derived from manifest-defined secrets
-2. **No TEE Identity in Derivation** - HKDF context uses only business identifiers (account IDs, service names)
-3. **No MarbleRun Sealing Keys** - Application never uses `sgx_seal_data()` for business data
-4. **Manifest-Defined Persistence** - Secrets defined in the manifest persist across TEE versions and activations (`"Shared": true`)
-
-### Key Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    MarbleRun Coordinator                         │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  manifest.json                                           │    │
-│  │  - VRF_PRIVATE_KEY (persist across upgrades)            │    │
-│  │  - NEOVAULT_MASTER_KEY (persist across upgrades)        │    │
-│  │  - NEOFEEDS_SIGNING_KEY                                 │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │ Secret Injection (after attestation)
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    TEE TEE (Marble)                          │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  Marble.Secret("VRF_PRIVATE_KEY")      → VRF signing      │  │
-│  │  Marble.Secret("NEOVAULT_MASTER_KEY")  → Pool derivation  │  │
-│  │  Marble.Secret("NEOFEEDS_SIGNING_KEY") → Price signing    │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                            │                                     │
-│                            ▼                                     │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  HKDF Derivation (no TEE identity!)                   │  │
-│  │  DeriveKey(masterKey, accountID, "neovault-account", 32)     │  │
-│  │                    ↓                                       │  │
-│  │  Derived keys ONLY depend on:                              │  │
-│  │  - Master key (from MarbleRun)                             │  │
-│  │  - Business identifiers (account ID, service name)         │  │
-│  │  NOT on: MRENCLAVE, MRSIGNER, sealing keys                │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### MarbleRun Secret Sharing
-
-For keys used to **verify** signatures (e.g. `JWT_SECRET`) or **decrypt** data written by other replicas (e.g. `SECRETS_MASTER_KEY`), the MarbleRun manifest should mark them as `"Shared": true`. Otherwise MarbleRun will generate distinct secret values per activation, which breaks upgrade safety and causes signature/decryption failures after restarts or scale-out.
-
-The service layer's AES-GCM encryption uses a fresh random nonce per encryption and prepends it to the ciphertext (`internal/crypto/crypto.go`), so sharing the key across replicas does not reuse nonces.
-
-### HKDF Key Derivation
-
-The `DeriveKey` function uses HKDF-SHA256 without any TEE identity:
-
-```go
-func DeriveKey(masterKey []byte, salt []byte, info string, keyLen int) ([]byte, error) {
-    hkdfReader := hkdf.New(sha256.New, masterKey, salt, []byte(info))
-    key := make([]byte, keyLen)
-    _, err := io.ReadFull(hkdfReader, key)
-    return key, err
-}
-```
-
-| Parameter | Source                            | Upgrade Impact            |
-| --------- | --------------------------------- | ------------------------- |
-| masterKey | MarbleRun injection               | Stable (manifest-defined) |
-| salt      | Business identifier (accountID)   | Stable                    |
-| info      | Service name ("neovault-account") | Stable                    |
-| keyLen    | Constant (32)                     | Stable                    |
-
-### Service Key Sources
-
-| Service  | Key           | Source                                                     | Derivation          |
-| -------- | ------------- | ---------------------------------------------------------- | ------------------- |
-| VRF      | Private Key   | `Marble.Secret("VRF_PRIVATE_KEY")`                         | Direct use          |
-| NeoVault | Pool Keys     | `Marble.Secret("NEOVAULT_MASTER_KEY")`                     | HKDF with accountID |
-| NeoFeeds | Signing Key   | `Marble.Secret("NEOFEEDS_SIGNING_KEY")`                    | Direct use          |
-| NeoFlow  | Fulfiller Key | `Marble.Secret("TEE_PRIVATE_KEY")` / env `TEE_PRIVATE_KEY` | Direct use (shared) |
-| TLS      | Certificates  | MarbleRun PKI                                              | Auto-provisioned    |
-
-### Upgrade Process
-
-```
-1. Build new TEE binary (new MRENCLAVE)
-2. Update manifest.json with new MRENCLAVE/MRSIGNER
-3. Deploy new Marble instances
-4. Coordinator verifies new attestation
-5. Same secrets injected → Same derived keys
-6. Service continues with identical cryptographic identity
-```
-
-### What Breaks Upgrade Safety
-
-| Operation                                 | Risk Level | Impact                 |
-| ----------------------------------------- | ---------- | ---------------------- |
-| Using `sgx_seal_data()` for business keys | CRITICAL   | Keys lost on upgrade   |
-| Including MRENCLAVE in HKDF context       | CRITICAL   | Keys change on upgrade |
-| Hardcoding keys in TEE binary             | HIGH       | Keys change on rebuild |
-| Using TEE report fields in derivation     | HIGH       | Keys change on upgrade |
-
-## Deployment
-
-### Simulation Mode
-
-For development without SGX hardware, run in EGo simulation mode and let the stack
-apply the MarbleRun manifest before starting marbles:
-
-```bash
-make docker-up
-# or: ./scripts/up.sh --insecure
-```
-
-### Production Mode
-
-On SGX hardware (DCAP/PCCS configured on the host), start the hardware compose
-stack and apply the manifest:
-
-```bash
-make docker-up-sgx
-# or: ./scripts/up.sh
-```
-
-### Kubernetes
-
-MarbleRun supports Kubernetes deployment:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-    name: gateway
-spec:
-    template:
-        spec:
-            containers:
-                - name: gateway
-                  image: service-layer/gateway
-                  env:
-                      - name: EDG_MARBLE_COORDINATOR_ADDR
-                        value: "coordinator:2001"
-                      - name: EDG_MARBLE_TYPE
-                        value: "gateway"
-```
-
-## Monitoring
-
-### Health Checks
-
-Each service exposes `/health`:
-
-```json
-{
-    "status": "healthy",
-    "service": "gateway",
-    "version": "1.0.0",
-    "enclave": true,
-    "timestamp": "2024-12-05T12:00:00Z"
-}
-```
-
-### Attestation Endpoint
-
-Gateway exposes `/attestation`:
-
-```json
-{
-    "enclave": true,
-    "security_version": 1,
-    "debug": false
-}
-```
-
-## Smart Contract Integration
-
-The Service Layer integrates with Neo N3 smart contracts for on-chain operations.
-
-### Service Patterns
-
-The Service Layer supports three different service patterns:
-
-| Pattern                | Services                  | Description                                                           |
-| ---------------------- | ------------------------- | --------------------------------------------------------------------- |
-| **Request-Response**   | VRF, NeoVault, NeoCompute | User initiates request → TEE processes → Callback                     |
-| **Push (Auto-Update)** | NeoFeeds                  | TEE periodically updates on-chain data, no user request needed        |
-| **Trigger-Based**      | NeoFlow                   | User registers trigger → TEE monitors conditions → Periodic callbacks |
-
-### Pattern 1: Request-Response Flow
-
-The following diagram shows the complete flow from User to Callback:
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           REQUEST FLOW (Steps 1-4)                            │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌──────┐    ┌───────────────┐    ┌─────────────────────┐    ┌────────────┐ │
-│  │ User │───►│ User Contract │───►│ ServiceLayerGateway │───►│  Service   │ │
-│  └──────┘    │               │    │     (Gateway)       │    │  Contract  │ │
-│     1        │ RequestPrice()│    │  RequestService()   │    │ OnRequest()│ │
-│              └───────────────┘    └─────────────────────┘    └─────┬──────┘ │
-│                     2                       3                      4 │      │
-│                                                                      ▼      │
-│                                                              ┌────────────┐ │
-│                                                              │   Event    │ │
-│                                                              │ (on-chain) │ │
-│                                                              └─────┬──────┘ │
-└────────────────────────────────────────────────────────────────────┼────────┘
-                                                                     │
-┌────────────────────────────────────────────────────────────────────┼────────┐
-│                        SERVICE LAYER (Off-chain TEE)               │        │
-├────────────────────────────────────────────────────────────────────┼────────┤
-│                                                                    ▼        │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                    Service Layer (TEE TEE)                       │   │
-│  │  5. Monitor blockchain events                                        │   │
-│  │  6. Process request (HTTP fetch / VRF compute / Mix execution)       │   │
-│  │  7. Sign result with TEE private key                                 │   │
-│  └──────────────────────────────────┬──────────────────────────────────┘   │
-│                                     │                                       │
-└─────────────────────────────────────┼───────────────────────────────────────┘
-                                      │
-┌─────────────────────────────────────┼───────────────────────────────────────┐
-│                        CALLBACK FLOW (Steps 8-11)                │          │
-├─────────────────────────────────────┼───────────────────────────────────────┤
-│                                     ▼                                       │
-│  ┌──────┐    ┌───────────────┐    ┌─────────────────────┐    ┌────────────┐│
-│  │ User │◄───│ User Contract │◄───│ ServiceLayerGateway │◄───│  Service   ││
-│  └──────┘    │               │    │     (Gateway)       │    │  Contract  ││
-│    11        │   Callback()  │    │  FulfillRequest()   │    │ OnFulfill()││
-│              └───────────────┘    └─────────────────────┘    └────────────┘│
-│                    10                       9                      8        │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                               DAPPS / FRONTEND                               │
+│                           (Vercel / browsers / CLI)                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │ HTTPS
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                  GATEWAY                                     │
+│      Auth (wallet + OAuth), JWT/session, routing, rate limits, secrets API   │
+│     Runs outside TEE by default; can be placed inside EGo if you want.       │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │ mTLS (mesh, optional)
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           MARBLERUN COORDINATOR                              │
+│         Attestation, topology verification, mTLS certs, secret injection     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │ mTLS (MarbleRun-issued)
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             ENCLAVE WORKLOADS                                │
+│                                                                             │
+│  Infrastructure marbles:                                                    │
+│   - GlobalSigner  (TEE-managed domain-separated signing + rotation)         │
+│   - NeoAccounts   (account pool management + rotation)                      │
+│                                                                             │
+│  Product services:                                                          │
+│   - NeoRand     (VRF)                                                       │
+│   - NeoFeeds    (data feeds)                                                │
+│   - NeoFlow     (automation)                                                │
+│   - NeoCompute  (confidential compute)                                      │
+│   - NeoOracle   (confidential oracle)                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                   SUPABASE                                   │
+│     Auth metadata + sessions + secrets + service state (Postgres + RLS)      │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                  NEO N3 CHAIN                                │
+│          Gateway contract + service contracts + callbacks / fulfillments      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Step-by-Step Flow
+## Layering (Code)
 
-| Step | Component           | Method             | Description                                       |
-| ---- | ------------------- | ------------------ | ------------------------------------------------- |
-| 1    | User                | -                  | User initiates transaction to their contract      |
-| 2    | User Contract       | `RequestPrice()`   | Builds payload, calls Gateway                     |
-| 3    | ServiceLayerGateway | `RequestService()` | Validates request, charges fee, routes to service |
-| 4    | Service Contract    | `OnRequest()`      | Stores request data, emits service-specific event |
-| 5    | Service Layer (TEE) | -                  | Monitors blockchain for events                    |
-| 6    | Service Layer (TEE) | -                  | Processes request off-chain (HTTP/VRF/Mix)        |
-| 7    | Service Layer (TEE) | -                  | Signs result with TEE private key                 |
-| 8    | Service Contract    | `OnFulfill()`      | Receives fulfillment, cleans up request data      |
-| 9    | ServiceLayerGateway | `FulfillRequest()` | Verifies TEE signature, updates request status    |
-| 10   | User Contract       | `Callback()`       | Receives result, updates application state        |
-| 11   | User                | -                  | Transaction confirmed on blockchain               |
+The repo is split into:
 
-### Contract Architecture
+- `infrastructure/`: shared building blocks (runtime, middleware, storage, chain I/O, secrets, signing).
+- `services/`: product services only (`vrf`, `datafeed`, `automation`, `confcompute`, `conforacle`).
+- `cmd/`: binaries (`cmd/gateway`, `cmd/marble`, tooling).
+- `dapps/`, `frontend/`: consumers (no service-layer business logic).
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         User Contract                            │
-│                    (ExampleConsumer)                             │
-│  • RequestPrice()      • RequestRandom()     • OnServiceCallback │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │ RequestService()
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   ServiceLayerGateway                            │
-│  • Fee Management      • TEE Account Management                 │
-│  • Service Registry    • Request Routing                        │
-│  • Callback Execution  • Replay Protection (Nonce)              │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │ OnRequest()
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Service Contracts                           │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
-│  │   VRF    │ │  NeoVault   │ │ NeoFeeds│ │NeoFlow│           │
-│  │ Service  │ │ Service  │ │ Service  │ │ Service  │           │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘           │
-└───────┼────────────┼────────────┼────────────┼──────────────────┘
-        │            │            │            │
-        └────────────┴────────────┴────────────┘
-                          │ Events (VRFRequest, NeoVaultRequest, etc.)
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    TEE (Service Layer)                           │
-│  • Event Listening   • Request Processing   • Signed Callbacks  │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │ FulfillRequest()
-                          ▼
-                   ServiceLayerGateway
-                          │ Callback
-                          ▼
-                       User Contract
-```
+See `docs/LAYERING.md` for the concrete mapping.
 
-### Pattern 2: Push / Auto-Update (NeoFeeds)
+## Identity & User Workflow (Outside the Enclave)
 
-NeoFeeds service automatically updates on-chain price data without user requests:
+User-facing workflow lives **outside the enclave** and can run directly on Vercel/Supabase:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    SERVICE LAYER (TEE) - Continuous Loop                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  1. Fetch prices from multiple sources (Binance, Coinbase, etc.)    │   │
-│  │  2. Aggregate and validate data (median, outlier removal)           │   │
-│  │  3. Sign aggregated price with TEE key                              │   │
-│  │  4. Submit to NeoFeedsService contract periodically                │   │
-│  └──────────────────────────────────┬──────────────────────────────────┘   │
-└─────────────────────────────────────┼───────────────────────────────────────┘
-                                      │ UpdatePrice()
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      NeoFeedsService Contract                               │
-│  • Stores latest prices (BTC/USD, ETH/USD, NEO/USD, GAS/USD, etc.)         │
-│  • Verifies TEE signature                                                   │
-│  • Emits PriceUpdated event                                                 │
-└─────────────────────────────────────┬───────────────────────────────────────┘
-                                      │ getLatestPrice()
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         User Contracts (Read Only)                           │
-│  • DeFi protocols read prices directly                                      │
-│  • No callback needed - just query current price                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+- **Auth**: Neo N3 wallet login + OAuth providers (Google/GitHub/etc.).
+- **Account binding**: users can bind a Neo N3 address after OAuth registration.
+- **API keys / tokens**: the gateway issues and verifies tokens/sessions.
+- **Secrets UX**: users create secrets and manage which internal services may read them.
 
-### Pattern 3: Trigger-Based (NeoFlow)
+Enclave services should not implement login/registration flows.
 
-Users register triggers, TEE monitors conditions and invokes callbacks periodically:
+### Strict Identity Mode
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      TRIGGER REGISTRATION (One-time)                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌──────┐    ┌───────────────┐    ┌─────────────────────┐    ┌────────────┐│
-│  │ User │───►│ User Contract │───►│ ServiceLayerGateway │───►│ NeoFlow ││
-│  └──────┘    │               │    │  RequestService()   │    │  Service   ││
-│              │RegisterTrigger│    └─────────────────────┘    │ OnRequest()││
-│              └───────────────┘                               └─────┬──────┘│
-│                                                                    │       │
-│  Trigger Types:                                                    ▼       │
-│  • Time-based: "Every Friday 00:00 UTC"                    ┌────────────┐  │
-│  • Price-based: "When BTC > $100,000"                      │  Trigger   │  │
-│  • Event-based: "When contract X emits event Y"            │ Registered │  │
-│                                                            └────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-┌─────────────────────────────────────┼───────────────────────────────────────┐
-│              SERVICE LAYER (TEE) - Continuous Monitoring    │               │
-├─────────────────────────────────────┼───────────────────────────────────────┤
-│                                     ▼                                       │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  Loop: Check all registered triggers                                 │   │
-│  │  • Time triggers: Compare current time                               │   │
-│  │  • Price triggers: Check NeoFeeds prices                            │   │
-│  │  • Event triggers: Monitor blockchain events                         │   │
-│  │  When condition met → Execute callback                               │   │
-│  └──────────────────────────────────┬──────────────────────────────────┘   │
-└─────────────────────────────────────┼───────────────────────────────────────┘
-                                      │ Condition Met
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         CALLBACK EXECUTION (Periodic)                        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌──────┐    ┌───────────────┐    ┌─────────────────────┐    ┌────────────┐│
-│  │ User │◄───│ User Contract │◄───│ ServiceLayerGateway │◄───│ NeoFlow ││
-│  └──────┘    │   Callback()  │    │  FulfillRequest()   │    │  Service   ││
-│              │ (e.g. rebase) │    └─────────────────────┘    └────────────┘│
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+In production/SGX mode, internal services only trust identity headers over verified
+mTLS. This is enforced by `infrastructure/runtime.StrictIdentityMode()` and
+`infrastructure/middleware`.
 
-**NeoFlow Trigger Examples:**
+## Secrets (Gateway + Supabase, Not a Separate Service)
 
-| Trigger Type | Example                 | Use Case                        |
-| ------------ | ----------------------- | ------------------------------- |
-| Time-based   | `cron: "0 0 * * FRI"`   | Weekly token distribution       |
-| Price-based  | `price: BTC > 100000`   | Auto-sell when price target hit |
-| Threshold    | `balance < 10 GAS`      | Auto-refill gas bank            |
-| Event-based  | `event: LiquidityAdded` | React to on-chain events        |
+User secrets are stored in Supabase, encrypted with `SECRETS_MASTER_KEY`.
 
-### NeoVault Service (v3.0 - Off-Chain First)
+- **Write path**: `cmd/gateway` exposes `/api/v1/secrets/*`.
+- **Encryption + policy**: `infrastructure/secrets.Manager`.
+- **Storage**: `infrastructure/secrets/supabase`.
 
-The NeoVault implements an **Off-Chain Mixing with On-Chain Dispute** pattern:
+### Service Access (Secret Injection)
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│         MIXER FLOW (Privacy-First, Off-Chain First, Dispute Only On-Chain)   │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  PRIVACY-FIRST FEE MODEL:                                                    │
-│  User NEVER connects to any known service layer account.                     │
-│  Fee is deducted from delivery (user receives NetAmount = TotalAmount - Fee) │
-│                                                                              │
-│  1. USER → CLI/API → MIXER SERVICE (direct, NO on-chain)                    │
-│     └── Returns: RequestProof + Deposit Address (anonymous pool account)     │
-│                                                                              │
-│  2. USER → DIRECT DEPOSIT to Pool Account on-chain                           │
-│     └── NOT gasbank, NOT any known service layer address                     │
-│     └── Anonymous pool account (no public association with service layer)    │
-│                                                                              │
-│  3. MIXER SERVICE (TEE) processes off-chain:                                 │
-│     ├── Split funds across AccountPool-managed HD-derived accounts           │
-│     ├── Random mixing transactions between pool accounts                     │
-│     └── Deliver NetAmount to target addresses (fee deducted)                 │
-│                                                                              │
-│  4. FEE HANDLING: ServiceFee stays in pool accounts                          │
-│     └── No explicit fee transfer to any known address                        │
-│                                                                              │
-│  5. MIXER SERVICE generates CompletionProof (stored, NOT submitted)          │
-│     └── CompletionProof = outputsHash + outputTxIDs + TEE signature          │
-│                                                                              │
-│  6. NORMAL PATH: User happy, ZERO on-chain link to service layer             │
-│                                                                              │
-│  7. DISPUTE PATH (if mix not done within 7 days):                            │
-│     └── User calls /dispute → NeoVault submits CompletionProof on-chain         │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+Enclave services never query Supabase directly for secret values. They receive a
+`secrets.Provider` implementation (injected by `cmd/marble`) that enforces:
 
-**Key Design Principles:**
+- per-user ownership
+- per-secret allowed services (permissions)
+- audit logging
 
-- **Privacy-First**: User NEVER transacts with any known service layer account
-- **Implicit Fee**: Fee deducted from delivery, no separate fee transaction
-- **Off-Chain First**: Normal flow has ZERO on-chain link between user and service layer
-- **Proof System**: Both RequestProof (for user) and CompletionProof (for dispute)
-- **Privacy by Default**: On-chain data only exposed during dispute
-- **7-Day Deadline**: User can claim refund via dispute contract if not completed
-- Pool accounts are **standard single-sig addresses** (identical to ordinary users)
-- **AccountPool-owned keys**: AccountPool service derives/holds pool keys; neovault only locks/updates balances via API
+Compute and oracle support secret injection via request fields (`secret_refs`,
+`secret_name`).
 
-**NeoVault API Endpoints:**
+## Chain Module (Single Source of Truth)
 
-```
-POST /request              - Create mix request, returns RequestProof
-POST /request/{id}/deposit - Confirm deposit, start mixing
-GET  /request/{id}         - Get request details
-GET  /request/{id}/proof   - Get CompletionProof (after delivery)
-POST /request/{id}/dispute - Submit dispute (ONLY on-chain call)
-```
+All Neo chain communication belongs to `infrastructure/chain`:
 
-**Proofs:**
+- RPC client + pooling
+- transaction building + signing helpers
+- event monitoring/listeners
+- shared contract parsing helpers
 
-| Proof           | When Generated      | Purpose                           | On-Chain?        |
-| --------------- | ------------------- | --------------------------------- | ---------------- |
-| RequestProof    | On request creation | User can prove they requested mix | Only if disputed |
-| CompletionProof | On delivery         | TEE can prove mix was completed   | Only if disputed |
+Services may add **service-specific contract wrappers** and event parsers under
+`services/<svc>/chain`, but they must use `infrastructure/chain` for RPC/tx work.
 
-### Event Listening
+## Global Signer (TEE-Managed Signing)
 
-The TEE listens for contract events using the chain package (for services that use on-chain requests):
+`infrastructure/globalsigner` provides a single place to manage enclave-held
+master key material and derive **domain-separated** signing keys.
 
-```go
-listener := chain.NewEventListener(chain.ListenerConfig{
-    Client:    client,
-    Contracts: contractAddresses,
-    StartBlock: startBlock,
-})
+Use cases:
 
-listener.On("VRFRequest", func(event *chain.ContractEvent) error {
-    req, _ := chain.ParseVRFRequestEvent(event)
-    // Process VRF request...
-    return nil
-})
+- signing service-layer on-chain fulfillments / callbacks
+- signing off-chain service receipts (future)
+- key rotation with auditability
 
-// Note: NeoVault requests are now handled directly via API, not on-chain events
-// The neovault uses the off-chain-first pattern with dispute-only on-chain
+## Account Pool (Large-Scale Neo N3 Accounts)
 
-listener.Start(ctx)
-```
+`infrastructure/accountpool` manages a large pool of Neo N3 accounts (target:
+10,000+ accounts) and provides:
 
-## Future Enhancements
+- account allocation + locking (`service_id`)
+- balance tracking + updates
+- rotation/archival of accounts (move funds, retire old accounts)
 
-1. **Multi-region deployment** with geo-distributed Coordinators
-2. **Hardware key management** integration (HSM)
-3. **Audit logging** with tamper-proof storage
-4. **Rate limiting** per user/API key
-5. **WebSocket support** for real-time updates
-6. **Cross-chain support** via CCIP integration
+This is an infrastructure capability used by multiple services; it is not a
+product-facing API.
 
-## Database Architecture
+## Product Services (Responsibilities)
 
-The Service Layer uses Supabase (PostgreSQL) for persistent storage with a modular, service-specific repository pattern.
+Only these services are considered product services right now:
 
-### Repository Pattern
+- **NeoRand (`neorand`)**: VRF computation + optional on-chain fulfillment loop.
+- **NeoFeeds (`neofeeds`)**: aggregate prices, sign responses, optionally push updates on-chain.
+- **NeoFlow (`neoflow`)**: schedule triggers, run webhooks, optionally execute on-chain actions.
+- **NeoCompute (`neocompute`)**: execute JS with strict limits + optional secret injection.
+- **NeoOracle (`neooracle`)**: fetch external data with allowlist + optional secret injection.
 
-Following the **Interface Segregation Principle (ISP)**, each service has its own database package:
+Each service follows the same internal pattern:
 
-```
-internal/database/           # Shared database infrastructure
-├── supabase_client.go       # Supabase HTTP client
-├── supabase_repository.go   # Base repository implementation
-├── repository_interface.go  # Core interface definitions
-├── supabase_models.go       # Shared model definitions (User, APIKey, etc.)
-└── mock_repository.go       # Test mocks
+- `services/<svc>/marble`: HTTP handlers + workers (enclave runtime).
+- `services/<svc>/chain`: contract wrappers/event parsing (no raw RPC here).
+- `services/<svc>/supabase`: service-specific persistence (only when needed).
 
-services/*/supabase/         # Service-specific database operations
-├── repository.go            # Service-specific repository interface
-└── models.go                # Service-specific data models
-```
+## EGo Boundary (What belongs in the enclave)
 
-### Service-Specific Packages
+Keep enclave code focused on operations that need:
 
-| Service                   | Package                         | Models                     |
-| ------------------------- | ------------------------------- | -------------------------- |
-| VRF (NeoRand)             | `services/neorand/supabase`     | `Request`, `Response`      |
-| NeoVault                  | `services/neovault/supabase`    | `Request`, `MixOperation`  |
-| NeoFlow                   | `services/neoflow/supabase`     | `Trigger`, `Execution`     |
-| AccountPool (NeoAccounts) | `services/neoaccounts/supabase` | `Account`, `Lock`          |
-| Secrets (NeoStore)        | `services/neostore/supabase`    | `Secret`, `AllowedService` |
+- confidentiality (private compute / secret-using fetch)
+- integrity + verifiable origin (proofs/signatures)
+- key custody (global signer)
 
-### Usage Pattern
+Keep outside-TEE code focused on:
 
-```go
-import (
-    "github.com/R3E-Network/service_layer/internal/database"
-    vrfsupabase "github.com/R3E-Network/service_layer/services/neorand/supabase"
-)
+- user workflows and web-facing APIs
+- data modeling and storage (Supabase)
+- deployment glue and observability
 
-// Create base repository
-client, _ := database.NewClient(config)
-baseRepo := database.NewRepository(client)
-
-// Create service-specific repository
-vrfRepo := vrfsupabase.NewRepository(baseRepo)
-
-// Use service-specific methods
-err := vrfRepo.Create(ctx, &vrfsupabase.Request{...})
-req, err := vrfRepo.GetByRequestID(ctx, "vrf-123")
-```
-
-### Design Benefits
-
-1. **Interface Segregation**: Services only depend on interfaces they use
-2. **Encapsulation**: Service-specific models stay within service boundaries
-3. **Testability**: Each service can mock its own repository interface
-4. **Maintainability**: Changes to one service don't affect others
-
-## Off-Chain Fee Management
-
-All fee management has moved from on-chain smart contracts to the off-chain Supabase-based system for better flexibility and lower transaction costs.
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    User Deposit Flow                             │
-├─────────────────────────────────────────────────────────────────┤
-│  1. User sends GAS to Service Layer deposit address             │
-│  2. TEE monitors blockchain for deposit transactions            │
-│  3. Upon confirmation, user's Supabase balance is credited      │
-│  4. User can now use services (fees deducted from balance)      │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│                    Sponsor Payment Flow                          │
-├─────────────────────────────────────────────────────────────────┤
-│  User A (Sponsor) → PayForContract(contract_address, amount)    │
-│                   → PayForUser(user_B, amount)                  │
-│                                                                  │
-│  Result: Contract/User B's balance credited, Sponsor debited    │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Database Tables
-
-| Table                  | Purpose                                        |
-| ---------------------- | ---------------------------------------------- |
-| `gasbank_accounts`     | User/contract balances (balance, reserved)     |
-| `gasbank_transactions` | Transaction history (deposits, fees, sponsors) |
-| `deposit_requests`     | Pending deposit confirmations                  |
-
-### Transaction Types
-
-| Type             | Description                       |
-| ---------------- | --------------------------------- |
-| `deposit`        | GAS deposited to account          |
-| `withdraw`       | GAS withdrawn from account        |
-| `service_fee`    | Fee charged for service usage     |
-| `refund`         | Service fee refunded (on failure) |
-| `sponsor`        | Sponsor payment debit             |
-| `sponsor_credit` | Sponsor payment credit            |
-
-### CLI Usage
-
-```bash
-# Check balance
-slcli balance <user_id>
-
-# Credit deposit (admin)
-slcli deposit <user_id> <tx_hash> <amount>
-
-# Pay for a contract's fees
-slcli pay-contract <user_id> <contract_address> <amount>
-
-# Pay for another user's fees
-slcli pay-user <user_id> <recipient_user_id> <amount>
-
-# View transaction history
-slcli transactions <user_id> [limit]
-
-# List service fees
-slcli fees
-```
-
-### Migration from On-Chain Fees
-
-The on-chain fee methods in `GatewayContract` are deprecated:
-
-| Deprecated Method                 | Replacement                        |
-| --------------------------------- | ---------------------------------- |
-| `GatewayContract.GetServiceFee()` | `gasbank.GetServiceFee()`          |
-| `GatewayContract.BalanceOf()`     | `gasbank.Manager.GetBalance()`     |
-| `ServiceRequest.Fee`              | Managed via `gasbank_transactions` |
-
-Smart contracts should no longer handle fee logic. All fee operations are managed by the Service Layer via Supabase.

@@ -10,100 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/marble"
-	neoaccounts "github.com/R3E-Network/service_layer/services/neoaccounts/marble"
-	vrf "github.com/R3E-Network/service_layer/services/neorand/marble"
-	neovault "github.com/R3E-Network/service_layer/services/neovault/marble"
+	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
+	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	vrf "github.com/R3E-Network/service_layer/services/vrf/marble"
 )
-
-// TestE2EFullMixingFlow tests a complete mixing flow from request to completion.
-func TestE2EFullMixingFlow(t *testing.T) {
-	apMarble, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
-	apMarble.SetTestSecret("POOL_MASTER_KEY", []byte("e2e-full-flow-pool-key-32bytes!!"))
-
-	apSvc, err := neoaccounts.New(neoaccounts.Config{Marble: apMarble})
-	if err != nil {
-		t.Fatalf("neoaccounts.New: %v", err)
-	}
-
-	apServer := httptest.NewServer(apSvc.Router())
-	defer apServer.Close()
-
-	neovaultMarble, _ := marble.New(marble.Config{MarbleType: "neovault"})
-	neovaultMarble.SetTestSecret("NEOVAULT_MASTER_KEY", []byte("e2e-full-flow-neovault-key-32bytes!"))
-
-	neovaultSvc, err := neovault.New(&neovault.Config{
-		Marble:         neovaultMarble,
-		NeoAccountsURL: apServer.URL,
-	})
-	if err != nil {
-		t.Fatalf("neovault.New: %v", err)
-	}
-
-	neovaultServer := httptest.NewServer(neovaultSvc.Router())
-	defer neovaultServer.Close()
-
-	t.Run("step 1: verify services healthy", func(t *testing.T) {
-		resp, err := http.Get(apServer.URL + "/health")
-		if err != nil {
-			t.Fatalf("NeoAccounts health check: %v", err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("NeoAccounts unhealthy: status %d", resp.StatusCode)
-		}
-
-		resp, err = http.Get(neovaultServer.URL + "/health")
-		if err != nil {
-			t.Fatalf("NeoVault health check: %v", err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("NeoVault unhealthy: status %d", resp.StatusCode)
-		}
-	})
-
-	t.Run("step 2: verify token configs", func(t *testing.T) {
-		gasConfig := neovaultSvc.GetTokenConfig("GAS")
-		if gasConfig == nil {
-			t.Fatal("GAS config should exist")
-		}
-
-		neoConfig := neovaultSvc.GetTokenConfig("NEO")
-		if neoConfig == nil {
-			t.Fatal("NEO config should exist")
-		}
-
-		t.Logf("GAS config: min=%d, max=%d, fee=%.4f",
-			gasConfig.MinTxAmount, gasConfig.MaxTxAmount, gasConfig.ServiceFeeRate)
-		t.Logf("NEO config: min=%d, max=%d, fee=%.4f",
-			neoConfig.MinTxAmount, neoConfig.MaxTxAmount, neoConfig.ServiceFeeRate)
-	})
-
-	t.Run("step 3: simulate contract event reception", func(t *testing.T) {
-		type MixRequest struct {
-			RequestID        int64  `json:"request_id"`
-			UserContract     string `json:"user_contract"`
-			EncryptedTargets []byte `json:"encrypted_targets"`
-			TokenType        string `json:"token_type"`
-			Amount           int64  `json:"amount"`
-			MixOption        int    `json:"mix_option"`
-		}
-
-		request := MixRequest{
-			RequestID:        1,
-			UserContract:     "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq",
-			EncryptedTargets: []byte("encrypted-targets-data"),
-			TokenType:        "GAS",
-			Amount:           100000000,
-			MixOption:        3,
-		}
-
-		if request.Amount < neovaultSvc.GetTokenConfig("GAS").MinTxAmount {
-			t.Errorf("amount below minimum")
-		}
-	})
-}
 
 // TestE2EVRFFlow tests the VRF service flow for contract integration.
 func TestE2EVRFFlow(t *testing.T) {
@@ -183,9 +93,8 @@ func TestE2EContractDeploymentFlow(t *testing.T) {
 		steps := []DeploymentStep{
 			{1, "ServiceLayerGateway", "Deploy main gateway contract", false},
 			{2, "VRFService", "Deploy VRF service contract", false},
-			{3, "NeoVaultService", "Deploy neovault service contract", false},
-			{4, "NeoFeedsService", "Deploy data feeds contract", false},
-			{5, "NeoFlowService", "Deploy neoflow contract", false},
+			{3, "NeoFeedsService", "Deploy data feeds contract", false},
+			{4, "NeoFlowService", "Deploy neoflow contract", false},
 		}
 
 		for _, step := range steps {
@@ -203,7 +112,6 @@ func TestE2EContractDeploymentFlow(t *testing.T) {
 
 		registrations := []ServiceRegistration{
 			{"neorand", "0x1111111111111111111111111111111111111111", 10000000, "0xTEE1"},
-			{"neovault", "0x2222222222222222222222222222222222222222", 50000000, "0xTEE1"},
 			{"oracle", "0x3333333333333333333333333333333333333333", 10000000, "0xTEE1"},
 		}
 
@@ -220,17 +128,6 @@ func TestE2EConcurrentServiceOperations(t *testing.T) {
 	apMarble.SetTestSecret("POOL_MASTER_KEY", []byte("concurrent-e2e-pool-key-32bytes!"))
 	apSvc, _ := neoaccounts.New(neoaccounts.Config{Marble: apMarble})
 
-	neovaultMarble, _ := marble.New(marble.Config{MarbleType: "neovault"})
-	neovaultMarble.SetTestSecret("NEOVAULT_MASTER_KEY", []byte("concurrent-e2e-neovault-key-32byte!"))
-
-	apServer := httptest.NewServer(apSvc.Router())
-	defer apServer.Close()
-
-	neovaultSvc, _ := neovault.New(&neovault.Config{
-		Marble:         neovaultMarble,
-		NeoAccountsURL: apServer.URL,
-	})
-
 	vrfMarble, _ := marble.New(marble.Config{MarbleType: "neorand"})
 	vrfMarble.SetTestSecret("VRF_PRIVATE_KEY", []byte("concurrent-e2e-vrf-key-32bytes!!"))
 	vrfSvc, _ := vrf.New(vrf.Config{Marble: vrfMarble})
@@ -245,17 +142,6 @@ func TestE2EConcurrentServiceOperations(t *testing.T) {
 			req := httptest.NewRequest("GET", "/health", nil)
 			w := httptest.NewRecorder()
 			apSvc.Router().ServeHTTP(w, req)
-			results <- (w.Code == http.StatusOK)
-		}()
-	}
-
-	for i := 0; i < 30; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			req := httptest.NewRequest("GET", "/health", nil)
-			w := httptest.NewRecorder()
-			neovaultSvc.Router().ServeHTTP(w, req)
 			results <- (w.Code == http.StatusOK)
 		}()
 	}
@@ -291,34 +177,13 @@ func TestE2EConcurrentServiceOperations(t *testing.T) {
 		}
 	}
 
-	if success != 90 {
-		t.Errorf("expected 90 successful operations, got %d", success)
+	if success != 60 {
+		t.Errorf("expected 60 successful operations, got %d", success)
 	}
 }
 
 // TestE2EErrorRecovery tests error recovery scenarios.
 func TestE2EErrorRecovery(t *testing.T) {
-	t.Run("neoaccounts unavailable recovery", func(t *testing.T) {
-		neovaultMarble, _ := marble.New(marble.Config{MarbleType: "neovault"})
-		neovaultMarble.SetTestSecret("NEOVAULT_MASTER_KEY", []byte("recovery-test-neovault-key-32bytes!"))
-
-		neovaultSvc, err := neovault.New(&neovault.Config{
-			Marble:         neovaultMarble,
-			NeoAccountsURL: "http://localhost:59999",
-		})
-		if err != nil {
-			t.Fatalf("neovault.New: %v", err)
-		}
-
-		req := httptest.NewRequest("GET", "/health", nil)
-		w := httptest.NewRecorder()
-		neovaultSvc.Router().ServeHTTP(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("neovault should still respond to health check: status %d", w.Code)
-		}
-	})
-
 	t.Run("invalid request handling", func(t *testing.T) {
 		m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 		m.SetTestSecret("POOL_MASTER_KEY", []byte("error-recovery-pool-key-32bytes!"))

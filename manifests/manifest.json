@@ -28,20 +28,6 @@
                 "OutOfDateConfigurationNeeded"
             ]
         },
-        "neovault": {
-            "SignerID": "9fa88c3396050c9e98d23bfa128a0e94bb056d5c8defd36575aad988ad04ff32",
-            "ProductID": 1,
-            "SecurityVersion": 1,
-            "Debug": false,
-            "AcceptedTCBStatuses": [
-                "UpToDate",
-                "SWHardeningNeeded",
-                "ConfigurationAndSWHardeningNeeded",
-                "ConfigurationNeeded",
-                "OutOfDate",
-                "OutOfDateConfigurationNeeded"
-            ]
-        },
         "neofeeds": {
             "SignerID": "3ebab79aad35d43f25e5ad7035c905c19ff891d0e393e2df439ef5bb0f2635eb",
             "ProductID": 1,
@@ -98,50 +84,8 @@
                 "OutOfDateConfigurationNeeded"
             ]
         },
-        "neostore": {
-            "SignerID": "c5645734b50920e1aaccb03da66e03e4ad74921765b3e2e3a6a04830071b144c",
-            "ProductID": 1,
-            "SecurityVersion": 1,
-            "Debug": false,
-            "AcceptedTCBStatuses": [
-                "UpToDate",
-                "SWHardeningNeeded",
-                "ConfigurationAndSWHardeningNeeded",
-                "ConfigurationNeeded",
-                "OutOfDate",
-                "OutOfDateConfigurationNeeded"
-            ]
-        },
         "neooracle": {
             "SignerID": "5f99b3647a376d0e8703db54340796f8476f3ab978aa7fd9b6945699e5f4b925",
-            "ProductID": 1,
-            "SecurityVersion": 1,
-            "Debug": false,
-            "AcceptedTCBStatuses": [
-                "UpToDate",
-                "SWHardeningNeeded",
-                "ConfigurationAndSWHardeningNeeded",
-                "ConfigurationNeeded",
-                "OutOfDate",
-                "OutOfDateConfigurationNeeded"
-            ]
-        },
-        "neoindexer": {
-            "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
-            "ProductID": 1,
-            "SecurityVersion": 1,
-            "Debug": false,
-            "AcceptedTCBStatuses": [
-                "UpToDate",
-                "SWHardeningNeeded",
-                "ConfigurationAndSWHardeningNeeded",
-                "ConfigurationNeeded",
-                "OutOfDate",
-                "OutOfDateConfigurationNeeded"
-            ]
-        },
-        "txsubmitter": {
-            "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
             "ProductID": 1,
             "SecurityVersion": 1,
             "Debug": false,
@@ -185,11 +129,6 @@
             "Size": 256,
             "Shared": true
         },
-        "NEOVAULT_MASTER_KEY": {
-            "Type": "symmetric-key",
-            "Size": 256,
-            "Shared": true
-        },
         "POOL_MASTER_KEY": {
             "Type": "symmetric-key",
             "Size": 256,
@@ -206,11 +145,6 @@
             "Shared": true
         },
         "SECRETS_MASTER_KEY": {
-            "Type": "symmetric-key",
-            "Size": 256,
-            "Shared": true
-        },
-        "NEOORACLE_MASTER_KEY": {
             "Type": "symmetric-key",
             "Size": 256,
             "Shared": true
@@ -239,6 +173,7 @@
                     "SERVICE_TYPE": "gateway",
                     "JWT_SECRET": "{{ hex .Secrets.JWT_SECRET.Private }}",
                     "OAUTH_TOKENS_MASTER_KEY": "{{ hex .Secrets.OAUTH_TOKENS_MASTER_KEY.Private }}",
+                    "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
                     "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
                     "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
                     "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
@@ -256,23 +191,6 @@
                     "EDG_MARBLE_TYPE": "neorand",
                     "SERVICE_TYPE": "neorand",
                     "VRF_PRIVATE_KEY": "{{ hex .Secrets.VRF_PRIVATE_KEY.Private }}",
-                    "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
-                    "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-                    "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
-                }
-            }
-        },
-        "neovault": {
-            "Package": "neovault",
-            "MaxActivations": 100,
-            "Parameters": {
-                "Argv": [
-                    "./service"
-                ],
-                "Env": {
-                    "EDG_MARBLE_TYPE": "neovault",
-                    "SERVICE_TYPE": "neovault",
-                    "NEOVAULT_MASTER_KEY": "{{ hex .Secrets.NEOVAULT_MASTER_KEY.Private }}",
                     "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
                     "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
                     "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
@@ -323,6 +241,7 @@
                     "EDG_MARBLE_TYPE": "neocompute",
                     "SERVICE_TYPE": "neocompute",
                     "COMPUTE_MASTER_KEY": "{{ hex .Secrets.COMPUTE_MASTER_KEY.Private }}",
+                    "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
                     "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
                     "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
                     "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
@@ -346,23 +265,6 @@
                 }
             }
         },
-        "neostore": {
-            "Package": "neostore",
-            "MaxActivations": 100,
-            "Parameters": {
-                "Argv": [
-                    "./service"
-                ],
-                "Env": {
-                    "EDG_MARBLE_TYPE": "neostore",
-                    "SERVICE_TYPE": "neostore",
-                    "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
-                    "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
-                    "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-                    "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
-                }
-            }
-        },
         "neooracle": {
             "Package": "neooracle",
             "MaxActivations": 100,
@@ -373,40 +275,8 @@
                 "Env": {
                     "EDG_MARBLE_TYPE": "neooracle",
                     "SERVICE_TYPE": "neooracle",
-                    "NEOORACLE_MASTER_KEY": "{{ hex .Secrets.NEOORACLE_MASTER_KEY.Private }}",
-                    "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
-                    "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-                    "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
-                }
-            }
-        },
-        "neoindexer": {
-            "Package": "neoindexer",
-            "MaxActivations": 100,
-            "Parameters": {
-                "Argv": [
-                    "./service"
-                ],
-                "Env": {
-                    "EDG_MARBLE_TYPE": "neoindexer",
-                    "SERVICE_TYPE": "neoindexer",
-                    "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
-                    "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-                    "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
-                }
-            }
-        },
-        "txsubmitter": {
-            "Package": "txsubmitter",
-            "MaxActivations": 100,
-            "Parameters": {
-                "Argv": [
-                    "./service"
-                ],
-                "Env": {
-                    "EDG_MARBLE_TYPE": "txsubmitter",
-                    "SERVICE_TYPE": "txsubmitter",
-                    "TEE_PRIVATE_KEY": "{{ hex .Secrets.TEE_PRIVATE_KEY.Private }}",
+                    "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
+                    "ORACLE_HTTP_ALLOWLIST": "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com",
                     "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
                     "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
                     "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"

@@ -28,7 +28,6 @@ spec:
     - sl.job.vrf
     - sl.job.oracle
     - sl.job.automation
-    - sl.job.mixer
     - sl.job.accountpool
 
     # =============================================================================
@@ -44,7 +43,6 @@ spec:
     - sl.dlq.vrf
     - sl.dlq.oracle
     - sl.dlq.automation
-    - sl.dlq.mixer
     - sl.dlq.tx
 
     # =============================================================================
