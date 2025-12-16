@@ -4,16 +4,13 @@ package chain
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/R3E-Network/service_layer/internal/httputil"
-	"github.com/R3E-Network/service_layer/internal/runtime"
 )
 
 // Client provides Neo N3 RPC client functionality.
@@ -37,16 +34,9 @@ func NewClient(cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("RPC URL required")
 	}
 
-	parsed, err := url.Parse(cfg.RPCURL)
-	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return nil, fmt.Errorf("invalid RPC URL")
-	}
-	if parsed.User != nil {
-		return nil, fmt.Errorf("RPC URL must not contain credentials")
-	}
-
-	if runtime.StrictIdentityMode() && !strings.EqualFold(parsed.Scheme, "https") {
-		return nil, fmt.Errorf("RPC URL must use https in strict identity mode")
+	normalizedURL, _, err := httputil.NormalizeBaseURL(cfg.RPCURL, httputil.BaseURLOptions{RequireHTTPSInStrictMode: true})
+	if err != nil {
+		return nil, fmt.Errorf("invalid RPC URL: %w", err)
 	}
 
 	timeout := cfg.Timeout
@@ -56,19 +46,7 @@ func NewClient(cfg Config) (*Client, error) {
 
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
-		transport := http.DefaultTransport
-		if base, ok := http.DefaultTransport.(*http.Transport); ok {
-			cloned := base.Clone()
-			if cloned.TLSClientConfig != nil {
-				cloned.TLSClientConfig = cloned.TLSClientConfig.Clone()
-				if cloned.TLSClientConfig.MinVersion == 0 || cloned.TLSClientConfig.MinVersion < tls.VersionTLS12 {
-					cloned.TLSClientConfig.MinVersion = tls.VersionTLS12
-				}
-			} else {
-				cloned.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
-			}
-			transport = cloned
-		}
+		transport := httputil.DefaultTransportWithMinTLS12()
 
 		httpClient = &http.Client{
 			Timeout:   timeout,
@@ -84,7 +62,7 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	return &Client{
-		rpcURL:     cfg.RPCURL,
+		rpcURL:     normalizedURL,
 		httpClient: httpClient,
 		networkID:  cfg.NetworkID,
 	}, nil

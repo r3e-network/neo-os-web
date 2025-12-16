@@ -1,43 +1,18 @@
-package plugin
-
-import (
-	"github.com/R3E-Network/service_layer/internal/chain"
-	"github.com/R3E-Network/service_layer/internal/database"
-	"github.com/R3E-Network/service_layer/internal/marble"
-)
-
-// ServiceConfig provides common configuration for all service plugins.
-// This is passed to the ServiceFactory when creating a new service instance.
-type ServiceConfig struct {
-	// Marble provides TEE functionality and secrets
-	Marble *marble.Marble
-
-	// DB provides database access
-	DB database.RepositoryInterface
-
-	// ChainClient provides blockchain interaction (optional)
-	ChainClient *chain.Client
-
-	// ConfigPath is the path to service-specific configuration file (optional)
-	ConfigPath string
-
-	// ServiceSettings contains service-specific settings from config/services.yaml
-	ServiceSettings *ServiceSettings
-}
+package config
 
 // ServiceSettings holds configuration for a single service from services.yaml.
 type ServiceSettings struct {
-	// Enabled determines if the service should run
+	// Enabled determines if the service should run.
 	Enabled bool `yaml:"enabled" json:"enabled"`
 
-	// Port is the HTTP port for the service
+	// Port is the HTTP port for the service.
 	Port int `yaml:"port" json:"port"`
 
-	// Description is a human-readable description
+	// Description is a human-readable description.
 	Description string `yaml:"description" json:"description"`
 
-	// Extra holds any additional service-specific configuration
-	Extra map[string]interface{} `yaml:"extra,omitempty" json:"extra,omitempty"`
+	// Extra holds any additional service-specific configuration.
+	Extra map[string]any `yaml:"extra,omitempty" json:"extra,omitempty"`
 }
 
 // ServicesConfig holds configuration for all services.

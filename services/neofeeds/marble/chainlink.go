@@ -4,18 +4,15 @@ package neofeeds
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
-	neturl "net/url"
 	"strings"
 	"time"
 
 	"github.com/R3E-Network/service_layer/internal/httputil"
-	"github.com/R3E-Network/service_layer/internal/runtime"
 )
 
 // ChainlinkFeedConfig defines a Chainlink price feed configuration.
@@ -59,34 +56,15 @@ func NewChainlinkClient(rpcURL string) (*ChainlinkClient, error) {
 		rpcURL = DefaultArbitrumRPC
 	}
 
-	rpcURL = strings.TrimSpace(rpcURL)
-	parsed, err := neturl.Parse(rpcURL)
-	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return nil, fmt.Errorf("invalid arbitrum rpc url")
-	}
-	if parsed.User != nil {
-		return nil, fmt.Errorf("arbitrum rpc url must not contain credentials")
-	}
-	if runtime.StrictIdentityMode() && !strings.EqualFold(parsed.Scheme, "https") {
-		return nil, fmt.Errorf("arbitrum rpc url must use https in strict identity mode")
+	normalizedURL, _, err := httputil.NormalizeBaseURL(rpcURL, httputil.BaseURLOptions{RequireHTTPSInStrictMode: true})
+	if err != nil {
+		return nil, fmt.Errorf("invalid arbitrum rpc url: %w", err)
 	}
 
-	transport := http.DefaultTransport
-	if base, ok := http.DefaultTransport.(*http.Transport); ok {
-		cloned := base.Clone()
-		if cloned.TLSClientConfig != nil {
-			cloned.TLSClientConfig = cloned.TLSClientConfig.Clone()
-			if cloned.TLSClientConfig.MinVersion == 0 || cloned.TLSClientConfig.MinVersion < tls.VersionTLS12 {
-				cloned.TLSClientConfig.MinVersion = tls.VersionTLS12
-			}
-		} else {
-			cloned.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
-		}
-		transport = cloned
-	}
+	transport := httputil.DefaultTransportWithMinTLS12()
 
 	return &ChainlinkClient{
-		rpcURL: rpcURL,
+		rpcURL: normalizedURL,
 		client: &http.Client{
 			Timeout:   15 * time.Second,
 			Transport: transport,

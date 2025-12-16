@@ -10,6 +10,7 @@ This module provides common HTTP handling utilities including:
 - Error response formatting
 - Authentication helpers
 - Path parameter extraction
+- Outbound helpers (base URL normalization, safe transports)
 
 ## Functions
 
@@ -67,6 +68,25 @@ serviceID := httputil.GetServiceID(r)
 // Extract path parameter
 // For path "/request/123/status", extract "123"
 id := httputil.PathParam(r.URL.Path, "/request/", "/status")
+```
+
+### Outbound Helpers
+
+```go
+// Normalize a base URL (trims trailing slashes, validates scheme/host, enforces
+// https in strict identity mode).
+baseURL, _, err := httputil.NormalizeServiceBaseURL("https://neostore:8087/")
+if err != nil {
+    // handle invalid URL
+}
+
+// Reuse a safe default transport for outbound HTTPS calls.
+client := &http.Client{
+    Timeout:   15 * time.Second,
+    Transport: httputil.DefaultTransportWithMinTLS12(),
+}
+_ = baseURL
+_ = client
 ```
 
 ## Response Format

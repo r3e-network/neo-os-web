@@ -327,27 +327,6 @@ func TestGetBoolEnv(t *testing.T) {
 	}
 }
 
-func TestIsValidEnvironment(t *testing.T) {
-	tests := []struct {
-		name string
-		env  Environment
-		want bool
-	}{
-		{"development", Development, true},
-		{"testing", Testing, true},
-		{"production", Production, true},
-		{"invalid", Environment("invalid"), false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isValidEnvironment(tt.env); got != tt.want {
-				t.Errorf("isValidEnvironment() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestConfig_LoadFromEnv(t *testing.T) {
 	os.Clearenv()
 	os.Setenv("SUPABASE_URL", "https://test.supabase.co")

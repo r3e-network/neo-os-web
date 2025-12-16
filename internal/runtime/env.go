@@ -18,6 +18,19 @@ const (
 	Production  Environment = "production"
 )
 
+// ParseEnvironment parses an environment string (case-insensitive) into a known
+// Environment value. It returns ok=false for unknown inputs.
+func ParseEnvironment(raw string) (env Environment, ok bool) {
+	raw = strings.ToLower(strings.TrimSpace(raw))
+
+	switch Environment(raw) {
+	case Development, Testing, Production:
+		return Environment(raw), true
+	default:
+		return Development, false
+	}
+}
+
 // Env returns the current environment derived from MARBLE_ENV (preferred) or
 // ENVIRONMENT (legacy fallback). Unknown values default to Development.
 func Env() Environment {
@@ -26,12 +39,10 @@ func Env() Environment {
 		raw = strings.ToLower(strings.TrimSpace(os.Getenv("ENVIRONMENT")))
 	}
 
-	switch Environment(raw) {
-	case Development, Testing, Production:
-		return Environment(raw)
-	default:
-		return Development
+	if env, ok := ParseEnvironment(raw); ok {
+		return env
 	}
+	return Development
 }
 
 func IsDevelopment() bool { return Env() == Development }

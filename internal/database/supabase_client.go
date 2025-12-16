@@ -4,12 +4,10 @@ package database
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	neturl "net/url"
 	"os"
 	"strings"
 	"time"
@@ -72,31 +70,14 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	if strict {
-		parsed, err := neturl.Parse(url)
-		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-			return nil, fmt.Errorf("SUPABASE_URL must be a valid https URL")
+		normalizedURL, _, err := httputil.NormalizeBaseURL(url, httputil.BaseURLOptions{RequireHTTPSInStrictMode: true})
+		if err != nil {
+			return nil, fmt.Errorf("SUPABASE_URL must be a valid https URL: %w", err)
 		}
-		if parsed.User != nil {
-			return nil, fmt.Errorf("SUPABASE_URL must not include user info")
-		}
-		if parsed.Scheme != "https" {
-			return nil, fmt.Errorf("SUPABASE_URL must use https in strict identity mode")
-		}
+		url = normalizedURL
 	}
 
-	transport := http.DefaultTransport
-	if base, ok := http.DefaultTransport.(*http.Transport); ok {
-		cloned := base.Clone()
-		if cloned.TLSClientConfig != nil {
-			cloned.TLSClientConfig = cloned.TLSClientConfig.Clone()
-			if cloned.TLSClientConfig.MinVersion == 0 || cloned.TLSClientConfig.MinVersion < tls.VersionTLS12 {
-				cloned.TLSClientConfig.MinVersion = tls.VersionTLS12
-			}
-		} else {
-			cloned.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
-		}
-		transport = cloned
-	}
+	transport := httputil.DefaultTransportWithMinTLS12()
 
 	return &Client{
 		url:        url,
