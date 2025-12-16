@@ -18,6 +18,7 @@ import (
 
 	"github.com/R3E-Network/service_layer/internal/chain"
 	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/internal/httputil"
 	"github.com/R3E-Network/service_layer/internal/marble"
 	"github.com/R3E-Network/service_layer/internal/runtime"
 	commonservice "github.com/R3E-Network/service_layer/services/common/service"
@@ -127,8 +128,7 @@ func New(cfg *Config) (*Service, error) {
 
 	// Use the Marble-provided external client (system roots, no mTLS). Apply
 	// per-source timeouts via request contexts to avoid creating clients per call.
-	httpClient := cfg.Marble.ExternalHTTPClient()
-	httpClient.Timeout = 0
+	httpClient := httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), 0, true)
 
 	// Use config-specified interval, then service config, then default
 	updateInterval := feedsConfig.UpdateInterval

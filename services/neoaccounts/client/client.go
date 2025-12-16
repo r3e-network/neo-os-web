@@ -50,22 +50,14 @@ func New(cfg Config) (*Client, error) {
 	if timeout == 0 {
 		timeout = defaultTimeout
 	}
+	forceTimeout := cfg.Timeout != 0
 
 	baseURL, _, err := slhttputil.NormalizeServiceBaseURL(cfg.BaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("neoaccounts: %w", err)
 	}
 
-	client := cfg.HTTPClient
-	if client == nil {
-		client = &http.Client{Timeout: timeout}
-	} else {
-		copied := *client
-		if copied.Timeout == 0 || cfg.Timeout != 0 {
-			copied.Timeout = timeout
-		}
-		client = &copied
-	}
+	client := slhttputil.CopyHTTPClientWithTimeout(cfg.HTTPClient, timeout, forceTimeout)
 
 	maxBodyBytes := cfg.MaxBodyBytes
 	if maxBodyBytes <= 0 {

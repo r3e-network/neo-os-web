@@ -281,7 +281,7 @@ func (s *Service) submitCompletionProofOnChain(ctx context.Context, request *Mix
 	}
 
 	// Preferred: submit via TxSubmitter (centralized chain writes).
-	if s.serviceAdapter != nil && s.serviceAdapter.txClient != nil {
+	if s.serviceAdapter != nil && s.serviceAdapter.TxClient != nil {
 		txHash, submitErr := s.serviceAdapter.ResolveDispute(ctx, requestHash, proofBytes)
 		if submitErr != nil {
 			return "", submitErr

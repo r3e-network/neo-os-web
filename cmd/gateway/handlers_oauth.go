@@ -116,8 +116,7 @@ func googleCallbackHandler(db oauthRepository, m *marble.Marble) http.HandlerFun
 
 		httpClient := &http.Client{Timeout: 15 * time.Second}
 		if m != nil {
-			httpClient = m.ExternalHTTPClient()
-			httpClient.Timeout = 15 * time.Second
+			httpClient = httputil.CopyHTTPClientWithTimeout(m.ExternalHTTPClient(), 15*time.Second, true)
 		}
 
 		// Exchange code for tokens
@@ -280,8 +279,7 @@ func githubCallbackHandler(db oauthRepository, m *marble.Marble) http.HandlerFun
 
 		httpClient := &http.Client{Timeout: 15 * time.Second}
 		if m != nil {
-			httpClient = m.ExternalHTTPClient()
-			httpClient.Timeout = 15 * time.Second
+			httpClient = httputil.CopyHTTPClientWithTimeout(m.ExternalHTTPClient(), 15*time.Second, true)
 		}
 
 		// Exchange code for token
