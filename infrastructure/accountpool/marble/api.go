@@ -1,5 +1,5 @@
 // Package neoaccounts provides API routes for the neoaccounts service.
-package neoaccountsmarble
+package neoaccounts
 
 // =============================================================================
 // API Routes

@@ -1,5 +1,5 @@
 // Package neoaccounts provides unit tests for the neoaccounts service.
-package neoaccountsmarble
+package neoaccounts
 
 import (
 	"bytes"

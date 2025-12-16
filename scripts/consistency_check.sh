@@ -286,9 +286,9 @@ check_logging_consistency() {
 
     # Check for mixed logging packages.
     #
-    # Preferred: internal/logging wrapper (structured logs).
+    # Preferred: infrastructure/logging wrapper (structured logs).
     # Allowed: standard log in entrypoints/scripts.
-    # Disallowed: direct logrus usage outside internal/logging.
+    # Disallowed: direct logrus usage outside infrastructure/logging.
     # Only treat `log` as "standard log usage" when it is imported as a package,
     # not when the string literal "log" appears in code (e.g. console.Set("log", ...)).
     local log_import_pattern='(^import[[:space:]]+"log"[[:space:]]*(//.*)?$|^[[:space:]]*"log"[[:space:]]*(//.*)?$)'
@@ -298,7 +298,7 @@ check_logging_consistency() {
     std_log_files=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
-        ! -path "*/internal/logging/*" \
+        ! -path "*/infrastructure/logging/*" \
         ! -path "*/cmd/*" \
         ! -path "*/test/*" \
         ! -name "*_test.go" \
@@ -319,27 +319,27 @@ check_logging_consistency() {
             -exec grep -lE "$log_import_pattern" {} \; 2>/dev/null | wc -l)
     fi
 
-    local internal_logging=$(find "$PROJECT_ROOT" -name "*.go" \
+    local infrastructure_logging=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
-        -exec grep -l '"github.com/R3E-Network/service_layer/internal/logging"' {} \; 2>/dev/null | wc -l)
+        -exec grep -l '"github.com/R3E-Network/service_layer/infrastructure/logging"' {} \; 2>/dev/null | wc -l)
 
     local direct_logrus=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
-        ! -path "*/internal/logging/*" \
+        ! -path "*/infrastructure/logging/*" \
         -exec grep -l '"github.com/sirupsen/logrus"' {} \; 2>/dev/null | wc -l)
 
     echo "  Standard log (entrypoints): $std_log_cmd files"
     echo "  Standard log (non-entrypoints): $std_log files"
-    echo "  internal/logging: $internal_logging files"
+    echo "  infrastructure/logging: $infrastructure_logging files"
     echo "  direct logrus: $direct_logrus files"
 
     if [[ $direct_logrus -gt 0 ]]; then
-        echo -e "${YELLOW}[WARNING] Direct logrus imports found outside internal/logging${NC}"
+        echo -e "${YELLOW}[WARNING] Direct logrus imports found outside infrastructure/logging${NC}"
         WARNINGS=$((WARNINGS + 1))
     elif [[ $std_log -gt 0 ]]; then
-        echo -e "${YELLOW}[WARNING] Standard log imports found outside entrypoints; prefer internal/logging for structured logs${NC}"
+        echo -e "${YELLOW}[WARNING] Standard log imports found outside entrypoints; prefer infrastructure/logging for structured logs${NC}"
         echo "$std_log_files" | head -10 | while read -r file; do
             [[ -n "$file" ]] || continue
             echo "  ${file#$PROJECT_ROOT/}"

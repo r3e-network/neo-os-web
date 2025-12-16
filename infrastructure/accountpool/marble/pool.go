@@ -1,5 +1,5 @@
 // Package neoaccounts provides pool management for the neoaccounts service.
-package neoaccountsmarble
+package neoaccounts
 
 import (
 	"context"

@@ -1,5 +1,7 @@
 # Sprint 2 Implementation Report
 
+> **Note**: This report is archived for historical context. The repository structure has since been refactored (e.g. `internal/*` → `infrastructure/*`), so some paths referenced below may not match the current codebase.
+
 **Date**: 2024-12-10
 **Sprint Goal**: 测试覆盖率提升 + 前端初始化 + 认证系统
 **Status**: Partially Completed (3/4 tasks)

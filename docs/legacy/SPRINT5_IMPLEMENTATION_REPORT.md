@@ -1,5 +1,7 @@
 # Sprint 5 Implementation Report
 
+> **Note**: This report is archived for historical context. The repository structure has since been refactored (e.g. `internal/*` → `infrastructure/*`), so some paths referenced below may not match the current codebase.
+
 ## Overview
 
 Sprint 5 focused on production readiness: Kubernetes deployment neoflow, development environment setup, monitoring, and logging infrastructure.
@@ -581,7 +583,7 @@ Sprint 5 successfully delivered production-ready infrastructure:
 - `internal/cli/progress.go`
 - `internal/cli/completion.go`
 - `docs/DEVELOPMENT.md`
-- `docs/SPRINT5_IMPLEMENTATION_REPORT.md`
+- `docs/legacy/SPRINT5_IMPLEMENTATION_REPORT.md`
 
 **Modified** (3 files):
 - `scripts/deploy_k8s.sh` (enhanced)

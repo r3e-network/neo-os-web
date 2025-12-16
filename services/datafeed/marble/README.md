@@ -229,6 +229,6 @@ go test ./services/datafeed/marble/... -run TestGetPrice -v
 ## Related Documentation
 
 - [NeoFeeds Service Overview](../README.md)
-- [Chain Integration](../chain/README.md)
+- [Chain Integration](../../../infrastructure/chain/README.md)
 - [Smart Contract](../contract/README.md)
 - [Common Service Base](../../../infrastructure/service/README.md)

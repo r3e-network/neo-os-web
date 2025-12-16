@@ -1,5 +1,5 @@
 // Package neoflow provides API routes for the task neoflow service.
-package neoflowmarble
+package neoflow
 
 // =============================================================================
 // API Routes

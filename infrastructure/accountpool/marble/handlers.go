@@ -1,5 +1,5 @@
 // Package neoaccounts provides HTTP handlers for the neoaccounts service.
-package neoaccountsmarble
+package neoaccounts
 
 import (
 	"fmt"
