@@ -10,9 +10,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/internal/database"
-	internalhttputil "github.com/R3E-Network/service_layer/internal/httputil"
-	"github.com/R3E-Network/service_layer/internal/marble"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
+	internalhttputil "github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/R3E-Network/service_layer/infrastructure/marble"
 )
 
 // =============================================================================
@@ -125,19 +125,16 @@ func listTransactionsHandler(db *database.Repository) http.HandlerFunc {
 // Service endpoint configuration from environment
 var serviceEndpoints = map[string]string{
 	// Canonical service IDs.
-	"neorand":     getEnvFirst([]string{"NEORAND_SERVICE_URL", "VRF_SERVICE_URL"}, "http://localhost:8081"),
-	"neovault":    getEnvFirst([]string{"NEOVAULT_SERVICE_URL", "MIXER_SERVICE_URL"}, "http://localhost:8082"),
-	"neofeeds":    getEnvFirst([]string{"NEOFEEDS_SERVICE_URL", "DATAFEEDS_SERVICE_URL"}, "http://localhost:8083"),
-	"neoflow":     getEnvFirst([]string{"NEOFLOW_SERVICE_URL", "AUTOMATION_SERVICE_URL"}, "http://localhost:8084"),
-	"neoaccounts": getEnvFirst([]string{"NEOACCOUNTS_SERVICE_URL", "ACCOUNTPOOL_SERVICE_URL"}, "http://localhost:8085"),
-	"neocompute":  getEnvFirst([]string{"NEOCOMPUTE_SERVICE_URL", "CONFIDENTIAL_SERVICE_URL"}, "http://localhost:8086"),
-	"neostore":    getEnvFirst([]string{"NEOSTORE_SERVICE_URL", "SECRETS_SERVICE_URL"}, "http://localhost:8087"),
-	"neooracle":   getEnvFirst([]string{"NEOORACLE_SERVICE_URL", "ORACLE_SERVICE_URL"}, "http://localhost:8088"),
+	"neorand":     getEnvFirst([]string{"VRF_SERVICE_URL", "NEORAND_SERVICE_URL"}, "http://localhost:8081"),
+	"neofeeds":    getEnvFirst([]string{"DATAFEEDS_SERVICE_URL", "NEOFEEDS_SERVICE_URL"}, "http://localhost:8083"),
+	"neoflow":     getEnvFirst([]string{"AUTOMATION_SERVICE_URL", "NEOFLOW_SERVICE_URL"}, "http://localhost:8084"),
+	"neoaccounts": getEnvFirst([]string{"ACCOUNTPOOL_SERVICE_URL", "NEOACCOUNTS_SERVICE_URL"}, "http://localhost:8085"),
+	"neocompute":  getEnvFirst([]string{"CONFIDENTIAL_SERVICE_URL", "NEOCOMPUTE_SERVICE_URL"}, "http://localhost:8086"),
+	"neooracle":   getEnvFirst([]string{"ORACLE_SERVICE_URL", "NEOORACLE_SERVICE_URL"}, "http://localhost:8088"),
 
 	// Backward-compatible aliases.
-	"vrf":     getEnvFirst([]string{"VRF_SERVICE_URL", "NEORAND_SERVICE_URL"}, "http://localhost:8081"),
-	"oracle":  getEnvFirst([]string{"ORACLE_SERVICE_URL", "NEOORACLE_SERVICE_URL"}, "http://localhost:8088"),
-	"secrets": getEnvFirst([]string{"SECRETS_SERVICE_URL", "NEOSTORE_SERVICE_URL"}, "http://localhost:8087"),
+	"vrf":    getEnvFirst([]string{"VRF_SERVICE_URL", "NEORAND_SERVICE_URL"}, "http://localhost:8081"),
+	"oracle": getEnvFirst([]string{"ORACLE_SERVICE_URL", "NEOORACLE_SERVICE_URL"}, "http://localhost:8088"),
 }
 
 func getEnvFirst(keys []string, defaultVal string) string {

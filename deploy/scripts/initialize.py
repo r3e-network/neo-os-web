@@ -35,7 +35,6 @@ DEPLOYED_FILE = CONFIG_DIR / "deployed_contracts.json"
 SERVICE_FEES = {
     "oracle": 10000000,      # 0.1 GAS
     "vrf": 10000000,         # 0.1 GAS
-    "mixer": 50000000,       # 0.5 GAS
     "datafeeds": 5000000,    # 0.05 GAS
     "automation": 20000000,  # 0.2 GAS
     "confidential": 100000000,  # 1.0 GAS
@@ -43,10 +42,11 @@ SERVICE_FEES = {
 
 # Service contract mapping
 SERVICE_CONTRACTS = {
+    "oracle": "OracleService",
     "vrf": "VRFService",
-    "mixer": "NeoVaultService",
     "datafeeds": "DataFeedsService",
     "automation": "NeoFlowService",
+    "confidential": "ConfidentialService",
 }
 
 
@@ -220,7 +220,7 @@ class ContractInitializer:
         gateway_hash = self.deployed.get("ServiceLayerGateway")
         datafeeds_hash = self.deployed.get("DataFeedsService")
 
-        examples = ["ExampleConsumer", "VRFLottery", "MixerClient", "DeFiPriceConsumer"]
+        examples = ["ExampleConsumer", "VRFLottery", "DeFiPriceConsumer"]
 
         for example in examples:
             contract_hash = self.deployed.get(example)

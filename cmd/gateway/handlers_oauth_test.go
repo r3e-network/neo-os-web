@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/internal/database"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
 )
 
 type mockOAuthRepo struct {

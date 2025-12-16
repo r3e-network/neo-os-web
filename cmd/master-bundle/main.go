@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/httputil"
+	"github.com/R3E-Network/service_layer/infrastructure/httputil"
 )
 
 // masterBundle pulls /master-key, wraps it, and prints SHA-256(bundle) for on-chain anchoring.

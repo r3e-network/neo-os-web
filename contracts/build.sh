@@ -18,12 +18,11 @@ mkdir -p build
 # Service contracts (split into multiple partial class files)
 # Format: "directory:ContractName"
 service_contracts=(
-    "../services/neooracle/contract:NeoOracleService"
-    "../services/neorand/contract:NeoRandService"
-    "../services/neovault/contract:NeoVaultService"
-    "../services/neofeeds/contract:NeoFeedsService"
-    "../services/neoflow/contract:NeoFlowService"
-    "../services/neocompute/contract:NeoComputeService"
+    "../services/conforacle/contract:NeoOracleService"
+    "../services/vrf/contract:NeoRandService"
+    "../services/datafeed/contract:NeoFeedsService"
+    "../services/automation/contract:NeoFlowService"
+    "../services/confcompute/contract:NeoComputeService"
 )
 
 # Single-file contracts
@@ -35,7 +34,6 @@ single_contracts=(
 examples=(
     "examples/ExampleConsumer"
     "examples/VRFLottery"
-    "examples/MixerClient"
     "examples/DeFiPriceConsumer"
 )
 

@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/chain"
-	"github.com/R3E-Network/service_layer/internal/httputil"
+	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	"github.com/R3E-Network/service_layer/infrastructure/httputil"
 )
 
 type masterKeyResponse struct {

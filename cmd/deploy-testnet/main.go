@@ -11,21 +11,21 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/deploy/testnet"
-	"github.com/R3E-Network/service_layer/internal/chain"
+	"github.com/R3E-Network/service_layer/infrastructure/chain"
 )
 
 var contracts = []string{
 	"ServiceLayerGateway",
-	"NeoFeedsService",
 	"VRFService",
-	"NeoVaultService",
+	"DataFeedsService",
 	"NeoFlowService",
+	"ConfidentialService",
+	"OracleService",
 }
 
 var exampleContracts = []string{
 	"ExampleConsumer",
 	"VRFLottery",
-	"NeoVaultClient",
 	"DeFiPriceConsumer",
 }
 

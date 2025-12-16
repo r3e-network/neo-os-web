@@ -61,42 +61,7 @@ neoxp transfer 100 GAS genesis user -i "$NEOEXPRESS_CONFIG" 2>/dev/null || true
 echo ""
 echo "Building contracts..."
 cd "$PROJECT_ROOT/contracts"
-
-# Create build directory
-mkdir -p build
-
-# Build core contracts
-CONTRACTS=(
-    "gateway/ServiceLayerGateway"
-    "vrf/VRFService"
-    "mixer/NeoVaultService"
-    "datafeeds/DataFeedsService"
-    "automation/NeoFlowService"
-)
-
-for contract in "${CONTRACTS[@]}"; do
-    name=$(basename "$contract")
-    if [ -f "${contract}.cs" ]; then
-        echo "Building $name..."
-        nccs "${contract}.cs" -o "build/${name}.nef" 2>/dev/null || echo "  Warning: Build may have warnings"
-    fi
-done
-
-# Build example contracts
-EXAMPLES=(
-    "examples/ExampleConsumer"
-    "examples/VRFLottery"
-    "examples/MixerClient"
-    "examples/DeFiPriceConsumer"
-)
-
-for contract in "${EXAMPLES[@]}"; do
-    name=$(basename "$contract")
-    if [ -f "${contract}.cs" ]; then
-        echo "Building $name..."
-        nccs "${contract}.cs" -o "build/${name}.nef" 2>/dev/null || echo "  Warning: Build may have warnings"
-    fi
-done
+./build.sh
 
 echo ""
 echo "=== Setup Complete ==="

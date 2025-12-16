@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/chain"
+	"github.com/R3E-Network/service_layer/infrastructure/chain"
 )
 
 const (
@@ -30,7 +30,7 @@ type NeoExpress struct {
 	rpcURL  string
 }
 
-// DeployedContract is imported from internal/chain package
+// DeployedContract is imported from infrastructure/chain package
 
 func NewNeoExpress(t *testing.T) *NeoExpress {
 	t.Helper()

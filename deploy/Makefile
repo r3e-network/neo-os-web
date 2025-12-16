@@ -95,8 +95,5 @@ show-deployed:
 test-vrf:
 	python3 deploy/scripts/run_tests.py $(NETWORK) vrf
 
-test-mixer:
-	python3 deploy/scripts/run_tests.py $(NETWORK) mixer
-
 test-datafeeds:
 	python3 deploy/scripts/run_tests.py $(NETWORK) datafeeds

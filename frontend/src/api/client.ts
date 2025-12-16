@@ -333,29 +333,29 @@ class ApiClient {
 
   // Secrets
   async listSecrets() {
-    return this.request<Array<{ id: string; name: string; version: number; created_at: string; last_accessed?: string }>>('/neostore/secrets');
+    return this.request<Array<{ id: string; name: string; version: number; created_at: string; updated_at: string }>>('/secrets');
   }
 
   async createSecret(name: string, value: string) {
-    return this.request('/neostore/secrets', {
+    return this.request('/secrets', {
       method: 'POST',
       body: { name, value },
     });
   }
 
   async deleteSecret(name: string) {
-    return this.request(`/neostore/secrets/${name}`, {
+    return this.request(`/secrets/${name}`, {
       method: 'DELETE',
     });
   }
 
   async getSecretPermissions(name: string): Promise<string[]> {
-    const res = await this.request<{ services: string[] }>(`/neostore/secrets/${name}/permissions`);
+    const res = await this.request<{ services: string[] }>(`/secrets/${name}/permissions`);
     return res.services ?? [];
   }
 
   async setSecretPermissions(name: string, services: string[]): Promise<string[]> {
-    const res = await this.request<{ services: string[] }>(`/neostore/secrets/${name}/permissions`, {
+    const res = await this.request<{ services: string[] }>(`/secrets/${name}/permissions`, {
       method: 'PUT',
       body: { services },
     });
@@ -395,7 +395,7 @@ class ApiClient {
       success: boolean;
       error_message?: string;
       created_at: string;
-    }>>(`/neostore/secrets/${name}/audit`);
+    }>>(`/secrets/${name}/audit`);
   }
 
   // NeoFlow
@@ -413,57 +413,6 @@ class ApiClient {
   // NeoFeeds
   async getPrice(pair: string) {
     return this.request<{ price: number; decimals: number; timestamp: string }>(`/neofeeds/price/${pair}`);
-  }
-
-  // NeoVault
-  async getNeoVaultInfo() {
-    return this.request<{
-      status: string;
-      bond_amount: string;
-      available_capacity: string;
-      total_mixed: string;
-    }>('/neovault/info');
-  }
-
-  async getNeoVaultRequests() {
-    return this.request<Array<{
-      request_id: string;
-      amount: string;
-      status: number;
-      mix_option: number;
-      created_at: string;
-      deadline: string;
-      can_refund: boolean;
-    }>>('/neovault/requests');
-  }
-
-  async createMixRequest(targets: Array<{ address: string; amount: string }>, mixOption: number) {
-    return this.request<{ request_id: string; tx_hash: string }>('/neovault/request', {
-      method: 'POST',
-      body: {
-        targets,
-        mix_option: mixOption,
-      },
-    });
-  }
-
-  async claimNeoVaultRefund(requestId: string) {
-    return this.request<{ tx_hash: string }>(`/neovault/refund/${requestId}`, {
-      method: 'POST',
-    });
-  }
-
-  async getNeoVaultRequest(requestId: string) {
-    return this.request<{
-      request_id: string;
-      amount: string;
-      status: number;
-      mix_option: number;
-      created_at: string;
-      deadline: string;
-      can_refund: boolean;
-      outputs_hash?: string;
-    }>(`/neovault/request/${requestId}`);
   }
 }
 

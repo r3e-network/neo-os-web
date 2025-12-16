@@ -38,13 +38,12 @@ data:
   # Service ports
   GATEWAY_PORT: "8080"
   VRF_PORT: "8081"
-  NEOVAULT_PORT: "8082"
   NEOFEEDS_PORT: "8083"
   NEOFLOW_PORT: "8084"
   NEOACCOUNTS_PORT: "8085"
   NEOCOMPUTE_PORT: "8086"
-  SECRETS_PORT: "8087"
   ORACLE_PORT: "8088"
+  GLOBALSIGNER_PORT: "8092"
   # Supabase Configuration
   # Public Supabase project URL (not a secret). Override per environment.
   SUPABASE_URL: "https://your-project.supabase.co"
@@ -56,9 +55,10 @@ data:
   # Set these per environment after deploying contracts.
   CONTRACT_GATEWAY_HASH: ""
   CONTRACT_VRF_HASH: ""
-  CONTRACT_NEOVAULT_HASH: ""
-  CONTRACT_NEOFEEDS_HASH: ""
-  CONTRACT_NEOFLOW_HASH: ""
+  CONTRACT_DATAFEEDS_HASH: ""
+  CONTRACT_AUTOMATION_HASH: ""
+  CONTRACT_CONFIDENTIAL_HASH: ""
+  CONTRACT_ORACLE_HASH: ""
   # Oracle config
   ORACLE_HTTP_ALLOWLIST: "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com"
   # Optional Arbitrum RPC override for Chainlink (NeoFeeds). Defaults to https://arb1.arbitrum.io/rpc.
@@ -67,40 +67,10 @@ data:
   NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS: "false"
 
   # Internal service endpoints (used by gateway/service-to-service clients)
-  NEORAND_SERVICE_URL: "https://neorand:8081"
-  NEOVAULT_SERVICE_URL: "https://neovault:8082"
-  NEOFEEDS_SERVICE_URL: "https://neofeeds:8083"
-  NEOFLOW_SERVICE_URL: "https://neoflow:8084"
-  NEOACCOUNTS_SERVICE_URL: "https://neoaccounts:8085"
-  NEOCOMPUTE_SERVICE_URL: "https://neocompute:8086"
-  NEOSTORE_SERVICE_URL: "https://neostore:8087"
-  NEOORACLE_SERVICE_URL: "https://neooracle:8088"
-  NEOINDEXER_SERVICE_URL: "https://neoindexer:8089"
-  TXSUBMITTER_SERVICE_URL: "https://txsubmitter:8090"
+  VRF_SERVICE_URL: "https://neorand:8081"
+  DATAFEEDS_SERVICE_URL: "https://neofeeds:8083"
+  AUTOMATION_SERVICE_URL: "https://neoflow:8084"
+  ACCOUNTPOOL_SERVICE_URL: "https://neoaccounts:8085"
+  CONFIDENTIAL_SERVICE_URL: "https://neocompute:8086"
+  ORACLE_SERVICE_URL: "https://neooracle:8088"
   GLOBALSIGNER_SERVICE_URL: "https://globalsigner:8092"
-  SECRETS_BASE_URL: "https://neostore:8087"
-
-  # New infrastructure services
-  INDEXER_PORT: "8089"
-  TX_SUBMITTER_PORT: "8090"
-  MIXER_SCHEDULER_PORT: "8091"
-  MIXER_EXECUTOR_PORT: "8092"
-  GLOBALSIGNER_PORT: "8092"
-
-  # NATS JetStream configuration
-  NATS_URL: "nats://nats.platform.svc.cluster.local:4222"
-  NATS_STREAM_NAME: "neo-events"
-  NATS_JETSTREAM_DOMAIN: "neo-jetstream"
-
-  # Indexer configuration
-  INDEXER_CONFIRMATION_DEPTH: "6"
-  INDEXER_POLL_INTERVAL: "15s"
-
-  # Tx-Submitter configuration
-  TX_SUBMITTER_MAX_RETRIES: "5"
-  TX_SUBMITTER_CONFIRMATION_TIMEOUT: "5m"
-
-  # Mixer configuration (disabled by default for safety)
-  MIXER_ENABLED: "false"
-  MIXER_MIN_TRANSFERS_PER_HOUR: "10"
-  MIXER_MAX_TRANSFERS_PER_HOUR: "100"

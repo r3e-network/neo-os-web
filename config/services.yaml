@@ -10,13 +10,6 @@ services:
     port: 8081
     description: "Verifiable random number generation for gaming, lotteries, and fair distribution"
 
-  # NeoVault - Secure Cryptographic Operations
-  # Use cases: Privacy mixing, secure transactions
-  neovault:
-    enabled: true
-    port: 8082
-    description: "Secure cryptographic operations and privacy-preserving transactions"
-
   # NeoFeeds - Decentralized Market Data
   # Use cases: DeFi protocols, trading algorithms
   neofeeds:
@@ -45,33 +38,12 @@ services:
     port: 8086
     description: "Secure JavaScript execution for private computations and neocompute data processing"
 
-  # NeoStore - Encrypted Data Management
-  # Use cases: Document storage, backup systems
-  neostore:
-    enabled: true
-    port: 8087
-    description: "Encrypted data management for secure document storage and backup systems"
-
   # NeoOracle - External Data Delivery with Proofs
   # Use cases: Price feeds, weather data, sports results
   neooracle:
     enabled: true
     port: 8088
     description: "External data delivery with cryptographic proofs for price feeds and real-world data"
-
-  # NeoIndexer - Chain Event Indexing
-  # Use cases: Unified event stream for off-chain consumers
-  neoindexer:
-    enabled: true
-    port: 8089
-    description: "Unified chain event indexing and publishing"
-
-  # TxSubmitter - Centralized Chain Write Authority
-  # Use cases: Rate-limited transaction submission, retry/failover, audit logging
-  txsubmitter:
-    enabled: true
-    port: 8090
-    description: "Centralized transaction submission with rate limiting and failover"
 
   # GlobalSigner - TEE Master Key Management
   # Use cases: Domain-separated signing, key rotation, attestation

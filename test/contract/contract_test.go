@@ -36,7 +36,6 @@ func TestContractCompilation(t *testing.T) {
 	contracts := []string{
 		"ServiceLayerGateway",
 		"VRFService",
-		"NeoVaultService",
 		"NeoFeedsService",
 		"NeoFlowService",
 	}
@@ -51,8 +50,6 @@ func TestContractCompilation(t *testing.T) {
 				contractDir = "gateway"
 			case "VRFService":
 				contractDir = "neorand"
-			case "NeoVaultService":
-				contractDir = "neovault"
 			case "NeoFeedsService":
 				contractDir = "neofeeds"
 			case "NeoFlowService":
@@ -170,27 +167,6 @@ func TestVRFServiceContract(t *testing.T) {
 	})
 
 	t.Run("fulfillment", func(t *testing.T) {
-		t.Skip("requires deployed contract and TEE service")
-	})
-}
-
-func TestNeoVaultServiceContract(t *testing.T) {
-	SkipIfNoNeoExpress(t)
-	SkipIfNoCompiledContracts(t)
-
-	if testing.Short() {
-		t.Skip("skipping NeoVault test in short mode")
-	}
-
-	t.Run("service registration", func(t *testing.T) {
-		t.Skip("requires deployed contract")
-	})
-
-	t.Run("mix request creation", func(t *testing.T) {
-		t.Skip("requires deployed contract and TEE service")
-	})
-
-	t.Run("mix completion", func(t *testing.T) {
 		t.Skip("requires deployed contract and TEE service")
 	})
 }

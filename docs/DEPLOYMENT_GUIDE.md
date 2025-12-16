@@ -106,7 +106,7 @@ NEO_NETWORK_MAGIC=860833102
 JWT_SECRET=your-jwt-secret-min-32-chars
 # Optional admin allowlists (comma-separated Supabase user IDs).
 # When set, the gateway attaches `X-User-Role: admin|super_admin` to proxied
-# service requests to unlock admin endpoints (e.g. NeoVault registration review).
+# service requests to unlock admin endpoints.
 ADMIN_USER_IDS=
 SUPER_ADMIN_USER_IDS=
 GATEWAY_TLS_MODE=off  # off|tls|mtls
@@ -119,21 +119,16 @@ OAUTH_COOKIE_MODE=true
 OAUTH_COOKIE_SAMESITE=lax  # strict|lax|none (none requires HTTPS)
 
 # Services
-NEORAND_SERVICE_URL=http://neorand:8081
-NEOVAULT_SERVICE_URL=http://neovault:8082
-NEOFEEDS_SERVICE_URL=http://neofeeds:8083
-NEOFLOW_SERVICE_URL=http://neoflow:8084
-NEOACCOUNTS_SERVICE_URL=http://neoaccounts:8085
-NEOCOMPUTE_SERVICE_URL=http://neocompute:8086
-NEOSTORE_SERVICE_URL=http://neostore:8087
-NEOORACLE_SERVICE_URL=http://neooracle:8088
-NEOINDEXER_SERVICE_URL=http://neoindexer:8089
-TXSUBMITTER_SERVICE_URL=http://txsubmitter:8090
+VRF_SERVICE_URL=http://neorand:8081
+DATAFEEDS_SERVICE_URL=http://neofeeds:8083
+AUTOMATION_SERVICE_URL=http://neoflow:8084
+ACCOUNTPOOL_SERVICE_URL=http://neoaccounts:8085
+CONFIDENTIAL_SERVICE_URL=http://neocompute:8086
+ORACLE_SERVICE_URL=http://neooracle:8088
 GLOBALSIGNER_SERVICE_URL=http://globalsigner:8092
 
 # Service-to-service URLs (used by marbles)
 ACCOUNTPOOL_URL=http://neoaccounts:8085
-SECRETS_BASE_URL=http://neostore:8087
 ```
 
 #### 3. Start Services
@@ -367,7 +362,9 @@ SUPABASE_SERVICE_KEY=your-supabase-service-key
 Example (oracle):
 
 ```bash
-SECRETS_BASE_URL=https://neostore:8087
+# Secrets are stored in Supabase; the master key is injected by MarbleRun in Compose/K8s.
+# For non-Marblerun deployments:
+# SECRETS_MASTER_KEY=$(openssl rand -hex 32)
 # Required in production/SGX mode (non-empty, valid prefixes). Requests only allow `https://` targets in strict identity mode.
 ORACLE_HTTP_ALLOWLIST=https://api.binance.com,https://api.coinbase.com
 ```
@@ -398,7 +395,7 @@ scrape_configs:
     relabel_configs:
       - source_labels: [__meta_kubernetes_pod_label_app]
         action: keep
-        regex: gateway|neorand|neovault|neofeeds|neoflow|neoaccounts|neocompute|neostore|neooracle|neoindexer|txsubmitter|globalsigner
+        regex: gateway|neorand|neofeeds|neoflow|neoaccounts|neocompute|neooracle|globalsigner
 ```
 
 ### Grafana Dashboards
@@ -615,8 +612,8 @@ kubectl logs -n service-layer <pod-name>
 # Check events
 kubectl describe pod -n service-layer <pod-name>
 
-# Verify neostore
-kubectl get neostore -n service-layer
+# Verify services
+kubectl get pods -n service-layer
 ```
 
 #### 4. Attestation Verification Failed
@@ -653,10 +650,9 @@ kubectl set env deployment/gateway LOG_LEVEL=debug -n service-layer
 ```sql
 -- Create indexes for frequently queried fields
 CREATE INDEX idx_accounts_locked_by ON accounts(locked_by);
-CREATE INDEX idx_mix_requests_status ON mix_requests(status);
 
 -- Analyze query performance
-EXPLAIN ANALYZE SELECT * FROM accounts WHERE locked_by = 'neovault';
+EXPLAIN ANALYZE SELECT * FROM accounts WHERE locked_by = 'neorand';
 ```
 
 ### Connection Pooling

@@ -21,7 +21,7 @@ interface Secret {
   name: string;
   version: number;
   created_at: string;
-  last_accessed?: string;
+  updated_at: string;
 }
 
 type Permission = string;
@@ -55,7 +55,7 @@ export function Secrets() {
 
   // Queries
   const { data: secrets, isLoading } = useQuery({
-    queryKey: ['neostore'],
+    queryKey: ['secrets'],
     queryFn: () => api.listSecrets(),
   });
 
@@ -75,7 +75,7 @@ export function Secrets() {
   const createMutation = useMutation({
     mutationFn: () => api.createSecret(newSecret.name, newSecret.value),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['neostore'] });
+      queryClient.invalidateQueries({ queryKey: ['secrets'] });
       setShowCreate(false);
       setNewSecret({ name: '', value: '' });
     },
@@ -84,7 +84,7 @@ export function Secrets() {
   const deleteMutation = useMutation({
     mutationFn: (name: string) => api.deleteSecret(name),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['neostore'] });
+      queryClient.invalidateQueries({ queryKey: ['secrets'] });
       setShowDelete(null);
     },
   });
@@ -147,7 +147,7 @@ export function Secrets() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">Secrets Management</h1>
-            <p className="text-gray-400">Securely store and manage sensitive data in TEE</p>
+            <p className="text-gray-400">Encrypt and manage user secrets with per-service permissions</p>
           </div>
         </div>
         <button
@@ -164,10 +164,10 @@ export function Secrets() {
         <div className="flex items-start gap-3">
           <Shield className="w-5 h-5 text-green-500 mt-0.5" />
           <div>
-            <h3 className="text-green-400 font-medium mb-1">TEE-Protected Storage</h3>
+            <h3 className="text-green-400 font-medium mb-1">Encrypted Storage</h3>
             <p className="text-gray-400 text-sm">
-              Secrets are encrypted and stored within the Trusted Execution Environment. Only authorized
-              services with explicit permissions can access them. All access is logged for audit purposes.
+              Secrets are encrypted at rest and stored in Supabase. Only explicitly allowed services can access
+              them via the gateway, and all access is logged for audit purposes.
             </p>
           </div>
         </div>
@@ -211,7 +211,7 @@ export function Secrets() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Value is encrypted before transmission using TEE public key
+                  Value is transmitted over HTTPS and encrypted at rest
                 </p>
               </div>
             </div>
@@ -454,7 +454,7 @@ export function Secrets() {
                 <th className="text-left text-gray-400 font-medium px-6 py-4">Name</th>
                 <th className="text-left text-gray-400 font-medium px-6 py-4">Version</th>
                 <th className="text-left text-gray-400 font-medium px-6 py-4">Created</th>
-                <th className="text-left text-gray-400 font-medium px-6 py-4">Last Accessed</th>
+                <th className="text-left text-gray-400 font-medium px-6 py-4">Updated</th>
                 <th className="text-left text-gray-400 font-medium px-6 py-4">Actions</th>
               </tr>
             </thead>
@@ -472,7 +472,7 @@ export function Secrets() {
                     {formatDate(secret.created_at)}
                   </td>
                   <td className="px-6 py-4 text-gray-400 text-sm">
-                    {formatDate(secret.last_accessed)}
+                    {formatDate(secret.updated_at)}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -526,11 +526,11 @@ export function Secrets() {
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-3">
             <Shield className="w-6 h-6 text-green-500" />
-            <h3 className="text-white font-semibold">TEE Protection</h3>
+            <h3 className="text-white font-semibold">Encrypted at Rest</h3>
           </div>
           <p className="text-gray-400 text-sm">
-            All secrets are encrypted and stored within the Trusted Execution Environment,
-            protected from unauthorized access.
+            Secrets are encrypted at rest and stored in Supabase. Services only receive decrypted values
+            when explicitly permitted by your per-secret access policy.
           </p>
         </div>
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">

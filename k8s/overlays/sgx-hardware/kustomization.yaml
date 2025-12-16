@@ -52,18 +52,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoVault SGX patch
-  - target:
-      kind: Deployment
-      name: neovault
-    patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
-        value: "1"
-      - op: add
-        path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
-        value: "1"
-
   # NeoFeeds SGX patch
   - target:
       kind: Deployment
@@ -115,10 +103,10 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoStore SGX patch
+  # NeoOracle SGX patch
   - target:
       kind: Deployment
-      name: neostore
+      name: neooracle
     patch: |-
       - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
@@ -127,10 +115,10 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoOracle SGX patch
+  # GlobalSigner SGX patch
   - target:
       kind: Deployment
-      name: neooracle
+      name: globalsigner
     patch: |-
       - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave

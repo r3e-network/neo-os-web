@@ -6,7 +6,8 @@
 .PHONY: all build test clean docker frontend deploy help
 
 # Variables
-SERVICES := gateway neooracle neorand neovault neostore neofeeds gasbank neoflow neocompute neoaccounts ccip datalink datastreams dta cre
+CMD_BINARIES := gateway marble anchor-master-key create-wallet deploy-fairy deploy-testnet master-bundle slcli verify-bundle verify-master-key
+ENCLAVE_BINARIES := gateway marble
 DOCKER_COMPOSE_SIM := docker compose -f docker/docker-compose.simulation.yaml
 DOCKER_COMPOSE_SGX := docker compose -f docker/docker-compose.yaml
 # Default to simulation mode for local development.
@@ -31,10 +32,9 @@ all: build
 
 build: ## Build all services
 	@echo "Building all services..."
-	@for service in $(SERVICES); do \
-		echo "Building $$service..."; \
-		go build -o bin/$$service ./cmd/$$service 2>/dev/null || \
-		go build -o bin/$$service ./services/$$service 2>/dev/null || true; \
+	@for bin in $(CMD_BINARIES); do \
+		echo "Building $$bin..."; \
+		go build -o bin/$$bin ./cmd/$$bin; \
 	done
 	@echo "Build complete"
 
@@ -43,17 +43,16 @@ build-gateway: ## Build gateway service
 
 build-ego: ## Build with EGo for SGX
 	@echo "Building with EGo..."
-	@for service in $(SERVICES); do \
-		echo "Building $$service with EGo..."; \
-		ego-go build -o bin/$$service ./cmd/$$service 2>/dev/null || \
-		ego-go build -o bin/$$service ./services/$$service 2>/dev/null || true; \
+	@for bin in $(ENCLAVE_BINARIES); do \
+		echo "Building $$bin with EGo..."; \
+		ego-go build -o bin/$$bin ./cmd/$$bin; \
 	done
 
 sign-enclaves: ## Sign all enclave binaries
 	@echo "Signing enclaves..."
-	@for service in $(SERVICES); do \
-		if [ -f bin/$$service ]; then \
-			ego sign bin/$$service; \
+	@for bin in $(ENCLAVE_BINARIES); do \
+		if [ -f bin/$$bin ]; then \
+			ego sign bin/$$bin; \
 		fi; \
 	done
 

@@ -7,7 +7,6 @@ import { Services } from "./pages/Services";
 import { Secrets } from "./pages/Secrets";
 import { GasBank } from "./pages/GasBank";
 import { NeoFlow } from "./pages/NeoFlow";
-import { NeoVault } from "./pages/NeoVault";
 import { Settings } from "./pages/Settings";
 import { VRF } from "./pages/VRF";
 import { Login } from "./pages/Login";
@@ -70,9 +69,8 @@ export default function App() {
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/services" element={<Services />} />
-            <Route path="/neovault" element={<NeoVault />} />
             <Route path="/neorand" element={<VRF />} />
-            <Route path="/neostore" element={<Secrets />} />
+            <Route path="/secrets" element={<Secrets />} />
             <Route path="/gasbank" element={<GasBank />} />
             <Route path="/neoflow" element={<NeoFlow />} />
             <Route path="/settings" element={<Settings />} />

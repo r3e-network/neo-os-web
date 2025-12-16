@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/httputil"
+	"github.com/R3E-Network/service_layer/infrastructure/httputil"
 )
 
 // Verifies a master-key attestation bundle hash matches the expected on-chain attestation hash.

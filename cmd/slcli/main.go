@@ -6,8 +6,6 @@
 //	slcli logout                                     - Logout and clear credentials
 //	slcli whoami                                     - Show current user info
 //	slcli balance                                    - Check user balance
-//	slcli neovault request --amount <AMOUNT>            - Create neovault request
-//	slcli neovault status --request-id <ID>             - Check neovault request status
 //	slcli vrf request --seed <SEED>                  - Request VRF random number
 //	slcli vrf get --request-id <ID>                  - Get VRF result
 //	slcli secrets create --name <NAME> --value <VAL> - Create secret
@@ -21,11 +19,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/httputil"
+	"github.com/R3E-Network/service_layer/infrastructure/httputil"
 )
 
 const (
@@ -69,8 +66,6 @@ func main() {
 		cmdWhoami(args)
 	case "balance":
 		cmdBalance(args)
-	case "neovault":
-		cmdNeoVault(args)
 	case "vrf":
 		cmdVRF(args)
 	case "secrets":
@@ -99,9 +94,6 @@ Authentication Commands:
 
 Service Commands:
   balance                            Check user GAS balance
-  neovault request --amount <AMOUNT>    Create neovault request
-  neovault status --request-id <ID>     Check neovault request status
-  neovault list                         List neovault requests
   vrf request --seed <SEED>          Request VRF random number
   vrf get --request-id <ID>          Get VRF result
   vrf list                           List VRF requests
@@ -118,7 +110,6 @@ Examples:
   slcli login --token eyJhbGc...
   slcli whoami
   slcli balance
-  slcli neovault request --amount 100000000
   slcli vrf request --seed "my-random-seed"
   slcli secrets create --name api_key --value "secret-value"
   slcli logout`)
@@ -281,125 +272,6 @@ func cmdBalance(args []string) {
 	fmt.Printf("Balance:   %d (%.8f GAS)\n", account.Balance, float64(account.Balance)/1e8)
 	fmt.Printf("Reserved:  %d (%.8f GAS)\n", account.Reserved, float64(account.Reserved)/1e8)
 	fmt.Printf("Available: %d (%.8f GAS)\n", available, float64(available)/1e8)
-}
-
-func cmdNeoVault(args []string) {
-	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: slcli neovault <request|status|list>")
-		os.Exit(1)
-	}
-
-	subcmd := args[0]
-	subargs := args[1:]
-
-	switch subcmd {
-	case "request":
-		cmdNeoVaultRequest(subargs)
-	case "status":
-		cmdNeoVaultStatus(subargs)
-	case "list":
-		cmdNeoVaultList(subargs)
-	default:
-		fmt.Fprintf(os.Stderr, "Unknown neovault subcommand: %s\n", subcmd)
-		os.Exit(1)
-	}
-}
-
-func cmdNeoVaultRequest(args []string) {
-	if len(args) < 2 || args[0] != "--amount" {
-		fmt.Fprintln(os.Stderr, "Usage: slcli neovault request --amount <AMOUNT>")
-		os.Exit(1)
-	}
-
-	amount, err := strconv.ParseInt(args[1], 10, 64)
-	if err != nil || amount <= 0 {
-		fmt.Fprintln(os.Stderr, "Error: amount must be a positive integer (in smallest units, e.g. 100000000 = 1 GAS)")
-		os.Exit(1)
-	}
-
-	address, err := getUserAddress()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: failed to resolve user address: %v\n", err)
-		os.Exit(1)
-	}
-
-	payload := map[string]interface{}{
-		"user_address": address,
-		"total_amount": amount,
-	}
-
-	data, err := apiRequest("POST", "/neovault/request", payload)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	var resp struct {
-		RequestID      string `json:"request_id"`
-		DepositAddress string `json:"deposit_address"`
-		TotalAmount    int64  `json:"total_amount"`
-		ServiceFee     int64  `json:"service_fee"`
-		NetAmount      int64  `json:"net_amount"`
-		Deadline       int64  `json:"deadline"`
-		ExpiresAt      string `json:"expires_at"`
-	}
-	if err := json.Unmarshal(data, &resp); err != nil {
-		fmt.Println(string(data))
-		return
-	}
-
-	fmt.Println("✓ Neovault request created")
-	fmt.Printf("Request ID:      %s\n", resp.RequestID)
-	fmt.Printf("Deposit Address: %s\n", resp.DepositAddress)
-	fmt.Printf("Total Amount:    %d\n", resp.TotalAmount)
-	fmt.Printf("Service Fee:     %d\n", resp.ServiceFee)
-	fmt.Printf("Net Amount:      %d\n", resp.NetAmount)
-	fmt.Printf("Deadline:        %d\n", resp.Deadline)
-	fmt.Printf("Expires At:      %s\n", resp.ExpiresAt)
-}
-
-func cmdNeoVaultStatus(args []string) {
-	if len(args) < 2 || args[0] != "--request-id" {
-		fmt.Fprintln(os.Stderr, "Usage: slcli neovault status --request-id <ID>")
-		os.Exit(1)
-	}
-
-	requestID := args[1]
-	data, err := apiRequest("GET", "/neovault/request/"+requestID, nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(string(data))
-}
-
-func cmdNeoVaultList(args []string) {
-	_ = args
-	data, err := apiRequest("GET", "/neovault/requests", nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	var requests []map[string]interface{}
-	if err := json.Unmarshal(data, &requests); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Failed to parse response: %v\n", err)
-		os.Exit(1)
-	}
-
-	if len(requests) == 0 {
-		fmt.Println("No neovault requests found")
-		return
-	}
-
-	fmt.Printf("Found %d neovault request(s):\n\n", len(requests))
-	for i, req := range requests {
-		fmt.Printf("%d. Request ID: %v\n", i+1, req["request_id"])
-		fmt.Printf("   Amount: %v\n", req["amount"])
-		fmt.Printf("   Status: %v\n", req["status"])
-		fmt.Printf("   Created: %v\n\n", req["created_at"])
-	}
 }
 
 func cmdVRF(args []string) {

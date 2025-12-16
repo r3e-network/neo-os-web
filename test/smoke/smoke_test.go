@@ -10,10 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/internal/marble"
-	neoaccounts "github.com/R3E-Network/service_layer/services/neoaccounts/marble"
-	vrf "github.com/R3E-Network/service_layer/services/neorand/marble"
-	neovault "github.com/R3E-Network/service_layer/services/neovault/marble"
+	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
+	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	vrf "github.com/R3E-Network/service_layer/services/vrf/marble"
 )
 
 // TestNeoAccountsSmoke performs basic smoke tests on the NeoAccounts service.
@@ -62,80 +61,6 @@ func TestNeoAccountsSmoke(t *testing.T) {
 		}
 		if svc.Name() != "Account Pool Service" {
 			t.Errorf("expected name 'Account Pool Service', got '%s'", svc.Name())
-		}
-	})
-}
-
-// TestNeoVaultSmoke performs basic smoke tests on the NeoVault service.
-func TestNeoVaultSmoke(t *testing.T) {
-	t.Run("service creates successfully", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neovault"})
-		if err != nil {
-			t.Fatalf("marble.New: %v", err)
-		}
-		m.SetTestSecret("NEOVAULT_MASTER_KEY", []byte("smoke-test-neovault-key-32-bytes!!!"))
-
-		svc, err := neovault.New(&neovault.Config{
-			Marble:         m,
-			NeoAccountsURL: "http://localhost:8081",
-		})
-		if err != nil {
-			t.Fatalf("neovault.New: %v", err)
-		}
-		if svc == nil {
-			t.Fatal("service should not be nil")
-		}
-	})
-
-	t.Run("health endpoint responds", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neovault"})
-		m.SetTestSecret("NEOVAULT_MASTER_KEY", []byte("smoke-test-neovault-key-32-bytes!!!"))
-		svc, _ := neovault.New(&neovault.Config{
-			Marble:         m,
-			NeoAccountsURL: "http://localhost:8081",
-		})
-
-		req := httptest.NewRequest("GET", "/health", nil)
-		w := httptest.NewRecorder()
-		svc.Router().ServeHTTP(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("health check failed: status %d", w.Code)
-		}
-	})
-
-	t.Run("service metadata correct", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neovault"})
-		m.SetTestSecret("NEOVAULT_MASTER_KEY", []byte("smoke-test-neovault-key-32-bytes!!!"))
-		svc, _ := neovault.New(&neovault.Config{
-			Marble:         m,
-			NeoAccountsURL: "http://localhost:8081",
-		})
-
-		if svc.ID() != "neovault" {
-			t.Errorf("expected ID 'neovault', got '%s'", svc.ID())
-		}
-		if svc.Name() != "NeoVault Service" {
-			t.Errorf("expected name 'NeoVault Service', got '%s'", svc.Name())
-		}
-	})
-
-	t.Run("supported tokens available", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neovault"})
-		m.SetTestSecret("NEOVAULT_MASTER_KEY", []byte("smoke-test-neovault-key-32-bytes!!!"))
-		svc, _ := neovault.New(&neovault.Config{
-			Marble:         m,
-			NeoAccountsURL: "http://localhost:8081",
-		})
-
-		tokens := svc.GetSupportedTokens()
-		if len(tokens) == 0 {
-			t.Error("no supported tokens configured")
-		}
-
-		gasConfig := svc.GetTokenConfig("GAS")
-		if gasConfig == nil {
-			t.Error("GAS token config should exist")
 		}
 	})
 }

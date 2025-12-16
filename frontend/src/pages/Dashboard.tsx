@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Activity, Server, Shield, Wallet, TrendingUp, Clock } from 'lucide-react';
+import { Server, Shield, Wallet, Clock, Key } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuthStore } from '../stores/auth';
 
@@ -25,15 +25,23 @@ export function Dashboard() {
     queryFn: () => api.listTransactions(),
   });
 
-  // Fetch neovault requests
-  const { data: neovaultRequests } = useQuery({
-    queryKey: ['neovault-requests'],
-    queryFn: () => api.getNeoVaultRequests(),
+  const formatGas = (amount: number) => (amount / 1e8).toFixed(4);
+
+  const { data: secrets } = useQuery({
+    queryKey: ['secrets'],
+    queryFn: () => api.listSecrets(),
   });
 
-  const formatGas = (amount: number) => (amount / 1e8).toFixed(4);
-  
-  const activeRequests = neovaultRequests?.filter(r => r.status === 0 || r.status === 1).length || 0;
+  const serviceNames = [
+    'VRF',
+    'DataFeeds',
+    'Automation',
+    'ConfCompute',
+    'ConfOracle',
+    'Account Pool',
+    'Global Signer',
+    'Gateway',
+  ];
 
   const stats = [
     { 
@@ -50,14 +58,14 @@ export function Dashboard() {
       color: health?.enclave ? 'text-blue-500' : 'text-yellow-500'
     },
     { 
-      name: 'Active Requests', 
-      value: activeRequests.toString(), 
-      icon: Activity, 
+      name: 'Secrets',
+      value: (secrets?.length || 0).toString(),
+      icon: Key, 
       color: 'text-purple-500' 
     },
     { 
       name: 'Services Active', 
-      value: '9', 
+      value: serviceNames.length.toString(), 
       icon: Server, 
       color: 'text-cyan-500' 
     },
@@ -129,23 +137,23 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Active NeoVault Requests */}
+        {/* Secrets */}
         <div className="bg-gray-800 rounded-xl border border-gray-700">
           <div className="px-6 py-4 border-b border-gray-700">
             <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Active NeoVault Requests
+              <Key className="w-5 h-5" />
+              Secrets
             </h2>
           </div>
           <div className="p-6">
-            {neovaultRequests && neovaultRequests.length > 0 ? (
+            {secrets && secrets.length > 0 ? (
               <div className="space-y-3">
-                {neovaultRequests.filter(r => r.status === 0 || r.status === 1).slice(0, 5).map((req) => (
-                  <div key={req.request_id} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0">
+                {secrets.slice(0, 5).map((secret) => (
+                  <div key={secret.id} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0">
                     <div>
-                      <p className="text-white text-sm font-mono">{req.request_id.slice(0, 8)}...</p>
+                      <p className="text-white text-sm font-mono">{secret.name}</p>
                       <p className="text-gray-500 text-xs">
-                        {new Date(req.created_at).toLocaleString('en-US', { 
+                        Updated {new Date(secret.updated_at).toLocaleString('en-US', { 
                           month: 'short', 
                           day: 'numeric', 
                           hour: '2-digit', 
@@ -154,18 +162,15 @@ export function Dashboard() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-white text-sm">{req.amount} GAS</p>
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        req.status === 0 ? 'bg-yellow-500/10 text-yellow-400' : 'bg-blue-500/10 text-blue-400'
-                      }`}>
-                        {req.status === 0 ? 'Pending' : 'Processing'}
+                      <span className="text-xs px-2 py-0.5 rounded bg-purple-500/10 text-purple-400">
+                        v{secret.version}
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-400 text-center py-8">No active requests</p>
+              <p className="text-gray-400 text-center py-8">No secrets yet</p>
             )}
           </div>
         </div>
@@ -175,7 +180,7 @@ export function Dashboard() {
       <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
         <h2 className="text-xl font-semibold text-white mb-4">Services Overview</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {['NeoRand (VRF)', 'NeoVault', 'NeoOracle', 'NeoStore', 'NeoFeeds', 'NeoFlow', 'NeoCompute', 'NeoAccounts', 'GasBank'].map((service) => (
+          {serviceNames.map((service) => (
             <div key={service} className="bg-gray-700 rounded-lg p-4 text-center hover:bg-gray-600 transition-colors cursor-pointer">
               <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2" />
               <p className="text-sm text-gray-300">{service}</p>

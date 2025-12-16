@@ -9,7 +9,6 @@
   "contracts": {
     "ServiceLayerGateway": null,
     "VRFService": null,
-    "NeoVaultService": null,
     "NeoFeedsService": null,
     "NeoFlowService": null
   },
@@ -27,7 +26,6 @@
   "service_fees": {
     "oracle": 10000000,
     "vrf": 10000000,
-    "neovault": 50000000,
     "neofeeds": 5000000,
     "neoflow": 20000000,
     "neocompute": 100000000

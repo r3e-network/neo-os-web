@@ -1,15 +1,14 @@
 import { Server, ExternalLink } from 'lucide-react';
 
 const services = [
-  { id: 'neooracle', name: 'NeoOracle', description: 'Allowlisted HTTP fetch with TEE proofs', status: 'active' },
-  { id: 'neorand', name: 'NeoRand', description: 'Verifiable randomness (VRF) with proofs', status: 'active' },
-  { id: 'neovault', name: 'NeoVault', description: 'Privacy-preserving transactions and dispute proofs', status: 'active' },
-  { id: 'neostore', name: 'NeoStore', description: 'Encrypted secrets & permissioned injection', status: 'active' },
-  { id: 'neofeeds', name: 'NeoFeeds', description: 'Price feed aggregation & signed updates', status: 'active' },
-  { id: 'neoflow', name: 'NeoFlow', description: 'Trigger-based automation & webhooks', status: 'active' },
-  { id: 'neocompute', name: 'NeoCompute', description: 'TEE-secured JavaScript execution', status: 'active' },
-  { id: 'neoaccounts', name: 'NeoAccounts', description: 'HD-derived account pool & signing', status: 'active' },
-  { id: 'gasbank', name: 'GasBank', description: 'Off-chain fee balance management (via Gateway)', status: 'active' },
+  { id: 'neorand', name: 'VRF', description: 'Verifiable randomness (VRF) with proofs', status: 'active' },
+  { id: 'neofeeds', name: 'DataFeeds', description: 'On-chain data feeds and signed updates', status: 'active' },
+  { id: 'neoflow', name: 'Automation', description: 'Trigger-based automation and callbacks', status: 'active' },
+  { id: 'neocompute', name: 'ConfCompute', description: 'Confidential JavaScript execution with secret injection', status: 'active' },
+  { id: 'neooracle', name: 'ConfOracle', description: 'Confidential oracle with allowlisted HTTP fetch', status: 'active' },
+  { id: 'neoaccounts', name: 'Account Pool', description: 'HD-derived account pool and signing', status: 'active' },
+  { id: 'globalsigner', name: 'Global Signer', description: 'TEE-managed signer for service transactions', status: 'active' },
+  { id: 'gateway', name: 'Gateway', description: 'User auth, wallets, API keys, secrets, and gas bank', status: 'active' },
 ];
 
 export function Services() {

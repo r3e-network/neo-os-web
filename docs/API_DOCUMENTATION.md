@@ -106,6 +106,21 @@ Returns Prometheus metrics for monitoring.
 
 Production note: avoid exposing `/metrics` publicly. Scrape it from inside the cluster (or protect it behind an internal-only ingress/service).
 
+#### Secrets Management
+
+The gateway exposes a user secrets API backed by Supabase. Secrets are encrypted with `SECRETS_MASTER_KEY` and protected by per-secret allowed-services policies.
+
+```http
+GET    /api/v1/secrets
+POST   /api/v1/secrets
+GET    /api/v1/secrets/{name}
+DELETE /api/v1/secrets/{name}
+GET    /api/v1/secrets/{name}/permissions
+PUT    /api/v1/secrets/{name}/permissions
+GET    /api/v1/secrets/audit
+GET    /api/v1/secrets/{name}/audit
+```
+
 ---
 
 ### 2. NeoOracle Service
@@ -215,98 +230,54 @@ POST /api/v1/neorand/verify
 
 ---
 
-### 4. NeoVault Service
+### 4. NeoFeeds Service (Data Feeds)
 
-Privacy-preserving token mixing service.
+Market data aggregation + signing inside the enclave.
 
-#### Registration (Required)
-
-NeoVault endpoints that create/execute mixes require an **approved registration**.
-
-##### Apply for access
+#### Get Price
 
 ```http
-POST /api/v1/neovault/registration/apply
+GET /api/v1/neofeeds/price/{pair}
 ```
 
-```json
-{
-    "email": "user@example.com",
-    "jurisdiction": "US",
-    "purpose": "personal_privacy",
-    "expected_volume": "low",
-    "accept_terms": true
-}
-```
-
-##### Check registration status
+Example:
 
 ```http
-GET /api/v1/neovault/registration/status
-```
-
-##### Admin review (operator-only)
-
-```http
-GET  /api/v1/neovault/admin/registrations
-POST /api/v1/neovault/admin/registrations/review
-```
-
-Admin endpoints require `X-User-Role: admin|super_admin` which is set by the gateway for allowlisted users (`ADMIN_USER_IDS`, `SUPER_ADMIN_USER_IDS`).
-
-#### Create Mix Request
-
-```http
-POST /api/v1/neovault/request
-```
-
-**Request:**
-
-```json
-{
-    "version": 1,
-    "token_type": "GAS",
-    "user_address": "NSourceAddress123",
-    "targets": [{ "address": "NDestAddress456", "amount": 100000000 }],
-    "mix_option": 3600000,
-    "timestamp": 1702209600
-}
+GET /api/v1/neofeeds/price/BTC%2FUSD
 ```
 
 **Response:**
 
 ```json
 {
-    "request_id": "mix_123456",
-    "request_hash": "0x...",
-    "tee_signature": "0x...",
-    "deposit_address": "NNeoVaultDepositAddr",
-    "total_amount": 100000000,
-    "service_fee": 500000,
-    "net_amount": 99500000,
-    "deadline": 1702213200,
-    "expires_at": "2025-12-10T11:00:00Z"
+    "feed_id": "BTC/USD",
+    "pair": "BTC/USD",
+    "price": 4500000000000,
+    "decimals": 8,
+    "timestamp": "2025-12-10T10:00:00Z",
+    "sources": ["chainlink", "binance"],
+    "signature": "base64...",
+    "public_key": "base64..."
 }
 ```
 
-#### Get Mix Status
+#### List Prices
 
 ```http
-GET /api/v1/neovault/status/{request_id}
+GET /api/v1/neofeeds/prices
 ```
 
-**Response:**
+#### List Feeds / Sources / Config
 
-```json
-{
-    "request_id": "mix_123456",
-    "status": "delivered",
-    "request_hash": "0x...",
-    "deadline": 1702213200,
-    "created_at": "2025-12-10T10:00:00Z",
-    "delivered_at": "2025-12-10T10:30:00Z"
-}
+```http
+GET /api/v1/neofeeds/feeds
+GET /api/v1/neofeeds/sources
+GET /api/v1/neofeeds/config
 ```
+
+**Notes:**
+
+- Legacy gateway alias: `GET /api/v1/datafeeds/*` (maps to `neofeeds`).
 
 ---
 
@@ -326,9 +297,9 @@ POST /request
 
 ```json
 {
-    "service_id": "neovault",
+    "service_id": "neoflow",
     "count": 5,
-    "purpose": "mixing_operation"
+    "purpose": "automation_job"
 }
 ```
 
@@ -343,7 +314,7 @@ POST /request
             "balances": {
                 "GAS": { "amount": 1000000 }
             },
-            "locked_by": "neovault"
+            "locked_by": "neoflow"
         }
     ],
     "lock_id": "lock_123456"
@@ -360,7 +331,7 @@ POST /release
 
 ```json
 {
-    "service_id": "neovault",
+    "service_id": "neoflow",
     "account_ids": ["acc_001", "acc_002"]
 }
 ```
@@ -383,7 +354,7 @@ POST /balance
 
 ```json
 {
-    "service_id": "neovault",
+    "service_id": "neoflow",
     "account_id": "acc_001",
     "token": "GAS",
     "delta": -50000,
@@ -500,8 +471,8 @@ POST /api/v1/neocompute/execute
 }
 ```
 
-`secret_refs` entries are NeoStore secret names. The user must grant `neocompute`
-permission to read a secret via the NeoStore permissions API.
+`secret_refs` entries are secret names owned by the user (managed via `POST /api/v1/secrets`).
+The user must allow the `neocompute` service to read a secret via `PUT /api/v1/secrets/{name}/permissions`.
 
 **Response:**
 

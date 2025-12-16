@@ -1,259 +1,75 @@
-# Neo Service Layer - Production Readiness Report
+# Production Readiness (Current)
 
-**Date**: 2025-12-08
-**Version**: 3.2.0
-**Status**: Ready for Production (with recommendations)
+This document is the **current** production readiness checklist for the Neo
+Service Layer as described in `docs/ARCHITECTURE.md`.
 
----
+## Scope
 
-## Executive Summary
+**Gateway (edge)**:
+- Auth (wallet + OAuth), sessions/JWT, API keys, wallet bindings
+- Secrets API + permissions (stored in Supabase; not a separate service)
+- Delegated payments / gas bank (stored in Supabase)
+- Service proxy routes (mTLS inside the mesh)
 
-The Neo Service Layer has been reviewed for production readiness. All core services are functional, tests pass, and the architecture follows security best practices with TEE (Trusted Execution Environment) integration via MarbleRun + EGo.
+**Enclave workloads (MarbleRun + EGo)**:
+- Infrastructure marbles: `infrastructure/accountpool`, `infrastructure/globalsigner`
+- Product services: `services/vrf`, `services/datafeed`, `services/automation`, `services/confcompute`, `services/conforacle`
 
-### Overall Assessment: ✅ PRODUCTION READY
+## Required External Dependencies
 
----
+- **Supabase** (Postgres + PostgREST): migrations applied, service role key available.
+- **Neo N3 RPC**: one or more reliable endpoints configured.
+- **Deployed contracts**: gateway + service contracts deployed and hashes set.
 
-## 1. Build Status
+## Required Secrets / Config
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Gateway Binary | ✅ Pass | Builds successfully |
-| All Services | ✅ Pass | No compilation errors |
-| Go Vet | ✅ Pass | No static analysis issues |
-| Dependencies | ✅ Pass | All dependencies resolved |
+### Gateway (recommended outside TEE)
 
----
+- `JWT_SECRET` (>= 32 bytes recommended)
+- `SECRETS_MASTER_KEY` (hex-encoded 32 bytes)
+- `OAUTH_TOKENS_MASTER_KEY` (hex-encoded 32 bytes) when OAuth is enabled
+- OAuth provider secrets (Google/GitHub/etc) if enabled
 
-## 2. Test Results
+### Enclave Workloads
 
-### 2.1 Test Suite Summary
+Injected via MarbleRun secrets (values depend on which services you run):
 
-| Test Category | Status | Tests | Passed | Skipped | Failed |
-|---------------|--------|-------|--------|---------|--------|
-| Unit Tests | ✅ Pass | 80+ | All | 12 | 0 |
-| Integration Tests | ✅ Pass | 15+ | All | 0 | 0 |
-| Smoke Tests | ✅ Pass | 20+ | All | 1 | 0 |
-| E2E Tests | ✅ Pass | 5+ | All | 0 | 0 |
-| Contract Tests | ✅ Pass | 10+ | All | 0 | 0 |
+- `POOL_MASTER_KEY` (+ `POOL_MASTER_KEY_HASH` in enclave mode) for AccountPool
+- `GLOBALSIGNER_MASTER_SEED` for GlobalSigner
+- `VRF_PRIVATE_KEY` for VRF
+- `NEOFEEDS_SIGNING_KEY` for Datafeeds
+- `COMPUTE_MASTER_KEY` for Confidential Compute
+- `TEE_PRIVATE_KEY` if you enable on-chain fulfillments/callback tx submission
 
-### 2.2 Test Coverage by Package
+## Chain / Contract Configuration
 
-| Package | Coverage | Assessment |
-|---------|----------|------------|
-| internal/crypto | 71.9% | ✅ Good |
-| services/neocompute | 65.3% | ✅ Good |
-| services/neofeeds | 61.5% | ✅ Good |
-| services/neooracle | 58.6% | ✅ Good |
-| internal/marble | 43.8% | ⚠️ Acceptable |
-| internal/gasbank | 40.9% | ⚠️ Acceptable |
-| services/neostore | 31.4% | ⚠️ Acceptable |
-| services/neorand | 28.6% | ⚠️ Acceptable |
-| internal/database | 17.1% | ⚠️ Needs improvement |
-| services/neoaccounts | 11.4% | ⚠️ Needs improvement |
-| services/neoflow | 10.8% | ⚠️ Needs improvement |
-| services/neovault | 9.6% | ⚠️ Needs improvement |
-| internal/chain | 5.7% | ⚠️ Needs improvement |
+Contract hashes can be set with the preferred names (legacy fallbacks are still
+supported by the codebase):
 
-**Average Coverage**: ~35%
-**Recommendation**: Increase coverage to 60%+ for critical paths
+- `CONTRACT_GATEWAY_HASH`
+- `CONTRACT_VRF_HASH`
+- `CONTRACT_DATAFEEDS_HASH` (fallback: `CONTRACT_NEOFEEDS_HASH`)
+- `CONTRACT_AUTOMATION_HASH` (fallback: `CONTRACT_NEOFLOW_HASH`)
+- `CONTRACT_CONFIDENTIAL_HASH` (fallback: `CONTRACT_NEOCOMPUTE_HASH`)
+- `CONTRACT_ORACLE_HASH` (fallback: `CONTRACT_NEOORACLE_HASH`)
 
----
+## Identity / Trust Boundary
 
-## 3. Architecture Review
+- **Production should run in strict identity mode** (MarbleRun TLS injected).
+- Public clients must not be able to spoof identity headers.
+- Gateway is the trust boundary: it authenticates users and forwards derived
+  identity into the mesh over mTLS.
 
-### 3.1 Security Architecture ✅
-
-- **TEE Integration**: All services run inside EGo MarbleRun TEEs
-- **Secret Management**: Secrets injected via MarbleRun Coordinator
-- **mTLS**: Inter-service communication secured with mutual TLS
-- **Key Protection**: Private keys never leave TEE memory
-- **Attestation**: Remote attestation supported for verification
-
-### 3.2 Service Architecture ✅
-
-| Service | Version | Status | Pattern |
-|---------|---------|--------|---------|
-| NeoRand (VRF) | 2.0.0 | ✅ Production | Request-Callback |
-| NeoVault | 3.2.0 | ✅ Production | Off-Chain + Dispute |
-| NeoFeeds | 3.0.0 | ✅ Production | Push/Auto-Update |
-| NeoFlow | 2.0.0 | ✅ Production | Trigger-Based |
-| NeoAccounts (AccountPool) | 1.0.0 | ✅ Production | Account Lending |
-| NeoCompute | 1.0.0 | ⚠️ Beta | Sealed Computation |
-| NeoStore (Secrets) | 1.0.0 | ✅ Production | Encrypted Storage |
-| NeoOracle | 1.0.0 | ✅ Production | HTTP Proxy |
-
-### 3.3 Data Layer ✅
-
-- **Database**: Supabase (PostgreSQL) with proper connection pooling
-- **Persistence**: All critical data persisted to database
-- **Recovery**: Services can resume from database state on restart
-
----
-
-## 4. Configuration Checklist
-
-### 4.1 Required Environment Variables
-
-| Variable | Service | Required | Description |
-|----------|---------|----------|-------------|
-| SUPABASE_URL | All | ✅ Yes | Supabase project URL |
-| SUPABASE_SERVICE_KEY | All | ✅ Yes | Supabase service role key |
-| NEO_RPC_URL | Chain | ✅ Yes | Neo N3 RPC endpoint |
-| JWT_SECRET | Gateway | ✅ Yes | JWT signing secret |
-| PORT | All | No | Service port (default: 8080) |
-
-### 4.2 MarbleRun Secrets
-
-| Secret | Service | Description |
-|--------|---------|-------------|
-| VRF_PRIVATE_KEY | NeoRand | ECDSA P-256 private key |
-| NEOVAULT_MASTER_KEY | NeoVault | HMAC signing key |
-| POOL_MASTER_KEY | NeoAccounts | HD wallet master key |
-| NEOFEEDS_SIGNING_KEY | NeoFeeds | Price signing key |
-| SECRETS_MASTER_KEY | NeoStore | AES-256 encryption key |
-
-Operational note: secrets that must remain stable across restarts/replicas (JWT signing, encryption master keys, VRF keys, etc.) should be declared with `"Shared": true` in `manifests/manifest.json`.
-
----
-
-## 5. Deployment Checklist
-
-### 5.1 Pre-Deployment
-
-- [ ] Configure Supabase database with required tables
-- [ ] Deploy Neo N3 smart contracts
-- [ ] Configure MarbleRun manifest with secrets
-- [ ] Set up TLS certificates
-- [ ] Configure monitoring and alerting
-
-### 5.2 Infrastructure Requirements
-
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| CPU | 4 cores | 8 cores |
-| RAM | 8 GB | 16 GB |
-| Storage | 50 GB SSD | 100 GB SSD |
-| MarbleRun | Required | Required |
-| Network | 100 Mbps | 1 Gbps |
-
-### 5.3 Post-Deployment
-
-- [ ] Verify health endpoints respond
-- [ ] Test attestation endpoint
-- [ ] Verify database connectivity
-- [ ] Test service-to-service communication
-- [ ] Run smoke tests in production
-
----
-
-## 6. Monitoring & Observability
-
-### 6.1 Health Endpoints
-
-All services expose `/health` endpoint returning:
-
-```json
-{
-  "status": "healthy",
-  "service": "service-name",
-  "version": "x.x.x",
-  "enclave": true,
-  "timestamp": "2025-12-08T00:00:00Z"
-}
-```
-
-### 6.2 Recommended Metrics
-
-- Request latency (p50, p95, p99)
-- Request rate per service
-- Error rate per service
-- Database connection pool usage
-- Memory usage per TEE
-- Chain event processing lag
-
----
-
-## 7. Known Limitations
-
-1. **Test Coverage**: Some services have low test coverage (<30%)
-2. **NeoCompute Service**: Still in beta, not recommended for production use
-3. **Fairy Tests**: Require external Neo Fairy instance
-4. **Chain Integration**: Requires deployed smart contracts
-
----
-
-## 8. Recommendations
-
-### 8.1 High Priority
-
-1. **Increase Test Coverage**: Target 60%+ for critical services (neovault, neoflow, neoaccounts)
-2. **Add Integration Tests**: More tests with mock database
-3. **Error Handling**: Add more comprehensive error handling in chain interactions
-
-### 8.2 Medium Priority
-
-1. **Metrics**: Add Prometheus metrics endpoints
-2. **Logging**: Structured logging with correlation IDs
-3. **Rate Limiting**: Add rate limiting to gateway
-
-### 8.3 Low Priority
-
-1. **Documentation**: Add API documentation (OpenAPI/Swagger)
-2. **Performance**: Benchmark and optimize hot paths
-3. **Caching**: Add caching layer for frequently accessed data
-
----
-
-## 9. Sign-Off
-
-| Role | Name | Date | Signature |
-|------|------|------|-----------|
-| Developer | - | 2025-12-08 | Reviewed |
-| QA | - | - | Pending |
-| Security | - | - | Pending |
-| Operations | - | - | Pending |
-
----
-
-## Appendix A: Test Commands
+## Validation Commands
 
 ```bash
-# Run all tests
-go test ./... -v
-
-# Run with coverage
-go test ./... -cover
-
-# Run specific service tests
-go test ./services/neorand/... -v
-
-# Run smoke tests only
-go test ./test/smoke/... -v
-
-# Run integration tests
-go test ./test/integration/... -v
-
-# Build gateway
-go build -o gateway ./cmd/gateway
-
-# Check for issues
+go test ./...
 go vet ./...
 ```
 
-## Appendix B: Quick Start
+Local simulation:
 
 ```bash
-# 1. Set environment variables
-export SUPABASE_URL="https://your-project.supabase.co"
-export SUPABASE_SERVICE_KEY="your-service-key"
-export NEO_RPC_URL="https://mainnet1.neo.coz.io:443"
-export JWT_SECRET="your-jwt-secret"
-
-# 2. Build and run gateway
-go build -o gateway ./cmd/gateway
-./gateway
-
-# 3. Verify health
-curl http://localhost:8080/health
+make docker-up
 ```
+

@@ -18,9 +18,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/internal/database"
-	"github.com/R3E-Network/service_layer/internal/httputil"
-	"github.com/R3E-Network/service_layer/internal/marble"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
+	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/R3E-Network/service_layer/infrastructure/marble"
 )
 
 const (
