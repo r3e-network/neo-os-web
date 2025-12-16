@@ -461,7 +461,7 @@ kubectl describe servicemonitor gateway -n monitoring
 Sprint 1 完成后，继续执行 Sprint 2: TEE Security Foundation
 
 - **STORY-2.1**: MarbleRun Coordinator 生产化
-- **STORY-2.2**: Global TEE Signer 服务
+- **STORY-2.2**: GlobalSigner 服务
 - **STORY-2.3**: 30 天密钥自动轮换
 - **STORY-2.4**: Header Gate 中间件
 

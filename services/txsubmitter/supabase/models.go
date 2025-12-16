@@ -90,6 +90,7 @@ const (
 	TxTypeExecuteTrigger  TxType = "execute_trigger"
 	TxTypeSetTEEMasterKey TxType = "set_tee_master_key"
 	TxTypeResolveDispute  TxType = "resolve_dispute"
+	TxTypeRawTransaction  TxType = "raw_transaction"
 	TxTypeGeneric         TxType = "generic"
 )
 
@@ -98,7 +99,7 @@ func IsValidTxType(t string) bool {
 	switch TxType(t) {
 	case TxTypeFulfillRequest, TxTypeFailRequest, TxTypeUpdatePrice,
 		TxTypeUpdatePrices, TxTypeExecuteTrigger, TxTypeSetTEEMasterKey,
-		TxTypeResolveDispute, TxTypeGeneric:
+		TxTypeResolveDispute, TxTypeRawTransaction, TxTypeGeneric:
 		return true
 	default:
 		return false

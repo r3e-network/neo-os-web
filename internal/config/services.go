@@ -99,11 +99,6 @@ func DefaultServicesConfig() *ServicesConfig {
 				Port:        8090,
 				Description: "Centralized chain transaction submission",
 			},
-			"gasaccounting": {
-				Enabled:     true,
-				Port:        8091,
-				Description: "GAS ledger and accounting",
-			},
 			"globalsigner": {
 				Enabled:     true,
 				Port:        8092,

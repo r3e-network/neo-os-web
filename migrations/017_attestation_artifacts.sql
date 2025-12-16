@@ -33,4 +33,5 @@ CREATE INDEX IF NOT EXISTS attestation_artifacts_hash_idx
 CREATE INDEX IF NOT EXISTS attestation_artifacts_created_at_idx
   ON attestation_artifacts (created_at DESC);
 
-COMMENT ON TABLE attestation_artifacts IS 'TEE attestation artifacts for Marblerun services';
+COMMENT ON TABLE attestation_artifacts IS 'TEE attestation artifacts for MarbleRun services';
+

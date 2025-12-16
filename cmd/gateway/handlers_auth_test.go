@@ -3,11 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/R3E-Network/service_layer/internal/crypto"
 	"github.com/R3E-Network/service_layer/internal/database"
 )
 
@@ -232,5 +234,66 @@ func TestHeaderGateMiddleware_UsesConstantTimeCompare(t *testing.T) {
 	}
 	if !bytes.Contains(src, []byte("subtle.ConstantTimeCompare")) {
 		t.Fatalf("expected header gate to use subtle.ConstantTimeCompare")
+	}
+}
+
+func TestRegisterHandler_RequiresNonceIssuedFirst(t *testing.T) {
+	keyPair, err := crypto.GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair error: %v", err)
+	}
+
+	address := crypto.PublicKeyToAddress(keyPair.PublicKey)
+	message := "Sign this message to authenticate with Neo Service Layer.\n\nNonce: testnonce\nTimestamp: 1"
+	sig, err := crypto.Sign(keyPair.PrivateKey, []byte(message))
+	if err != nil {
+		t.Fatalf("Sign error: %v", err)
+	}
+
+	pubKey := crypto.PublicKeyToBytes(keyPair.PublicKey)
+
+	prevTransport := http.DefaultTransport
+	http.DefaultTransport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		switch r.URL.Path {
+		case "/rest/v1/user_wallets", "/rest/v1/users":
+			if r.Method != http.MethodGet {
+				t.Fatalf("unexpected method %s for %s", r.Method, r.URL.Path)
+			}
+			return jsonResponse(r, http.StatusOK, "[]"), nil
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+			return nil, nil
+		}
+	})
+	t.Cleanup(func() { http.DefaultTransport = prevTransport })
+
+	client, err := database.NewClient(database.Config{
+		URL:        "https://example.com",
+		ServiceKey: "service-key",
+	})
+	if err != nil {
+		t.Fatalf("NewClient error: %v", err)
+	}
+	db := database.NewRepository(client)
+
+	payload := map[string]any{
+		"address":   address,
+		"publicKey": hex.EncodeToString(pubKey),
+		"signature": hex.EncodeToString(sig),
+		"message":   message,
+		"nonce":     "testnonce",
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
+	rr := httptest.NewRecorder()
+
+	registerHandler(db).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusBadRequest)
 	}
 }

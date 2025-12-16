@@ -20,6 +20,7 @@ import (
 	"github.com/R3E-Network/service_layer/internal/logging"
 	"github.com/R3E-Network/service_layer/internal/marble"
 	commonservice "github.com/R3E-Network/service_layer/services/common/service"
+	neoindexersupabase "github.com/R3E-Network/service_layer/services/neoindexer/supabase"
 )
 
 // =============================================================================
@@ -48,6 +49,9 @@ type Service struct {
 	rpcEndpoints []RPCEndpoint
 	currentRPC   int
 
+	// Persistence (processed_events) for durable idempotency.
+	repo neoindexersupabase.Repository
+
 	// Progress tracking
 	progress     IndexerProgress
 	progressFile string
@@ -67,6 +71,7 @@ type ServiceConfig struct {
 	DB          database.RepositoryInterface
 	ChainClient *chain.Client
 	Config      *Config
+	Repository  neoindexersupabase.Repository
 }
 
 // =============================================================================
@@ -92,6 +97,7 @@ func New(cfg ServiceConfig) (*Service, error) {
 		config:       cfg.Config,
 		chainClient:  cfg.ChainClient,
 		rpcEndpoints: cfg.Config.RPCEndpoints,
+		repo:         cfg.Repository,
 	}
 
 	// If multiple endpoints are configured, ensure the client uses the first one.
@@ -255,7 +261,7 @@ func (s *Service) processNotification(ctx context.Context, height int64, blockHa
 	}
 
 	// Check if already processed (idempotency)
-	if s.isProcessed(txHash, logIndex) {
+	if s.isProcessed(ctx, txHash, logIndex) {
 		return nil
 	}
 
@@ -347,15 +353,48 @@ func (s *Service) getTopicForEvent(eventName string) string {
 
 // isProcessed checks if an event has already been processed.
 // Returns false to allow processing; idempotency enforced at database layer via unique constraints.
-func (s *Service) isProcessed(txHash string, logIndex int) bool {
-	return false
+func (s *Service) isProcessed(ctx context.Context, txHash string, logIndex int) bool {
+	if s.repo == nil {
+		// In development/testing the indexer can run without Supabase; duplicates are acceptable.
+		return false
+	}
+
+	exists, err := s.repo.Exists(ctx, s.config.ChainID, txHash, logIndex)
+	if err != nil {
+		s.Logger().Warn(ctx, "Failed to check processed event", map[string]any{
+			"tx_hash":   txHash,
+			"log_index": logIndex,
+			"error":     err.Error(),
+		})
+		return false
+	}
+	return exists
 }
 
 // recordProcessed records an event as processed.
 // Database insertion handled by repository layer; this method logs for audit trail.
 func (s *Service) recordProcessed(ctx context.Context, event *ChainEvent) error {
+	if event == nil {
+		return nil
+	}
+
 	s.Logger().Debug(ctx, "Event processed", map[string]interface{}{"tx": event.TxHash, "event": event.EventName})
-	return nil
+
+	if s.repo == nil {
+		return nil
+	}
+
+	return s.repo.Insert(ctx, &neoindexersupabase.ProcessedEventRecord{
+		ChainID:         event.ChainID,
+		TxHash:          event.TxHash,
+		LogIndex:        event.LogIndex,
+		BlockHeight:     event.BlockHeight,
+		BlockHash:       event.BlockHash,
+		ContractAddress: event.ContractAddress,
+		EventName:       event.EventName,
+		Payload:         event.Payload,
+		Confirmations:   event.Confirmations,
+	})
 }
 
 // =============================================================================

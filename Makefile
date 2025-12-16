@@ -138,7 +138,10 @@ marblerun-recover: ## Recover MarbleRun coordinator
 
 db-migrate: ## Run database migrations
 	@echo "Running migrations..."
-	psql "$(DATABASE_URL)" -f migrations/001_initial_schema.sql
+	@for f in migrations/[0-9][0-9][0-9]_*.sql; do \
+		echo "Applying $$f"; \
+		psql "$(DATABASE_URL)" -f "$$f"; \
+	done
 
 db-seed: ## Seed database with test data
 	@echo "Seeding database..."

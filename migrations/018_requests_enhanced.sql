@@ -1,7 +1,7 @@
 -- Enhanced requests table with full state machine support.
 -- Adds retry tracking, chain tx reference, and detailed status.
 
--- Add new columns to existing service_requests table if they don't exist
+-- Add new columns to existing service_requests table if they don't exist.
 DO $$
 BEGIN
   -- Add retry_count column
@@ -39,9 +39,10 @@ END $$;
 CREATE INDEX IF NOT EXISTS service_requests_chain_tx_id_idx
   ON service_requests (chain_tx_id);
 
--- Create index for retry tracking
+-- Create index for retry tracking (without enum value assumptions).
 CREATE INDEX IF NOT EXISTS service_requests_retry_idx
   ON service_requests (status, retry_count)
-  WHERE status = 'retrying';
+  WHERE retry_count > 0;
 
 COMMENT ON TABLE service_requests IS 'Enhanced service request state machine with chain tx tracking';
+

@@ -184,7 +184,8 @@ var ServiceAllowlist = map[string][]string{
 	"neocompute":   {"fulfill_request", "fail_request"},
 	"neovault":     {"fulfill_request", "fail_request", "resolve_dispute"},
 	"neoflow":      {"execute_trigger"},
-	"neoaccounts":  {"fulfill_request", "fail_request"},
+	// NeoAccounts signs with derived pool keys; TxSubmitter only broadcasts.
+	"neoaccounts":  {"raw_transaction"},
 	"globalsigner": {"set_tee_master_key"},
 }
 

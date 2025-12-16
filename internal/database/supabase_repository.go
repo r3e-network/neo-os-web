@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -91,7 +92,29 @@ func (r *Repository) GetUserByAddress(ctx context.Context, address string) (*Use
 		return nil, err
 	}
 
-	data, err := r.client.request(ctx, "GET", "users", nil, "address=eq."+url.QueryEscape(address)+"&limit=1")
+	escapedAddress := url.QueryEscape(address)
+
+	// Prefer the wallet bindings table so any bound wallet (not just the primary)
+	// can be used for wallet-based login/nonce flows.
+	walletData, err := r.client.request(ctx, "GET", "user_wallets", nil, "address=eq."+escapedAddress+"&limit=2")
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseError, err)
+	}
+
+	var wallets []UserWallet
+	if err := json.Unmarshal(walletData, &wallets); err != nil {
+		return nil, fmt.Errorf("%w: unmarshal wallets: %v", ErrDatabaseError, err)
+	}
+	if len(wallets) > 1 {
+		return nil, fmt.Errorf("%w: wallet address %q is bound to multiple users", ErrDatabaseError, address)
+	}
+	if len(wallets) == 1 {
+		return r.GetUser(ctx, wallets[0].UserID)
+	}
+
+	// Backward compatible fallback for legacy records that used users.address
+	// without a corresponding wallet binding.
+	data, err := r.client.request(ctx, "GET", "users", nil, "address=eq."+escapedAddress+"&limit=1")
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrDatabaseError, err)
 	}
@@ -139,7 +162,29 @@ func (r *Repository) CreateUser(ctx context.Context, user *User) error {
 		return fmt.Errorf("%w: user id cannot be empty", ErrInvalidInput)
 	}
 
-	_, err := r.client.request(ctx, "POST", "users", user, "")
+	payload := map[string]any{
+		"id": user.ID,
+	}
+
+	if email := SanitizeString(user.Email); email != "" {
+		if err := ValidateEmail(email); err != nil {
+			return err
+		}
+		payload["email"] = email
+	}
+
+	if addr := strings.TrimSpace(user.Address); addr != "" {
+		if err := ValidateAddress(addr); err != nil {
+			return err
+		}
+		payload["address"] = addr
+	}
+
+	if nonce := SanitizeString(user.Nonce); nonce != "" {
+		payload["nonce"] = nonce
+	}
+
+	_, err := r.client.request(ctx, "POST", "users", payload, "")
 	if err != nil {
 		return fmt.Errorf("%w: create user: %v", ErrDatabaseError, err)
 	}

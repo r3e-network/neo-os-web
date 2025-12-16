@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/internal/httputil"
+	"github.com/R3E-Network/service_layer/internal/middleware"
 	"github.com/R3E-Network/service_layer/services/txsubmitter/supabase"
 )
 
@@ -21,8 +22,9 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 	s.BaseService.RegisterStandardRoutesOnServeMux(mux)
 
 	// TxSubmitter-specific endpoints
-	mux.HandleFunc("/submit", s.handleSubmit)
-	mux.HandleFunc("/tx/", s.handleGetTx)
+	// SECURITY: submission + tx lookup require authenticated caller identity.
+	mux.Handle("/submit", middleware.RequireServiceAuth(http.HandlerFunc(s.handleSubmit)))
+	mux.Handle("/tx/", middleware.RequireServiceAuth(http.HandlerFunc(s.handleGetTx)))
 	mux.HandleFunc("/status", s.handleStatus)
 	mux.HandleFunc("/rpc/health", s.handleRPCHealth)
 }
@@ -34,10 +36,8 @@ func (s *Service) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get service ID from header
-	serviceID := r.Header.Get("X-Service-ID")
-	if serviceID == "" {
-		httputil.WriteError(w, http.StatusBadRequest, "X-Service-ID header required")
+	serviceID, ok := httputil.RequireServiceID(w, r)
+	if !ok {
 		return
 	}
 

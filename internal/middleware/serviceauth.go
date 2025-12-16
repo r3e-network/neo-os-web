@@ -321,9 +321,24 @@ func GetServiceID(ctx context.Context) string {
 	return serviceauth.GetServiceID(ctx)
 }
 
+// GetUserID extracts user ID from context.
+//
+// Prefer using this helper over reaching into internal/serviceauth directly so
+// middleware consumers have a single import surface.
+func GetUserID(ctx context.Context) string {
+	// The gateway stores user identity in the logging context, while the
+	// service-to-service auth middleware stores it in the serviceauth context.
+	// Prefer the logging context when present so generic middleware (rate limits,
+	// metrics, etc.) can key off the authenticated user consistently.
+	if userID := logging.GetUserID(ctx); userID != "" {
+		return userID
+	}
+	return serviceauth.GetUserID(ctx)
+}
+
 // GetUserIDFromContext extracts user ID from context.
 func GetUserIDFromContext(ctx context.Context) string {
-	return serviceauth.GetUserID(ctx)
+	return GetUserID(ctx)
 }
 
 // WithServiceID returns a new context with the service ID set.
@@ -336,6 +351,11 @@ func WithServiceID(ctx context.Context, serviceID string) context.Context {
 // This is useful for propagating user ID through service-to-service calls.
 func WithUserID(ctx context.Context, userID string) context.Context {
 	return serviceauth.WithUserID(ctx, userID)
+}
+
+// GetUserRole extracts the user role from context when present.
+func GetUserRole(ctx context.Context) string {
+	return logging.GetRole(ctx)
 }
 
 // ParseRSAPublicKeyFromPEM parses an RSA public key from PEM bytes.
@@ -387,12 +407,19 @@ func isHexChar(c rune) bool {
 // Use this for endpoints that must only be called by authenticated services.
 func RequireServiceAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		serviceID := GetServiceID(r.Context())
+		// Derive the caller identity from verified mTLS in strict mode, falling back
+		// to service-auth context / headers in development. This avoids trusting
+		// spoofable headers in production/SGX environments.
+		serviceID := internalhttputil.GetServiceID(r)
 		if serviceID == "" {
 			internalhttputil.WriteErrorResponse(w, r, http.StatusUnauthorized, "AUTH_REQUIRED", "service authentication required", nil)
 			return
 		}
-		next.ServeHTTP(w, r)
+
+		// Ensure downstream handlers can read service identity from context even
+		// when it originated from mTLS verification.
+		ctx := serviceauth.WithServiceID(r.Context(), serviceID)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

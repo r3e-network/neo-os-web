@@ -375,10 +375,21 @@ func TestRepositoryGetUserNotFound(t *testing.T) {
 func TestRepositoryGetUserByAddress(t *testing.T) {
 	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]User{{
-			ID:      "user-123",
-			Address: "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR",
-		}})
+
+		switch r.URL.Path {
+		case "/rest/v1/user_wallets":
+			_ = json.NewEncoder(w).Encode([]UserWallet{{
+				UserID:  "user-123",
+				Address: "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR",
+			}})
+		case "/rest/v1/users":
+			_ = json.NewEncoder(w).Encode([]User{{
+				ID:      "user-123",
+				Address: "NXV7ZhHiyM1aHXwpVsRZC6BN3y4gABn6gR",
+			}})
+		default:
+			_ = json.NewEncoder(w).Encode([]User{})
+		}
 	}))
 	repo := NewRepository(client)
 

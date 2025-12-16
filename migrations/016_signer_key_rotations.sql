@@ -1,5 +1,5 @@
 -- Signer key rotations table for GlobalSigner.
--- Tracks 30-day automatic key rotation with 7-day overlap.
+-- Tracks 30-day automatic key rotation with overlap periods.
 
 CREATE TABLE IF NOT EXISTS signer_key_rotations (
   id BIGSERIAL PRIMARY KEY,
@@ -29,3 +29,4 @@ CREATE INDEX IF NOT EXISTS signer_key_rotations_active_overlapping_idx
   WHERE status IN ('active', 'overlapping');
 
 COMMENT ON TABLE signer_key_rotations IS 'Key rotation state machine for GlobalSigner';
+

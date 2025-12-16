@@ -12,11 +12,11 @@ import (
 // User represents a user account.
 type User struct {
 	ID        string    `json:"id"`
-	Address   string    `json:"address"`
+	Address   string    `json:"address,omitempty"`
 	Email     string    `json:"email,omitempty"`
 	Nonce     string    `json:"nonce,omitempty"` // For signature verification
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
 
 // APIKey represents an API key.

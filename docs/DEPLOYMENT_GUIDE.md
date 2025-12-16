@@ -129,7 +129,6 @@ NEOSTORE_SERVICE_URL=http://neostore:8087
 NEOORACLE_SERVICE_URL=http://neooracle:8088
 NEOINDEXER_SERVICE_URL=http://neoindexer:8089
 TXSUBMITTER_SERVICE_URL=http://txsubmitter:8090
-GASACCOUNTING_SERVICE_URL=http://gasaccounting:8091
 GLOBALSIGNER_SERVICE_URL=http://globalsigner:8092
 
 # Service-to-service URLs (used by marbles)
@@ -399,7 +398,7 @@ scrape_configs:
     relabel_configs:
       - source_labels: [__meta_kubernetes_pod_label_app]
         action: keep
-        regex: gateway|neorand|neovault|neofeeds|neoflow|neoaccounts|neocompute|neostore|neooracle|neoindexer|txsubmitter|gasaccounting|globalsigner
+        regex: gateway|neorand|neovault|neofeeds|neoflow|neoaccounts|neocompute|neostore|neooracle|neoindexer|txsubmitter|globalsigner
 ```
 
 ### Grafana Dashboards

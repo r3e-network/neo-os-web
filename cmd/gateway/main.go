@@ -123,12 +123,12 @@ func main() {
 		log.Fatalf("Failed to initialize marble: %v", initErr)
 	}
 
-	// In production/SGX mode, require MarbleRun-injected mTLS credentials for the
-	// internal service mesh, even if the public listener runs behind an ingress.
-	// This prevents accidentally weakening trust boundaries by running plaintext
-	// service-to-service traffic.
-	if (runtime.StrictIdentityMode() || m.IsEnclave()) && m.TLSConfig() == nil {
-		log.Fatalf("CRITICAL: MarbleRun TLS credentials are required in production/SGX mode (missing MARBLE_CERT/MARBLE_KEY/MARBLE_ROOT_CA)")
+	// The gateway can run outside the MarbleRun mTLS mesh (e.g. Vercel/edge or a
+	// conventional ingress) because it is user-facing and does not rely on
+	// service-to-service identity headers. However, when the gateway itself runs
+	// inside an enclave we must have MarbleRun-injected mTLS credentials.
+	if m.IsEnclave() && m.TLSConfig() == nil {
+		log.Fatalf("CRITICAL: MarbleRun TLS credentials are required when running gateway inside an enclave (missing MARBLE_CERT/MARBLE_KEY/MARBLE_ROOT_CA)")
 	}
 
 	// Load JWT secret - REQUIRED in production
@@ -433,6 +433,8 @@ func registerRoutes(router *mux.Router, db *database.Repository, m *marble.Marbl
 	public.HandleFunc("/auth/google/callback", googleCallbackHandler(db, m)).Methods("GET")
 	public.HandleFunc("/auth/github", githubAuthHandler(m)).Methods("GET")
 	public.HandleFunc("/auth/github/callback", githubCallbackHandler(db, m)).Methods("GET")
+	public.HandleFunc("/auth/twitter", twitterAuthHandler(m)).Methods("GET")
+	public.HandleFunc("/auth/twitter/callback", twitterCallbackHandler(db, m)).Methods("GET")
 
 	// Protected routes
 	protected := api.PathPrefix("").Subrouter()
@@ -467,16 +469,18 @@ func registerRoutes(router *mux.Router, db *database.Repository, m *marble.Marbl
 	protected.HandleFunc("/gasbank/transactions", listTransactionsHandler(db)).Methods("GET")
 
 	// Service proxy routes
-	protected.HandleFunc("/vrf/{path:.*}", proxyHandler("vrf", m)).Methods("GET", "POST")
-	protected.HandleFunc("/neorand/{path:.*}", proxyHandler("neorand", m)).Methods("GET", "POST")
-	protected.HandleFunc("/neovault/{path:.*}", proxyHandler("neovault", m)).Methods("GET", "POST")
-	protected.HandleFunc("/neofeeds/{path:.*}", proxyHandler("neofeeds", m)).Methods("GET", "POST")
-	protected.HandleFunc("/neoflow/{path:.*}", proxyHandler("neoflow", m)).Methods("GET", "POST", "PUT", "DELETE")
-	protected.HandleFunc("/neocompute/{path:.*}", proxyHandler("neocompute", m)).Methods("GET", "POST")
-	protected.HandleFunc("/neostore/{path:.*}", proxyHandler("neostore", m)).Methods("GET", "POST", "PUT", "DELETE")
-	protected.HandleFunc("/neooracle/{path:.*}", proxyHandler("neooracle", m)).Methods("GET", "POST")
+	services := protected.PathPrefix("").Subrouter()
+	services.Use(requirePrimaryWalletMiddleware(db))
+	services.HandleFunc("/vrf/{path:.*}", proxyHandler("vrf", m)).Methods("GET", "POST")
+	services.HandleFunc("/neorand/{path:.*}", proxyHandler("neorand", m)).Methods("GET", "POST")
+	services.HandleFunc("/neovault/{path:.*}", proxyHandler("neovault", m)).Methods("GET", "POST")
+	services.HandleFunc("/neofeeds/{path:.*}", proxyHandler("neofeeds", m)).Methods("GET", "POST")
+	services.HandleFunc("/neoflow/{path:.*}", proxyHandler("neoflow", m)).Methods("GET", "POST", "PUT", "DELETE")
+	services.HandleFunc("/neocompute/{path:.*}", proxyHandler("neocompute", m)).Methods("GET", "POST")
+	services.HandleFunc("/neostore/{path:.*}", proxyHandler("neostore", m)).Methods("GET", "POST", "PUT", "DELETE")
+	services.HandleFunc("/neooracle/{path:.*}", proxyHandler("neooracle", m)).Methods("GET", "POST")
 
 	// Backward-compatible aliases.
-	protected.HandleFunc("/secrets/{path:.*}", proxyHandler("secrets", m)).Methods("GET", "POST", "PUT", "DELETE")
-	protected.HandleFunc("/oracle/{path:.*}", proxyHandler("oracle", m)).Methods("GET", "POST")
+	services.HandleFunc("/secrets/{path:.*}", proxyHandler("secrets", m)).Methods("GET", "POST", "PUT", "DELETE")
+	services.HandleFunc("/oracle/{path:.*}", proxyHandler("oracle", m)).Methods("GET", "POST")
 }

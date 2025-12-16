@@ -3,6 +3,7 @@ package neoflowmarble
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -416,7 +417,10 @@ func (s *Service) UnregisterChainTrigger(triggerID uint64) {
 
 // checkChainTriggers checks all registered on-chain triggers and executes if conditions are met.
 func (s *Service) checkChainTriggers(ctx context.Context) {
-	if !s.enableChainExec || s.teeFulfiller == nil || s.neoflowHash == "" {
+	if !s.enableChainExec || s.neoflowHash == "" {
+		return
+	}
+	if s.txSubmitter == nil && s.teeFulfiller == nil {
 		return
 	}
 
@@ -640,9 +644,19 @@ func (s *Service) queryNep17Balance(ctx context.Context, address, assetHash stri
 
 // executeChainTrigger executes a trigger on-chain.
 func (s *Service) executeChainTrigger(ctx context.Context, trigger *chain.Trigger, executionData []byte) {
-	_, err := s.teeFulfiller.ExecuteTrigger(ctx, s.neoflowHash, trigger.TriggerID, executionData)
-	if err != nil {
-		// Log error but continue - trigger will be retried on next check
+	if s.txSubmitter != nil {
+		resp, err := s.txSubmitter.ExecuteTrigger(ctx, s.neoflowHash, trigger.TriggerID.String(), hex.EncodeToString(executionData))
+		if err != nil || (resp != nil && resp.Error != "") {
+			// Log error but continue - trigger will be retried on next check
+			return
+		}
+	} else if s.teeFulfiller != nil {
+		_, err := s.teeFulfiller.ExecuteTrigger(ctx, s.neoflowHash, trigger.TriggerID, executionData)
+		if err != nil {
+			// Log error but continue - trigger will be retried on next check
+			return
+		}
+	} else {
 		return
 	}
 
