@@ -69,6 +69,8 @@ services:
       - ACCOUNTPOOL_SERVICE_URL=${ACCOUNTPOOL_SERVICE_URL:-http://neoaccounts:8085}
       - CONFIDENTIAL_SERVICE_URL=${CONFIDENTIAL_SERVICE_URL:-http://neocompute:8086}
       - ORACLE_SERVICE_URL=${ORACLE_SERVICE_URL:-http://neooracle:8088}
+      - NEORAND_SERVICE_URL=${NEORAND_SERVICE_URL:-http://neorand:8087}
+      - TXPROXY_SERVICE_URL=${TXPROXY_SERVICE_URL:-http://txproxy:8090}
     volumes:
       - gateway-data:/marble
     depends_on:
@@ -106,6 +108,7 @@ services:
       - CONTRACT_GATEWAY_HASH
       - CONTRACT_DATAFEEDS_HASH
       - TEE_PRIVATE_KEY
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
     depends_on:
       - coordinator
     restart: unless-stopped
@@ -141,6 +144,7 @@ services:
       - CONTRACT_AUTOMATION_HASH
       - NEOFLOW_SCHEDULER_USER_ID
       - TEE_PRIVATE_KEY
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
     depends_on:
       - coordinator
     restart: unless-stopped
@@ -171,6 +175,7 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
     depends_on:
       - coordinator
     restart: unless-stopped
@@ -206,6 +211,7 @@ services:
       - CONTRACT_CONFIDENTIAL_HASH
       - NEOCOMPUTE_RESULT_TTL
       - TEE_PRIVATE_KEY
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
     depends_on:
       - coordinator
     restart: unless-stopped
@@ -243,6 +249,72 @@ services:
       - CONTRACT_GATEWAY_HASH
       - CONTRACT_ORACLE_HASH
       - TEE_PRIVATE_KEY
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoRand Service Marble (VRF) - Simulation Mode
+  # =============================================================================
+  neorand:
+    image: service-layer/neorand:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neorand
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neorand
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neorand
+      - EDG_MARBLE_DNS_NAMES=localhost,neorand
+      - SERVICE_TYPE=neorand
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEORAND_PORT:-8087}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - CONTRACT_RANDOMNESSLOG_HASH
+      - VRF_PRIVATE_KEY
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # TxProxy Service Marble - Simulation Mode
+  # =============================================================================
+  txproxy:
+    image: service-layer/txproxy:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: txproxy
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-txproxy
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=txproxy
+      - EDG_MARBLE_DNS_NAMES=localhost,txproxy
+      - SERVICE_TYPE=txproxy
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${TXPROXY_PORT:-8090}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - TXPROXY_ALLOWLIST
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
     depends_on:
       - coordinator
     restart: unless-stopped

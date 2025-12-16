@@ -54,6 +54,11 @@ func DefaultServicesConfig() *ServicesConfig {
 				Port:        8092,
 				Description: "TEE master key management and domain-separated signing",
 			},
+			"txproxy": {
+				Enabled:     true,
+				Port:        8090,
+				Description: "Allowlisted transaction signing + broadcast proxy",
+			},
 			"neofeeds": {
 				Enabled:     true,
 				Port:        8083,
@@ -74,6 +79,11 @@ func DefaultServicesConfig() *ServicesConfig {
 				Port:        8086,
 				Description: "Secure JavaScript execution",
 			},
+			"neorand": {
+				Enabled:     true,
+				Port:        8087,
+				Description: "Verifiable randomness (VRF) + anchoring",
+			},
 			"neooracle": {
 				Enabled:     true,
 				Port:        8088,
@@ -90,6 +100,9 @@ var ServiceNameMapping = map[string]string{
 	"neoaccounts": "neoaccounts",
 	"neocompute":  "neocompute",
 	"neoflow":     "neoflow",
+	"vrf":         "neorand",
+	"rng":         "neorand",
+	"tx-proxy":    "txproxy",
 }
 
 // GetNeoServiceName converts old service name to new Neo name

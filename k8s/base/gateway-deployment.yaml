@@ -187,6 +187,18 @@ spec:
                 configMapKeyRef:
                   name: service-layer-config
                   key: ORACLE_SERVICE_URL
+            - name: NEORAND_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: service-layer-config
+                  key: NEORAND_SERVICE_URL
+                  optional: true
+            - name: TXPROXY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: service-layer-config
+                  key: TXPROXY_SERVICE_URL
+                  optional: true
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:

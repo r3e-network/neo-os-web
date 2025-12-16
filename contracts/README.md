@@ -18,6 +18,19 @@ The current contract set is designed around a single entry-point contract (`Serv
 | Conf Compute | `ConfidentialService` | `services/confcompute/contract/NeoComputeService*.cs` | Request/response pattern |
 | Conf Oracle | `OracleService` | `services/conforacle/contract/NeoOracleService*.cs` | Request/response pattern |
 
+## Platform Contracts (MiniApp)
+
+These contracts support the MiniApp platform model (payments in GAS only, governance in NEO only):
+
+| Contract | Display Name | Source | Notes |
+|---|---|---|---|
+| Payments | `PaymentHub` | `contracts/PaymentHub/PaymentHub.cs` | GAS-only payments + settlement |
+| Governance | `Governance` | `contracts/Governance/Governance.cs` | NEO-only staking + voting skeleton |
+| Price Feeds | `PriceFeed` | `contracts/PriceFeed/PriceFeed.cs` | Stores price rounds + attestation hash |
+| Randomness | `RandomnessLog` | `contracts/RandomnessLog/RandomnessLog.cs` | Stores randomness + attestation hash |
+| App Registry | `AppRegistry` | `contracts/AppRegistry/AppRegistry.cs` | App manifest hash + status |
+| Automation | `AutomationAnchor` | `contracts/AutomationAnchor/AutomationAnchor.cs` | Task registry + anti-replay |
+
 Example consumer contracts:
 
 - `contracts/examples/ExampleConsumer.cs`

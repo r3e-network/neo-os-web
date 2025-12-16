@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,21 +29,52 @@ type NeoExpress struct {
 	running bool
 	cmd     *exec.Cmd
 	rpcURL  string
+	dataFile string
 }
 
 // DeployedContract is imported from infrastructure/chain package
 
 func NewNeoExpress(t *testing.T) *NeoExpress {
 	t.Helper()
+	dataFile := os.Getenv("NEOEXPRESS_FILE")
+	if strings.TrimSpace(dataFile) == "" {
+		// Default to an isolated instance per test run.
+		dataFile = filepath.Join(t.TempDir(), "test.neo-express")
+	}
 	return &NeoExpress{
 		t:      t,
 		rpcURL: "http://127.0.0.1:50012",
+		dataFile: dataFile,
 	}
 }
 
 func (n *NeoExpress) neoxpCmd() string {
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".dotnet", "tools", neoxpPath)
+}
+
+func (n *NeoExpress) dotnetEnv() []string {
+	home, _ := os.UserHomeDir()
+	dotnetRoot := filepath.Join(home, ".dotnet")
+	tools := filepath.Join(home, ".dotnet", "tools")
+
+	path := os.Getenv("PATH")
+	if path == "" {
+		path = tools
+	} else {
+		path = dotnetRoot + string(os.PathListSeparator) + tools + string(os.PathListSeparator) + path
+	}
+
+	return []string{
+		"DOTNET_ROOT=" + dotnetRoot,
+		"PATH=" + path,
+	}
+}
+
+func (n *NeoExpress) command(ctx context.Context, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, n.neoxpCmd(), args...)
+	cmd.Env = append(os.Environ(), n.dotnetEnv()...)
+	return cmd
 }
 
 func (n *NeoExpress) Start(ctx context.Context) error {
@@ -53,7 +85,13 @@ func (n *NeoExpress) Start(ctx context.Context) error {
 		return nil
 	}
 
-	n.cmd = exec.CommandContext(ctx, n.neoxpCmd(), "run", "-s", "0")
+	if err := n.ensureCreated(ctx); err != nil {
+		return err
+	}
+
+	// NOTE: Do not use --discard on first run: neo-express initializes RocksDB state
+	// during `run`, and discard mode expects storage to already exist.
+	n.cmd = n.command(ctx, "run", "-s", "0", "-i", n.dataFile)
 	n.cmd.Stdout = os.Stdout
 	n.cmd.Stderr = os.Stderr
 
@@ -62,9 +100,68 @@ func (n *NeoExpress) Start(ctx context.Context) error {
 	}
 
 	n.running = true
-	time.Sleep(2 * time.Second)
+	if err := n.waitForRPC(ctx, 15*time.Second); err != nil {
+		// Ensure we don't leave a broken process around.
+		_ = n.cmd.Process.Kill()
+		n.running = false
+		return err
+	}
 
 	return nil
+}
+
+func (n *NeoExpress) ensureCreated(ctx context.Context) error {
+	if n.dataFile == "" {
+		return fmt.Errorf("neo-express data file not configured")
+	}
+	if _, err := os.Stat(n.dataFile); err == nil {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(n.dataFile), 0o755); err != nil {
+		return fmt.Errorf("create neo-express dir: %w", err)
+	}
+
+	out, err := n.command(ctx, "create", "-o", n.dataFile, "-f").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("create neo-express instance: %s: %w", string(out), err)
+	}
+
+	// Initialize node storage (RocksDB) for the freshly created instance.
+	out, err = n.command(ctx, "reset", "-i", n.dataFile, "-f").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("reset neo-express instance: %s: %w", string(out), err)
+	}
+	return nil
+}
+
+func (n *NeoExpress) waitForRPC(ctx context.Context, timeout time.Duration) error {
+	if timeout <= 0 {
+		timeout = 15 * time.Second
+	}
+	deadline := time.Now().Add(timeout)
+
+	payload := []byte(`{"jsonrpc":"2.0","method":"getversion","params":[],"id":1}`)
+	client := &http.Client{Timeout: 2 * time.Second}
+
+	for time.Now().Before(deadline) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, n.rpcURL, strings.NewReader(string(payload)))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := client.Do(req)
+		if err == nil {
+			_ = resp.Body.Close()
+			if resp.StatusCode >= 200 && resp.StatusCode < 500 {
+				return nil
+			}
+		}
+
+		time.Sleep(250 * time.Millisecond)
+	}
+
+	return fmt.Errorf("neo-express RPC not ready at %s within %s", n.rpcURL, timeout)
 }
 
 func (n *NeoExpress) Stop() error {
@@ -91,7 +188,7 @@ func (n *NeoExpress) CreateWallet(name string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	out, err := exec.CommandContext(ctx, n.neoxpCmd(), "wallet", "create", name).CombinedOutput()
+	out, err := n.command(ctx, "wallet", "create", "-i", n.dataFile, name).CombinedOutput()
 	if err != nil {
 		if strings.Contains(string(out), "already exists") {
 			return n.GetWalletAddress(name)
@@ -106,24 +203,61 @@ func (n *NeoExpress) GetWalletAddress(name string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	out, err := exec.CommandContext(ctx, n.neoxpCmd(), "wallet", "list").CombinedOutput()
+	out, err := n.command(ctx, "wallet", "list", "-i", n.dataFile, "-j").CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("list wallets: %s: %w", string(out), err)
 	}
 
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
-		if strings.Contains(line, name) {
-			parts := strings.Fields(line)
-			for _, part := range parts {
-				if strings.HasPrefix(part, "N") && len(part) == 34 {
-					return part, nil
-				}
+	var parsed map[string]any
+	if err := json.Unmarshal(out, &parsed); err != nil {
+		return "", fmt.Errorf("parse wallet list json: %w", err)
+	}
+
+	entry, ok := parsed[name]
+	if !ok {
+		return "", fmt.Errorf("wallet %s not found", name)
+	}
+
+	extract := func(m map[string]any) (string, bool) {
+		addr, ok := m["address"].(string)
+		addr = strings.TrimSpace(addr)
+		if ok && strings.HasPrefix(addr, "N") && len(addr) == 34 {
+			return addr, true
+		}
+		return "", false
+	}
+
+	switch v := entry.(type) {
+	case map[string]any:
+		if addr, ok := extract(v); ok {
+			return addr, nil
+		}
+	case []any:
+		// Prefer the default account when present.
+		for _, item := range v {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if label, ok := m["account-label"].(string); ok && strings.TrimSpace(label) != "Default" {
+				continue
+			}
+			if addr, ok := extract(m); ok {
+				return addr, nil
+			}
+		}
+		for _, item := range v {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if addr, ok := extract(m); ok {
+				return addr, nil
 			}
 		}
 	}
 
-	return "", fmt.Errorf("wallet %s not found", name)
+	return "", fmt.Errorf("wallet %s address not found in response", name)
 }
 
 func (n *NeoExpress) TransferGAS(from, to string, amount float64) error {
@@ -131,7 +265,7 @@ func (n *NeoExpress) TransferGAS(from, to string, amount float64) error {
 	defer cancel()
 
 	amountStr := fmt.Sprintf("%.8f", amount)
-	out, err := exec.CommandContext(ctx, n.neoxpCmd(), "transfer", amountStr, "GAS", from, to).CombinedOutput()
+	out, err := n.command(ctx, "transfer", "-i", n.dataFile, amountStr, "GAS", from, to).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("transfer GAS: %s: %w", string(out), err)
 	}
@@ -143,20 +277,36 @@ func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*chain.Deplo
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	out, err := exec.CommandContext(ctx, n.neoxpCmd(), "contract", "deploy", nefPath, account).CombinedOutput()
+	_ = manifestPath // deploy uses only the NEF file
+
+	out, err := n.command(ctx, "contract", "deploy", "-j", "-i", n.dataFile, nefPath, account).CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("deploy contract: %s: %w", string(out), err)
 	}
 
+	// Prefer JSON output (neo-express --json).
+	type deployJSON struct {
+		ContractHash string `json:"contract-hash"`
+		TxHash       string `json:"tx-hash"`
+		ContractName string `json:"contract-name"`
+	}
+
+	var parsed deployJSON
+	if jsonErr := json.Unmarshal(out, &parsed); jsonErr == nil {
+		hash := strings.TrimSpace(parsed.ContractHash)
+		if strings.HasPrefix(hash, "0x") && len(hash) == 42 {
+			return &chain.DeployedContract{Hash: hash}, nil
+		}
+	}
+
+	// Fallback: parse human-readable output (older neo-express versions).
 	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
 		if strings.Contains(line, "Contract") && strings.Contains(line, "deployed") {
 			parts := strings.Fields(line)
 			for _, part := range parts {
 				if strings.HasPrefix(part, "0x") && len(part) == 42 {
-					return &chain.DeployedContract{
-						Hash: part,
-					}, nil
+					return &chain.DeployedContract{Hash: part}, nil
 				}
 			}
 		}
@@ -166,10 +316,14 @@ func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*chain.Deplo
 }
 
 func (n *NeoExpress) Invoke(contract, method string, args ...interface{}) (string, error) {
+	return n.InvokeWithAccount(contract, method, "genesis", args...)
+}
+
+func (n *NeoExpress) InvokeWithAccount(contract, method, account string, args ...interface{}) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	cmdArgs := []string{"contract", "invoke", contract, method}
+	cmdArgs := []string{"contract", "run", "-j", "-i", n.dataFile, "-a", account, contract, method}
 	for _, arg := range args {
 		switch v := arg.(type) {
 		case string:
@@ -180,7 +334,7 @@ func (n *NeoExpress) Invoke(contract, method string, args ...interface{}) (strin
 		}
 	}
 
-	out, err := exec.CommandContext(ctx, n.neoxpCmd(), cmdArgs...).CombinedOutput()
+	out, err := n.command(ctx, cmdArgs...).CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("invoke contract: %s: %w", string(out), err)
 	}
@@ -192,7 +346,7 @@ func (n *NeoExpress) RunCheckpoint(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	out, err := exec.CommandContext(ctx, n.neoxpCmd(), "checkpoint", "create", name).CombinedOutput()
+	out, err := n.command(ctx, "checkpoint", "create", "-i", n.dataFile, name).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("create checkpoint: %s: %w", string(out), err)
 	}
@@ -204,7 +358,7 @@ func (n *NeoExpress) RestoreCheckpoint(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	out, err := exec.CommandContext(ctx, n.neoxpCmd(), "checkpoint", "restore", name, "-f").CombinedOutput()
+	out, err := n.command(ctx, "checkpoint", "restore", "-i", n.dataFile, name, "-f").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("restore checkpoint: %s: %w", string(out), err)
 	}
@@ -216,7 +370,7 @@ func (n *NeoExpress) Reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	out, err := exec.CommandContext(ctx, n.neoxpCmd(), "reset", "-f").CombinedOutput()
+	out, err := n.command(ctx, "reset", "-i", n.dataFile, "-f").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("reset: %s: %w", string(out), err)
 	}
@@ -228,7 +382,7 @@ func (n *NeoExpress) FastForward(blocks int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	out, err := exec.CommandContext(ctx, n.neoxpCmd(), "fastfwd", fmt.Sprintf("%d", blocks)).CombinedOutput()
+	out, err := n.command(ctx, "fastfwd", "-i", n.dataFile, fmt.Sprintf("%d", blocks)).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("fastfwd: %s: %w", string(out), err)
 	}

@@ -41,6 +41,8 @@ import (
 	neocompute "github.com/R3E-Network/service_layer/services/confcompute/marble"
 	neooracle "github.com/R3E-Network/service_layer/services/conforacle/marble"
 	neofeeds "github.com/R3E-Network/service_layer/services/datafeed/marble"
+	neorand "github.com/R3E-Network/service_layer/services/vrf/marble"
+	txproxy "github.com/R3E-Network/service_layer/services/txproxy/marble"
 )
 
 // ServiceRunner interface for all Neo services
@@ -58,6 +60,8 @@ var availableServices = []string{
 	"neofeeds",
 	"neoflow",
 	"neooracle",
+	"neorand",
+	"txproxy",
 }
 
 func main() {
@@ -190,6 +194,15 @@ func main() {
 			automationHash = trimHexPrefix(string(secret))
 		} else if secret, ok := m.Secret("CONTRACT_NEOFLOW_HASH"); ok && len(secret) > 0 {
 			automationHash = trimHexPrefix(string(secret))
+		}
+	}
+
+	randomnessLogHash := trimHexPrefix(contracts.RandomnessLog)
+	if randomnessLogHash == "" {
+		if secret, ok := m.Secret("CONTRACT_RANDOMNESSLOG_HASH"); ok && len(secret) > 0 {
+			randomnessLogHash = trimHexPrefix(string(secret))
+		} else if secret, ok := m.Secret("CONTRACT_RANDOMNESS_LOG_HASH"); ok && len(secret) > 0 {
+			randomnessLogHash = trimHexPrefix(string(secret))
 		}
 	}
 
@@ -336,6 +349,22 @@ func main() {
 			Marble:         m,
 			SecretProvider: newServiceSecretsProvider(m, db, neooracle.ServiceID),
 			URLAllowlist:   oracleAllowlist,
+		})
+	case "neorand":
+		svc, err = neorand.New(neorand.Config{
+			Marble:            m,
+			DB:                db,
+			GlobalSignerURL:   globalSignerURL,
+			ChainClient:       chainClient,
+			ChainSigner:       teeSigner,
+			RandomnessLogHash: randomnessLogHash,
+		})
+	case "txproxy":
+		svc, err = txproxy.New(txproxy.Config{
+			Marble:      m,
+			DB:          db,
+			ChainClient: chainClient,
+			Signer:      teeSigner,
 		})
 	default:
 		log.Fatalf("Unknown service: %s. Available: %v", serviceType, availableServices)

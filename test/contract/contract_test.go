@@ -44,6 +44,30 @@ func TestContractCompilation(t *testing.T) {
 			sourceFile: filepath.Join("..", "..", "contracts", "gateway", "ServiceLayerGateway.cs"),
 		},
 		{
+			name:       "PaymentHub",
+			sourceFile: filepath.Join("..", "..", "contracts", "PaymentHub", "PaymentHub.cs"),
+		},
+		{
+			name:       "Governance",
+			sourceFile: filepath.Join("..", "..", "contracts", "Governance", "Governance.cs"),
+		},
+		{
+			name:       "PriceFeed",
+			sourceFile: filepath.Join("..", "..", "contracts", "PriceFeed", "PriceFeed.cs"),
+		},
+		{
+			name:       "RandomnessLog",
+			sourceFile: filepath.Join("..", "..", "contracts", "RandomnessLog", "RandomnessLog.cs"),
+		},
+		{
+			name:       "AppRegistry",
+			sourceFile: filepath.Join("..", "..", "contracts", "AppRegistry", "AppRegistry.cs"),
+		},
+		{
+			name:       "AutomationAnchor",
+			sourceFile: filepath.Join("..", "..", "contracts", "AutomationAnchor", "AutomationAnchor.cs"),
+		},
+		{
 			name:       "DataFeedsService",
 			sourceFile: filepath.Join("..", "..", "services", "datafeed", "contract", "NeoFeedsService.cs"),
 		},
