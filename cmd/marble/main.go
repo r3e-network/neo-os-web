@@ -33,6 +33,7 @@ import (
 	// Neo service imports
 	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
 	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
+	gsclient "github.com/R3E-Network/service_layer/infrastructure/globalsigner/client"
 	globalsigner "github.com/R3E-Network/service_layer/infrastructure/globalsigner/marble"
 	globalsignersupabase "github.com/R3E-Network/service_layer/infrastructure/globalsigner/supabase"
 	neoflow "github.com/R3E-Network/service_layer/services/automation/marble"
@@ -203,14 +204,46 @@ func main() {
 		}
 	}
 
-	teePrivateKey := loadTEEPrivateKey(m)
-	if chainClient != nil && teePrivateKey == "" {
-		log.Printf("Warning: TEE_PRIVATE_KEY not configured; TEE fulfillments disabled")
+	var teeSigner chain.TEESigner
+
+	// Prefer GlobalSigner for TEE signing to avoid distributing long-lived private keys
+	// to every enclave service. This keeps the active TEE signing key in one place.
+	globalSignerURL := strings.TrimSpace(os.Getenv("GLOBALSIGNER_SERVICE_URL"))
+	if globalSignerURL != "" && serviceType != "globalsigner" {
+		client, err := gsclient.New(gsclient.Config{
+			BaseURL:    globalSignerURL,
+			ServiceID:  serviceType,
+			HTTPClient: m.HTTPClient(),
+			Timeout:    15 * time.Second,
+		})
+		if err != nil {
+			log.Printf("Warning: failed to create GlobalSigner client: %v", err)
+		} else if signer, err := chain.NewGlobalSignerSigner(ctx, client); err != nil {
+			log.Printf("Warning: failed to initialize GlobalSigner signer: %v", err)
+		} else {
+			teeSigner = signer
+			log.Printf("Using GlobalSigner for TEE signing (%s)", globalSignerURL)
+		}
+	}
+
+	// Fallback to a locally injected private key (development/testing or transitional).
+	if teeSigner == nil {
+		teePrivateKey := loadTEEPrivateKey(m)
+		if chainClient != nil && teePrivateKey == "" {
+			log.Printf("Warning: TEE signer not configured (missing GLOBALSIGNER_SERVICE_URL and TEE_PRIVATE_KEY); chain fulfillments disabled")
+		}
+		if teePrivateKey != "" {
+			if signer, err := chain.NewLocalTEESignerFromPrivateKeyHex(teePrivateKey); err != nil {
+				log.Printf("Warning: failed to create local TEE signer: %v", err)
+			} else {
+				teeSigner = signer
+			}
+		}
 	}
 
 	var teeFulfiller *chain.TEEFulfiller
-	if chainClient != nil && gatewayHash != "" && teePrivateKey != "" {
-		if fulfiller, fulfillErr := chain.NewTEEFulfiller(chainClient, gatewayHash, teePrivateKey); fulfillErr != nil {
+	if chainClient != nil && gatewayHash != "" && teeSigner != nil {
+		if fulfiller, fulfillErr := chain.NewTEEFulfillerWithSigner(chainClient, gatewayHash, teeSigner); fulfillErr != nil {
 			log.Printf("Warning: failed to create TEE fulfiller: %v", fulfillErr)
 		} else {
 			teeFulfiller = fulfiller

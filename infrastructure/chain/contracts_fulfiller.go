@@ -2,16 +2,12 @@ package chain
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 	"sync"
 
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
-	"github.com/nspcc-dev/neo-go/pkg/wallet"
-
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
 )
 
 // =============================================================================
@@ -21,11 +17,10 @@ import (
 // TEEFulfiller handles TEE callback transactions to the Gateway contract.
 // It properly builds, signs, and broadcasts transactions to the Neo N3 blockchain.
 type TEEFulfiller struct {
-	client       *Client
-	gatewayHash  string
-	account      *wallet.Account // neo-go wallet account for signing
-	legacyWallet *Wallet         // Legacy wallet for message signing (not tx signing)
-	nonce        *nonceState
+	client      *Client
+	gatewayHash string
+	signer      TEESigner
+	nonce       *nonceState
 }
 
 type nonceState struct {
@@ -36,44 +31,31 @@ type nonceState struct {
 // NewTEEFulfiller creates a new TEE fulfiller.
 // The privateKeyHex should be a hex-encoded private key (without 0x prefix).
 func NewTEEFulfiller(client *Client, gatewayHash, privateKeyHex string) (*TEEFulfiller, error) {
-	// Create neo-go account for transaction signing
-	account, err := AccountFromPrivateKey(privateKeyHex)
+	signer, err := NewLocalTEESignerFromPrivateKeyHex(privateKeyHex)
 	if err != nil {
-		return nil, fmt.Errorf("create account: %w", err)
+		return nil, fmt.Errorf("create signer: %w", err)
 	}
 
-	// Create legacy wallet for message signing (used in contract verification)
-	legacyWallet, err := NewWallet(privateKeyHex)
-	if err != nil {
-		return nil, fmt.Errorf("create legacy wallet: %w", err)
-	}
-
-	return &TEEFulfiller{
-		client:       client,
-		gatewayHash:  gatewayHash,
-		account:      account,
-		legacyWallet: legacyWallet,
-		nonce:        &nonceState{counter: big.NewInt(0)},
-	}, nil
+	return NewTEEFulfillerWithSigner(client, gatewayHash, signer)
 }
 
-// NewTEEFulfillerFromWallet creates a TEE fulfiller from an existing Wallet.
-// Deprecated: Use NewTEEFulfiller with private key hex instead.
-func NewTEEFulfillerFromWallet(client *Client, gatewayHash string, w *Wallet) (*TEEFulfiller, error) {
-	// Extract private key from wallet and create account
-	// Note: This is a compatibility shim - the wallet's private key bytes are needed
-	privateKeyHex := hex.EncodeToString(w.privateKey.D.Bytes())
-	account, err := AccountFromPrivateKey(privateKeyHex)
-	if err != nil {
-		return nil, fmt.Errorf("create account: %w", err)
+// NewTEEFulfillerWithSigner creates a fulfiller using the provided TEE signer.
+func NewTEEFulfillerWithSigner(client *Client, gatewayHash string, signer TEESigner) (*TEEFulfiller, error) {
+	if client == nil {
+		return nil, fmt.Errorf("client required")
+	}
+	if gatewayHash == "" {
+		return nil, fmt.Errorf("gateway hash required")
+	}
+	if signer == nil {
+		return nil, fmt.Errorf("signer required")
 	}
 
 	return &TEEFulfiller{
-		client:       client,
-		gatewayHash:  gatewayHash,
-		account:      account,
-		legacyWallet: w,
-		nonce:        &nonceState{counter: big.NewInt(0)},
+		client:      client,
+		gatewayHash: gatewayHash,
+		signer:      signer,
+		nonce:       &nonceState{counter: big.NewInt(0)},
 	}, nil
 }
 
@@ -93,8 +75,8 @@ func (t *TEEFulfiller) invokeWithWait(ctx context.Context, contractHash, method 
 	if t == nil || t.client == nil {
 		return nil, fmt.Errorf("tee fulfiller client not configured")
 	}
-	if t.account == nil {
-		return nil, fmt.Errorf("tee fulfiller account not configured")
+	if t.signer == nil {
+		return nil, fmt.Errorf("tee fulfiller signer not configured")
 	}
 
 	return t.client.InvokeFunctionWithSignerAndWait(
@@ -102,7 +84,7 @@ func (t *TEEFulfiller) invokeWithWait(ctx context.Context, contractHash, method 
 		contractHash,
 		method,
 		params,
-		t.account,
+		t.signer,
 		transaction.CalledByEntry,
 		wait,
 	)
@@ -128,7 +110,7 @@ func (t *TEEFulfiller) fulfillRequest(ctx context.Context, requestID *big.Int, r
 	message := append(bigIntToLittleEndian(requestID), result...)
 	message = append(message, bigIntToLittleEndian(nonce)...)
 
-	signature, err := t.legacyWallet.Sign(message)
+	signature, err := t.signer.Sign(ctx, message)
 	if err != nil {
 		return "", fmt.Errorf("sign fulfillment: %w", err)
 	}
@@ -167,7 +149,7 @@ func (t *TEEFulfiller) failRequest(ctx context.Context, requestID *big.Int, reas
 	message := append(bigIntToLittleEndian(requestID), []byte(reason)...)
 	message = append(message, bigIntToLittleEndian(nonce)...)
 
-	signature, err := t.legacyWallet.Sign(message)
+	signature, err := t.signer.Sign(ctx, message)
 	if err != nil {
 		return "", fmt.Errorf("sign failure: %w", err)
 	}
@@ -230,7 +212,7 @@ func (t *TEEFulfiller) updatePrice(ctx context.Context, neoFeedsHash, feedID str
 	message = append(message, bigIntToLittleEndian(big.NewInt(ts))...)
 	message = append(message, bigIntToLittleEndian(nonce)...)
 
-	signature, err := t.legacyWallet.Sign(message)
+	signature, err := t.signer.Sign(ctx, message)
 	if err != nil {
 		return "", fmt.Errorf("sign price update: %w", err)
 	}
@@ -282,7 +264,7 @@ func (t *TEEFulfiller) updatePrices(ctx context.Context, neoFeedsHash string, fe
 	}
 	message = append(message, bigIntToLittleEndian(nonce)...)
 
-	signature, err := t.legacyWallet.Sign(message)
+	signature, err := t.signer.Sign(ctx, message)
 	if err != nil {
 		return "", fmt.Errorf("sign batch price update: %w", err)
 	}
@@ -335,7 +317,7 @@ func (t *TEEFulfiller) executeTrigger(ctx context.Context, neoflowHash string, t
 	message := append(bigIntToLittleEndian(triggerID), executionData...)
 	message = append(message, bigIntToLittleEndian(nonce)...)
 
-	signature, err := t.legacyWallet.Sign(message)
+	signature, err := t.signer.Sign(ctx, message)
 	if err != nil {
 		return "", fmt.Errorf("sign trigger execution: %w", err)
 	}
@@ -382,7 +364,7 @@ func (t *TEEFulfiller) setTEEMasterKey(ctx context.Context, pubKey, pubKeyHash, 
 	message = append(message, attestHash...)
 	message = append(message, nonceLE...)
 
-	signature, err := t.legacyWallet.Sign(message)
+	signature, err := t.signer.Sign(ctx, message)
 	if err != nil {
 		return nil, fmt.Errorf("sign master key: %w", err)
 	}
@@ -414,48 +396,6 @@ func safeInt64FromUint64(v uint64) (int64, error) {
 		return 0, fmt.Errorf("value %d overflows int64", v)
 	}
 	return int64(v), nil
-}
-
-// =============================================================================
-// Legacy FulfillmentSigner (for backward compatibility)
-// =============================================================================
-
-// FulfillmentSigner provides TEE signing for contract fulfillment.
-type FulfillmentSigner struct {
-	privateKey []byte
-}
-
-// NewFulfillmentSigner creates a new fulfillment signer.
-func NewFulfillmentSigner(privateKey []byte) *FulfillmentSigner {
-	return &FulfillmentSigner{privateKey: privateKey}
-}
-
-// SignFulfillment signs a fulfillment message (requestId + result + nonce).
-// Uses little-endian encoding to match .NET BigInteger.ToByteArray() in Neo N3 contracts.
-func (f *FulfillmentSigner) SignFulfillment(requestID *big.Int, result []byte, nonce *big.Int) ([]byte, error) {
-	message := append(bigIntToLittleEndian(requestID), result...)
-	message = append(message, bigIntToLittleEndian(nonce)...)
-	return f.sign(message)
-}
-
-// SignFailure signs a failure message (requestId + reason + nonce).
-// Uses little-endian encoding to match .NET BigInteger.ToByteArray() in Neo N3 contracts.
-func (f *FulfillmentSigner) SignFailure(requestID *big.Int, reason string, nonce *big.Int) ([]byte, error) {
-	message := append(bigIntToLittleEndian(requestID), []byte(reason)...)
-	message = append(message, bigIntToLittleEndian(nonce)...)
-	return f.sign(message)
-}
-
-func (f *FulfillmentSigner) sign(message []byte) ([]byte, error) {
-	keyPair, err := crypto.GenerateKeyPair()
-	if err != nil {
-		return nil, err
-	}
-	keyPair.PrivateKey.D = new(big.Int).SetBytes(f.privateKey)
-	keyPair.PrivateKey.PublicKey.X, keyPair.PrivateKey.PublicKey.Y =
-		keyPair.PrivateKey.Curve.ScalarBaseMult(f.privateKey)
-
-	return crypto.Sign(keyPair.PrivateKey, message)
 }
 
 // bigIntToLittleEndian converts a big.Int to little-endian byte array,

@@ -60,7 +60,7 @@ func NewTxBuilder(client *Client, networkID uint32) *TxBuilder {
 func (b *TxBuilder) BuildAndSignTx(
 	ctx context.Context,
 	invokeResult *InvokeResult,
-	account *wallet.Account,
+	account TxSigner,
 	signerScopes transaction.WitnessScope,
 ) (*transaction.Transaction, error) {
 	// 1. Decode script from simulation result

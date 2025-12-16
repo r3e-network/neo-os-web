@@ -1,5 +1,5 @@
 // Package neocompute provides HTTP handlers for the neocompute service.
-package neocomputemarble
+package neocompute
 
 import (
 	"net/http"

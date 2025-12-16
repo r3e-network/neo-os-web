@@ -37,6 +37,7 @@ type (
 	RotateRequest        = types.RotateRequest
 	RotateResponse       = types.RotateResponse
 	SignRequest          = types.SignRequest
+	SignRawRequest       = types.SignRawRequest
 	SignResponse         = types.SignResponse
 	DeriveRequest        = types.DeriveRequest
 	DeriveResponse       = types.DeriveResponse

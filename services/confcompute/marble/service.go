@@ -11,7 +11,7 @@
 // - Secure secret injection from user's secret store
 // - Signed execution results for verification
 // - Gas metering and resource limits
-package neocomputemarble
+package neocompute
 
 import (
 	"context"

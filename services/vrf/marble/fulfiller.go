@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/infrastructure/crypto"
+	"github.com/nspcc-dev/neo-go/pkg/vm/stackitem"
 )
 
 // =============================================================================
@@ -78,14 +79,34 @@ func (s *Service) fulfillRequest(ctx context.Context, request *Request) {
 
 	// Generate random words
 	randomWords := make([]string, request.NumWords)
-	randomWordsBig := make([]*big.Int, request.NumWords)
+	randomWordBytes := make([][]byte, request.NumWords)
 	for i := 0; i < request.NumWords; i++ {
 		wordInput := make([]byte, 0, len(vrfProof.Output)+1)
 		wordInput = append(wordInput, vrfProof.Output...)
 		wordInput = append(wordInput, byte(i))
 		wordHash := crypto.Hash256(wordInput)
 		randomWords[i] = hex.EncodeToString(wordHash)
-		randomWordsBig[i] = new(big.Int).SetBytes(wordHash)
+		randomWordBytes[i] = wordHash
+	}
+
+	// Encode random words as bytes for on-chain storage and proof verification.
+	// Format: [numWords][word1(32)][word2(32)]...
+	encodedRandomWords := make([]byte, 0, 1+len(randomWordBytes)*32)
+	encodedRandomWords = append(encodedRandomWords, byte(len(randomWordBytes)))
+	for _, word := range randomWordBytes {
+		if len(word) != 32 {
+			s.markRequestFailed(ctx, request, "invalid random word length")
+			return
+		}
+		encodedRandomWords = append(encodedRandomWords, word...)
+	}
+
+	// Proof is an ECDSA signature over (seed || randomWords) to match
+	// `NeoRandService.VerifyProof(seed, randomWords, proof)` on-chain.
+	proof, err := crypto.Sign(s.privateKey, append(seedBytes, encodedRandomWords...))
+	if err != nil {
+		s.markRequestFailed(ctx, request, fmt.Sprintf("sign proof: %v", err))
+		return
 	}
 
 	// Submit callback to user contract (on-chain requests only).
@@ -95,16 +116,16 @@ func (s *Service) fulfillRequest(ctx context.Context, request *Request) {
 			return
 		}
 
-		// Encode random words as bytes for callback
-		// Format: [numWords][word1][word2]...
-		resultBytes := make([]byte, 0, 4+len(randomWordsBig)*32)
-		resultBytes = append(resultBytes, byte(len(randomWordsBig)))
-		for _, word := range randomWordsBig {
-			wordBytes := word.Bytes()
-			// Pad to 32 bytes
-			padded := make([]byte, 32)
-			copy(padded[32-len(wordBytes):], wordBytes)
-			resultBytes = append(resultBytes, padded...)
+		// The VRF service contract expects `result` to be StdLib.Serialize(VRFResultPayload),
+		// which is encoded as a VM struct: [RandomWords, Proof].
+		resultItem := stackitem.NewStruct([]stackitem.Item{
+			stackitem.NewByteArray(encodedRandomWords),
+			stackitem.NewByteArray(proof),
+		})
+		resultBytes, err := stackitem.Serialize(resultItem)
+		if err != nil {
+			s.markRequestFailed(ctx, request, fmt.Sprintf("serialize result: %v", err))
+			return
 		}
 
 		// Submit to chain
@@ -128,6 +149,7 @@ func (s *Service) fulfillRequest(ctx context.Context, request *Request) {
 		}).Info("request fulfilled on-chain")
 
 		s.mu.Lock()
+		request.Proof = hex.EncodeToString(proof)
 		request.FulfillTxHash = txHash
 		s.mu.Unlock()
 	}
@@ -136,7 +158,7 @@ func (s *Service) fulfillRequest(ctx context.Context, request *Request) {
 	s.mu.Lock()
 	request.Status = StatusFulfilled
 	request.RandomWords = randomWords
-	request.Proof = hex.EncodeToString(vrfProof.Proof)
+	request.Proof = hex.EncodeToString(proof)
 	request.FulfilledAt = time.Now()
 	s.mu.Unlock()
 

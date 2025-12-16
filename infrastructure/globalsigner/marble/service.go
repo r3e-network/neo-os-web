@@ -213,8 +213,12 @@ func (s *Service) deriveKeyForVersion(version string) (*ecdsa.PrivateKey, error)
 	curve := elliptic.P256()
 	priv := new(ecdsa.PrivateKey)
 	priv.PublicKey.Curve = curve
-	priv.D = new(big.Int).SetBytes(keyMaterial)
-	priv.PublicKey.X, priv.PublicKey.Y = curve.ScalarBaseMult(keyMaterial)
+	d := new(big.Int).SetBytes(keyMaterial)
+	nMinus1 := new(big.Int).Sub(curve.Params().N, big.NewInt(1))
+	d.Mod(d, nMinus1)
+	d.Add(d, big.NewInt(1)) // ensure non-zero
+	priv.D = d
+	priv.PublicKey.X, priv.PublicKey.Y = curve.ScalarBaseMult(d.Bytes())
 
 	return priv, nil
 }
@@ -392,7 +396,7 @@ func (s *Service) Sign(ctx context.Context, req *SignRequest) (*SignResponse, er
 		return nil, fmt.Errorf("data is required")
 	}
 
-	data, err := hex.DecodeString(req.Data)
+	data, err := decodeHexString(req.Data)
 	if err != nil {
 		return nil, fmt.Errorf("invalid data hex: %w", err)
 	}
@@ -446,6 +450,70 @@ func (s *Service) Sign(ctx context.Context, req *SignRequest) (*SignResponse, er
 	}, nil
 }
 
+// SignRaw signs data as-is without domain separation.
+//
+// This is primarily intended for:
+// - Neo transaction witness signing (hash.GetSignedData(net, tx))
+// - legacy on-chain messages that do not include a domain prefix
+//
+// For most application-level signatures prefer Sign() which provides
+// domain separation.
+func (s *Service) SignRaw(ctx context.Context, req *SignRawRequest) (*SignResponse, error) {
+	if req.Data == "" {
+		return nil, fmt.Errorf("data is required")
+	}
+
+	data, err := decodeHexString(req.Data)
+	if err != nil {
+		return nil, fmt.Errorf("invalid data hex: %w", err)
+	}
+
+	version := req.KeyVersion
+	if version == "" {
+		version = s.ActiveVersion()
+	}
+
+	s.mu.RLock()
+	entry, ok := s.keys[version]
+	s.mu.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("key version not found: %s", version)
+	}
+
+	// Validate key status
+	if entry.version.Status == KeyStatusRevoked {
+		return nil, fmt.Errorf("key version revoked: %s", version)
+	}
+	if entry.version.Status == KeyStatusOverlapping {
+		if entry.version.OverlapEndsAt != nil && time.Now().After(*entry.version.OverlapEndsAt) {
+			return nil, fmt.Errorf("key version overlap expired: %s", version)
+		}
+	}
+
+	sig, err := crypto.Sign(entry.privateKey, data)
+	if err != nil {
+		return nil, fmt.Errorf("signing failed: %w", err)
+	}
+
+	s.mu.Lock()
+	s.signaturesIssued++
+	s.mu.Unlock()
+
+	return &SignResponse{
+		Signature:  hex.EncodeToString(sig),
+		KeyVersion: version,
+		PubKeyHex:  entry.version.PubKeyHex,
+	}, nil
+}
+
+func decodeHexString(raw string) ([]byte, error) {
+	trimmed := strings.TrimSpace(raw)
+	trimmed = strings.TrimPrefix(trimmed, "0x")
+	trimmed = strings.TrimPrefix(trimmed, "0X")
+	return hex.DecodeString(trimmed)
+}
+
 // =============================================================================
 // Key Derivation
 // =============================================================================
@@ -483,8 +551,12 @@ func (s *Service) Derive(ctx context.Context, req *DeriveRequest) (*DeriveRespon
 	curve := elliptic.P256()
 	childPriv := new(ecdsa.PrivateKey)
 	childPriv.PublicKey.Curve = curve
-	childPriv.D = new(big.Int).SetBytes(childKeyMaterial)
-	childPriv.PublicKey.X, childPriv.PublicKey.Y = curve.ScalarBaseMult(childKeyMaterial)
+	d := new(big.Int).SetBytes(childKeyMaterial)
+	nMinus1 := new(big.Int).Sub(curve.Params().N, big.NewInt(1))
+	d.Mod(d, nMinus1)
+	d.Add(d, big.NewInt(1))
+	childPriv.D = d
+	childPriv.PublicKey.X, childPriv.PublicKey.Y = curve.ScalarBaseMult(d.Bytes())
 
 	pubKeyBytes := elliptic.MarshalCompressed(childPriv.Curve, childPriv.PublicKey.X, childPriv.PublicKey.Y)
 	_ = entry // entry validated above for key version lookup

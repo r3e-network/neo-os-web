@@ -1,5 +1,5 @@
 // Package neocompute provides API routes for the neocompute service.
-package neocomputemarble
+package neocompute
 
 // =============================================================================
 // API Routes

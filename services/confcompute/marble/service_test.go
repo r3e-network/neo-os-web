@@ -1,5 +1,5 @@
 // Package neocompute provides neocompute service.
-package neocomputemarble
+package neocompute
 
 import (
 	"bytes"
