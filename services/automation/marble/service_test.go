@@ -1,5 +1,5 @@
 // Package neoflow provides task neoflow service.
-package neoflowmarble
+package neoflow
 
 import (
 	"bytes"

@@ -9,7 +9,7 @@
 // 2. Price-based: Price thresholds (e.g., "When BTC > $100,000")
 // 3. Event-based: On-chain events (e.g., "When contract X emits event Y")
 // 4. Threshold-based: Balance/value thresholds (e.g., "When balance < 10 GAS")
-package neoflowmarble
+package neoflow
 
 import (
 	"context"
@@ -23,7 +23,6 @@ import (
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
 	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
 	neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
-	neofeedschain "github.com/R3E-Network/service_layer/services/datafeed/chain"
 )
 
 const (
@@ -59,7 +58,7 @@ type Service struct {
 	chainClient      *chain.Client
 	teeFulfiller     *chain.TEEFulfiller
 	neoflowHash      string
-	neoFeedsContract *neofeedschain.NeoFeedsContract
+	neoFeedsContract *chain.NeoFeedsContract
 	eventListener    *chain.EventListener
 	enableChainExec  bool
 }
@@ -80,10 +79,10 @@ type Config struct {
 	// Chain configuration for trigger execution
 	ChainClient      *chain.Client
 	TEEFulfiller     *chain.TEEFulfiller
-	NeoFlowHash      string                          // Contract hash for NeoFlowService
-	NeoFeedsContract *neofeedschain.NeoFeedsContract // For price-based triggers
-	EventListener    *chain.EventListener            // For event-based triggers
-	EnableChainExec  bool                            // Enable on-chain trigger execution
+	NeoFlowHash      string                  // Contract hash for NeoFlowService
+	NeoFeedsContract *chain.NeoFeedsContract // For price-based triggers
+	EventListener    *chain.EventListener    // For event-based triggers
+	EnableChainExec  bool                    // Enable on-chain trigger execution
 }
 
 // New creates a new NeoFlow service.

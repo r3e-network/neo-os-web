@@ -1,7 +1,7 @@
 // Package neoaccounts provides a centralized neoaccounts service for other marbles.
 // Private keys never leave this service - other services request accounts and
 // submit transactions for signing.
-package neoaccountsmarble
+package neoaccounts
 
 import (
 	"context"

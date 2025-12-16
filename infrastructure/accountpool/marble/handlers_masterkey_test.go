@@ -1,4 +1,4 @@
-package neoaccountsmarble
+package neoaccounts
 
 import (
 	"encoding/json"

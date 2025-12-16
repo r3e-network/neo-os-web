@@ -61,7 +61,7 @@ type Service struct {
     chainClient       *chain.Client
     teeFulfiller      *chain.TEEFulfiller
     neoflowHash       string
-    neoFeedsContract  *neofeedschain.NeoFeedsContract
+    neoFeedsContract  *chain.NeoFeedsContract
     eventListener     *chain.EventListener
     enableChainExec   bool
 }
@@ -112,7 +112,7 @@ type Config struct {
     ChainClient      *chain.Client
     TEEFulfiller     *chain.TEEFulfiller
     NeoFlowHash      string
-    NeoFeedsContract *neofeedschain.NeoFeedsContract
+    NeoFeedsContract *chain.NeoFeedsContract
     EventListener    *chain.EventListener
     EnableChainExec  bool
 }
@@ -132,11 +132,10 @@ type Config struct {
 
 | Package | Purpose |
 |---------|---------|
-| `infrastructure/chain` | Neo N3 blockchain interaction |
+| `infrastructure/chain` | Neo N3 blockchain interaction + price feed reads (`chain.NeoFeedsContract`) |
 | `infrastructure/marble` | MarbleRun TEE utilities |
 | `infrastructure/service` | Base service |
 | `services/automation/supabase` | Repository |
-| `services/datafeed/chain` | Price feed access |
 
 ## Related Documentation
 

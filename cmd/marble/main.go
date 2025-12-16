@@ -39,7 +39,6 @@ import (
 	neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
 	neocompute "github.com/R3E-Network/service_layer/services/confcompute/marble"
 	neooracle "github.com/R3E-Network/service_layer/services/conforacle/marble"
-	neofeedschain "github.com/R3E-Network/service_layer/services/datafeed/chain"
 	neofeeds "github.com/R3E-Network/service_layer/services/datafeed/marble"
 	neorand "github.com/R3E-Network/service_layer/services/vrf/marble"
 	neorandsupabase "github.com/R3E-Network/service_layer/services/vrf/supabase"
@@ -244,9 +243,9 @@ func main() {
 		})
 	}
 
-	var neoFeedsContract *neofeedschain.NeoFeedsContract
+	var neoFeedsContract *chain.NeoFeedsContract
 	if chainClient != nil && dataFeedsHash != "" {
-		neoFeedsContract = neofeedschain.NewNeoFeedsContract(chainClient, dataFeedsHash, nil)
+		neoFeedsContract = chain.NewNeoFeedsContract(chainClient, dataFeedsHash, nil)
 	}
 
 	enableChainPush := chainClient != nil && teeFulfiller != nil && dataFeedsHash != ""

@@ -1,4 +1,4 @@
-package neoaccountsmarble
+package neoaccounts
 
 import (
 	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"

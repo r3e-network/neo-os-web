@@ -1,4 +1,4 @@
-package neoflowmarble
+package neoflow
 
 import (
 	"bytes"
