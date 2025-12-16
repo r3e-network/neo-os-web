@@ -42,7 +42,6 @@ SERVICES=(
     "neoaccounts"
     "neocompute"
     "neooracle"
-    "neorand"
     "txproxy"
     "globalsigner"
 )

@@ -41,7 +41,6 @@ data:
   NEOFLOW_PORT: "8084"
   NEOACCOUNTS_PORT: "8085"
   NEOCOMPUTE_PORT: "8086"
-  NEORAND_PORT: "8087"
   ORACLE_PORT: "8088"
   TXPROXY_PORT: "8090"
   GLOBALSIGNER_PORT: "8092"
@@ -79,7 +78,6 @@ data:
   ACCOUNTPOOL_SERVICE_URL: "https://neoaccounts:8085"
   CONFIDENTIAL_SERVICE_URL: "https://neocompute:8086"
   ORACLE_SERVICE_URL: "https://neooracle:8088"
-  NEORAND_SERVICE_URL: "https://neorand:8087"
   TXPROXY_SERVICE_URL: "https://txproxy:8090"
   GLOBALSIGNER_SERVICE_URL: "https://globalsigner:8092"
 

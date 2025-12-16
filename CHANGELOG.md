@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unified structured logging package (`internal/logging`)
 - Kubernetes secrets template (`k8s/secrets.yaml.template`)
 - Platform contracts for MiniApp flow (PaymentHub/Governance/PriceFeed/RandomnessLog/AppRegistry/AutomationAnchor)
-- `neorand` service for verifiable randomness + optional on-chain anchoring
 - `txproxy` service for allowlisted tx signing/broadcast (single tx policy point)
 
 ### Changed
@@ -30,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Deprecated review documents (12 files)
 - Deprecated scripts: `find_duplications.sh`, `split_large_files.sh`
+- Removed `neorand` (VRF) service; randomness is now provided via `neocompute` scripts.
 
 ### Fixed
 

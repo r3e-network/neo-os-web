@@ -79,11 +79,6 @@ func DefaultServicesConfig() *ServicesConfig {
 				Port:        8086,
 				Description: "Secure JavaScript execution",
 			},
-			"neorand": {
-				Enabled:     true,
-				Port:        8087,
-				Description: "Verifiable randomness (VRF) + anchoring",
-			},
 			"neooracle": {
 				Enabled:     true,
 				Port:        8088,
@@ -100,8 +95,6 @@ var ServiceNameMapping = map[string]string{
 	"neoaccounts": "neoaccounts",
 	"neocompute":  "neocompute",
 	"neoflow":     "neoflow",
-	"vrf":         "neorand",
-	"rng":         "neorand",
 	"tx-proxy":    "txproxy",
 }
 
