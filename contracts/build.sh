@@ -25,9 +25,10 @@ service_contracts=(
     "../services/confcompute/contract:NeoComputeService"
 )
 
-# Single-file contracts
-single_contracts=(
-    "gateway/ServiceLayerGateway"
+# Gateway contract (multi-file partial class)
+# Format: "directory:MainContractName"
+gateway_contracts=(
+    "gateway:ServiceLayerGateway"
 )
 
 # Example contracts
@@ -38,28 +39,45 @@ examples=(
 )
 
 echo "=== Building Gateway Contract ==="
-for contract in "${single_contracts[@]}"; do
-    name=$(basename "$contract")
-    echo "Building $name..."
+for entry in "${gateway_contracts[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
 
-    if [ -f "$contract.cs" ]; then
-        outdir="build/${name}"
+    out_name="$name"
+    main_file="${dir}/${name}.cs"
+    if [ -f "$main_file" ]; then
+        display_name=$(sed -n 's/.*\\[DisplayName(\"\\([^\"]*\\)\"\\)\\].*/\\1/p' "$main_file" | head -n 1)
+        if [ -n "$display_name" ]; then
+            out_name="$display_name"
+        fi
+    fi
+
+    echo "Building $out_name..."
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        if [ -z "$cs_files" ]; then
+            echo "  ⚠ No .cs files found in $dir, skipping"
+            continue
+        fi
+
+        outdir="build/${out_name}"
         mkdir -p "$outdir"
-        nccs "$contract.cs" -o "$outdir" 2>/dev/null || echo "  Warning: Build may have warnings"
+        nccs $cs_files -o "$outdir" 2>/dev/null || echo "  Warning: Build may have warnings"
 
         nef_file=$(find "$outdir" -maxdepth 1 -name "*.nef" -type f | head -n 1)
         manifest_file=$(find "$outdir" -maxdepth 1 -name "*.manifest.json" -type f | head -n 1)
         if [ -n "$nef_file" ] && [ -n "$manifest_file" ] && [ -f "$nef_file" ] && [ -f "$manifest_file" ]; then
-            mv "$nef_file" "build/${name}.nef"
-            mv "$manifest_file" "build/${name}.manifest.json"
+            mv "$nef_file" "build/${out_name}.nef"
+            mv "$manifest_file" "build/${out_name}.manifest.json"
             rm -rf "$outdir"
-            echo "  ✓ ${name}.nef"
-            echo "  ✓ ${name}.manifest.json"
+            echo "  ✓ ${out_name}.nef"
+            echo "  ✓ ${out_name}.manifest.json"
         else
-            echo "  ✗ Compilation failed for $name"
+            echo "  ✗ Compilation failed for $out_name"
         fi
     else
-        echo "  ⚠ $contract.cs not found, skipping"
+        echo "  ⚠ Directory $dir not found, skipping"
     fi
 done
 
@@ -81,6 +99,9 @@ for entry in "${service_contracts[@]}"; do
     echo "Building $out_name..."
 
     if [ -d "$dir" ]; then
+        # Include shared contract base types used by multiple service contracts.
+        common_files=$(find "common" -maxdepth 1 -name "*.cs" -type f | sort)
+
         # Collect all .cs files in the contract directory
         cs_files=$(find "$dir" -maxdepth 1 -name "${name}*.cs" -type f | sort)
 
@@ -88,7 +109,7 @@ for entry in "${service_contracts[@]}"; do
             # Pass all .cs files to nccs
             outdir="build/${out_name}"
             mkdir -p "$outdir"
-            nccs $cs_files -o "$outdir" 2>/dev/null || echo "  Warning: Build may have warnings"
+            nccs $common_files $cs_files -o "$outdir" 2>/dev/null || echo "  Warning: Build may have warnings"
 
             nef_file=$(find "$outdir" -maxdepth 1 -name "*.nef" -type f | head -n 1)
             manifest_file=$(find "$outdir" -maxdepth 1 -name "*.manifest.json" -type f | head -n 1)

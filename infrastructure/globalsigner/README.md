@@ -25,6 +25,7 @@ Public (read-only):
 Protected (service-auth required):
 
 - `POST /sign`: sign hex-encoded data with a domain prefix
+- `POST /sign-raw`: sign hex-encoded data without a domain prefix (tx witnesses / legacy on-chain)
 - `POST /derive`: derive a deterministic child key (public key output)
 - `POST /rotate`: trigger rotation (ops/admin only)
 
@@ -65,4 +66,3 @@ Code helpers:
 ```bash
 go test ./infrastructure/globalsigner/... -v
 ```
-

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
-	"github.com/nspcc-dev/neo-go/pkg/wallet"
 )
 
 // =============================================================================
@@ -179,7 +178,7 @@ func (c *Client) InvokeFunctionWithSignerAndWait(
 	ctx context.Context,
 	contractHash, method string,
 	params []ContractParam,
-	account *wallet.Account,
+	account TxSigner,
 	signerScopes transaction.WitnessScope,
 	wait bool,
 ) (*TxResult, error) {

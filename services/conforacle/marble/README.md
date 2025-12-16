@@ -212,8 +212,8 @@ POST /query
 
 | Package | Purpose |
 |---------|---------|
-| `internal/marble` | MarbleRun TEE utilities |
-| `internal/httputil` | HTTP response helpers |
+| `infrastructure/marble` | MarbleRun TEE utilities |
+| `infrastructure/httputil` | HTTP response helpers |
 | `infrastructure/service` | Base service framework |
 
 ### External Packages

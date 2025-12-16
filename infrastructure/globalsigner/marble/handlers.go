@@ -21,6 +21,7 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 	// These endpoints can sign data, rotate keys, or derive keys - must be protected
 	mux.Handle("/rotate", middleware.RequireServiceAuth(http.HandlerFunc(s.handleRotate)))
 	mux.Handle("/sign", middleware.RequireServiceAuth(http.HandlerFunc(s.handleSign)))
+	mux.Handle("/sign-raw", middleware.RequireServiceAuth(http.HandlerFunc(s.handleSignRaw)))
 	mux.Handle("/derive", middleware.RequireServiceAuth(http.HandlerFunc(s.handleDerive)))
 
 	// Public endpoints (read-only, safe to expose)
@@ -65,6 +66,27 @@ func (s *Service) handleSign(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := s.Sign(r.Context(), &req)
+	if err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, resp)
+}
+
+// handleSignRaw handles POST /sign-raw - raw signing without domain separation.
+func (s *Service) handleSignRaw(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var req SignRawRequest
+	if !httputil.DecodeJSON(w, r, &req) {
+		return
+	}
+
+	resp, err := s.SignRaw(r.Context(), &req)
 	if err != nil {
 		httputil.WriteError(w, http.StatusBadRequest, err.Error())
 		return

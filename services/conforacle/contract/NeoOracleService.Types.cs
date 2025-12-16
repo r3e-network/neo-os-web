@@ -1,4 +1,5 @@
 using Neo;
+using Neo.SmartContract.Framework;
 
 namespace ServiceLayer.Oracle
 {

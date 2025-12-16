@@ -189,6 +189,17 @@ type SignRequest struct {
 	KeyVersion string `json:"key_version,omitempty"`
 }
 
+// SignRawRequest is a request for raw signing without domain separation.
+// This is primarily intended for signing Neo transaction witness payloads and
+// legacy on-chain messages that do not include a domain prefix.
+type SignRawRequest struct {
+	// Data is the data to sign (hex-encoded).
+	Data string `json:"data"`
+
+	// KeyVersion optionally specifies which key version to use.
+	KeyVersion string `json:"key_version,omitempty"`
+}
+
 // SignResponse is the response from signing.
 type SignResponse struct {
 	// Signature is the signature (hex-encoded).

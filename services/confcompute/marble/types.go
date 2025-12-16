@@ -1,5 +1,5 @@
 // Package neocompute provides types for the neocompute service.
-package neocomputemarble
+package neocompute
 
 import "time"
 

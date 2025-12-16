@@ -1,5 +1,5 @@
 // Package neocompute provides core logic for the neocompute service.
-package neocomputemarble
+package neocompute
 
 import (
 	"context"

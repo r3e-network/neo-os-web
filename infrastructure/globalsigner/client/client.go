@@ -82,6 +82,12 @@ type SignRequest struct {
 	KeyVersion string `json:"key_version,omitempty"`
 }
 
+// SignRawRequest is a request for raw signing without domain separation.
+type SignRawRequest struct {
+	Data       string `json:"data"` // hex-encoded
+	KeyVersion string `json:"key_version,omitempty"`
+}
+
 // SignResponse is the response from signing.
 type SignResponse struct {
 	Signature  string `json:"signature"` // hex-encoded
@@ -146,6 +152,64 @@ func (c *Client) Sign(ctx context.Context, req *SignRequest) (*SignResponse, err
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/sign", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	if c.serviceID != "" {
+		httpReq.Header.Set(serviceauth.ServiceIDHeader, c.serviceID)
+	}
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
+		if readErr != nil {
+			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+		}
+		msg := strings.TrimSpace(string(body))
+		if truncated {
+			msg += "...(truncated)"
+		}
+		if msg != "" {
+			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+		}
+		return nil, fmt.Errorf("request failed: %s", resp.Status)
+	}
+
+	respBody, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	var result SignResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("unmarshal response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// SignRaw performs raw signing without domain separation.
+func (c *Client) SignRaw(ctx context.Context, req *SignRawRequest) (*SignResponse, error) {
+	if c == nil {
+		return nil, fmt.Errorf("globalsigner: client is nil")
+	}
+	if c.httpClient == nil {
+		return nil, fmt.Errorf("globalsigner: http client not configured")
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/sign-raw", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
