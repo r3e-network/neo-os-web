@@ -43,6 +43,7 @@ func NewClient(cfg Config) (*Client, error) {
 	if timeout == 0 {
 		timeout = 30 * time.Second
 	}
+	forceTimeout := cfg.Timeout != 0
 
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
@@ -53,12 +54,7 @@ func NewClient(cfg Config) (*Client, error) {
 			Transport: transport,
 		}
 	} else {
-		// Avoid mutating a caller-supplied client.
-		copied := *httpClient
-		if copied.Timeout == 0 || cfg.Timeout != 0 {
-			copied.Timeout = timeout
-		}
-		httpClient = &copied
+		httpClient = httputil.CopyHTTPClientWithTimeout(httpClient, timeout, forceTimeout)
 	}
 
 	return &Client{

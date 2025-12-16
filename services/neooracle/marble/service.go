@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/R3E-Network/service_layer/internal/httputil"
 	"github.com/R3E-Network/service_layer/internal/marble"
 	"github.com/R3E-Network/service_layer/internal/runtime"
 	commonservice "github.com/R3E-Network/service_layer/services/common/service"
@@ -91,8 +92,7 @@ func New(cfg Config) (*Service, error) {
 		httpClient: func() *http.Client {
 			client := &http.Client{Timeout: 20 * time.Second}
 			if cfg.Marble != nil {
-				client = cfg.Marble.ExternalHTTPClient()
-				client.Timeout = 20 * time.Second
+				client = httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), 20*time.Second, true)
 			}
 			return client
 		}(),
