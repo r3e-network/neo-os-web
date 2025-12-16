@@ -5,17 +5,22 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
 
 	"github.com/R3E-Network/service_layer/internal/chain"
 	intcrypto "github.com/R3E-Network/service_layer/internal/crypto"
+	"github.com/R3E-Network/service_layer/internal/runtime"
+	txclient "github.com/R3E-Network/service_layer/services/txsubmitter/client"
 )
 
 // SignTransaction signs a transaction hash with an account's private key.
@@ -115,6 +120,9 @@ func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress 
 	if s.chainClient == nil {
 		return "", fmt.Errorf("chain client not configured")
 	}
+	if s.txSubmitter == nil {
+		return "", fmt.Errorf("txsubmitter client not configured")
+	}
 	if accountID == "" {
 		return "", fmt.Errorf("account_id required")
 	}
@@ -183,29 +191,60 @@ func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress 
 		chain.NewAnyParam(),
 	}
 
-	txResult, err := s.chainClient.InvokeFunctionWithSignerAndWait(
-		ctx,
-		tokenHash,
-		"transfer",
-		params,
-		signer,
-		transaction.CalledByEntry,
-		true,
-	)
+	// Build and sign the transaction locally, but broadcast via TxSubmitter so this
+	// service never performs chain writes directly.
+	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, tokenHash, "transfer", params, signer.ScriptHash())
 	if err != nil {
-		return "", fmt.Errorf("transfer invoke failed: %w", err)
+		return "", fmt.Errorf("transfer simulation failed: %w", err)
+	}
+	if invokeResult.State != "HALT" {
+		return "", fmt.Errorf("transfer simulation faulted: %s", invokeResult.Exception)
+	}
+
+	txBuilder := chain.NewTxBuilder(s.chainClient, s.chainClient.NetworkID())
+	tx, err := txBuilder.BuildAndSignTx(ctx, invokeResult, signer, transaction.CalledByEntry)
+	if err != nil {
+		return "", fmt.Errorf("build transfer transaction: %w", err)
+	}
+
+	txBase64 := base64.StdEncoding.EncodeToString(tx.Bytes())
+	payload, err := json.Marshal(map[string]string{"tx": txBase64, "encoding": "base64"})
+	if err != nil {
+		return "", fmt.Errorf("encode tx payload: %w", err)
+	}
+
+	// Use a per-transfer request ID; NeoAccounts is effectively the idempotency boundary
+	// for pool transfers, not the caller.
+	requestID := uuid.New().String()
+	if rid := strings.TrimSpace(serviceID); rid != "" {
+		requestID = rid + ":neoaccounts:transfer:" + requestID
+	}
+
+	resp, err := s.txSubmitter.Submit(ctx, &txclient.SubmitRequest{
+		RequestID:           requestID,
+		TxType:              "raw_transaction",
+		ContractAddress:     tokenHash,
+		MethodName:          "transfer",
+		Params:              payload,
+		WaitForConfirmation: true,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp == nil || strings.TrimSpace(resp.TxHash) == "" {
+		return "", fmt.Errorf("txsubmitter returned empty tx hash")
 	}
 
 	// Best-effort account metadata update; the chain tx succeeded regardless.
 	s.mu.Lock()
 	acc.LastUsedAt = time.Now()
 	acc.TxCount++
-	if updateErr := s.repo.Update(ctx, acc); updateErr != nil {
-		s.Logger().WithContext(ctx).WithError(updateErr).WithFields(map[string]interface{}{
-			"account_id": accountID,
-			"tx_hash":    txResult.TxHash,
-		}).Warn("failed to update account metadata after transfer")
-	}
+		if updateErr := s.repo.Update(ctx, acc); updateErr != nil {
+			s.Logger().WithContext(ctx).WithError(updateErr).WithFields(map[string]interface{}{
+				"account_id": accountID,
+				"tx_hash":    resp.TxHash,
+			}).Warn("failed to update account metadata after transfer")
+		}
 	s.mu.Unlock()
 
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
@@ -213,8 +252,14 @@ func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress 
 		"to_address": toAddress,
 		"amount":     amount,
 		"token_hash": tokenHash,
-		"tx_hash":    txResult.TxHash,
+		"tx_hash":    resp.TxHash,
 	}).Info("transfer completed")
 
-	return txResult.TxHash, nil
+	// In strict identity mode, Transfer always waits for confirmation. In dev,
+	// this makes pool transfers deterministic and simplifies operator debugging.
+	if runtime.StrictIdentityMode() && resp.Status != "confirmed" {
+		return resp.TxHash, fmt.Errorf("transaction not confirmed (status=%s)", resp.Status)
+	}
+
+	return resp.TxHash, nil
 }

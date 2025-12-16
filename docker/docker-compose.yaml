@@ -118,6 +118,7 @@ services:
       - CONTRACT_GATEWAY_HASH
       - CONTRACT_VRF_HASH
       - TEE_PRIVATE_KEY
+      - TXSUBMITTER_SERVICE_URL=${TXSUBMITTER_SERVICE_URL:-http://txsubmitter:8090}
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -156,6 +157,8 @@ services:
       - CONTRACT_GATEWAY_HASH
       - CONTRACT_NEOVAULT_HASH
       - TEE_PRIVATE_KEY
+      - TXSUBMITTER_SERVICE_URL=${TXSUBMITTER_SERVICE_URL:-http://txsubmitter:8090}
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -196,6 +199,7 @@ services:
       - CONTRACT_GATEWAY_HASH
       - CONTRACT_NEOFEEDS_HASH
       - TEE_PRIVATE_KEY
+      - TXSUBMITTER_SERVICE_URL=${TXSUBMITTER_SERVICE_URL:-http://txsubmitter:8090}
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -235,6 +239,7 @@ services:
       - CONTRACT_NEOFLOW_HASH
       - NEOFLOW_SCHEDULER_USER_ID
       - TEE_PRIVATE_KEY
+      - TXSUBMITTER_SERVICE_URL=${TXSUBMITTER_SERVICE_URL:-http://txsubmitter:8090}
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -381,6 +386,116 @@ services:
       - ORACLE_MAX_SIZE
       - CONTRACT_GATEWAY_HASH
       - TEE_PRIVATE_KEY
+    volumes:
+      - /var/run/aesmd:/var/run/aesmd
+      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
+    devices:
+      - /dev/sgx_enclave:/dev/sgx_enclave
+      - /dev/sgx_provision:/dev/sgx_provision
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoIndexer Service Marble
+  # =============================================================================
+  neoindexer:
+    image: service-layer/neoindexer:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neoindexer
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
+    container_name: service-neoindexer
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neoindexer
+      - EDG_MARBLE_DNS_NAMES=localhost,neoindexer
+      - SERVICE_TYPE=neoindexer
+      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - PORT=${NEOINDEXER_PORT:-8089}
+      - MARBLE_ENV=${MARBLE_ENV:-production}
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_RPC_URLS
+      - NEO_NETWORK_MAGIC
+    volumes:
+      - /var/run/aesmd:/var/run/aesmd
+      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
+    devices:
+      - /dev/sgx_enclave:/dev/sgx_enclave
+      - /dev/sgx_provision:/dev/sgx_provision
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # TxSubmitter Service Marble
+  # =============================================================================
+  txsubmitter:
+    image: service-layer/txsubmitter:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: txsubmitter
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
+    container_name: service-txsubmitter
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=txsubmitter
+      - EDG_MARBLE_DNS_NAMES=localhost,txsubmitter
+      - SERVICE_TYPE=txsubmitter
+      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - PORT=${TXSUBMITTER_PORT:-8090}
+      - MARBLE_ENV=${MARBLE_ENV:-production}
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_RPC_URLS
+      - NEO_NETWORK_MAGIC
+      - CONTRACT_GATEWAY_HASH
+      - CONTRACT_NEOFEEDS_HASH
+      - CONTRACT_NEOFLOW_HASH
+      - TEE_PRIVATE_KEY
+    volumes:
+      - /var/run/aesmd:/var/run/aesmd
+      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
+    devices:
+      - /dev/sgx_enclave:/dev/sgx_enclave
+      - /dev/sgx_provision:/dev/sgx_provision
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # GlobalSigner Service Marble
+  # =============================================================================
+  globalsigner:
+    image: service-layer/globalsigner:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: globalsigner
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
+    container_name: service-globalsigner
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=globalsigner
+      - EDG_MARBLE_DNS_NAMES=localhost,globalsigner
+      - SERVICE_TYPE=globalsigner
+      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - PORT=${GLOBALSIGNER_PORT:-8092}
+      - MARBLE_ENV=${MARBLE_ENV:-production}
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - GLOBALSIGNER_MASTER_SEED
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro

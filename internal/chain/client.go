@@ -64,6 +64,14 @@ func NewClient(cfg Config) (*Client, error) {
 	}, nil
 }
 
+// NetworkID returns the configured Neo N3 network magic for this client.
+func (c *Client) NetworkID() uint32 {
+	if c == nil {
+		return 0
+	}
+	return c.networkID
+}
+
 // CloneWithRPCURL returns a new Client that uses the provided RPC URL while
 // retaining the existing client's NetworkID and HTTP client configuration.
 func (c *Client) CloneWithRPCURL(rpcURL string) (*Client, error) {

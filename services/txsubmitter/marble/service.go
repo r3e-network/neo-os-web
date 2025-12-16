@@ -9,6 +9,7 @@ package txsubmitter
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -27,6 +28,9 @@ import (
 	"github.com/R3E-Network/service_layer/internal/marble"
 	commonservice "github.com/R3E-Network/service_layer/services/common/service"
 	"github.com/R3E-Network/service_layer/services/txsubmitter/supabase"
+
+	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
+	neogoio "github.com/nspcc-dev/neo-go/pkg/io"
 )
 
 // =============================================================================
@@ -209,6 +213,20 @@ func (s *Service) Submit(ctx context.Context, fromService string, req *TxRequest
 		return nil, fmt.Errorf("rate limit exceeded for service %s", fromService)
 	}
 
+	// Normalize audit fields so persistence is consistent across clients.
+	if req != nil {
+		if strings.TrimSpace(req.ContractAddress) == "" {
+			if fallback := defaultContractAddressForTxType(req.TxType); fallback != "" {
+				req.ContractAddress = fallback
+			}
+		}
+		if strings.TrimSpace(req.MethodName) == "" {
+			if fallback := defaultMethodNameForTxType(req.TxType); fallback != "" {
+				req.MethodName = fallback
+			}
+		}
+	}
+
 	// Create audit record
 	record, err := s.repo.Create(ctx, &supabase.CreateTxRequest{
 		RequestID:       req.RequestID,
@@ -275,6 +293,47 @@ func (s *Service) Submit(ctx context.Context, fromService string, req *TxRequest
 	}
 
 	return response, nil
+}
+
+func defaultContractAddressForTxType(txType string) string {
+	contracts := chain.ContractAddressesFromEnv()
+	switch txType {
+	case "fulfill_request", "fail_request", "set_tee_master_key":
+		return contracts.Gateway
+	case "update_price", "update_prices":
+		return contracts.NeoFeeds
+	case "execute_trigger":
+		return contracts.NeoFlow
+	case "resolve_dispute":
+		return contracts.NeoVault
+	case "raw_transaction":
+		return "raw"
+	default:
+		return ""
+	}
+}
+
+func defaultMethodNameForTxType(txType string) string {
+	switch txType {
+	case "fulfill_request":
+		return "fulfillRequest"
+	case "fail_request":
+		return "failRequest"
+	case "set_tee_master_key":
+		return "setTEEMasterKey"
+	case "update_price":
+		return "updatePrice"
+	case "update_prices":
+		return "updatePrices"
+	case "execute_trigger":
+		return "executeTrigger"
+	case "resolve_dispute":
+		return "resolveDispute"
+	case "raw_transaction":
+		return "sendrawtransaction"
+	default:
+		return ""
+	}
 }
 
 // submitWithRetry submits a transaction with retry logic.
@@ -355,12 +414,14 @@ func (s *Service) doSubmit(ctx context.Context, rpcURL string, fromService strin
 	}
 
 	fulfiller := s.fulfiller
+	client := s.chainClient
 	if rpcURL != "" && s.chainClient != nil {
-		client, err := s.chainClient.CloneWithRPCURL(rpcURL)
+		cloned, err := s.chainClient.CloneWithRPCURL(rpcURL)
 		if err != nil {
 			return "", fmt.Errorf("clone chain client: %w", err)
 		}
-		fulfiller = fulfiller.WithClient(client)
+		client = cloned
+		fulfiller = fulfiller.WithClient(cloned)
 	}
 
 	switch req.TxType {
@@ -374,6 +435,8 @@ func (s *Service) doSubmit(ctx context.Context, rpcURL string, fromService strin
 		return s.submitExecuteTrigger(ctx, fulfiller, req)
 	case "resolve_dispute":
 		return s.submitResolveDispute(ctx, fulfiller, fromService, req)
+	case "raw_transaction":
+		return s.submitRawTransaction(ctx, client, req)
 	case "generic":
 		return s.submitGenericInvoke(ctx, fulfiller, req)
 	default:
@@ -630,6 +693,174 @@ func (s *Service) submitGenericInvoke(ctx context.Context, fulfiller *chain.TEEF
 	}
 
 	return txResult.TxHash, nil
+}
+
+// submitRawTransaction broadcasts a pre-signed transaction to the configured RPC node.
+//
+// This is used for cases where another marble owns signing keys (e.g. NeoAccounts pool
+// accounts) but TxSubmitter remains the single chain-write authority.
+func (s *Service) submitRawTransaction(ctx context.Context, client *chain.Client, req *TxRequest) (string, error) {
+	if client == nil {
+		return "", fmt.Errorf("chain client not configured")
+	}
+
+	var params struct {
+		Tx       string `json:"tx,omitempty"`
+		TxBase64 string `json:"tx_base64,omitempty"`
+		TxHex    string `json:"tx_hex,omitempty"`
+		Encoding string `json:"encoding,omitempty"`
+	}
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		return "", fmt.Errorf("invalid params: %w", err)
+	}
+
+	raw := strings.TrimSpace(params.Tx)
+	if raw == "" {
+		raw = strings.TrimSpace(params.TxBase64)
+	}
+	if raw == "" {
+		raw = strings.TrimSpace(params.TxHex)
+	}
+	if raw == "" {
+		return "", fmt.Errorf("missing tx payload")
+	}
+
+	encoding := strings.ToLower(strings.TrimSpace(params.Encoding))
+
+	var txBytes []byte
+	var err error
+	switch encoding {
+	case "", "auto":
+		txBytes, err = decodeRawTxBytes(raw)
+	case "base64":
+		txBytes, err = decodeRawTxBytesBase64(raw)
+	case "hex":
+		txBytes, err = decodeRawTxBytesHex(raw)
+	default:
+		return "", fmt.Errorf("unsupported tx encoding %q (use base64|hex)", params.Encoding)
+	}
+	if err != nil {
+		return "", err
+	}
+	txBase64 := base64.StdEncoding.EncodeToString(txBytes)
+
+	// Broadcast via JSON-RPC.
+	result, err := client.Call(ctx, "sendrawtransaction", []interface{}{txBase64})
+	if err != nil {
+		return "", err
+	}
+
+	// Preferred response shape: {"hash": "0x..."}
+	var response struct {
+		Hash string `json:"hash"`
+	}
+	if err := json.Unmarshal(result, &response); err == nil && strings.TrimSpace(response.Hash) != "" {
+		hash := strings.TrimSpace(response.Hash)
+		if strings.HasPrefix(hash, "0x") || strings.HasPrefix(hash, "0X") {
+			return "0x" + strings.TrimPrefix(strings.TrimPrefix(hash, "0x"), "0X"), nil
+		}
+		return "0x" + hash, nil
+	}
+
+	// Fallback: some nodes respond with a boolean.
+	var ok bool
+	if err := json.Unmarshal(result, &ok); err == nil && ok {
+		hash, hashErr := computeNeoTxHash(txBytes)
+		if hashErr != nil {
+			return "", fmt.Errorf("broadcast succeeded but could not compute tx hash: %w", hashErr)
+		}
+		return hash, nil
+	}
+
+	return "", fmt.Errorf("unexpected sendrawtransaction response: %s", strings.TrimSpace(string(result)))
+}
+
+func decodeRawTxBytes(raw string) ([]byte, error) {
+	trimmed := strings.TrimSpace(raw)
+	trimmed = strings.TrimPrefix(strings.TrimPrefix(trimmed, "0x"), "0X")
+	if trimmed == "" {
+		return nil, fmt.Errorf("tx payload is empty")
+	}
+
+	// Prefer hex when the payload is hex-looking to avoid base64 ambiguity.
+	if looksLikeHex(trimmed) && len(trimmed)%2 == 0 {
+		if b, err := hex.DecodeString(trimmed); err == nil {
+			return b, nil
+		}
+	}
+
+	if b, err := decodeRawTxBytesBase64(trimmed); err == nil {
+		return b, nil
+	}
+
+	// One last attempt: treat it as hex even if it didn't strictly look like hex
+	// (helps operators when they copy/paste without encoding metadata).
+	if len(trimmed)%2 == 0 {
+		if b, err := hex.DecodeString(trimmed); err == nil {
+			return b, nil
+		}
+	}
+
+	return nil, fmt.Errorf("tx payload must be base64 or hex")
+}
+
+func decodeRawTxBytesBase64(raw string) ([]byte, error) {
+	trimmed := strings.TrimSpace(raw)
+	trimmed = strings.TrimPrefix(strings.TrimPrefix(trimmed, "0x"), "0X")
+	if trimmed == "" {
+		return nil, fmt.Errorf("tx payload is empty")
+	}
+
+	b, err := base64.StdEncoding.DecodeString(trimmed)
+	if err == nil && len(b) > 0 {
+		return b, nil
+	}
+
+	b, err = base64.RawStdEncoding.DecodeString(trimmed)
+	if err == nil && len(b) > 0 {
+		return b, nil
+	}
+
+	return nil, err
+}
+
+func decodeRawTxBytesHex(raw string) ([]byte, error) {
+	trimmed := strings.TrimSpace(raw)
+	trimmed = strings.TrimPrefix(strings.TrimPrefix(trimmed, "0x"), "0X")
+	if trimmed == "" {
+		return nil, fmt.Errorf("tx payload is empty")
+	}
+	if len(trimmed)%2 != 0 {
+		return nil, fmt.Errorf("hex tx payload must have even length")
+	}
+	b, err := hex.DecodeString(trimmed)
+	if err != nil {
+		return nil, fmt.Errorf("decode hex tx payload: %w", err)
+	}
+	return b, nil
+}
+
+func looksLikeHex(value string) bool {
+	for _, c := range value {
+		switch {
+		case c >= '0' && c <= '9':
+		case c >= 'a' && c <= 'f':
+		case c >= 'A' && c <= 'F':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func computeNeoTxHash(txBytes []byte) (string, error) {
+	reader := neogoio.NewBinReaderFromBuf(txBytes)
+	tx := &transaction.Transaction{}
+	tx.DecodeBinary(reader)
+	if reader.Err != nil {
+		return "", reader.Err
+	}
+	return "0x" + tx.Hash().StringLE(), nil
 }
 
 // =============================================================================

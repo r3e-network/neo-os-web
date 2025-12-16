@@ -40,6 +40,12 @@ func addWalletHandler(db *database.Repository) http.HandlerFunc {
 			return
 		}
 
+		existingWallets, err := db.GetUserWallets(r.Context(), userID)
+		if err != nil {
+			jsonError(w, "failed to get wallets", http.StatusInternalServerError)
+			return
+		}
+
 		var req struct {
 			Address   string `json:"address"`
 			Label     string `json:"label"`
@@ -65,7 +71,7 @@ func addWalletHandler(db *database.Repository) http.HandlerFunc {
 			UserID:                userID,
 			Address:               req.Address,
 			Label:                 req.Label,
-			IsPrimary:             false,
+			IsPrimary:             len(existingWallets) == 0,
 			Verified:              true,
 			VerificationMessage:   req.Message,
 			VerificationSignature: req.Signature,
@@ -75,6 +81,14 @@ func addWalletHandler(db *database.Repository) http.HandlerFunc {
 		if err := db.CreateWallet(r.Context(), wallet); err != nil {
 			jsonError(w, "failed to add wallet", http.StatusInternalServerError)
 			return
+		}
+
+		// Best-effort: keep the legacy users.address in sync with the primary wallet
+		// for simpler "user has bound wallet" checks across the stack.
+		if wallet.IsPrimary {
+			if _, err := db.Request(r.Context(), "PATCH", "users", map[string]any{"address": req.Address}, "id=eq."+userID); err != nil {
+				// Do not fail wallet binding on a derived/legacy field update.
+			}
 		}
 
 		httputil.WriteJSON(w, http.StatusCreated, wallet)
@@ -94,6 +108,11 @@ func setPrimaryWalletHandler(db *database.Repository) http.HandlerFunc {
 		if err := db.SetPrimaryWallet(r.Context(), userID, walletID); err != nil {
 			jsonError(w, "failed to set primary wallet", http.StatusInternalServerError)
 			return
+		}
+
+		// Best-effort: mirror primary wallet address into users.address.
+		if wallet, err := db.GetWallet(r.Context(), walletID, userID); err == nil {
+			_, _ = db.Request(r.Context(), "PATCH", "users", map[string]any{"address": wallet.Address}, "id=eq."+userID)
 		}
 
 		httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})

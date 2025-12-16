@@ -184,19 +184,15 @@ func registerHandler(db *database.Repository) http.HandlerFunc {
 		// Get or create user
 		user, err := db.GetUserByAddress(r.Context(), req.Address)
 		if err != nil {
-			if !database.IsNotFound(err) {
-				jsonError(w, "failed to lookup user", http.StatusInternalServerError)
+			if database.IsNotFound(err) {
+				// Registration is a 2-step flow:
+				// 1) POST /auth/nonce (creates user + stores nonce)
+				// 2) POST /auth/register (verifies signature + consumes nonce)
+				jsonError(w, "nonce not issued - call /auth/nonce first", http.StatusBadRequest)
 				return
 			}
-			user = &database.User{
-				ID:        uuid.New().String(),
-				Address:   req.Address,
-				CreatedAt: time.Now(),
-			}
-			if createErr := db.CreateUser(r.Context(), user); createErr != nil {
-				jsonError(w, "failed to create user", http.StatusInternalServerError)
-				return
-			}
+			jsonError(w, "failed to lookup user", http.StatusInternalServerError)
+			return
 		}
 
 		// Enforce nonce binding and one-time use
@@ -261,7 +257,7 @@ func registerHandler(db *database.Repository) http.HandlerFunc {
 
 		httputil.WriteJSON(w, http.StatusOK, map[string]interface{}{
 			"user_id": user.ID,
-			"address": user.Address,
+			"address": req.Address,
 			"token":   token,
 		})
 	}
@@ -350,7 +346,7 @@ func loginHandler(db *database.Repository) http.HandlerFunc {
 
 		httputil.WriteJSON(w, http.StatusOK, map[string]interface{}{
 			"user_id": user.ID,
-			"address": user.Address,
+			"address": req.Address,
 			"token":   token,
 		})
 	}

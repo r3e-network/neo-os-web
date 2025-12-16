@@ -30,8 +30,6 @@ import (
 	"github.com/R3E-Network/service_layer/internal/runtime"
 
 	// Neo service imports
-	gasaccounting "github.com/R3E-Network/service_layer/services/gasaccounting/marble"
-	gasaccountingsupabase "github.com/R3E-Network/service_layer/services/gasaccounting/supabase"
 	gsclient "github.com/R3E-Network/service_layer/services/globalsigner/client"
 	globalsigner "github.com/R3E-Network/service_layer/services/globalsigner/marble"
 	globalsignersupabase "github.com/R3E-Network/service_layer/services/globalsigner/supabase"
@@ -43,6 +41,7 @@ import (
 	neoflow "github.com/R3E-Network/service_layer/services/neoflow/marble"
 	neoflowsupabase "github.com/R3E-Network/service_layer/services/neoflow/supabase"
 	neoindexer "github.com/R3E-Network/service_layer/services/neoindexer/marble"
+	neoindexersupabase "github.com/R3E-Network/service_layer/services/neoindexer/supabase"
 	neooracle "github.com/R3E-Network/service_layer/services/neooracle/marble"
 	neorand "github.com/R3E-Network/service_layer/services/neorand/marble"
 	neorandsupabase "github.com/R3E-Network/service_layer/services/neorand/supabase"
@@ -64,7 +63,7 @@ type ServiceRunner interface {
 
 // Available Neo services
 var availableServices = []string{
-	"gasaccounting", "globalsigner",
+	"globalsigner",
 	"neoaccounts", "neocompute", "neofeeds", "neoflow", "neoindexer",
 	"neooracle", "neorand", "neostore", "neovault",
 	"txsubmitter",
@@ -156,13 +155,13 @@ func main() {
 	db := database.NewRepository(dbClient)
 
 	// Initialize repositories
-	gasAccountingRepo := gasaccountingsupabase.NewRepository(db)
 	globalSignerRepo := globalsignersupabase.NewRepository(db)
 	neoaccountsRepo := neoaccountssupabase.NewRepository(db)
 	neorandRepo := neorandsupabase.NewRepository(db)
 	neovaultRepo := neovaultsupabase.NewRepository(db)
 	neoflowRepo := neoflowsupabase.NewRepository(db)
 	neostoreRepo := newNeoStoreRepositoryAdapter(db)
+	neoindexerRepo := neoindexersupabase.NewRepository(db)
 	txsubmitterRepo := txsubmittersupabase.NewRepository(db)
 
 	// Chain configuration
@@ -325,16 +324,13 @@ func main() {
 	if neoFeedsHash != "" && txsubmitterClient != nil {
 		enableChainPush = true
 	}
+	if neoflowHash != "" && txsubmitterClient != nil {
+		enableChainExec = true
+	}
 
 	// Create service based on type
 	var svc ServiceRunner
 	switch serviceType {
-	case "gasaccounting":
-		svc, err = gasaccounting.New(gasaccounting.Config{
-			Marble:     m,
-			DB:         db,
-			Repository: gasAccountingRepo,
-		})
 	case "globalsigner":
 		svc, err = globalsigner.New(globalsigner.Config{
 			Marble:     m,
@@ -342,12 +338,17 @@ func main() {
 			Repository: globalSignerRepo,
 		})
 	case "neoaccounts":
-		svc, err = neoaccounts.New(neoaccounts.Config{
+		var accountsSvc *neoaccounts.Service
+		accountsSvc, err = neoaccounts.New(neoaccounts.Config{
 			Marble:          m,
 			DB:              db,
 			NeoAccountsRepo: neoaccountsRepo,
 			ChainClient:     chainClient,
 		})
+		if err == nil && txsubmitterClient != nil {
+			accountsSvc.SetTxSubmitterClient(txsubmitterClient)
+		}
+		svc = accountsSvc
 	case "neocompute":
 		if secretsBaseURL == "" {
 			log.Printf("Warning: SECRETS_BASE_URL not set; NeoCompute cannot inject NeoStore secrets")
@@ -374,7 +375,8 @@ func main() {
 		}
 		svc = feedsSvc
 	case "neoflow":
-		svc, err = neoflow.New(neoflow.Config{
+		var flowSvc *neoflow.Service
+		flowSvc, err = neoflow.New(neoflow.Config{
 			Marble:           m,
 			DB:               db,
 			NeoFlowRepo:      neoflowRepo,
@@ -384,6 +386,10 @@ func main() {
 			NeoFeedsContract: neoFeedsContract,
 			EnableChainExec:  enableChainExec,
 		})
+		if err == nil && txsubmitterClient != nil {
+			flowSvc.SetTxSubmitterClient(txsubmitterClient)
+		}
+		svc = flowSvc
 	case "neoindexer":
 		indexerCfg := neoindexer.DefaultConfig()
 		if len(neoRPCURLs) > 0 {
@@ -409,6 +415,7 @@ func main() {
 			DB:          db,
 			ChainClient: chainClient,
 			Config:      indexerCfg,
+			Repository:  neoindexerRepo,
 		})
 	case "neooracle":
 		if secretsBaseURL == "" {

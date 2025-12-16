@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/R3E-Network/service_layer/internal/database"
 	"github.com/R3E-Network/service_layer/internal/logging"
 	"github.com/R3E-Network/service_layer/internal/marble"
+	"github.com/R3E-Network/service_layer/internal/runtime"
 	commonservice "github.com/R3E-Network/service_layer/services/common/service"
 	"github.com/R3E-Network/service_layer/services/globalsigner/supabase"
 )
@@ -121,20 +123,34 @@ func (s *Service) hydrate(ctx context.Context) error {
 
 	// Load master seed from Marble secrets
 	seedBytes, ok := s.Marble().Secret("GLOBALSIGNER_MASTER_SEED")
-	if !ok {
-		return fmt.Errorf("failed to get master seed: secret not found")
+	if !ok || len(seedBytes) == 0 {
+		strict := runtime.StrictIdentityMode() || s.Marble().IsEnclave()
+		if strict {
+			return fmt.Errorf("failed to get master seed: secret not found")
+		}
+
+		s.Logger().Warn(ctx, "GLOBALSIGNER_MASTER_SEED not configured; generating ephemeral key (development/testing only)", nil)
+		generated, err := crypto.GenerateRandomBytes(32)
+		if err != nil {
+			return fmt.Errorf("generate master seed: %w", err)
+		}
+		seedBytes = generated
 	}
 
-	seed, err := hex.DecodeString(string(seedBytes))
-	if err != nil {
-		return fmt.Errorf("invalid master seed hex: %w", err)
+	seed := seedBytes
+	if len(seed) != 32 {
+		// Backward compatibility: allow a hex-encoded seed (e.g. env var injected as text).
+		decoded, err := hex.DecodeString(strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(string(seedBytes)), "0x"), "0X"))
+		if err == nil {
+			seed = decoded
+		}
+	}
+	if len(seed) != 32 {
+		return fmt.Errorf("master seed must be 32 bytes, got %d", len(seed))
 	}
 
-	if len(seed) < 32 {
-		return fmt.Errorf("master seed too short: need 32 bytes, got %d", len(seed))
-	}
-
-	s.masterSeed = seed
+	s.masterSeed = make([]byte, 32)
+	copy(s.masterSeed, seed)
 
 	// Load existing key versions from repository
 	if s.repo != nil {
@@ -405,15 +421,16 @@ func (s *Service) Sign(ctx context.Context, req *SignRequest) (*SignResponse, er
 		}
 	}
 
-	// Domain-separated signing: hash(domain || data)
-	h := sha256.New()
-	h.Write([]byte(req.Domain))
-	h.Write([]byte{0x00}) // separator
-	h.Write(data)
-	digest := h.Sum(nil)
+	// Domain-separated signing: sign over sha256(domain || 0x00 || data).
+	// crypto.Sign hashes its input with sha256 before producing the Neo-style
+	// 64-byte (r||s) signature, so we pass the un-hashed message here to avoid
+	// accidentally double hashing.
+	signingMessage := make([]byte, 0, len(req.Domain)+1+len(data))
+	signingMessage = append(signingMessage, []byte(req.Domain)...)
+	signingMessage = append(signingMessage, 0x00) // separator
+	signingMessage = append(signingMessage, data...)
 
-	// Sign
-	sig, err := crypto.Sign(entry.privateKey, digest)
+	sig, err := crypto.Sign(entry.privateKey, signingMessage)
 	if err != nil {
 		return nil, fmt.Errorf("signing failed: %w", err)
 	}

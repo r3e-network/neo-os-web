@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -23,6 +25,7 @@ import (
 
 const (
 	oauthStateCookieName      = "oauth_state"
+	oauthVerifierCookieName   = "oauth_verifier"
 	oauthTokenCookieName      = "sl_auth_token" // #nosec G101 -- cookie name, not a credential
 	maxOAuthJSONResponseBytes = 256 << 10       // 256KiB
 )
@@ -431,6 +434,203 @@ func githubCallbackHandler(db oauthRepository, m *marble.Marble) http.HandlerFun
 	}
 }
 
+func twitterAuthHandler(m *marble.Marble) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		clientID, _, redirectURL := getOAuthConfig(m, "twitter")
+		if clientID == "" {
+			jsonError(w, "Twitter OAuth not configured", http.StatusServiceUnavailable)
+			return
+		}
+
+		state := generateState()
+		verifier := generateCodeVerifier()
+		challenge := pkceChallengeS256(verifier)
+
+		secure := isRequestSecure(r)
+		http.SetCookie(w, &http.Cookie{
+			Name:     oauthStateCookieName,
+			Value:    state,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   secure,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   600,
+		})
+		http.SetCookie(w, &http.Cookie{
+			Name:     oauthVerifierCookieName,
+			Value:    verifier,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   secure,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   600,
+		})
+
+		scope := "users.read tweet.read offline.access"
+		authURL := fmt.Sprintf(
+			"https://twitter.com/i/oauth2/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s&code_challenge=%s&code_challenge_method=S256",
+			url.QueryEscape(clientID),
+			url.QueryEscape(redirectURL),
+			url.QueryEscape(scope),
+			url.QueryEscape(state),
+			url.QueryEscape(challenge),
+		)
+		http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
+	}
+}
+
+func twitterCallbackHandler(db oauthRepository, m *marble.Marble) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+
+		clientID, clientSecret, redirectURL := getOAuthConfig(m, "twitter")
+
+		stateCookie, err := r.Cookie(oauthStateCookieName)
+		if err != nil || stateCookie.Value != r.URL.Query().Get("state") {
+			jsonError(w, "invalid state", http.StatusBadRequest)
+			return
+		}
+
+		verifierCookie, err := r.Cookie(oauthVerifierCookieName)
+		if err != nil || strings.TrimSpace(verifierCookie.Value) == "" {
+			jsonError(w, "missing verifier", http.StatusBadRequest)
+			return
+		}
+
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			jsonError(w, "missing code", http.StatusBadRequest)
+			return
+		}
+
+		httpClient := &http.Client{Timeout: 15 * time.Second}
+		if m != nil {
+			httpClient = httputil.CopyHTTPClientWithTimeout(m.ExternalHTTPClient(), 15*time.Second, true)
+		}
+
+		tokenValues := url.Values{
+			"client_id":     {clientID},
+			"code":          {code},
+			"grant_type":    {"authorization_code"},
+			"redirect_uri":  {redirectURL},
+			"code_verifier": {verifierCookie.Value},
+		}
+		tokenReq, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.twitter.com/2/oauth2/token", strings.NewReader(tokenValues.Encode()))
+		if err != nil {
+			jsonError(w, "token exchange failed", http.StatusInternalServerError)
+			return
+		}
+		tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		tokenReq.Header.Set("Accept", "application/json")
+		if clientSecret != "" {
+			tokenReq.SetBasicAuth(clientID, clientSecret)
+		}
+
+		tokenResp, err := httpClient.Do(tokenReq)
+		if err != nil {
+			jsonError(w, "token exchange failed", http.StatusInternalServerError)
+			return
+		}
+		defer tokenResp.Body.Close()
+		if tokenResp.StatusCode != http.StatusOK {
+			body, truncated, readErr := httputil.ReadAllWithLimit(tokenResp.Body, 16<<10)
+			if readErr != nil {
+				log.Printf("twitter token exchange failed: status=%d read_error=%v", tokenResp.StatusCode, readErr)
+			} else {
+				msg := strings.TrimSpace(string(body))
+				if truncated {
+					msg += "...(truncated)"
+				}
+				log.Printf("twitter token exchange failed: status=%d body=%s", tokenResp.StatusCode, msg)
+			}
+			jsonError(w, "token exchange failed", http.StatusBadGateway)
+			return
+		}
+
+		var tokenData struct {
+			AccessToken  string `json:"access_token"`
+			RefreshToken string `json:"refresh_token"`
+			ExpiresIn    int    `json:"expires_in"`
+		}
+		body, readErr := httputil.ReadAllStrict(tokenResp.Body, maxOAuthJSONResponseBytes)
+		if readErr != nil {
+			jsonError(w, "failed to parse token", http.StatusBadGateway)
+			return
+		}
+		if decodeErr := json.Unmarshal(body, &tokenData); decodeErr != nil {
+			jsonError(w, "failed to parse token", http.StatusBadGateway)
+			return
+		}
+		if tokenData.AccessToken == "" {
+			jsonError(w, "failed to parse token", http.StatusBadGateway)
+			return
+		}
+
+		userReq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.twitter.com/2/users/me?user.fields=profile_image_url", http.NoBody)
+		if err != nil {
+			jsonError(w, "failed to create user info request", http.StatusInternalServerError)
+			return
+		}
+		userReq.Header.Set("Authorization", "Bearer "+tokenData.AccessToken)
+		userReq.Header.Set("Accept", "application/json")
+
+		userResp, err := httpClient.Do(userReq)
+		if err != nil {
+			jsonError(w, "failed to get user info", http.StatusInternalServerError)
+			return
+		}
+		defer userResp.Body.Close()
+		if userResp.StatusCode != http.StatusOK {
+			body, truncated, readErr := httputil.ReadAllWithLimit(userResp.Body, 16<<10)
+			if readErr != nil {
+				log.Printf("twitter user info failed: status=%d read_error=%v", userResp.StatusCode, readErr)
+			} else {
+				msg := strings.TrimSpace(string(body))
+				if truncated {
+					msg += "...(truncated)"
+				}
+				log.Printf("twitter user info failed: status=%d body=%s", userResp.StatusCode, msg)
+			}
+			jsonError(w, "failed to get user info", http.StatusBadGateway)
+			return
+		}
+
+		var twitterUser struct {
+			Data struct {
+				ID              string `json:"id"`
+				Name            string `json:"name"`
+				Username        string `json:"username"`
+				ProfileImageURL string `json:"profile_image_url"`
+			} `json:"data"`
+		}
+		userBody, readErr := httputil.ReadAllStrict(userResp.Body, maxOAuthJSONResponseBytes)
+		if readErr != nil {
+			jsonError(w, "failed to parse user info", http.StatusBadGateway)
+			return
+		}
+		if decodeErr := json.Unmarshal(userBody, &twitterUser); decodeErr != nil {
+			jsonError(w, "failed to parse user info", http.StatusBadGateway)
+			return
+		}
+		if strings.TrimSpace(twitterUser.Data.ID) == "" {
+			jsonError(w, "failed to parse user info", http.StatusBadGateway)
+			return
+		}
+
+		displayName := twitterUser.Data.Name
+		if displayName == "" {
+			displayName = twitterUser.Data.Username
+		}
+
+		// Clear PKCE verifier cookie now that it is no longer needed.
+		clearOAuthVerifierCookie(w, isRequestSecure(r))
+
+		handleOAuthCallback(w, r.WithContext(ctx), db, "twitter", twitterUser.Data.ID, "", displayName, twitterUser.Data.ProfileImageURL,
+			tokenData.AccessToken, tokenData.RefreshToken, tokenData.ExpiresIn)
+	}
+}
+
 // isOAuthCookieMode returns true if OAuth should use HTTP-only cookies instead of URL params.
 // Default is true for security. Set OAUTH_COOKIE_MODE=false to disable.
 func isOAuthCookieMode() bool {
@@ -508,6 +708,19 @@ func clearOAuthStateCookie(w http.ResponseWriter, secure bool) {
 		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1, // Delete cookie
+		Expires:  time.Unix(0, 0),
+	})
+}
+
+func clearOAuthVerifierCookie(w http.ResponseWriter, secure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     oauthVerifierCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),
 	})
 }
@@ -739,4 +952,17 @@ func generateState() string {
 		return fmt.Sprintf("state-%d", time.Now().UnixNano())
 	}
 	return hex.EncodeToString(b)
+}
+
+func generateCodeVerifier() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return hex.EncodeToString(b)
+	}
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func pkceChallengeS256(verifier string) string {
+	sum := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
 }

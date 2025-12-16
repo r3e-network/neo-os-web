@@ -52,6 +52,13 @@ data:
   NEO_RPC_URL: "https://testnet1.neo.coz.io:443"
   # Neo N3 network magic (Testnet). Mainnet: 860833102
   NEO_NETWORK_MAGIC: "894710606"
+  # On-chain contract hashes (0x-prefixed little-endian Uint160 strings).
+  # Set these per environment after deploying contracts.
+  CONTRACT_GATEWAY_HASH: ""
+  CONTRACT_VRF_HASH: ""
+  CONTRACT_NEOVAULT_HASH: ""
+  CONTRACT_NEOFEEDS_HASH: ""
+  CONTRACT_NEOFLOW_HASH: ""
   # Oracle config
   ORACLE_HTTP_ALLOWLIST: "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com"
   # Optional Arbitrum RPC override for Chainlink (NeoFeeds). Defaults to https://arb1.arbitrum.io/rpc.
@@ -70,7 +77,6 @@ data:
   NEOORACLE_SERVICE_URL: "https://neooracle:8088"
   NEOINDEXER_SERVICE_URL: "https://neoindexer:8089"
   TXSUBMITTER_SERVICE_URL: "https://txsubmitter:8090"
-  GASACCOUNTING_SERVICE_URL: "https://gasaccounting:8091"
   GLOBALSIGNER_SERVICE_URL: "https://globalsigner:8092"
   SECRETS_BASE_URL: "https://neostore:8087"
 
@@ -79,9 +85,7 @@ data:
   TX_SUBMITTER_PORT: "8090"
   MIXER_SCHEDULER_PORT: "8091"
   MIXER_EXECUTOR_PORT: "8092"
-  GASACCOUNTING_PORT: "8091"
   GLOBALSIGNER_PORT: "8092"
-  TEE_SIGNER_PORT: "9443"
 
   # NATS JetStream configuration
   NATS_URL: "nats://nats.platform.svc.cluster.local:4222"
@@ -100,7 +104,3 @@ data:
   MIXER_ENABLED: "false"
   MIXER_MIN_TRANSFERS_PER_HOUR: "10"
   MIXER_MAX_TRANSFERS_PER_HOUR: "100"
-
-  # TEE Signer configuration
-  TEE_SIGNER_SERVICE_URL: "https://teesigner:9443"
-  TEE_SIGNER_KEY_ROTATION_DAYS: "30"

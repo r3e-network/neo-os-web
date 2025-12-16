@@ -22,6 +22,7 @@ import (
 	"github.com/R3E-Network/service_layer/internal/runtime"
 	commonservice "github.com/R3E-Network/service_layer/services/common/service"
 	neoaccountssupabase "github.com/R3E-Network/service_layer/services/neoaccounts/supabase"
+	txclient "github.com/R3E-Network/service_layer/services/txsubmitter/client"
 )
 
 const (
@@ -55,6 +56,9 @@ type Service struct {
 
 	// Chain interaction (for signing)
 	chainClient *chain.Client
+
+	// Centralized chain write authority (broadcast only).
+	txSubmitter *txclient.Client
 }
 
 // Config holds NeoAccounts service configuration.
@@ -124,6 +128,10 @@ func New(cfg Config) (*Service, error) {
 	base.RegisterStandardRoutes()
 	s.registerRoutes()
 	return s, nil
+}
+
+func (s *Service) SetTxSubmitterClient(client *txclient.Client) {
+	s.txSubmitter = client
 }
 
 // initializePool ensures the pool has at least MinPoolAccounts.

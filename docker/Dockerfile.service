@@ -90,7 +90,6 @@ cat > enclave.json <<JSON
         {"name": "NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS", "fromHost": true},
         {"name": "TXSUBMITTER_SERVICE_URL", "fromHost": true},
         {"name": "GLOBALSIGNER_SERVICE_URL", "fromHost": true},
-        {"name": "GASACCOUNTING_SERVICE_URL", "fromHost": true},
         {"name": "NEOINDEXER_SERVICE_URL", "fromHost": true}
     ],
     "files": [

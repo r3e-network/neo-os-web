@@ -29,3 +29,4 @@ CREATE INDEX IF NOT EXISTS processed_events_processed_at_idx
   ON processed_events (processed_at DESC);
 
 COMMENT ON TABLE processed_events IS 'Chain event idempotency table for NeoIndexer';
+

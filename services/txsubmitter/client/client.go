@@ -124,6 +124,12 @@ type UpdatePricesParams struct {
 	Timestamps []uint64 `json:"timestamps"` // seconds since Unix epoch
 }
 
+// ExecuteTriggerParams are parameters for execute_trigger transactions.
+type ExecuteTriggerParams struct {
+	TriggerID     string `json:"trigger_id"`
+	ExecutionData string `json:"execution_data"` // hex-encoded
+}
+
 // ResolveDisputeParams are parameters for resolve_dispute transactions.
 type ResolveDisputeParams struct {
 	RequestHash     string `json:"request_hash"`     // hex-encoded (32 bytes)
@@ -264,6 +270,29 @@ func (c *Client) UpdatePrices(ctx context.Context, feedIDs []string, prices []st
 		RequestID: fmt.Sprintf("neofeeds:prices:%d", time.Now().UnixNano()),
 		TxType:    "update_prices",
 		Params:    params,
+	})
+}
+
+// ExecuteTrigger submits an execute_trigger transaction.
+func (c *Client) ExecuteTrigger(ctx context.Context, neoflowContractHash string, triggerID string, executionDataHex string) (*SubmitResponse, error) {
+	params, err := json.Marshal(ExecuteTriggerParams{
+		TriggerID:     triggerID,
+		ExecutionData: executionDataHex,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	requestID := fmt.Sprintf("%s:trigger:%s:%d", c.serviceID, triggerID, time.Now().UnixNano())
+	if strings.TrimSpace(c.serviceID) == "" {
+		requestID = fmt.Sprintf("trigger:%s:%d", triggerID, time.Now().UnixNano())
+	}
+
+	return c.Submit(ctx, &SubmitRequest{
+		RequestID:       requestID,
+		TxType:          "execute_trigger",
+		ContractAddress: neoflowContractHash,
+		Params:          params,
 	})
 }
 

@@ -38,3 +38,4 @@ CREATE INDEX IF NOT EXISTS chain_txs_pending_idx
   WHERE status IN ('pending', 'submitted');
 
 COMMENT ON TABLE chain_txs IS 'Transaction audit table for TxSubmitter';
+

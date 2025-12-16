@@ -73,13 +73,6 @@ services:
     port: 8090
     description: "Centralized transaction submission with rate limiting and failover"
 
-  # GasAccounting - GAS Ledger and Reservations
-  # Use cases: Service usage metering, deposit/withdrawal tracking
-  gasaccounting:
-    enabled: true
-    port: 8091
-    description: "GAS ledger, reservations, and accounting for service usage"
-
   # GlobalSigner - TEE Master Key Management
   # Use cases: Domain-separated signing, key rotation, attestation
   globalsigner:

@@ -22,8 +22,8 @@ A production-ready, TEE-protected service layer for Neo N3 blockchain, built wit
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
 ┌─────────────────────┐ ┌─────────────────────┐ ┌─────────────────────┐
-│   GATEWAY MARBLE    │ │  SERVICE MARBLES    │ │   WORKER MARBLES    │
-│     (EGo TEE)       │ │    (EGo TEEs)       │ │     (EGo TEEs)      │
+│   GATEWAY (Edge)    │ │  SERVICE MARBLES    │ │   WORKER MARBLES    │
+│ (optional EGo TEE)  │ │    (EGo TEEs)       │ │     (EGo TEEs)      │
 │                     │ │                     │ │                     │
 │ • API Gateway       │ │ • NeoOracle         │ │ • NeoFlow Jobs      │
 │ • Auth/JWT          │ │ • NeoRand (VRF)     │ │ • NeoFeeds Push     │
@@ -40,7 +40,7 @@ A production-ready, TEE-protected service layer for Neo N3 blockchain, built wit
 │                         SUPABASE (Database)                                  │
 │  • PostgreSQL with Row Level Security                                       │
 │  • Real-time subscriptions                                                  │
-│  • Auth (backup, primary is TEE-based)                                      │
+│  • Auth metadata + sessions (OAuth / wallet / API keys)                     │
 │  • Storage for encrypted blobs                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -333,12 +333,19 @@ service_layer/
 │   ├── gateway/          # API Gateway entry point
 │   └── marble/           # Unified Marble entry point (MARBLE_TYPE)
 ├── internal/
-│   ├── marble/           # Marble SDK & service framework
-│   ├── database/         # Supabase client & repository
-│   ├── crypto/           # Cryptographic operations
-│   └── secretstore/      # NeoStore (secrets) client
+│   ├── chain/            # Neo N3 RPC, tx building, event listeners
+│   ├── config/           # Service configuration loading
+│   ├── crypto/           # Cryptographic primitives
+│   ├── database/         # Supabase client & repository helpers
+│   ├── errors/           # Shared error types
+│   ├── httputil/         # HTTP helpers + identity derivation
+│   ├── logging/          # Structured logging + context helpers
+│   ├── marble/           # MarbleRun/EGo helpers
+│   ├── metrics/          # Prometheus metrics
+│   ├── middleware/       # HTTP middleware (CORS, limits, auth helpers)
+│   ├── runtime/          # Env + strict identity helpers
+│   └── serviceauth/      # Service-to-service JWT helpers
 ├── services/
-│   ├── gasaccounting/    # GasAccounting service
 │   ├── globalsigner/     # GlobalSigner service
 │   ├── neooracle/        # NeoOracle service
 │   ├── neorand/          # NeoRand (VRF) service
@@ -349,7 +356,6 @@ service_layer/
 │   ├── neofeeds/         # NeoFeeds service
 │   ├── neoflow/          # NeoFlow service
 │   ├── neocompute/       # NeoCompute service
-│   ├── teesigner/        # TEE signer utility/service
 │   └── txsubmitter/      # TxSubmitter service
 ├── manifests/
 │   └── manifest.json     # MarbleRun manifest

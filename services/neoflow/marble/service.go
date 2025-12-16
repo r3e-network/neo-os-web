@@ -24,6 +24,7 @@ import (
 	commonservice "github.com/R3E-Network/service_layer/services/common/service"
 	neofeedschain "github.com/R3E-Network/service_layer/services/neofeeds/chain"
 	neoflowsupabase "github.com/R3E-Network/service_layer/services/neoflow/supabase"
+	txclient "github.com/R3E-Network/service_layer/services/txsubmitter/client"
 )
 
 const (
@@ -58,6 +59,7 @@ type Service struct {
 	// Chain interaction for trigger execution
 	chainClient      *chain.Client
 	teeFulfiller     *chain.TEEFulfiller
+	txSubmitter      *txclient.Client
 	neoflowHash      string
 	neoFeedsContract *neofeedschain.NeoFeedsContract
 	eventListener    *chain.EventListener
@@ -137,6 +139,10 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	s.registerRoutes()
 
 	return s, nil
+}
+
+func (s *Service) SetTxSubmitterClient(client *txclient.Client) {
+	s.txSubmitter = client
 }
 
 func (s *Service) hydrateSchedulerCache(ctx context.Context) error {

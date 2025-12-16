@@ -126,7 +126,35 @@
                 "OutOfDateConfigurationNeeded"
             ]
         },
-        "tee-signer": {
+        "neoindexer": {
+            "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+            "ProductID": 1,
+            "SecurityVersion": 1,
+            "Debug": false,
+            "AcceptedTCBStatuses": [
+                "UpToDate",
+                "SWHardeningNeeded",
+                "ConfigurationAndSWHardeningNeeded",
+                "ConfigurationNeeded",
+                "OutOfDate",
+                "OutOfDateConfigurationNeeded"
+            ]
+        },
+        "txsubmitter": {
+            "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+            "ProductID": 1,
+            "SecurityVersion": 1,
+            "Debug": false,
+            "AcceptedTCBStatuses": [
+                "UpToDate",
+                "SWHardeningNeeded",
+                "ConfigurationAndSWHardeningNeeded",
+                "ConfigurationNeeded",
+                "OutOfDate",
+                "OutOfDateConfigurationNeeded"
+            ]
+        },
+        "globalsigner": {
             "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
             "ProductID": 1,
             "SecurityVersion": 1,
@@ -187,7 +215,12 @@
             "Size": 256,
             "Shared": true
         },
-        "MASTER_KEY_SEED": {
+        "TEE_PRIVATE_KEY": {
+            "Type": "symmetric-key",
+            "Size": 256,
+            "Shared": true
+        },
+        "GLOBALSIGNER_MASTER_SEED": {
             "Type": "symmetric-key",
             "Size": 256,
             "Shared": true
@@ -347,17 +380,50 @@
                 }
             }
         },
-        "tee-signer": {
-            "Package": "tee-signer",
+        "neoindexer": {
+            "Package": "neoindexer",
             "MaxActivations": 100,
             "Parameters": {
                 "Argv": [
                     "./service"
                 ],
                 "Env": {
-                    "EDG_MARBLE_TYPE": "tee-signer",
-                    "SERVICE_TYPE": "tee-signer",
-                    "MASTER_KEY_SEED": "{{ hex .Secrets.MASTER_KEY_SEED.Private }}",
+                    "EDG_MARBLE_TYPE": "neoindexer",
+                    "SERVICE_TYPE": "neoindexer",
+                    "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+                    "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+                    "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+                }
+            }
+        },
+        "txsubmitter": {
+            "Package": "txsubmitter",
+            "MaxActivations": 100,
+            "Parameters": {
+                "Argv": [
+                    "./service"
+                ],
+                "Env": {
+                    "EDG_MARBLE_TYPE": "txsubmitter",
+                    "SERVICE_TYPE": "txsubmitter",
+                    "TEE_PRIVATE_KEY": "{{ hex .Secrets.TEE_PRIVATE_KEY.Private }}",
+                    "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+                    "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+                    "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+                }
+            }
+        },
+        "globalsigner": {
+            "Package": "globalsigner",
+            "MaxActivations": 100,
+            "Parameters": {
+                "Argv": [
+                    "./service"
+                ],
+                "Env": {
+                    "EDG_MARBLE_TYPE": "globalsigner",
+                    "SERVICE_TYPE": "globalsigner",
+                    "GLOBALSIGNER_MASTER_SEED": "{{ hex .Secrets.GLOBALSIGNER_MASTER_SEED.Private }}",
                     "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
                     "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
                     "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
