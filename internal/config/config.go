@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	slruntime "github.com/R3E-Network/service_layer/internal/runtime"
 	"github.com/joho/godotenv"
 )
 
@@ -82,13 +83,14 @@ func Load() (*Config, error) {
 	// Get environment from MARBLE_ENV
 	envStr := os.Getenv("MARBLE_ENV")
 	if envStr == "" {
-		envStr = "development"
+		envStr = string(slruntime.Development)
 	}
 
-	env := Environment(envStr)
-	if !isValidEnvironment(env) {
+	parsedEnv, ok := slruntime.ParseEnvironment(envStr)
+	if !ok {
 		return nil, fmt.Errorf("invalid MARBLE_ENV: %s (must be development, testing, or production)", envStr)
 	}
+	env := Environment(parsedEnv)
 
 	// Load environment-specific .env file
 	configFile := filepath.Join("config", fmt.Sprintf("%s.env", env))
@@ -261,8 +263,4 @@ func getBoolEnv(key string, defaultValue bool) bool {
 		}
 	}
 	return defaultValue
-}
-
-func isValidEnvironment(env Environment) bool {
-	return env == Development || env == Testing || env == Production
 }

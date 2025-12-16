@@ -6,23 +6,21 @@ import (
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
-
-	"github.com/R3E-Network/service_layer/internal/plugin"
 )
 
 // LoadServicesConfig loads the services configuration from config/services.yaml
-func LoadServicesConfig() (*plugin.ServicesConfig, error) {
+func LoadServicesConfig() (*ServicesConfig, error) {
 	return LoadServicesConfigFromPath(filepath.Join("config", "services.yaml"))
 }
 
 // LoadServicesConfigFromPath loads the services configuration from a specific path
-func LoadServicesConfigFromPath(path string) (*plugin.ServicesConfig, error) {
+func LoadServicesConfigFromPath(path string) (*ServicesConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read services config: %w", err)
 	}
 
-	var cfg plugin.ServicesConfig
+	var cfg ServicesConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse services config: %w", err)
 	}
@@ -38,7 +36,7 @@ func LoadServicesConfigFromPath(path string) (*plugin.ServicesConfig, error) {
 }
 
 // LoadServicesConfigOrDefault loads services config or returns default if file not found
-func LoadServicesConfigOrDefault() *plugin.ServicesConfig {
+func LoadServicesConfigOrDefault() *ServicesConfig {
 	cfg, err := LoadServicesConfig()
 	if err != nil {
 		// Return default configuration with all services enabled
@@ -48,9 +46,9 @@ func LoadServicesConfigOrDefault() *plugin.ServicesConfig {
 }
 
 // DefaultServicesConfig returns the default services configuration
-func DefaultServicesConfig() *plugin.ServicesConfig {
-	return &plugin.ServicesConfig{
-		Services: map[string]*plugin.ServiceSettings{
+func DefaultServicesConfig() *ServicesConfig {
+	return &ServicesConfig{
+		Services: map[string]*ServiceSettings{
 			"neorand": {
 				Enabled:     true,
 				Port:        8081,

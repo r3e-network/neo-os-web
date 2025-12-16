@@ -18,6 +18,7 @@ import (
 	"github.com/edgelesssys/ego/attestation"
 	"github.com/edgelesssys/ego/enclave"
 
+	slhttputil "github.com/R3E-Network/service_layer/internal/httputil"
 	"github.com/R3E-Network/service_layer/internal/logging"
 )
 
@@ -213,7 +214,7 @@ func (m *Marble) HTTPClient() *http.Client {
 func (m *Marble) ExternalHTTPClient() *http.Client {
 	if m == nil {
 		return &http.Client{
-			Transport: &traceHeaderRoundTripper{base: http.DefaultTransport},
+			Transport: &traceHeaderRoundTripper{base: slhttputil.DefaultTransportWithMinTLS12()},
 			Timeout:   30 * time.Second,
 		}
 	}
@@ -225,22 +226,7 @@ func (m *Marble) ExternalHTTPClient() *http.Client {
 		return m.externalHTTPClient
 	}
 
-	var transport http.RoundTripper
-	if base, ok := http.DefaultTransport.(*http.Transport); ok {
-		cloned := base.Clone()
-		if cloned.TLSClientConfig != nil {
-			cloned.TLSClientConfig = cloned.TLSClientConfig.Clone()
-			// Enforce a modern TLS baseline for external calls.
-			if cloned.TLSClientConfig.MinVersion == 0 || cloned.TLSClientConfig.MinVersion < tls.VersionTLS12 {
-				cloned.TLSClientConfig.MinVersion = tls.VersionTLS12
-			}
-		} else {
-			cloned.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
-		}
-		transport = cloned
-	} else {
-		transport = http.DefaultTransport
-	}
+	transport := slhttputil.DefaultTransportWithMinTLS12()
 
 	m.externalHTTPClient = &http.Client{
 		Transport: &traceHeaderRoundTripper{base: transport},
