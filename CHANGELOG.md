@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unified error handling package (`internal/errors`)
 - Unified structured logging package (`internal/logging`)
 - Kubernetes secrets template (`k8s/secrets.yaml.template`)
+- Platform contracts for MiniApp flow (PaymentHub/Governance/PriceFeed/RandomnessLog/AppRegistry/AutomationAnchor)
+- `neorand` service for verifiable randomness + optional on-chain anchoring
+- `txproxy` service for allowlisted tx signing/broadcast (single tx policy point)
 
 ### Changed
 
@@ -21,18 +24,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved security across all services with JWT authentication
 - Enhanced NeoVault service with ownership verification
 - Added rate limiting to NeoFlow service
+- Hardened ECDSA signing (deterministic RFC6979 + low-S)
 
 ### Removed
 
 - Deprecated review documents (12 files)
 - Deprecated scripts: `find_duplications.sh`, `split_large_files.sh`
-- NeoRand (VRF) service and contracts (randomness is provided via NeoCompute scripts)
 
 ### Fixed
 
 - Security vulnerabilities in NeoRand (VRF), NeoVault, and NeoFlow services
 - Authentication bypass issues
 - Ownership verification in NeoVault service
+- Neo-express contract deployment parsing in tests (JSON output)
 
 ### Security
 

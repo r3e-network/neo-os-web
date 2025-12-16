@@ -13,6 +13,7 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/nspcc-dev/rfc6979"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/ripemd160" //nolint:staticcheck // NEO address derivation requires RIPEMD-160
 )
@@ -144,9 +145,13 @@ func GenerateKeyPair() (*KeyPair, error) {
 // Sign signs data using ECDSA.
 func Sign(privateKey *ecdsa.PrivateKey, data []byte) ([]byte, error) {
 	hash := sha256.Sum256(data)
-	r, s, err := ecdsa.Sign(rand.Reader, privateKey, hash[:])
-	if err != nil {
-		return nil, err
+	r, s := rfc6979.SignECDSA(privateKey, hash[:], sha256.New)
+
+	// Enforce "low-s" signatures to reduce malleability.
+	curveN := privateKey.Curve.Params().N
+	halfN := new(big.Int).Rsh(new(big.Int).Set(curveN), 1)
+	if s.Cmp(halfN) > 0 {
+		s.Sub(curveN, s)
 	}
 
 	// Neo N3 uses 64-byte signature (r || s), each 32 bytes

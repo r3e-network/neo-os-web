@@ -41,7 +41,9 @@ data:
   NEOFLOW_PORT: "8084"
   NEOACCOUNTS_PORT: "8085"
   NEOCOMPUTE_PORT: "8086"
+  NEORAND_PORT: "8087"
   ORACLE_PORT: "8088"
+  TXPROXY_PORT: "8090"
   GLOBALSIGNER_PORT: "8092"
   # Supabase Configuration
   # Public Supabase project URL (not a secret). Override per environment.
@@ -57,6 +59,13 @@ data:
   CONTRACT_AUTOMATION_HASH: ""
   CONTRACT_CONFIDENTIAL_HASH: ""
   CONTRACT_ORACLE_HASH: ""
+  # MiniApp platform contracts (optional)
+  CONTRACT_PAYMENTHUB_HASH: ""
+  CONTRACT_GOVERNANCE_HASH: ""
+  CONTRACT_PRICEFEED_HASH: ""
+  CONTRACT_RANDOMNESSLOG_HASH: ""
+  CONTRACT_APPREGISTRY_HASH: ""
+  CONTRACT_AUTOMATIONANCHOR_HASH: ""
   # Oracle config
   ORACLE_HTTP_ALLOWLIST: "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com"
   # Optional Arbitrum RPC override for Chainlink (NeoFeeds). Defaults to https://arb1.arbitrum.io/rpc.
@@ -70,4 +79,9 @@ data:
   ACCOUNTPOOL_SERVICE_URL: "https://neoaccounts:8085"
   CONFIDENTIAL_SERVICE_URL: "https://neocompute:8086"
   ORACLE_SERVICE_URL: "https://neooracle:8088"
+  NEORAND_SERVICE_URL: "https://neorand:8087"
+  TXPROXY_SERVICE_URL: "https://txproxy:8090"
   GLOBALSIGNER_SERVICE_URL: "https://globalsigner:8092"
+
+  # TxProxy allowlist (JSON). Default deny-all when unset.
+  TXPROXY_ALLOWLIST: ""

@@ -107,6 +107,17 @@ gateway_contracts=(
     "gateway:ServiceLayerGateway"
 )
 
+# Platform contracts (single-file)
+# Format: "directory:ContractName"
+platform_contracts=(
+    "PaymentHub:PaymentHub"
+    "Governance:Governance"
+    "PriceFeed:PriceFeed"
+    "RandomnessLog:RandomnessLog"
+    "AppRegistry:AppRegistry"
+    "AutomationAnchor:AutomationAnchor"
+)
+
 # Example contracts
 examples=(
     "examples/ExampleConsumer"
@@ -141,6 +152,21 @@ for entry in "${service_contracts[@]}"; do
         cs_files=$(find "$dir" -maxdepth 1 -name "${name}*.cs" -type f | sort)
         # shellcheck disable=SC2086
         build_sources "$name" "build/${name}" $common_files $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building Platform Contracts ==="
+for entry in "${platform_contracts[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_sources "$name" "build/${name}" $cs_files
     else
         echo "  ⚠ Directory $dir not found, skipping"
     fi

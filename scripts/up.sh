@@ -332,7 +332,7 @@ ego_signerid_from_private_key() {
 }
 
 build_signed_images() {
-  local packages=(gateway neofeeds neoflow neoaccounts neocompute neooracle globalsigner)
+  local packages=(gateway neofeeds neoflow neoaccounts neocompute neooracle neorand txproxy globalsigner)
   local pkg
 
   export DOCKER_BUILDKIT=1

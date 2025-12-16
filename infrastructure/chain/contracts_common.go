@@ -15,12 +15,21 @@ import (
 
 // ContractAddresses holds the deployed contract addresses.
 type ContractAddresses struct {
+	// Core service-layer contracts.
 	Gateway    string `json:"gateway"`
 	NeoFeeds   string `json:"neofeeds"`
 	NeoFlow    string `json:"neoflow"`
 	NeoCompute string `json:"neocompute"`
 	NeoOracle  string `json:"neooracle"`
 	GasBank    string `json:"gasbank"`
+
+	// MiniApp platform contracts.
+	PaymentHub       string `json:"paymenthub"`
+	Governance       string `json:"governance"`
+	PriceFeed        string `json:"pricefeed"`
+	RandomnessLog    string `json:"randomnesslog"`
+	AppRegistry      string `json:"appregistry"`
+	AutomationAnchor string `json:"automationanchor"`
 }
 
 // LoadFromEnv loads contract addresses from environment variables.
@@ -42,6 +51,26 @@ func (c *ContractAddresses) LoadFromEnv() {
 	}
 	if h := os.Getenv("CONTRACT_GASBANK_HASH"); h != "" {
 		c.GasBank = h
+	}
+
+	// MiniApp platform contracts.
+	if h := firstNonEmptyEnv("CONTRACT_PAYMENTHUB_HASH", "CONTRACT_PAYMENT_HUB_HASH"); h != "" {
+		c.PaymentHub = h
+	}
+	if h := os.Getenv("CONTRACT_GOVERNANCE_HASH"); h != "" {
+		c.Governance = h
+	}
+	if h := firstNonEmptyEnv("CONTRACT_PRICEFEED_HASH", "CONTRACT_PRICE_FEED_HASH"); h != "" {
+		c.PriceFeed = h
+	}
+	if h := firstNonEmptyEnv("CONTRACT_RANDOMNESSLOG_HASH", "CONTRACT_RANDOMNESS_LOG_HASH"); h != "" {
+		c.RandomnessLog = h
+	}
+	if h := firstNonEmptyEnv("CONTRACT_APPREGISTRY_HASH", "CONTRACT_APP_REGISTRY_HASH"); h != "" {
+		c.AppRegistry = h
+	}
+	if h := firstNonEmptyEnv("CONTRACT_AUTOMATIONANCHOR_HASH", "CONTRACT_AUTOMATION_ANCHOR_HASH"); h != "" {
+		c.AutomationAnchor = h
 	}
 }
 

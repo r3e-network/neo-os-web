@@ -63,6 +63,10 @@ spec:
           port: 8087
         - protocol: TCP
           port: 8088
+        - protocol: TCP
+          port: 8090
+        - protocol: TCP
+          port: 8092
 
     # Allow external HTTPS (Supabase, Neo RPC, third-party APIs).
     # NOTE: NetworkPolicy cannot restrict by domain; tighten via egress gateway or CNI features if needed.

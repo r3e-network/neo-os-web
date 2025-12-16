@@ -26,10 +26,12 @@ The goal is **one module = one responsibility**, with **no duplicated chain I/O*
 
 Only these services are considered “product services” right now:
 
+- `services/vrf`: verifiable randomness (VRF) + anchoring.
 - `services/datafeed`: data feeds (push pattern).
 - `services/automation`: automation / triggers.
 - `services/confcompute`: confidential compute (JS execution).
 - `services/conforacle`: confidential oracle (external fetch with controls).
+- `services/txproxy`: allowlisted transaction signing + broadcast proxy.
 
 Each service should follow the same internal pattern:
 

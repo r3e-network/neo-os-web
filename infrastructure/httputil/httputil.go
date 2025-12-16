@@ -348,6 +348,8 @@ var canonicalServiceIDs = map[string]struct{}{
 	"neoflow":      {},
 	"neocompute":   {},
 	"neoaccounts":  {},
+	"neorand":      {},
+	"txproxy":      {},
 }
 
 var serviceIDAliases = map[string]string{
@@ -356,6 +358,9 @@ var serviceIDAliases = map[string]string{
 	"datafeeds":    "neofeeds",
 	"automation":   "neoflow",
 	"confidential": "neocompute",
+	"vrf":          "neorand",
+	"rng":          "neorand",
+	"tx-proxy":     "txproxy",
 }
 
 func canonicalizeServiceID(raw string) string {

@@ -65,7 +65,7 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
 The repo is split into:
 
 - `infrastructure/`: shared building blocks (runtime, middleware, storage, chain I/O, secrets, signing).
-- `services/`: product services only (`vrf`, `datafeed`, `automation`, `confcompute`, `conforacle`).
+- `services/`: product services only (`vrf`, `datafeed`, `automation`, `confcompute`, `conforacle`, `txproxy`).
 - `cmd/`: binaries (`cmd/gateway`, `cmd/marble`, tooling).
 - `dapps/`, `frontend/`: consumers (no service-layer business logic).
 
@@ -152,8 +152,11 @@ Only these services are considered product services right now:
 - **NeoFlow (`neoflow`)**: schedule triggers, run webhooks, optionally execute on-chain actions.
 - **NeoCompute (`neocompute`)**: execute JS with strict limits + optional secret injection.
 - **NeoOracle (`neooracle`)**: fetch external data with allowlist + optional secret injection.
+- **NeoRand (`neorand`)**: verifiable randomness proofs (signature-based) + optional on-chain anchoring.
+- **TxProxy (`txproxy`)**: allowlisted transaction signing + broadcast proxy (single point for tx policy).
 
-Randomness can be produced via NeoCompute scripts (e.g. `crypto.randomBytes(32)`); there is no standalone VRF service.
+NeoCompute can generate random bytes for internal tasks, but NeoRand exists to provide a dedicated,
+verifiable, auditable randomness API (and optional anchoring via `RandomnessLog`).
 
 Each service follows the same internal pattern:
 
