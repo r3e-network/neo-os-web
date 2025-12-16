@@ -82,7 +82,17 @@ namespace NeoMiniAppPlatform.Contracts
         public static AppConfig GetApp(ByteString appId)
         {
             ByteString raw = AppMap().Get(appId);
-            if (raw == null) return default;
+            if (raw == null)
+            {
+                // Avoid returning `default` struct which may be represented as an empty VMArray.
+                return new AppConfig
+                {
+                    Owner = null,
+                    Recipients = new UInt160[0],
+                    SharesBps = new BigInteger[0],
+                    Enabled = false
+                };
+            }
             return (AppConfig)StdLib.Deserialize(raw);
         }
 
@@ -111,7 +121,19 @@ namespace NeoMiniAppPlatform.Contracts
         public static Receipt GetReceipt(BigInteger receiptId)
         {
             ByteString raw = ReceiptMap().Get(receiptId.ToByteArray());
-            if (raw == null) return default;
+            if (raw == null)
+            {
+                // Avoid returning `default` struct which may be represented as an empty VMArray.
+                return new Receipt
+                {
+                    Id = 0,
+                    AppId = (ByteString)"",
+                    Payer = null,
+                    Amount = 0,
+                    Timestamp = 0,
+                    Memo = ""
+                };
+            }
             return (Receipt)StdLib.Deserialize(raw);
         }
 
@@ -205,8 +227,19 @@ namespace NeoMiniAppPlatform.Contracts
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
             // Enforce payments/settlement in GAS only.
-            if (Runtime.CallingScriptHash != GAS.Hash) throw new Exception("Only GAS accepted");
+            //
+            // Note: Some token transfer paths may trigger NEP-17 payment callbacks on
+            // contracts involved in the transfer (including senders). To avoid breaking
+            // outbound transfers, we ignore callbacks that originate from this contract.
+            if (Runtime.CallingScriptHash != GAS.Hash)
+            {
+                if (from == Runtime.ExecutingScriptHash) return;
+                throw new Exception("Only GAS accepted");
+            }
             if (amount <= 0) throw new Exception("Invalid amount");
+
+            // Ignore sender-side hooks during outbound transfers.
+            if (from == Runtime.ExecutingScriptHash) return;
 
             if (data == null) throw new Exception("Payment data required");
             ByteString rawData = (ByteString)data;

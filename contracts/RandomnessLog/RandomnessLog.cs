@@ -74,7 +74,17 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ExecutionEngine.Assert(requestId != null && requestId.Length > 0, "requestId required");
             ByteString raw = RecordMap().Get(requestId);
-            if (raw == null) return default;
+            if (raw == null)
+            {
+                // Avoid returning `default` struct which may be represented as an empty VMArray.
+                return new RandomRecord
+                {
+                    RequestId = (ByteString)"",
+                    Randomness = (ByteString)"",
+                    AttestationHash = (ByteString)"",
+                    Timestamp = 0
+                };
+            }
             return (RandomRecord)StdLib.Deserialize(raw);
         }
 

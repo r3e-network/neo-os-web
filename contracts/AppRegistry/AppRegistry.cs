@@ -69,7 +69,20 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
             ByteString raw = AppMap().Get(appId);
-            if (raw == null) return default;
+            if (raw == null)
+            {
+                // Avoid returning `default` struct which may be represented as an empty VMArray.
+                return new AppInfo
+                {
+                    AppId = (ByteString)"",
+                    Developer = null,
+                    DeveloperPubKey = (ByteString)"",
+                    EntryUrl = (ByteString)"",
+                    ManifestHash = (ByteString)"",
+                    Status = AppStatus.Pending,
+                    AllowlistHash = (ByteString)""
+                };
+            }
             return (AppInfo)StdLib.Deserialize(raw);
         }
 

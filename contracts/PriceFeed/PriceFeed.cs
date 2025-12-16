@@ -75,7 +75,19 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ExecutionEngine.Assert(symbol != null && symbol.Length > 0, "symbol required");
             ByteString raw = PriceMap().Get(symbol);
-            if (raw == null) return default;
+            if (raw == null)
+            {
+                // Avoid returning `default` struct which may be represented as an empty VMArray,
+                // causing field access to throw (index out of range) in Neo VM.
+                return new PriceRecord
+                {
+                    RoundId = 0,
+                    Price = 0,
+                    Timestamp = 0,
+                    AttestationHash = (ByteString)"",
+                    SourceSetId = 0
+                };
+            }
             return (PriceRecord)StdLib.Deserialize(raw);
         }
 
