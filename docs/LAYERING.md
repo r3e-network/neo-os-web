@@ -26,7 +26,6 @@ The goal is **one module = one responsibility**, with **no duplicated chain I/O*
 
 Only these services are considered “product services” right now:
 
-- `services/vrf`: verifiable randomness (VRF) + anchoring.
 - `services/datafeed`: data feeds (push pattern).
 - `services/automation`: automation / triggers.
 - `services/confcompute`: confidential compute (JS execution).

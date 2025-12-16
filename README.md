@@ -12,8 +12,9 @@ For the canonical, up-to-date architecture overview see `docs/ARCHITECTURE.md`.
 - `services/automation` (`service_id`: `neoflow`)
 - `services/confcompute` (`service_id`: `neocompute`)
 - `services/conforacle` (`service_id`: `neooracle`)
+- `services/txproxy` (`service_id`: `txproxy`)
 
-Randomness is provided via `neocompute` scripts (e.g. `crypto.randomBytes(...)`); there is no standalone VRF service.
+Randomness is provided via `services/confcompute` by executing scripts inside the enclave.
 
 **Infrastructure marbles** (shared capabilities):
 
@@ -32,7 +33,7 @@ Secrets are **not** a separate service: they are managed by the gateway and stor
 - `cmd/`: binaries (`cmd/gateway`, `cmd/marble`, deploy tooling, CLI)
 - `infrastructure/`: shared building blocks (runtime, middleware, chain I/O, secrets, storage helpers, account pool, global signer)
 - `services/`: product services only (see “Scope”)
-- `contracts/`: Neo N3 contracts (Gateway + service contracts + examples)
+- `contracts/`: Neo N3 contracts (legacy gateway/service contracts + MiniApp platform contracts + examples)
 - `frontend/`, `dapps/`: consumers (no service-layer business logic)
 - `docker/`, `k8s/`, `manifests/`, `deploy/`: deployment and operations
 
@@ -67,6 +68,8 @@ OE_SIMULATION=1 go run ./cmd/gateway
 - `SECRETS_MASTER_KEY`: gateway encryption master key for `/api/v1/secrets/*`.
 - `NEO_RPC_URL` / `NEO_RPC_URLS`, `NEO_NETWORK_MAGIC`: Neo RPC configuration (services).
 - `CONTRACT_GATEWAY_HASH`, `CONTRACT_DATAFEEDS_HASH`, `CONTRACT_AUTOMATION_HASH`, `CONTRACT_CONFIDENTIAL_HASH`, `CONTRACT_ORACLE_HASH`: contract hashes for event monitoring/callbacks (legacy names are still accepted).
+- `CONTRACT_PAYMENTHUB_HASH`, `CONTRACT_GOVERNANCE_HASH`, `CONTRACT_PRICEFEED_HASH`, `CONTRACT_RANDOMNESSLOG_HASH`, `CONTRACT_APPREGISTRY_HASH`, `CONTRACT_AUTOMATIONANCHOR_HASH`: MiniApp platform contract hashes.
+- `TXPROXY_ALLOWLIST`: tx-proxy allowlist JSON (contract+method policy).
 
 See `.env.example` for a full list.
 

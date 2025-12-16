@@ -29,7 +29,7 @@ All endpoints require either:
 ### RNG / VRF
 
 - `POST /v1/apps/{appId}/rng/request`
-  - body: `{ mode?: "vrf"|"rng" }`
+  - executes a randomness script in `neocompute` (no dedicated VRF service)
 
 ### Datafeed
 
@@ -38,30 +38,38 @@ All endpoints require either:
 
 ## TEE Service Endpoints
 
-### `datafeed-service`
+This repo uses stable **service IDs** (runtime) and maps them to the target
+platform naming in docs:
 
-- `POST /push` (internal): publish updates to chain if threshold rules pass.
-- `GET /price/{symbol}` (optional): direct read (signed response).
+- `neofeeds` → datafeed-service
+- `neooracle` → oracle-gateway
+- `neocompute` → compute-service
+- `neoflow` → automation-service
+- `txproxy` → tx-proxy
 
-### `oracle-gateway`
+### `neofeeds` (datafeed-service)
 
-- `POST /fetch`: allowlisted HTTP fetch + parsing + signature.
+- `GET /price/{pair}`: signed price for a pair (e.g. `BTC/USD`)
+- `GET /prices`: signed prices (bulk)
+- `GET /feeds`, `GET /sources`, `GET /config`: configuration inspection
 
-### `vrf-service`
+### `neooracle` (oracle-gateway)
 
-- `POST /random`: returns `(randomness, attestation/report hash, signature)`.
+- `POST /query`: allowlisted HTTP fetch + optional secret injection
+- `POST /fetch`: alias (backward compatible)
 
-### `compute-service`
+### `neocompute` (compute-service)
 
 - `POST /execute`: run restricted script/wasm with optional secret injection.
+- `GET /jobs`, `GET /jobs/{id}`: job inspection
 
-### `automation-service`
+### `neoflow` (automation-service)
 
-- `POST /tasks`: register task (writes `AutomationAnchor`).
-- `POST /tick`: internal scheduler loop.
+- `GET/POST /triggers`: manage triggers
+- `POST /triggers/{id}/enable|disable|resume`: control lifecycle
+- `GET /triggers/{id}/executions`: audit
 
-### `tx-proxy`
+### `txproxy` (tx-proxy)
 
 - `POST /invoke`: build+sign+broadcast allowlisted transactions.
   - hard rule: **payments only GAS**, **governance only NEO**, contract/method allowlists enforced.
-

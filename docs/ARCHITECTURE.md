@@ -45,6 +45,7 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
 │   - NeoFlow     (automation)                                                │
 │   - NeoCompute  (confidential compute)                                      │
 │   - NeoOracle   (confidential oracle)                                       │
+│   - TxProxy     (allowlisted tx signing/broadcast)                           │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -56,7 +57,7 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                  NEO N3 CHAIN                                │
-│          Gateway contract + service contracts + callbacks / fulfillments      │
+│   Legacy gateway/service contracts + MiniApp platform contracts + callbacks   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -152,11 +153,9 @@ Only these services are considered product services right now:
 - **NeoFlow (`neoflow`)**: schedule triggers, run webhooks, optionally execute on-chain actions.
 - **NeoCompute (`neocompute`)**: execute JS with strict limits + optional secret injection.
 - **NeoOracle (`neooracle`)**: fetch external data with allowlist + optional secret injection.
-- **NeoRand (`neorand`)**: verifiable randomness proofs (signature-based) + optional on-chain anchoring.
 - **TxProxy (`txproxy`)**: allowlisted transaction signing + broadcast proxy (single point for tx policy).
 
-NeoCompute can generate random bytes for internal tasks, but NeoRand exists to provide a dedicated,
-verifiable, auditable randomness API (and optional anchoring via `RandomnessLog`).
+Randomness is provided by running scripts in NeoCompute (`neocompute`) inside the enclave (optionally anchoring results via `RandomnessLog`).
 
 Each service follows the same internal pattern:
 

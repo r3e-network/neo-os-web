@@ -10,13 +10,6 @@ services:
     port: 8083
     description: "Decentralized market data feeds for DeFi protocols and trading algorithms"
 
-  # NeoRand - Verifiable Randomness (VRF)
-  # Use cases: games, raffles, randomness anchoring
-  neorand:
-    enabled: true
-    port: 8087
-    description: "Verifiable randomness proofs with optional on-chain anchoring"
-
   # NeoFlow - Automated Smart Contract Execution
   # Use cases: Event-driven workflows, conditional triggers, batch operations
   neoflow:
