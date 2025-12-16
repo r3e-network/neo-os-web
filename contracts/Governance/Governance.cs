@@ -86,12 +86,19 @@ namespace NeoMiniAppPlatform.Contracts
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
             // Enforce governance staking in NEO only.
-            if (Runtime.CallingScriptHash != NEO.Hash) throw new Exception("Only NEO accepted");
+            //
+            // Note: Some token transfer paths may trigger NEP-17 payment callbacks on
+            // contracts involved in the transfer (including senders). To avoid breaking
+            // outbound transfers, we ignore callbacks that originate from this contract.
+            if (Runtime.CallingScriptHash != NEO.Hash) return;
             if (amount <= 0) throw new Exception("Invalid amount");
 
-            // Require marker to avoid accidental transfers.
-            if (data == null) throw new Exception("Stake marker required");
-            if ((ByteString)data != (ByteString)"stake") throw new Exception("Invalid stake marker");
+            // Ignore sender-side hooks during outbound transfers.
+            if (from == Runtime.ExecutingScriptHash) return;
+
+            // Only accept deposits coming from the explicit `Stake()` flow.
+            if (data == null) return;
+            if ((ByteString)data != (ByteString)"stake") return;
 
             BigInteger current = GetStake(from);
             StakeMap().Put(from, current + amount);
@@ -143,7 +150,20 @@ namespace NeoMiniAppPlatform.Contracts
         public static Proposal GetProposal(ByteString proposalId)
         {
             ByteString raw = ProposalMap().Get(proposalId);
-            if (raw == null) return default;
+            if (raw == null)
+            {
+                // Avoid returning `default` struct which may be represented as an empty VMArray.
+                return new Proposal
+                {
+                    ProposalId = (ByteString)"",
+                    Description = "",
+                    StartTime = 0,
+                    EndTime = 0,
+                    Yes = 0,
+                    No = 0,
+                    Finalized = false
+                };
+            }
             return (Proposal)StdLib.Deserialize(raw);
         }
 

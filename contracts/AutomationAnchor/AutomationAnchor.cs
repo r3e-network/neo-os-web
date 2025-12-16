@@ -91,7 +91,19 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ExecutionEngine.Assert(taskId != null && taskId.Length > 0, "taskId required");
             ByteString raw = TaskMap().Get(taskId);
-            if (raw == null) return default;
+            if (raw == null)
+            {
+                // Avoid returning `default` struct which may be represented as an empty VMArray.
+                return new Task
+                {
+                    TaskId = (ByteString)"",
+                    Target = null,
+                    Method = "",
+                    Trigger = (ByteString)"",
+                    GasLimit = 0,
+                    Enabled = false
+                };
+            }
             return (Task)StdLib.Deserialize(raw);
         }
 

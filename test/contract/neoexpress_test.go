@@ -24,12 +24,13 @@ const (
 )
 
 type NeoExpress struct {
-	mu      sync.Mutex
-	t       *testing.T
-	running bool
-	cmd     *exec.Cmd
-	rpcURL  string
-	dataFile string
+	mu          sync.Mutex
+	t           *testing.T
+	prepared    bool
+	nodeRunning bool
+	cmd         *exec.Cmd
+	rpcURL      string
+	dataFile    string
 }
 
 // DeployedContract is imported from infrastructure/chain package
@@ -42,8 +43,8 @@ func NewNeoExpress(t *testing.T) *NeoExpress {
 		dataFile = filepath.Join(t.TempDir(), "test.neo-express")
 	}
 	return &NeoExpress{
-		t:      t,
-		rpcURL: "http://127.0.0.1:50012",
+		t:        t,
+		rpcURL:   "http://127.0.0.1:50012",
 		dataFile: dataFile,
 	}
 }
@@ -81,13 +82,33 @@ func (n *NeoExpress) Start(ctx context.Context) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	if n.running {
+	if n.prepared {
 		return nil
 	}
 
 	if err := n.ensureCreated(ctx); err != nil {
 		return err
 	}
+
+	n.prepared = true
+	return nil
+}
+
+// StartNode starts a neo-express node process for RPC-dependent tests.
+// Most contract tests can run fully offline via `neoxp contract deploy/invoke`
+// against the `.neo-express` file.
+func (n *NeoExpress) StartNode(ctx context.Context) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	if n.nodeRunning {
+		return nil
+	}
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return err
+	}
+	n.prepared = true
 
 	// NOTE: Do not use --discard on first run: neo-express initializes RocksDB state
 	// during `run`, and discard mode expects storage to already exist.
@@ -99,11 +120,11 @@ func (n *NeoExpress) Start(ctx context.Context) error {
 		return fmt.Errorf("start neo-express: %w", err)
 	}
 
-	n.running = true
+	n.nodeRunning = true
 	if err := n.waitForRPC(ctx, 15*time.Second); err != nil {
 		// Ensure we don't leave a broken process around.
 		_ = n.cmd.Process.Kill()
-		n.running = false
+		n.nodeRunning = false
 		return err
 	}
 
@@ -168,7 +189,7 @@ func (n *NeoExpress) Stop() error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	if !n.running || n.cmd == nil || n.cmd.Process == nil {
+	if !n.nodeRunning || n.cmd == nil || n.cmd.Process == nil {
 		return nil
 	}
 
@@ -176,7 +197,7 @@ func (n *NeoExpress) Stop() error {
 		return fmt.Errorf("kill neo-express: %w", err)
 	}
 
-	n.running = false
+	n.nodeRunning = false
 	return nil
 }
 
@@ -187,6 +208,10 @@ func (n *NeoExpress) RPCURL() string {
 func (n *NeoExpress) CreateWallet(name string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return "", err
+	}
 
 	out, err := n.command(ctx, "wallet", "create", "-i", n.dataFile, name).CombinedOutput()
 	if err != nil {
@@ -202,6 +227,10 @@ func (n *NeoExpress) CreateWallet(name string) (string, error) {
 func (n *NeoExpress) GetWalletAddress(name string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return "", err
+	}
 
 	out, err := n.command(ctx, "wallet", "list", "-i", n.dataFile, "-j").CombinedOutput()
 	if err != nil {
@@ -260,9 +289,78 @@ func (n *NeoExpress) GetWalletAddress(name string) (string, error) {
 	return "", fmt.Errorf("wallet %s address not found in response", name)
 }
 
+func (n *NeoExpress) GetWalletScriptHash(name string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return "", err
+	}
+
+	out, err := n.command(ctx, "wallet", "list", "-i", n.dataFile, "-j").CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("list wallets: %s: %w", string(out), err)
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal(out, &parsed); err != nil {
+		return "", fmt.Errorf("parse wallet list json: %w", err)
+	}
+
+	entry, ok := parsed[name]
+	if !ok {
+		return "", fmt.Errorf("wallet %s not found", name)
+	}
+
+	extract := func(m map[string]any) (string, bool) {
+		hash, ok := m["script-hash"].(string)
+		hash = strings.TrimSpace(hash)
+		if ok && strings.HasPrefix(hash, "0x") && len(hash) == 42 {
+			return hash, true
+		}
+		return "", false
+	}
+
+	switch v := entry.(type) {
+	case map[string]any:
+		if hash, ok := extract(v); ok {
+			return hash, nil
+		}
+	case []any:
+		// Prefer the default account when present.
+		for _, item := range v {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if label, ok := m["account-label"].(string); ok && strings.TrimSpace(label) != "Default" {
+				continue
+			}
+			if hash, ok := extract(m); ok {
+				return hash, nil
+			}
+		}
+		for _, item := range v {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if hash, ok := extract(m); ok {
+				return hash, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("wallet %s script-hash not found in response", name)
+}
+
 func (n *NeoExpress) TransferGAS(from, to string, amount float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return err
+	}
 
 	amountStr := fmt.Sprintf("%.8f", amount)
 	out, err := n.command(ctx, "transfer", "-i", n.dataFile, amountStr, "GAS", from, to).CombinedOutput()
@@ -276,6 +374,10 @@ func (n *NeoExpress) TransferGAS(from, to string, amount float64) error {
 func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*chain.DeployedContract, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return nil, err
+	}
 
 	_ = manifestPath // deploy uses only the NEF file
 
@@ -319,32 +421,100 @@ func (n *NeoExpress) Invoke(contract, method string, args ...interface{}) (strin
 	return n.InvokeWithAccount(contract, method, "genesis", args...)
 }
 
+type neoInvokeFile struct {
+	Contract  string        `json:"contract"`
+	Operation string        `json:"operation"`
+	Args      []interface{} `json:"args,omitempty"`
+}
+
+func (n *NeoExpress) writeInvokeFile(contract, method string, args []interface{}) (string, error) {
+	payload, err := json.MarshalIndent(neoInvokeFile{
+		Contract:  contract,
+		Operation: method,
+		Args:      args,
+	}, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("marshal invoke file: %w", err)
+	}
+
+	f, err := os.CreateTemp(n.t.TempDir(), "neo-invoke-*.json")
+	if err != nil {
+		return "", fmt.Errorf("create invoke file: %w", err)
+	}
+	defer f.Close()
+
+	if _, err := f.Write(payload); err != nil {
+		return "", fmt.Errorf("write invoke file: %w", err)
+	}
+	return f.Name(), nil
+}
+
 func (n *NeoExpress) InvokeWithAccount(contract, method, account string, args ...interface{}) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	cmdArgs := []string{"contract", "run", "-j", "-i", n.dataFile, "-a", account, contract, method}
-	for _, arg := range args {
-		switch v := arg.(type) {
-		case string:
-			cmdArgs = append(cmdArgs, v)
-		default:
-			jsonArg, _ := json.Marshal(v)
-			cmdArgs = append(cmdArgs, string(jsonArg))
-		}
+	if err := n.ensureCreated(ctx); err != nil {
+		return "", err
 	}
 
+	invPath, err := n.writeInvokeFile(contract, method, args)
+	if err != nil {
+		return "", err
+	}
+
+	// Use Global witness scope so nested contract calls (e.g., GAS/NEO NEP-17 transfers)
+	// can validate witnesses during execution in neo-express.
+	cmdArgs := []string{"contract", "invoke", "-j", "-w", chain.ScopeGlobal, "-i", n.dataFile, invPath, account}
 	out, err := n.command(ctx, cmdArgs...).CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("invoke contract: %s: %w", string(out), err)
 	}
 
-	return string(out), nil
+	return strings.TrimSpace(string(out)), nil
+}
+
+func (n *NeoExpress) InvokeWithAccountResults(contract, method, account string, args ...interface{}) (*chain.InvokeResult, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return nil, err
+	}
+
+	invPath, err := n.writeInvokeFile(contract, method, args)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdArgs := []string{"contract", "invoke", "-r", "-j", "-w", chain.ScopeGlobal, "-i", n.dataFile, invPath, account}
+	out, err := n.command(ctx, cmdArgs...).CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("invoke contract (results): %s: %w", string(out), err)
+	}
+
+	var result chain.InvokeResult
+	if err := json.Unmarshal(out, &result); err != nil {
+		return nil, fmt.Errorf("parse invoke result: %w", err)
+	}
+
+	if !strings.HasPrefix(strings.TrimSpace(result.State), "HALT") {
+		msg := strings.TrimSpace(result.Exception)
+		if msg == "" {
+			msg = "execution failed"
+		}
+		return &result, fmt.Errorf("%s.%s: %s (%s)", contract, method, msg, strings.TrimSpace(result.State))
+	}
+
+	return &result, nil
 }
 
 func (n *NeoExpress) RunCheckpoint(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return err
+	}
 
 	out, err := n.command(ctx, "checkpoint", "create", "-i", n.dataFile, name).CombinedOutput()
 	if err != nil {
@@ -358,6 +528,10 @@ func (n *NeoExpress) RestoreCheckpoint(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
+	if err := n.ensureCreated(ctx); err != nil {
+		return err
+	}
+
 	out, err := n.command(ctx, "checkpoint", "restore", "-i", n.dataFile, name, "-f").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("restore checkpoint: %s: %w", string(out), err)
@@ -370,6 +544,10 @@ func (n *NeoExpress) Reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
+	if err := n.ensureCreated(ctx); err != nil {
+		return err
+	}
+
 	out, err := n.command(ctx, "reset", "-i", n.dataFile, "-f").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("reset: %s: %w", string(out), err)
@@ -381,6 +559,10 @@ func (n *NeoExpress) Reset() error {
 func (n *NeoExpress) FastForward(blocks int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return err
+	}
 
 	out, err := n.command(ctx, "fastfwd", "-i", n.dataFile, fmt.Sprintf("%d", blocks)).CombinedOutput()
 	if err != nil {
