@@ -8,9 +8,9 @@ The NeoFeeds Marble service is the core TEE component that:
 1. Fetches prices from multiple external sources (Chainlink, Binance)
 2. Aggregates prices using weighted median calculation
 3. Signs aggregated data with TEE-attested keys
-4. Pushes updates to the NeoFeedsService smart contract on Neo N3
+4. Anchors updates on-chain via the platform `PriceFeed` contract (preferred; optional legacy NeoFeedsService support)
 
-This service implements the **Push/Auto-Update Pattern** - the TEE proactively pushes price updates on-chain rather than responding to on-chain requests.
+This service implements the **Push/Auto-Update Pattern** - the TEE proactively anchors price updates on-chain rather than responding to on-chain requests.
 
 ## Architecture
 
@@ -30,7 +30,7 @@ This service implements the **Push/Auto-Update Pattern** - the TEE proactively p
 └────────────────────────────────────────────────┼───────────────┘
                                                  │
                                     ┌────────────▼────────────┐
-                                    │  NeoFeedsService.cs     │
+                                    │  PriceFeed.cs           │
                                     │    (Neo N3 Contract)    │
                                     └─────────────────────────┘
 ```
@@ -65,6 +65,8 @@ type Service struct {
     chainClient     *chain.Client
     teeFulfiller    *chain.TEEFulfiller
     neoFeedsHash    string
+    priceFeedHash   string
+    chainSigner     chain.TEESigner
     updateInterval  time.Duration
     enableChainPush bool
 }
@@ -87,6 +89,8 @@ type Config struct {
     ChainClient     *chain.Client
     TEEFulfiller    *chain.TEEFulfiller
     NeoFeedsHash    string           // Contract hash
+    PriceFeedHash   string           // Platform PriceFeed contract hash (preferred)
+    ChainSigner     chain.TEESigner  // TEE signer for PriceFeed updates
     UpdateInterval  time.Duration    // Push interval
     EnableChainPush bool             // Enable auto-push
 }
@@ -98,7 +102,7 @@ type Config struct {
 |----------|--------|-------------|
 | `/health` | GET | Service health check (from BaseService) |
 | `/info` | GET | Service info with statistics |
-| `/price/{pair}` | GET | Get single price (e.g., `/price/BTC/USD`) |
+| `/price/{pair}` | GET | Get single price (e.g., `/price/BTC-USD`) |
 | `/prices` | GET | Get all prices |
 | `/feeds` | GET | List available price feeds |
 | `/sources` | GET | List configured data sources |
@@ -143,41 +147,32 @@ type Config struct {
 
 | Library | Purpose |
 |---------|---------|
-| `github.com/ethereum/go-ethereum` | Chainlink ABI decoding |
 | `github.com/gorilla/mux` | HTTP routing |
+| `github.com/tidwall/gjson` | JSON path extraction |
 
 ## Configuration Example
 
 ```yaml
 # neofeeds.yaml
-update_interval: 60s
+update_interval: 5s
 feeds:
-  - id: "BTC/USD"
+  - id: "BTC-USD"
     pair: "BTCUSDT"
-    base: "btc"
-    quote: "usd"
     decimals: 8
     enabled: true
-    sources: ["binance", "chainlink"]
-  - id: "ETH/USD"
+    sources: ["binance"]
+  - id: "ETH-USD"
     pair: "ETHUSDT"
-    base: "eth"
-    quote: "usd"
     decimals: 8
     enabled: true
-    sources: ["binance", "chainlink"]
+    sources: ["binance"]
 
 sources:
   - id: "binance"
     name: "Binance"
-    type: "http"
     url: "https://api.binance.com/api/v3/ticker/price?symbol={pair}"
     json_path: "price"
     weight: 1
-  - id: "chainlink"
-    name: "Chainlink"
-    type: "chainlink"
-    weight: 3
 ```
 
 ## Required Secrets

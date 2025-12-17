@@ -4,15 +4,15 @@ Price oracle service for the Neo Service Layer.
 
 ## Overview
 
-The NeoFeeds service provides aggregated price feeds from multiple sources with TEE attestation. It fetches prices from Chainlink (Arbitrum) and Binance, aggregates them using median calculation, and signs the results with the TEE key.
+The NeoFeeds service provides aggregated price feeds from multiple sources with TEE attestation. It fetches prices from Chainlink (Arbitrum) and Binance, aggregates them using median calculation, and signs the results with the TEE key. When configured, it also anchors updates to the platform `PriceFeed` contract on Neo N3 using the `≥0.1%` publish policy.
 
 ## Architecture
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ Price Sources│     │ NeoFeeds Svc │     │ NeoFeeds     │
-│ (Chainlink,  │     │ (TEE)        │     │ Contract     │
-│  Binance)    │     │              │     │              │
+│ Price Sources│     │ NeoFeeds Svc │     │ PriceFeed    │
+│ (Chainlink,  │     │ (TEE)        │     │ (Neo N3)     │
+│  Binance)    │     │              │     │ Contract     │
 └──────┬───────┘     └──────┬───────┘     └──────┬───────┘
        │                    │                    │
        │ Fetch Prices       │                    │
@@ -23,7 +23,7 @@ The NeoFeeds service provides aggregated price feeds from multiple sources with 
        │                    │                    │
        │                    │ Aggregate & Sign   │
        │                    │                    │
-       │                    │ updatePrice()      │
+       │                    │ update()           │
        │                    │───────────────────>│
 ```
 
@@ -43,11 +43,11 @@ The NeoFeeds service provides aggregated price feeds from multiple sources with 
 
 | Feed ID | Base | Quote | Decimals |
 |---------|------|-------|----------|
-| BTC/USD | BTC | USD | 8 |
-| ETH/USD | ETH | USD | 8 |
-| NEO/USD | NEO | USD | 8 |
-| GAS/USD | GAS | USD | 8 |
-| NEO/GAS | NEO | GAS | 8 |
+| BTC-USD | BTC | USD | 8 |
+| ETH-USD | ETH | USD | 8 |
+| NEO-USD | NEO | USD | 8 |
+| GAS-USD | GAS | USD | 8 |
+| NEO-GAS | NEO | GAS | 8 |
 
 ## Data Sources
 
@@ -61,10 +61,10 @@ The NeoFeeds service provides aggregated price feeds from multiple sources with 
 ### Get Price
 
 ```json
-GET /price/BTC/USD
+GET /price/BTC-USD
 
 {
-    "feed_id": "BTC/USD",
+    "feed_id": "BTC-USD",
     "price": 10500000000000,
     "decimals": 8,
     "timestamp": 1733616000,
@@ -79,13 +79,10 @@ GET /price/BTC/USD
 ```json
 GET /prices
 
-{
-    "prices": [
-        {"feed_id": "BTC/USD", "price": 10500000000000, ...},
-        {"feed_id": "ETH/USD", "price": 380000000000, ...}
-    ],
-    "timestamp": 1733616000
-}
+[
+    {"feed_id": "BTC-USD", "price": 10500000000000, "decimals": 8, "...": "..."},
+    {"feed_id": "ETH-USD", "price": 380000000000, "decimals": 8, "...": "..."}
+]
 ```
 
 ## Configuration
@@ -93,25 +90,26 @@ GET /prices
 ### YAML Configuration
 
 ```yaml
-update_interval: 60s
+update_interval: 5s
+publish_policy:
+  threshold_bps: 10
+  hysteresis_bps: 8
+  min_interval: 3s
+  max_per_minute: 30
 feeds:
-  - id: "BTC/USD"
+  - id: "BTC-USD"
     pair: "BTCUSDT"
     base: "btc"
     quote: "usd"
     decimals: 8
     enabled: true
-    sources: ["binance", "chainlink"]
+    sources: ["binance"]
 sources:
   - id: "binance"
     name: "Binance"
     url: "https://api.binance.com/api/v3/ticker/price?symbol={pair}"
     json_path: "price"
     weight: 1
-  - id: "chainlink"
-    name: "Chainlink"
-    type: "chainlink"
-    weight: 3
 ```
 
 ### Required Secrets

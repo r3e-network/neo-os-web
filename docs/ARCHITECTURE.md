@@ -66,7 +66,7 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
 The repo is split into:
 
 - `infrastructure/`: shared building blocks (runtime, middleware, storage, chain I/O, secrets, signing).
-- `services/`: product services only (`vrf`, `datafeed`, `automation`, `confcompute`, `conforacle`, `txproxy`).
+- `services/`: product services only (`datafeed`, `automation`, `confcompute`, `conforacle`, `txproxy`).
 - `cmd/`: binaries (`cmd/gateway`, `cmd/marble`, tooling).
 - `dapps/`, `frontend/`: consumers (no service-layer business logic).
 

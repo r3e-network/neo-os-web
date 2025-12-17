@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
@@ -48,6 +49,13 @@ type Service struct {
 	chainClient     *chain.Client
 	teeFulfiller    *chain.TEEFulfiller
 	neoFeedsHash    string
+	priceFeedHash   string
+	chainSigner     chain.TEESigner
+	priceFeed       *chain.PriceFeedContract
+	attestationHash []byte
+	publishPolicy   PublishPolicyConfig
+	publishMu       sync.Mutex
+	publishState    map[string]*pricePublishState
 	updateInterval  time.Duration
 	enableChainPush bool
 }
@@ -63,7 +71,9 @@ type Config struct {
 	// Chain configuration for push pattern
 	ChainClient     *chain.Client
 	TEEFulfiller    *chain.TEEFulfiller
-	NeoFeedsHash    string        // Contract hash for NeoFeedsService
+	NeoFeedsHash    string // Contract hash for NeoFeedsService
+	PriceFeedHash   string // Contract hash for platform PriceFeed (preferred)
+	ChainSigner     chain.TEESigner
 	UpdateInterval  time.Duration // How often to push prices on-chain (default: from config)
 	EnableChainPush bool          // Enable automatic on-chain price updates
 }
@@ -141,8 +151,18 @@ func New(cfg *Config) (*Service, error) {
 		chainClient:     cfg.ChainClient,
 		teeFulfiller:    cfg.TEEFulfiller,
 		neoFeedsHash:    cfg.NeoFeedsHash,
+		priceFeedHash:   cfg.PriceFeedHash,
+		chainSigner:     cfg.ChainSigner,
+		publishPolicy:   feedsConfig.PublishPolicy,
+		publishState:    make(map[string]*pricePublishState),
 		updateInterval:  updateInterval,
 		enableChainPush: cfg.EnableChainPush,
+	}
+
+	s.attestationHash = computeAttestationHash(cfg.Marble)
+
+	if s.chainClient != nil && s.priceFeedHash != "" {
+		s.priceFeed = chain.NewPriceFeedContract(s.chainClient, s.priceFeedHash)
 	}
 
 	// Load signing key
@@ -170,7 +190,11 @@ func New(cfg *Config) (*Service, error) {
 	}
 
 	// Register chain push worker if enabled
-	if s.enableChainPush && s.neoFeedsHash != "" {
+	if s.enableChainPush && (s.priceFeedHash != "" || s.neoFeedsHash != "") {
+		if s.priceFeedHash != "" {
+			base.WithHydrate(s.hydratePriceFeedState)
+		}
+
 		base.AddTickerWorker(s.updateInterval, func(ctx context.Context) error {
 			s.pushPricesToChain(ctx)
 			return nil
@@ -195,13 +219,22 @@ func (s *Service) statistics() map[string]any {
 		feedIDs[i] = enabledFeeds[i].ID
 	}
 
-	return map[string]any{
+	stats := map[string]any{
 		"sources":         len(s.sources),
 		"feeds":           feedIDs,
 		"update_interval": s.updateInterval.String(),
 		"chain_push":      s.enableChainPush,
 		"service_fee":     ServiceFeePerUpdate,
 	}
+
+	if s.priceFeedHash != "" {
+		stats["pricefeed_hash"] = s.priceFeedHash
+		stats["publish_policy"] = s.publishPolicySummary()
+	} else if s.neoFeedsHash != "" {
+		stats["neofeeds_hash"] = s.neoFeedsHash
+	}
+
+	return stats
 }
 
 // GetConfig returns the current configuration.

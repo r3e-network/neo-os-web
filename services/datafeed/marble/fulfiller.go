@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 )
 
 // =============================================================================
@@ -13,16 +14,27 @@ import (
 
 // DefaultFeeds defines the default price feeds (for backward compatibility).
 var DefaultFeeds = []string{
-	"BTC/USD",
-	"ETH/USD",
-	"NEO/USD",
-	"GAS/USD",
-	"NEO/GAS",
+	"BTC-USD",
+	"ETH-USD",
+	"NEO-USD",
+	"GAS-USD",
+	"NEO-GAS",
 }
 
 // pushPricesToChain fetches all configured prices and pushes them on-chain.
 func (s *Service) pushPricesToChain(ctx context.Context) {
-	if s == nil || s.teeFulfiller == nil || s.neoFeedsHash == "" {
+	if s == nil {
+		return
+	}
+
+	// Preferred path: anchor to the platform PriceFeed contract.
+	if s.priceFeed != nil && s.priceFeedHash != "" && s.chainSigner != nil {
+		s.pushPricesToPriceFeed(ctx)
+		return
+	}
+
+	// Legacy path (kept for backward compatibility): NeoFeedsService push pattern.
+	if s.teeFulfiller == nil || s.neoFeedsHash == "" {
 		return
 	}
 
@@ -71,17 +83,64 @@ func (s *Service) pushPricesToChain(ctx context.Context) {
 
 // PushSinglePrice pushes a single price update on-chain.
 func (s *Service) PushSinglePrice(ctx context.Context, feedID string) error {
+	if s.priceFeed != nil && s.priceFeedHash != "" && s.chainSigner != nil {
+		price, err := s.GetPrice(ctx, feedID)
+		if err != nil {
+			return fmt.Errorf("get price: %w", err)
+		}
+		if price == nil {
+			return fmt.Errorf("price unavailable for %s", feedID)
+		}
+
+		timestampSecs := price.Timestamp.Unix()
+		if timestampSecs < 0 {
+			return fmt.Errorf("invalid timestamp for feed %s", feedID)
+		}
+
+		sourceSetID := sourceSetIDFromSources(price.Sources)
+
+		s.publishMu.Lock()
+		state := s.publishState[feedID]
+		if state == nil {
+			state = &pricePublishState{}
+			s.publishState[feedID] = state
+		}
+		next := state.lastRoundID + 1
+		if next <= 0 {
+			next = 1
+		}
+		s.publishMu.Unlock()
+
+		if _, err := s.priceFeed.Update(ctx, s.chainSigner, feedID, big.NewInt(next), big.NewInt(price.Price), uint64(timestampSecs), s.attestationHash, sourceSetID, true); err != nil {
+			return err
+		}
+
+		s.publishMu.Lock()
+		state = s.publishState[feedID]
+		if state == nil {
+			state = &pricePublishState{}
+			s.publishState[feedID] = state
+		}
+		state.lastRoundID = next
+		state.lastPublishedPrice = price.Price
+		state.lastPublishedAt = time.Now()
+		state.publishTimes = append(state.publishTimes, state.lastPublishedAt)
+		s.publishMu.Unlock()
+
+		return nil
+	}
+
 	if s.teeFulfiller == nil || s.neoFeedsHash == "" {
 		return fmt.Errorf("chain push not configured")
 	}
 
 	pair := feedIDToPair(feedID)
-	price, err := s.GetPrice(ctx, pair)
+	latest, err := s.GetPrice(ctx, pair)
 	if err != nil {
 		return fmt.Errorf("get price: %w", err)
 	}
 
-	timestampSecs := price.Timestamp.Unix()
+	timestampSecs := latest.Timestamp.Unix()
 	if timestampSecs < 0 {
 		return fmt.Errorf("invalid timestamp for feed %s", feedID)
 	}
@@ -90,20 +149,25 @@ func (s *Service) PushSinglePrice(ctx context.Context, feedID string) error {
 		ctx,
 		s.neoFeedsHash,
 		feedID,
-		big.NewInt(price.Price),
+		big.NewInt(latest.Price),
 		uint64(timestampSecs),
 	)
 	return err
 }
 
 // feedIDToPair converts a feed ID to a trading pair format.
-// e.g., "BTC/USD" -> "BTCUSD"
+// e.g., "BTC-USD" -> "BTCUSD"
 func feedIDToPair(feedID string) string {
-	pair := ""
+	pair := make([]rune, 0, len(feedID))
 	for _, c := range feedID {
-		if c != '/' {
-			pair += string(c)
+		switch {
+		case c >= '0' && c <= '9':
+			pair = append(pair, c)
+		case c >= 'A' && c <= 'Z':
+			pair = append(pair, c)
+		case c >= 'a' && c <= 'z':
+			pair = append(pair, c)
 		}
 	}
-	return pair
+	return string(pair)
 }
