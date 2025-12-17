@@ -168,7 +168,7 @@ export function HowToPlayPage() {
           <div>
             <h3 className="text-white font-semibold mb-2">Results</h3>
             <p className="text-gray-400 text-sm">
-              Winning numbers are generated using Service Layer VRF (Verifiable Random Function)
+              Winning numbers are generated using Service Layer confidential computing for verifiable randomness
               and posted immediately after the draw. Check the Results page or your tickets.
             </p>
           </div>
@@ -185,9 +185,8 @@ export function HowToPlayPage() {
           <div>
             <h3 className="text-white font-semibold mb-2">Verifiable Random Numbers</h3>
             <p className="text-gray-400 text-sm">
-              All winning numbers are generated using Service Layer's VRF (Verifiable Random
-              Function). This cryptographic proof ensures that numbers are truly random and
-              cannot be manipulated by anyone, including the lottery operators.
+              All winning numbers are generated using Service Layer confidential computing for verifiable randomness.
+              This ensures that numbers are truly random and cannot be manipulated by anyone, including operators.
             </p>
           </div>
           <div>

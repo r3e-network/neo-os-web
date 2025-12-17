@@ -22,7 +22,7 @@ function App() {
         </main>
         <footer className="border-t border-gray-800 py-6 mt-12">
           <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
-            <p>MegaLottery - Powered by Neo N3 &amp; Service Layer VRF</p>
+            <p>MegaLottery - Powered by Neo N3 &amp; Service Layer confidential computing</p>
             <p className="mt-1">Provably fair draws with verifiable random numbers</p>
           </div>
         </footer>

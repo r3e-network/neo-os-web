@@ -35,8 +35,8 @@ export function HomePage() {
         </h1>
 
         <p className="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-          The first decentralized lottery on Neo N3. Powered by Service Layer VRF for
-          provably fair and transparent draws.
+          The first decentralized lottery on Neo N3. Powered by Service Layer confidential computing for
+          verifiable randomness and transparent draws.
         </p>
 
         {/* Jackpot Display */}
@@ -108,7 +108,7 @@ export function HomePage() {
             icon: Shield,
             color: 'purple',
             title: 'Provably Fair',
-            description: 'Powered by Service Layer VRF. Every draw uses verifiable random numbers that can be independently verified on-chain.',
+            description: 'Powered by Service Layer confidential computing. Every draw uses verifiable random numbers that can be independently verified on-chain.',
           },
           {
             icon: Zap,
