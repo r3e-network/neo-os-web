@@ -15,16 +15,16 @@ func TestDefaultConfig(t *testing.T) {
 		t.Errorf("Version = %s, want 1.0", cfg.Version)
 	}
 
-	if len(cfg.Sources) != 1 {
-		t.Errorf("len(Sources) = %d, want 1", len(cfg.Sources))
+	if len(cfg.Sources) != 3 {
+		t.Errorf("len(Sources) = %d, want 3", len(cfg.Sources))
 	}
 
 	if len(cfg.Feeds) != 20 {
 		t.Errorf("len(Feeds) = %d, want 20", len(cfg.Feeds))
 	}
 
-	if cfg.UpdateInterval != 5*time.Second {
-		t.Errorf("UpdateInterval = %v, want 5s", cfg.UpdateInterval)
+	if cfg.UpdateInterval != 1*time.Second {
+		t.Errorf("UpdateInterval = %v, want 1s", cfg.UpdateInterval)
 	}
 }
 
@@ -135,8 +135,8 @@ func TestConfigDefaults(t *testing.T) {
 		t.Errorf("Feed decimals default = %d, want 8", cfg.Feeds[0].Decimals)
 	}
 
-	if cfg.UpdateInterval != 5*time.Second {
-		t.Errorf("UpdateInterval default = %v, want 5s", cfg.UpdateInterval)
+	if cfg.UpdateInterval != 1*time.Second {
+		t.Errorf("UpdateInterval default = %v, want 1s", cfg.UpdateInterval)
 	}
 }
 

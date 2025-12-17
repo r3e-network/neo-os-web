@@ -58,13 +58,13 @@ func TestInitDefaultSources(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := New(&Config{Marble: m})
 
-	// Should have 1 default source (binance)
-	if len(svc.sources) != 1 {
-		t.Errorf("len(sources) = %d, want 1", len(svc.sources))
+	// Default config should include 3 sources (multi-source median)
+	if len(svc.sources) != 3 {
+		t.Errorf("len(sources) = %d, want 3", len(svc.sources))
 	}
 
 	// Check source names
-	expectedSources := []string{"binance"}
+	expectedSources := []string{"binance", "coinbase", "okx"}
 	for _, name := range expectedSources {
 		if _, ok := svc.sources[name]; !ok {
 			t.Errorf("Source %s not found", name)

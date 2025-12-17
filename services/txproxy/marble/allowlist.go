@@ -87,4 +87,3 @@ func normalizeContractHash(raw string) string {
 	}
 	return raw
 }
-

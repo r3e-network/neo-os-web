@@ -180,13 +180,17 @@ func New(cfg *Config) (*Service, error) {
 		s.Logger().WithFields(nil).Warn("NEOFEEDS_SIGNING_KEY not configured; price responses will be unsigned (development/testing only)")
 	}
 
-	// Initialize Chainlink client for Arbitrum
-	chainlinkClient, err := NewChainlinkClient(cfg.ArbitrumRPC)
-	if err != nil {
-		// Log warning but don't fail - will fall back to HTTP sources
-		s.Logger().WithError(err).Warn("chainlink client init failed")
-	} else {
-		s.chainlinkClient = chainlinkClient
+	// Initialize optional Chainlink client (disabled unless ArbitrumRPC is set).
+	// This keeps default behavior aligned with the platform blueprint: use 3
+	// HTTP sources and median aggregation.
+	if strings.TrimSpace(cfg.ArbitrumRPC) != "" {
+		chainlinkClient, err := NewChainlinkClient(cfg.ArbitrumRPC)
+		if err != nil {
+			// Log warning but don't fail - will fall back to HTTP sources.
+			s.Logger().WithError(err).Warn("chainlink client init failed")
+		} else {
+			s.chainlinkClient = chainlinkClient
+		}
 	}
 
 	// Index sources by ID

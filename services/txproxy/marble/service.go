@@ -27,6 +27,9 @@ type Service struct {
 	*commonservice.BaseService
 
 	allowlist *Allowlist
+	// Optional platform contract hashes used for intent-based policy gating.
+	paymentHubHash string
+	governanceHash string
 
 	chainClient *chain.Client
 	signer      chain.TEESigner
@@ -42,6 +45,11 @@ type Config struct {
 
 	ChainClient *chain.Client
 	Signer      chain.TEESigner
+
+	// Optional platform contract hashes. If not provided, txproxy attempts to
+	// read them from environment variables via chain.ContractAddressesFromEnv().
+	PaymentHubHash string
+	GovernanceHash string
 
 	AllowlistRaw string
 	Allowlist    *Allowlist
@@ -75,6 +83,16 @@ func New(cfg Config) (*Service, error) {
 		allowlist = parsed
 	}
 
+	contracts := chain.ContractAddressesFromEnv()
+	paymentHubHash := strings.TrimSpace(cfg.PaymentHubHash)
+	if paymentHubHash == "" {
+		paymentHubHash = strings.TrimSpace(contracts.PaymentHub)
+	}
+	governanceHash := strings.TrimSpace(cfg.GovernanceHash)
+	if governanceHash == "" {
+		governanceHash = strings.TrimSpace(contracts.Governance)
+	}
+
 	if strict {
 		if cfg.ChainClient == nil {
 			return nil, fmt.Errorf("txproxy: chain client is required in strict/enclave mode")
@@ -98,12 +116,14 @@ func New(cfg Config) (*Service, error) {
 	})
 
 	s := &Service{
-		BaseService:   base,
-		allowlist:     allowlist,
-		chainClient:   cfg.ChainClient,
-		signer:        cfg.Signer,
-		replayWindow:  replayWindow,
-		seenRequests:  make(map[string]time.Time),
+		BaseService:    base,
+		allowlist:      allowlist,
+		paymentHubHash: normalizeContractHash(paymentHubHash),
+		governanceHash: normalizeContractHash(governanceHash),
+		chainClient:    cfg.ChainClient,
+		signer:         cfg.Signer,
+		replayWindow:   replayWindow,
+		seenRequests:   make(map[string]time.Time),
 	}
 
 	base.RegisterStandardRoutes()
@@ -151,4 +171,3 @@ func (s *Service) cleanupReplay() {
 		}
 	}
 }
-

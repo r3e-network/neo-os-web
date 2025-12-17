@@ -67,4 +67,3 @@ func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
 	}
 	resp.Body.Close()
 }
-
