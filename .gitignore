@@ -114,3 +114,8 @@ marble-runner
 /manifest-current.json
 /enclave.json
 /enclave.*.json
+/coordinator-root.pem
+
+# Development artifacts
+SPRINT*_COMPLETION_REPORT.md
+.Droid/
