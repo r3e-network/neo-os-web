@@ -318,3 +318,187 @@ func TestParseByteArrayNull(t *testing.T) {
 		t.Errorf("Expected nil, got %v", result)
 	}
 }
+
+func TestClientNetworkID(t *testing.T) {
+	client, err := NewClient(Config{
+		RPCURL:    "http://localhost:10332",
+		NetworkID: 860833102,
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	if got := client.NetworkID(); got != 860833102 {
+		t.Errorf("NetworkID() = %d, want %d", got, 860833102)
+	}
+
+	// Test nil client
+	var nilClient *Client
+	if got := nilClient.NetworkID(); got != 0 {
+		t.Errorf("nil.NetworkID() = %d, want 0", got)
+	}
+}
+
+func TestClientCloneWithRPCURL(t *testing.T) {
+	client, err := NewClient(Config{
+		RPCURL:    "http://localhost:10332",
+		NetworkID: 860833102,
+		Timeout:   30 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	t.Run("valid clone", func(t *testing.T) {
+		clone, err := client.CloneWithRPCURL("http://localhost:20332")
+		if err != nil {
+			t.Fatalf("CloneWithRPCURL() error = %v", err)
+		}
+		if clone.NetworkID() != client.NetworkID() {
+			t.Error("clone should preserve NetworkID")
+		}
+	})
+
+	t.Run("nil client", func(t *testing.T) {
+		var nilClient *Client
+		_, err := nilClient.CloneWithRPCURL("http://localhost:20332")
+		if err == nil {
+			t.Error("expected error for nil client")
+		}
+	})
+}
+
+func TestGetBlock(t *testing.T) {
+	client, _ := NewClient(Config{RPCURL: "http://example"})
+	client.httpClient.Transport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		resp := RPCResponse{
+			JSONRPC: "2.0",
+			ID:      1,
+			Result: json.RawMessage(`{
+				"hash": "0x1234",
+				"index": 100,
+				"time": 1234567890
+			}`),
+		}
+		payload, _ := json.Marshal(resp)
+		return newResponse(payload), nil
+	})
+
+	block, err := client.GetBlock(context.Background(), 100)
+	if err != nil {
+		t.Fatalf("GetBlock() error = %v", err)
+	}
+	if block == nil {
+		t.Error("GetBlock() returned nil")
+	}
+}
+
+func TestGetTransaction(t *testing.T) {
+	client, _ := NewClient(Config{RPCURL: "http://example"})
+	client.httpClient.Transport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		resp := RPCResponse{
+			JSONRPC: "2.0",
+			ID:      1,
+			Result: json.RawMessage(`{
+				"hash": "0xabc123",
+				"blockhash": "0xdef456",
+				"blocktime": 1234567890
+			}`),
+		}
+		payload, _ := json.Marshal(resp)
+		return newResponse(payload), nil
+	})
+
+	tx, err := client.GetTransaction(context.Background(), "0xabc123")
+	if err != nil {
+		t.Fatalf("GetTransaction() error = %v", err)
+	}
+	if tx == nil {
+		t.Error("GetTransaction() returned nil")
+	}
+}
+
+func TestGetApplicationLog(t *testing.T) {
+	client, _ := NewClient(Config{RPCURL: "http://example"})
+	client.httpClient.Transport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		resp := RPCResponse{
+			JSONRPC: "2.0",
+			ID:      1,
+			Result: json.RawMessage(`{
+				"txid": "0xabc123",
+				"executions": [{"vmstate": "HALT"}]
+			}`),
+		}
+		payload, _ := json.Marshal(resp)
+		return newResponse(payload), nil
+	})
+
+	log, err := client.GetApplicationLog(context.Background(), "0xabc123")
+	if err != nil {
+		t.Fatalf("GetApplicationLog() error = %v", err)
+	}
+	if log == nil {
+		t.Error("GetApplicationLog() returned nil")
+	}
+}
+
+func TestClientCallHTTPError(t *testing.T) {
+	client, _ := NewClient(Config{RPCURL: "http://example"})
+	client.httpClient.Transport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusInternalServerError,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader("internal error")),
+		}, nil
+	})
+
+	_, err := client.Call(context.Background(), "getblockcount", nil)
+	if err == nil {
+		t.Error("expected error for HTTP error response")
+	}
+}
+
+func TestClientCallRPCError(t *testing.T) {
+	client, _ := NewClient(Config{RPCURL: "http://example"})
+	client.httpClient.Transport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		resp := RPCResponse{
+			JSONRPC: "2.0",
+			ID:      1,
+			Error:   &RPCError{Code: -100, Message: "Unknown transaction"},
+		}
+		payload, _ := json.Marshal(resp)
+		return newResponse(payload), nil
+	})
+
+	_, err := client.Call(context.Background(), "getrawtransaction", []interface{}{"invalid"})
+	if err == nil {
+		t.Error("expected error for RPC error response")
+	}
+}
+
+func TestNewClientWithCustomHTTPClient(t *testing.T) {
+	customClient := &http.Client{Timeout: 60 * time.Second}
+	client, err := NewClient(Config{
+		RPCURL:     "http://localhost:10332",
+		HTTPClient: customClient,
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+	if client == nil {
+		t.Error("NewClient() returned nil")
+	}
+}
+
+func TestNewClientWithTimeout(t *testing.T) {
+	client, err := NewClient(Config{
+		RPCURL:  "http://localhost:10332",
+		Timeout: 120 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+	if client == nil {
+		t.Error("NewClient() returned nil")
+	}
+}
