@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# .NET build outputs
+**/bin/
+**/obj/
+
 # Go/Rust vendored or build outputs
 vendor/
 sdk/rust/devpack/target/

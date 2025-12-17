@@ -1,10 +1,18 @@
 # MegaLottery - Decentralized Lottery on Neo N3
 
+> **Legacy example:** this dApp was built against the older “Service Layer VRF”
+> contract/service model. The current MiniApp platform blueprint in this repo
+> **does not ship a dedicated `vrf-service`**; randomness is provided via
+> **`neocompute` scripts** (optionally anchored on-chain via `RandomnessLog`).
+>
+> Keep this module only as a historical reference unless you update the
+> contract to the new randomness flow.
+
 A fully decentralized lottery dApp powered by Neo N3 blockchain and Service Layer infrastructure.
 
 ## Features
 
-- **Provably Fair**: Uses Service Layer VRF (Verifiable Random Function) for cryptographically secure random number generation
+- **Provably Fair (legacy)**: Uses Service Layer VRF (Verifiable Random Function) for cryptographically secure random number generation
 - **Automated Draws**: Daily draws triggered automatically by Service Layer NeoFlow
 - **Transparent**: All operations recorded on-chain for full transparency
 - **Multiple Prize Tiers**: MegaMillions-style prize structure with jackpot rollover

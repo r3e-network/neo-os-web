@@ -1,5 +1,11 @@
 # MegaLottery - Neo N3 去中心化彩票
 
+> **历史示例（Legacy）**：该 dApp 基于旧版 “Service Layer VRF” 合约/服务模型实现。
+> 当前仓库的 MiniApp 平台蓝图 **不再提供独立 `vrf-service`**；随机数通过
+> **`neocompute` 在 TEE 内执行受限脚本** 提供，并可选写入链上 `RandomnessLog` 存证。
+>
+> 如需继续使用本示例，请先将合约随机数流程升级到新模型。
+
 基于 Neo N3 区块链和 Service Layer 基础设施的完全去中心化彩票 dApp。
 
 ## 特性
