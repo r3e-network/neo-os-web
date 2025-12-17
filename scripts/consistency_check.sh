@@ -180,20 +180,6 @@ check_contract_consistency() {
     local issues=0
 
     if [[ -d "$contracts_dir" ]]; then
-        # Check Gateway contract has required methods (C# syntax: public static).
-        # The Gateway is implemented as a partial class split across multiple files,
-        # so scan the whole directory rather than a single source file.
-        local gateway_dir="$contracts_dir/gateway"
-        if [[ -d "$gateway_dir" ]]; then
-            local required_methods=("RequestService" "FulfillRequest" "RegisterService")
-            for method in "${required_methods[@]}"; do
-                if ! grep -R --include="*.cs" -q "public[[:space:]]\\+static.*${method}\\|public.*static.*${method}" "$gateway_dir"; then
-                    echo -e "${RED}[ERROR] Gateway missing method: $method${NC}"
-                    issues=$((issues + 1))
-                fi
-            done
-        fi
-
         # Check example contracts implement callbacks
         for example in "$contracts_dir/examples"/*.cs; do
             [[ -f "$example" ]] || continue

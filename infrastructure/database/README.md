@@ -7,9 +7,8 @@ The `database` module provides Supabase (PostgreSQL) integration for the Service
 This module handles **shared** database operations including:
 
 - Supabase REST API client
-- Core data models (User, APIKey, Session, etc.)
+- Core data models (User, APIKey, wallets, gasbank, etc.)
 - Repository pattern for data access
-- OAuth and session management
 - GasBank operations
 
 **Note:** Service-specific database operations have been moved to each service's own `supabase/` subdirectory. See [Service-Specific Repositories](#service-specific-repositories) below.
@@ -23,7 +22,7 @@ infrastructure/database/     # Shared database infrastructure
 ├── repository_interface.go  # Interface definitions
 ├── supabase_models.go       # Shared model definitions
 ├── errors.go                # Error definitions
-├── supabase_*.go            # Shared operations (wallets, apikeys, sessions, oauth, gasbank, secrets)
+├── supabase_*.go            # Shared operations (wallets, apikeys, gasbank)
 └── mock_*.go                # Test mocks
 
 services/*/supabase/         # Service-specific database operations (when needed)
@@ -74,14 +73,12 @@ user, err := repo.GetUserByAddress(ctx, "NAddr123...")
 | `User` | User account information |
 | `UserWallet` | User wallet addresses |
 | `APIKey` | API key for authentication |
-| `UserSession` | User session data |
 | `Secret` | Encrypted secrets |
 | `GasBankAccount` | Gas balance tracking |
 | `GasBankTransaction` | Gas transaction history |
 | `DepositRequest` | Deposit request tracking |
 | `ServiceRequest` | Service request tracking |
 | `PriceFeed` | Price feed data |
-| `OAuthProvider` | OAuth provider data |
 
 ## Service-Specific Repositories
 
@@ -139,29 +136,6 @@ err := repo.CreateGasBankTransaction(ctx, &database.GasBankTransaction{...})
 ```
 
 ### Authentication
-
-#### OAuth (`supabase_oauth.go`)
-
-```go
-// Link OAuth provider
-err := repo.LinkOAuthProvider(ctx, &database.OAuthProvider{...})
-
-// Get linked providers
-providers, err := repo.GetOAuthProviders(ctx, userID)
-```
-
-#### Sessions (`supabase_sessions.go`)
-
-```go
-// Create session
-session, err := repo.CreateSession(ctx, &database.UserSession{...})
-
-// Validate session
-session, err := repo.GetSessionByToken(ctx, tokenHash)
-
-// Revoke session
-err := repo.DeleteSession(ctx, sessionID)
-```
 
 #### API Keys (`supabase_apikeys.go`)
 

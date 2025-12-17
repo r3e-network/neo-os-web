@@ -15,7 +15,7 @@ Required env vars:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (preferred) or `SUPABASE_SERVICE_KEY` (fallback)
 - `SECRETS_MASTER_KEY` (required for `secrets-*`)
 
 Notes:
@@ -24,6 +24,8 @@ Notes:
   `supabase/functions/*` (or symlink/copy from here).
 - In strict identity / production mode, the TEE services will only trust
   identity headers (`X-User-ID`, `X-Service-ID`) when protected by verified mTLS.
+- Authentication: most endpoints accept either `Authorization: Bearer <jwt>` or
+  `X-API-Key: <key>`. API key management endpoints (`api-keys-*`) require a JWT.
 
 Wallet onboarding:
 
@@ -34,3 +36,11 @@ Secrets:
 
 - `secrets-list`, `secrets-get`, `secrets-upsert`, `secrets-delete`: manage user secrets stored in Supabase (encrypted via `SECRETS_MASTER_KEY`).
 - `secrets-permissions`: configure which internal service IDs may read a secret (`secret_policies` table).
+
+API keys:
+
+- `api-keys-create`, `api-keys-list`, `api-keys-revoke`: create/list/revoke user API keys (hashed in DB; raw key returned once).
+
+Gas bank (delegated payments):
+
+- `gasbank-account`, `gasbank-deposit`, `gasbank-deposits`, `gasbank-transactions`

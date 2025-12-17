@@ -17,11 +17,18 @@ See `platform/edge/functions/`:
 
 - `wallet-nonce`: issues a nonce + message for Neo N3 wallet binding.
 - `wallet-bind`: verifies signature and binds a Neo N3 address to the authenticated user.
+- `api-keys-create`: create a user API key (returned once; stored hashed).
+- `api-keys-list`: list API keys (no raw key).
+- `api-keys-revoke`: revoke an API key.
 - `secrets-list`: list secret metadata (no values).
 - `secrets-get`: decrypt and return a secret value.
 - `secrets-upsert`: create/update a secret (AES-GCM envelope).
 - `secrets-delete`: delete a secret and its policies.
 - `secrets-permissions`: set allowed service IDs per secret.
+- `gasbank-account`: get/create a GAS bank account (delegated payments).
+- `gasbank-deposit`: create a deposit request record.
+- `gasbank-deposits`: list deposit requests.
+- `gasbank-transactions`: list gasbank transactions.
 - `pay-gas`: returns a PaymentHub `Pay` invocation (GAS-only).
 - `vote-neo`: returns a Governance `Vote` invocation (NEO-only).
 - `rng-request`: runs RNG via `neocompute` (no dedicated `vrf-service` in this repo).
@@ -37,8 +44,15 @@ At minimum, these functions expect:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY` (to validate `Authorization: Bearer <jwt>`)
-- `SUPABASE_SERVICE_ROLE_KEY` (to read/write platform tables like `users`/`user_wallets`)
+- `SUPABASE_SERVICE_ROLE_KEY` (preferred) or `SUPABASE_SERVICE_KEY` (fallback; used by Go services)
 - `SECRETS_MASTER_KEY` (required for `secrets-*` endpoints; AES-GCM envelope key)
+
+Most endpoints accept either:
+
+- `Authorization: Bearer <jwt>` (Supabase Auth), or
+- `X-API-Key: <key>` (user API keys; used for secrets/gasbank/etc.)
+
+API key management endpoints (`api-keys-*`) require `Authorization: Bearer <jwt>`.
 
 ## mTLS to TEE
 

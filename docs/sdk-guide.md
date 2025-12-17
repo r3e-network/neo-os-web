@@ -59,6 +59,15 @@ declare global {
 }
 ```
 
+## Host-Only APIs
+
+The `platform/sdk` also exposes a host-only client (`HostSDK`) for workflows that
+must not be exposed to untrusted MiniApps (wallet binding, secrets, API keys,
+gasbank).
+
+Auth can be provided either as a Supabase JWT (`Authorization: Bearer`) or as a
+user API key (`X-API-Key`) via `MiniAppSDKConfig.getAPIKey`.
+
 ## Example
 
 ```ts

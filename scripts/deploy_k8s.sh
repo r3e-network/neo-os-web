@@ -36,7 +36,6 @@ OVERLAY_PATH=""
 
 # Services to build and deploy
 SERVICES=(
-    "gateway"
     "neofeeds"
     "neoflow"
     "neoaccounts"
@@ -421,64 +420,36 @@ build_images() {
         log_info "Building $service..."
 
         local image_name="${IMAGE_PREFIX}${service}:${ENVIRONMENT}"
-        local dockerfile=""
-
-        if [ "$service" == "gateway" ]; then
-            dockerfile="docker/Dockerfile.gateway"
-        else
-            dockerfile="docker/Dockerfile.service"
-        fi
+        local dockerfile="docker/Dockerfile.service"
 
         if [ "$DRY_RUN" == "true" ]; then
             log_info "[DRY RUN] Would build: $image_name"
             continue
         fi
 
-        if [ "$service" == "gateway" ]; then
-            if [[ "$ENVIRONMENT" == "prod" ]]; then
-                local key_path
-                if ! key_path="$(resolve_signing_key "$service")"; then
-                    log_error "Missing signing key for ${service}. Provide --signing-key or --signing-key-dir."
-                    exit 1
-                fi
-                docker build -t "$image_name" \
-                    --secret id=ego_private_key,src="$key_path" \
-                    --build-arg EGO_STRICT_SIGNING=1 \
-                    -f "$dockerfile" . || {
-                    log_error "Failed to build $service"
-                    exit 1
-                }
-            else
-                docker build -t "$image_name" -f "$dockerfile" . || {
-                    log_error "Failed to build $service"
-                    exit 1
-                }
+        local service_binary
+        service_binary="$(default_service_binary "$service")"
+        if [[ "$ENVIRONMENT" == "prod" ]]; then
+            local key_path
+            if ! key_path="$(resolve_signing_key "$service")"; then
+                log_error "Missing signing key for ${service}. Provide --signing-key or --signing-key-dir."
+                exit 1
             fi
+            docker build -t "$image_name" \
+                --secret id=ego_private_key,src="$key_path" \
+                --build-arg EGO_STRICT_SIGNING=1 \
+                --build-arg SERVICE="$service_binary" \
+                -f "$dockerfile" . || {
+                log_error "Failed to build $service"
+                exit 1
+            }
         else
-            local service_binary
-            service_binary="$(default_service_binary "$service")"
-            if [[ "$ENVIRONMENT" == "prod" ]]; then
-                local key_path
-                if ! key_path="$(resolve_signing_key "$service")"; then
-                    log_error "Missing signing key for ${service}. Provide --signing-key or --signing-key-dir."
-                    exit 1
-                fi
-                docker build -t "$image_name" \
-                    --secret id=ego_private_key,src="$key_path" \
-                    --build-arg EGO_STRICT_SIGNING=1 \
-                    --build-arg SERVICE="$service_binary" \
-                    -f "$dockerfile" . || {
-                    log_error "Failed to build $service"
-                    exit 1
-                }
-            else
-                docker build -t "$image_name" \
-                    --build-arg SERVICE="$service_binary" \
-                    -f "$dockerfile" . || {
-                    log_error "Failed to build $service"
-                    exit 1
-                }
-            fi
+            docker build -t "$image_name" \
+                --build-arg SERVICE="$service_binary" \
+                -f "$dockerfile" . || {
+                log_error "Failed to build $service"
+                exit 1
+            }
         fi
 
         # Also tag as latest for the environment
@@ -721,12 +692,13 @@ show_status() {
 
     echo ""
     if [[ "$ENVIRONMENT" == "prod" ]]; then
-        log_info "Gateway is ClusterIP in the production overlay; access it via port-forward or apply the ingress template:"
-        log_info "  kubectl -n service-layer port-forward svc/gateway 8080:8080"
-        log_info "  envsubst < k8s/overlays/production/ingress.yaml | kubectl apply -f -"
+        log_info "Public gateway is Supabase Edge (outside this cluster)."
+        log_info "To debug internal services, port-forward individual services, e.g.:"
+        log_info "  kubectl -n service-layer port-forward svc/neofeeds 8083:8083"
     else
-        log_info "Gateway accessible at: http://localhost:30080"
-        log_info "Or via: kubectl -n service-layer port-forward svc/gateway 8080:8080"
+        log_info "Public gateway is Supabase Edge (outside this cluster)."
+        log_info "To debug internal services, port-forward individual services, e.g.:"
+        log_info "  kubectl -n service-layer port-forward svc/neofeeds 8083:8083"
     fi
 }
 

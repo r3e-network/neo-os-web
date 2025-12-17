@@ -1,4 +1,11 @@
 import type {
+  APIKeyCreateResponse,
+  APIKeyRevokeResponse,
+  APIKeysListResponse,
+  GasBankAccountResponse,
+  GasBankDepositCreateResponse,
+  GasBankDepositsResponse,
+  GasBankTransactionsResponse,
   HostSDK,
   MiniAppSDK,
   MiniAppSDKConfig,
@@ -28,6 +35,10 @@ async function requestJSON<T>(
   if (cfg.getAuthToken) {
     const token = await cfg.getAuthToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
+  }
+  if (!headers.get("Authorization") && cfg.getAPIKey) {
+    const apiKey = await cfg.getAPIKey();
+    if (apiKey) headers.set("X-API-Key", apiKey);
   }
 
   const resp = await fetch(url, { ...init, headers });
@@ -136,6 +147,49 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
           method: "POST",
           body: JSON.stringify({ name, services }),
         });
+      },
+    },
+    apiKeys: {
+      async list(): Promise<APIKeysListResponse> {
+        return requestJSON<APIKeysListResponse>(cfg, "/api-keys-list", { method: "GET" });
+      },
+      async create(params): Promise<APIKeyCreateResponse> {
+        return requestJSON<APIKeyCreateResponse>(cfg, "/api-keys-create", {
+          method: "POST",
+          body: JSON.stringify({
+            name: params.name,
+            scopes: params.scopes,
+            description: params.description,
+            expires_at: params.expires_at,
+          }),
+        });
+      },
+      async revoke(id: string): Promise<APIKeyRevokeResponse> {
+        return requestJSON<APIKeyRevokeResponse>(cfg, "/api-keys-revoke", {
+          method: "POST",
+          body: JSON.stringify({ id }),
+        });
+      },
+    },
+    gasbank: {
+      async getAccount(): Promise<GasBankAccountResponse> {
+        return requestJSON<GasBankAccountResponse>(cfg, "/gasbank-account", { method: "GET" });
+      },
+      async listDeposits(): Promise<GasBankDepositsResponse> {
+        return requestJSON<GasBankDepositsResponse>(cfg, "/gasbank-deposits", { method: "GET" });
+      },
+      async createDeposit(params): Promise<GasBankDepositCreateResponse> {
+        return requestJSON<GasBankDepositCreateResponse>(cfg, "/gasbank-deposit", {
+          method: "POST",
+          body: JSON.stringify({
+            amount: params.amount,
+            from_address: params.from_address,
+            tx_hash: params.tx_hash,
+          }),
+        });
+      },
+      async listTransactions(): Promise<GasBankTransactionsResponse> {
+        return requestJSON<GasBankTransactionsResponse>(cfg, "/gasbank-transactions", { method: "GET" });
       },
     },
   };

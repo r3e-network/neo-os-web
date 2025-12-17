@@ -448,16 +448,11 @@ go mod tidy
 
 ### Generating API Documentation
 
-```bash
-# Install swag
-go install github.com/swaggo/swag/cmd/swag@latest
+The public API surface is intentionally exposed via **Supabase Edge Functions**.
+See:
 
-# Generate docs
-swag init -g cmd/gateway/main.go
-
-# View docs
-# Navigate to http://localhost:8080/swagger/index.html
-```
+- `docs/service-api.md`
+- `platform/edge/functions/README.md`
 
 ## Troubleshooting
 
@@ -529,7 +524,7 @@ Enable debug logging:
 export LOG_LEVEL=debug
 
 # Run service
-go run ./cmd/gateway
+SERVICE_TYPE=neocompute go run ./cmd/marble
 ```
 
 ### MarbleRun Issues

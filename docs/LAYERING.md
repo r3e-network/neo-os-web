@@ -51,11 +51,11 @@ contracts live under `contracts/` and are written by the enclave-managed signer
 ### `cmd/` (binaries)
 
 - `cmd/marble`: **single entrypoint** used to run any enclave service (`MARBLE_TYPE=...`).
-- `cmd/gateway`: legacy user-facing gateway (auth, workflow, routing). The target blueprint uses Supabase Edge as the thin gateway; this binary remains for backward compatibility / migration.
 
-### `dapps/`, `frontend/`
+### `platform/host-app`
 
-User-facing apps consuming the gateway API. These should not contain service-layer business logic.
+User-facing host app consuming Supabase Edge + services. This should not contain
+service-layer business logic.
 
 ## EGo / SGX Boundary (What runs where)
 
@@ -78,7 +78,7 @@ In code, this is primarily:
 
 Keep non-enclave code focused on user/product workflow and “web2 plumbing”:
 
-- user auth (wallet + OAuth), session/JWT handling
+- user auth (Supabase Auth: OAuth providers), session/JWT handling
 - secrets management & permissions UX/API
 - delegated payments / configuration stored in Supabase
 - API gateway routing, request validation, rate limiting
@@ -86,8 +86,8 @@ Keep non-enclave code focused on user/product workflow and “web2 plumbing”:
 
 In code, this is primarily:
 
-- `cmd/gateway`
-- `frontend/`, `dapps/`
+- `platform/edge` (Supabase Edge Functions)
+- `platform/host-app`
 - `deploy/`, `docker/`, `k8s/`
 
 ## Responsibility Rules (enforced by refactoring)

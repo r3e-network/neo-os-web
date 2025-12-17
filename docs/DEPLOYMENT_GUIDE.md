@@ -100,34 +100,21 @@ SUPABASE_SERVICE_KEY=your-supabase-service-key
 NEO_RPC_URL=https://mainnet1.neo.org:443
 NEO_NETWORK_MAGIC=860833102
 
-# Gateway
-# JWT secret is generated/injected by MarbleRun in Compose/K8s.
-# For non-Marblerun local runs: set JWT_SECRET (min 32 bytes).
-JWT_SECRET=your-jwt-secret-min-32-chars
-# Optional admin allowlists (comma-separated Supabase user IDs).
-# When set, the gateway attaches `X-User-Role: admin|super_admin` to proxied
-# service requests to unlock admin endpoints.
-ADMIN_USER_IDS=
-SUPER_ADMIN_USER_IDS=
-GATEWAY_TLS_MODE=off  # off|tls|mtls
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
-
-# OAuth (optional)
-FRONTEND_URL=http://localhost:3000
-OAUTH_REDIRECT_BASE=http://localhost:8080
-OAUTH_COOKIE_MODE=true
-OAUTH_COOKIE_SAMESITE=lax  # strict|lax|none (none requires HTTPS)
-
-# Services
-DATAFEEDS_SERVICE_URL=http://neofeeds:8083
-AUTOMATION_SERVICE_URL=http://neoflow:8084
-ACCOUNTPOOL_SERVICE_URL=http://neoaccounts:8085
-CONFIDENTIAL_SERVICE_URL=http://neocompute:8086
-ORACLE_SERVICE_URL=http://neooracle:8088
-GLOBALSIGNER_SERVICE_URL=http://globalsigner:8092
-
-# Service-to-service URLs (used by marbles)
-ACCOUNTPOOL_URL=http://neoaccounts:8085
+# Supabase Edge (Gateway)
+# The user-facing gateway is Supabase Edge Functions and is configured in your
+# Supabase project environment (not in this Docker/K8s stack).
+#
+# Minimum env vars for Edge Functions:
+# SUPABASE_URL=https://your-project.supabase.co
+# SUPABASE_ANON_KEY=your-anon-key
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# SECRETS_MASTER_KEY=<hex 32 bytes>
+# NEOFEEDS_URL=http://neofeeds:8083
+# NEOCOMPUTE_URL=http://neocompute:8086
+# TXPROXY_URL=http://txproxy:8090
+# CONTRACT_PAYMENTHUB_HASH=0x...
+# CONTRACT_GOVERNANCE_HASH=0x...
+# CONTRACT_RANDOMNESSLOG_HASH=0x... (optional; for RNG anchoring)
 ```
 
 #### 3. Start Services
@@ -151,11 +138,12 @@ make marblerun-manifest
 #### 5. Verify Deployment
 
 ```bash
-# Check service health
-curl http://localhost:8080/health
-
 # Check MarbleRun status
 marblerun status localhost:4433 --insecure
+
+# Example: check an internal service health endpoint from inside the mesh
+docker compose -f docker/docker-compose.simulation.yaml exec neocompute \
+  sh -c 'wget -qO- http://localhost:8086/health || curl -fsS http://localhost:8086/health'
 ```
 
 ---
@@ -259,7 +247,7 @@ kubectl get pods -n service-layer
 kubectl get svc -n service-layer
 
 # Check logs
-kubectl logs -n service-layer -l app=gateway --tail=100
+kubectl logs -n service-layer -l app=neofeeds --tail=100
 
 # Verify attestation
 marblerun manifest verify --coordinator-addr $COORDINATOR:4433
@@ -271,39 +259,11 @@ marblerun manifest verify --coordinator-addr $COORDINATOR:4433
 
 ### MarbleRun Manifest
 
-The manifest defines the trusted execution environment topology:
+The manifest defines the trusted execution environment topology (enclave
+workloads only). The user-facing gateway is Supabase Edge and is **not** part of
+the MarbleRun manifest.
 
-```json
-{
-  "Packages": {
-    "gateway": {
-      "UniqueID": "gateway-unique-id",
-      "SignerID": "gateway-signer-id",
-      "ProductID": 1,
-      "SecurityVersion": 1,
-      "Debug": false
-    }
-  },
-  "Marbles": {
-    "gateway": {
-      "Package": "gateway",
-      "MaxActivations": 10,
-      "Parameters": {
-        "Env": {
-          "MARBLE_TYPE": "gateway",
-          "EDG_MARBLE_TYPE": "gateway"
-        }
-      }
-    }
-  },
-  "Secrets": {
-    "jwt_secret": {
-      "Type": "symmetric-key",
-      "Size": 32
-    }
-  }
-}
-```
+See: `manifests/manifest.json`.
 
 **Signer IDs and build keys:** `SignerID` is derived from the enclave signing key (MRSIGNER). For production deployments you must use a stable signing key (stored securely in CI/build secrets) so rebuilt images continue to match the manifest. Never ship or commit the enclave signing private key (`private.pem`) in runtime images or source control.
 
@@ -316,14 +276,6 @@ Docker Compose cannot pass BuildKit secrets, so for SGX hardware you should buil
 Example (local build with BuildKit secrets):
 
 ```bash
-# Gateway
-DOCKER_BUILDKIT=1 docker build \
-  --secret id=ego_private_key,src=/path/to/gateway-private.pem \
-  --build-arg EGO_STRICT_SIGNING=1 \
-  -f docker/Dockerfile.gateway \
-  -t service-layer/gateway:latest \
-  .
-
 # Service (example: neocompute uses SERVICE=neocompute)
 DOCKER_BUILDKIT=1 docker build \
   --secret id=ego_private_key,src=/path/to/neocompute-private.pem \
@@ -343,19 +295,18 @@ Helper (recommended): `./scripts/up.sh` supports `--signing-key` / `--signing-ke
 
 Services are configured via environment variables (see `.env.example`, `config/*.env`, and `k8s/base/configmap.yaml`). Sensitive values should live in Kubernetes Secrets (`k8s/secrets.yaml.template`) or MarbleRun manifest secrets.
 
-Example (gateway):
+Example (Supabase Edge gateway env, configured in your Supabase project):
 
 ```bash
-JWT_SECRET=your-jwt-secret-min-32-chars
-JWT_EXPIRY=24h
-GATEWAY_TLS_MODE=off
-CORS_ALLOWED_ORIGINS=https://your-frontend.example
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-supabase-service-key
-# OAuth token at-rest encryption key.
-# In MarbleRun deployments this is provided via `manifests/manifest.json` as a generated secret
-# (OAUTH_TOKENS_MASTER_KEY). For non-Marblerun deployments, set your own key:
-# OAUTH_TOKENS_MASTER_KEY=$(openssl rand -hex 32)
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SECRETS_MASTER_KEY=$(openssl rand -hex 32)
+NEOFEEDS_URL=https://neofeeds:8083
+NEOCOMPUTE_URL=https://neocompute:8086
+TXPROXY_URL=https://txproxy:8090
+CONTRACT_PAYMENTHUB_HASH=0x...
+CONTRACT_GOVERNANCE_HASH=0x...
 ```
 
 Example (oracle):
@@ -378,9 +329,8 @@ All services expose Prometheus metrics at `/metrics`.
 
 Production notes:
 
-- The `k8s/overlays/production/ingress.yaml` template intentionally does **not** route `/metrics` via the public Ingress.
+- By default, this repo does **not** expose `/metrics` publicly. Scrape from inside the cluster (or via port-forward) instead.
 - In MarbleRun SGX mode, service endpoints (including `/metrics`) are typically protected by MarbleRun mTLS, which means a standard Prometheus instance cannot scrape them unless it can present a valid client certificate (or you run Prometheus inside the mesh).
-- The gateway may run behind the ingress in HTTP mode; scraping it should be done from inside the cluster (e.g. `monitoring` namespace) rather than publicly.
 
 ```yaml
 # prometheus.yml
@@ -394,7 +344,7 @@ scrape_configs:
     relabel_configs:
       - source_labels: [__meta_kubernetes_pod_label_app]
         action: keep
-        regex: gateway|neofeeds|neoflow|neoaccounts|neocompute|neooracle|globalsigner
+        regex: neofeeds|neoflow|neoaccounts|neocompute|neooracle|globalsigner|txproxy
 ```
 
 ### Grafana Dashboards
@@ -491,8 +441,7 @@ kubectl rollout status deployment/coordinator -n marblerun --timeout=10m
 
 ```bash
 # Configure firewall
-sudo ufw allow 8080/tcp  # Gateway
-sudo ufw allow 4433/tcp  # MarbleRun coordinator
+sudo ufw allow 4433/tcp  # MarbleRun coordinator client API (only if you need remote access)
 sudo ufw enable
 
 # Use network policies in Kubernetes
@@ -522,7 +471,7 @@ sudo apt update && sudo apt upgrade libsgx-*
 docker pull r3enetwork/service-layer:latest
 
 # Update Kubernetes deployments
-kubectl set image deployment/gateway gateway=r3enetwork/service-layer:latest -n service-layer
+kubectl set image deployment/neofeeds neofeeds=service-layer/neofeeds:latest -n service-layer
 ```
 
 ---
@@ -532,11 +481,11 @@ kubectl set image deployment/gateway gateway=r3enetwork/service-layer:latest -n 
 ### Horizontal Scaling
 
 ```bash
-# Scale gateway replicas
-kubectl scale deployment gateway --replicas=5 -n service-layer
+# Scale a service (example: neofeeds)
+kubectl scale deployment neofeeds --replicas=5 -n service-layer
 
 # Auto-scaling based on CPU
-kubectl autoscale deployment gateway \
+kubectl autoscale deployment neofeeds \
   --cpu-percent=70 \
   --min=3 \
   --max=10 \
@@ -545,33 +494,9 @@ kubectl autoscale deployment gateway \
 
 ### Load Balancing
 
-```yaml
-# ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: service-layer-ingress
-  namespace: service-layer
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-spec:
-  tls:
-    - hosts:
-        - api.service-layer.neo.org
-      secretName: service-layer-tls
-  rules:
-    - host: api.service-layer.neo.org
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: gateway
-                port:
-                  number: 8080
-```
+Public traffic is intended to go to **Supabase Edge** (gateway). Internal TEE
+services are kept cluster-internal by default and should be accessed via
+port-forward or a mesh/in-cluster client.
 
 ---
 
@@ -637,7 +562,7 @@ Enable debug logging:
 export LOG_LEVEL=debug
 
 # Or in Kubernetes
-kubectl set env deployment/gateway LOG_LEVEL=debug -n service-layer
+kubectl set env deployment/neofeeds LOG_LEVEL=debug -n service-layer
 ```
 
 ---
@@ -695,11 +620,11 @@ cache:
 
 ```bash
 # Rolling update
-kubectl set image deployment/gateway gateway=r3enetwork/service-layer:v1.1.0 -n service-layer
-kubectl rollout status deployment/gateway -n service-layer
+kubectl set image deployment/neofeeds neofeeds=service-layer/neofeeds:v1.1.0 -n service-layer
+kubectl rollout status deployment/neofeeds -n service-layer
 
 # Rollback if needed
-kubectl rollout undo deployment/gateway -n service-layer
+kubectl rollout undo deployment/neofeeds -n service-layer
 ```
 
 ---

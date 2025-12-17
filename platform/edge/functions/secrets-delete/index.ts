@@ -1,6 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
-import { ensureUserRow, requireUser, supabaseServiceClient } from "../_shared/supabase.ts";
+import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
 
 type DeleteSecretRequest = {
   name: string;
@@ -12,8 +12,10 @@ Deno.serve(async (req) => {
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED");
 
-  const auth = await requireUser(req);
+  const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const walletCheck = await requirePrimaryWallet(auth.userId);
+  if (walletCheck instanceof Response) return walletCheck;
 
   const ensured = await ensureUserRow(auth);
   if (ensured instanceof Response) return ensured;
@@ -44,4 +46,3 @@ Deno.serve(async (req) => {
 
   return json({ status: "ok" });
 });
-

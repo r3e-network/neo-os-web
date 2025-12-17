@@ -2,7 +2,7 @@ import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
 import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
 
-// Lists secret metadata for the authenticated user (no values).
+// Returns the user's gasbank account (creates if missing).
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -17,12 +17,23 @@ Deno.serve(async (req) => {
   if (ensured instanceof Response) return ensured;
 
   const supabase = supabaseServiceClient();
-  const { data, error: listErr } = await supabase
-    .from("secrets")
-    .select("id,name,version,created_at,updated_at")
-    .eq("user_id", auth.userId)
-    .order("updated_at", { ascending: false });
 
-  if (listErr) return error(500, `failed to list secrets: ${listErr.message}`, "DB_ERROR");
-  return json({ secrets: data ?? [] });
+  const { data: existing, error: getErr } = await supabase
+    .from("gasbank_accounts")
+    .select("id,user_id,balance,reserved,created_at,updated_at")
+    .eq("user_id", auth.userId)
+    .limit(1);
+  if (getErr) return error(500, `failed to load gasbank account: ${getErr.message}`, "DB_ERROR");
+
+  if (existing && existing.length > 0) return json({ account: existing[0] });
+
+  const { data: created, error: createErr } = await supabase
+    .from("gasbank_accounts")
+    .insert({ user_id: auth.userId })
+    .select("id,user_id,balance,reserved,created_at,updated_at")
+    .maybeSingle();
+  if (createErr) return error(500, `failed to create gasbank account: ${createErr.message}`, "DB_ERROR");
+
+  return json({ account: created });
 });
+

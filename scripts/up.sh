@@ -18,7 +18,7 @@ Options:
                Build SGX images locally using a single enclave signing key (BuildKit secret).
   --signing-key-dir DIR
                Build SGX images locally using per-package keys named <package>.pem
-               (or <package>-private.pem) for gateway/neofeeds/.../globalsigner
+               (or <package>-private.pem) for neofeeds/.../globalsigner
   --skip-signer-check
                Skip comparing key-derived SignerIDs against manifests/manifest.json (not recommended).
   -h, --help   Show this help.
@@ -215,9 +215,6 @@ warn_env_file_placeholders() {
   if grep -Eq '^SUPABASE_SERVICE_KEY=your-service-key' "$path"; then
     echo "WARNING: SUPABASE_SERVICE_KEY in $path still uses the sample value from .env.example (your-service-key)." >&2
   fi
-  if grep -Eq '^JWT_SECRET=change-me-change-me-change-me-32bytes' "$path"; then
-    echo "WARNING: JWT_SECRET in $path still uses the sample value from .env.example (change-me-...). Do not use in production." >&2
-  fi
   if grep -Eq '^COORDINATOR_MESH_ADDR=.*\\.svc\\.cluster\\.local' "$path"; then
     echo "WARNING: COORDINATOR_MESH_ADDR in $path looks like a Kubernetes DNS name; Docker Compose marbles should use coordinator:2001." >&2
   fi
@@ -332,7 +329,7 @@ ego_signerid_from_private_key() {
 }
 
 build_signed_images() {
-  local packages=(gateway neofeeds neoflow neoaccounts neocompute neooracle txproxy globalsigner)
+  local packages=(neofeeds neoflow neoaccounts neocompute neooracle txproxy globalsigner)
   local pkg
 
   export DOCKER_BUILDKIT=1
@@ -366,18 +363,6 @@ build_signed_images() {
         echo "Either provide the correct key for this package or update manifests/manifest.json." >&2
         exit 1
       fi
-    fi
-
-    if [[ "$pkg" == "gateway" ]]; then
-      echo "Building signed image: service-layer/gateway:latest"
-      "${DOCKER[@]}" build \
-        --secret id=ego_private_key,src="$key_path" \
-        --build-arg EGO_STRICT_SIGNING=1 \
-        --build-arg EGO_VERSION="${EGO_VERSION:-1.8.0}" \
-        -f "${PROJECT_ROOT}/docker/Dockerfile.gateway" \
-        -t "service-layer/gateway:latest" \
-        "${PROJECT_ROOT}"
-      continue
     fi
 
     local service_binary

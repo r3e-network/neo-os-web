@@ -21,15 +21,16 @@ type User struct {
 
 // APIKey represents an API key.
 type APIKey struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	Name      string    `json:"name"`
-	KeyHash   string    `json:"key_hash"`
-	Prefix    string    `json:"prefix"`
-	Scopes    []string  `json:"scopes"`
-	ExpiresAt time.Time `json:"expires_at,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	LastUsed  time.Time `json:"last_used,omitempty"`
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Name        string    `json:"name"`
+	KeyHash     string    `json:"key_hash"`
+	Prefix      string    `json:"prefix"`
+	Scopes      []string  `json:"scopes"`
+	Description string    `json:"description,omitempty"`
+	ExpiresAt   time.Time `json:"expires_at,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	LastUsed    time.Time `json:"last_used,omitempty"`
 }
 
 // ServiceRequest represents a service request.
@@ -66,18 +67,6 @@ type GasBankAccount struct {
 	Reserved  int64     `json:"reserved"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
-}
-
-// UserSession represents a user session.
-type UserSession struct {
-	ID         string    `json:"id"`
-	UserID     string    `json:"user_id"`
-	TokenHash  string    `json:"token_hash"`
-	DeviceInfo any       `json:"device_info,omitempty"`
-	IPAddress  string    `json:"ip_address,omitempty"`
-	ExpiresAt  time.Time `json:"expires_at"`
-	CreatedAt  time.Time `json:"created_at"`
-	LastActive time.Time `json:"last_active"`
 }
 
 // UserWallet represents a user's wallet binding.
@@ -123,20 +112,4 @@ type GasBankTransaction struct {
 	ToAddress    string    `json:"to_address,omitempty"`
 	Status       string    `json:"status,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
-}
-
-// OAuthProvider represents a linked OAuth provider account.
-type OAuthProvider struct {
-	ID           string    `json:"id"`
-	UserID       string    `json:"user_id"`
-	Provider     string    `json:"provider"` // "google", "github"
-	ProviderID   string    `json:"provider_id"`
-	Email        string    `json:"email,omitempty"`
-	DisplayName  string    `json:"display_name,omitempty"`
-	AvatarURL    string    `json:"avatar_url,omitempty"`
-	AccessToken  string    `json:"access_token,omitempty"`
-	RefreshToken string    `json:"refresh_token,omitempty"`
-	ExpiresAt    time.Time `json:"expires_at,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
 }

@@ -69,6 +69,36 @@ export type SecretsUpsertResponse = { secret: SecretMeta; created: boolean };
 export type SecretsDeleteResponse = { status: "ok" };
 export type SecretsPermissionsResponse = { status: "ok"; services: string[] };
 
+export type APIKeyMeta = {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  description?: string | null;
+  created_at: string;
+  last_used?: string | null;
+  expires_at?: string | null;
+  revoked?: boolean | null;
+};
+
+export type APIKeysListResponse = { api_keys: APIKeyMeta[] };
+export type APIKeyCreateResponse = { api_key: APIKeyMeta & { key: string } };
+export type APIKeyRevokeResponse = { status: "ok" };
+
+export type GasBankAccount = {
+  id: string;
+  user_id: string;
+  balance: number | string;
+  reserved: number | string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GasBankAccountResponse = { account: GasBankAccount };
+export type GasBankDepositsResponse = { deposits: unknown[] };
+export type GasBankTransactionsResponse = { transactions: unknown[] };
+export type GasBankDepositCreateResponse = { deposit: unknown };
+
 export type PriceResponse = {
   feed_id: string;
   pair: string;
@@ -118,6 +148,17 @@ export interface HostSDK {
     delete(name: string): Promise<SecretsDeleteResponse>;
     setPermissions(name: string, services: string[]): Promise<SecretsPermissionsResponse>;
   };
+  apiKeys: {
+    list(): Promise<APIKeysListResponse>;
+    create(params: { name: string; scopes?: string[]; description?: string; expires_at?: string }): Promise<APIKeyCreateResponse>;
+    revoke(id: string): Promise<APIKeyRevokeResponse>;
+  };
+  gasbank: {
+    getAccount(): Promise<GasBankAccountResponse>;
+    listDeposits(): Promise<GasBankDepositsResponse>;
+    createDeposit(params: { amount: string; from_address: string; tx_hash?: string }): Promise<GasBankDepositCreateResponse>;
+    listTransactions(): Promise<GasBankTransactionsResponse>;
+  };
   payments: MiniAppSDK["payments"];
   governance: MiniAppSDK["governance"];
   rng: MiniAppSDK["rng"];
@@ -127,4 +168,5 @@ export interface HostSDK {
 export type MiniAppSDKConfig = {
   edgeBaseUrl: string;
   getAuthToken?: () => Promise<string | undefined>;
+  getAPIKey?: () => Promise<string | undefined>;
 };

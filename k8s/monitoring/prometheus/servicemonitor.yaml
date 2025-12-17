@@ -2,28 +2,6 @@
 # 自动发现和抓取服务指标
 
 ---
-# Gateway ServiceMonitor
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: gateway
-  namespace: monitoring
-  labels:
-    app: gateway
-    release: prometheus
-spec:
-  selector:
-    matchLabels:
-      app: gateway
-  namespaceSelector:
-    matchNames:
-      - apps
-  endpoints:
-    - port: metrics
-      path: /metrics
-      interval: 30s
-
----
 # Neo* Services ServiceMonitor
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
