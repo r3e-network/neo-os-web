@@ -347,11 +347,11 @@ service_layer/
 │   ├── gateway/           # API Gateway
 │   └── marble/            # Generic marble runner
 ├── services/              # Product services (enclave workloads)
-│   ├── vrf/               # VRF (NeoRand)
 │   ├── datafeed/          # Data feeds (NeoFeeds)
 │   ├── automation/        # Automation (NeoFlow)
 │   ├── confcompute/       # Confidential compute (NeoCompute)
-│   └── conforacle/        # Confidential oracle (NeoOracle)
+│   ├── conforacle/        # Confidential oracle (NeoOracle)
+│   └── txproxy/           # Allowlisted tx signing/broadcast (TxProxy)
 ├── infrastructure/        # Shared building blocks (chain, runtime, middleware, storage)
 │   ├── chain/             # Neo N3 RPC + tx + event monitoring
 │   ├── middleware/        # HTTP middleware

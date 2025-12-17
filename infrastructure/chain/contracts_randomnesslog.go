@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 )
@@ -69,7 +70,7 @@ func (c *RandomnessLogContract) Record(
 	return c.client.InvokeFunctionWithSignerAndWait(
 		ctx,
 		c.hash,
-		"Record",
+		"record",
 		params,
 		signer,
 		transaction.CalledByEntry,
@@ -77,3 +78,28 @@ func (c *RandomnessLogContract) Record(
 	)
 }
 
+// SetUpdater sets the authorized updater account for on-chain anchoring.
+func (c *RandomnessLogContract) SetUpdater(ctx context.Context, signer TxSigner, updaterHash160 string, wait bool) (*TxResult, error) {
+	if c == nil || c.client == nil {
+		return nil, fmt.Errorf("randomnesslog: client not configured")
+	}
+	if c.hash == "" {
+		return nil, fmt.Errorf("randomnesslog: contract hash not configured")
+	}
+	if signer == nil {
+		return nil, fmt.Errorf("randomnesslog: signer not configured")
+	}
+	if strings.TrimSpace(updaterHash160) == "" {
+		return nil, fmt.Errorf("randomnesslog: updater required")
+	}
+
+	return c.client.InvokeFunctionWithSignerAndWait(
+		ctx,
+		c.hash,
+		"setUpdater",
+		[]ContractParam{NewHash160Param(updaterHash160)},
+		signer,
+		transaction.CalledByEntry,
+		wait,
+	)
+}

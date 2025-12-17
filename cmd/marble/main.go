@@ -186,6 +186,15 @@ func main() {
 		}
 	}
 
+	priceFeedHash := trimHexPrefix(contracts.PriceFeed)
+	if priceFeedHash == "" {
+		if secret, ok := m.Secret("CONTRACT_PRICEFEED_HASH"); ok && len(secret) > 0 {
+			priceFeedHash = trimHexPrefix(string(secret))
+		} else if secret, ok := m.Secret("CONTRACT_PRICE_FEED_HASH"); ok && len(secret) > 0 {
+			priceFeedHash = trimHexPrefix(string(secret))
+		}
+	}
+
 	automationHash := trimHexPrefix(contracts.NeoFlow)
 	if automationHash == "" {
 		if secret, ok := m.Secret("CONTRACT_AUTOMATION_HASH"); ok && len(secret) > 0 {
@@ -271,7 +280,9 @@ func main() {
 		neoFeedsContract = chain.NewNeoFeedsContract(chainClient, dataFeedsHash, nil)
 	}
 
-	enableChainPush := chainClient != nil && teeFulfiller != nil && dataFeedsHash != ""
+	enablePriceFeedPush := chainClient != nil && teeSigner != nil && priceFeedHash != ""
+	enableLegacyFeedsPush := chainClient != nil && teeFulfiller != nil && dataFeedsHash != ""
+	enableChainPush := enablePriceFeedPush || enableLegacyFeedsPush
 	enableChainExec := chainClient != nil && teeFulfiller != nil && automationHash != ""
 	arbitrumRPC := strings.TrimSpace(os.Getenv("ARBITRUM_RPC"))
 
@@ -307,6 +318,8 @@ func main() {
 			ChainClient:     chainClient,
 			TEEFulfiller:    teeFulfiller,
 			NeoFeedsHash:    dataFeedsHash,
+			PriceFeedHash:   priceFeedHash,
+			ChainSigner:     teeSigner,
 			EnableChainPush: enableChainPush,
 		})
 		svc = feedsSvc

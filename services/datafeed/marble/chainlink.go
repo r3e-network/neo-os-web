@@ -17,7 +17,7 @@ import (
 
 // ChainlinkFeedConfig defines a Chainlink price feed configuration.
 type ChainlinkFeedConfig struct {
-	FeedID   string // e.g., "BTC/USD"
+	FeedID   string // e.g., "BTC-USD"
 	Address  string // Contract address on Arbitrum
 	Decimals int    // Price decimals (usually 8)
 }
@@ -37,17 +37,17 @@ const latestRoundDataSelector = "feaf968c"
 
 // ChainlinkFeeds defines the Chainlink price feed addresses on Arbitrum One.
 var ChainlinkFeeds = map[string]*ChainlinkFeedConfig{
-	"BTC/USD":  {FeedID: "BTC/USD", Address: "0x6ce185860a4963106506C203335A2910413708e9", Decimals: 8},
-	"ETH/USD":  {FeedID: "ETH/USD", Address: "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612", Decimals: 8},
-	"LINK/USD": {FeedID: "LINK/USD", Address: "0x86E53CF1B870786351Da77A57575e79CB55812CB", Decimals: 8},
-	"SOL/USD":  {FeedID: "SOL/USD", Address: "0x24ceA4b8ce57cdA5058b924B9B9987992450590c", Decimals: 8},
-	"BNB/USD":  {FeedID: "BNB/USD", Address: "0x6970460aabF80C5BE983C6b74e5D06dEDCA95D4A", Decimals: 8},
-	"DOGE/USD": {FeedID: "DOGE/USD", Address: "0x9A7FB1b3950837a8D9b40517626E11D4127C098C", Decimals: 8},
-	"ADA/USD":  {FeedID: "ADA/USD", Address: "0xD9f615A9b820225edbA2d821c4A696a0924051c6", Decimals: 8},
-	"AVAX/USD": {FeedID: "AVAX/USD", Address: "0x8bf61728eeDCE2F32c456454d87B5d6eD6150208", Decimals: 8},
-	"LTC/USD":  {FeedID: "LTC/USD", Address: "0x5698690a7B7B84F6aa985ef7690A8A7288FBc9c8", Decimals: 8},
-	"UNI/USD":  {FeedID: "UNI/USD", Address: "0x9C917083fDb403ab5ADbEC26Ee294f6EcAda2720", Decimals: 8},
-	"XRP/USD":  {FeedID: "XRP/USD", Address: "0xB4AD57B52aB9141de9926a3e0C8dc6264c2ef205", Decimals: 8},
+	"BTC-USD":  {FeedID: "BTC-USD", Address: "0x6ce185860a4963106506C203335A2910413708e9", Decimals: 8},
+	"ETH-USD":  {FeedID: "ETH-USD", Address: "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612", Decimals: 8},
+	"LINK-USD": {FeedID: "LINK-USD", Address: "0x86E53CF1B870786351Da77A57575e79CB55812CB", Decimals: 8},
+	"SOL-USD":  {FeedID: "SOL-USD", Address: "0x24ceA4b8ce57cdA5058b924B9B9987992450590c", Decimals: 8},
+	"BNB-USD":  {FeedID: "BNB-USD", Address: "0x6970460aabF80C5BE983C6b74e5D06dEDCA95D4A", Decimals: 8},
+	"DOGE-USD": {FeedID: "DOGE-USD", Address: "0x9A7FB1b3950837a8D9b40517626E11D4127C098C", Decimals: 8},
+	"ADA-USD":  {FeedID: "ADA-USD", Address: "0xD9f615A9b820225edbA2d821c4A696a0924051c6", Decimals: 8},
+	"AVAX-USD": {FeedID: "AVAX-USD", Address: "0x8bf61728eeDCE2F32c456454d87B5d6eD6150208", Decimals: 8},
+	"LTC-USD":  {FeedID: "LTC-USD", Address: "0x5698690a7B7B84F6aa985ef7690A8A7288FBc9c8", Decimals: 8},
+	"UNI-USD":  {FeedID: "UNI-USD", Address: "0x9C917083fDb403ab5ADbEC26Ee294f6EcAda2720", Decimals: 8},
+	"XRP-USD":  {FeedID: "XRP-USD", Address: "0xB4AD57B52aB9141de9926a3e0C8dc6264c2ef205", Decimals: 8},
 }
 
 // NewChainlinkClient creates a new Chainlink client.
