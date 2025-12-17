@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { getEnv, mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
@@ -48,11 +49,11 @@ Deno.serve(async (req) => {
     return error(502, "invalid randomness output", "RNG_INVALID_OUTPUT");
   }
 
-  // Optional on-chain anchoring (RandomnessLog.Record) via txproxy.
+  // Optional on-chain anchoring (RandomnessLog.record) via txproxy.
   let anchoredTx: unknown = undefined;
   if (getEnv("RNG_ANCHOR") === "1") {
     const txproxyURL = mustGetEnv("TXPROXY_URL");
-    const randomnessLogHash = mustGetEnv("CONTRACT_RANDOMNESSLOG_HASH").replace(/^0x/i, "");
+    const randomnessLogHash = normalizeUInt160(mustGetEnv("CONTRACT_RANDOMNESSLOG_HASH"));
     const timestamp = Math.floor(Date.now() / 1000);
 
     const txRes = await postJSON(
@@ -60,7 +61,7 @@ Deno.serve(async (req) => {
       {
         request_id: requestId,
         contract_hash: randomnessLogHash,
-        method: "Record",
+        method: "record",
         params: [
           { type: "String", value: requestId },
           { type: "ByteArray", value: randomnessHex },

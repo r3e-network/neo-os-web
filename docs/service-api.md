@@ -34,13 +34,13 @@ Most state-changing endpoints also require a **verified primary wallet binding**
 
 - `POST /functions/v1/pay-gas`
   - body: `{ app_id: "...", amount_gas: "1.5", memo?: "..." }`
-  - returns: a PaymentHub `Pay` invocation (GAS-only) for the wallet/SDK to sign and submit
+  - returns: a PaymentHub `pay` invocation (GAS-only) for the wallet/SDK to sign and submit
 
 ### Governance (NEO only)
 
 - `POST /functions/v1/vote-neo`
   - body: `{ app_id: "...", proposal_id: "...", neo_amount: "10", support?: true }`
-  - returns: a Governance `Vote` invocation (NEO-only) for the wallet/SDK to sign and submit
+  - returns: a Governance `vote` invocation (NEO-only) for the wallet/SDK to sign and submit
 
 ### RNG / VRF
 
@@ -139,4 +139,4 @@ platform naming in docs:
 
 - `POST /invoke`: build+sign+broadcast allowlisted transactions.
   - hard rule: **payments only GAS**, **governance only NEO**, contract/method allowlists enforced.
-  - optional `intent` field enables stricter gates for `payments` (PaymentHub.Pay) and `governance` (Governance Stake/Unstake/Vote) when contract hashes are configured.
+  - optional `intent` field enables stricter gates for `payments` (PaymentHub.pay) and `governance` (Governance stake/unstake/vote) when contract hashes are configured.
