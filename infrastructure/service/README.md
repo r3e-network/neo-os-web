@@ -105,7 +105,6 @@ Services that interact with blockchain:
 ```go
 type ChainIntegrated interface {
     ChainClient() *chain.Client
-    TEEFulfiller() *chain.TEEFulfiller
 }
 ```
 

@@ -15,28 +15,23 @@ import (
 )
 
 var contracts = []string{
-	"ServiceLayerGateway",
-	"DataFeedsService",
-	"NeoFlowService",
-	"ConfidentialService",
-	"OracleService",
-}
-
-var exampleContracts = []string{
-	"ExampleConsumer",
-	"DeFiPriceConsumer",
+	"PaymentHub",
+	"Governance",
+	"PriceFeed",
+	"RandomnessLog",
+	"AppRegistry",
+	"AutomationAnchor",
 }
 
 func main() {
 	rpcURL := flag.String("rpc", "https://testnet1.neo.coz.io:443", "Neo N3 testnet RPC URL")
 	buildDir := flag.String("build", "contracts/build", "Contract build directory")
 	outputFile := flag.String("output", "deploy/config/testnet_contracts.json", "Output file for deployed contracts")
-	includeExamples := flag.Bool("examples", false, "Also deploy example contracts")
 	checkOnly := flag.Bool("check", false, "Only check connectivity and balance")
 	estimateOnly := flag.Bool("estimate", false, "Only estimate gas costs (simulation)")
 	flag.Parse()
 
-	log.Println("=== Neo N3 Testnet Contract Deployment ===")
+	log.Println("=== Neo N3 Testnet MiniApp Platform Contract Deployment ===")
 	log.Printf("RPC: %s", *rpcURL)
 	log.Printf("Build directory: %s", *buildDir)
 
@@ -99,34 +94,6 @@ func main() {
 		log.Printf("  %s: %.8f GAS", name, gasFloat)
 	}
 
-	if *includeExamples {
-		log.Println("\n=== Estimating Example Contracts ===")
-		for _, name := range exampleContracts {
-			nefPath := filepath.Join(*buildDir, name+".nef")
-			manifestPath := filepath.Join(*buildDir, name+".manifest.json")
-
-			if _, statErr := os.Stat(nefPath); os.IsNotExist(statErr) {
-				log.Printf("  Skipping %s (not built)", name)
-				continue
-			}
-
-			log.Printf("Simulating %s...", name)
-			deployed, deployErr := deployer.DeployContract(nefPath, manifestPath)
-			if deployErr != nil {
-				log.Printf("  ERROR: %v", deployErr)
-				continue
-			}
-
-			deployed.Name = name
-			deployed.DeployedAt = time.Now().UTC().Format(time.RFC3339)
-			result.Contracts = append(result.Contracts, *deployed)
-
-			gasFloat := parseGas(deployed.GasConsumed)
-			totalGas += gasFloat
-			log.Printf("  %s: %.8f GAS", name, gasFloat)
-		}
-	}
-
 	log.Println("\n=== Cost Summary ===")
 	log.Printf("Total estimated GAS: %.8f GAS", totalGas)
 	log.Printf("Available balance:   %.8f GAS", gasBalance)
@@ -171,7 +138,7 @@ func main() {
 	log.Println("For actual deployment, you can:")
 	log.Println("1. Use Fairy for local testing: go run ./cmd/deploy-fairy/main.go")
 	log.Println("2. Use neo-go CLI for testnet deployment")
-	log.Println("3. Deploy via NeoLine/O3 wallet")
+	log.Println("3. Call SetUpdater for PriceFeed/RandomnessLog/AutomationAnchor from the admin wallet")
 }
 
 func parseGas(gasConsumed string) float64 {

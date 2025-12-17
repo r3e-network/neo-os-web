@@ -605,7 +605,7 @@ func SkipIfNoNeoExpress(t *testing.T) {
 func SkipIfNoCompiledContracts(t *testing.T) {
 	t.Helper()
 	contractDir := filepath.Join("..", "..", "contracts", "build")
-	nefPath := filepath.Join(contractDir, "ServiceLayerGateway.nef")
+	nefPath := filepath.Join(contractDir, "PaymentHub.nef")
 	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
 		t.Skip("contracts not compiled, run './contracts/build.sh' first")
 	}

@@ -61,13 +61,6 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 	// Build contract hash map for filtering
 	contractHashes := make(map[string]bool)
 	for _, contractHash := range []string{
-		cfg.Contracts.Gateway,
-		cfg.Contracts.NeoFeeds,
-		cfg.Contracts.NeoFlow,
-		cfg.Contracts.NeoCompute,
-		cfg.Contracts.NeoOracle,
-		cfg.Contracts.GasBank,
-		// MiniApp platform contracts.
 		cfg.Contracts.PaymentHub,
 		cfg.Contracts.Governance,
 		cfg.Contracts.PriceFeed,

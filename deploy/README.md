@@ -1,6 +1,6 @@
-# Service Layer Contract Deployment
+# MiniApp Platform Contract Deployment
 
-This directory contains deployment scripts and configuration for Service Layer smart contracts using the neo-fairy-test framework approach.
+This directory contains deployment scripts and configuration for the **Neo MiniApp Platform** contracts.
 
 ## Quick Start (Neo Express)
 
@@ -17,8 +17,8 @@ make deploy
 # 4. Initialize contracts (register TEE, set fees, etc.)
 make init
 
-# 5. Run tests
-make test
+# 5. Run Go integration tests (neo-express)
+make test-go
 ```
 
 Or run everything at once:
@@ -39,7 +39,7 @@ deploy/
 │   ├── setup_neoexpress.sh    # Setup Neo Express environment
 │   ├── deploy_all.sh          # Deploy contracts
 │   ├── initialize.py          # Initialize deployed contracts
-│   └── run_tests.py           # Run contract tests
+│   └── (tests live under ./test/contract)
 └── wallets/
     ├── owner.json             # Admin wallet
     ├── tee.json               # TEE wallet
@@ -102,29 +102,14 @@ make init NETWORK=testnet
 
 After deployment, contracts are initialized with:
 
-1. **Gateway Configuration**
-   - Register TEE account and public key
-   - Set service fees (Oracle: 0.1 GAS, DataFeeds: 0.05 GAS, etc.)
-   - Register service contracts (DataFeeds, NeoFlow, Confidential, Oracle)
+1. **Updater Configuration (TEE signer)**
+   - `PriceFeed.SetUpdater(tee)`
+   - `RandomnessLog.SetUpdater(tee)`
+   - `AutomationAnchor.SetUpdater(tee)`
 
-2. **Service Contract Configuration**
-   - Set Gateway address on each service contract
-
-3. **Example Contract Configuration**
-   - Set Gateway address
-   - Set NeoFeeds address (for DeFiPriceConsumer)
+In production, the updater should be the enclave-managed signer (GlobalSigner / TxProxy).
 
 ## Testing
-
-### Run All Tests
-```bash
-make test
-```
-
-### Run Specific Service Tests
-```bash
-make test-datafeeds
-```
 
 ### Run Go Integration Tests
 ```bash
@@ -140,7 +125,8 @@ Key features used:
 - **Session Snapshots**: Revert state between tests
 - **Cheatcodes**: `Prank` (impersonate), `Deal` (set balance), `Warp` (set time)
 
-The `run_tests.py` script implements a compatible testing API.
+This repo’s primary validation path is the Go integration tests under `test/contract`.
+For ad-hoc Fairy deployments, use `go run ./cmd/deploy-fairy/main.go`.
 
 ## Deployed Contracts
 
@@ -148,26 +134,14 @@ After deployment, contract addresses are saved to `config/deployed_contracts.jso
 
 ```json
 {
-  "ServiceLayerGateway": "0x1234...",
-  "DataFeedsService": "0xdef0...",
-  "NeoFlowService": "0x1234...",
-  "ConfidentialService": "0xaaaa...",
-  "OracleService": "0xbbbb...",
-  "ExampleConsumer": "0xcccc...",
-  "DeFiPriceConsumer": "0xdef0..."
+  "PaymentHub": "0x1234...",
+  "Governance": "0xdef0...",
+  "PriceFeed": "0xaaaa...",
+  "RandomnessLog": "0xbbbb...",
+  "AppRegistry": "0xcccc...",
+  "AutomationAnchor": "0xdddd..."
 }
 ```
-
-## Service Fees
-
-Default fees (configurable in `initialize.py`):
-
-| Service | Fee (GAS) |
-|---------|-----------|
-| Oracle | 0.1 |
-| DataFeeds | 0.05 |
-| NeoFlow | 0.2 |
-| NeoCompute | 1.0 |
 
 ## Troubleshooting
 

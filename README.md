@@ -1,6 +1,6 @@
 # Neo Service Layer
 
-A service layer for Neo N3 that combines a user-facing **Gateway** (Supabase/Vercel-friendly) with enclave workloads (MarbleRun + EGo) for signing and confidential computation.
+A service layer for Neo N3 that combines a user-facing **Gateway** (Supabase Edge) with enclave workloads (MarbleRun + EGo) for signing and confidential computation.
 
 For the canonical, up-to-date architecture overview see `docs/ARCHITECTURE.md`.
 
@@ -23,7 +23,7 @@ Randomness is provided via `services/confcompute` by executing scripts inside th
 
 ## Runtime Boundary (TEE vs Non‑TEE)
 
-- **Outside TEE (default)**: user workflows (wallet/OAuth auth), sessions/JWT, API keys, wallet bindings, secrets UX + API, gas bank.
+- **Outside TEE (default)**: user workflows (Supabase Auth, sessions/JWT), wallet bindings, secrets UX + API.
 - **Inside TEE**: service execution that needs confidentiality/integrity, enclave-held keys, and signing (GlobalSigner + service workloads).
 
 Secrets are **not** a separate service: they are managed by the gateway and stored in Supabase encrypted with `SECRETS_MASTER_KEY`.
@@ -33,7 +33,7 @@ Secrets are **not** a separate service: they are managed by the gateway and stor
 - `cmd/`: binaries (`cmd/gateway`, `cmd/marble`, deploy tooling, CLI)
 - `infrastructure/`: shared building blocks (runtime, middleware, chain I/O, secrets, storage helpers, account pool, global signer)
 - `services/`: product services only (see “Scope”)
-- `contracts/`: Neo N3 contracts (legacy gateway/service contracts + MiniApp platform contracts + examples)
+- `contracts/`: Neo N3 MiniApp platform contracts
 - `platform/`: platform scaffolds (Supabase Edge functions, JS SDK, Next.js host app)
 - `frontend/`, `dapps/`: consumers (no service-layer business logic)
 - `docker/`, `k8s/`, `manifests/`, `deploy/`: deployment and operations
@@ -47,7 +47,6 @@ Prereqs: Go, Docker, Node.js.
 ```bash
 make docker-up
 make marblerun-manifest
-make frontend-dev   # optional
 ```
 
 Run a single service locally (outside MarbleRun) for debugging:
@@ -56,7 +55,7 @@ Run a single service locally (outside MarbleRun) for debugging:
 SERVICE_TYPE=neocompute go run ./cmd/marble
 ```
 
-Run the gateway locally:
+Run the legacy gateway locally (for migration/testing only):
 
 ```bash
 OE_SIMULATION=1 go run ./cmd/gateway
@@ -66,9 +65,8 @@ OE_SIMULATION=1 go run ./cmd/gateway
 
 - `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`: Supabase connectivity (gateway + services that persist state).
 - `JWT_SECRET`: gateway auth signing key (required in production).
-- `SECRETS_MASTER_KEY`: gateway encryption master key for `/api/v1/secrets/*`.
+- `SECRETS_MASTER_KEY`: gateway encryption master key for secrets APIs (`platform/edge/functions/secrets-*`).
 - `NEO_RPC_URL` / `NEO_RPC_URLS`, `NEO_NETWORK_MAGIC`: Neo RPC configuration (services).
-- `CONTRACT_GATEWAY_HASH`, `CONTRACT_DATAFEEDS_HASH`, `CONTRACT_AUTOMATION_HASH`, `CONTRACT_CONFIDENTIAL_HASH`, `CONTRACT_ORACLE_HASH`: contract hashes for event monitoring/callbacks (legacy names are still accepted).
 - `CONTRACT_PAYMENTHUB_HASH`, `CONTRACT_GOVERNANCE_HASH`, `CONTRACT_PRICEFEED_HASH`, `CONTRACT_RANDOMNESSLOG_HASH`, `CONTRACT_APPREGISTRY_HASH`, `CONTRACT_AUTOMATIONANCHOR_HASH`: MiniApp platform contract hashes.
 - `TXPROXY_ALLOWLIST`: tx-proxy allowlist JSON (contract+method policy).
 

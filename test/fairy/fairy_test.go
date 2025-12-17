@@ -2,14 +2,10 @@
 package fairy
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	neofeeds "github.com/R3E-Network/service_layer/services/datafeed/marble"
 )
 
 const (
@@ -31,8 +27,8 @@ func getContractPaths(t *testing.T) (nefPath, manifestPath string) {
 	testDir, _ := os.Getwd()
 	root := filepath.Join(testDir, "..", "..")
 
-	nefPath = filepath.Join(root, "contracts", "build", "NeoFeedsService.nef")
-	manifestPath = filepath.Join(root, "contracts", "build", "NeoFeedsService.manifest.json")
+	nefPath = filepath.Join(root, "contracts", "build", "PriceFeed.nef")
+	manifestPath = filepath.Join(root, "contracts", "build", "PriceFeed.manifest.json")
 
 	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
 		t.Skipf("Contract not found: %s", nefPath)
@@ -107,8 +103,8 @@ func TestFairyVirtualDeploy(t *testing.T) {
 	}
 }
 
-// TestNeoFeedsServiceWithFairy tests the NeoFeeds service with Fairy.
-func TestNeoFeedsServiceWithFairy(t *testing.T) {
+// TestPriceFeedContractWithFairy deploys the platform PriceFeed contract via Fairy.
+func TestPriceFeedContractWithFairy(t *testing.T) {
 	skipIfNoFairy(t)
 
 	nefPath, manifestPath := getContractPaths(t)
@@ -121,56 +117,29 @@ func TestNeoFeedsServiceWithFairy(t *testing.T) {
 	}
 	defer client.DeleteSession(sessionID)
 
-	// Deploy NeoFeedsService contract
+	// Deploy PriceFeed contract
 	deployResult, err := client.VirtualDeploy(sessionID, nefPath, manifestPath)
 	if err != nil {
 		t.Fatalf("VirtualDeploy: %v", err)
 	}
 	contractHash := deployResult.ContractHash
-	t.Logf("NeoFeedsService deployed: %s", contractHash)
+	t.Logf("PriceFeed deployed: %s", contractHash)
 
-	// Initialize neofeeds service to fetch prices
-	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
-
-	svc, err := neofeeds.New(&neofeeds.Config{
-		Marble:      m,
-		ArbitrumRPC: "https://arb1.arbitrum.io/rpc",
-	})
+	adminResult, err := client.InvokeFunctionWithSession(sessionID, false, contractHash, "admin", nil)
 	if err != nil {
-		t.Fatalf("neofeeds.New: %v", err)
+		t.Fatalf("admin(): %v", err)
 	}
+	t.Logf("admin(): %s", adminResult.State)
 
-	// Fetch BTC price from Chainlink
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	price, err := svc.GetPrice(ctx, "BTC/USD")
+	updaterResult, err := client.InvokeFunctionWithSession(sessionID, false, contractHash, "updater", nil)
 	if err != nil {
-		t.Skipf("Price fetch failed (network): %v", err)
+		t.Fatalf("updater(): %v", err)
 	}
-
-	t.Logf("Fetched BTC/USD price: %d (decimals: %d)", price.Price, price.Decimals)
-	t.Logf("Signature: %x", price.Signature)
-	t.Logf("PublicKey: %x", price.PublicKey)
-
-	// Call GetFeedConfig on the deployed contract
-	invokeResult, err := client.InvokeFunctionWithSession(
-		sessionID,
-		false, // read-only
-		contractHash,
-		"getFeedConfig",
-		[]interface{}{"BTC/USD"},
-	)
-	if err != nil {
-		t.Logf("getFeedConfig failed (expected for new deploy): %v", err)
-	} else {
-		t.Logf("getFeedConfig result: %+v", invokeResult)
-	}
+	t.Logf("updater(): %s", updaterResult.State)
 }
 
-// TestNeoFeedsPriceFlow tests the full price flow with Fairy.
-func TestNeoFeedsPriceFlow(t *testing.T) {
+// TestPriceFeedReadOnlyFlow exercises basic read-only calls for PriceFeed via Fairy.
+func TestPriceFeedReadOnlyFlow(t *testing.T) {
 	skipIfNoFairy(t)
 
 	nefPath, manifestPath := getContractPaths(t)
@@ -210,18 +179,12 @@ func TestNeoFeedsPriceFlow(t *testing.T) {
 	}
 	t.Logf("Admin result: %+v", adminResult)
 
-	// Check if contract is paused
-	pausedResult, err := client.InvokeFunctionWithSession(
-		sessionID,
-		false,
-		contractHash,
-		"paused",
-		nil,
-	)
+	// Updater is optional until configured.
+	updaterResult, err := client.InvokeFunctionWithSession(sessionID, false, contractHash, "updater", nil)
 	if err != nil {
-		t.Fatalf("paused(): %v", err)
+		t.Fatalf("updater(): %v", err)
 	}
-	t.Logf("Paused result: %+v", pausedResult)
+	t.Logf("Updater result: %+v", updaterResult)
 }
 
 // BenchmarkFairyDeploy benchmarks contract deployment via Fairy.
@@ -233,8 +196,8 @@ func BenchmarkFairyDeploy(b *testing.B) {
 
 	testDir, _ := os.Getwd()
 	root := filepath.Join(testDir, "..", "..")
-	nefPath := filepath.Join(root, "contracts", "build", "NeoFeedsService.nef")
-	manifestPath := filepath.Join(root, "contracts", "build", "NeoFeedsService.manifest.json")
+	nefPath := filepath.Join(root, "contracts", "build", "PriceFeed.nef")
+	manifestPath := filepath.Join(root, "contracts", "build", "PriceFeed.manifest.json")
 
 	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
 		b.Skip("Contract not found")

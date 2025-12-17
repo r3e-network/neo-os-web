@@ -94,11 +94,12 @@ func TestE2EContractDeploymentFlow(t *testing.T) {
 		}
 
 		steps := []DeploymentStep{
-			{1, "ServiceLayerGateway", "Deploy main gateway contract", false},
-			{2, "NeoFeedsService", "Deploy data feeds contract", false},
-			{3, "NeoFlowService", "Deploy neoflow contract", false},
-			{4, "ConfidentialService", "Deploy confidential compute contract", false},
-			{5, "OracleService", "Deploy confidential oracle contract", false},
+			{1, "PaymentHub", "Deploy GAS-only settlement contract", false},
+			{2, "Governance", "Deploy NEO-only governance contract", false},
+			{3, "PriceFeed", "Deploy datafeed anchoring contract", false},
+			{4, "RandomnessLog", "Deploy randomness anchoring contract (optional)", false},
+			{5, "AppRegistry", "Deploy app registry + allowlist contract", false},
+			{6, "AutomationAnchor", "Deploy automation task registry contract", false},
 		}
 
 		for _, step := range steps {
@@ -115,9 +116,9 @@ func TestE2EContractDeploymentFlow(t *testing.T) {
 		}
 
 		registrations := []ServiceRegistration{
-			{"neofeeds", "0x1111111111111111111111111111111111111111", 5000000, "0xTEE1"},
-			{"neoflow", "0x2222222222222222222222222222222222222222", 20000000, "0xTEE1"},
-			{"oracle", "0x3333333333333333333333333333333333333333", 10000000, "0xTEE1"},
+			{"neofeeds", "CONTRACT_PRICEFEED_HASH", 0, "globalsigner/txproxy"},
+			{"neoflow", "CONTRACT_AUTOMATIONANCHOR_HASH", 0, "globalsigner/txproxy"},
+			{"txproxy", "(no on-chain registry)", 0, "globalsigner"},
 		}
 
 		for _, reg := range registrations {

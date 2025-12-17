@@ -31,52 +31,44 @@ command = "nccs"
 output_dir = "contracts/build"
 
 # ============================================================================
-# Contract Definitions
+# Contract Definitions (MiniApp Platform)
 # ============================================================================
 
 [[contracts]]
-name = "ServiceLayerGateway"
-source = "contracts/gateway/ServiceLayerGateway.cs"
-output = "contracts/build/ServiceLayerGateway"
-# Deploy order: 1 (first)
+name = "PaymentHub"
+source = "contracts/PaymentHub/PaymentHub.cs"
+output = "contracts/build/PaymentHub"
 order = 1
 
 [[contracts]]
-name = "DataFeedsService"
-source = "services/datafeed/contract/NeoFeedsService.cs"
-output = "contracts/build/DataFeedsService"
+name = "Governance"
+source = "contracts/Governance/Governance.cs"
+output = "contracts/build/Governance"
 order = 2
 
 [[contracts]]
-name = "NeoFlowService"
-source = "services/automation/contract/NeoFlowService.cs"
-output = "contracts/build/NeoFlowService"
+name = "PriceFeed"
+source = "contracts/PriceFeed/PriceFeed.cs"
+output = "contracts/build/PriceFeed"
 order = 3
 
 [[contracts]]
-name = "ConfidentialService"
-source = "services/confcompute/contract/NeoComputeService.cs"
-output = "contracts/build/ConfidentialService"
+name = "RandomnessLog"
+source = "contracts/RandomnessLog/RandomnessLog.cs"
+output = "contracts/build/RandomnessLog"
 order = 4
 
 [[contracts]]
-name = "OracleService"
-source = "services/conforacle/contract/NeoOracleService.cs"
-output = "contracts/build/OracleService"
+name = "AppRegistry"
+source = "contracts/AppRegistry/AppRegistry.cs"
+output = "contracts/build/AppRegistry"
 order = 5
 
-# Example contracts (user contracts that consume services)
 [[contracts]]
-name = "ExampleConsumer"
-source = "contracts/examples/ExampleConsumer.cs"
-output = "contracts/build/ExampleConsumer"
-order = 10
-
-[[contracts]]
-name = "DeFiPriceConsumer"
-source = "contracts/examples/DeFiPriceConsumer.cs"
-output = "contracts/build/DeFiPriceConsumer"
-order = 13
+name = "AutomationAnchor"
+source = "contracts/AutomationAnchor/AutomationAnchor.cs"
+output = "contracts/build/AutomationAnchor"
+order = 6
 
 # ============================================================================
 # Test Wallets
@@ -91,22 +83,9 @@ tee = { path = "deploy/wallets/tee.json", password = "test" }
 user = { path = "deploy/wallets/user.json", password = "test" }
 
 # ============================================================================
-# Service Configuration
-# ============================================================================
-
-[services]
-# Service fees in GAS (8 decimals, so 10000000 = 0.1 GAS)
-[services.fees]
-oracle = 10000000      # 0.1 GAS
-datafeeds = 5000000    # 0.05 GAS
-automation = 20000000  # 0.2 GAS
-confidential = 100000000  # 1.0 GAS
-
-# ============================================================================
 # Deployment Scripts
 # ============================================================================
 
 [scripts]
-deploy = "deploy/scripts/deploy_all.py"
+deploy = "deploy/scripts/deploy_all.sh"
 init = "deploy/scripts/initialize.py"
-test = "deploy/scripts/run_tests.py"

@@ -1,4 +1,4 @@
-# Service Layer Contract Deployment Makefile
+# MiniApp Platform Contract Deployment Makefile
 # Usage: make [target] [NETWORK=neoexpress|testnet]
 
 NETWORK ?= neoexpress
@@ -7,7 +7,7 @@ SHELL := /bin/bash
 .PHONY: help setup build deploy init test clean all
 
 help:
-	@echo "Service Layer Contract Deployment"
+	@echo "Neo MiniApp Platform Contract Deployment"
 	@echo ""
 	@echo "Usage: make [target] [NETWORK=neoexpress|testnet]"
 	@echo ""
@@ -16,7 +16,7 @@ help:
 	@echo "  build     - Build all contracts"
 	@echo "  deploy    - Deploy contracts to network"
 	@echo "  init      - Initialize deployed contracts"
-	@echo "  test      - Run contract tests"
+	@echo "  test      - Run Go contract tests (neo-express)"
 	@echo "  all       - Run full deployment (setup, build, deploy, init)"
 	@echo "  clean     - Clean build artifacts"
 	@echo ""
@@ -51,10 +51,10 @@ init:
 	@echo "=== Initializing contracts on $(NETWORK) ==="
 	python3 deploy/scripts/initialize.py $(NETWORK)
 
-# Run contract tests
+# Run contract tests (Go, neo-express)
 test:
-	@echo "=== Running contract tests on $(NETWORK) ==="
-	python3 deploy/scripts/run_tests.py $(NETWORK)
+	@echo "=== Running Go contract tests ==="
+	go test ./test/contract/... -v -short
 
 # Run Go tests
 test-go:
@@ -91,6 +91,4 @@ show-deployed:
 	@echo "=== Deployed Contracts ==="
 	@cat deploy/config/deployed_contracts.json 2>/dev/null || echo "No contracts deployed yet"
 
-# Test single service
-test-datafeeds:
-	python3 deploy/scripts/run_tests.py $(NETWORK) datafeeds
+# Deprecated: the legacy Python test runner has been removed.

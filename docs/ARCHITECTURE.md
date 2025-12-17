@@ -21,8 +21,8 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                  GATEWAY                                     │
-│      Auth (wallet + OAuth), JWT/session, routing, rate limits, secrets API   │
-│     Runs outside TEE by default; can be placed inside EGo if you want.       │
+│     Supabase Edge Functions (“thin gateway”): auth, wallet binding, routing, │
+│           rate limits, nonce/replay protection, secrets API (RLS)            │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │ mTLS (mesh, optional)
                                     ▼
@@ -57,7 +57,7 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                  NEO N3 CHAIN                                │
-│   Legacy gateway/service contracts + MiniApp platform contracts + callbacks   │
+│                          MiniApp platform contracts                           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -76,9 +76,9 @@ See `docs/LAYERING.md` for the concrete mapping.
 
 User-facing workflow lives **outside the enclave** and can run directly on Vercel/Supabase:
 
-- **Auth**: Neo N3 wallet login + OAuth providers (Google/GitHub/etc.).
-- **Account binding**: users can bind a Neo N3 address after OAuth registration.
-- **API keys / tokens**: the gateway issues and verifies tokens/sessions.
+- **Auth**: Supabase Auth (OAuth providers: Google/GitHub/etc.).
+- **Wallet binding**: users bind a Neo N3 address after OAuth registration (Edge nonce + signature verification).
+- **Sessions**: Supabase JWT/cookie sessions (Edge validates).
 - **Secrets UX**: users create secrets and manage which internal services may read them.
 
 Enclave services should not implement login/registration flows.
@@ -93,13 +93,13 @@ mTLS. This is enforced by `infrastructure/runtime.StrictIdentityMode()` and
 
 User secrets are stored in Supabase, encrypted with `SECRETS_MASTER_KEY`.
 
-- **Write path**: `cmd/gateway` exposes `/api/v1/secrets/*`.
-- **Encryption + policy**: `infrastructure/secrets.Manager`.
+- **Write path**: Supabase Edge functions under `/functions/v1/secrets-*`.
+- **Encryption + policy**: `infrastructure/secrets.Manager` (Go) and `platform/edge/functions/_shared/secrets.ts` (Deno), using compatible AES‑GCM envelopes.
 - **Storage**: `infrastructure/secrets/supabase`.
 
 ### Service Access (Secret Injection)
 
-Enclave services never query Supabase directly for secret values. They receive a
+Enclave services do not implement user-facing secret workflows. They receive a
 `secrets.Provider` implementation (injected by `cmd/marble`) that enforces:
 
 - per-user ownership
@@ -161,7 +161,9 @@ Each service follows the same internal pattern:
 
 - `services/<svc>/marble`: HTTP handlers + workers (enclave runtime).
 - `services/<svc>/supabase`: service-specific persistence (only when needed).
-- `services/<svc>/contract`: Neo N3 smart contract source (C#).
+
+Platform contracts live under `contracts/` and are written by the enclave-managed
+signer (Updater pattern) when needed.
 
 ## EGo Boundary (What belongs in the enclave)
 

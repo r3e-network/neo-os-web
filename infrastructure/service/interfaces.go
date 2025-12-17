@@ -56,9 +56,6 @@ type Hydratable interface {
 type ChainIntegrated interface {
 	// ChainClient returns the chain client for blockchain interactions.
 	ChainClient() *chain.Client
-
-	// TEEFulfiller returns the TEE fulfiller for submitting transactions.
-	TEEFulfiller() *chain.TEEFulfiller
 }
 
 // =============================================================================

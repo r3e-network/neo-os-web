@@ -167,25 +167,6 @@ func main() {
 
 	contracts := chain.ContractAddressesFromEnv()
 
-	gatewayHash := trimHexPrefix(contracts.Gateway)
-	if gatewayHash == "" {
-		if secret, ok := m.Secret("CONTRACT_GATEWAY_HASH"); ok && len(secret) > 0 {
-			gatewayHash = trimHexPrefix(string(secret))
-		}
-	}
-	if chainClient != nil && gatewayHash == "" {
-		log.Printf("Warning: CONTRACT_GATEWAY_HASH not set; TEE callbacks disabled")
-	}
-
-	dataFeedsHash := trimHexPrefix(contracts.NeoFeeds)
-	if dataFeedsHash == "" {
-		if secret, ok := m.Secret("CONTRACT_DATAFEEDS_HASH"); ok && len(secret) > 0 {
-			dataFeedsHash = trimHexPrefix(string(secret))
-		} else if secret, ok := m.Secret("CONTRACT_NEOFEEDS_HASH"); ok && len(secret) > 0 {
-			dataFeedsHash = trimHexPrefix(string(secret))
-		}
-	}
-
 	priceFeedHash := trimHexPrefix(contracts.PriceFeed)
 	if priceFeedHash == "" {
 		if secret, ok := m.Secret("CONTRACT_PRICEFEED_HASH"); ok && len(secret) > 0 {
@@ -201,15 +182,6 @@ func main() {
 			automationAnchorHash = trimHexPrefix(string(secret))
 		} else if secret, ok := m.Secret("CONTRACT_AUTOMATION_ANCHOR_HASH"); ok && len(secret) > 0 {
 			automationAnchorHash = trimHexPrefix(string(secret))
-		}
-	}
-
-	automationHash := trimHexPrefix(contracts.NeoFlow)
-	if automationHash == "" {
-		if secret, ok := m.Secret("CONTRACT_AUTOMATION_HASH"); ok && len(secret) > 0 {
-			automationHash = trimHexPrefix(string(secret))
-		} else if secret, ok := m.Secret("CONTRACT_NEOFLOW_HASH"); ok && len(secret) > 0 {
-			automationHash = trimHexPrefix(string(secret))
 		}
 	}
 
@@ -250,15 +222,6 @@ func main() {
 		}
 	}
 
-	var teeFulfiller *chain.TEEFulfiller
-	if chainClient != nil && gatewayHash != "" && teeSigner != nil {
-		if fulfiller, fulfillErr := chain.NewTEEFulfillerWithSigner(chainClient, gatewayHash, teeSigner); fulfillErr != nil {
-			log.Printf("Warning: failed to create TEE fulfiller: %v", fulfillErr)
-		} else {
-			teeFulfiller = fulfiller
-		}
-	}
-
 	var eventListener *chain.EventListener
 	if chainClient != nil {
 		startBlock := uint64(0)
@@ -275,9 +238,6 @@ func main() {
 		eventListener = chain.NewEventListener(&chain.ListenerConfig{
 			Client: chainClient,
 			Contracts: chain.ContractAddresses{
-				Gateway:          gatewayHash,
-				NeoFeeds:         dataFeedsHash,
-				NeoFlow:          automationHash,
 				PriceFeed:        priceFeedHash,
 				AutomationAnchor: automationAnchorHash,
 			},
@@ -287,8 +247,7 @@ func main() {
 	}
 
 	enablePriceFeedPush := chainClient != nil && teeSigner != nil && priceFeedHash != ""
-	enableLegacyFeedsPush := chainClient != nil && teeFulfiller != nil && dataFeedsHash != ""
-	enableChainPush := enablePriceFeedPush || enableLegacyFeedsPush
+	enableChainPush := enablePriceFeedPush
 	enableChainExec := chainClient != nil && teeSigner != nil && automationAnchorHash != ""
 	arbitrumRPC := strings.TrimSpace(os.Getenv("ARBITRUM_RPC"))
 
@@ -322,8 +281,6 @@ func main() {
 			DB:              db,
 			ArbitrumRPC:     arbitrumRPC,
 			ChainClient:     chainClient,
-			TEEFulfiller:    teeFulfiller,
-			NeoFeedsHash:    dataFeedsHash,
 			PriceFeedHash:   priceFeedHash,
 			ChainSigner:     teeSigner,
 			EnableChainPush: enableChainPush,

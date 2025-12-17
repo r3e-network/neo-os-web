@@ -1,9 +1,9 @@
 // Package neofeeds provides price feed aggregation service.
-// This service implements the Push/Auto-Update pattern:
+// This service implements a Push/Auto-Update pattern:
 // - TEE periodically fetches prices from multiple sources
 // - TEE aggregates and signs the price data
-// - TEE pushes updates to the NeoFeedsService contract on-chain
-// - User contracts read prices directly (no callback needed)
+// - TEE anchors updates to the platform PriceFeed contract on-chain (optional)
+// - User contracts (or the platform) read prices directly (no callback needed)
 //
 // Configuration can be loaded from YAML/JSON file for easy customization
 // of data sources and feeds without code changes.
@@ -47,8 +47,6 @@ type Service struct {
 
 	// Chain interaction for push pattern
 	chainClient     *chain.Client
-	teeFulfiller    *chain.TEEFulfiller
-	neoFeedsHash    string
 	priceFeedHash   string
 	chainSigner     chain.TEESigner
 	priceFeed       *chain.PriceFeedContract
@@ -70,8 +68,6 @@ type Config struct {
 
 	// Chain configuration for push pattern
 	ChainClient     *chain.Client
-	TEEFulfiller    *chain.TEEFulfiller
-	NeoFeedsHash    string // Contract hash for NeoFeedsService
 	PriceFeedHash   string // Contract hash for platform PriceFeed (preferred)
 	ChainSigner     chain.TEESigner
 	UpdateInterval  time.Duration // How often to push prices on-chain (default: from config)
@@ -155,8 +151,6 @@ func New(cfg *Config) (*Service, error) {
 		config:          feedsConfig,
 		sources:         make(map[string]*SourceConfig),
 		chainClient:     cfg.ChainClient,
-		teeFulfiller:    cfg.TEEFulfiller,
-		neoFeedsHash:    cfg.NeoFeedsHash,
 		priceFeedHash:   cfg.PriceFeedHash,
 		chainSigner:     cfg.ChainSigner,
 		publishPolicy:   feedsConfig.PublishPolicy,
@@ -199,8 +193,10 @@ func New(cfg *Config) (*Service, error) {
 		s.sources[src.ID] = src
 	}
 
-	// Register chain push worker if enabled
-	if s.enableChainPush && (s.priceFeedHash != "" || s.neoFeedsHash != "") {
+	// Register chain push worker if enabled.
+	// The MiniApp platform uses PriceFeed as the on-chain anchor; legacy on-chain
+	// service contracts are intentionally not supported here.
+	if s.enableChainPush && s.priceFeedHash != "" {
 		if s.priceFeedHash != "" {
 			base.WithHydrate(s.hydratePriceFeedState)
 		}
@@ -240,8 +236,6 @@ func (s *Service) statistics() map[string]any {
 	if s.priceFeedHash != "" {
 		stats["pricefeed_hash"] = s.priceFeedHash
 		stats["publish_policy"] = s.publishPolicySummary()
-	} else if s.neoFeedsHash != "" {
-		stats["neofeeds_hash"] = s.neoFeedsHash
 	}
 
 	return stats

@@ -43,7 +43,10 @@ Each service should follow the same internal pattern:
 
 - `services/<svc>/marble`: enclave runtime + HTTP handlers + worker loops.
 - `services/<svc>/supabase`: service-specific persistence repository (if needed).
-- `services/<svc>/contract`: Neo N3 smart contract source (C#; compiled into `contracts/build/`).
+
+The MiniApp platform does **not** use per-service on-chain contracts. Platform
+contracts live under `contracts/` and are written by the enclave-managed signer
+(via `txproxy` / GlobalSigner) when needed.
 
 ### `cmd/` (binaries)
 
