@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
 
   const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL");
   const execResult = await postJSON(
-    `${neocomputeURL.replace(/\\/$/, "")}/execute`,
+    `${neocomputeURL.replace(/\/$/, "")}/execute`,
     { script: RNG_SCRIPT, entry_point: "main" },
     { "X-User-ID": auth.userId },
   );
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     const timestamp = Math.floor(Date.now() / 1000);
 
     const txRes = await postJSON(
-      `${txproxyURL.replace(/\\/$/, "")}/invoke`,
+      `${txproxyURL.replace(/\/$/, "")}/invoke`,
       {
         request_id: requestId,
         contract_hash: randomnessLogHash,
@@ -81,4 +81,3 @@ Deno.serve(async (req) => {
     anchored_tx: anchoredTx,
   });
 });
-

@@ -10,6 +10,13 @@ The goal is **one module = one responsibility**, with **no duplicated chain I/O*
 
 ## Directory Map
 
+### `platform/` (host + SDK + Supabase Edge)
+
+- `platform/host-app`: Next.js host scaffold (Vercel) for embedding MiniApps.
+- `platform/sdk`: MiniApp SDK scaffold (`window.MiniAppSDK`).
+- `platform/edge`: Supabase Edge function scaffolds (thin gateway).
+- `platform/rls`: reserved for platform RLS SQL (current schema is in `migrations/`).
+
 ### `infrastructure/` (shared building blocks)
 
 - `infrastructure/database`: Supabase/PostgREST client + generic repository helpers (**storage**).
@@ -41,7 +48,7 @@ Each service should follow the same internal pattern:
 ### `cmd/` (binaries)
 
 - `cmd/marble`: **single entrypoint** used to run any enclave service (`MARBLE_TYPE=...`).
-- `cmd/gateway`: edge API (auth, user workflow, routing, rate-limits).
+- `cmd/gateway`: legacy user-facing gateway (auth, workflow, routing). The target blueprint uses Supabase Edge as the thin gateway; this binary remains for backward compatibility / migration.
 
 ### `dapps/`, `frontend/`
 

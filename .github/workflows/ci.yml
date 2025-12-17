@@ -152,7 +152,7 @@ jobs:
         run: go test -v -tags=e2e ./test/e2e/...
 
   frontend-build:
-    name: Frontend Build
+    name: Legacy Frontend Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -179,6 +179,50 @@ jobs:
           name: frontend-dist
           path: frontend/dist/
           retention-days: 7
+
+  host-app-build:
+    name: Host App Build (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: platform/host-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: platform/host-app
+        run: npm ci
+
+      - name: Build host app
+        working-directory: platform/host-app
+        run: npm run build
+
+  sdk-build:
+    name: SDK Build (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: platform/sdk/package-lock.json
+
+      - name: Install dependencies
+        working-directory: platform/sdk
+        run: npm ci
+
+      - name: Build SDK
+        working-directory: platform/sdk
+        run: npm run build
 
   security-scan:
     name: Security Scan

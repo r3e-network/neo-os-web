@@ -36,6 +36,8 @@ sdk/rust/devpack/target/
 bin/
 appserver
 *.exe
+.next/
+.vercel/
 
 # Local test/output artifacts
 apps/dashboard/test-results/
