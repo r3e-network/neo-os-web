@@ -7,7 +7,6 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - sgx-qcnl-configmap.yaml
-  - gateway-deployment.yaml
   - services-deployment.yaml
 
 labels:

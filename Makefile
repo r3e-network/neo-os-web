@@ -6,7 +6,7 @@
 .PHONY: all build test clean docker frontend deploy help
 
 # Variables
-CMD_BINARIES := gateway marble create-wallet deploy-fairy deploy-testnet master-bundle slcli verify-bundle
+CMD_BINARIES := marble create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
 ENCLAVE_BINARIES := marble
 DOCKER_COMPOSE_SIM := docker compose -f docker/docker-compose.simulation.yaml
 DOCKER_COMPOSE_SGX := docker compose -f docker/docker-compose.yaml
@@ -37,9 +37,6 @@ build: ## Build all services
 		go build -o bin/$$bin ./cmd/$$bin; \
 	done
 	@echo "Build complete"
-
-build-gateway: ## Build gateway service
-	go build -o bin/gateway ./cmd/gateway
 
 build-ego: ## Build with EGo for SGX
 	@echo "Building with EGo..."
@@ -170,12 +167,7 @@ frontend-deploy: ## Deploy frontend to Vercel
 dev: ## Start development environment
 	@echo "Starting development environment..."
 	@./scripts/install_dev_env.sh --skip-k8s || echo "Dependencies already installed"
-	OE_SIMULATION=1 $(DOCKER_COMPOSE) up -d coordinator
-	@sleep 5
-	@echo "Setting manifest..."
-	INSECURE=1 $(MAKE) marblerun-manifest || true
-	@echo "Starting gateway..."
-	OE_SIMULATION=1 go run ./cmd/gateway
+	@$(MAKE) docker-up
 
 dev-full: ## Start full development environment with all services
 	@echo "Starting full development environment..."
@@ -184,9 +176,6 @@ dev-full: ## Start full development environment with all services
 dev-stop: ## Stop development environment
 	@echo "Stopping development environment..."
 	$(DOCKER_COMPOSE) down
-
-dev-gateway: ## Run gateway in development mode
-	OE_SIMULATION=1 go run ./cmd/gateway
 
 lint: ## Run linter
 	@test -x $(GOLANGCI_LINT) || (echo "Installing golangci-lint..." && GOBIN=$(GOBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))

@@ -23,19 +23,18 @@ Randomness is provided via `services/confcompute` by executing scripts inside th
 
 ## Runtime Boundary (TEE vs Non‑TEE)
 
-- **Outside TEE (default)**: user workflows (Supabase Auth, sessions/JWT), wallet bindings, secrets UX + API.
+- **Outside TEE (default)**: user workflows (Supabase Auth), wallet bindings, secrets UX + API.
 - **Inside TEE**: service execution that needs confidentiality/integrity, enclave-held keys, and signing (GlobalSigner + service workloads).
 
 Secrets are **not** a separate service: they are managed by the gateway and stored in Supabase encrypted with `SECRETS_MASTER_KEY`.
 
 ## Repository Layout
 
-- `cmd/`: binaries (`cmd/gateway`, `cmd/marble`, deploy tooling, CLI)
+- `cmd/`: binaries (`cmd/marble`, deploy tooling, bundle verification helpers)
 - `infrastructure/`: shared building blocks (runtime, middleware, chain I/O, secrets, storage helpers, account pool, global signer)
 - `services/`: product services only (see “Scope”)
 - `contracts/`: Neo N3 MiniApp platform contracts
 - `platform/`: platform scaffolds (Supabase Edge functions, JS SDK, Next.js host app)
-- `frontend/`, `dapps/`: consumers (no service-layer business logic)
 - `docker/`, `k8s/`, `manifests/`, `deploy/`: deployment and operations
 
 For enforced responsibility boundaries, see `docs/LAYERING.md`.
@@ -46,7 +45,6 @@ Prereqs: Go, Docker, Node.js.
 
 ```bash
 make docker-up
-make marblerun-manifest
 ```
 
 Run a single service locally (outside MarbleRun) for debugging:
@@ -55,17 +53,14 @@ Run a single service locally (outside MarbleRun) for debugging:
 SERVICE_TYPE=neocompute go run ./cmd/marble
 ```
 
-Run the legacy gateway locally (for migration/testing only):
-
-```bash
-OE_SIMULATION=1 go run ./cmd/gateway
-```
+Supabase Edge functions are the intended public gateway. See `platform/edge/README.md` for setup and required env vars.
 
 ## Key Environment Variables
 
-- `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`: Supabase connectivity (gateway + services that persist state).
-- `JWT_SECRET`: gateway auth signing key (required in production).
-- `SECRETS_MASTER_KEY`: gateway encryption master key for secrets APIs (`platform/edge/functions/secrets-*`).
+- `SUPABASE_URL`: Supabase project URL.
+- `SUPABASE_SERVICE_KEY`: Supabase service role key (used by Go services and tooling).
+- `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key (used by Supabase Edge functions).
+- `SECRETS_MASTER_KEY`: encryption master key for secrets APIs (`platform/edge/functions/secrets-*`) and secret injection into TEE services.
 - `NEO_RPC_URL` / `NEO_RPC_URLS`, `NEO_NETWORK_MAGIC`: Neo RPC configuration (services).
 - `CONTRACT_PAYMENTHUB_HASH`, `CONTRACT_GOVERNANCE_HASH`, `CONTRACT_PRICEFEED_HASH`, `CONTRACT_RANDOMNESSLOG_HASH`, `CONTRACT_APPREGISTRY_HASH`, `CONTRACT_AUTOMATIONANCHOR_HASH`: MiniApp platform contract hashes.
 - `TXPROXY_ALLOWLIST`: tx-proxy allowlist JSON (contract+method policy).

@@ -76,14 +76,13 @@ jobs:
       - name: Create artifacts directory
         run: mkdir -p artifacts
 
-      - name: Build marble binary
-        run: go build -o artifacts/marble ./cmd/marble
-
-      - name: Build slcli binary
-        run: go build -o artifacts/slcli ./cmd/slcli
-
-      - name: Build gateway binary
-        run: go build -o artifacts/gateway ./cmd/gateway
+      - name: Build command binaries
+        run: |
+          set -euo pipefail
+          for bin in marble create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle; do
+            echo "Building $bin..."
+            go build -o "artifacts/$bin" "./cmd/$bin"
+          done
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -150,35 +149,6 @@ jobs:
 
       - name: Run E2E tests
         run: go test -v -tags=e2e ./test/e2e/...
-
-  frontend-build:
-    name: Legacy Frontend Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
-
-      - name: Upload frontend artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist/
-          retention-days: 7
 
   host-app-build:
     name: Host App Build (Next.js)
@@ -276,16 +246,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Gateway Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./docker/Dockerfile.gateway
-          push: false
-          tags: service-layer-gateway:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Build Service Docker image
         uses: docker/build-push-action@v5
         with:
@@ -298,7 +258,7 @@ jobs:
 
   summary:
     name: CI Summary
-    needs: [lint, build, unit-tests, integration-tests, e2e-tests, frontend-build, security-scan, docker-build]
+    needs: [lint, build, unit-tests, integration-tests, e2e-tests, host-app-build, sdk-build, security-scan, docker-build]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -309,7 +269,8 @@ jobs:
           echo "Unit Tests: ${{ needs.unit-tests.result }}"
           echo "Integration Tests: ${{ needs.integration-tests.result }}"
           echo "E2E Tests: ${{ needs.e2e-tests.result }}"
-          echo "Frontend Build: ${{ needs.frontend-build.result }}"
+          echo "Host App Build: ${{ needs.host-app-build.result }}"
+          echo "SDK Build: ${{ needs.sdk-build.result }}"
           echo "Security Scan: ${{ needs.security-scan.result }}"
           echo "Docker Build: ${{ needs.docker-build.result }}"
 
@@ -318,7 +279,8 @@ jobs:
              [ "${{ needs.unit-tests.result }}" != "success" ] || \
              [ "${{ needs.integration-tests.result }}" != "success" ] || \
              [ "${{ needs.e2e-tests.result }}" != "success" ] || \
-             [ "${{ needs.frontend-build.result }}" != "success" ] || \
+             [ "${{ needs.host-app-build.result }}" != "success" ] || \
+             [ "${{ needs.sdk-build.result }}" != "success" ] || \
              [ "${{ needs.docker-build.result }}" != "success" ]; then
             echo "CI pipeline failed!"
             exit 1

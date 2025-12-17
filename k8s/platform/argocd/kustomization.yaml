@@ -6,7 +6,6 @@ namespace: argocd
 resources:
   - namespace.yaml
   - install.yaml
-  - application-gateway.yaml
   - application-services.yaml
   - rbac-config.yaml
   - ingress.yaml

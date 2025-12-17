@@ -67,9 +67,7 @@ defer crypto.ZeroBytes(secret) // Always zero secrets after use
 | `POOL_MASTER_KEY_HASH` | AccountPool | SHA-256 hash of derived master pubkey (32 bytes; required in enclave mode) |
 | `POOL_MASTER_ATTESTATION_HASH` | AccountPool | Optional attestation/bundle hash (for on-chain anchoring) |
 | `GLOBALSIGNER_MASTER_SEED` | GlobalSigner | 32-byte master seed for deterministic key derivation |
-| `SECRETS_MASTER_KEY` | Gateway | AES-256 encryption key for user secrets (32 bytes) |
-| `OAUTH_TOKENS_MASTER_KEY` | Gateway | OAuth token at-rest encryption key (32 bytes) |
-| `JWT_SECRET` | Gateway | JWT signing key (>= 32 bytes recommended) |
+| `SECRETS_MASTER_KEY` | Edge + Services | AES-256 master key for user secrets (32 bytes; same envelope across Edge + TEE) |
 
 ## mTLS Communication
 

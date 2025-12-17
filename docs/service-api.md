@@ -18,11 +18,17 @@ The JS SDK (`platform/sdk`) is expected to set `edgeBaseUrl` to:
 
 - `https://<project>.supabase.co/functions/v1`
 
-All endpoints require either:
+Most endpoints require authentication via:
 
-- Supabase session (cookie), or
 - `Authorization: Bearer <jwt>`, or
 - `X-API-Key: <key>`
+
+Exceptions:
+
+- `GET /functions/v1/datafeed-price` is currently a public read proxy (no auth).
+
+Most state-changing endpoints also require a **verified primary wallet binding**
+(`wallet-nonce` + `wallet-bind`).
 
 ### Payments (GAS only)
 
@@ -51,6 +57,18 @@ All endpoints require either:
   - body: `{ address, public_key, signature, message, nonce, label? }`
   - verifies wallet ownership and binds the address to the authenticated user
 
+### API Keys
+
+API key management endpoints require `Authorization: Bearer <jwt>` (cannot be called using an API key).
+
+- `POST /functions/v1/api-keys-create`
+  - body: `{ name, scopes?: string[], description?: string, expires_at?: string }`
+  - returns: the raw key once (never stored in plaintext)
+- `GET /functions/v1/api-keys-list`
+  - returns: metadata only (no raw key)
+- `POST /functions/v1/api-keys-revoke`
+  - body: `{ id }`
+
 ### Secrets
 
 These endpoints manage user secrets stored in Supabase:
@@ -65,6 +83,18 @@ These endpoints manage user secrets stored in Supabase:
   - body: `{ name }`
 - `POST /functions/v1/secrets-permissions`
   - body: `{ name, services: ["neocompute","neooracle"] }`
+
+### GasBank (Delegated Payments)
+
+- `GET /functions/v1/gasbank-account`
+  - returns: `{ account }` (creates account row if missing)
+- `POST /functions/v1/gasbank-deposit`
+  - body: `{ amount, from_address, tx_hash? }`
+  - returns: `{ deposit }` (records a deposit request; settlement runs elsewhere)
+- `GET /functions/v1/gasbank-deposits`
+  - returns: `{ deposits }`
+- `GET /functions/v1/gasbank-transactions`
+  - returns: `{ transactions }`
 
 ### Datafeed
 

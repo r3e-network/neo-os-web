@@ -17,10 +17,12 @@ Supabase deploys Edge functions under:
 Key gateway endpoints in this repo:
 
 - `wallet-nonce`, `wallet-bind` (bind Neo N3 address to Supabase user)
+- `api-keys-*` (user API keys: create/list/revoke; raw key returned once)
 - `pay-gas` (PaymentHub intent; settlement **GAS only**)
 - `vote-neo` (Governance intent; governance **NEO only**)
 - `rng-request` (randomness via `neocompute` scripts; optional RandomnessLog anchoring)
 - `secrets-*` (user secrets management + per-service permissions)
+- `gasbank-*` (delegated payments: balances, deposits, transactions)
 - `datafeed-price` (read proxy for `neofeeds`)
 
 ## TEE Services (Internal)
@@ -38,4 +40,3 @@ Stable service IDs (runtime) used throughout the repo:
 The previous “Gateway binary + legacy REST API” documentation has been moved to:
 
 - `docs/legacy/API_DOCUMENTATION_LEGACY_GATEWAY.md`
-

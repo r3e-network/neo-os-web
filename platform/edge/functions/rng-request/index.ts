@@ -1,7 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getEnv, mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
-import { requirePrimaryWallet, requireUser } from "../_shared/supabase.ts";
+import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { postJSON } from "../_shared/tee.ts";
 
 type RNGRequest = {
@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED");
 
-  const auth = await requireUser(req);
+  const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
   const walletCheck = await requirePrimaryWallet(auth.userId);
   if (walletCheck instanceof Response) return walletCheck;

@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { mustGetEnv } from "./env.ts";
+import { getEnv, mustGetEnv } from "./env.ts";
 import { error } from "./response.ts";
 
 function parseBearerToken(req: Request): string | undefined {
@@ -7,6 +7,11 @@ function parseBearerToken(req: Request): string | undefined {
   if (!auth.toLowerCase().startsWith("bearer ")) return undefined;
   const token = auth.slice("bearer ".length).trim();
   return token ? token : undefined;
+}
+
+function parseUserAPIKey(req: Request): string | undefined {
+  const raw = req.headers.get("X-API-Key")?.trim() ?? "";
+  return raw ? raw : undefined;
 }
 
 export function supabaseClient() {
@@ -17,14 +22,20 @@ export function supabaseClient() {
 
 export function supabaseServiceClient() {
   const url = mustGetEnv("SUPABASE_URL");
-  const serviceKey = mustGetEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY") ?? getEnv("SUPABASE_SERVICE_KEY");
+  if (!serviceKey) {
+    throw new Error("missing required env var: SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)");
+  }
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
 
 export type AuthContext = {
   userId: string;
   email?: string;
-  token: string;
+  token?: string;
+  apiKeyId?: string;
+  scopes?: string[];
+  authType: "bearer" | "api_key";
 };
 
 export async function requireUser(req: Request): Promise<AuthContext | Response> {
@@ -35,7 +46,36 @@ export async function requireUser(req: Request): Promise<AuthContext | Response>
   const { data, error: authErr } = await supabase.auth.getUser(token);
   if (authErr || !data?.user?.id) return error(401, "invalid session", "AUTH_INVALID");
 
-  return { userId: data.user.id, email: data.user.email ?? undefined, token };
+  return {
+    userId: data.user.id,
+    email: data.user.email ?? undefined,
+    token,
+    authType: "bearer",
+  };
+}
+
+export async function requireAuth(req: Request): Promise<AuthContext | Response> {
+  const bearer = await requireUser(req);
+  if (!(bearer instanceof Response)) return bearer;
+
+  const apiKey = parseUserAPIKey(req);
+  if (!apiKey) return error(401, "missing Authorization or X-API-Key", "AUTH_REQUIRED");
+
+  const supabase = supabaseServiceClient();
+  const { data, error: verifyErr } = await supabase.rpc("verify_api_key", { input_key: apiKey });
+  if (verifyErr) return error(500, `failed to verify api key: ${verifyErr.message}`, "DB_ERROR");
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const valid = Boolean((row as any)?.valid);
+  if (!valid) return error(401, "invalid api key", "AUTH_INVALID");
+
+  const userId = String((row as any)?.user_id ?? "").trim();
+  if (!userId) return error(401, "invalid api key", "AUTH_INVALID");
+
+  const scopes = Array.isArray((row as any)?.scopes) ? ((row as any)?.scopes as string[]) : undefined;
+  const apiKeyId = String((row as any)?.key_id ?? "").trim() || undefined;
+
+  return { userId, apiKeyId, scopes, authType: "api_key" };
 }
 
 export async function requirePrimaryWallet(userId: string): Promise<{ address: string } | Response> {
@@ -60,11 +100,14 @@ export async function ensureUserRow(
   auth: AuthContext,
   patch: Record<string, unknown> = {},
 ): Promise<{ id: string; nonce?: string; address?: string } | Response> {
+  const row: Record<string, unknown> = { id: auth.userId, ...patch };
+  if (auth.email) row.email = auth.email;
+
   const supabase = supabaseServiceClient();
   const { data, error: upsertErr } = await supabase
     .from("users")
     .upsert(
-      { id: auth.userId, email: auth.email ?? null, ...patch },
+      row,
       { onConflict: "id" },
     )
     .select("id,nonce,address")

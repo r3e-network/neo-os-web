@@ -45,5 +45,5 @@ These remain as shared building blocks used by the platform services.
 
 ## Notes
 
-- Existing Go `cmd/gateway` will be treated as a legacy gateway until Supabase Edge takes over routing/auth for production.
+- The user-facing gateway is **Supabase Edge** (there is no Go gateway binary in the current codebase).
 - This repo will keep a strong separation: **chain I/O** in `infrastructure/chain`, **policy enforcement** in Edge + tx-proxy, **sensitive compute/signing** inside TEE.

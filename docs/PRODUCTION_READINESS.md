@@ -6,7 +6,7 @@ Service Layer as described in `docs/ARCHITECTURE.md`.
 ## Scope
 
 **Gateway (edge)**:
-- Auth (wallet + OAuth), sessions/JWT, API keys, wallet bindings
+- Auth (Supabase Auth: OAuth providers), sessions/JWT, API keys, wallet bindings
 - Secrets API + permissions (stored in Supabase; not a separate service)
 - Delegated payments / gas bank (stored in Supabase)
 - Service proxy routes (mTLS inside the mesh)
@@ -25,10 +25,11 @@ Service Layer as described in `docs/ARCHITECTURE.md`.
 
 ### Gateway (recommended outside TEE)
 
-- `JWT_SECRET` (>= 32 bytes recommended)
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY` (Edge validates `Authorization: Bearer <jwt>`)
+- `SUPABASE_SERVICE_ROLE_KEY` (Edge reads/writes `public.*` platform tables)
 - `SECRETS_MASTER_KEY` (hex-encoded 32 bytes)
-- `OAUTH_TOKENS_MASTER_KEY` (hex-encoded 32 bytes) when OAuth is enabled
-- OAuth provider secrets (Google/GitHub/etc) if enabled
+- Optional: `TEE_MTLS_CERT_PEM`, `TEE_MTLS_KEY_PEM`, `TEE_MTLS_ROOT_CA_PEM` when connecting Edge → TEE services over mTLS
 
 ### Enclave Workloads
 

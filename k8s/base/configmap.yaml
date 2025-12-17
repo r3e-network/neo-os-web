@@ -12,38 +12,10 @@ data:
   OE_SIMULATION: "0"
   # Application environment; overlays should set this to "production" for real deployments.
   MARBLE_ENV: "development"
-  # Gateway configuration.
-  GATEWAY_TLS_MODE: "off"
-  # Keep JWT/token/session lifetimes aligned (Go duration, e.g. 15m, 24h).
-  JWT_EXPIRY: "24h"
-  # Optional admin allowlists (comma-separated Supabase user IDs).
-  # When set, the gateway will attach `X-User-Role: admin|super_admin` to proxied
-  # service requests (over MarbleRun mTLS) to unlock admin endpoints.
-  ADMIN_USER_IDS: ""
-  SUPER_ADMIN_USER_IDS: ""
-  # Gateway rate limiting (recommended in production).
-  RATE_LIMIT_ENABLED: "false"
-  RATE_LIMIT_REQUESTS: "100"
-  RATE_LIMIT_WINDOW: "1m"
-  RATE_LIMIT_BURST: "100"
+
   LOG_LEVEL: "info"
   LOG_FORMAT: "json"
-  # Comma-separated list of allowed browser origins (must be set correctly in production).
-  CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173"
-  # OAuth (optional) - used by the gateway redirect/callback flow.
-  FRONTEND_URL: "http://localhost:3000"
-  OAUTH_REDIRECT_BASE: "http://localhost:8080"
-  OAUTH_COOKIE_MODE: "true"
-  OAUTH_COOKIE_SAMESITE: "lax"
-  # Service ports
-  GATEWAY_PORT: "8080"
-  NEOFEEDS_PORT: "8083"
-  NEOFLOW_PORT: "8084"
-  NEOACCOUNTS_PORT: "8085"
-  NEOCOMPUTE_PORT: "8086"
-  ORACLE_PORT: "8088"
-  TXPROXY_PORT: "8090"
-  GLOBALSIGNER_PORT: "8092"
+
   # Supabase Configuration
   # Public Supabase project URL (not a secret). Override per environment.
   SUPABASE_URL: "https://your-project.supabase.co"
@@ -66,13 +38,7 @@ data:
   # NeoFlow webhook security (production/SGX): block private networks by default.
   NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS: "false"
 
-  # Internal service endpoints (used by gateway/service-to-service clients)
-  DATAFEEDS_SERVICE_URL: "https://neofeeds:8083"
-  AUTOMATION_SERVICE_URL: "https://neoflow:8084"
-  ACCOUNTPOOL_SERVICE_URL: "https://neoaccounts:8085"
-  CONFIDENTIAL_SERVICE_URL: "https://neocompute:8086"
-  ORACLE_SERVICE_URL: "https://neooracle:8088"
-  TXPROXY_SERVICE_URL: "https://txproxy:8090"
+  # Internal service endpoints (service-to-service clients)
   GLOBALSIGNER_SERVICE_URL: "https://globalsigner:8092"
 
   # TxProxy allowlist (JSON). Default deny-all when unset.

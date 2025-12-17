@@ -67,8 +67,8 @@ The repo is split into:
 
 - `infrastructure/`: shared building blocks (runtime, middleware, storage, chain I/O, secrets, signing).
 - `services/`: product services only (`datafeed`, `automation`, `confcompute`, `conforacle`, `txproxy`).
-- `cmd/`: binaries (`cmd/gateway`, `cmd/marble`, tooling).
-- `dapps/`, `frontend/`: consumers (no service-layer business logic).
+- `cmd/`: binaries (`cmd/marble`, deployment tooling, bundle verification helpers).
+- `platform/`: Supabase Edge gateway + host app + SDK.
 
 See `docs/LAYERING.md` for the concrete mapping.
 
