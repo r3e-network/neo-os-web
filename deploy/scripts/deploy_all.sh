@@ -12,7 +12,7 @@ DEPLOYED_FILE="$CONFIG_DIR/deployed_contracts.json"
 NETWORK=${1:-neoexpress}
 NEOEXPRESS_CONFIG="$CONFIG_DIR/default.neo-express"
 
-echo "=== Service Layer Contract Deployment ==="
+echo "=== Neo MiniApp Platform Contract Deployment ==="
 echo "Network: $NETWORK"
 echo "Build directory: $BUILD_DIR"
 
@@ -101,18 +101,13 @@ deploy_contract() {
 
 # Deploy core contracts in order
 echo ""
-echo "=== Deploying Core Contracts ==="
-deploy_contract "ServiceLayerGateway"
-deploy_contract "DataFeedsService"
-deploy_contract "NeoFlowService"
-deploy_contract "ConfidentialService"
-deploy_contract "OracleService"
-
-# Deploy example contracts
-echo ""
-echo "=== Deploying Example Contracts ==="
-deploy_contract "ExampleConsumer"
-deploy_contract "DeFiPriceConsumer"
+echo "=== Deploying Platform Contracts ==="
+deploy_contract "PaymentHub"
+deploy_contract "Governance"
+deploy_contract "PriceFeed"
+deploy_contract "RandomnessLog"
+deploy_contract "AppRegistry"
+deploy_contract "AutomationAnchor"
 
 echo ""
 echo "=== Deployment Complete ==="

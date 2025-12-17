@@ -19,7 +19,7 @@ Service Layer as described in `docs/ARCHITECTURE.md`.
 
 - **Supabase** (Postgres + PostgREST): migrations applied, service role key available.
 - **Neo N3 RPC**: one or more reliable endpoints configured.
-- **Deployed contracts**: gateway + service contracts deployed and hashes set.
+- **Deployed contracts**: MiniApp platform contracts deployed and hashes set (`PaymentHub`, `Governance`, `PriceFeed`, `RandomnessLog`, `AppRegistry`, `AutomationAnchor`).
 
 ## Required Secrets / Config
 
@@ -42,14 +42,17 @@ Injected via MarbleRun secrets (values depend on which services you run):
 
 ## Chain / Contract Configuration
 
-Contract hashes can be set with the preferred names (legacy fallbacks are still
-supported by the codebase):
+Contract hashes are configured via environment variables (0x-prefixed Uint160 strings):
 
-- `CONTRACT_GATEWAY_HASH`
-- `CONTRACT_DATAFEEDS_HASH` (fallback: `CONTRACT_NEOFEEDS_HASH`)
-- `CONTRACT_AUTOMATION_HASH` (fallback: `CONTRACT_NEOFLOW_HASH`)
-- `CONTRACT_CONFIDENTIAL_HASH` (fallback: `CONTRACT_NEOCOMPUTE_HASH`)
-- `CONTRACT_ORACLE_HASH` (fallback: `CONTRACT_NEOORACLE_HASH`)
+- `CONTRACT_PAYMENTHUB_HASH` (**payments/settlement = GAS only**, enforced on-chain)
+- `CONTRACT_GOVERNANCE_HASH` (**governance = NEO only**, enforced on-chain)
+- `CONTRACT_PRICEFEED_HASH` (datafeed anchoring)
+- `CONTRACT_RANDOMNESSLOG_HASH` (optional randomness anchoring)
+- `CONTRACT_APPREGISTRY_HASH` (app allowlist + manifest hashes)
+- `CONTRACT_AUTOMATIONANCHOR_HASH` (automation task registry + anti-replay)
+
+The gateway for user workflows is **Supabase Edge** (there is no on-chain
+gateway contract in the current blueprint).
 
 ## Identity / Trust Boundary
 

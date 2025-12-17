@@ -15,11 +15,12 @@ import (
 )
 
 var coreContracts = []string{
-	"ServiceLayerGateway",
-	"DataFeedsService",
-	"NeoFlowService",
-	"ConfidentialService",
-	"OracleService",
+	"PaymentHub",
+	"Governance",
+	"PriceFeed",
+	"RandomnessLog",
+	"AppRegistry",
+	"AutomationAnchor",
 }
 
 // DeployedContract and DeploymentResult are imported from internal/chain package
@@ -32,7 +33,7 @@ func main() {
 	keepSession := flag.Bool("keep", false, "Keep session after deployment (don't delete)")
 	flag.Parse()
 
-	log.Println("=== Service Layer Contract Deployment (Fairy) ===")
+	log.Println("=== Neo MiniApp Platform Contract Deployment (Fairy) ===")
 	log.Printf("Fairy RPC: %s", *fairyURL)
 	log.Printf("Build directory: %s", *buildDir)
 
@@ -131,7 +132,7 @@ func main() {
 			sessionID,
 			false,
 			c.Hash,
-			"admin",
+			"Admin",
 			nil,
 		)
 		if err != nil {
@@ -143,20 +144,24 @@ func main() {
 			}
 		}
 
-		pausedResult, err := client.InvokeFunctionWithSession(
-			sessionID,
-			false,
-			c.Hash,
-			"paused",
-			nil,
-		)
-		if err != nil {
-			log.Printf("  paused() error: %v", err)
-		} else {
-			log.Printf("  paused() state: %s", pausedResult.State)
-			if len(pausedResult.Stack) > 0 {
-				log.Printf("  paused() result: %+v", pausedResult.Stack[0])
+		switch c.Name {
+		case "PriceFeed", "RandomnessLog", "AutomationAnchor":
+			updaterResult, err := client.InvokeFunctionWithSession(
+				sessionID,
+				false,
+				c.Hash,
+				"Updater",
+				nil,
+			)
+			if err != nil {
+				log.Printf("  Updater() error: %v", err)
+			} else {
+				log.Printf("  Updater() state: %s", updaterResult.State)
+				if len(updaterResult.Stack) > 0 {
+					log.Printf("  Updater() result: %+v", updaterResult.Stack[0])
+				}
 			}
+		default:
 		}
 	}
 

@@ -95,6 +95,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
+        - name: CONTRACT_PRICEFEED_HASH
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_PRICEFEED_HASH
         - name: ARBITRUM_RPC
           valueFrom:
             configMapKeyRef:
@@ -251,16 +256,16 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: CONTRACT_GATEWAY_HASH
+        - name: CONTRACT_PRICEFEED_HASH
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_GATEWAY_HASH
-        - name: CONTRACT_DATAFEEDS_HASH
+              key: CONTRACT_PRICEFEED_HASH
+        - name: CONTRACT_AUTOMATIONANCHOR_HASH
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_DATAFEEDS_HASH
+              key: CONTRACT_AUTOMATIONANCHOR_HASH
         - name: OE_SIMULATION
           valueFrom:
             configMapKeyRef:
@@ -416,16 +421,6 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: CONTRACT_GATEWAY_HASH
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: CONTRACT_GATEWAY_HASH
-        - name: CONTRACT_AUTOMATION_HASH
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: CONTRACT_AUTOMATION_HASH
         - name: OE_SIMULATION
           valueFrom:
             configMapKeyRef:
@@ -880,6 +875,16 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
+        - name: CONTRACT_PAYMENTHUB_HASH
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_PAYMENTHUB_HASH
+        - name: CONTRACT_GOVERNANCE_HASH
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_GOVERNANCE_HASH
         - name: TXPROXY_ALLOWLIST
           valueFrom:
             configMapKeyRef:

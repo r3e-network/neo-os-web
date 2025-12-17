@@ -95,21 +95,6 @@ build_sources() {
     return 0
 }
 
-# Service contracts (split into multiple partial class files)
-# Format: "directory:ContractName"
-service_contracts=(
-    "../services/conforacle/contract:NeoOracleService"
-    "../services/datafeed/contract:NeoFeedsService"
-    "../services/automation/contract:NeoFlowService"
-    "../services/confcompute/contract:NeoComputeService"
-)
-
-# Gateway contract (multi-file partial class)
-# Format: "directory:MainContractName"
-gateway_contracts=(
-    "gateway:ServiceLayerGateway"
-)
-
 # Platform contracts (single-file)
 # Format: "directory:ContractName"
 platform_contracts=(
@@ -121,46 +106,6 @@ platform_contracts=(
     "AutomationAnchor:AutomationAnchor"
 )
 
-# Example contracts
-examples=(
-    "examples/ExampleConsumer"
-    "examples/DeFiPriceConsumer"
-)
-
-echo "=== Building Gateway Contract ==="
-for entry in "${gateway_contracts[@]}"; do
-    dir="${entry%%:*}"
-    name="${entry##*:}"
-
-    if [ -d "$dir" ]; then
-        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
-        # shellcheck disable=SC2086
-        build_sources "$name" "build/${name}" $cs_files
-    else
-        echo "  ⚠ Directory $dir not found, skipping"
-    fi
-done
-
-echo ""
-echo "=== Building Service Contracts (Multi-file) ==="
-for entry in "${service_contracts[@]}"; do
-    dir="${entry%%:*}"
-    name="${entry##*:}"
-
-    if [ -d "$dir" ]; then
-        # Include shared contract base types used by multiple service contracts.
-        common_files=$(find "common" -maxdepth 1 -name "*.cs" -type f | sort)
-
-        # Collect all .cs files in the contract directory
-        cs_files=$(find "$dir" -maxdepth 1 -name "${name}*.cs" -type f | sort)
-        # shellcheck disable=SC2086
-        build_sources "$name" "build/${name}" $common_files $cs_files
-    else
-        echo "  ⚠ Directory $dir not found, skipping"
-    fi
-done
-
-echo ""
 echo "=== Building Platform Contracts ==="
 for entry in "${platform_contracts[@]}"; do
     dir="${entry%%:*}"
@@ -172,18 +117,6 @@ for entry in "${platform_contracts[@]}"; do
         build_sources "$name" "build/${name}" $cs_files
     else
         echo "  ⚠ Directory $dir not found, skipping"
-    fi
-done
-
-echo ""
-echo "=== Building Example Contracts ==="
-for contract in "${examples[@]}"; do
-    name=$(basename "$contract")
-
-    if [ -f "$contract.cs" ]; then
-        build_sources "$name" "build/${name}" "$contract.cs"
-    else
-        echo "  ⚠ $contract.cs not found, skipping"
     fi
 done
 

@@ -7,11 +7,12 @@
   ],
   "network_magic": 877933390,
   "contracts": {
-    "ServiceLayerGateway": null,
-    "DataFeedsService": null,
-    "NeoFlowService": null,
-    "ConfidentialService": null,
-    "OracleService": null
+    "PaymentHub": null,
+    "Governance": null,
+    "PriceFeed": null,
+    "RandomnessLog": null,
+    "AppRegistry": null,
+    "AutomationAnchor": null
   },
   "wallets": {
     "owner": {
@@ -24,12 +25,6 @@
       "pubkey": "${TESTNET_TEE_PUBKEY}"
     }
   },
-  "service_fees": {
-    "oracle": 10000000,
-    "datafeeds": 5000000,
-    "automation": 20000000,
-    "confidential": 100000000
-  },
   "notes": [
     "Set environment variables before deployment:",
     "  export TESTNET_OWNER_WALLET=/path/to/owner.json",
@@ -40,8 +35,8 @@
     "",
     "Deployment steps:",
     "  1. Ensure wallets have sufficient GAS for deployment",
-    "  2. Run: python3 deploy/scripts/deploy_testnet.py",
+    "  2. Deploy contracts (manual signing required for testnet)",
     "  3. Update contract hashes in this file",
-    "  4. Run: python3 deploy/scripts/initialize.py testnet"
+    "  4. Call SetUpdater on PriceFeed/RandomnessLog/AutomationAnchor from the admin wallet"
   ]
 }

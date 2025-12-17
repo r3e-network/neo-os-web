@@ -51,14 +51,8 @@ data:
   NEO_RPC_URL: "https://testnet1.neo.coz.io:443"
   # Neo N3 network magic (Testnet). Mainnet: 860833102
   NEO_NETWORK_MAGIC: "894710606"
-  # On-chain contract hashes (0x-prefixed little-endian Uint160 strings).
+  # On-chain MiniApp platform contract hashes (0x-prefixed Uint160 strings).
   # Set these per environment after deploying contracts.
-  CONTRACT_GATEWAY_HASH: ""
-  CONTRACT_DATAFEEDS_HASH: ""
-  CONTRACT_AUTOMATION_HASH: ""
-  CONTRACT_CONFIDENTIAL_HASH: ""
-  CONTRACT_ORACLE_HASH: ""
-  # MiniApp platform contracts (optional)
   CONTRACT_PAYMENTHUB_HASH: ""
   CONTRACT_GOVERNANCE_HASH: ""
   CONTRACT_PRICEFEED_HASH: ""

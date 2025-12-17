@@ -6,8 +6,8 @@
 .PHONY: all build test clean docker frontend deploy help
 
 # Variables
-CMD_BINARIES := gateway marble anchor-master-key create-wallet deploy-fairy deploy-testnet master-bundle slcli verify-bundle verify-master-key
-ENCLAVE_BINARIES := gateway marble
+CMD_BINARIES := gateway marble create-wallet deploy-fairy deploy-testnet master-bundle slcli verify-bundle
+ENCLAVE_BINARIES := marble
 DOCKER_COMPOSE_SIM := docker compose -f docker/docker-compose.simulation.yaml
 DOCKER_COMPOSE_SGX := docker compose -f docker/docker-compose.yaml
 # Default to simulation mode for local development.
@@ -151,16 +151,16 @@ db-seed: ## Seed database with test data
 # =============================================================================
 
 frontend-install: ## Install frontend dependencies
-	cd frontend && npm install
+	cd platform/host-app && npm install
 
 frontend-dev: ## Start frontend development server
-	cd frontend && npm run dev
+	cd platform/host-app && npm run dev
 
 frontend-build: ## Build frontend for production
-	cd frontend && npm run build
+	cd platform/host-app && npm run build
 
 frontend-deploy: ## Deploy frontend to Vercel
-	cd frontend && npm ci && npm run build
+	cd platform/host-app && npm ci && npm run build
 	vercel deploy --prod
 
 # =============================================================================
@@ -219,7 +219,7 @@ clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
 	rm -rf bin/
 	rm -rf coverage.out coverage.html
-	rm -rf frontend/dist
+	rm -rf platform/host-app/.next
 	rm -rf tmp/
 	@echo "Clean complete"
 

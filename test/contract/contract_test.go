@@ -40,10 +40,6 @@ func TestContractCompilation(t *testing.T) {
 
 	specs := []contractSpec{
 		{
-			name:       "ServiceLayerGateway",
-			sourceFile: filepath.Join("..", "..", "contracts", "gateway", "ServiceLayerGateway.cs"),
-		},
-		{
 			name:       "PaymentHub",
 			sourceFile: filepath.Join("..", "..", "contracts", "PaymentHub", "PaymentHub.cs"),
 		},
@@ -66,22 +62,6 @@ func TestContractCompilation(t *testing.T) {
 		{
 			name:       "AutomationAnchor",
 			sourceFile: filepath.Join("..", "..", "contracts", "AutomationAnchor", "AutomationAnchor.cs"),
-		},
-		{
-			name:       "DataFeedsService",
-			sourceFile: filepath.Join("..", "..", "services", "datafeed", "contract", "NeoFeedsService.cs"),
-		},
-		{
-			name:       "NeoFlowService",
-			sourceFile: filepath.Join("..", "..", "services", "automation", "contract", "NeoFlowService.cs"),
-		},
-		{
-			name:       "ConfidentialService",
-			sourceFile: filepath.Join("..", "..", "services", "confcompute", "contract", "NeoComputeService.cs"),
-		},
-		{
-			name:       "OracleService",
-			sourceFile: filepath.Join("..", "..", "services", "conforacle", "contract", "NeoOracleService.cs"),
 		},
 	}
 
@@ -130,8 +110,8 @@ func TestContractDeploymentIntegration(t *testing.T) {
 		})
 	})
 
-	t.Run("deploy gateway contract", func(t *testing.T) {
-		nefPath, _, err := FindContractArtifacts("ServiceLayerGateway")
+	t.Run("deploy platform contract", func(t *testing.T) {
+		nefPath, _, err := FindContractArtifacts("PriceFeed")
 		if err != nil {
 			t.Skip(err.Error())
 		}
@@ -145,7 +125,7 @@ func TestContractDeploymentIntegration(t *testing.T) {
 		if contract.Hash == "" {
 			t.Logf("contract deployed (hash may be in logs)")
 		} else {
-			t.Logf("gateway deployed at: %s", contract.Hash)
+			t.Logf("PriceFeed deployed at: %s", contract.Hash)
 		}
 	})
 }
@@ -161,27 +141,13 @@ func TestContractInteraction(t *testing.T) {
 	t.Skip("requires running neo-express with deployed contracts")
 }
 
-func TestGatewayContract(t *testing.T) {
+func TestPlatformContractsPlaceholder(t *testing.T) {
 	SkipIfNoNeoExpress(t)
 	SkipIfNoCompiledContracts(t)
 
 	if testing.Short() {
-		t.Skip("skipping gateway test in short mode")
+		t.Skip("skipping platform placeholder test in short mode")
 	}
 
-	t.Run("admin functions", func(t *testing.T) {
-		t.Skip("requires deployed contract")
-	})
-
-	t.Run("service registration", func(t *testing.T) {
-		t.Skip("requires deployed contract")
-	})
-
-	t.Run("fee management", func(t *testing.T) {
-		t.Skip("requires deployed contract")
-	})
-
-	t.Run("request flow", func(t *testing.T) {
-		t.Skip("requires deployed contract")
-	})
+	t.Skip("covered by TestPlatformContractsNeoExpressSmoke")
 }

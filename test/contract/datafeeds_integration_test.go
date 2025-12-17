@@ -223,20 +223,20 @@ func TestNeoFeedsSignatureVerification(t *testing.T) {
 	}
 }
 
-// TestNeoExpressNeoFeedsContract tests neofeeds contract deployment and invocation.
-func TestNeoExpressNeoFeedsContract(t *testing.T) {
+// TestNeoExpressPriceFeedArtifacts ensures the platform PriceFeed contract artifacts exist.
+func TestNeoExpressPriceFeedArtifacts(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping neo-express test in short mode")
 	}
 
 	SkipIfNoNeoExpress(t)
 
-	nefPath := filepath.Join("..", "..", "contracts", "build", "DataFeedsService.nef")
+	nefPath := filepath.Join("..", "..", "contracts", "build", "PriceFeed.nef")
 	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
-		t.Skip("DataFeedsService.nef not found, run './contracts/build.sh' first")
+		t.Skip("PriceFeed.nef not found, run './contracts/build.sh' first")
 	}
 
-	t.Log("Neo Express neofeeds contract test - contract deployment ready")
+	t.Log("Neo Express PriceFeed artifacts found - contract deployment ready")
 	t.Logf("Contract artifacts found at: %s", nefPath)
 }
 

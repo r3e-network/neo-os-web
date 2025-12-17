@@ -9,7 +9,8 @@ It centralizes:
 - contract invocation helpers (invoke + wait)
 - transaction construction + signing helpers
 - event monitoring/listening and typed event parsing
-- TEE callback/fulfillment transaction helpers (Gateway callbacks, datafeeds, automation)
+- stack item parsing helpers for typed wrappers
+- platform contract wrappers (PriceFeed / RandomnessLog / AutomationAnchor)
 
 ## Key Components
 
@@ -26,13 +27,15 @@ client, err := chain.NewClient(chain.Config{
 
 ### Contract Addresses (`contracts_common.go`)
 
-Contract hashes are typically provided via env vars. The helper supports
-**new names + legacy fallbacks**:
+Contract hashes are typically provided via env vars. For the MiniApp platform,
+these are the primary contract vars:
 
-- `CONTRACT_DATAFEEDS_HASH` (fallback: `CONTRACT_NEOFEEDS_HASH`)
-- `CONTRACT_AUTOMATION_HASH` (fallback: `CONTRACT_NEOFLOW_HASH`)
-- `CONTRACT_CONFIDENTIAL_HASH` (fallback: `CONTRACT_NEOCOMPUTE_HASH`)
-- `CONTRACT_ORACLE_HASH` (fallback: `CONTRACT_NEOORACLE_HASH`)
+- `CONTRACT_PAYMENTHUB_HASH`
+- `CONTRACT_GOVERNANCE_HASH`
+- `CONTRACT_PRICEFEED_HASH`
+- `CONTRACT_RANDOMNESSLOG_HASH`
+- `CONTRACT_APPREGISTRY_HASH`
+- `CONTRACT_AUTOMATIONANCHOR_HASH`
 
 ```go
 contracts := chain.ContractAddressesFromEnv()
@@ -53,27 +56,13 @@ listener := chain.NewEventListener(&chain.ListenerConfig{
 go listener.Start(ctx)
 ```
 
-### TEE Fulfiller (`contracts_fulfiller.go`)
+### Signers (Local / GlobalSigner)
 
-`TEEFulfiller` builds, signs, and broadcasts “service layer write” transactions
-back to the Gateway or service contracts.
+Transactions that write to platform contracts are signed by the enclave-managed
+signer (recommended: GlobalSigner). The chain module provides signer adapters:
 
-Common operations:
-
-- `FulfillRequest` / `FailRequest` (Gateway callback pattern)
-- `UpdatePrice` / `UpdatePrices` (datafeeds push pattern)
-- `ExecuteTrigger` (automation pattern)
-- `SetTEEMasterKey` (anchor master pubkey + attestation hash to the Gateway)
-
-```go
-fulfiller, err := chain.NewTEEFulfiller(client, contracts.Gateway, teePrivKeyHex)
-if err != nil {
-    // handle
-}
-
-txHash, err := fulfiller.FulfillRequest(ctx, requestID, resultBytes)
-_ = txHash
-```
+- `NewLocalTEESignerFromPrivateKeyHex` (dev/testing)
+- `NewGlobalSignerSigner` (production; key never leaves enclave)
 
 ## Responsibility Rules
 
