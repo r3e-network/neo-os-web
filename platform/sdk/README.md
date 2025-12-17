@@ -25,7 +25,25 @@ await sdk.rng.requestRandom("my-app");
 await sdk.datafeed.getPrice("BTC-USD");
 ```
 
+## Wallet Binding (OAuth-first onboarding)
+
+When a user logs in via Supabase OAuth, the platform can require them to bind a
+Neo N3 address before using on-chain services:
+
+```ts
+const { nonce, message } = await sdk.wallet.getBindMessage();
+
+// Host app: ask wallet to sign `message` and provide publicKey+signature
+await sdk.wallet.bindWallet({
+  address: "<neo-n3-address>",
+  publicKey: "<hex or base64>",
+  signature: "<hex or base64>",
+  message,
+  nonce,
+  label: "Primary",
+});
+```
+
 ## `window.MiniAppSDK`
 
 `platform/sdk/src/window.ts` contains a helper to install the SDK on `window`.
-

@@ -4,6 +4,8 @@ import type {
   PayGASResponse,
   PriceResponse,
   RNGResponse,
+  WalletBindResponse,
+  WalletNonceResponse,
   VoteNEOResponse,
 } from "./types.js";
 
@@ -33,6 +35,25 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
     wallet: {
       async getAddress() {
         throw new Error("wallet integration not configured (use NeoLine/O3 dAPI in host app)");
+      },
+      async getBindMessage(): Promise<WalletNonceResponse> {
+        return requestJSON<WalletNonceResponse>(cfg, "/wallet-nonce", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+      },
+      async bindWallet(params): Promise<WalletBindResponse> {
+        return requestJSON<WalletBindResponse>(cfg, "/wallet-bind", {
+          method: "POST",
+          body: JSON.stringify({
+            address: params.address,
+            public_key: params.publicKey,
+            signature: params.signature,
+            message: params.message,
+            nonce: params.nonce,
+            label: params.label,
+          }),
+        });
       },
     },
     payments: {

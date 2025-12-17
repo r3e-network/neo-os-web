@@ -1,7 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getEnv, mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
-import { requireUser } from "../_shared/supabase.ts";
+import { requirePrimaryWallet, requireUser } from "../_shared/supabase.ts";
 import { postJSON } from "../_shared/tee.ts";
 
 type RNGRequest = {
@@ -19,6 +19,8 @@ Deno.serve(async (req) => {
 
   const auth = await requireUser(req);
   if (auth instanceof Response) return auth;
+  const walletCheck = await requirePrimaryWallet(auth.userId);
+  if (walletCheck instanceof Response) return walletCheck;
 
   let body: RNGRequest;
   try {
