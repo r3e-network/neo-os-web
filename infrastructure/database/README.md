@@ -195,8 +195,6 @@ If you have code using the old service-specific methods from `database.Repositor
 
 | Old (Deprecated) | New |
 |------------------|-----|
-| `repo.CreateVRFRequest()` | `vrfRepo.Create()` |
-| `repo.GetVRFRequest()` | `vrfRepo.GetByRequestID()` |
 | `repo.CreateNeoFlowTrigger()` | `neoflowRepo.CreateTrigger()` |
 | `repo.GetNeoFlowTriggers()` | `neoflowRepo.GetTriggers()` |
 | `repo.CreatePoolAccount()` | `poolRepo.Create()` |

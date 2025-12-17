@@ -3,47 +3,53 @@ package txproxy
 import "testing"
 
 func TestCheckIntentPolicyPayments(t *testing.T) {
-	svc := &Service{paymentHubHash: "abcd"}
+	const paymentHubHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	const otherHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
-	status, _ := svc.checkIntentPolicy("0xabcd", "Pay", "payments")
+	svc := &Service{paymentHubHash: paymentHubHash}
+
+	status, _ := svc.checkIntentPolicy("0x"+paymentHubHash, "pay", "payments")
 	if status != 0 {
 		t.Fatalf("expected ok, got status %d", status)
 	}
 
-	status, _ = svc.checkIntentPolicy("beef", "Pay", "payments")
+	status, _ = svc.checkIntentPolicy(otherHash, "pay", "payments")
 	if status == 0 {
 		t.Fatal("expected forbidden for non-PaymentHub contract")
 	}
 
-	status, _ = svc.checkIntentPolicy("abcd", "Withdraw", "payments")
+	status, _ = svc.checkIntentPolicy(paymentHubHash, "withdraw", "payments")
 	if status == 0 {
-		t.Fatal("expected forbidden for non-Pay method")
+		t.Fatal("expected forbidden for non-pay method")
 	}
 }
 
 func TestCheckIntentPolicyGovernance(t *testing.T) {
-	svc := &Service{governanceHash: "beef"}
+	const governanceHash = "cccccccccccccccccccccccccccccccccccccccc"
+	const otherHash = "dddddddddddddddddddddddddddddddddddddddd"
 
-	status, _ := svc.checkIntentPolicy("0xbeef", "Vote", "governance")
+	svc := &Service{governanceHash: governanceHash}
+
+	status, _ := svc.checkIntentPolicy("0x"+governanceHash, "vote", "governance")
 	if status != 0 {
 		t.Fatalf("expected ok, got status %d", status)
 	}
 
-	status, _ = svc.checkIntentPolicy("beef", "GetProposal", "governance")
+	status, _ = svc.checkIntentPolicy(governanceHash, "getProposal", "governance")
 	if status == 0 {
 		t.Fatal("expected forbidden for non-state-changing method")
 	}
 
-	status, _ = svc.checkIntentPolicy("abcd", "Vote", "governance")
+	status, _ = svc.checkIntentPolicy(otherHash, "vote", "governance")
 	if status == 0 {
 		t.Fatal("expected forbidden for non-Governance contract")
 	}
 }
 
 func TestCheckIntentPolicyUnknownIntent(t *testing.T) {
-	svc := &Service{paymentHubHash: "abcd"}
+	svc := &Service{paymentHubHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
 
-	status, _ := svc.checkIntentPolicy("abcd", "Pay", "unknown")
+	status, _ := svc.checkIntentPolicy("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "pay", "unknown")
 	if status == 0 {
 		t.Fatal("expected bad request for unknown intent")
 	}

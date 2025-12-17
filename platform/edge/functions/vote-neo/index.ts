@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
   const amount = BigInt(amountStr);
   if (amount <= 0n) return error(400, "neo_amount must be > 0", "AMOUNT_INVALID");
 
-  const governanceHash = mustGetEnv("CONTRACT_GOVERNANCE_HASH").replace(/^0x/i, "");
+  const governanceHash = normalizeUInt160(mustGetEnv("CONTRACT_GOVERNANCE_HASH"));
 
   const requestId = crypto.randomUUID();
 
@@ -55,7 +56,7 @@ Deno.serve(async (req) => {
     constraints: { governance: "NEO_ONLY" },
     invocation: {
       contract_hash: governanceHash,
-      method: "Vote",
+      method: "vote",
       params: [
         { type: "String", value: proposalId },
         { type: "Boolean", value: support },

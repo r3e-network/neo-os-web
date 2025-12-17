@@ -23,10 +23,11 @@ Configuration:
 Notes:
 
 - Contract hashes are normalized to lowercase **without** `0x` prefix.
+- Method names are canonicalized by lowercasing the first character (to match Neo C# devpack manifest names like `getLatest`, `setUpdater`, `pay`).
 - `*` allows all methods for a contract (not recommended in production).
 
 Optional policy gating:
 
 - Request field `intent` enables stricter checks for platform user flows:
-  - `intent: "payments"` → requires `CONTRACT_PAYMENTHUB_HASH` configured and only allows `Pay`
-  - `intent: "governance"` → requires `CONTRACT_GOVERNANCE_HASH` configured and only allows `Stake`/`Unstake`/`Vote`
+  - `intent: "payments"` → requires `CONTRACT_PAYMENTHUB_HASH` configured and only allows `pay`
+  - `intent: "governance"` → requires `CONTRACT_GOVERNANCE_HASH` configured and only allows `stake`/`unstake`/`vote`

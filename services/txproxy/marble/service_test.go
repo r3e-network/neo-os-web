@@ -17,7 +17,7 @@ func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
 		t.Fatalf("marble.New: %v", err)
 	}
 
-	allowlist, err := ParseAllowlist(`{"contracts":{"abcd":["foo"]}}`)
+	allowlist, err := ParseAllowlist(`{"contracts":{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa":["foo"]}}`)
 	if err != nil {
 		t.Fatalf("ParseAllowlist: %v", err)
 	}
@@ -54,14 +54,14 @@ func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
 	resp.Body.Close()
 
 	// Allowed contract+method but chain is not configured -> 503.
-	resp = call(InvokeRequest{RequestID: "2", ContractHash: "abcd", Method: "foo"})
+	resp = call(InvokeRequest{RequestID: "2", ContractHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Method: "foo"})
 	if resp.StatusCode != http.StatusServiceUnavailable {
 		t.Fatalf("expected 503, got %d", resp.StatusCode)
 	}
 	resp.Body.Close()
 
 	// Replay request_id -> 409.
-	resp = call(InvokeRequest{RequestID: "2", ContractHash: "abcd", Method: "foo"})
+	resp = call(InvokeRequest{RequestID: "2", ContractHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Method: "foo"})
 	if resp.StatusCode != http.StatusConflict {
 		t.Fatalf("expected 409, got %d", resp.StatusCode)
 	}

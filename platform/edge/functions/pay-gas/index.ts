@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
 import { error, json } from "../_shared/response.ts";
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
   }
   if (amount <= 0n) return error(400, "amount_gas must be > 0", "AMOUNT_INVALID");
 
-  const paymentHubHash = mustGetEnv("CONTRACT_PAYMENTHUB_HASH").replace(/^0x/i, "");
+  const paymentHubHash = normalizeUInt160(mustGetEnv("CONTRACT_PAYMENTHUB_HASH"));
 
   const requestId = crypto.randomUUID();
   const memo = (body.memo ?? "").slice(0, 256);
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
     constraints: { settlement: "GAS_ONLY" },
     invocation: {
       contract_hash: paymentHubHash,
-      method: "Pay",
+      method: "pay",
       params: [
         { type: "String", value: appId },
         { type: "Integer", value: amount.toString() },

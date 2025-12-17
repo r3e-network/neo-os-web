@@ -16,9 +16,9 @@ This repository uses a **TEE-managed signer** for all platform “service-layer 
 
 Platform contracts use the **Updater** pattern:
 
-- `PriceFeed.SetUpdater(<signer>)`
-- `RandomnessLog.SetUpdater(<signer>)`
-- `AutomationAnchor.SetUpdater(<signer>)`
+- `PriceFeed.setUpdater(<signer>)`
+- `RandomnessLog.setUpdater(<signer>)`
+- `AutomationAnchor.setUpdater(<signer>)`
 
 Only the Updater account can write these contracts’ state. The Updater should be the
 enclave-managed signer (GlobalSigner/TxProxy) in production.
@@ -28,8 +28,8 @@ enclave-managed signer (GlobalSigner/TxProxy) in production.
 The platform relies on **attested TLS** (MarbleRun-issued) for service identity and integrity.
 For a public audit trail, platform contracts store an `attestation_hash` field in writes:
 
-- `PriceFeed.Update(..., attestationHash, ...)`
-- `RandomnessLog.Record(..., attestationHash, ...)`
+- `PriceFeed.update(..., attestationHash, ...)`
+- `RandomnessLog.record(..., attestationHash, ...)`
 
 This repo’s services compute and submit an attestation hash for each anchored write.
 
@@ -43,4 +43,3 @@ make -C deploy run-neoexpress
 make -C deploy deploy
 make -C deploy init
 ```
-

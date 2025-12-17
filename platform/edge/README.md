@@ -29,8 +29,8 @@ See `platform/edge/functions/`:
 - `gasbank-deposit`: create a deposit request record.
 - `gasbank-deposits`: list deposit requests.
 - `gasbank-transactions`: list gasbank transactions.
-- `pay-gas`: returns a PaymentHub `Pay` invocation (GAS-only).
-- `vote-neo`: returns a Governance `Vote` invocation (NEO-only).
+- `pay-gas`: returns a PaymentHub `pay` invocation (GAS-only).
+- `vote-neo`: returns a Governance `vote` invocation (NEO-only).
 - `rng-request`: runs RNG via `neocompute` (no dedicated `vrf-service` in this repo).
 - `datafeed-price`: read proxy to `neofeeds`.
 

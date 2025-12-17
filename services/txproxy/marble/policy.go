@@ -28,7 +28,7 @@ func (s *Service) checkIntentPolicy(contractHash, method, intent string) (status
 			return http.StatusForbidden, "payments intent requires PaymentHub contract"
 		}
 		if methodLower != "pay" {
-			return http.StatusForbidden, "payments intent only allows Pay"
+			return http.StatusForbidden, "payments intent only allows pay"
 		}
 		return 0, ""
 	case intentGovernance:
@@ -42,7 +42,7 @@ func (s *Service) checkIntentPolicy(contractHash, method, intent string) (status
 		case "stake", "unstake", "vote":
 			return 0, ""
 		default:
-			return http.StatusForbidden, "governance intent only allows Stake/Unstake/Vote"
+			return http.StatusForbidden, "governance intent only allows stake/unstake/vote"
 		}
 	default:
 		return http.StatusBadRequest, "unknown intent"

@@ -10,7 +10,7 @@ services to obtain signatures and derived public keys.
 
 - Deterministic P-256 key derivation from a master seed (`GLOBALSIGNER_MASTER_SEED`)
 - Key versioning + rotation (active + overlap window)
-- Domain-separated signing (e.g. `vrf:*`, `datafeed:*`, `automation:*`)
+- Domain-separated signing (e.g. `randomness:*`, `datafeed:*`, `automation:*`)
 - Attestation artifacts binding the active public key to the enclave identity
 
 ## API Endpoints
@@ -35,7 +35,7 @@ Protected (service-auth required):
 curl -X POST https://globalsigner:8092/sign \
   -H "Content-Type: application/json" \
   -d '{
-    "domain": "vrf:proof",
+    "domain": "randomness:proof",
     "data": "0x1234abcd"
   }'
 ```

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 type Allowlist struct {
@@ -47,7 +48,7 @@ func ParseAllowlist(raw string) (*Allowlist, error) {
 				entry.AllowAll = true
 				continue
 			}
-			entry.Methods[m] = struct{}{}
+			entry.Methods[canonicalizeMethodName(m)] = struct{}{}
 		}
 		out.Contracts[normalized] = entry
 	}
@@ -61,7 +62,7 @@ func (a *Allowlist) Allows(contractHash, method string) bool {
 	}
 
 	contractHash = normalizeContractHash(contractHash)
-	method = strings.TrimSpace(method)
+	method = canonicalizeMethodName(method)
 	if contractHash == "" || method == "" {
 		return false
 	}
@@ -78,12 +79,27 @@ func (a *Allowlist) Allows(contractHash, method string) bool {
 }
 
 func normalizeContractHash(raw string) string {
-	raw = strings.ToLower(strings.TrimSpace(raw))
+	raw = strings.TrimSpace(raw)
 	raw = strings.TrimPrefix(raw, "0x")
 	raw = strings.TrimPrefix(raw, "0X")
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	raw = strings.ToLower(strings.TrimSpace(raw))
+	if len(raw) != 40 {
 		return ""
 	}
+	for _, ch := range raw {
+		if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') {
+			return ""
+		}
+	}
 	return raw
+}
+
+func canonicalizeMethodName(method string) string {
+	method = strings.TrimSpace(method)
+	if method == "" {
+		return ""
+	}
+	runes := []rune(method)
+	runes[0] = unicode.ToLower(runes[0])
+	return string(runes)
 }
