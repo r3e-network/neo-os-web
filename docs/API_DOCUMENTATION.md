@@ -519,8 +519,11 @@ For SGX hardware deployments, ensure:
 
 ## SDK Support
 
-This repository includes a minimal TypeScript client used by the Vercel UI:
-`frontend/src/api/client.ts`.
+Platform SDK scaffolds live under `platform/sdk/` and are intended to be exposed
+to MiniApps as `window.MiniAppSDK` via the Next.js host (`platform/host-app/`).
+
+The older `frontend/src/api/client.ts` remains as a legacy/internal client for
+the existing Vite UI and is not the long-term MiniApp SDK.
 
 Example (TypeScript, API key):
 

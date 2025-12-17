@@ -10,6 +10,14 @@ This document describes the intended API surface for the MiniApp platform.
 
 ## Edge Endpoints (Gateway)
 
+Supabase deploys Edge functions under:
+
+- `/functions/v1/<function-name>`
+
+The JS SDK (`platform/sdk`) is expected to set `edgeBaseUrl` to:
+
+- `https://<project>.supabase.co/functions/v1`
+
 All endpoints require either:
 
 - Supabase session (cookie), or
@@ -18,23 +26,28 @@ All endpoints require either:
 
 ### Payments (GAS only)
 
-- `POST /v1/apps/{appId}/pay`
-  - body: `{ amount_gas: "1.5", memo?: "..." }`
+- `POST /functions/v1/pay-gas`
+  - body: `{ app_id: "...", amount_gas: "1.5", memo?: "..." }`
+  - returns: a PaymentHub `Pay` invocation (GAS-only) for the wallet/SDK to sign and submit
 
 ### Governance (NEO only)
 
-- `POST /v1/apps/{appId}/governance/vote`
-  - body: `{ proposal_id: "...", neo_amount: "10", memo?: "..." }`
+- `POST /functions/v1/vote-neo`
+  - body: `{ app_id: "...", proposal_id: "...", neo_amount: "10", support?: true }`
+  - returns: a Governance `Vote` invocation (NEO-only) for the wallet/SDK to sign and submit
 
 ### RNG / VRF
 
-- `POST /v1/apps/{appId}/rng/request`
+- `POST /functions/v1/rng-request`
+  - body: `{ app_id: "..." }`
   - executes a randomness script in `neocompute` (no dedicated VRF service)
+  - optional: anchors to `RandomnessLog` via `txproxy` when enabled
 
 ### Datafeed
 
-- `GET /v1/datafeed/price/{symbol}`
-- `GET /v1/datafeed/stream/{symbol}` (SSE/WebSocket proxy)
+- `GET /functions/v1/datafeed-price?symbol=BTC-USD`
+  - read proxy to `neofeeds` (or a future cache)
+- `GET /functions/v1/datafeed-stream?symbol=BTC-USD` (future: SSE/WebSocket proxy)
 
 ## TEE Service Endpoints
 

@@ -113,10 +113,11 @@ func (m *Marble) Initialize(ctx context.Context) error {
 	}
 
 	if hasRootCA {
-		m.rootCA = x509.NewCertPool()
-		if !m.rootCA.AppendCertsFromPEM([]byte(rootPEM)) {
+		rootCAs := x509.NewCertPool()
+		if !rootCAs.AppendCertsFromPEM([]byte(rootPEM)) {
 			return fmt.Errorf("parse root CA certificate")
 		}
+		m.rootCA = rootCAs
 	}
 
 	// Configure TLS for mTLS communication only if we have valid certificates
@@ -125,10 +126,27 @@ func (m *Marble) Initialize(ctx context.Context) error {
 		if m.rootCA == nil {
 			return fmt.Errorf("failed to initialize MarbleRun mTLS: missing root CA pool")
 		}
+
+		// Optionally allow additional client CAs for inbound mTLS.
+		// This is useful when integrating an external gateway (e.g. Supabase Edge)
+		// that must connect to the enclave services over mTLS.
+		clientCAs := m.rootCA
+		if extra := strings.TrimSpace(os.Getenv("MARBLE_EXTRA_CLIENT_CA")); extra != "" {
+			combined := x509.NewCertPool()
+			// Start with the MarbleRun root CA, then append the extra CA(s).
+			if !combined.AppendCertsFromPEM([]byte(rootPEM)) {
+				return fmt.Errorf("parse root CA certificate")
+			}
+			if !combined.AppendCertsFromPEM([]byte(extra)) {
+				return fmt.Errorf("parse extra client CA certificate")
+			}
+			clientCAs = combined
+		}
+
 		m.tlsConfig = &tls.Config{
 			Certificates: []tls.Certificate{m.cert},
 			RootCAs:      m.rootCA,
-			ClientCAs:    m.rootCA,
+			ClientCAs:    clientCAs,
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			MinVersion:   tls.VersionTLS13,
 		}

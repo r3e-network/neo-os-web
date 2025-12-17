@@ -83,6 +83,18 @@ httpClient := m.HTTPClient()
 resp, err := httpClient.Get("https://neoaccounts:8085/info")
 ```
 
+### External Gateways (Supabase Edge)
+
+By default, enclave services only accept client certificates signed by the
+MarbleRun root CA (`MARBLE_ROOT_CA`). To support external gateways that must
+connect via mTLS (e.g. Supabase Edge Functions), you can append additional PEM
+roots to the server-side client CA pool by setting:
+
+- `MARBLE_EXTRA_CLIENT_CA` (PEM)
+
+This affects **inbound** mTLS verification (`tls.Config.ClientCAs`) and does not
+change the trust roots used for outbound mesh calls.
+
 ## External HTTP Calls
 
 For outbound calls to non-mesh endpoints (Supabase, Neo RPC, third-party APIs), use:
@@ -134,5 +146,6 @@ Current test coverage: **43.8%**
 | `MARBLE_CERT` | TLS certificate (injected) |
 | `MARBLE_KEY` | TLS private key (injected) |
 | `MARBLE_ROOT_CA` | Root CA certificate (injected) |
+| `MARBLE_EXTRA_CLIENT_CA` | Optional extra client CA PEMs (inbound mTLS) |
 | `MARBLE_SECRETS` | JSON-encoded secrets (injected) |
 | `MARBLE_UUID` | Unique marble instance ID |

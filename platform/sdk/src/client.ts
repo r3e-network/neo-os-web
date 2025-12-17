@@ -12,7 +12,7 @@ async function requestJSON<T>(
   path: string,
   init: RequestInit,
 ): Promise<T> {
-  const base = cfg.edgeBaseUrl.replace(/\\/$/, "");
+  const base = cfg.edgeBaseUrl.replace(/\/$/, "");
   const url = `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 
   const headers = new Headers(init.headers);
@@ -66,7 +66,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
     },
     datafeed: {
       async getPrice(symbol: string): Promise<PriceResponse> {
-        const base = cfg.edgeBaseUrl.replace(/\\/$/, "");
+        const base = cfg.edgeBaseUrl.replace(/\/$/, "");
         const url = `${base}/datafeed-price?symbol=${encodeURIComponent(symbol)}`;
         const resp = await fetch(url);
         const text = await resp.text();
@@ -76,4 +76,3 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
     },
   };
 }
-
