@@ -98,3 +98,8 @@ In code, this is primarily:
 - **Services may not talk to Neo RPC directly** except via `infrastructure/chain`.
 - **Services may not duplicate “service base” lifecycle** (use `infrastructure/service.BaseService`).
 - **Contract bindings/event parsing live in `infrastructure/chain`** (`contracts_*.go`, `listener_events_*.go`) to avoid duplication.
+
+## Enforcement (automated)
+
+- Responsibility map: `docs/MODULE_RESPONSIBILITIES.md`
+- Layering guardrail: `test/layering/layering_test.go`

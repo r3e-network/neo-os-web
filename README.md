@@ -72,7 +72,8 @@ See `.env.example` for a full list.
 ## Docs
 
 - `docs/ARCHITECTURE.md`: current end-to-end architecture and TEE boundary
-- `docs/LAYERING.md`: module responsibility map (what goes where)
+- `docs/LAYERING.md`: layering rules + boundaries (what goes where)
+- `docs/MODULE_RESPONSIBILITIES.md`: per-module responsibilities + dependency rules
 - `docs/API_DOCUMENTATION.md`: gateway/service API reference
 - `docs/DEPLOYMENT_GUIDE.md`: deployment paths (Docker, MarbleRun, K8s)
 - `docs/MASTER_KEY_ATTESTATION.md`: GlobalSigner key + attestation workflow
