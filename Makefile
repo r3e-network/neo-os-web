@@ -3,7 +3,7 @@
 # MarbleRun + EGo + Supabase + Vercel Architecture
 # =============================================================================
 
-.PHONY: all build test clean docker frontend deploy help
+.PHONY: all build test clean docker frontend deploy help contracts-build test-contracts
 
 # Variables
 CMD_BINARIES := marble create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
@@ -83,6 +83,18 @@ test-watch: ## Run tests in watch mode
 	@echo "Running tests in watch mode..."
 	@which gotestsum > /dev/null || go install gotest.tools/gotestsum@latest
 	gotestsum --watch
+
+# =============================================================================
+# Contracts (Neo N3)
+# =============================================================================
+
+contracts-build: ## Build Neo N3 contracts (nccs)
+	@echo "Building Neo N3 contracts..."
+	@./contracts/build.sh
+
+test-contracts: contracts-build ## Run neo-express contract tests (builds contracts first)
+	@echo "Running neo-express contract tests..."
+	go test -v ./test/contract -count=1
 
 # =============================================================================
 # Docker

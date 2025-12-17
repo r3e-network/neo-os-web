@@ -1,31 +1,217 @@
-# Neo N3 Mini-App Platform (Architectural Blueprint)
+# Neo N3 Mini‑App Platform (Architectural Blueprint)
 
-This document is the **canonical blueprint** the repository is converging to.
-It enumerates the tooling choices and the hard constraints:
+This is the **reviewed, polished, and expanded** blueprint the repository is
+converging to. It explicitly locks the technology choices and enforces the hard
+constraints:
 
-- **Settlement: GAS only**
-- **Governance: NEO only**
-- **Confidential services: MarbleRun + EGo (SGX TEE)**
-- **Gateway: Supabase (Auth + DB + Edge)**
-- **Frontend host: Vercel + Next.js + micro-frontends**
-- **Datafeed: high frequency, push on ≥ 0.1% deviation**
+- **Settlement:** **GAS only** (payments/settlement must reject other assets)
+- **Governance:** **NEO only** (voting/staking; no bNEO)
+- **Confidential services:** **MarbleRun + EGo (SGX TEE)** with attested TLS
+- **Gateway/Data:** **Supabase** (Auth + Postgres + RLS + Edge Functions)
+- **Frontend host:** **Vercel + Next.js** + micro‑frontends
+- **High‑freq data:** **Datafeed** pushes on **≥ 0.1%** deviation
 
 ## Repo Notes (Current Implementation)
 
-This repo follows the blueprint with a few intentional implementation notes:
+This repo implements the blueprint with a few deliberate adjustments to reduce
+duplication and keep responsibilities clear:
 
-- **VRF service**: there is **no dedicated `vrf-service`** directory. Randomness
-  is provided via **`neocompute`** scripts inside the enclave and can be anchored
-  on-chain via `RandomnessLog`.
-- **Service naming**: runtime service IDs are kept stable (`neofeeds`,
-  `neocompute`, etc.). See `docs/platform-mapping.md` for the mapping to the
-  blueprint names (`datafeed-service`, `compute-service`, ...).
-- **Edge ↔ TEE mTLS**: the target design is to connect Supabase Edge → enclave
-  services over mTLS. The Deno scaffolds include optional mTLS support via
-  `Deno.createHttpClient`, and the enclave server TLS can be configured to trust
-  an extra client CA via `MARBLE_EXTRA_CLIENT_CA`.
+- **No dedicated `vrf-service`:** randomness is provided via `neocompute` scripts
+  (inside TEE) and can be anchored on‑chain via `RandomnessLog`.
+- **Service naming:** runtime **service IDs** are kept stable (`neofeeds`,
+  `neocompute`, ...). See `docs/platform-mapping.md` for mapping to blueprint
+  names (`datafeed-service`, `compute-service`, ...).
+- **Edge ↔ TEE mTLS:** Supabase Edge scaffolds support optional mTLS via
+  `Deno.createHttpClient`. Enclave services can additionally trust a gateway
+  client CA via `MARBLE_EXTRA_CLIENT_CA`.
 
-For the expanded Chinese spec (including the “VRF via compute” note), see:
+For the expanded Chinese spec, see:
 
 - `docs/neo-miniapp-platform-full.md`
 
+---
+
+## 1. Complete Tech Stack & Tooling Selection
+
+### A. Blockchain Layer (Neo N3)
+
+- **Network:** Neo N3 MainNet (prod) / TestNet (stage)
+- **Contracts:** **C#** via `neo-devpack-dotnet`
+- **Local chain:** `neo-express` (Neo Express)
+- **Contract testing:** `Neo.TestingFramework`
+- **Client SDK:** `neon-js` (TS/JS transaction construction)
+- **Wallet integration:** NeoLine / O3 / OneGate via dAPI
+
+### B. Service Layer (Confidential Computing)
+
+- **Hardware:** Intel SGX nodes (or simulation for dev)
+- **Enclave runtime:** **EGo** (Go inside enclaves)
+- **Orchestration:** **MarbleRun** (attestation, secrets distribution, scaling)
+- **Language:** **Go**
+- **Networking:** REST (or gRPC) over attested TLS
+
+### C. Backend & Gateway
+
+- **Platform:** **Supabase**
+- **Auth:** Supabase Auth (OAuth: Google/GitHub/Twitter/etc.)
+- **DB:** Postgres + RLS
+- **API/Gateway:** Supabase Edge Functions (Deno) as the thin gateway
+- **Storage:** Supabase Storage
+
+### D. Frontend Platform
+
+- **Framework:** Next.js
+- **Hosting:** Vercel
+- **Micro‑frontend strategy:**
+  - Built‑ins: Module Federation
+  - Untrusted 3rd‑party apps: `<iframe sandbox>` + strict `postMessage` protocol
+
+### E. DevOps & CI/CD
+
+- **Repo:** GitHub monorepo
+- **CI:** GitHub Actions
+- **Security:** dependency scans, CSP checks, TEE measurement builds
+
+---
+
+## 2. Repository Structure (Target Layout)
+
+Target platform shape:
+
+```text
+neo-miniapp-platform/
+├── contracts/                  # [C#] Neo N3 Contracts (GAS-only / NEO-only enforced)
+│   ├── PaymentHub/             # Payments & settlement (GAS ONLY)
+│   ├── Governance/             # Voting & staking (NEO ONLY)
+│   ├── PriceFeed/              # On-chain datafeed anchor (0.1% trigger)
+│   ├── RandomnessLog/          # Randomness anchoring (TEE report hash)
+│   ├── AppRegistry/            # App manifest hash + allowlist anchors
+│   └── AutomationAnchor/       # Task registry + anti-replay nonce
+│
+├── services/                   # [Go] EGo + MarbleRun TEE services
+│   ├── datafeed-service/       # Price aggregation + publish policy
+│   ├── oracle-gateway/         # Allowlisted HTTP fetch + secret injection
+│   ├── compute-service/        # Restricted scripts/compute (also RNG scripts)
+│   ├── automation-service/     # Triggers + anchored tasks execution
+│   ├── tx-proxy/               # Allowlisted sign+broadcast gatekeeper
+│   └── marblerun/              # Manifests/policies (policy.json, manifest.json, CA)
+│
+├── platform/                   # Host platform layer
+│   ├── host-app/               # Next.js host app (Vercel)
+│   ├── sdk/                    # MiniAppSDK (TS)
+│   ├── edge/                   # Supabase Edge functions
+│   └── rls/                    # RLS SQL (schema lives in migrations/)
+│
+├── miniapps/                   # Mini-apps + templates
+└── infra/                      # neo-express, docker compose, CI helpers
+```
+
+Current repo mapping (actual folder names and service IDs):
+
+- `services/datafeed` (`neofeeds`) → `datafeed-service`
+- `services/conforacle` (`neooracle`) → `oracle-gateway`
+- `services/confcompute` (`neocompute`) → `compute-service`
+- `services/automation` (`neoflow`) → `automation-service`
+- `services/txproxy` (`txproxy`) → `tx-proxy`
+
+The repository also contains an explicit shared **infrastructure** layer:
+
+- `infrastructure/chain`: single source of truth for Neo RPC/tx building/events
+- `infrastructure/middleware`: shared HTTP middleware only (no per-service copies)
+- `infrastructure/runtime`: strict identity mode + environment helpers
+- `infrastructure/secrets`: user secrets encryption + permissions + audit
+- `infrastructure/globalsigner`: TEE-held signing root + domain-separated keys
+- `infrastructure/accountpool`: large pool of Neo N3 accounts + rotation
+
+---
+
+## 3. Core Component Design
+
+### A. Contracts (Asset & Logic Constraints)
+
+1. **PaymentHub**
+   - Rejects non‑GAS payments (NEP‑17 callback checks `Runtime.CallingScriptHash`)
+   - Supports app config + split settlement + receipts
+2. **Governance**
+   - Accepts **NEO only** for staking
+   - Supports proposal skeleton + vote tracking (stake‑weighted)
+3. **PriceFeed**
+   - Stores `(symbol, round_id, price, ts, attestation_hash, sourceset_id)`
+   - Enforces monotonic `round_id` to prevent replay
+4. **RandomnessLog**
+   - Anchors `(request_id, randomness, attestation_hash, timestamp)`
+5. **AppRegistry**
+   - Stores manifest hash + status + allowlist anchor hash
+6. **AutomationAnchor**
+   - Stores tasks + marks executed nonces to prevent replay
+
+### B. TEE Services (The “Black Box”)
+
+All signing keys and secret material stay **inside the enclave**.
+
+1. **`tx-proxy` (Gatekeeper)**
+   - Single point for enclave‑origin chain writes
+   - Enforces contract+method allowlist and replay protection
+   - Optional intent gates:
+     - `payments` → PaymentHub `pay` only
+     - `governance` → Governance `stake/unstake/vote` only
+2. **`datafeed-service`**
+   - Polls multiple sources frequently (default 1s)
+   - Aggregates (median/weighted) and publishes on ≥ 0.1% deviation
+   - Hysteresis 0.08%, throttle ≥ 5s min interval, cap ~30/min/symbol
+   - Anchors updates via `tx-proxy` → `PriceFeed.update`
+3. **`compute-service`**
+   - Restricted scripts with resource limits + optional secret injection
+   - Provides RNG/VRF functionality via enclave script execution (no separate VRF service)
+   - Can optionally anchor results on-chain via `RandomnessLog.record` using `tx-proxy`
+4. **`oracle-gateway`**
+   - Allowlisted outbound HTTP fetch + optional secret injection
+   - Used for “confidential oracle” workflows
+5. **`automation-service`**
+   - Scheduler + triggers
+   - Optional anchored tasks via `AutomationAnchor` and on-chain event monitoring
+
+### C. Gateway (Supabase Edge)
+
+Supabase Edge is a stateless thin router:
+
+- validates JWT / API key
+- enforces nonce/replay + rate limits
+- enforces “must bind wallet” for state-changing flows
+- routes to enclave services over mTLS when configured
+
+Canonical endpoints:
+
+- `POST /functions/v1/pay-gas`
+- `POST /functions/v1/vote-neo`
+- `POST /functions/v1/rng-request`
+- `POST /functions/v1/wallet-nonce`, `POST /functions/v1/wallet-bind`
+- `secrets-*`, `api-keys-*`, `gasbank-*`, `datafeed-price`
+
+---
+
+## 4. Frontend & Security Sandbox
+
+- Host app loads miniapps.
+- Untrusted apps run in `iframe sandbox` and only talk to the platform via a
+  strict postMessage protocol.
+- Platform enforces strict CSP (no `eval`, no uncontrolled external scripts).
+
+---
+
+## 5. Security Checklist (4-Layer Defense)
+
+1. **SDK:** strict typed APIs (no asset param for `payGAS`/`vote`)
+2. **Edge:** auth + nonce + caps + routing (GAS-only / NEO-only enforced)
+3. **TEE:** allowlists + enclave-held keys + attested origin
+4. **Contracts:** hardcoded asset checks and monotonicity checks (replay resistance)
+
+---
+
+## 6. MVP Roadmap
+
+1. Deploy contracts to local `neo-express` / TestNet:
+   - PaymentHub, Governance, PriceFeed, RandomnessLog, AppRegistry, AutomationAnchor
+2. Bring up enclave services in simulation:
+   - tx-proxy, compute-service (RNG scripts), datafeed-service, automation-service, oracle-gateway
+3. Wire Supabase Edge → services (auth + routing) and Next.js host scaffold.

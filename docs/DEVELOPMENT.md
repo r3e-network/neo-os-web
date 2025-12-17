@@ -210,6 +210,21 @@ make test-integration
 make test-e2e
 ```
 
+### Neo N3 Contracts (neo-express)
+
+Contract tests are executed via `neo-express` (the `neoxp` dotnet tool). From a
+clean checkout, you can build contracts and run the platform smoke tests with:
+
+```bash
+make test-contracts
+```
+
+If you only want to compile contracts (without running Go tests):
+
+```bash
+make contracts-build
+```
+
 ### Watch Mode
 
 Automatically run tests when files change:

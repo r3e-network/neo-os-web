@@ -14,12 +14,13 @@ import (
 
 func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	SkipIfNoNeoExpress(t)
+	SkipIfNoCompiledContracts(t)
 
 	if testing.Short() {
 		t.Skip("skipping neo-express platform contract test in short mode")
 	}
 
-	// Ensure artifacts exist (skip if contracts weren't built).
+	// Ensure artifacts exist (contract build should already have run).
 	for _, name := range []string{
 		"PaymentHub",
 		"Governance",
@@ -29,7 +30,7 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 		"AutomationAnchor",
 	} {
 		if _, _, err := FindContractArtifacts(name); err != nil {
-			t.Skip(err.Error())
+			t.Fatalf("missing contract artifacts for %s: %v", name, err)
 		}
 	}
 

@@ -595,10 +595,23 @@ func FindContractArtifacts(contractName string) (nefPath, manifestPath string, e
 
 func SkipIfNoNeoExpress(t *testing.T) {
 	t.Helper()
+	if !hasDotnet() {
+		t.Skip("dotnet not installed, skipping neo-express contract tests")
+	}
 	home, _ := os.UserHomeDir()
 	neoxp := filepath.Join(home, ".dotnet", "tools", neoxpPath)
 	if _, err := os.Stat(neoxp); os.IsNotExist(err) {
 		t.Skip("neo-express not installed, skipping contract tests")
+	}
+
+	// Ensure the tool is runnable (shim requires a compatible .NET runtime).
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, neoxp, "--version")
+	cmd.Env = append(os.Environ(), dotnetToolEnv()...)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Skipf("neo-express tool not runnable: %s", strings.TrimSpace(string(out)))
 	}
 }
 
@@ -606,7 +619,91 @@ func SkipIfNoCompiledContracts(t *testing.T) {
 	t.Helper()
 	contractDir := filepath.Join("..", "..", "contracts", "build")
 	nefPath := filepath.Join(contractDir, "PaymentHub.nef")
-	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
-		t.Skip("contracts not compiled, run './contracts/build.sh' first")
+	if _, err := os.Stat(nefPath); err == nil {
+		return
 	}
+
+	// Attempt to build contracts on-demand so the contract workflow is runnable
+	// from a clean checkout (when dotnet + nccs are installed). If tooling is not
+	// available, skip with a clear message.
+	if !hasDotnet() {
+		t.Skip("dotnet not installed; install .NET SDK/runtime and re-run (required for neo-express contract tests)")
+	}
+	if !hasNCCS() {
+		t.Skip("nccs (Neo.Compiler.CSharp) not installed; run 'dotnet tool install -g Neo.Compiler.CSharp' and re-run")
+	}
+
+	if err := runContractBuildScript(t); err != nil {
+		t.Fatalf("contracts build failed: %v", err)
+	}
+
+	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
+		t.Fatalf("contracts build completed but %s is still missing", nefPath)
+	}
+}
+
+func hasDotnet() bool {
+	if _, err := exec.LookPath("dotnet"); err == nil {
+		return true
+	}
+	home, _ := os.UserHomeDir()
+	if home == "" {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(home, ".dotnet", "dotnet")); err == nil {
+		return true
+	}
+	return false
+}
+
+func hasNCCS() bool {
+	if _, err := exec.LookPath("nccs"); err == nil {
+		return true
+	}
+	home, _ := os.UserHomeDir()
+	if home == "" {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(home, ".dotnet", "tools", "nccs")); err == nil {
+		return true
+	}
+	if _, err := os.Stat(filepath.Join(home, ".dotnet", "tools", "nccs.exe")); err == nil {
+		return true
+	}
+	return false
+}
+
+func dotnetToolEnv() []string {
+	home, _ := os.UserHomeDir()
+	dotnetRoot := filepath.Join(home, ".dotnet")
+	tools := filepath.Join(home, ".dotnet", "tools")
+
+	path := os.Getenv("PATH")
+	if path == "" {
+		path = tools
+	} else {
+		path = dotnetRoot + string(os.PathListSeparator) + tools + string(os.PathListSeparator) + path
+	}
+
+	return []string{
+		"DOTNET_ROOT=" + dotnetRoot,
+		"PATH=" + path,
+	}
+}
+
+func runContractBuildScript(t *testing.T) error {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	scriptPath := filepath.Join("..", "..", "contracts", "build.sh")
+	cmd := exec.CommandContext(ctx, "bash", scriptPath)
+	cmd.Env = append(os.Environ(), dotnetToolEnv()...)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)
+	}
+	return nil
 }

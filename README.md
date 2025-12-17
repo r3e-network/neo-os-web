@@ -4,6 +4,8 @@ A service layer for Neo N3 that combines a user-facing **Gateway** (Supabase Edg
 
 For the canonical, up-to-date architecture overview see `docs/ARCHITECTURE.md`.
 
+For the target MiniApp platform blueprint/spec, see `docs/neo-miniapp-platform-blueprint.md` and `docs/neo-miniapp-platform-full.md`.
+
 ## Scope (Current)
 
 **Product services** (only these are in scope right now):

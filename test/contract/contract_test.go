@@ -32,6 +32,7 @@ func TestNeoExpressSetup(t *testing.T) {
 
 func TestContractCompilation(t *testing.T) {
 	SkipIfNoNeoExpress(t)
+	SkipIfNoCompiledContracts(t)
 
 	type contractSpec struct {
 		name       string // artifact base name (matches contracts/build/*.nef)
@@ -77,12 +78,11 @@ func TestContractCompilation(t *testing.T) {
 			manifestFile := filepath.Join(contractBase, spec.name+".manifest.json")
 
 			if _, err := os.Stat(nefFile); os.IsNotExist(err) {
-				t.Logf("NEF file not found, contract needs compilation: %s", nefFile)
-				t.Skip("contracts not compiled - run ./contracts/build.sh")
+				t.Fatalf("NEF file missing after contract build: %s", nefFile)
 			}
 
 			if _, err := os.Stat(manifestFile); os.IsNotExist(err) {
-				t.Errorf("manifest file missing: %s", manifestFile)
+				t.Fatalf("manifest file missing after contract build: %s", manifestFile)
 			}
 		})
 	}

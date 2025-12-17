@@ -116,6 +116,38 @@ jobs:
           name: codecov-umbrella
         continue-on-error: true
 
+  contract-tests:
+    name: Contracts (neo-express)
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: true
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Install Neo tooling (nccs, neo-express)
+        run: |
+          set -euo pipefail
+          dotnet tool install -g neo.compiler.csharp --version 3.8.1
+          dotnet tool install -g neo.express --version 3.8.2
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Build Neo N3 contracts
+        run: ./contracts/build.sh
+
+      - name: Run neo-express contract tests
+        run: go test -v ./test/contract -count=1
+
   integration-tests:
     name: Integration Tests
     needs: [setup, build]
