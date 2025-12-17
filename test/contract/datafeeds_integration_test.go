@@ -230,10 +230,11 @@ func TestNeoExpressPriceFeedArtifacts(t *testing.T) {
 	}
 
 	SkipIfNoNeoExpress(t)
+	SkipIfNoCompiledContracts(t)
 
 	nefPath := filepath.Join("..", "..", "contracts", "build", "PriceFeed.nef")
 	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
-		t.Skip("PriceFeed.nef not found, run './contracts/build.sh' first")
+		t.Fatalf("PriceFeed.nef missing after contract build: %s", nefPath)
 	}
 
 	t.Log("Neo Express PriceFeed artifacts found - contract deployment ready")
