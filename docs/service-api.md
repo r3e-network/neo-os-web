@@ -43,6 +43,14 @@ All endpoints require either:
   - executes a randomness script in `neocompute` (no dedicated VRF service)
   - optional: anchors to `RandomnessLog` via `txproxy` when enabled
 
+### Wallet Binding
+
+- `POST /functions/v1/wallet-nonce`
+  - issues `{ nonce, message }` to be signed by a Neo N3 wallet
+- `POST /functions/v1/wallet-bind`
+  - body: `{ address, public_key, signature, message, nonce, label? }`
+  - verifies wallet ownership and binds the address to the authenticated user
+
 ### Datafeed
 
 - `GET /functions/v1/datafeed-price?symbol=BTC-USD`

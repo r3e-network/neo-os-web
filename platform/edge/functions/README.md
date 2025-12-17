@@ -18,3 +18,7 @@ Notes:
 - In strict identity / production mode, the TEE services will only trust
   identity headers (`X-User-ID`, `X-Service-ID`) when protected by verified mTLS.
 
+Wallet onboarding:
+
+- `wallet-nonce` + `wallet-bind` implement an OAuth-first flow where users must
+  bind a Neo N3 address (once signature) before accessing on-chain actions.

@@ -15,6 +15,8 @@ platform. The intended architecture is a **thin gateway**:
 
 See `platform/edge/functions/`:
 
+- `wallet-nonce`: issues a nonce + message for Neo N3 wallet binding.
+- `wallet-bind`: verifies signature and binds a Neo N3 address to the authenticated user.
 - `pay-gas`: returns a PaymentHub `Pay` invocation (GAS-only).
 - `vote-neo`: returns a Governance `Vote` invocation (NEO-only).
 - `rng-request`: runs RNG via `neocompute` (no dedicated `vrf-service` in this repo).
@@ -34,4 +36,3 @@ mTLS when these env vars are present:
 - `TEE_MTLS_ROOT_CA_PEM`: trusted server root (PEM; MarbleRun root CA)
 
 Alternatively `MARBLERUN_ROOT_CA_PEM` can be used as the root CA name.
-
