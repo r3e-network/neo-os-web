@@ -17,6 +17,11 @@ See `platform/edge/functions/`:
 
 - `wallet-nonce`: issues a nonce + message for Neo N3 wallet binding.
 - `wallet-bind`: verifies signature and binds a Neo N3 address to the authenticated user.
+- `secrets-list`: list secret metadata (no values).
+- `secrets-get`: decrypt and return a secret value.
+- `secrets-upsert`: create/update a secret (AES-GCM envelope).
+- `secrets-delete`: delete a secret and its policies.
+- `secrets-permissions`: set allowed service IDs per secret.
 - `pay-gas`: returns a PaymentHub `Pay` invocation (GAS-only).
 - `vote-neo`: returns a Governance `Vote` invocation (NEO-only).
 - `rng-request`: runs RNG via `neocompute` (no dedicated `vrf-service` in this repo).
@@ -33,6 +38,7 @@ At minimum, these functions expect:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY` (to validate `Authorization: Bearer <jwt>`)
 - `SUPABASE_SERVICE_ROLE_KEY` (to read/write platform tables like `users`/`user_wallets`)
+- `SECRETS_MASTER_KEY` (required for `secrets-*` endpoints; AES-GCM envelope key)
 
 ## mTLS to TEE
 
