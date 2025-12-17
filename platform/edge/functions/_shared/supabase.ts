@@ -55,3 +55,21 @@ export async function requirePrimaryWallet(userId: string): Promise<{ address: s
   if (!address) return error(428, "primary wallet binding required", "WALLET_REQUIRED");
   return { address };
 }
+
+export async function ensureUserRow(
+  auth: AuthContext,
+  patch: Record<string, unknown> = {},
+): Promise<{ id: string; nonce?: string; address?: string } | Response> {
+  const supabase = supabaseServiceClient();
+  const { data, error: upsertErr } = await supabase
+    .from("users")
+    .upsert(
+      { id: auth.userId, email: auth.email ?? null, ...patch },
+      { onConflict: "id" },
+    )
+    .select("id,nonce,address")
+    .maybeSingle();
+
+  if (upsertErr) return error(500, `failed to ensure user: ${upsertErr.message}`, "DB_ERROR");
+  return (data as any) ?? { id: auth.userId };
+}

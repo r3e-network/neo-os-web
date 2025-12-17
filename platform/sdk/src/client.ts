@@ -1,12 +1,18 @@
 import type {
+  HostSDK,
   MiniAppSDK,
   MiniAppSDKConfig,
   PayGASResponse,
   PriceResponse,
   RNGResponse,
+  SecretsDeleteResponse,
+  SecretsGetResponse,
+  SecretsListResponse,
+  SecretsPermissionsResponse,
+  SecretsUpsertResponse,
+  VoteNEOResponse,
   WalletBindResponse,
   WalletNonceResponse,
-  VoteNEOResponse,
 } from "./types.js";
 
 async function requestJSON<T>(
@@ -35,25 +41,6 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
     wallet: {
       async getAddress() {
         throw new Error("wallet integration not configured (use NeoLine/O3 dAPI in host app)");
-      },
-      async getBindMessage(): Promise<WalletNonceResponse> {
-        return requestJSON<WalletNonceResponse>(cfg, "/wallet-nonce", {
-          method: "POST",
-          body: JSON.stringify({}),
-        });
-      },
-      async bindWallet(params): Promise<WalletBindResponse> {
-        return requestJSON<WalletBindResponse>(cfg, "/wallet-bind", {
-          method: "POST",
-          body: JSON.stringify({
-            address: params.address,
-            public_key: params.publicKey,
-            signature: params.signature,
-            message: params.message,
-            nonce: params.nonce,
-            label: params.label,
-          }),
-        });
       },
     },
     payments: {
@@ -93,6 +80,62 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         const text = await resp.text();
         if (!resp.ok) throw new Error(text || `request failed (${resp.status})`);
         return JSON.parse(text) as PriceResponse;
+      },
+    },
+  };
+}
+
+export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
+  const mini = createMiniAppSDK(cfg);
+
+  return {
+    ...mini,
+    wallet: {
+      ...mini.wallet,
+      async getBindMessage(): Promise<WalletNonceResponse> {
+        return requestJSON<WalletNonceResponse>(cfg, "/wallet-nonce", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+      },
+      async bindWallet(params): Promise<WalletBindResponse> {
+        return requestJSON<WalletBindResponse>(cfg, "/wallet-bind", {
+          method: "POST",
+          body: JSON.stringify({
+            address: params.address,
+            public_key: params.publicKey,
+            signature: params.signature,
+            message: params.message,
+            nonce: params.nonce,
+            label: params.label,
+          }),
+        });
+      },
+    },
+    secrets: {
+      async list(): Promise<SecretsListResponse> {
+        return requestJSON<SecretsListResponse>(cfg, "/secrets-list", { method: "GET" });
+      },
+      async get(name: string): Promise<SecretsGetResponse> {
+        return requestJSON<SecretsGetResponse>(cfg, `/secrets-get?name=${encodeURIComponent(name)}`, { method: "GET" });
+      },
+      async upsert(name: string, value: string): Promise<SecretsUpsertResponse> {
+        return requestJSON<SecretsUpsertResponse>(cfg, "/secrets-upsert", {
+          method: "POST",
+          body: JSON.stringify({ name, value }),
+        });
+      },
+      async delete(name: string): Promise<SecretsDeleteResponse> {
+        return requestJSON<SecretsDeleteResponse>(cfg, "/secrets-delete", {
+          method: "POST",
+          body: JSON.stringify({ name }),
+        });
+      },
+      async setPermissions(name: string, services: string[]): Promise<SecretsPermissionsResponse> {
+        return requestJSON<SecretsPermissionsResponse>(cfg, "/secrets-permissions", {
+          method: "POST",
+          body: JSON.stringify({ name, services }),
+        });
       },
     },
   };

@@ -51,6 +51,21 @@ All endpoints require either:
   - body: `{ address, public_key, signature, message, nonce, label? }`
   - verifies wallet ownership and binds the address to the authenticated user
 
+### Secrets
+
+These endpoints manage user secrets stored in Supabase:
+
+- `GET /functions/v1/secrets-list`
+  - returns secret metadata (no values)
+- `GET /functions/v1/secrets-get?name=...`
+  - returns `{ name, value, version }` (decrypted in Edge using `SECRETS_MASTER_KEY`)
+- `POST /functions/v1/secrets-upsert`
+  - body: `{ name, value }`
+- `POST /functions/v1/secrets-delete`
+  - body: `{ name }`
+- `POST /functions/v1/secrets-permissions`
+  - body: `{ name, services: ["neocompute","neooracle"] }`
+
 ### Datafeed
 
 - `GET /functions/v1/datafeed-price?symbol=BTC-USD`

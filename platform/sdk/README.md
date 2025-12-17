@@ -12,7 +12,7 @@ Code lives under `platform/sdk/src/`.
 ## Usage
 
 ```ts
-import { createMiniAppSDK } from "@neo-miniapp/sdk";
+import { createHostSDK, createMiniAppSDK } from "@neo-miniapp/sdk";
 
 const sdk = createMiniAppSDK({
   edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
@@ -31,10 +31,15 @@ When a user logs in via Supabase OAuth, the platform can require them to bind a
 Neo N3 address before using on-chain services:
 
 ```ts
-const { nonce, message } = await sdk.wallet.getBindMessage();
+const host = createHostSDK({
+  edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
+  getAuthToken: async () => "<supabase-jwt>",
+});
+
+const { nonce, message } = await host.wallet.getBindMessage();
 
 // Host app: ask wallet to sign `message` and provide publicKey+signature
-await sdk.wallet.bindWallet({
+await host.wallet.bindWallet({
   address: "<neo-n3-address>",
   publicKey: "<hex or base64>",
   signature: "<hex or base64>",
@@ -42,6 +47,16 @@ await sdk.wallet.bindWallet({
   nonce,
   label: "Primary",
 });
+```
+
+## Secrets (Host-only)
+
+Secrets are host-only and should not be exposed to untrusted MiniApps:
+
+```ts
+await host.secrets.upsert("binance_api_key", "<secret-value>");
+await host.secrets.setPermissions("binance_api_key", ["neooracle"]);
+const list = await host.secrets.list();
 ```
 
 ## `window.MiniAppSDK`

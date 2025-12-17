@@ -1,3 +1,2 @@
-export { createMiniAppSDK } from "./client.js";
-export type { MiniAppSDK, MiniAppSDKConfig } from "./types.js";
-
+export { createHostSDK, createMiniAppSDK } from "./client.js";
+export type { HostSDK, MiniAppSDK, MiniAppSDKConfig } from "./types.js";

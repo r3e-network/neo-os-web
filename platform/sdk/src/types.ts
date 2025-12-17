@@ -55,6 +55,20 @@ export type WalletBindResponse = {
   };
 };
 
+export type SecretMeta = {
+  id: string;
+  name: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SecretsListResponse = { secrets: SecretMeta[] };
+export type SecretsGetResponse = { name: string; value: string; version: number };
+export type SecretsUpsertResponse = { secret: SecretMeta; created: boolean };
+export type SecretsDeleteResponse = { status: "ok" };
+export type SecretsPermissionsResponse = { status: "ok"; services: string[] };
+
 export type PriceResponse = {
   feed_id: string;
   pair: string;
@@ -69,15 +83,6 @@ export type PriceResponse = {
 export interface MiniAppSDK {
   wallet: {
     getAddress(): Promise<string>;
-    getBindMessage(): Promise<WalletNonceResponse>;
-    bindWallet(params: {
-      address: string;
-      publicKey: string;
-      signature: string;
-      message: string;
-      nonce: string;
-      label?: string;
-    }): Promise<WalletBindResponse>;
   };
   payments: {
     payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse>;
@@ -91,6 +96,32 @@ export interface MiniAppSDK {
   datafeed: {
     getPrice(symbol: string): Promise<PriceResponse>;
   };
+}
+
+// Host-only APIs (should not be exposed to untrusted MiniApps).
+export interface HostSDK {
+  wallet: MiniAppSDK["wallet"] & {
+    getBindMessage(): Promise<WalletNonceResponse>;
+    bindWallet(params: {
+      address: string;
+      publicKey: string;
+      signature: string;
+      message: string;
+      nonce: string;
+      label?: string;
+    }): Promise<WalletBindResponse>;
+  };
+  secrets: {
+    list(): Promise<SecretsListResponse>;
+    get(name: string): Promise<SecretsGetResponse>;
+    upsert(name: string, value: string): Promise<SecretsUpsertResponse>;
+    delete(name: string): Promise<SecretsDeleteResponse>;
+    setPermissions(name: string, services: string[]): Promise<SecretsPermissionsResponse>;
+  };
+  payments: MiniAppSDK["payments"];
+  governance: MiniAppSDK["governance"];
+  rng: MiniAppSDK["rng"];
+  datafeed: MiniAppSDK["datafeed"];
 }
 
 export type MiniAppSDKConfig = {

@@ -1,7 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
 import { verifyNeoSignature } from "../_shared/neo.ts";
-import { requireUser, supabaseServiceClient } from "../_shared/supabase.ts";
+import { ensureUserRow, requireUser, supabaseServiceClient } from "../_shared/supabase.ts";
 
 type WalletBindRequest = {
   address: string;
@@ -49,12 +49,8 @@ Deno.serve(async (req) => {
   const supabase = supabaseServiceClient();
 
   // Ensure the public.users row exists and fetch the currently issued nonce.
-  const { data: userRow, error: userErr } = await supabase
-    .from("users")
-    .upsert({ id: auth.userId, email: auth.email ?? null }, { onConflict: "id" })
-    .select("nonce")
-    .maybeSingle();
-  if (userErr) return error(500, `failed to load user: ${userErr.message}`, "DB_ERROR");
+  const userRow = await ensureUserRow(auth);
+  if (userRow instanceof Response) return userRow;
 
   const storedNonce = String((userRow as any)?.nonce ?? "").trim();
   if (!storedNonce) return error(400, "wallet nonce not issued (call wallet-nonce)", "NONCE_NOT_ISSUED");
@@ -105,4 +101,3 @@ Deno.serve(async (req) => {
 
   return json({ wallet: inserted });
 });
-

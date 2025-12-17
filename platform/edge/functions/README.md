@@ -16,6 +16,7 @@ Required env vars:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `SECRETS_MASTER_KEY` (required for `secrets-*`)
 
 Notes:
 
@@ -28,3 +29,8 @@ Wallet onboarding:
 
 - `wallet-nonce` + `wallet-bind` implement an OAuth-first flow where users must
   bind a Neo N3 address (once signature) before accessing on-chain actions.
+
+Secrets:
+
+- `secrets-list`, `secrets-get`, `secrets-upsert`, `secrets-delete`: manage user secrets stored in Supabase (encrypted via `SECRETS_MASTER_KEY`).
+- `secrets-permissions`: configure which internal service IDs may read a secret (`secret_policies` table).
