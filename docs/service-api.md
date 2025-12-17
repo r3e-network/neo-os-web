@@ -73,3 +73,4 @@ platform naming in docs:
 
 - `POST /invoke`: build+sign+broadcast allowlisted transactions.
   - hard rule: **payments only GAS**, **governance only NEO**, contract/method allowlists enforced.
+  - optional `intent` field enables stricter gates for `payments` (PaymentHub.Pay) and `governance` (Governance Stake/Unstake/Vote) when contract hashes are configured.

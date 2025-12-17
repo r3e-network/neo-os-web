@@ -3,11 +3,17 @@ package txproxy
 import "github.com/R3E-Network/service_layer/infrastructure/chain"
 
 type InvokeRequest struct {
-	RequestID    string              `json:"request_id"`
-	ContractHash string              `json:"contract_hash"`
-	Method       string              `json:"method"`
+	RequestID string `json:"request_id"`
+	// Intent optionally enables additional policy gates.
+	//
+	// Supported values:
+	// - "payments": enforce PaymentHub-only methods (GAS settlement)
+	// - "governance": enforce Governance-only methods (NEO governance)
+	Intent       string                `json:"intent,omitempty"`
+	ContractHash string                `json:"contract_hash"`
+	Method       string                `json:"method"`
 	Params       []chain.ContractParam `json:"params,omitempty"`
-	Wait         bool                `json:"wait,omitempty"`
+	Wait         bool                  `json:"wait,omitempty"`
 }
 
 type InvokeResponse struct {
@@ -16,4 +22,3 @@ type InvokeResponse struct {
 	VMState   string `json:"vm_state,omitempty"`
 	Exception string `json:"exception,omitempty"`
 }
-

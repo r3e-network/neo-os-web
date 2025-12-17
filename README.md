@@ -34,6 +34,7 @@ Secrets are **not** a separate service: they are managed by the gateway and stor
 - `infrastructure/`: shared building blocks (runtime, middleware, chain I/O, secrets, storage helpers, account pool, global signer)
 - `services/`: product services only (see “Scope”)
 - `contracts/`: Neo N3 contracts (legacy gateway/service contracts + MiniApp platform contracts + examples)
+- `platform/`: platform scaffolds (Supabase Edge functions, JS SDK, Next.js host app)
 - `frontend/`, `dapps/`: consumers (no service-layer business logic)
 - `docker/`, `k8s/`, `manifests/`, `deploy/`: deployment and operations
 

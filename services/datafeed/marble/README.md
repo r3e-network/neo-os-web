@@ -1,229 +1,105 @@
 # NeoFeeds Marble Service
 
-TEE-secured price feed aggregation service running inside MarbleRun enclave.
+TEE-secured price aggregation + on-chain anchoring service running inside the
+MarbleRun/EGo enclave mesh.
 
-## Overview
+## Responsibilities
 
-The NeoFeeds Marble service is the core TEE component that:
-1. Fetches prices from multiple external sources (Chainlink, Binance)
-2. Aggregates prices using weighted median calculation
-3. Signs aggregated data with TEE-attested keys
-4. Anchors updates on-chain via the platform `PriceFeed` contract (preferred; optional legacy NeoFeedsService support)
+- Poll multiple external HTTP sources (default: **Binance**, **Coinbase**, **OKX**) on a fixed interval (default: **1s**).
+- Aggregate values via **weighted median**.
+- Sign responses with an enclave-held key (`NEOFEEDS_SIGNING_KEY`).
+- Optionally push updates on-chain to the platform `PriceFeed` contract (preferred).
+- Enforce publish policy defaults aligned with the platform blueprint:
+  - **Threshold**: `10 bps` (0.10%)
+  - **Hysteresis**: `8 bps` (0.08%)
+  - **Min interval**: `5s` (≤ 1 publish / 5s / symbol)
+  - **Max rate**: `30/min` per symbol
 
-This service implements the **Push/Auto-Update Pattern** - the TEE proactively anchors price updates on-chain rather than responding to on-chain requests.
+## Endpoints
 
-## Architecture
+- `GET /health`, `GET /info` (provided by the shared `BaseService`)
+- `GET /price/{pair}` (canonical: `BTC-USD`, legacy `BTC/USD` accepted)
+- `GET /prices` (latest cached prices from storage, when DB is configured)
+- `GET /feeds`, `GET /sources`, `GET /config` (introspection)
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│                    MarbleRun Enclave (TEE)                     │
-│                                                                │
-│  ┌─────────────┐    ┌─────────────┐     ┌─────────────┐        │
-│  │ Chainlink   │    │  Service    │     │  Fulfiller  │        │
-│  │   Client    │───>│    Core     │────>│   (Push)    │        │
-│  └─────────────┘    └─────────────┘     └──────┬──────┘        │
-│                            │                   │               │
-│  ┌─────────────┐           │                   │               │
-│  │   Binance   │───────────┘                   │               │
-│  │   Client    │                               │               │
-│  └─────────────┘                               │               │
-└────────────────────────────────────────────────┼───────────────┘
-                                                 │
-                                    ┌────────────▼────────────┐
-                                    │  PriceFeed.cs           │
-                                    │    (Neo N3 Contract)    │
-                                    └─────────────────────────┘
-```
+## Configuration
 
-## File Structure
+NeoFeeds can be configured via:
 
-| File | Purpose |
-|------|---------|
-| `service.go` | Service initialization and configuration |
-| `core.go` | Price fetching and aggregation logic |
-| `chainlink.go` | Chainlink Arbitrum price feed client |
-| `fulfiller.go` | On-chain price push implementation |
-| `handlers.go` | HTTP request handlers |
-| `api.go` | Route registration |
-| `config.go` | YAML/JSON configuration loading |
-| `types.go` | Data structures and request/response types |
+1. A YAML/JSON file (`ConfigFile`), or
+2. A programmatic `FeedsConfig` (tests/embedding), or
+3. Built-in defaults (`DefaultConfig()`).
 
-Lifecycle is handled by the shared `commonservice.BaseService` (start/stop hooks, workers, standard routes).
+### URL & Pair Templating
 
-## Key Components
+Each `source.url` supports placeholders:
 
-### Service Struct
+- `{base}` / `{quote}`: derived from the feed ID (e.g., `BTC-USD`)
+- `{pair}`: constructed using `pair_template` (recommended for exchanges)
 
-```go
-type Service struct {
-    *commonservice.BaseService
-    httpClient      *http.Client
-    signingKey      []byte
-    chainlinkClient *ChainlinkClient
-    config          *NeoFeedsConfig
-    sources         map[string]*SourceConfig
-    chainClient     *chain.Client
-    teeFulfiller    *chain.TEEFulfiller
-    neoFeedsHash    string
-    priceFeedHash   string
-    chainSigner     chain.TEESigner
-    updateInterval  time.Duration
-    enableChainPush bool
-}
-```
+Per-source overrides are supported:
 
-### Configuration
+- `base_override`: replace base symbol for a single source
+- `quote_override`: replace quote symbol (e.g., map `USD -> USDT`)
 
-The service supports three configuration methods:
-1. **Direct Config**: Pass `FeedsConfig` struct programmatically
-2. **Config File**: Load from YAML/JSON file via `ConfigFile` path
-3. **Default Config**: Built-in defaults for standard feeds
-
-```go
-type Config struct {
-    Marble          *marble.Marble
-    DB              database.RepositoryInterface
-    ConfigFile      string           // Optional YAML/JSON path
-    FeedsConfig     *NeoFeedsConfig  // Optional direct config
-    ArbitrumRPC     string           // Chainlink RPC URL
-    ChainClient     *chain.Client
-    TEEFulfiller    *chain.TEEFulfiller
-    NeoFeedsHash    string           // Contract hash
-    PriceFeedHash   string           // Platform PriceFeed contract hash (preferred)
-    ChainSigner     chain.TEESigner  // TEE signer for PriceFeed updates
-    UpdateInterval  time.Duration    // Push interval
-    EnableChainPush bool             // Enable auto-push
-}
-```
-
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Service health check (from BaseService) |
-| `/info` | GET | Service info with statistics |
-| `/price/{pair}` | GET | Get single price (e.g., `/price/BTC-USD`) |
-| `/prices` | GET | Get all prices |
-| `/feeds` | GET | List available price feeds |
-| `/sources` | GET | List configured data sources |
-| `/config` | GET | Get full configuration |
-
-## Data Flow
-
-### Price Aggregation Flow
-
-1. **Fetch Phase**
-   - Query Chainlink price feeds on Arbitrum
-   - Query Binance API for spot prices
-   - Collect responses with timestamps
-
-2. **Aggregation Phase**
-   - Filter stale prices (> 5 minutes old)
-   - Apply source weights (Chainlink: 3, Binance: 1)
-   - Calculate weighted median
-
-3. **Signing Phase**
-   - Serialize price data
-   - Sign with TEE-attested ECDSA key
-   - Include signature in response
-
-4. **Push Phase** (if enabled)
-   - Build UpdatePrice transaction
-   - Sign with TEE fulfiller account
-   - Submit to Neo N3 network
-
-## Dependencies
-
-### Infrastructure Packages
-
-| Package | Purpose |
-|---------|---------|
-| `infrastructure/chain` | Neo N3 blockchain interaction |
-| `infrastructure/marble` | MarbleRun TEE utilities |
-| `infrastructure/database` | Repository interface (optional) |
-| `infrastructure/service` | Base service implementation |
-
-### External Dependencies
-
-| Library | Purpose |
-|---------|---------|
-| `github.com/gorilla/mux` | HTTP routing |
-| `github.com/tidwall/gjson` | JSON path extraction |
-
-## Configuration Example
+Example:
 
 ```yaml
-# neofeeds.yaml
-update_interval: 5s
-feeds:
-  - id: "BTC-USD"
-    pair: "BTCUSDT"
-    decimals: 8
-    enabled: true
-    sources: ["binance"]
-  - id: "ETH-USD"
-    pair: "ETHUSDT"
-    decimals: 8
-    enabled: true
-    sources: ["binance"]
+update_interval: 1s
+publish_policy:
+  threshold_bps: 10
+  hysteresis_bps: 8
+  min_interval: 5s
+  max_per_minute: 30
+
+default_sources: [binance, coinbase, okx]
 
 sources:
-  - id: "binance"
-    name: "Binance"
+  - id: binance
     url: "https://api.binance.com/api/v3/ticker/price?symbol={pair}"
-    json_path: "price"
-    weight: 1
+    json_path: price
+    pair_template: "{base}{quote}"
+    quote_override: USDT
+
+  - id: coinbase
+    url: "https://api.coinbase.com/v2/prices/{base}-{quote}/spot"
+    json_path: data.amount
+
+  - id: okx
+    url: "https://www.okx.com/api/v5/market/ticker?instId={pair}"
+    json_path: data.0.last
+    pair_template: "{base}-{quote}"
+    quote_override: USDT
+
+feeds:
+  - id: BTC-USD
+    enabled: true
 ```
+
+## On-Chain Anchoring (PriceFeed)
+
+When `EnableChainPush` is enabled and `PriceFeedHash` is configured, NeoFeeds
+periodically evaluates all enabled feeds and anchors qualifying updates on-chain
+via `PriceFeed.Update(...)`.
+
+Anchoring uses:
+
+- a TEE signer (`ChainSigner`) — ideally backed by `GlobalSigner`, and
+- an attestation-derived hash included in the contract record.
+
+The `PriceFeed` contract enforces monotonic `round_id` to prevent replay.
+
+## Optional Chainlink
+
+The codebase contains an optional Chainlink Arbitrum reader. It is **disabled by
+default** to keep default behavior aligned with the platform blueprint (3 HTTP
+sources + median). To enable it, set `ARBITRUM_RPC` for the `neofeeds` marble
+and pass it via `Config.ArbitrumRPC`.
 
 ## Required Secrets
 
-| Secret Name | Description |
-|-------------|-------------|
-| `NEOFEEDS_SIGNING_KEY` | ECDSA private key for signing prices |
+- `NEOFEEDS_SIGNING_KEY`: stable signing material for response signatures.
 
-Secrets are retrieved from the Marble enclave:
-```go
-if key, ok := cfg.Marble.Secret("NEOFEEDS_SIGNING_KEY"); ok {
-    s.signingKey = key
-}
-```
+In strict identity / enclave mode, outbound sources must use HTTPS (enforced by
+configuration validation).
 
-## Background Workers
-
-### Chain Push Loop
-
-When `EnableChainPush` is true, the service runs a background worker:
-
-```go
-func (s *Service) runChainPushLoop(ctx context.Context) error {
-    ticker := time.NewTicker(s.updateInterval)
-    for {
-        select {
-        case <-ctx.Done():
-            return ctx.Err()
-        case <-ticker.C:
-            s.pushAllPrices(ctx)
-        }
-    }
-}
-```
-
-## Testing
-
-```bash
-# Run unit tests
-go test ./services/datafeed/marble/... -v
-
-# Run with coverage
-go test ./services/datafeed/marble/... -v -cover
-
-# Run specific test
-go test ./services/datafeed/marble/... -run TestGetPrice -v
-```
-
-## Related Documentation
-
-- [NeoFeeds Service Overview](../README.md)
-- [Chain Integration](../../../infrastructure/chain/README.md)
-- [Smart Contract](../contract/README.md)
-- [Common Service Base](../../../infrastructure/service/README.md)

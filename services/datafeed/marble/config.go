@@ -29,6 +29,15 @@ type SourceConfig struct {
 	Weight   int               `json:"weight" yaml:"weight"`       // Weight for aggregation (default: 1)
 	Headers  map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 	Timeout  time.Duration     `json:"timeout,omitempty" yaml:"timeout,omitempty"` // Request timeout (default: 10s)
+
+	// PairTemplate optionally defines how to construct the {pair} placeholder
+	// from the feed base/quote (after applying overrides below).
+	// Example: "{base}{quote}" (Binance), "{base}-{quote}" (OKX).
+	PairTemplate string `json:"pair_template,omitempty" yaml:"pair_template,omitempty"`
+	// BaseOverride and QuoteOverride optionally override the feed base/quote symbols
+	// for this particular source (e.g., USD -> USDT on exchanges).
+	BaseOverride  string `json:"base_override,omitempty" yaml:"base_override,omitempty"`
+	QuoteOverride string `json:"quote_override,omitempty" yaml:"quote_override,omitempty"`
 }
 
 // FeedConfig defines a data feed configuration.
@@ -55,7 +64,7 @@ type PublishPolicyConfig struct {
 	// Default: 8 bps = 0.08%.
 	HysteresisBps int `json:"hysteresis_bps,omitempty" yaml:"hysteresis_bps,omitempty"`
 	// MinInterval is the minimum time between publishes per symbol.
-	// Default: 3s (fits the 2~5s window in the spec).
+	// Default: 5s (matches the platform blueprint throttle).
 	MinInterval time.Duration `json:"min_interval,omitempty" yaml:"min_interval,omitempty"`
 	// MaxPerMinute caps publish frequency per symbol (soft cap; enforced in-process).
 	// Default: 30.
@@ -138,6 +147,17 @@ func (c *FeedsConfig) Validate() error {
 		if feed.ID == "" {
 			return fmt.Errorf("feed[%d]: id required", i)
 		}
+
+		if strings.TrimSpace(feed.Base) == "" || strings.TrimSpace(feed.Quote) == "" {
+			base, quote := parseBaseQuoteFromPair(feed.ID)
+			if base != "" {
+				feed.Base = strings.ToUpper(base)
+			}
+			if quote != "" {
+				feed.Quote = strings.ToUpper(quote)
+			}
+		}
+
 		feed.Pair = strings.ToUpper(strings.TrimSpace(feed.Pair))
 		if feed.DataType == "" {
 			feed.DataType = DataTypePrice
@@ -157,9 +177,9 @@ func (c *FeedsConfig) Validate() error {
 	}
 
 	if c.UpdateInterval <= 0 {
-		// Default to a high-frequency evaluation interval to support the
-		// "≥0.1% change push" requirement of the platform spec.
-		c.UpdateInterval = 5 * time.Second
+		// High-frequency evaluation interval to support the
+		// "≥0.1% change push" requirement.
+		c.UpdateInterval = 1 * time.Second
 	}
 
 	if c.PublishPolicy.ThresholdBps <= 0 {
@@ -169,7 +189,7 @@ func (c *FeedsConfig) Validate() error {
 		c.PublishPolicy.HysteresisBps = 8
 	}
 	if c.PublishPolicy.MinInterval <= 0 {
-		c.PublishPolicy.MinInterval = 3 * time.Second
+		c.PublishPolicy.MinInterval = 5 * time.Second
 	}
 	if c.PublishPolicy.MaxPerMinute <= 0 {
 		c.PublishPolicy.MaxPerMinute = 30
@@ -211,8 +231,15 @@ func (c *FeedsConfig) GetEnabledFeeds() []FeedConfig {
 }
 
 // DefaultConfig returns the default configuration.
-// Chainlink feeds on Arbitrum: BTC, ETH, LINK, SOL, BNB, DOGE, ADA, AVAX, LTC, UNI, XRP
-// Binance-only feeds: NEO, GAS, TRX, HYPE, XMR, ZEC, SUI, BCH, ASTR
+//
+// By default this is aligned with the MiniApp platform blueprint:
+// - 3 HTTP sources (binance, coinbase, okx)
+// - 1s evaluation interval
+// - 0.10% publish threshold with 0.08% hysteresis
+// - 5s minimum publish interval per symbol
+//
+// Some feed IDs are also present in the optional Chainlink map (Arbitrum), but
+// Chainlink is disabled unless explicitly configured.
 func DefaultConfig() *FeedsConfig {
 	return &FeedsConfig{
 		Version: "1.0",
@@ -222,41 +249,61 @@ func DefaultConfig() *FeedsConfig {
 				Name:     "Binance",
 				URL:      "https://api.binance.com/api/v3/ticker/price?symbol={pair}",
 				JSONPath: "price",
-				Weight:   3,
-				Timeout:  10 * time.Second,
-				Headers:  map[string]string{"X-MBX-APIKEY": "${BINANCE_API_KEY}"},
+				Weight:   1,
+				Timeout:  5 * time.Second,
+				// Binance uses USDT pairs; we map USD -> USDT by default.
+				PairTemplate:  "{base}{quote}",
+				QuoteOverride: "USDT",
+			},
+			{
+				ID:       "coinbase",
+				Name:     "Coinbase",
+				URL:      "https://api.coinbase.com/v2/prices/{base}-{quote}/spot",
+				JSONPath: "data.amount",
+				Weight:   1,
+				Timeout:  5 * time.Second,
+			},
+			{
+				ID:            "okx",
+				Name:          "OKX",
+				URL:           "https://www.okx.com/api/v5/market/ticker?instId={pair}",
+				JSONPath:      "data.0.last",
+				Weight:        1,
+				Timeout:       5 * time.Second,
+				PairTemplate:  "{base}-{quote}",
+				QuoteOverride: "USDT",
 			},
 		},
 		Feeds: []FeedConfig{
-			// Chainlink supported feeds (will use Chainlink first, Binance as fallback)
-			{ID: "BTC-USD", Name: "Bitcoin", DataType: DataTypePrice, Pair: "BTCUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "ETH-USD", Name: "Ethereum", DataType: DataTypePrice, Pair: "ETHUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "XRP-USD", Name: "Ripple", DataType: DataTypePrice, Pair: "XRPUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "BNB-USD", Name: "BNB", DataType: DataTypePrice, Pair: "BNBUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "SOL-USD", Name: "Solana", DataType: DataTypePrice, Pair: "SOLUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "DOGE-USD", Name: "Dogecoin", DataType: DataTypePrice, Pair: "DOGEUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "ADA-USD", Name: "Cardano", DataType: DataTypePrice, Pair: "ADAUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "LINK-USD", Name: "Chainlink", DataType: DataTypePrice, Pair: "LINKUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "LTC-USD", Name: "Litecoin", DataType: DataTypePrice, Pair: "LTCUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "AVAX-USD", Name: "Avalanche", DataType: DataTypePrice, Pair: "AVAXUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "UNI-USD", Name: "Uniswap", DataType: DataTypePrice, Pair: "UNIUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			// Binance-only feeds (Chainlink doesn't support these on Arbitrum)
-			{ID: "NEO-USD", Name: "Neo", DataType: DataTypePrice, Pair: "NEOUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "GAS-USD", Name: "Gas", DataType: DataTypePrice, Pair: "GASUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "TRX-USD", Name: "Tron", DataType: DataTypePrice, Pair: "TRXUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "HYPE-USD", Name: "Hyperliquid", DataType: DataTypePrice, Pair: "HYPEUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "XMR-USD", Name: "Monero", DataType: DataTypePrice, Pair: "XMRUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "ZEC-USD", Name: "Zcash", DataType: DataTypePrice, Pair: "ZECUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "SUI-USD", Name: "Sui", DataType: DataTypePrice, Pair: "SUIUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "BCH-USD", Name: "Bitcoin Cash", DataType: DataTypePrice, Pair: "BCHUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
-			{ID: "ASTR-USD", Name: "Astar", DataType: DataTypePrice, Pair: "ASTRUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
+			// Common feeds (Chainlink optional; HTTP sources always queried).
+			{ID: "BTC-USD", Name: "Bitcoin", DataType: DataTypePrice, Pair: "BTCUSDT", Decimals: 8, Enabled: true},
+			{ID: "ETH-USD", Name: "Ethereum", DataType: DataTypePrice, Pair: "ETHUSDT", Decimals: 8, Enabled: true},
+			{ID: "XRP-USD", Name: "Ripple", DataType: DataTypePrice, Pair: "XRPUSDT", Decimals: 8, Enabled: true},
+			{ID: "BNB-USD", Name: "BNB", DataType: DataTypePrice, Pair: "BNBUSDT", Decimals: 8, Enabled: true},
+			{ID: "SOL-USD", Name: "Solana", DataType: DataTypePrice, Pair: "SOLUSDT", Decimals: 8, Enabled: true},
+			{ID: "DOGE-USD", Name: "Dogecoin", DataType: DataTypePrice, Pair: "DOGEUSDT", Decimals: 8, Enabled: true},
+			{ID: "ADA-USD", Name: "Cardano", DataType: DataTypePrice, Pair: "ADAUSDT", Decimals: 8, Enabled: true},
+			{ID: "LINK-USD", Name: "Chainlink", DataType: DataTypePrice, Pair: "LINKUSDT", Decimals: 8, Enabled: true},
+			{ID: "LTC-USD", Name: "Litecoin", DataType: DataTypePrice, Pair: "LTCUSDT", Decimals: 8, Enabled: true},
+			{ID: "AVAX-USD", Name: "Avalanche", DataType: DataTypePrice, Pair: "AVAXUSDT", Decimals: 8, Enabled: true},
+			{ID: "UNI-USD", Name: "Uniswap", DataType: DataTypePrice, Pair: "UNIUSDT", Decimals: 8, Enabled: true},
+			// Neo ecosystem / other feeds.
+			{ID: "NEO-USD", Name: "Neo", DataType: DataTypePrice, Pair: "NEOUSDT", Decimals: 8, Enabled: true},
+			{ID: "GAS-USD", Name: "Gas", DataType: DataTypePrice, Pair: "GASUSDT", Decimals: 8, Enabled: true},
+			{ID: "TRX-USD", Name: "Tron", DataType: DataTypePrice, Pair: "TRXUSDT", Decimals: 8, Enabled: true},
+			{ID: "HYPE-USD", Name: "Hyperliquid", DataType: DataTypePrice, Pair: "HYPEUSDT", Decimals: 8, Enabled: true},
+			{ID: "XMR-USD", Name: "Monero", DataType: DataTypePrice, Pair: "XMRUSDT", Decimals: 8, Enabled: true},
+			{ID: "ZEC-USD", Name: "Zcash", DataType: DataTypePrice, Pair: "ZECUSDT", Decimals: 8, Enabled: true},
+			{ID: "SUI-USD", Name: "Sui", DataType: DataTypePrice, Pair: "SUIUSDT", Decimals: 8, Enabled: true},
+			{ID: "BCH-USD", Name: "Bitcoin Cash", DataType: DataTypePrice, Pair: "BCHUSDT", Decimals: 8, Enabled: true},
+			{ID: "ASTR-USD", Name: "Astar", DataType: DataTypePrice, Pair: "ASTRUSDT", Decimals: 8, Enabled: true},
 		},
-		DefaultSources: []string{"binance"},
-		UpdateInterval: 5 * time.Second,
+		DefaultSources: []string{"binance", "coinbase", "okx"},
+		UpdateInterval: 1 * time.Second,
 		PublishPolicy: PublishPolicyConfig{
 			ThresholdBps:  10,
 			HysteresisBps: 8,
-			MinInterval:   3 * time.Second,
+			MinInterval:   5 * time.Second,
 			MaxPerMinute:  30,
 		},
 	}

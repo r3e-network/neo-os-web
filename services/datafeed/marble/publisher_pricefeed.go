@@ -140,7 +140,7 @@ func (s *Service) tryPublishPrice(ctx context.Context, symbol string, newPrice i
 
 	minInterval := s.publishPolicy.MinInterval
 	if minInterval <= 0 {
-		minInterval = 3 * time.Second
+		minInterval = 5 * time.Second
 	}
 
 	maxPerMinute := s.publishPolicy.MaxPerMinute

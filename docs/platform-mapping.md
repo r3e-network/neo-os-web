@@ -35,13 +35,13 @@ platform naming in docs:
 
 These remain as shared building blocks used by the platform services.
 
-### New (to add)
+### Platform Layer (Scaffolded)
 
-- `platform/host-app`: Next.js host (Vercel) with strict CSP + sandboxed embedding
-- `platform/sdk`: JS SDK injected into miniapps
-- `platform/edge`: Supabase Edge auth/rate-limit/routing layer
-- `platform/rls`: Supabase RLS SQL policies
-- `miniapps/`: builtin apps + templates
+- `platform/host-app`: Next.js host (Vercel) scaffold with strict CSP starter
+- `platform/sdk`: JS SDK scaffold (`window.MiniAppSDK` shape)
+- `platform/edge`: Supabase Edge function scaffolds (auth/limits/routing)
+- `platform/rls`: Supabase RLS SQL policies (placeholder, see migrations for current SQL)
+- `miniapps/`: builtin apps + templates (placeholder)
 
 ## Notes
 

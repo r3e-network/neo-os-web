@@ -37,6 +37,11 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if status, msg := s.checkIntentPolicy(contractHash, method, req.Intent); status != 0 {
+		httputil.WriteError(w, status, msg)
+		return
+	}
+
 	if s.chainClient == nil || s.signer == nil {
 		httputil.WriteError(w, http.StatusServiceUnavailable, "chain signing is not configured")
 		return
@@ -69,4 +74,3 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 
 	httputil.WriteJSON(w, http.StatusOK, resp)
 }
-

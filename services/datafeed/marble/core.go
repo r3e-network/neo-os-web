@@ -28,7 +28,10 @@ import (
 // =============================================================================
 
 // GetPrice fetches and aggregates price from multiple sources.
-// Priority: Chainlink (free, on-chain) -> HTTP sources (Binance)
+//
+// Default behavior is to query the configured HTTP sources and aggregate via
+// (weighted) median. If Chainlink is configured, it is treated as an optional
+// additional source (it does not replace HTTP sources).
 func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, error) {
 	normalizedPair := normalizePair(pair)
 	if normalizedPair == "" {
@@ -52,43 +55,49 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 		decimals = feed.Decimals
 	}
 
-	// Try Chainlink first (free, on-chain data)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	sourcesToUse := s.getSourcesForFeed(feed)
+
+	for _, srcConfig := range sourcesToUse {
+		wg.Add(1)
+		go func(src *SourceConfig) {
+			defer wg.Done()
+
+			price, err := s.fetchPriceFromSource(ctx, normalizedPair, feed, src)
+			if err != nil {
+				return
+			}
+
+			mu.Lock()
+			for i := 0; i < src.Weight; i++ {
+				prices = append(prices, price)
+			}
+			sources = append(sources, src.ID)
+			mu.Unlock()
+		}(srcConfig)
+	}
+
+	// Optional Chainlink source (if enabled by configuration).
 	if s.chainlinkClient != nil && s.chainlinkClient.HasFeed(feedID) {
-		price, _, err := s.chainlinkClient.GetPrice(ctx, feedID)
-		if err == nil && price > 0 {
-			prices = append(prices, price, price, price) // Weight 3 for Chainlink
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			price, _, err := s.chainlinkClient.GetPrice(ctx, feedID)
+			if err != nil || price <= 0 {
+				return
+			}
+
+			mu.Lock()
+			prices = append(prices, price)
 			sources = append(sources, "chainlink")
-		}
+			mu.Unlock()
+		}()
 	}
 
-	// Fall back to HTTP sources (Binance) if Chainlink not available or failed
-	if len(prices) == 0 {
-		var wg sync.WaitGroup
-		var mu sync.Mutex
-
-		sourcesToUse := s.getSourcesForFeed(feed)
-
-		for _, srcConfig := range sourcesToUse {
-			wg.Add(1)
-			go func(src *SourceConfig) {
-				defer wg.Done()
-
-				price, err := s.fetchPriceFromSource(ctx, normalizedPair, feed, src)
-				if err != nil {
-					return
-				}
-
-				mu.Lock()
-				for i := 0; i < src.Weight; i++ {
-					prices = append(prices, price)
-				}
-				sources = append(sources, src.ID)
-				mu.Unlock()
-			}(srcConfig)
-		}
-
-		wg.Wait()
-	}
+	wg.Wait()
 
 	if len(prices) == 0 {
 		return nil, fmt.Errorf("no prices available for %s", normalizedPair)
@@ -178,12 +187,7 @@ func (s *Service) getSourcesForFeed(feed *FeedConfig) []*SourceConfig {
 
 // fetchPriceFromSource fetches price from a single source.
 func (s *Service) fetchPriceFromSource(ctx context.Context, pair string, feed *FeedConfig, src *SourceConfig) (float64, error) {
-	// Use feed.Pair (e.g., NEOUSDT) for URL template if available, otherwise use raw pair (e.g., NEO/USD)
-	pairForURL := pair
-	if feed != nil && feed.Pair != "" {
-		pairForURL = feed.Pair
-	}
-	url := formatSourceURLNew(src.URL, pairForURL, feed)
+	url := formatSourceURLNew(src.URL, pair, feed, src)
 
 	timeout := src.Timeout
 	if timeout <= 0 {
@@ -225,7 +229,7 @@ func (s *Service) fetchPriceFromSource(ctx context.Context, pair string, feed *F
 		return 0, err
 	}
 
-	jsonPath := formatJSONPath(src.JSONPath, feed)
+	jsonPath := formatJSONPath(src.JSONPath, feed, src)
 	result := gjson.GetBytes(body, jsonPath)
 	if !result.Exists() {
 		return 0, fmt.Errorf("price not found in response")
@@ -326,37 +330,90 @@ func formatSourceURL(tmpl, pair string) string {
 }
 
 // formatSourceURLNew formats URL template with feed-specific placeholders.
-func formatSourceURLNew(tmpl, pair string, feed *FeedConfig) string {
+func formatSourceURLNew(tmpl, pair string, feed *FeedConfig, src *SourceConfig) string {
 	url := tmpl
-	url = strings.ReplaceAll(url, "{pair}", pair)
 
+	base := ""
+	quote := ""
 	if feed != nil {
-		url = strings.ReplaceAll(url, "{base}", feed.Base)
-		url = strings.ReplaceAll(url, "{quote}", feed.Quote)
-	} else {
-		base, quote := parseBaseQuoteFromPair(pair)
-		if base != "" && quote != "" {
-			url = strings.ReplaceAll(url, "{base}", base)
-			url = strings.ReplaceAll(url, "{quote}", quote)
+		base = strings.TrimSpace(feed.Base)
+		quote = strings.TrimSpace(feed.Quote)
+	}
+	if base == "" || quote == "" {
+		parsedBase, parsedQuote := parseBaseQuoteFromPair(pair)
+		if base == "" {
+			base = parsedBase
+		}
+		if quote == "" {
+			quote = parsedQuote
 		}
 	}
 
+	base = strings.ToUpper(strings.TrimSpace(base))
+	quote = strings.ToUpper(strings.TrimSpace(quote))
+
+	if src != nil {
+		if v := strings.TrimSpace(src.BaseOverride); v != "" {
+			base = strings.ToUpper(v)
+		}
+		if v := strings.TrimSpace(src.QuoteOverride); v != "" {
+			quote = strings.ToUpper(v)
+		}
+	}
+
+	pairValue := strings.TrimSpace(pair)
+	if feed != nil && strings.TrimSpace(feed.Pair) != "" {
+		pairValue = strings.TrimSpace(feed.Pair)
+	}
+	if src != nil && strings.TrimSpace(src.PairTemplate) != "" {
+		pairValue = strings.TrimSpace(src.PairTemplate)
+		pairValue = strings.ReplaceAll(pairValue, "{base}", base)
+		pairValue = strings.ReplaceAll(pairValue, "{quote}", quote)
+	}
+
+	url = strings.ReplaceAll(url, "{pair}", pairValue)
+	url = strings.ReplaceAll(url, "{base}", base)
+	url = strings.ReplaceAll(url, "{quote}", quote)
+
 	// Legacy format support
 	if strings.Contains(url, "%sPAIR%s") {
-		url = fmt.Sprintf(url, "", pair, "")
+		url = fmt.Sprintf(url, "", pairValue, "")
 	}
 
 	return url
 }
 
 // formatJSONPath formats JSON path with feed-specific placeholders.
-func formatJSONPath(tmpl string, feed *FeedConfig) string {
-	if feed == nil {
+func formatJSONPath(tmpl string, feed *FeedConfig, src *SourceConfig) string {
+	if tmpl == "" {
 		return tmpl
 	}
+
+	base := ""
+	quote := ""
+	if feed != nil {
+		base = strings.TrimSpace(feed.Base)
+		quote = strings.TrimSpace(feed.Quote)
+	}
+	base = strings.ToUpper(base)
+	quote = strings.ToUpper(quote)
+
+	if src != nil {
+		if v := strings.TrimSpace(src.BaseOverride); v != "" {
+			base = strings.ToUpper(v)
+		}
+		if v := strings.TrimSpace(src.QuoteOverride); v != "" {
+			quote = strings.ToUpper(v)
+		}
+	}
+
 	path := tmpl
-	path = strings.ReplaceAll(path, "{base}", feed.Base)
-	path = strings.ReplaceAll(path, "{quote}", feed.Quote)
+	if base != "" {
+		path = strings.ReplaceAll(path, "{base}", base)
+	}
+	if quote != "" {
+		path = strings.ReplaceAll(path, "{quote}", quote)
+	}
 	return path
 }
 
