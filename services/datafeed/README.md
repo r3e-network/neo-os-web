@@ -4,15 +4,17 @@ Price oracle service for the Neo Service Layer.
 
 ## Overview
 
-The NeoFeeds service provides aggregated price feeds from multiple sources with TEE attestation. It fetches prices from Chainlink (Arbitrum) and Binance, aggregates them using median calculation, and signs the results with the TEE key. When configured, it anchors updates to the platform `PriceFeed` contract on Neo N3 via `txproxy` (allowlisted sign+broadcast) using the `≥0.1%` publish policy.
+The NeoFeeds service provides aggregated price feeds from multiple sources with TEE attestation. It fetches prices from multiple **HTTP sources** (Binance, Coinbase, OKX by default), aggregates them using a (weighted) median, and signs responses with the TEE-held signing key. When configured, it also anchors updates to the platform `PriceFeed` contract on Neo N3 via `txproxy` (allowlisted sign+broadcast) using the `≥0.1%` publish policy.
+
+Optional: if `ARBITRUM_RPC` is configured, Chainlink (Arbitrum) is enabled as an additional data source (it does not replace HTTP sources).
 
 ## Architecture
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │ Price Sources│     │ NeoFeeds Svc │     │ PriceFeed    │
-│ (Chainlink,  │     │ (TEE)        │     │ (Neo N3)     │
-│  Binance)    │     │              │     │ Contract     │
+│ (HTTP APIs,  │     │ (TEE)        │     │ (Neo N3)     │
+│  optional CL)│     │              │     │ Contract     │
 └──────┬───────┘     └──────┬───────┘     └──────┬───────┘
        │                    │                    │
        │ Fetch Prices       │                    │
@@ -39,7 +41,9 @@ The NeoFeeds service provides aggregated price feeds from multiple sources with 
 | `/sources` | GET | List data sources |
 | `/config` | GET | Get full configuration |
 
-## Supported Feeds
+## Default Feeds (Configurable)
+
+The feed list is configured via YAML/JSON; the default config includes common USD feeds such as:
 
 | Feed ID | Base | Quote | Decimals |
 |---------|------|-------|----------|
@@ -47,14 +51,15 @@ The NeoFeeds service provides aggregated price feeds from multiple sources with 
 | ETH-USD | ETH | USD | 8 |
 | NEO-USD | NEO | USD | 8 |
 | GAS-USD | GAS | USD | 8 |
-| NEO-GAS | NEO | GAS | 8 |
 
 ## Data Sources
 
-| Source | Type | Priority | Weight |
-|--------|------|----------|--------|
-| Chainlink (Arbitrum) | On-chain | 1 (Primary) | 3 |
-| Binance | HTTP API | 2 (Fallback) | 1 |
+| Source | Type | Default | Weight |
+|--------|------|---------|--------|
+| Binance | HTTP API | Yes | 1 |
+| Coinbase | HTTP API | Yes | 1 |
+| OKX | HTTP API | Yes | 1 |
+| Chainlink (Arbitrum) | On-chain | Optional | 1 |
 
 ## Request/Response Types
 
@@ -65,12 +70,13 @@ GET /price/BTC-USD
 
 {
     "feed_id": "BTC-USD",
+    "pair": "BTC-USD",
     "price": 10500000000000,
     "decimals": 8,
-    "timestamp": 1733616000,
-    "signature": "0x...",
-    "public_key": "0x...",
-    "sources": ["chainlink", "binance"]
+    "timestamp": "2025-12-07T09:00:00Z",
+    "signature": "<base64>",
+    "public_key": "<base64>",
+    "sources": ["binance", "coinbase", "okx"]
 }
 ```
 
@@ -96,20 +102,29 @@ publish_policy:
   hysteresis_bps: 8
   min_interval: 3s
   max_per_minute: 30
+default_sources: [binance, coinbase, okx]
 feeds:
   - id: "BTC-USD"
-    pair: "BTCUSDT"
-    base: "btc"
-    quote: "usd"
     decimals: 8
     enabled: true
-    sources: ["binance"]
 sources:
   - id: "binance"
     name: "Binance"
     url: "https://api.binance.com/api/v3/ticker/price?symbol={pair}"
     json_path: "price"
     weight: 1
+  - id: "coinbase"
+    name: "Coinbase"
+    url: "https://api.coinbase.com/v2/prices/{base}-{quote}/spot"
+    json_path: "data.amount"
+    weight: 1
+  - id: "okx"
+    name: "OKX"
+    url: "https://www.okx.com/api/v5/market/ticker?instId={pair}"
+    json_path: "data.0.last"
+    weight: 1
+    pair_template: "{base}-{quote}"
+    quote_override: "USDT"
 ```
 
 ### Required Secrets
@@ -127,10 +142,9 @@ sources:
 ## Aggregation Algorithm
 
 1. Fetch prices from all enabled sources
-2. Filter out stale prices (> 5 minutes old)
-3. Calculate weighted median
-4. Sign result with TEE key
-5. Cache for configured interval
+2. Calculate weighted median (weights are applied by repetition)
+3. Sign result with the TEE-held key (`NEOFEEDS_SIGNING_KEY`)
+4. Optionally persist to DB (if configured)
 
 ## Testing
 

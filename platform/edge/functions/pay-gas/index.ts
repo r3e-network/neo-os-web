@@ -3,6 +3,7 @@ import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 
 type PayGasRequest = {
@@ -22,6 +23,8 @@ Deno.serve(async (req) => {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const scopeCheck = requireScope(auth, "pay-gas");
+  if (scopeCheck) return scopeCheck;
   const walletCheck = await requirePrimaryWallet(auth.userId);
   if (walletCheck instanceof Response) return walletCheck;
 

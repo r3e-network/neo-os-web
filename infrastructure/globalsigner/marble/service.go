@@ -350,7 +350,12 @@ func (s *Service) rotate(ctx context.Context, force bool) (*RotateResponse, erro
 	// Persist to repository
 	if s.repo != nil {
 		if oldVersion != "" {
-			s.repo.UpdateKeyStatus(ctx, oldVersion, KeyStatusOverlapping, overlapEndsAt)
+			if err := s.repo.UpdateKeyStatus(ctx, oldVersion, KeyStatusOverlapping, overlapEndsAt); err != nil {
+				s.Logger().Warn(ctx, "Failed to update old key status", map[string]interface{}{
+					"error":       err.Error(),
+					"old_version": oldVersion,
+				})
+			}
 		}
 		if err := s.repo.CreateKeyVersion(ctx, newKeyVersion); err != nil {
 			s.Logger().Warn(ctx, "Failed to persist new key version", map[string]interface{}{"error": err.Error()})
@@ -360,7 +365,12 @@ func (s *Service) rotate(ctx context.Context, force bool) (*RotateResponse, erro
 	// Generate attestation
 	attestation := s.buildAttestation(newVersion)
 	if s.repo != nil {
-		s.repo.StoreAttestation(ctx, newVersion, attestation)
+		if err := s.repo.StoreAttestation(ctx, newVersion, attestation); err != nil {
+			s.Logger().Warn(ctx, "Failed to persist attestation", map[string]interface{}{
+				"error":       err.Error(),
+				"new_version": newVersion,
+			})
+		}
 	}
 
 	s.Logger().Info(ctx, "Key rotation completed", map[string]interface{}{

@@ -1,5 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireScope } from "../_shared/scopes.ts";
 import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
 
 // Returns the user's gasbank account (creates if missing).
@@ -10,6 +11,8 @@ Deno.serve(async (req) => {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const scopeCheck = requireScope(auth, "gasbank-account");
+  if (scopeCheck) return scopeCheck;
   const walletCheck = await requirePrimaryWallet(auth.userId);
   if (walletCheck instanceof Response) return walletCheck;
 
@@ -36,4 +39,3 @@ Deno.serve(async (req) => {
 
   return json({ account: created });
 });
-

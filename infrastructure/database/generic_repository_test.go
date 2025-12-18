@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/R3E-Network/service_layer/infrastructure/testutil"
 )
 
 // =============================================================================
@@ -184,7 +185,7 @@ type testModel struct {
 
 func setupTestServer(t *testing.T, handler http.HandlerFunc) (*Repository, func()) {
 	t.Helper()
-	server := httptest.NewServer(handler)
+	server := testutil.NewHTTPTestServer(t, handler)
 
 	client, err := NewClient(Config{
 		URL:        server.URL,

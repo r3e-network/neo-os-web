@@ -44,6 +44,7 @@ type GasBankRepository interface {
 	GetDepositRequests(ctx context.Context, userID string, limit int) ([]DepositRequest, error)
 	GetDepositByTxHash(ctx context.Context, txHash string) (*DepositRequest, error)
 	UpdateDepositStatus(ctx context.Context, depositID, status string, confirmations int) error
+	GetPendingDeposits(ctx context.Context, limit int) ([]DepositRequest, error)
 }
 
 // =============================================================================

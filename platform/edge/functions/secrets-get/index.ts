@@ -1,6 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
 import { decryptSecretValue } from "../_shared/secrets.ts";
+import { requireScope } from "../_shared/scopes.ts";
 import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
 
 // Returns the decrypted secret value for the authenticated user.
@@ -11,6 +12,8 @@ Deno.serve(async (req) => {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const scopeCheck = requireScope(auth, "secrets-get");
+  if (scopeCheck) return scopeCheck;
   const walletCheck = await requirePrimaryWallet(auth.userId);
   if (walletCheck instanceof Response) return walletCheck;
 

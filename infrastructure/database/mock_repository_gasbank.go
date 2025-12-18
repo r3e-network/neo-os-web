@@ -177,3 +177,23 @@ func (m *MockRepository) UpdateDepositStatus(ctx context.Context, depositID, sta
 	}
 	return NewNotFoundError("deposit", depositID)
 }
+
+func (m *MockRepository) GetPendingDeposits(ctx context.Context, limit int) ([]DepositRequest, error) {
+	if err := m.checkError(); err != nil {
+		return nil, err
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var result []DepositRequest
+	for _, deposit := range m.depositRequests {
+		if deposit.Status == "pending" || deposit.Status == "confirming" {
+			if deposit.TxHash != "" {
+				result = append(result, *deposit)
+				if len(result) >= limit {
+					break
+				}
+			}
+		}
+	}
+	return result, nil
+}

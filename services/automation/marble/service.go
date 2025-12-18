@@ -1,14 +1,9 @@
 // Package neoflow provides task neoflow service.
 // This service implements the Trigger-Based pattern:
-// - Users register triggers with conditions via Gateway
-// - TEE monitors conditions continuously (time, price, events, thresholds)
-// - When conditions are met, TEE executes callbacks on-chain
-//
-// Trigger Types:
-// 1. Time-based: Cron expressions (e.g., "Every Friday 00:00 UTC")
-// 2. Price-based: Price thresholds (e.g., "When BTC > $100,000")
-// 3. Event-based: On-chain events (e.g., "When contract X emits event Y")
-// 4. Threshold-based: Balance/value thresholds (e.g., "When balance < 10 GAS")
+//   - Users register triggers with conditions via Gateway
+//   - Current Supabase triggers: cron schedules that dispatch webhook actions
+//   - Optional on-chain anchored tasks: cron/price triggers anchored via the
+//     platform AutomationAnchor contract and executed via txproxy
 package neoflow
 
 import (
@@ -21,6 +16,7 @@ import (
 
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
+	gasbankclient "github.com/R3E-Network/service_layer/infrastructure/gasbank/client"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
 	"github.com/R3E-Network/service_layer/infrastructure/runtime"
 	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
@@ -58,6 +54,9 @@ type Service struct {
 	txProxy              txproxytypes.Invoker
 	eventListener        *chain.EventListener
 	enableChainExec      bool
+
+	// Service fee deduction
+	gasbank *gasbankclient.Client
 }
 
 // Scheduler manages trigger execution.
@@ -80,6 +79,9 @@ type Config struct {
 	TxProxy              txproxytypes.Invoker
 	EventListener        *chain.EventListener
 	EnableChainExec      bool
+
+	// GasBank client for service fee deduction (optional)
+	GasBank *gasbankclient.Client
 }
 
 // New creates a new NeoFlow service.
@@ -111,6 +113,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		txProxy:              cfg.TxProxy,
 		eventListener:        cfg.EventListener,
 		enableChainExec:      cfg.EnableChainExec,
+		gasbank:              cfg.GasBank,
 	}
 
 	if s.chainClient != nil && s.priceFeedHash != "" {

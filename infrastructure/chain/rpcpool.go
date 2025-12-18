@@ -202,18 +202,19 @@ func (p *RPCPool) MarkHealthy(url string, latency time.Duration) {
 	defer p.mu.Unlock()
 
 	for _, ep := range p.endpoints {
-		if ep.URL == url {
-			ep.Healthy = true
-			ep.ConsecutiveFails = 0
-			ep.LastLatency = latency
-			// Exponential moving average for latency
-			if ep.AvgLatency == 0 {
-				ep.AvgLatency = latency
-			} else {
-				ep.AvgLatency = (ep.AvgLatency*7 + latency*3) / 10
-			}
-			return
+		if ep.URL != url {
+			continue
 		}
+		ep.Healthy = true
+		ep.ConsecutiveFails = 0
+		ep.LastLatency = latency
+		// Exponential moving average for latency
+		if ep.AvgLatency == 0 {
+			ep.AvgLatency = latency
+		} else {
+			ep.AvgLatency = (ep.AvgLatency*7 + latency*3) / 10
+		}
+		return
 	}
 }
 
@@ -329,7 +330,11 @@ func (p *RPCPool) ExecuteWithFailover(ctx context.Context, maxRetries int, fn fu
 		var err error
 
 		if attempt == 0 {
-			ep, err = p.GetBestEndpoint()
+			var bestErr error
+			ep, bestErr = p.GetBestEndpoint()
+			if bestErr != nil && ep == nil {
+				return bestErr
+			}
 		} else {
 			ep = p.GetNextEndpoint()
 		}
@@ -350,7 +355,7 @@ func (p *RPCPool) ExecuteWithFailover(ctx context.Context, maxRetries int, fn fu
 		lastErr = err
 		p.MarkUnhealthy(ep.URL)
 
-		// Check if context is cancelled
+		// Check if context is canceled.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

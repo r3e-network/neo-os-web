@@ -30,7 +30,7 @@ CRITICAL_PATTERNS=(
     "FIXME"
     "XXX"
     "HACK"
-    "BUG:"
+    "BUG"
 )
 
 WARNING_PATTERNS=(

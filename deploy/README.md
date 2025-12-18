@@ -83,10 +83,10 @@ make init
 1. Set environment variables:
 ```bash
 export TESTNET_OWNER_WALLET=/path/to/owner.json
-export TESTNET_OWNER_ADDRESS=NOwnerAddressXXX
+export TESTNET_OWNER_ADDRESS=<neo-n3-owner-address>
 export TESTNET_TEE_WALLET=/path/to/tee.json
-export TESTNET_TEE_ADDRESS=NTeeAddressXXX
-export TESTNET_TEE_PUBKEY=03xxx
+export TESTNET_TEE_ADDRESS=<neo-n3-tee-address>
+export TESTNET_TEE_PUBKEY=<33-byte-compressed-pubkey-hex>
 ```
 
 2. Ensure wallets have GAS for deployment (~50 GAS recommended)

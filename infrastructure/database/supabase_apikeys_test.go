@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -395,22 +394,4 @@ func TestMockRepositoryUpdateUserNonce(t *testing.T) {
 			t.Errorf("UpdateUserNonce() error = %v, want %v", err, expectedErr)
 		}
 	})
-}
-
-// Helper to setup test server (reused from generic_repository_test.go)
-func setupAPIKeyTestServer(t *testing.T, handler http.HandlerFunc) (*Repository, func()) {
-	t.Helper()
-	server := httptest.NewServer(handler)
-
-	client, err := NewClient(Config{
-		URL:        server.URL,
-		ServiceKey: "test-key",
-	})
-	if err != nil {
-		server.Close()
-		t.Fatalf("NewClient() error = %v", err)
-	}
-
-	repo := NewRepository(client)
-	return repo, server.Close
 }

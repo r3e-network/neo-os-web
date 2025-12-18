@@ -35,6 +35,7 @@ sdk/rust/devpack/target/
 .gotmp/
 .cover/
 *.out
+*.cov
 
 # Build outputs
 bin/
@@ -47,6 +48,8 @@ appserver
 apps/dashboard/test-results/
 postgres.test
 test.neo-express
+deploy/wallets/*
+!deploy/wallets/README.md
 deploy/config/deployed_contracts.json
 deploy/config/fairy_contracts.json
 deploy/config/testnet_contracts.json

@@ -48,10 +48,10 @@ neo-miniapp-platform/
 │  └─ community/        # 模板/示例
 │      └─ template/     # Manifest + 前端脚手架
 │
-├─ infra/
-│  ├─ neo-express/      # 本地链配置
-│  ├─ docker/           # dev/test 容器编排（Supabase 等）
-│  └─ ci/               # GitHub Actions 工作流
+├─ docker/              # dev/test 容器编排（Supabase 等）
+├─ deploy/              # neo-express 配置 + 部署脚本
+├─ k8s/                 # Kubernetes manifests/helm values
+├─ .github/             # GitHub Actions 工作流
 │
 └─ docs/
    ├─ manifest-spec.md

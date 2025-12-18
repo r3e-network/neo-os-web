@@ -5,44 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> Note: this repository’s **current** architecture uses a Supabase Edge gateway and a
+> small set of enclave services (see `README.md` and `docs/ARCHITECTURE.md`). Older
+> docs/releases are preserved under `docs/legacy/` and `RELEASE_NOTES_v1.0.0.md`.
+
 ## [Unreleased]
 
 ### Added
 
 - Sprint 1: Code quality baseline and security improvements
 - Environment isolation configuration (development, testing, production)
-- Unified error handling package (`internal/errors`)
-- Unified structured logging package (`internal/logging`)
+- Unified error handling package (`infrastructure/errors`)
+- Unified structured logging package (`infrastructure/logging`)
 - Kubernetes secrets template (`k8s/secrets.yaml.template`)
+- Supabase Edge gateway functions (auth/routing, API keys, secrets, gasbank, intents)
 - Platform contracts for MiniApp flow (PaymentHub/Governance/PriceFeed/RandomnessLog/AppRegistry/AutomationAnchor)
 - `txproxy` service for allowlisted tx signing/broadcast (single tx policy point)
+- Product enclave services: `neofeeds`, `neooracle`, `neocompute`, `neoflow`
+- Shared infrastructure packages under `infrastructure/` (chain, secrets, database, middleware, runtime, metrics)
 
 ### Changed
 
-- Updated README.md with production-ready architecture
-- Improved security across all services with JWT authentication
-- Enhanced NeoVault service with ownership verification
-- Added rate limiting to NeoFlow service
-- Hardened ECDSA signing (deterministic RFC6979 + low-S)
+- Updated documentation for the current Supabase Edge + platform-contract architecture
+- Standardized chain writes through `txproxy` with contract+method allowlisting
+- Hardened outbound request policies (URL allowlists, SSRF mitigations) in strict identity/SGX mode
 
 ### Removed
 
-- Deprecated review documents (12 files)
-- Deprecated scripts: `find_duplications.sh`, `split_large_files.sh`
-- Removed `neorand` (VRF) service; randomness is now provided via `neocompute` scripts.
+- Legacy Go gateway binary (Supabase Edge is the public gateway)
+- Legacy VRF (`neorand`) and NeoVault services (out of scope for current platform)
+- Legacy on-chain gateway / per-service contract stack (replaced by platform contracts)
 
 ### Fixed
 
-- Security vulnerabilities in NeoRand (VRF), NeoVault, and NeoFlow services
-- Authentication bypass issues
-- Ownership verification in NeoVault service
-- Neo-express contract deployment parsing in tests (JSON output)
+- Documentation and module consistency issues (empty/broken modules, incorrect service docs)
 
 ### Security
 
-- Added JWT authentication middleware to all services
-- Implemented rate limiting for resource-intensive endpoints
-- Enhanced authorization checks across all service handlers
+- Added strict identity/SGX-mode safeguards and safer defaults for internal services
 
 ## [0.1.0] - 2024-12-10
 

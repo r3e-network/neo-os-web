@@ -101,24 +101,51 @@ export type APIKeysListResponse = { api_keys: APIKeyMeta[] };
 export type APIKeyCreateResponse = { api_key: APIKeyMeta & { key: string } };
 export type APIKeyRevokeResponse = { status: "ok" };
 
+// Note: Balance fields are serialized as strings from Go to avoid JS Number precision loss.
 export type GasBankAccount = {
   id: string;
   user_id: string;
-  balance: number | string;
-  reserved: number | string;
+  balance: string;
+  reserved: string;
+  available: string;
   created_at: string;
   updated_at: string;
 };
 
-export type GasBankAccountResponse = { account: GasBankAccount };
-export type GasBankDepositsResponse = { deposits: unknown[] };
-export type GasBankTransactionsResponse = { transactions: unknown[] };
-export type GasBankDepositCreateResponse = { deposit: unknown };
+export type GasBankDepositStatus = "pending" | "confirming" | "confirmed" | "failed" | "expired";
 
+export type GasBankDeposit = {
+  id: string;
+  amount: string;
+  tx_hash?: string;
+  from_address: string;
+  status: GasBankDepositStatus;
+  confirmations: number;
+  created_at: string;
+  confirmed_at?: string;
+};
+
+export type GasBankTransactionType = "deposit" | "withdraw" | "service_fee" | "refund";
+
+export type GasBankTransaction = {
+  id: string;
+  tx_type: GasBankTransactionType;
+  amount: string;
+  balance_after: string;
+  reference_id?: string;
+  created_at: string;
+};
+
+export type GasBankAccountResponse = { account: GasBankAccount };
+export type GasBankDepositsResponse = { deposits: GasBankDeposit[] };
+export type GasBankTransactionsResponse = { transactions: GasBankTransaction[] };
+export type GasBankDepositCreateResponse = { deposit: GasBankDeposit };
+
+// Note: Price is serialized as string from Go to avoid JS Number precision loss.
 export type PriceResponse = {
   feed_id: string;
   pair: string;
-  price: number | string;
+  price: string;
   decimals: number;
   timestamp: string;
   sources: string[];
@@ -126,9 +153,83 @@ export type PriceResponse = {
   public_key?: string;
 };
 
+export type OracleQueryRequest = {
+  url: string;
+  method?: string;
+  headers?: Record<string, string>;
+  secret_name?: string;
+  secret_as_key?: string;
+  body?: string;
+};
+
+export type OracleQueryResponse = {
+  status_code: number;
+  headers: Record<string, string>;
+  body: string;
+};
+
+export type ComputeExecuteRequest = {
+  script: string;
+  entry_point?: string;
+  input?: Record<string, unknown>;
+  secret_refs?: string[];
+  timeout?: number;
+};
+
+export type ComputeJob = {
+  job_id: string;
+  status: string;
+  output?: Record<string, unknown>;
+  logs?: string[];
+  error?: string;
+  gas_used: number;
+  started_at: string;
+  duration?: string;
+  encrypted_output?: string;
+  output_hash?: string;
+  signature?: string;
+};
+
+export type AutomationTriggerRequest = {
+  name: string;
+  trigger_type: string;
+  schedule?: string;
+  condition?: unknown;
+  action: unknown;
+};
+
+export type AutomationTrigger = {
+  id: string;
+  user_id?: string;
+  name: string;
+  trigger_type: string;
+  schedule?: string;
+  condition?: unknown;
+  action?: unknown;
+  enabled: boolean;
+  last_execution?: string;
+  next_execution?: string;
+  created_at: string;
+};
+
+export type AutomationExecution = {
+  id: string;
+  trigger_id: string;
+  executed_at: string;
+  success: boolean;
+  error?: string;
+  action_type?: string;
+  action_payload?: unknown;
+};
+
+export type AutomationDeleteResponse = { status: "ok" };
+export type AutomationStatusResponse = { status: string };
+
 export interface MiniAppSDK {
   wallet: {
     getAddress(): Promise<string>;
+    // Optional: host-provided helper to submit a previously created invocation intent.
+    invokeIntent?: (requestId: string) => Promise<unknown>;
   };
   payments: {
     payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse>;
@@ -161,6 +262,25 @@ export interface HostSDK {
     register(params: { manifest: Record<string, unknown> }): Promise<AppRegisterResponse>;
     updateManifest(params: { manifest: Record<string, unknown> }): Promise<AppUpdateManifestResponse>;
   };
+  oracle: {
+    query(params: OracleQueryRequest): Promise<OracleQueryResponse>;
+  };
+  compute: {
+    execute(params: ComputeExecuteRequest): Promise<ComputeJob>;
+    listJobs(): Promise<ComputeJob[]>;
+    getJob(id: string): Promise<ComputeJob>;
+  };
+  automation: {
+    listTriggers(): Promise<AutomationTrigger[]>;
+    createTrigger(params: AutomationTriggerRequest): Promise<AutomationTrigger>;
+    getTrigger(id: string): Promise<AutomationTrigger>;
+    updateTrigger(id: string, params: AutomationTriggerRequest): Promise<AutomationTrigger>;
+    deleteTrigger(id: string): Promise<AutomationDeleteResponse>;
+    enableTrigger(id: string): Promise<AutomationStatusResponse>;
+    disableTrigger(id: string): Promise<AutomationStatusResponse>;
+    resumeTrigger(id: string): Promise<AutomationStatusResponse>;
+    listExecutions(id: string, limit?: number): Promise<AutomationExecution[]>;
+  };
   secrets: {
     list(): Promise<SecretsListResponse>;
     get(name: string): Promise<SecretsGetResponse>;
@@ -170,13 +290,22 @@ export interface HostSDK {
   };
   apiKeys: {
     list(): Promise<APIKeysListResponse>;
-    create(params: { name: string; scopes?: string[]; description?: string; expires_at?: string }): Promise<APIKeyCreateResponse>;
+    create(params: {
+      name: string;
+      scopes?: string[];
+      description?: string;
+      expires_at?: string;
+    }): Promise<APIKeyCreateResponse>;
     revoke(id: string): Promise<APIKeyRevokeResponse>;
   };
   gasbank: {
     getAccount(): Promise<GasBankAccountResponse>;
     listDeposits(): Promise<GasBankDepositsResponse>;
-    createDeposit(params: { amount: string; from_address: string; tx_hash?: string }): Promise<GasBankDepositCreateResponse>;
+    createDeposit(params: {
+      amount: string;
+      from_address: string;
+      tx_hash?: string;
+    }): Promise<GasBankDepositCreateResponse>;
     listTransactions(): Promise<GasBankTransactionsResponse>;
   };
   payments: MiniAppSDK["payments"];

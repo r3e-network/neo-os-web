@@ -41,14 +41,14 @@ type Repository interface {
 // Supabase Repository Implementation
 // =============================================================================
 
-// SupabaseRepository implements Repository using Supabase PostgREST.
-type SupabaseRepository struct {
+// repository implements Repository using Supabase PostgREST.
+type repository struct {
 	base *database.Repository
 }
 
 // NewRepository creates a new Supabase repository.
-func NewRepository(base *database.Repository) *SupabaseRepository {
-	return &SupabaseRepository{base: base}
+func NewRepository(base *database.Repository) Repository {
+	return &repository{base: base}
 }
 
 type keyRotationRow struct {
@@ -64,7 +64,7 @@ type keyRotationRow struct {
 	CreatedAt       time.Time  `json:"created_at"`
 }
 
-func (r *SupabaseRepository) CreateKeyVersion(ctx context.Context, v *types.KeyVersion) error {
+func (r *repository) CreateKeyVersion(ctx context.Context, v *types.KeyVersion) error {
 	if r == nil || r.base == nil {
 		return fmt.Errorf("globalsigner: database not configured")
 	}
@@ -100,7 +100,7 @@ func (r *SupabaseRepository) CreateKeyVersion(ctx context.Context, v *types.KeyV
 	return nil
 }
 
-func (r *SupabaseRepository) UpdateKeyStatus(ctx context.Context, version string, status types.KeyStatus, overlapEndsAt *time.Time) error {
+func (r *repository) UpdateKeyStatus(ctx context.Context, version string, status types.KeyStatus, overlapEndsAt *time.Time) error {
 	if r == nil || r.base == nil {
 		return fmt.Errorf("globalsigner: database not configured")
 	}
@@ -126,7 +126,7 @@ func (r *SupabaseRepository) UpdateKeyStatus(ctx context.Context, version string
 	return nil
 }
 
-func (r *SupabaseRepository) GetKeyVersion(ctx context.Context, version string) (*types.KeyVersion, error) {
+func (r *repository) GetKeyVersion(ctx context.Context, version string) (*types.KeyVersion, error) {
 	if r == nil || r.base == nil {
 		return nil, fmt.Errorf("globalsigner: database not configured")
 	}
@@ -163,7 +163,7 @@ func (r *SupabaseRepository) GetKeyVersion(ctx context.Context, version string) 
 	}, nil
 }
 
-func (r *SupabaseRepository) ListKeyVersions(ctx context.Context, statuses []types.KeyStatus) ([]*types.KeyVersion, error) {
+func (r *repository) ListKeyVersions(ctx context.Context, statuses []types.KeyStatus) ([]*types.KeyVersion, error) {
 	if r == nil || r.base == nil {
 		return nil, fmt.Errorf("globalsigner: database not configured")
 	}
@@ -218,7 +218,7 @@ type attestationArtifactRow struct {
 	CreatedAt    time.Time      `json:"created_at"`
 }
 
-func (r *SupabaseRepository) StoreAttestation(ctx context.Context, keyVersion string, att *types.MasterKeyAttestation) error {
+func (r *repository) StoreAttestation(ctx context.Context, keyVersion string, att *types.MasterKeyAttestation) error {
 	if r == nil || r.base == nil {
 		return fmt.Errorf("globalsigner: database not configured")
 	}
@@ -258,7 +258,7 @@ func (r *SupabaseRepository) StoreAttestation(ctx context.Context, keyVersion st
 	return nil
 }
 
-func (r *SupabaseRepository) GetAttestation(ctx context.Context, keyVersion string) (*types.MasterKeyAttestation, error) {
+func (r *repository) GetAttestation(ctx context.Context, keyVersion string) (*types.MasterKeyAttestation, error) {
 	if r == nil || r.base == nil {
 		return nil, fmt.Errorf("globalsigner: database not configured")
 	}
@@ -403,5 +403,5 @@ func (m *MockRepository) GetAttestation(ctx context.Context, keyVersion string) 
 	return att, nil
 }
 
-var _ Repository = (*SupabaseRepository)(nil)
+var _ Repository = (*repository)(nil)
 var _ Repository = (*MockRepository)(nil)

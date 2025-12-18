@@ -20,10 +20,6 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		httputil.BadRequest(w, "request_id required")
 		return
 	}
-	if !s.markSeen(reqID) {
-		httputil.WriteError(w, http.StatusConflict, "request_id already used")
-		return
-	}
 
 	contractHash := strings.TrimSpace(req.ContractHash)
 	method := canonicalizeMethodName(req.Method)
@@ -32,6 +28,8 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate allowlist and policy BEFORE marking request as seen
+	// This prevents DoS via invalid requests consuming request_ids
 	if s.allowlist == nil || !s.allowlist.Allows(contractHash, method) {
 		httputil.WriteError(w, http.StatusForbidden, "contract/method not allowed")
 		return
@@ -44,6 +42,12 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 
 	if s.chainClient == nil || s.signer == nil {
 		httputil.WriteError(w, http.StatusServiceUnavailable, "chain signing is not configured")
+		return
+	}
+
+	// Mark request as seen only after all validations pass
+	if !s.markSeen(reqID) {
+		httputil.WriteError(w, http.StatusConflict, "request_id already used")
 		return
 	}
 

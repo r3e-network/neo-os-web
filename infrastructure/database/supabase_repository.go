@@ -45,8 +45,8 @@ func (r *Repository) GetUser(ctx context.Context, id string) (*User, error) {
 	}
 
 	var users []User
-	if err := json.Unmarshal(data, &users); err != nil {
-		return nil, fmt.Errorf("%w: unmarshal users: %v", ErrDatabaseError, err)
+	if unmarshalErr := json.Unmarshal(data, &users); unmarshalErr != nil {
+		return nil, fmt.Errorf("%w: unmarshal users: %v", ErrDatabaseError, unmarshalErr)
 	}
 	if len(users) == 0 {
 		return nil, NewNotFoundError("user", id)
@@ -70,8 +70,8 @@ func (r *Repository) GetUserByAddress(ctx context.Context, address string) (*Use
 	}
 
 	var wallets []UserWallet
-	if err := json.Unmarshal(walletData, &wallets); err != nil {
-		return nil, fmt.Errorf("%w: unmarshal wallets: %v", ErrDatabaseError, err)
+	if unmarshalErr := json.Unmarshal(walletData, &wallets); unmarshalErr != nil {
+		return nil, fmt.Errorf("%w: unmarshal wallets: %v", ErrDatabaseError, unmarshalErr)
 	}
 	if len(wallets) > 1 {
 		return nil, fmt.Errorf("%w: wallet address %q is bound to multiple users", ErrDatabaseError, address)
@@ -88,8 +88,8 @@ func (r *Repository) GetUserByAddress(ctx context.Context, address string) (*Use
 	}
 
 	var users []User
-	if err := json.Unmarshal(data, &users); err != nil {
-		return nil, fmt.Errorf("%w: unmarshal users: %v", ErrDatabaseError, err)
+	if unmarshalErr := json.Unmarshal(data, &users); unmarshalErr != nil {
+		return nil, fmt.Errorf("%w: unmarshal users: %v", ErrDatabaseError, unmarshalErr)
 	}
 	if len(users) == 0 {
 		return nil, NewNotFoundError("user", address)
@@ -112,8 +112,8 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*User, e
 	}
 
 	var users []User
-	if err := json.Unmarshal(data, &users); err != nil {
-		return nil, fmt.Errorf("%w: unmarshal users: %v", ErrDatabaseError, err)
+	if unmarshalErr := json.Unmarshal(data, &users); unmarshalErr != nil {
+		return nil, fmt.Errorf("%w: unmarshal users: %v", ErrDatabaseError, unmarshalErr)
 	}
 	if len(users) == 0 {
 		return nil, NewNotFoundError("user", email)
@@ -227,8 +227,8 @@ func (r *Repository) GetServiceRequests(ctx context.Context, userID string, limi
 	}
 
 	var requests []ServiceRequest
-	if err := json.Unmarshal(data, &requests); err != nil {
-		return nil, fmt.Errorf("%w: unmarshal service requests: %v", ErrDatabaseError, err)
+	if unmarshalErr := json.Unmarshal(data, &requests); unmarshalErr != nil {
+		return nil, fmt.Errorf("%w: unmarshal service requests: %v", ErrDatabaseError, unmarshalErr)
 	}
 	return requests, nil
 }
@@ -283,8 +283,8 @@ func (r *Repository) GetLatestPrice(ctx context.Context, feedID string) (*PriceF
 	}
 
 	var feeds []PriceFeed
-	if err := json.Unmarshal(data, &feeds); err != nil {
-		return nil, fmt.Errorf("%w: unmarshal price feeds: %v", ErrDatabaseError, err)
+	if unmarshalErr := json.Unmarshal(data, &feeds); unmarshalErr != nil {
+		return nil, fmt.Errorf("%w: unmarshal price feeds: %v", ErrDatabaseError, unmarshalErr)
 	}
 	if len(feeds) == 0 {
 		return nil, NewNotFoundError("price_feed", feedID)

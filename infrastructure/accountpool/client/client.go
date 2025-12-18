@@ -72,7 +72,7 @@ func New(cfg Config) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) doJSON(ctx context.Context, method, path string, in any, out any) error {
+func (c *Client) doJSON(ctx context.Context, method, path string, in, out any) error {
 	if c == nil {
 		return fmt.Errorf("neoaccounts: client is nil")
 	}
@@ -179,7 +179,7 @@ func (c *Client) ReleaseAccounts(ctx context.Context, accountIDs []string) (*Rel
 }
 
 // UpdateBalance updates an account's balance.
-func (c *Client) UpdateBalance(ctx context.Context, accountID string, token string, delta int64, absolute *int64) (*UpdateBalanceResponse, error) {
+func (c *Client) UpdateBalance(ctx context.Context, accountID, token string, delta int64, absolute *int64) (*UpdateBalanceResponse, error) {
 	var out UpdateBalanceResponse
 	if err := c.doJSON(ctx, http.MethodPost, "/balance", UpdateBalanceInput{
 		ServiceID: c.serviceID,

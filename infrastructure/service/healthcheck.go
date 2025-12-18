@@ -154,7 +154,7 @@ func (d *DeepHealthChecker) LastResult() *DeepHealthResponse {
 func HTTPHealthCheck(name, url string, timeout time.Duration) HealthCheckFunc {
 	client := &http.Client{Timeout: timeout}
 	return func(ctx context.Context) *ComponentHealth {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 		if err != nil {
 			return &ComponentHealth{
 				Name:    name,
@@ -236,6 +236,8 @@ func DeepHealthHandler(checker *DeepHealthChecker, service, version string, encl
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(result)
+		if err := json.NewEncoder(w).Encode(result); err != nil {
+			return
+		}
 	}
 }

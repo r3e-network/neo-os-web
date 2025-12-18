@@ -32,18 +32,21 @@ Store/emit:
 - `attestationHash` = SHA-256(attestation bundle) or CID of the bundle
 The contract does **not** parse attestation; it anchors hashes/events for transparency.
 
-### CLI helper (admin)
-Use `cmd/anchor-master-key` to call `setTEEMasterKey` on the gateway:
-```
-go run ./cmd/anchor-master-key \
-  --rpc https://neo-rpc.example \
-  --gateway 0x...gatewayScriptHash \
-  --priv <admin-priv-hex> \
-  --pubkey <compressed-pubkey-hex> \
-  --pubkey-hash <sha256(pubkey)-hex> \
-  --attest-hash <bundle-hash-hex-or-cid>
-```
-This stores the pubkey, pubkey hash, and attestation hash and emits `TEEMasterKeyAnchored`.
+### Note on tooling and contract status
+This legacy flow depended on a legacy on-chain **Gateway contract** (with `setTEEMasterKey`)
+and a corresponding CLI helper under `cmd/anchor-master-key`.
+
+That Gateway contract is **not part of the current repository architecture** (see `contracts/README.md`),
+and the CLI helper is intentionally not maintained.
+
+The parts of the flow that are still supported by tooling in this repository are:
+
+- `cmd/master-bundle`: fetch `/master-key`, emit the bundle and `sha256(bundle)` for anchoring.
+- `cmd/verify-bundle`: verify a bundle’s `sha256(bundle)` matches an expected (anchored) hash.
+
+If you still require on-chain anchoring of a master-key attestation hash, implement it in a
+custom contract for your deployment (or add a new platform contract) and anchor the output
+of `cmd/master-bundle`.
 
 ## Verifier checklist (off-chain)
 1) Fetch `masterPubKeyHash` and `attestationHash` from the gateway contract/event.

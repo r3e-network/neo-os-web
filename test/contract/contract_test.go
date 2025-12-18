@@ -67,7 +67,6 @@ func TestContractCompilation(t *testing.T) {
 	}
 
 	for _, spec := range specs {
-		spec := spec
 		t.Run(spec.name, func(t *testing.T) {
 			if _, err := os.Stat(spec.sourceFile); os.IsNotExist(err) {
 				t.Fatalf("source file not found: %s", spec.sourceFile)

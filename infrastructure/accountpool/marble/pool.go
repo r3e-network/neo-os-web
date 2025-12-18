@@ -12,7 +12,7 @@ import (
 )
 
 // RequestAccounts locks and returns accounts for a service.
-func (s *Service) RequestAccounts(ctx context.Context, serviceID string, count int, purpose string) ([]AccountInfo, string, error) {
+func (s *Service) RequestAccounts(ctx context.Context, serviceID string, count int, purpose string) (accounts []AccountInfo, lockID string, err error) {
 	if s.repo == nil {
 		return nil, "", fmt.Errorf("repository not configured")
 	}
@@ -24,36 +24,36 @@ func (s *Service) RequestAccounts(ctx context.Context, serviceID string, count i
 	defer s.mu.Unlock()
 
 	// Get available (unlocked, non-retiring) accounts with balances
-	accounts, err := s.repo.ListAvailableWithBalances(ctx, "", nil, count)
+	accountsWithBalances, err := s.repo.ListAvailableWithBalances(ctx, "", nil, count)
 	if err != nil {
 		return nil, "", fmt.Errorf("list accounts: %w", err)
 	}
 
-	if len(accounts) < count {
+	if len(accountsWithBalances) < count {
 		// Try to create more accounts if needed
-		need := count - len(accounts)
-		for i := 0; i < need && len(accounts) < MaxPoolAccounts; i++ {
+		need := count - len(accountsWithBalances)
+		for i := 0; i < need; i++ {
 			acc, err := s.createAccount(ctx)
 			if err != nil {
 				break
 			}
 			// Convert to AccountWithBalances
 			accWithBal := neoaccountssupabase.NewAccountWithBalances(acc)
-			accounts = append(accounts, *accWithBal)
+			accountsWithBalances = append(accountsWithBalances, *accWithBal)
 		}
 	}
 
-	if len(accounts) == 0 {
+	if len(accountsWithBalances) == 0 {
 		return nil, "", fmt.Errorf("no accounts available")
 	}
 
 	// Generate lock ID
-	lockID := uuid.New().String()
+	lockID = uuid.New().String()
 
 	// Lock the accounts
-	result := make([]AccountInfo, 0, len(accounts))
-	for i := range accounts {
-		acc := &accounts[i]
+	result := make([]AccountInfo, 0, len(accountsWithBalances))
+	for i := range accountsWithBalances {
+		acc := &accountsWithBalances[i]
 		acc.LockedBy = serviceID
 		acc.LockedAt = time.Now()
 

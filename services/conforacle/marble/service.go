@@ -34,6 +34,7 @@ type Config struct {
 	SecretProvider secrets.Provider
 	MaxBodyBytes   int64        // optional response cap; default 2MB
 	URLAllowlist   URLAllowlist // optional allowlist for outbound fetch
+	Timeout        time.Duration
 }
 
 // New creates a new NeoOracle service.
@@ -63,13 +64,18 @@ func New(cfg Config) (*Service, error) {
 		maxBytes = 2 * 1024 * 1024 // 2MB default
 	}
 
+	timeout := cfg.Timeout
+	if timeout <= 0 {
+		timeout = 20 * time.Second
+	}
+
 	s := &Service{
 		BaseService:    base,
 		secretProvider: cfg.SecretProvider,
 		httpClient: func() *http.Client {
-			client := &http.Client{Timeout: 20 * time.Second}
+			client := &http.Client{Timeout: timeout}
 			if cfg.Marble != nil {
-				client = httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), 20*time.Second, true)
+				client = httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), timeout, true)
 			}
 			return client
 		}(),

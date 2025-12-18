@@ -103,7 +103,9 @@ neo-miniapp-platform/
 │   └── rls/                    # RLS SQL (schema lives in migrations/)
 │
 ├── miniapps/                   # Mini-apps + templates
-└── infra/                      # neo-express, docker compose, CI helpers
+├── docker/                     # Local dev compose (Supabase, MarbleRun, services)
+├── deploy/                     # neo-express config + deployment scripts
+└── .github/                    # CI workflows (GitHub Actions)
 ```
 
 Current repo mapping (actual folder names and service IDs):
@@ -186,7 +188,12 @@ Canonical endpoints:
 - `POST /functions/v1/vote-neo`
 - `POST /functions/v1/rng-request`
 - `POST /functions/v1/wallet-nonce`, `POST /functions/v1/wallet-bind`
-- `secrets-*`, `api-keys-*`, `gasbank-*`, `datafeed-price`
+- `POST /functions/v1/app-register`, `POST /functions/v1/app-update-manifest`
+- `GET /functions/v1/datafeed-price`
+- `POST /functions/v1/oracle-query`
+- `POST /functions/v1/compute-execute`, `GET /functions/v1/compute-jobs`, `GET /functions/v1/compute-job?id=<job_id>`
+- `GET/POST /functions/v1/automation-triggers` (trigger CRUD/lifecycle via `neoflow`)
+- `secrets-*`, `api-keys-*`, `gasbank-*`
 
 ---
 

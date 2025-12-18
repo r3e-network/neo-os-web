@@ -80,6 +80,7 @@ func (p *ProbeManager) LivenessHandler() http.HandlerFunc {
 			Ready: p.IsReady(),
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		if !status.Live {
 			status.Message = "service not live"
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -87,8 +88,9 @@ func (p *ProbeManager) LivenessHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusOK)
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(status)
+		if err := json.NewEncoder(w).Encode(status); err != nil {
+			return
+		}
 	}
 }
 
@@ -101,6 +103,7 @@ func (p *ProbeManager) ReadinessHandler() http.HandlerFunc {
 			Ready: p.IsReady(),
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		if !status.Ready {
 			if p.InStartupGrace() {
 				status.Message = "starting up"
@@ -112,8 +115,9 @@ func (p *ProbeManager) ReadinessHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusOK)
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(status)
+		if err := json.NewEncoder(w).Encode(status); err != nil {
+			return
+		}
 	}
 }
 
@@ -121,22 +125,28 @@ func (p *ProbeManager) ReadinessHandler() http.HandlerFunc {
 // Returns 200 once startup is complete, 503 during startup.
 func (p *ProbeManager) StartupHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
 		// Startup is complete when ready
 		if p.IsReady() {
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]any{
+			if err := json.NewEncoder(w).Encode(map[string]any{
 				"started": true,
 				"uptime":  time.Since(p.startTime).String(),
-			})
+			}); err != nil {
+				return
+			}
 			return
 		}
 
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"started":         false,
 			"startup_time":    time.Since(p.startTime).String(),
 			"grace_remaining": (p.startupGrace - time.Since(p.startTime)).String(),
-		})
+		}); err != nil {
+			return
+		}
 	}
 }
 

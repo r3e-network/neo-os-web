@@ -15,6 +15,7 @@ import (
 
 	"github.com/R3E-Network/service_layer/infrastructure/database"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	"github.com/R3E-Network/service_layer/infrastructure/testutil"
 	neofeeds "github.com/R3E-Network/service_layer/services/datafeed/marble"
 )
 
@@ -31,7 +32,7 @@ func TestNeoFeedsPriceFetching(t *testing.T) {
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
 	mockDB := database.NewMockRepository()
-	svc, err := neofeeds.New(&neofeeds.Config{
+	svc, err := neofeeds.New(neofeeds.Config{
 		Marble:      m,
 		DB:          mockDB,
 		ArbitrumRPC: "https://arb1.arbitrum.io/rpc",
@@ -112,7 +113,7 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"price": "50000.00"})
 	}))
@@ -128,7 +129,7 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := neofeeds.New(&neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig})
+	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig})
 
 	t.Run("health endpoint", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/health", nil)
@@ -183,7 +184,7 @@ func TestNeoFeedsSignatureVerification(t *testing.T) {
 	signingKey := []byte("test-signing-key-32-bytes-long!!")
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", signingKey)
 
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"price": "50000.00"})
 	}))
@@ -199,7 +200,7 @@ func TestNeoFeedsSignatureVerification(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := neofeeds.New(&neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig})
+	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig})
 
 	ctx := context.Background()
 	price, err := svc.GetPrice(ctx, "BTC/USD") // legacy input should still work
@@ -251,7 +252,7 @@ func TestNeoFeedsMultiplePrices(t *testing.T) {
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
 	mockDB2 := database.NewMockRepository()
-	svc, err := neofeeds.New(&neofeeds.Config{
+	svc, err := neofeeds.New(neofeeds.Config{
 		Marble:      m,
 		DB:          mockDB2,
 		ArbitrumRPC: "https://arb1.arbitrum.io/rpc",
@@ -359,7 +360,7 @@ func TestChainlinkDirectFetch(t *testing.T) {
 // TestNeoFeedsServiceInfo tests service info methods.
 func TestNeoFeedsServiceInfo(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := neofeeds.New(&neofeeds.Config{Marble: m, DB: database.NewMockRepository()})
+	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository()})
 
 	if svc.ID() != "neofeeds" {
 		t.Errorf("expected ID 'neofeeds', got '%s'", svc.ID())
@@ -393,7 +394,7 @@ func BenchmarkPriceFetching(b *testing.B) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := neofeeds.New(&neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig})
+	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig})
 
 	ctx := context.Background()
 

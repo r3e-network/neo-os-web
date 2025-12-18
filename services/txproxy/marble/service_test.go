@@ -34,36 +34,40 @@ func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = svc.Stop() })
 
-	server := httptest.NewServer(svc.Router())
-	defer server.Close()
-
-	call := func(req InvokeRequest) *http.Response {
+	call := func(req InvokeRequest) *httptest.ResponseRecorder {
 		body, _ := json.Marshal(req)
-		httpReq, _ := http.NewRequest(http.MethodPost, server.URL+"/invoke", bytes.NewReader(body))
+		httpReq := httptest.NewRequest(http.MethodPost, "/invoke", bytes.NewReader(body))
 		httpReq.Header.Set("Content-Type", "application/json")
 		httpReq.Header.Set("X-Service-ID", "gateway") // satisfy RequireServiceAuth in non-strict mode
-		resp, _ := http.DefaultClient.Do(httpReq)
-		return resp
+
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, httpReq)
+		return w
 	}
 
-	// Not allowed contract.
+	// Not allowed contract - request_id should NOT be consumed for invalid requests.
 	resp := call(InvokeRequest{RequestID: "1", ContractHash: "beef", Method: "foo"})
-	if resp.StatusCode != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d", resp.StatusCode)
+	if resp.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", resp.Code)
 	}
-	resp.Body.Close()
+
+	// Same request_id with invalid contract should still be rejected (not consumed).
+	resp = call(InvokeRequest{RequestID: "1", ContractHash: "beef", Method: "foo"})
+	if resp.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 (request_id not consumed for invalid request), got %d", resp.Code)
+	}
 
 	// Allowed contract+method but chain is not configured -> 503.
+	// Note: With the new validation-first approach, markSeen happens AFTER chain check,
+	// so 503 means request_id is NOT consumed.
 	resp = call(InvokeRequest{RequestID: "2", ContractHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Method: "foo"})
-	if resp.StatusCode != http.StatusServiceUnavailable {
-		t.Fatalf("expected 503, got %d", resp.StatusCode)
+	if resp.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", resp.Code)
 	}
-	resp.Body.Close()
 
-	// Replay request_id -> 409.
+	// Same request_id should still get 503 (not 409) because markSeen is after chain check.
 	resp = call(InvokeRequest{RequestID: "2", ContractHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Method: "foo"})
-	if resp.StatusCode != http.StatusConflict {
-		t.Fatalf("expected 409, got %d", resp.StatusCode)
+	if resp.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 (request_id not consumed when chain unavailable), got %d", resp.Code)
 	}
-	resp.Body.Close()
 }

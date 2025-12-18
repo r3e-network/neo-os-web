@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -733,22 +732,4 @@ func TestDeleteWalletRequestError(t *testing.T) {
 	if err == nil {
 		t.Error("DeleteWallet() should return error on server error")
 	}
-}
-
-// Helper function (reused from generic_repository_test.go)
-func setupExtendedTestServer(t *testing.T, handler http.HandlerFunc) (*Repository, func()) {
-	t.Helper()
-	server := httptest.NewServer(handler)
-
-	client, err := NewClient(Config{
-		URL:        server.URL,
-		ServiceKey: "test-key",
-	})
-	if err != nil {
-		server.Close()
-		t.Fatalf("NewClient() error = %v", err)
-	}
-
-	repo := NewRepository(client)
-	return repo, server.Close
 }

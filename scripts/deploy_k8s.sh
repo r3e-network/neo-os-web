@@ -362,7 +362,7 @@ preflight_checks() {
     local cert_issuer_file="$PROJECT_ROOT/k8s/platform/cert-manager/cluster-issuer.yaml"
     if [[ -f "$cert_issuer_file" ]]; then
         if grep -q "email:.*@example\.com" "$cert_issuer_file"; then
-            log_error "cert-manager ClusterIssuer still contains placeholder email (@example.com)"
+            log_error "cert-manager ClusterIssuer still contains the default example email (@example.com)"
             log_error "Please update the email addresses in: $cert_issuer_file"
             log_error "The email is required for Let's Encrypt ACME registration"
             exit 1

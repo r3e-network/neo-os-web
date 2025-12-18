@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
+	"github.com/R3E-Network/service_layer/infrastructure/testutil"
 )
 
-func newTestClient(t *testing.T, baseURL, serviceID string) *Client {
+func newTestClient(t *testing.T, baseURL string) *Client {
 	t.Helper()
 	t.Setenv("MARBLE_ENV", "development")
 	client, err := New(Config{
 		BaseURL:   baseURL,
-		ServiceID: serviceID,
+		ServiceID: "neocompute",
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -53,7 +54,7 @@ func TestNew_StrictModeRequiresHTTPS(t *testing.T) {
 }
 
 func TestGetPoolInfo(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/pool-info" {
 			t.Errorf("Path = %s, want /pool-info", r.URL.Path)
 		}
@@ -74,7 +75,7 @@ func TestGetPoolInfo(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 	info, err := client.GetPoolInfo(context.Background())
 	if err != nil {
 		t.Fatalf("GetPoolInfo() error = %v", err)
@@ -88,7 +89,7 @@ func TestGetPoolInfo(t *testing.T) {
 }
 
 func TestRequestAccounts(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/request" {
 			t.Errorf("Path = %s, want /request", r.URL.Path)
 		}
@@ -118,7 +119,7 @@ func TestRequestAccounts(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 	resp, err := client.RequestAccounts(context.Background(), 2, "test")
 	if err != nil {
 		t.Fatalf("RequestAccounts() error = %v", err)
@@ -132,7 +133,7 @@ func TestRequestAccounts(t *testing.T) {
 }
 
 func TestReleaseAccounts(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/release" {
 			t.Errorf("Path = %s, want /release", r.URL.Path)
 		}
@@ -144,7 +145,7 @@ func TestReleaseAccounts(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 	resp, err := client.ReleaseAccounts(context.Background(), []string{"acc-1", "acc-2"})
 	if err != nil {
 		t.Fatalf("ReleaseAccounts() error = %v", err)
@@ -155,7 +156,7 @@ func TestReleaseAccounts(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/balance" {
 			t.Errorf("Path = %s, want /balance", r.URL.Path)
 		}
@@ -173,7 +174,7 @@ func TestUpdateBalance(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 	_, err := client.UpdateBalance(context.Background(), "acc-1", "GAS", 1000, nil)
 	if err != nil {
 		t.Fatalf("UpdateBalance() error = %v", err)
@@ -182,7 +183,7 @@ func TestUpdateBalance(t *testing.T) {
 
 func TestUpdateBalanceWithAbsolute(t *testing.T) {
 	absolute := int64(5000)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body UpdateBalanceInput
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Fatalf("decode request: %v", err)
@@ -201,7 +202,7 @@ func TestUpdateBalanceWithAbsolute(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 	_, err := client.UpdateBalance(context.Background(), "acc-1", "GAS", 0, &absolute)
 	if err != nil {
 		t.Fatalf("UpdateBalance() error = %v", err)
@@ -209,7 +210,7 @@ func TestUpdateBalanceWithAbsolute(t *testing.T) {
 }
 
 func TestGetLockedAccounts(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/accounts" {
 			t.Errorf("Path = %s, want /accounts", r.URL.Path)
 		}
@@ -226,7 +227,7 @@ func TestGetLockedAccounts(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 	accounts, err := client.GetLockedAccounts(context.Background(), "", nil)
 	if err != nil {
 		t.Fatalf("GetLockedAccounts() error = %v", err)
@@ -238,7 +239,7 @@ func TestGetLockedAccounts(t *testing.T) {
 
 func TestGetLockedAccountsWithMinBalance(t *testing.T) {
 	minBalance := int64(1000)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("min_balance") != "1000" {
 			t.Errorf("min_balance = %s, want 1000", r.URL.Query().Get("min_balance"))
 		}
@@ -251,7 +252,7 @@ func TestGetLockedAccountsWithMinBalance(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 	accounts, err := client.GetLockedAccounts(context.Background(), "", &minBalance)
 	if err != nil {
 		t.Fatalf("GetLockedAccounts() error = %v", err)
@@ -262,7 +263,7 @@ func TestGetLockedAccountsWithMinBalance(t *testing.T) {
 }
 
 func TestSignTransaction(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/sign" {
 			t.Errorf("Path = %s, want /sign", r.URL.Path)
 		}
@@ -293,7 +294,7 @@ func TestSignTransaction(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 	result, err := client.SignTransaction(context.Background(), "acc-1", []byte("txhash"))
 	if err != nil {
 		t.Fatalf("SignTransaction() error = %v", err)
@@ -307,7 +308,7 @@ func TestSignTransaction(t *testing.T) {
 }
 
 func TestTransfer(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/transfer" {
 			t.Errorf("Path = %s, want /transfer", r.URL.Path)
 		}
@@ -336,7 +337,7 @@ func TestTransfer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 	result, err := client.Transfer(context.Background(), "acc-1", "NTargetAddr", 1000, "")
 	if err != nil {
 		t.Fatalf("Transfer() error = %v", err)
@@ -350,13 +351,13 @@ func TestTransfer(t *testing.T) {
 }
 
 func TestErrorHandling(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("internal error"))
 	}))
 	defer server.Close()
 
-	client := newTestClient(t, server.URL, "neocompute")
+	client := newTestClient(t, server.URL)
 
 	_, err := client.GetPoolInfo(context.Background())
 	if err == nil {

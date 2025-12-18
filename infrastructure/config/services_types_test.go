@@ -8,7 +8,7 @@ import (
 func TestServicesConfigIsEnabled(t *testing.T) {
 	cfg := &ServicesConfig{
 		Services: map[string]*ServiceSettings{
-			"enabled-service": {Enabled: true, Port: 8080},
+			"enabled-service":  {Enabled: true, Port: 8080},
 			"disabled-service": {Enabled: false, Port: 8081},
 		},
 	}

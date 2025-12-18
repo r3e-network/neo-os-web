@@ -25,9 +25,6 @@ func TestE2ENeoComputeFlow(t *testing.T) {
 		t.Fatalf("neocompute.New: %v", err)
 	}
 
-	server := httptest.NewServer(svc.Router())
-	defer server.Close()
-
 	t.Run("execute script flow", func(t *testing.T) {
 		request := neocompute.ExecuteRequest{
 			Script: `
@@ -43,17 +40,14 @@ function main() {
 			t.Fatalf("marshal request: %v", err)
 		}
 
-		httpReq, err := http.NewRequest(http.MethodPost, server.URL+"/execute", bytes.NewReader(body))
-		if err != nil {
-			t.Fatalf("new request: %v", err)
-		}
+		httpReq := httptest.NewRequest(http.MethodPost, "/execute", bytes.NewReader(body))
 		httpReq.Header.Set("Content-Type", "application/json")
 		httpReq.Header.Set("X-User-ID", "user-123")
 
-		resp, err := http.DefaultClient.Do(httpReq)
-		if err != nil {
-			t.Fatalf("post /execute: %v", err)
-		}
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, httpReq)
+
+		resp := w.Result()
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected status %d, got %d", http.StatusOK, resp.StatusCode)

@@ -31,6 +31,7 @@ import (
 	secretssupabase "github.com/R3E-Network/service_layer/infrastructure/secrets/supabase"
 	txproxyclient "github.com/R3E-Network/service_layer/infrastructure/txproxy/client"
 	txproxytypes "github.com/R3E-Network/service_layer/infrastructure/txproxy/types"
+	gasbankclient "github.com/R3E-Network/service_layer/infrastructure/gasbank/client"
 
 	// Neo service imports
 	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
@@ -44,6 +45,7 @@ import (
 	neooracle "github.com/R3E-Network/service_layer/services/conforacle/marble"
 	neofeeds "github.com/R3E-Network/service_layer/services/datafeed/marble"
 	txproxy "github.com/R3E-Network/service_layer/services/txproxy/marble"
+	neogasbank "github.com/R3E-Network/service_layer/services/gasbank/marble"
 )
 
 // ServiceRunner interface for all Neo services
@@ -60,6 +62,7 @@ var availableServices = []string{
 	"neocompute",
 	"neofeeds",
 	"neoflow",
+	"neogasbank",
 	"neooracle",
 	"txproxy",
 }
@@ -193,18 +196,18 @@ func main() {
 	// to every enclave service. This keeps the active TEE signing key in one place.
 	globalSignerURL := strings.TrimSpace(os.Getenv("GLOBALSIGNER_SERVICE_URL"))
 	if globalSignerURL != "" && serviceType != "globalsigner" {
-		client, err := gsclient.New(gsclient.Config{
+		gsHTTPClient, gsErr := gsclient.New(gsclient.Config{
 			BaseURL:    globalSignerURL,
 			ServiceID:  serviceType,
 			HTTPClient: m.HTTPClient(),
 			Timeout:    15 * time.Second,
 		})
-		if err != nil {
-			log.Printf("Warning: failed to create GlobalSigner client: %v", err)
-		} else if signer, err := chain.NewGlobalSignerSigner(ctx, client); err != nil {
-			log.Printf("Warning: failed to initialize GlobalSigner signer: %v", err)
+		if gsErr != nil {
+			log.Printf("Warning: failed to create GlobalSigner client: %v", gsErr)
+		} else if gsSigner, signerErr := chain.NewGlobalSignerSigner(ctx, gsHTTPClient); signerErr != nil {
+			log.Printf("Warning: failed to initialize GlobalSigner signer: %v", signerErr)
 		} else {
-			teeSigner = signer
+			teeSigner = gsSigner
 			log.Printf("Using GlobalSigner for TEE signing (%s)", globalSignerURL)
 		}
 	}
@@ -216,10 +219,10 @@ func main() {
 			log.Printf("Warning: TEE signer not configured (missing GLOBALSIGNER_SERVICE_URL and TEE_PRIVATE_KEY); chain fulfillments disabled")
 		}
 		if teePrivateKey != "" {
-			if signer, err := chain.NewLocalTEESignerFromPrivateKeyHex(teePrivateKey); err != nil {
-				log.Printf("Warning: failed to create local TEE signer: %v", err)
+			if localSigner, signerErr := chain.NewLocalTEESignerFromPrivateKeyHex(teePrivateKey); signerErr != nil {
+				log.Printf("Warning: failed to create local TEE signer: %v", signerErr)
 			} else {
-				teeSigner = signer
+				teeSigner = localSigner
 			}
 		}
 	}
@@ -228,12 +231,12 @@ func main() {
 	if chainClient != nil {
 		startBlock := uint64(0)
 		if raw := strings.TrimSpace(os.Getenv("NEO_EVENT_START_BLOCK")); raw != "" {
-			if parsed, err := strconv.ParseUint(raw, 10, 64); err == nil {
+			if parsed, parseErr := strconv.ParseUint(raw, 10, 64); parseErr == nil {
 				startBlock = parsed
 			} else {
-				log.Printf("Warning: invalid NEO_EVENT_START_BLOCK %q: %v", raw, err)
+				log.Printf("Warning: invalid NEO_EVENT_START_BLOCK %q: %v", raw, parseErr)
 			}
-		} else if height, err := chainClient.GetBlockCount(ctx); err == nil && height > 0 {
+		} else if height, heightErr := chainClient.GetBlockCount(ctx); heightErr == nil && height > 0 {
 			startBlock = height - 1
 		}
 
@@ -261,16 +264,16 @@ func main() {
 
 	var txProxyInvoker txproxytypes.Invoker
 	if txproxyURL != "" && serviceType != "txproxy" {
-		client, err := txproxyclient.New(txproxyclient.Config{
+		txClient, txErr := txproxyclient.New(txproxyclient.Config{
 			BaseURL:    txproxyURL,
 			ServiceID:  serviceType,
 			HTTPClient: m.HTTPClient(),
 			Timeout:    15 * time.Second,
 		})
-		if err != nil {
-			log.Printf("Warning: failed to create TxProxy client: %v", err)
+		if txErr != nil {
+			log.Printf("Warning: failed to create TxProxy client: %v", txErr)
 		} else {
-			txProxyInvoker = client
+			txProxyInvoker = txClient
 			log.Printf("Using TxProxy for chain writes (%s)", txproxyURL)
 		}
 	}
@@ -278,6 +281,28 @@ func main() {
 	enablePriceFeedPush := chainClient != nil && priceFeedHash != "" && txProxyInvoker != nil
 	enableChainPush := enablePriceFeedPush
 	enableChainExec := chainClient != nil && automationAnchorHash != "" && txProxyInvoker != nil
+
+	// GasBank client for service fee deduction
+	gasbankURL := strings.TrimSpace(os.Getenv("GASBANK_URL"))
+	if gasbankURL == "" {
+		if secret, ok := m.Secret("GASBANK_URL"); ok && len(secret) > 0 {
+			gasbankURL = strings.TrimSpace(string(secret))
+		}
+	}
+
+	var gasbankClient *gasbankclient.Client
+	if gasbankURL != "" && serviceType != "neogasbank" {
+		gbClient, gbErr := gasbankclient.New(gasbankclient.Config{
+			BaseURL:    gasbankURL,
+			HTTPClient: m.HTTPClient(),
+		})
+		if gbErr != nil {
+			log.Printf("Warning: failed to create GasBank client: %v", gbErr)
+		} else {
+			gasbankClient = gbClient
+			log.Printf("Using GasBank for service fee deduction (%s)", gasbankURL)
+		}
+	}
 
 	var svc ServiceRunner
 	switch serviceType {
@@ -304,7 +329,7 @@ func main() {
 		})
 	case "neofeeds":
 		var feedsSvc *neofeeds.Service
-		feedsSvc, err = neofeeds.New(&neofeeds.Config{
+		feedsSvc, err = neofeeds.New(neofeeds.Config{
 			Marble:          m,
 			DB:              db,
 			ArbitrumRPC:     arbitrumRPC,
@@ -312,6 +337,7 @@ func main() {
 			PriceFeedHash:   priceFeedHash,
 			TxProxy:         txProxyInvoker,
 			EnableChainPush: enableChainPush,
+			GasBank:         gasbankClient,
 		})
 		svc = feedsSvc
 	case "neoflow":
@@ -326,6 +352,7 @@ func main() {
 			TxProxy:              txProxyInvoker,
 			EventListener:        eventListener,
 			EnableChainExec:      enableChainExec,
+			GasBank:              gasbankClient,
 		})
 		svc = flowSvc
 	case "neooracle":
@@ -338,10 +365,36 @@ func main() {
 			log.Printf("Warning: ORACLE_HTTP_ALLOWLIST not set; allowing all outbound URLs (development/testing only)")
 		}
 
+		oracleTimeout := time.Duration(0)
+		if raw := strings.TrimSpace(os.Getenv("ORACLE_TIMEOUT")); raw != "" {
+			if parsed, parseErr := time.ParseDuration(raw); parseErr != nil || parsed <= 0 {
+				log.Printf("Warning: invalid ORACLE_TIMEOUT %q: %v", raw, parseErr)
+			} else {
+				oracleTimeout = parsed
+			}
+		}
+
+		oracleMaxBodyBytes := int64(0)
+		if raw := strings.TrimSpace(os.Getenv("ORACLE_MAX_SIZE")); raw != "" {
+			if parsed, parseErr := parseByteSize(raw); parseErr != nil || parsed <= 0 {
+				log.Printf("Warning: invalid ORACLE_MAX_SIZE %q: %v", raw, parseErr)
+			} else {
+				oracleMaxBodyBytes = parsed
+			}
+		}
+
 		svc, err = neooracle.New(neooracle.Config{
 			Marble:         m,
 			SecretProvider: newServiceSecretsProvider(m, db, neooracle.ServiceID),
+			Timeout:        oracleTimeout,
+			MaxBodyBytes:   oracleMaxBodyBytes,
 			URLAllowlist:   oracleAllowlist,
+		})
+	case "neogasbank":
+		svc, err = neogasbank.New(neogasbank.Config{
+			Marble:      m,
+			DB:          db,
+			ChainClient: chainClient,
 		})
 	case "txproxy":
 		svc, err = txproxy.New(txproxy.Config{
@@ -446,6 +499,63 @@ func splitAndTrimCSV(raw string) []string {
 		}
 	}
 	return values
+}
+
+func parseByteSize(raw string) (int64, error) {
+	value := strings.ToLower(strings.TrimSpace(raw))
+	if value == "" {
+		return 0, fmt.Errorf("empty size")
+	}
+
+	type suffix struct {
+		value      string
+		multiplier int64
+	}
+
+	suffixes := []suffix{
+		{value: "gib", multiplier: 1024 * 1024 * 1024},
+		{value: "gb", multiplier: 1024 * 1024 * 1024},
+		{value: "g", multiplier: 1024 * 1024 * 1024},
+		{value: "mib", multiplier: 1024 * 1024},
+		{value: "mb", multiplier: 1024 * 1024},
+		{value: "m", multiplier: 1024 * 1024},
+		{value: "kib", multiplier: 1024},
+		{value: "kb", multiplier: 1024},
+		{value: "k", multiplier: 1024},
+		{value: "b", multiplier: 1},
+	}
+
+	const maxInt64 = int64(^uint64(0) >> 1)
+
+	for _, entry := range suffixes {
+		if !strings.HasSuffix(value, entry.value) {
+			continue
+		}
+		num := strings.TrimSpace(strings.TrimSuffix(value, entry.value))
+		if num == "" {
+			return 0, fmt.Errorf("missing size value")
+		}
+		parsed, err := strconv.ParseInt(num, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		if parsed <= 0 {
+			return 0, fmt.Errorf("size must be positive")
+		}
+		if parsed > maxInt64/entry.multiplier {
+			return 0, fmt.Errorf("size too large")
+		}
+		return parsed * entry.multiplier, nil
+	}
+
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	if parsed <= 0 {
+		return 0, fmt.Errorf("size must be positive")
+	}
+	return parsed, nil
 }
 
 func trimHexPrefix(value string) string {

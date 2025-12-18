@@ -7,12 +7,19 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"io"
 	"math/big"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
 
 func TestContextHelpers(t *testing.T) {
 	ctx := context.Background()
@@ -98,16 +105,21 @@ func TestServiceTokenRoundTripper(t *testing.T) {
 
 	t.Run("injects token header", func(t *testing.T) {
 		var capturedHeader string
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			capturedHeader = r.Header.Get(ServiceTokenHeader)
-			w.WriteHeader(http.StatusOK)
-		}))
-		defer server.Close()
 
-		rt := NewServiceTokenRoundTripper(http.DefaultTransport, gen)
+		base := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			capturedHeader = r.Header.Get(ServiceTokenHeader)
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     http.StatusText(http.StatusOK),
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader("")),
+				Request:    r,
+			}, nil
+		})
+		rt := NewServiceTokenRoundTripper(base, gen)
 		client := &http.Client{Transport: rt}
 
-		req, _ := http.NewRequest("GET", server.URL, nil)
+		req, _ := http.NewRequest("GET", "http://example.com", nil)
 		resp, err := client.Do(req)
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
@@ -121,17 +133,22 @@ func TestServiceTokenRoundTripper(t *testing.T) {
 
 	t.Run("propagates user ID", func(t *testing.T) {
 		var capturedUserID string
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			capturedUserID = r.Header.Get(UserIDHeader)
-			w.WriteHeader(http.StatusOK)
-		}))
-		defer server.Close()
 
-		rt := NewServiceTokenRoundTripper(http.DefaultTransport, gen)
+		base := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			capturedUserID = r.Header.Get(UserIDHeader)
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     http.StatusText(http.StatusOK),
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader("")),
+				Request:    r,
+			}, nil
+		})
+		rt := NewServiceTokenRoundTripper(base, gen)
 		client := &http.Client{Transport: rt}
 
 		ctx := WithUserID(context.Background(), "user-456")
-		req, _ := http.NewRequestWithContext(ctx, "GET", server.URL, nil)
+		req, _ := http.NewRequestWithContext(ctx, "GET", "http://example.com", nil)
 		resp, err := client.Do(req)
 		if err != nil {
 			t.Fatalf("request failed: %v", err)

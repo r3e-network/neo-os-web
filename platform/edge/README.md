@@ -34,7 +34,17 @@ See `platform/edge/functions/`:
 - `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `register` invocation (developer wallet-signed).
 - `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateManifest` invocation (developer wallet-signed).
 - `rng-request`: runs RNG via `neocompute` (no dedicated `vrf-service` in this repo).
+- `compute-execute`: runs a script via `neocompute` (`/execute`) (host-gated).
+- `compute-jobs`: lists compute jobs via `neocompute` (`/jobs`) (host-gated).
+- `compute-job`: gets a compute job via `neocompute` (`/jobs/{id}`) (host-gated; uses `?id=`).
 - `datafeed-price`: read proxy to `neofeeds`.
+- `oracle-query`: forwards allowlisted HTTP fetch requests to `neooracle` (optional secret injection).
+- `automation-triggers`: list/create automation triggers via `neoflow` (host-gated).
+- `automation-trigger`: get a trigger via `neoflow` (host-gated; uses `?id=`).
+- `automation-trigger-update`: update a trigger via `neoflow` (host-gated; uses POST in Edge).
+- `automation-trigger-delete`: delete a trigger via `neoflow` (host-gated; uses POST in Edge).
+- `automation-trigger-enable`, `automation-trigger-disable`, `automation-trigger-resume`: lifecycle controls.
+- `automation-trigger-executions`: list executions (audit log).
 
 Supabase deploys functions under:
 
@@ -49,12 +59,24 @@ At minimum, these functions expect:
 - `SUPABASE_SERVICE_ROLE_KEY` (preferred) or `SUPABASE_SERVICE_KEY` (fallback; used by Go services)
 - `SECRETS_MASTER_KEY` (required for `secrets-*` endpoints; AES-GCM envelope key)
 
+TEE routing env vars (required by functions that proxy to internal services):
+
+- `NEOFEEDS_URL`
+- `NEOCOMPUTE_URL`
+- `NEOORACLE_URL`
+- `NEOFLOW_URL`
+- `TXPROXY_URL`
+
 Most endpoints accept either:
 
 - `Authorization: Bearer <jwt>` (Supabase Auth), or
 - `X-API-Key: <key>` (user API keys; used for secrets/gasbank/etc.)
 
 API key management endpoints (`api-keys-*`) require `Authorization: Bearer <jwt>`.
+
+## Optional Env Vars
+
+- `RNG_ANCHOR`: set to `1` to record RNG results on-chain via `txproxy` (`RandomnessLog.record`).
 
 ## mTLS to TEE
 
