@@ -1,10 +1,10 @@
-# NeoStore Supabase Repository
+# Secrets Supabase Repository
 
-Database layer for the NeoStore secrets management service.
+Supabase database layer for secrets management (encrypted secret storage, per-service access policies, and audit logs).
 
 ## Overview
 
-This package provides NeoStore-specific data access for secrets, access policies, and audit logs.
+This package provides Secrets-specific data access for secrets, access policies, and audit logs.
 
 ## File Structure
 
@@ -101,12 +101,12 @@ type RepositoryInterface interface {
 ## Usage
 
 ```go
-import neostoresupabase "github.com/R3E-Network/service_layer/services/neostore/supabase"
+import secretssupabase "github.com/R3E-Network/service_layer/infrastructure/secrets/supabase"
 
-repo := neostoresupabase.NewRepository(baseRepo)
+repo := secretssupabase.NewRepository(baseRepo)
 
 // Create a secret
-err := repo.CreateSecret(ctx, &neostoresupabase.Secret{
+err := repo.CreateSecret(ctx, &secretssupabase.Secret{
     ID:             uuid.New().String(),
     UserID:         userID,
     Name:           "api_key",
@@ -151,5 +151,5 @@ rows, err := database.GenericListWithQuery[Secret](r.base, ctx, secretsTable, qu
 
 ## Related Documentation
 
-- [Marble Service](../marble/README.md)
-- [Service Overview](../README.md)
+- [Secrets Overview](../README.md)
+- [Database Layer](../../database/README.md)

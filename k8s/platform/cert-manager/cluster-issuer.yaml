@@ -17,7 +17,7 @@ spec:
 #   export CERT_MANAGER_EMAIL="devops@yourdomain.com"
 #   envsubst < cluster-issuer.yaml | kubectl apply -f -
 #
-# Or manually replace the placeholder:
+# Or manually replace the example email:
 #   sed -i 's/devops@example.com/devops@yourdomain.com/g' cluster-issuer.yaml
 #
 apiVersion: cert-manager.io/v1

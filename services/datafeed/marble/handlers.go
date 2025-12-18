@@ -46,11 +46,34 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 
 	price, err := s.GetPrice(r.Context(), pair)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		// Distinguish error types for appropriate HTTP status codes
+		errMsg := err.Error()
+		switch {
+		case contains(errMsg, "not found"), contains(errMsg, "unsupported"), contains(errMsg, "unknown feed"):
+			httputil.NotFound(w, errMsg)
+		case contains(errMsg, "no sources"), contains(errMsg, "no prices"):
+			httputil.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": errMsg})
+		default:
+			httputil.InternalError(w, errMsg)
+		}
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, price)
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) handleGetPrices(w http.ResponseWriter, r *http.Request) {

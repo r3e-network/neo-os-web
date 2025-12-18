@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Price Ticker</title>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        margin: 24px;
+        background: #0b1020;
+        color: #e7ecff;
+      }
+      .card {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+      h1 {
+        margin: 0 0 6px 0;
+        font-size: 20px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 12px 0;
+        align-items: center;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        background: #335cff;
+        color: white;
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: rgba(255, 255, 255, 0.09);
+      }
+      input {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.25);
+        color: #e7ecff;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+        padding: 12px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+      }
+      .warn {
+        color: #ffdf7e;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Price Ticker</h1>
+      <p>Reads signed prices from the platform datafeed via <code>MiniAppSDK</code>.</p>
+
+      <div class="row">
+        <input id="symbol" value="BTC-USD" />
+        <button id="btn-refresh">Refresh</button>
+        <button id="btn-auto" class="secondary">Auto: Off</button>
+      </div>
+
+      <pre id="out">{}</pre>
+      <div id="sdk-note" class="warn" style="display: none">
+        MiniAppSDK is not installed. Load this MiniApp via <code>platform/host-app</code>
+        or another host that injects the SDK.
+      </div>
+    </div>
+
+    <script src="../../_shared/miniapp-bridge.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

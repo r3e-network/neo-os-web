@@ -16,10 +16,11 @@ type PriceSource struct {
 }
 
 // PriceResponse represents a price response.
+// Note: Price uses string serialization to avoid JS Number precision loss for large values.
 type PriceResponse struct {
 	FeedID    string    `json:"feed_id"`
 	Pair      string    `json:"pair"`
-	Price     int64     `json:"price"`
+	Price     int64     `json:"price,string"`
 	Decimals  int       `json:"decimals"`
 	Timestamp time.Time `json:"timestamp"`
 	Sources   []string  `json:"sources"`

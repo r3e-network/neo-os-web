@@ -82,6 +82,12 @@ API key management endpoints require `Authorization: Bearer <jwt>` (cannot be ca
 - `POST /functions/v1/api-keys-revoke`
   - body: `{ id }`
 
+Scope notes:
+
+- Scopes are optional. If omitted (or empty), the key is treated as full access for that user.
+- Recommended convention: set scopes to the Edge function names you want the key to call (e.g. `["pay-gas","rng-request"]`).
+- `["*"]` can be used as an explicit “full access” scope.
+
 ### Secrets
 
 These endpoints manage user secrets stored in Supabase:
@@ -115,6 +121,37 @@ These endpoints manage user secrets stored in Supabase:
   - read proxy to `neofeeds` (or a future cache)
 - `GET /functions/v1/datafeed-stream?symbol=BTC-USD` (future: SSE/WebSocket proxy)
 
+### Oracle
+
+- `POST /functions/v1/oracle-query`
+  - allowlisted HTTP fetch via `neooracle` (`/query`) with optional `secret_name` injection
+
+### Compute
+
+- `POST /functions/v1/compute-execute`
+  - host-gated compute via `neocompute` (`/execute`) with optional `secret_refs` injection
+- `GET /functions/v1/compute-jobs`
+  - lists the authenticated user's recent compute jobs (proxy for `neocompute` `/jobs`)
+- `GET /functions/v1/compute-job?id=<job_id>`
+  - returns a compute job by id (proxy for `neocompute` `/jobs/{id}`)
+
+### Automation
+
+- `GET /functions/v1/automation-triggers`
+  - lists the authenticated user's triggers (proxy for `neoflow` `/triggers`)
+- `POST /functions/v1/automation-triggers`
+  - creates a trigger (proxy for `neoflow` `/triggers`)
+- `GET /functions/v1/automation-trigger?id=<trigger_id>`
+  - gets a trigger by id (proxy for `neoflow` `/triggers/{id}`)
+- `POST /functions/v1/automation-trigger-update`
+  - updates a trigger (proxy for `neoflow` `PUT /triggers/{id}`)
+- `POST /functions/v1/automation-trigger-delete`
+  - deletes a trigger (proxy for `neoflow` `DELETE /triggers/{id}`)
+- `POST /functions/v1/automation-trigger-enable|automation-trigger-disable|automation-trigger-resume`
+  - lifecycle controls (proxy for `neoflow` `/triggers/{id}/...`)
+- `GET /functions/v1/automation-trigger-executions?id=<trigger_id>&limit=50`
+  - lists executions for a trigger (proxy for `neoflow` `/triggers/{id}/executions`)
+
 ## TEE Service Endpoints
 
 This repo uses stable **service IDs** (runtime) and maps them to the target
@@ -147,6 +184,9 @@ platform naming in docs:
 - `GET/POST /triggers`: manage triggers
 - `POST /triggers/{id}/enable|disable|resume`: control lifecycle
 - `GET /triggers/{id}/executions`: audit
+
+Note: in the current implementation, Supabase-backed triggers execute only `cron`
+triggers, and the supported action type is `webhook`.
 
 ### `txproxy` (tx-proxy)
 

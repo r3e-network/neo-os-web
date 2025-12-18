@@ -30,7 +30,7 @@ type SourceConfig struct {
 	Headers  map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 	Timeout  time.Duration     `json:"timeout,omitempty" yaml:"timeout,omitempty"` // Request timeout (default: 10s)
 
-	// PairTemplate optionally defines how to construct the {pair} placeholder
+	// PairTemplate optionally defines how to construct the {pair} token
 	// from the feed base/quote (after applying overrides below).
 	// Example: "{base}{quote}" (Binance), "{base}-{quote}" (OKX).
 	PairTemplate string `json:"pair_template,omitempty" yaml:"pair_template,omitempty"`

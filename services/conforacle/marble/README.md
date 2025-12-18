@@ -156,6 +156,7 @@ type Config struct {
     SecretProvider    secrets.Provider
     MaxBodyBytes      int64        // optional: default 2MB
     URLAllowlist      URLAllowlist // optional: URL restrictions
+    Timeout           time.Duration
 }
 ```
 

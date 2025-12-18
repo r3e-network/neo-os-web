@@ -467,9 +467,9 @@ Sprint 1 完成后，继续执行 Sprint 2: TEE Security Foundation
 
 ## 参考文档
 
-- [PRD](/home/ubuntu/service_layer/.claude/specs/neo-devops-refactor/01-product-requirements.md)
-- [System Architecture](/home/ubuntu/service_layer/.claude/specs/neo-devops-refactor/02-system-architecture.md)
-- [Sprint Plan](/home/ubuntu/service_layer/.claude/specs/neo-devops-refactor/03-sprint-plan.md)
+- [Platform Blueprint](../../docs/neo-miniapp-platform-blueprint.md)
+- [Architecture Overview](../../docs/ARCHITECTURE.md)
+- [Deployment Guide](../../docs/DEPLOYMENT_GUIDE.md)
 - [cert-manager README](cert-manager/README.md)
 - [ArgoCD README](argocd/README.md)
 - [NATS README](nats/README.md)

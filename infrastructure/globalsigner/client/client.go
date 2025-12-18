@@ -317,7 +317,7 @@ func (c *Client) GetAttestation(ctx context.Context) (*AttestationResponse, erro
 		return nil, fmt.Errorf("globalsigner: http client not configured")
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/attestation", nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/attestation", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -366,7 +366,7 @@ func (c *Client) ListKeys(ctx context.Context) ([]KeyVersion, error) {
 		return nil, fmt.Errorf("globalsigner: http client not configured")
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/keys", nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/keys", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -418,7 +418,7 @@ func (c *Client) Health(ctx context.Context) error {
 		return fmt.Errorf("globalsigner: http client not configured")
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", http.NoBody)
 	if err != nil {
 		return err
 	}

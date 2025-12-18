@@ -10,7 +10,10 @@ The target structure is:
 - `services/`: attested SGX services (datafeed/oracle/compute/automation/tx-proxy)
 - `platform/`: Next.js host + SDK + Supabase Edge + RLS policies
 - `miniapps/`: builtin + community miniapps
-- `infra/`: neo-express config, docker compose, CI helpers
+- `deploy/`: neo-express config + deployment scripts
+- `docker/`: local dev compose bundles
+- `k8s/`: Kubernetes manifests/helm values
+- `.github/`: CI workflows (GitHub Actions)
 - `docs/`: specs and operational guidance
 
 ## Current Repo Modules

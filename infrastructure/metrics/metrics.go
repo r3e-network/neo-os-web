@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/R3E-Network/service_layer/infrastructure/runtime"
 )
 
 // Metrics holds all Prometheus metrics

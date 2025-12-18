@@ -23,7 +23,7 @@ import (
 func TestNew(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 
-	svc, err := New(&Config{
+	svc, err := New(Config{
 		Marble: m,
 		DB:     nil,
 	})
@@ -56,7 +56,7 @@ func TestServiceConstants(t *testing.T) {
 
 func TestInitDefaultSources(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	// Default config should include 3 sources (multi-source median)
 	if len(svc.sources) != 3 {
@@ -78,7 +78,7 @@ func TestInitDefaultSources(t *testing.T) {
 
 func TestCalculateMedianOdd(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	prices := []float64{10.0, 20.0, 30.0}
 	median := svc.calculateMedian(prices)
@@ -90,7 +90,7 @@ func TestCalculateMedianOdd(t *testing.T) {
 
 func TestCalculateMedianEven(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	prices := []float64{10.0, 20.0, 30.0, 40.0}
 	median := svc.calculateMedian(prices)
@@ -102,7 +102,7 @@ func TestCalculateMedianEven(t *testing.T) {
 
 func TestCalculateMedianSingle(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	prices := []float64{50.0}
 	median := svc.calculateMedian(prices)
@@ -114,7 +114,7 @@ func TestCalculateMedianSingle(t *testing.T) {
 
 func TestCalculateMedianUnsorted(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	// Unsorted input should still work
 	prices := []float64{30.0, 10.0, 20.0}
@@ -132,7 +132,7 @@ func TestCalculateMedianUnsorted(t *testing.T) {
 func TestSignPriceWithKey(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	price := &PriceResponse{
 		Pair:      "BTCUSDT",
@@ -156,7 +156,7 @@ func TestSignPriceWithKey(t *testing.T) {
 
 func TestSignPriceWithoutKey(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	price := &PriceResponse{
 		Pair:      "BTCUSDT",
@@ -188,7 +188,7 @@ func TestSignPriceWithoutKey(t *testing.T) {
 
 func TestHandleGetPriceMissingPair(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	req := httptest.NewRequest("GET", "/price/", nil)
 	rr := httptest.NewRecorder()
@@ -203,7 +203,7 @@ func TestHandleGetPriceMissingPair(t *testing.T) {
 func TestHandleGetPrices(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	mockDB := database.NewMockRepository()
-	svc, _ := New(&Config{Marble: m, DB: mockDB})
+	svc, _ := New(Config{Marble: m, DB: mockDB})
 
 	req := httptest.NewRequest("GET", "/prices", nil)
 	rr := httptest.NewRecorder()
@@ -227,7 +227,7 @@ func TestHandleGetPrices(t *testing.T) {
 
 func TestHandleListFeeds(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	req := httptest.NewRequest("GET", "/feeds", nil)
 	rr := httptest.NewRecorder()
@@ -345,7 +345,7 @@ func TestGetPriceWithMockSources(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(&Config{Marble: m, FeedsConfig: mockConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig})
 
 	price, err := svc.GetPrice(context.Background(), "BTCUSDT")
 	if err != nil {
@@ -381,7 +381,7 @@ func TestGetPriceNoSources(t *testing.T) {
 		Feeds:          []FeedConfig{},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(&Config{Marble: m, FeedsConfig: emptyConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: emptyConfig})
 
 	// Clear all sources to force error
 	svc.sources = map[string]*SourceConfig{}
@@ -410,7 +410,7 @@ func TestGetPriceAllSourcesFail(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(&Config{Marble: m, FeedsConfig: failConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: failConfig})
 
 	_, err := svc.GetPrice(context.Background(), "BTCUSDT")
 	if err == nil {
@@ -437,7 +437,7 @@ func TestGetPriceWithSigningKey(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(&Config{Marble: m, FeedsConfig: mockConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig})
 
 	price, err := svc.GetPrice(context.Background(), "BTCUSDT")
 	if err != nil {
@@ -458,7 +458,7 @@ func TestFetchPriceSuccess(t *testing.T) {
 	defer mockServer.Close()
 
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	source := PriceSource{
 		Name:     "Mock",
@@ -485,7 +485,7 @@ func TestFetchPriceInvalidJSON(t *testing.T) {
 	defer mockServer.Close()
 
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	source := PriceSource{
 		Name:     "Mock",
@@ -509,7 +509,7 @@ func TestFetchPriceMissingPath(t *testing.T) {
 	defer mockServer.Close()
 
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	source := PriceSource{
 		Name:     "Mock",
@@ -531,7 +531,7 @@ func TestFetchPriceHTTPError(t *testing.T) {
 	defer mockServer.Close()
 
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	source := PriceSource{
 		Name:     "Mock",
@@ -550,7 +550,7 @@ func TestFetchPriceHTTPError(t *testing.T) {
 
 func TestFetchPriceConnectionError(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	source := PriceSource{
 		Name:     "Mock",
@@ -583,7 +583,7 @@ func TestHandleGetPriceSuccess(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(&Config{Marble: m, FeedsConfig: mockConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig})
 
 	req := httptest.NewRequest("GET", "/price/BTCUSDT", nil)
 	req = mux.SetURLVars(req, map[string]string{"pair": "BTCUSDT"})
@@ -623,7 +623,7 @@ func TestHandleGetPriceLegacySlashPair(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(&Config{Marble: m, FeedsConfig: mockConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig})
 
 	req := httptest.NewRequest("GET", "/price/BTC/USD", nil)
 	req = mux.SetURLVars(req, map[string]string{"pair": "BTC/USD"})
@@ -658,7 +658,7 @@ func TestHandleGetPriceError(t *testing.T) {
 		Feeds:          []FeedConfig{},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(&Config{Marble: m, FeedsConfig: emptyConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: emptyConfig})
 
 	// Clear sources to force error
 	svc.sources = map[string]*SourceConfig{}
@@ -669,8 +669,9 @@ func TestHandleGetPriceError(t *testing.T) {
 
 	svc.handleGetPrice(rr, req)
 
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("status = %d, want %d", rr.Code, http.StatusInternalServerError)
+	// 503 Service Unavailable is returned when no sources are configured
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusServiceUnavailable)
 	}
 }
 
@@ -680,7 +681,7 @@ func TestHandleGetPriceError(t *testing.T) {
 
 func BenchmarkCalculateMedian(b *testing.B) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	prices := make([]float64, 100)
 	for i := range prices {
@@ -699,7 +700,7 @@ func BenchmarkCalculateMedian(b *testing.B) {
 func BenchmarkSignPrice(b *testing.B) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
-	svc, _ := New(&Config{Marble: m})
+	svc, _ := New(Config{Marble: m})
 
 	price := &PriceResponse{
 		Pair:      "BTCUSDT",

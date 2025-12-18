@@ -46,9 +46,9 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 
 	account := "genesis"
 
-	genesisScriptHash, err := nx.GetWalletScriptHash(account)
-	if err != nil {
-		t.Fatalf("GetWalletScriptHash(%s): %v", account, err)
+	genesisScriptHash, scriptHashErr := nx.GetWalletScriptHash(account)
+	if scriptHashErr != nil {
+		t.Fatalf("GetWalletScriptHash(%s): %v", account, scriptHashErr)
 	}
 
 	deploy := func(name string) *chain.DeployedContract {
@@ -144,21 +144,21 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	); err != nil {
 		t.Fatalf("PriceFeed.update: %v", err)
 	}
-	latestPrice, err := nx.InvokeWithAccountResults(priceFeed.Hash, "getLatest", account, "BTC-USD")
-	if err != nil {
-		t.Fatalf("PriceFeed.getLatest: %v", err)
+	latestPrice, latestErr := nx.InvokeWithAccountResults(priceFeed.Hash, "getLatest", account, "BTC-USD")
+	if latestErr != nil {
+		t.Fatalf("PriceFeed.getLatest: %v", latestErr)
 	}
 	latestItems := stackArray("PriceFeed.getLatest", latestPrice)
 	if len(latestItems) < 5 {
 		t.Fatalf("PriceFeed.getLatest: expected 5 items, got %d", len(latestItems))
 	}
-	roundID, err := chain.ParseInteger(latestItems[0])
-	if err != nil {
-		t.Fatalf("PriceFeed.getLatest: parse round_id: %v", err)
+	roundID, roundIDErr := chain.ParseInteger(latestItems[0])
+	if roundIDErr != nil {
+		t.Fatalf("PriceFeed.getLatest: parse round_id: %v", roundIDErr)
 	}
-	priceValue, err := chain.ParseInteger(latestItems[1])
-	if err != nil {
-		t.Fatalf("PriceFeed.getLatest: parse price: %v", err)
+	priceValue, priceErr := chain.ParseInteger(latestItems[1])
+	if priceErr != nil {
+		t.Fatalf("PriceFeed.getLatest: parse price: %v", priceErr)
 	}
 	if roundID.Int64() != 1 {
 		t.Fatalf("PriceFeed.getLatest: round_id = %s, want 1", roundID.String())
@@ -189,16 +189,16 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	); err != nil {
 		t.Fatalf("RandomnessLog.record: %v", err)
 	}
-	recordRes, err := nx.InvokeWithAccountResults(randomnessLog.Hash, "get", account, recordID)
-	if err != nil {
-		t.Fatalf("RandomnessLog.get: %v", err)
+	recordRes, recordErr := nx.InvokeWithAccountResults(randomnessLog.Hash, "get", account, recordID)
+	if recordErr != nil {
+		t.Fatalf("RandomnessLog.get: %v", recordErr)
 	}
 	recordItems := stackArray("RandomnessLog.get", recordRes)
 	if len(recordItems) < 4 {
 		t.Fatalf("RandomnessLog.get: expected 4 items, got %d", len(recordItems))
 	}
-	if got, err := chain.ParseByteArray(recordItems[1]); err != nil {
-		t.Fatalf("RandomnessLog.get: parse randomness: %v", err)
+	if got, parseErr := chain.ParseByteArray(recordItems[1]); parseErr != nil {
+		t.Fatalf("RandomnessLog.get: parse randomness: %v", parseErr)
 	} else if "0x"+hex.EncodeToString(got) != strings.ToLower(randomness) {
 		t.Fatalf("RandomnessLog.get: randomness mismatch")
 	}
@@ -214,17 +214,17 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	); err != nil {
 		t.Fatalf("AppRegistry.register: %v", err)
 	}
-	appInfo, err := nx.InvokeWithAccountResults(appRegistry.Hash, "getApp", account, appID)
-	if err != nil {
-		t.Fatalf("AppRegistry.getApp: %v", err)
+	appInfo, appInfoErr := nx.InvokeWithAccountResults(appRegistry.Hash, "getApp", account, appID)
+	if appInfoErr != nil {
+		t.Fatalf("AppRegistry.getApp: %v", appInfoErr)
 	}
 	appItems := stackArray("AppRegistry.getApp", appInfo)
 	if len(appItems) < 7 {
 		t.Fatalf("AppRegistry.getApp: expected 7 items, got %d", len(appItems))
 	}
-	status, err := chain.ParseInteger(appItems[5])
-	if err != nil {
-		t.Fatalf("AppRegistry.getApp: parse status: %v", err)
+	status, statusErr := chain.ParseInteger(appItems[5])
+	if statusErr != nil {
+		t.Fatalf("AppRegistry.getApp: parse status: %v", statusErr)
 	}
 	if status.Int64() != 0 {
 		t.Fatalf("AppRegistry.getApp: status = %s, want 0 (Pending)", status.String())
@@ -233,14 +233,14 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	if _, err := nx.InvokeWithAccount(appRegistry.Hash, "setStatus", account, appID, int64(1)); err != nil {
 		t.Fatalf("AppRegistry.setStatus: %v", err)
 	}
-	appInfo2, err := nx.InvokeWithAccountResults(appRegistry.Hash, "getApp", account, appID)
-	if err != nil {
-		t.Fatalf("AppRegistry.getApp(after setStatus): %v", err)
+	appInfo2, appInfo2Err := nx.InvokeWithAccountResults(appRegistry.Hash, "getApp", account, appID)
+	if appInfo2Err != nil {
+		t.Fatalf("AppRegistry.getApp(after setStatus): %v", appInfo2Err)
 	}
 	appItems2 := stackArray("AppRegistry.getApp(after setStatus)", appInfo2)
-	status2, err := chain.ParseInteger(appItems2[5])
-	if err != nil {
-		t.Fatalf("AppRegistry.getApp(after setStatus): parse status: %v", err)
+	status2, status2Err := chain.ParseInteger(appItems2[5])
+	if status2Err != nil {
+		t.Fatalf("AppRegistry.getApp(after setStatus): parse status: %v", status2Err)
 	}
 	if status2.Int64() != 1 {
 		t.Fatalf("AppRegistry.getApp(after setStatus): status = %s, want 1 (Approved)", status2.String())
@@ -264,9 +264,9 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	}
 
 	txHashBytes := "0x" + strings.Repeat("ee", 32)
-	usedBefore, err := nx.InvokeWithAccountResults(automationAnchor.Hash, "isNonceUsed", account, taskID, int64(1))
-	if err != nil {
-		t.Fatalf("AutomationAnchor.isNonceUsed(before): %v", err)
+	usedBefore, usedBeforeErr := nx.InvokeWithAccountResults(automationAnchor.Hash, "isNonceUsed", account, taskID, int64(1))
+	if usedBeforeErr != nil {
+		t.Fatalf("AutomationAnchor.isNonceUsed(before): %v", usedBeforeErr)
 	}
 	if stackBool("AutomationAnchor.isNonceUsed(before)", usedBefore) {
 		t.Fatalf("AutomationAnchor.isNonceUsed(before): expected false")
@@ -278,9 +278,9 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 		t.Fatalf("AutomationAnchor.markExecuted: %v", err)
 	}
 
-	usedAfter, err := nx.InvokeWithAccountResults(automationAnchor.Hash, "isNonceUsed", account, taskID, int64(1))
-	if err != nil {
-		t.Fatalf("AutomationAnchor.isNonceUsed(after): %v", err)
+	usedAfter, usedAfterErr := nx.InvokeWithAccountResults(automationAnchor.Hash, "isNonceUsed", account, taskID, int64(1))
+	if usedAfterErr != nil {
+		t.Fatalf("AutomationAnchor.isNonceUsed(after): %v", usedAfterErr)
 	}
 	if !stackBool("AutomationAnchor.isNonceUsed(after)", usedAfter) {
 		t.Fatalf("AutomationAnchor.isNonceUsed(after): expected true")
@@ -317,9 +317,9 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 		t.Fatalf("PaymentHub.pay: %v", err)
 	}
 
-	balBefore, err := nx.InvokeWithAccountResults(paymentHub.Hash, "getAppBalance", account, appID)
-	if err != nil {
-		t.Fatalf("PaymentHub.getAppBalance: %v", err)
+	balBefore, balBeforeErr := nx.InvokeWithAccountResults(paymentHub.Hash, "getAppBalance", account, appID)
+	if balBeforeErr != nil {
+		t.Fatalf("PaymentHub.getAppBalance: %v", balBeforeErr)
 	}
 	if got := stackInt64("PaymentHub.getAppBalance", balBefore); got < amount {
 		t.Fatalf("PaymentHub.getAppBalance: expected >= %d, got %d", amount, got)
@@ -329,9 +329,9 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 		t.Fatalf("PaymentHub.withdraw: %v", err)
 	}
 
-	balAfter, err := nx.InvokeWithAccountResults(paymentHub.Hash, "getAppBalance", account, appID)
-	if err != nil {
-		t.Fatalf("PaymentHub.getAppBalance(after): %v", err)
+	balAfter, balAfterErr := nx.InvokeWithAccountResults(paymentHub.Hash, "getAppBalance", account, appID)
+	if balAfterErr != nil {
+		t.Fatalf("PaymentHub.getAppBalance(after): %v", balAfterErr)
 	}
 	if got := stackInt64("PaymentHub.getAppBalance(after)", balAfter); got != 0 {
 		t.Fatalf("PaymentHub.getAppBalance(after): expected 0, got %d", got)
@@ -345,12 +345,12 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 		t.Fatalf("Governance.stake: %v", err)
 	}
 
-	stakeRes, err := nx.InvokeWithAccountResults(governance.Hash, "getStake", account, map[string]any{
+	stakeRes, stakeErr := nx.InvokeWithAccountResults(governance.Hash, "getStake", account, map[string]any{
 		"type":  "Hash160",
 		"value": genesisScriptHash,
 	})
-	if err != nil {
-		t.Fatalf("Governance.getStake: %v", err)
+	if stakeErr != nil {
+		t.Fatalf("Governance.getStake: %v", stakeErr)
 	}
 	if got := stackInt64("Governance.getStake", stakeRes); got < 10 {
 		t.Fatalf("Governance.getStake: expected >= 10, got %d", got)

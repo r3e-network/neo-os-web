@@ -25,6 +25,69 @@ await sdk.rng.requestRandom("my-app");
 await sdk.datafeed.getPrice("BTC-USD");
 ```
 
+Notes:
+
+- `payGAS` / `vote` return an `invocation` intent plus a `request_id`. The host (or wallet integration) should sign and submit the invocation.
+- Some hosts expose a convenience method: `window.MiniAppSDK.wallet.invokeIntent(request_id)`.
+
+## Oracle (Host-only)
+
+NeoOracle is an allowlisted HTTP fetch service that can inject user secrets for auth.
+
+The gateway endpoint is `oracle-query` (Supabase Edge), which forwards to the TEE service.
+
+```ts
+const host = createHostSDK({
+  edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
+  getAuthToken: async () => "<supabase-jwt>",
+});
+
+const res = await host.oracle.query({
+  url: "https://api.coingecko.com/api/v3/simple/price?ids=neo&vs_currencies=usd",
+});
+console.log(res.status_code, res.body);
+```
+
+## Compute (Host-only)
+
+NeoCompute executes restricted scripts inside the enclave. These endpoints are
+host-only and require auth (and typically a primary wallet binding).
+
+```ts
+const host = createHostSDK({
+  edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
+  getAuthToken: async () => "<supabase-jwt>",
+});
+
+const job = await host.compute.execute({
+  script: "function main() { return { now: Date.now(), x: input.x }; }",
+  entry_point: "main",
+  input: { x: 123 },
+});
+console.log(job.job_id, job.status);
+```
+
+## Automation (Host-only)
+
+NeoFlow manages user triggers (currently cron + webhook execution in the service).
+
+```ts
+const host = createHostSDK({
+  edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
+  getAuthToken: async () => "<supabase-jwt>",
+});
+
+const trigger = await host.automation.createTrigger({
+  name: "Every 5 minutes",
+  trigger_type: "cron",
+  schedule: "*/5 * * * *",
+  action: { type: "webhook", url: "https://example.com/callback", method: "POST" },
+});
+
+const executions = await host.automation.listExecutions(trigger.id, 25);
+console.log(trigger.enabled, executions.length);
+```
+
 ## Wallet Binding (OAuth-first onboarding)
 
 When a user logs in via Supabase OAuth, the platform can require them to bind a

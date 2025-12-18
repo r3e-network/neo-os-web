@@ -105,3 +105,10 @@ and pass it via `Config.ArbitrumRPC`.
 
 In strict identity / enclave mode, outbound sources must use HTTPS (enforced by
 configuration validation).
+
+## Related Documentation
+
+- [NeoFeeds Service Overview](../README.md)
+- [Smart Contract](../contract/README.md)
+- [TxProxy](../../txproxy/README.md)
+- [Chain Integration](../../../infrastructure/chain/README.md)

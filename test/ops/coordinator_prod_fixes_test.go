@@ -133,9 +133,7 @@ func nestedStringSlice(root map[string]any, path ...string) ([]string, bool) {
 			return nil, false
 		}
 		rawSlice = make([]any, 0, len(rawIface))
-		for _, v := range rawIface {
-			rawSlice = append(rawSlice, v)
-		}
+		rawSlice = append(rawSlice, rawIface...)
 	}
 
 	out := make([]string, 0, len(rawSlice))

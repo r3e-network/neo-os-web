@@ -21,9 +21,12 @@ Key gateway endpoints in this repo:
 - `pay-gas` (PaymentHub intent; settlement **GAS only**)
 - `vote-neo` (Governance intent; governance **NEO only**)
 - `rng-request` (randomness via `neocompute` scripts; optional RandomnessLog anchoring)
+- `compute-execute`, `compute-jobs`, `compute-job` (host-gated `neocompute` script execution + job inspection)
+- `automation-triggers`, `automation-trigger-*` (host-gated trigger management + audit via `neoflow`)
 - `secrets-*` (user secrets management + per-service permissions)
 - `gasbank-*` (delegated payments: balances, deposits, transactions)
 - `datafeed-price` (read proxy for `neofeeds`)
+- `oracle-query` (allowlisted HTTP fetch proxy for `neooracle`)
 
 ## TEE Services (Internal)
 

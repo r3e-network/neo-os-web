@@ -1,0 +1,41 @@
+{
+  "app_id": "community-template",
+  "entry_url": "https://cdn.example.com/miniapps/community/template/index.html",
+  "name": "MiniApp Community Template",
+  "version": "0.1.0",
+  "developer_pubkey": "0x020000000000000000000000000000000000000000000000000000000000000000",
+  "permissions": {
+    "wallet": [
+      "read-address"
+    ],
+    "payments": true,
+    "governance": true,
+    "randomness": true,
+    "datafeed": true,
+    "storage": [
+      "kv"
+    ]
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "governance_assets_allowed": [
+    "NEO"
+  ],
+  "limits": {
+    "max_gas_per_tx": "5",
+    "daily_gas_cap_per_user": "20",
+    "governance_cap": "100"
+  },
+  "contracts_needed": [
+    "Governance",
+    "PaymentHub",
+    "RandomnessLog",
+    "PriceFeed"
+  ],
+  "sandbox_flags": [
+    "no-eval",
+    "strict-csp"
+  ],
+  "attestation_required": true
+}

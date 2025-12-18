@@ -18,6 +18,9 @@ declare global {
     MiniAppSDK: {
       wallet: {
         getAddress(): Promise<string>;
+        // Optional: ask the host to submit a previously created invocation intent.
+        // Hosts should only allow request_ids they created (one-time).
+        invokeIntent?(requestId: string): Promise<unknown>;
       };
       payments: {
         // Returns a contract invocation intent. The host/wallet signs & submits.
@@ -63,7 +66,7 @@ declare global {
 
 The `platform/sdk` also exposes a host-only client (`HostSDK`) for workflows that
 must not be exposed to untrusted MiniApps (wallet binding, secrets, API keys,
-gasbank).
+gasbank, oracle queries, compute execution, automation triggers).
 
 Auth can be provided either as a Supabase JWT (`Authorization: Bearer`) or as a
 user API key (`X-API-Key`) via `MiniAppSDKConfig.getAPIKey`.
@@ -75,7 +78,9 @@ const address = await window.MiniAppSDK.wallet.getAddress();
 
 // User-signed flow: get an invocation intent from Supabase Edge, then have the wallet sign it.
 const pay = await window.MiniAppSDK.payments.payGAS("raffle", "1.5", "entry fee");
-// host: build tx for pay.invocation and submit via wallet dAPI (NeoLine/O3/OneGate)
+// Option A (host-specific helper): ask the host to submit the intent via the wallet.
+await window.MiniAppSDK.wallet.invokeIntent?.(pay.request_id);
+// Option B: host builds tx for pay.invocation and submits via wallet dAPI (NeoLine/O3/OneGate)
 
 const { randomness, reportHash } = await window.MiniAppSDK.rng.requestRandom("raffle");
 

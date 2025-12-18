@@ -24,14 +24,20 @@ type auditEvent struct {
 var (
 	auditLogger = sllogging.NewFromEnv("gateway")
 	auditOnce   sync.Once
-	auditQueue  chan auditEvent
+	auditQueue  chan *auditEvent
 )
 
-func enqueueAudit(event auditEvent) {
+func enqueueAudit(event *auditEvent) {
+	if event == nil {
+		return
+	}
 	auditOnce.Do(func() {
-		auditQueue = make(chan auditEvent, 256)
+		auditQueue = make(chan *auditEvent, 256)
 		go func() {
 			for auditEvent := range auditQueue {
+				if auditEvent == nil {
+					continue
+				}
 				fields := map[string]interface{}{
 					"audit":      true,
 					"event_type": "header_gate_reject",
@@ -70,7 +76,7 @@ func HeaderGateMiddleware(sharedSecret string) func(http.Handler) http.Handler {
 			receivedSecret := r.Header.Get("X-Shared-Secret")
 
 			if vercelID == "" || receivedSecret == "" {
-				enqueueAudit(auditEvent{
+				enqueueAudit(&auditEvent{
 					ctx:       r.Context(),
 					reason:    "missing_headers",
 					method:    r.Method,
@@ -85,7 +91,7 @@ func HeaderGateMiddleware(sharedSecret string) func(http.Handler) http.Handler {
 
 			receivedSecretHash := sha256.Sum256([]byte(receivedSecret))
 			if subtle.ConstantTimeCompare(receivedSecretHash[:], expectedSecretHash[:]) != 1 {
-				enqueueAudit(auditEvent{
+				enqueueAudit(&auditEvent{
 					ctx:       r.Context(),
 					reason:    "invalid_secret",
 					method:    r.Method,

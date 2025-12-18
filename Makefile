@@ -3,7 +3,7 @@
 # MarbleRun + EGo + Supabase + Vercel Architecture
 # =============================================================================
 
-.PHONY: all build test clean docker frontend deploy help contracts-build test-contracts
+.PHONY: all build test clean docker frontend deploy help contracts-build test-contracts export-miniapps export-supabase-functions check-git
 
 # Variables
 CMD_BINARIES := marble create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
@@ -152,12 +152,20 @@ db-migrate: ## Run database migrations
 	done
 
 db-seed: ## Seed database with test data
-	@echo "Seeding database..."
-	go run scripts/seed.go
+	@echo "No db seed script is shipped (use Supabase SQL editor or manual inserts)."
 
 # =============================================================================
 # Frontend
 # =============================================================================
+
+export-miniapps: ## Export demo MiniApps into host public/
+	./scripts/export_host_miniapps.sh
+
+export-supabase-functions: ## Export Edge functions into supabase/functions/
+	./scripts/export_supabase_functions.sh
+
+check-git: ## Report untracked canonical source/scaffolds
+	./scripts/git_completeness_check.sh
 
 frontend-install: ## Install frontend dependencies
 	cd platform/host-app && npm install
@@ -205,12 +213,12 @@ tidy: ## Tidy go modules
 # =============================================================================
 
 deploy-staging: ## Deploy to staging
-	@echo "Deploying to staging..."
-	$(DOCKER_COMPOSE) -f docker/docker-compose.staging.yaml up -d
+	@echo "Deploying to staging (Kubernetes test overlay)..."
+	@./scripts/deploy_k8s.sh --env test
 
 deploy-production: ## Deploy to production
-	@echo "Deploying to production..."
-	$(DOCKER_COMPOSE) -f docker/docker-compose.production.yaml up -d
+	@echo "Deploying to production (Kubernetes prod overlay)..."
+	@./scripts/deploy_k8s.sh --env prod
 
 # =============================================================================
 # Utilities

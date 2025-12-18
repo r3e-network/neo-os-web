@@ -19,6 +19,7 @@ import (
 
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
+	gasbankclient "github.com/R3E-Network/service_layer/infrastructure/gasbank/client"
 	"github.com/R3E-Network/service_layer/infrastructure/httputil"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
 	"github.com/R3E-Network/service_layer/infrastructure/runtime"
@@ -57,6 +58,9 @@ type Service struct {
 	publishState    map[string]*pricePublishState
 	updateInterval  time.Duration
 	enableChainPush bool
+
+	// Service fee deduction
+	gasbank *gasbankclient.Client
 }
 
 // Config holds NeoFeeds service configuration.
@@ -73,13 +77,13 @@ type Config struct {
 	TxProxy         txproxytypes.Invoker
 	UpdateInterval  time.Duration // How often to push prices on-chain (default: from config)
 	EnableChainPush bool          // Enable automatic on-chain price updates
+
+	// GasBank client for service fee deduction (optional)
+	GasBank *gasbankclient.Client
 }
 
 // New creates a new NeoFeeds service.
-func New(cfg *Config) (*Service, error) {
-	if cfg == nil {
-		return nil, fmt.Errorf("config cannot be nil")
-	}
+func New(cfg Config) (*Service, error) {
 	if cfg.Marble == nil {
 		return nil, fmt.Errorf("marble is required")
 	}
@@ -125,7 +129,8 @@ func New(cfg *Config) (*Service, error) {
 
 	// In production/SGX mode, enforce TLS for all outbound price sources.
 	if strict {
-		for _, src := range feedsConfig.Sources {
+		for i := range feedsConfig.Sources {
+			src := &feedsConfig.Sources[i]
 			raw := strings.TrimSpace(src.URL)
 			if !strings.HasPrefix(strings.ToLower(raw), "https://") {
 				return nil, fmt.Errorf("neofeeds: source %q url must use https in strict identity mode", src.ID)
@@ -158,6 +163,7 @@ func New(cfg *Config) (*Service, error) {
 		publishState:    make(map[string]*pricePublishState),
 		updateInterval:  updateInterval,
 		enableChainPush: cfg.EnableChainPush,
+		gasbank:         cfg.GasBank,
 	}
 
 	s.attestationHash = computeAttestationHash(cfg.Marble)

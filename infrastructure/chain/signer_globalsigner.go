@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"strings"
 
-	gsclient "github.com/R3E-Network/service_layer/infrastructure/globalsigner/client"
 	"github.com/nspcc-dev/neo-go/pkg/config/netmode"
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/hash"
 	neokeys "github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neo-go/pkg/util"
 	"github.com/nspcc-dev/neo-go/pkg/vm/opcode"
+
+	gsclient "github.com/R3E-Network/service_layer/infrastructure/globalsigner/client"
 )
 
 // GlobalSignerSigner implements TEESigner using the GlobalSigner infrastructure marble.

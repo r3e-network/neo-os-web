@@ -1,5 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireScope } from "../_shared/scopes.ts";
 import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
 
 // Lists secret metadata for the authenticated user (no values).
@@ -10,6 +11,8 @@ Deno.serve(async (req) => {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const scopeCheck = requireScope(auth, "secrets-list");
+  if (scopeCheck) return scopeCheck;
   const walletCheck = await requirePrimaryWallet(auth.userId);
   if (walletCheck instanceof Response) return walletCheck;
 

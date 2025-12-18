@@ -81,9 +81,6 @@ func TestNeoAccountsSigningForContracts(t *testing.T) {
 		t.Fatalf("neoaccounts.New: %v", err)
 	}
 
-	server := httptest.NewServer(svc.Router())
-	defer server.Close()
-
 	t.Run("sign endpoint validation", func(t *testing.T) {
 		defer func() {
 			if r := recover(); r != nil {

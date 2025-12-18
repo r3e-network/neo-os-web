@@ -12,13 +12,11 @@ import (
 func TestMasterKeyEndpoint_ReturnsAttestation(t *testing.T) {
 	svc, _ := newTestServiceWithMock(t)
 
-	server := httptest.NewServer(svc.Router())
-	defer server.Close()
+	req := httptest.NewRequest(http.MethodGet, "/master-key", nil)
+	w := httptest.NewRecorder()
+	svc.Router().ServeHTTP(w, req)
 
-	resp, err := http.Get(server.URL + "/master-key")
-	if err != nil {
-		t.Fatalf("http get: %v", err)
-	}
+	resp := w.Result()
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {

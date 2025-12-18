@@ -19,7 +19,7 @@ type BaseSignerAdapter struct {
 }
 
 // Sign signs data with a domain prefix using GlobalSigner.
-func (a *BaseSignerAdapter) Sign(ctx context.Context, domain string, data []byte) ([]byte, string, error) {
+func (a *BaseSignerAdapter) Sign(ctx context.Context, domain string, data []byte) (signature []byte, keyVersion string, err error) {
 	if a.GSClient == nil {
 		return nil, "", fmt.Errorf("globalsigner client not configured")
 	}
@@ -41,7 +41,7 @@ func (a *BaseSignerAdapter) Sign(ctx context.Context, domain string, data []byte
 }
 
 // GetPublicKey gets the current signer public key.
-func (a *BaseSignerAdapter) GetPublicKey(ctx context.Context) (string, string, error) {
+func (a *BaseSignerAdapter) GetPublicKey(ctx context.Context) (pubKeyHex, keyVersion string, err error) {
 	if a.GSClient == nil {
 		return "", "", fmt.Errorf("globalsigner client not configured")
 	}

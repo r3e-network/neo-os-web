@@ -3,8 +3,9 @@ package chain
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -135,7 +136,7 @@ func TestRPCPoolGetNextEndpoint(t *testing.T) {
 	ep2 := pool.GetNextEndpoint()
 
 	if ep1 == nil || ep2 == nil {
-		t.Error("GetNextEndpoint() returned nil")
+		t.Fatal("GetNextEndpoint() returned nil")
 	}
 
 	// Should round-robin
@@ -252,18 +253,24 @@ func TestRPCPoolExecuteWithFailoverAllFail(t *testing.T) {
 }
 
 func TestRPCPoolHealthCheck(t *testing.T) {
-	// Create a test server that responds to health checks
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":12345}`))
-	}))
-	defer server.Close()
+	client := &http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     http.StatusText(http.StatusOK),
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       io.NopCloser(strings.NewReader(`{"jsonrpc":"2.0","id":1,"result":12345}`)),
+				Request:    req,
+			}, nil
+		}),
+	}
 
 	pool, err := NewRPCPool(&RPCPoolConfig{
-		Endpoints:           []string{server.URL},
+		Endpoints:           []string{"http://example.com"},
 		HealthCheckInterval: 10 * time.Millisecond,
 		HealthCheckTimeout:  1 * time.Second,
 		MaxConsecutiveFails: 3,
+		HTTPClient:          client,
 	})
 	if err != nil {
 		t.Fatalf("NewRPCPool() error = %v", err)

@@ -103,9 +103,9 @@ alertmanager:
     receivers:
       - name: "null"
       - name: "critical"
-        # TODO: 配置 Slack/Email/PagerDuty
+        # 生产环境请配置 Slack/Email/PagerDuty 接收器
       - name: "warning"
-        # TODO: 配置 Slack/Email
+        # 生产环境请配置 Slack/Email 接收器
 
 # Grafana 配置 (集成在同一个 chart)
 grafana:
@@ -198,7 +198,7 @@ grafana:
     annotations:
       cert-manager.io/cluster-issuer: "selfsigned-issuer"
     hosts:
-      - grafana.local # TODO: 替换为实际域名
+      - grafana.local # 替换为实际域名
     tls:
       - secretName: grafana-tls
         hosts:

@@ -59,7 +59,7 @@ func (s *Service) PushSinglePrice(ctx context.Context, feedID string) error {
 	}
 	s.publishMu.Unlock()
 
-	if _, err := s.invokePriceFeedUpdate(ctx, feedID, big.NewInt(next), big.NewInt(latest.Price), uint64(timestampSecs), sourceSetID, true); err != nil {
+	if err := s.invokePriceFeedUpdate(ctx, feedID, big.NewInt(next), big.NewInt(latest.Price), uint64(timestampSecs), sourceSetID, true); err != nil {
 		return err
 	}
 

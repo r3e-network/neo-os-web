@@ -18,30 +18,30 @@ func (s *Service) invokePriceFeedUpdate(
 	timestamp uint64,
 	sourceSetID *big.Int,
 	wait bool,
-) (*txproxytypes.InvokeResponse, error) {
+) error {
 	if s == nil {
-		return nil, fmt.Errorf("neofeeds: service is nil")
+		return fmt.Errorf("neofeeds: service is nil")
 	}
 	if s.txProxy == nil {
-		return nil, fmt.Errorf("neofeeds: txproxy not configured")
+		return fmt.Errorf("neofeeds: txproxy not configured")
 	}
 	if s.priceFeedHash == "" {
-		return nil, fmt.Errorf("neofeeds: pricefeed hash not configured")
+		return fmt.Errorf("neofeeds: pricefeed hash not configured")
 	}
 	if symbol == "" {
-		return nil, fmt.Errorf("neofeeds: symbol required")
+		return fmt.Errorf("neofeeds: symbol required")
 	}
 	if roundID == nil || roundID.Sign() <= 0 {
-		return nil, fmt.Errorf("neofeeds: roundID required")
+		return fmt.Errorf("neofeeds: roundID required")
 	}
 	if price == nil || price.Sign() <= 0 {
-		return nil, fmt.Errorf("neofeeds: price required")
+		return fmt.Errorf("neofeeds: price required")
 	}
 	if timestamp == 0 {
-		return nil, fmt.Errorf("neofeeds: timestamp required")
+		return fmt.Errorf("neofeeds: timestamp required")
 	}
 	if len(s.attestationHash) == 0 {
-		return nil, fmt.Errorf("neofeeds: attestation hash missing")
+		return fmt.Errorf("neofeeds: attestation hash missing")
 	}
 
 	params := priceFeedUpdateParams(symbol, roundID, price, timestamp, s.attestationHash, sourceSetID)
@@ -52,7 +52,8 @@ func (s *Service) invokePriceFeedUpdate(
 		Params:       params,
 		Wait:         wait,
 	}
-	return s.txProxy.Invoke(ctx, &req)
+	_, err := s.txProxy.Invoke(ctx, &req)
+	return err
 }
 
 func priceFeedUpdateParams(

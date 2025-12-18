@@ -236,10 +236,13 @@ func (s *Service) checkAndExecuteAnchoredCronTask(ctx context.Context, now time.
 		return
 	}
 
-	executionData, _ := json.Marshal(map[string]any{
+	executionData, err := json.Marshal(map[string]any{
 		"type":        "cron",
 		"executed_at": now.Unix(),
 	})
+	if err != nil {
+		return
+	}
 
 	go s.executeAnchoredTask(ctx, task, executionData)
 
@@ -302,7 +305,7 @@ func (s *Service) checkAndExecuteAnchoredPriceTask(ctx context.Context, task *an
 		return
 	}
 
-	executionData, _ := json.Marshal(map[string]any{
+	executionData, err := json.Marshal(map[string]any{
 		"type":          "price",
 		"symbol":        symbol,
 		"round_id":      record.RoundID.String(),
@@ -313,6 +316,9 @@ func (s *Service) checkAndExecuteAnchoredPriceTask(ctx context.Context, task *an
 		"attestation":   hex.EncodeToString(record.AttestationHash),
 		"source_set_id": record.SourceSetID.String(),
 	})
+	if err != nil {
+		return
+	}
 
 	go s.executeAnchoredTask(ctx, task, executionData)
 }

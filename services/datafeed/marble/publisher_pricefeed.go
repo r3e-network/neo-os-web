@@ -60,7 +60,10 @@ func (s *Service) hydratePriceFeedState(ctx context.Context) error {
 
 		var lastAt time.Time
 		if rec != nil && rec.Timestamp > 0 {
-			lastAt = time.Unix(int64(rec.Timestamp), 0)
+			const maxInt64 = ^uint64(0) >> 1
+			if rec.Timestamp <= maxInt64 {
+				lastAt = time.Unix(int64(rec.Timestamp), 0)
+			}
 		}
 
 		s.publishMu.Lock()
@@ -220,12 +223,12 @@ func (s *Service) tryPublishPrice(ctx context.Context, symbol string, newPrice i
 		sourceSetID = big.NewInt(0)
 	}
 
-	_, err := s.invokePriceFeedUpdate(ctx, symbol, roundBig, priceBig, timestamp, sourceSetID, false)
+	err := s.invokePriceFeedUpdate(ctx, symbol, roundBig, priceBig, timestamp, sourceSetID, false)
 	if err != nil {
 		// If we got out of sync (e.g., restart), resync once and retry with the correct round.
 		if s.resyncRoundID(ctx, symbol) {
 			s.publishMu.Lock()
-			state := s.publishState[symbol]
+			state = s.publishState[symbol]
 			if state != nil {
 				next := state.lastRoundID + 1
 				if next <= 0 {
@@ -234,7 +237,7 @@ func (s *Service) tryPublishPrice(ctx context.Context, symbol string, newPrice i
 				roundBig = big.NewInt(next)
 			}
 			s.publishMu.Unlock()
-			_, err = s.invokePriceFeedUpdate(ctx, symbol, roundBig, priceBig, timestamp, sourceSetID, false)
+			err = s.invokePriceFeedUpdate(ctx, symbol, roundBig, priceBig, timestamp, sourceSetID, false)
 		}
 		if err != nil {
 			s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{

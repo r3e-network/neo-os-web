@@ -2,15 +2,32 @@
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
-    // NOTE: Tighten these directives for production based on your hosting and
-    // micro-frontend strategy. This is a conservative starter.
+    // CSP Configuration:
+    // - MINIAPP_FRAME_ORIGINS: Space-separated list of allowed iframe origins for MiniApps
+    //   Example: "https://cdn.miniapps.example.com https://trusted-apps.example.com"
+    // - SUPABASE_URL: Supabase project URL for connect-src
+    // - In development, falls back to permissive defaults
+    const isDev = process.env.NODE_ENV !== "production";
+
+    // Frame sources for MiniApp iframes
+    const frameOrigins = process.env.MINIAPP_FRAME_ORIGINS || "";
+    const frameSrc = frameOrigins.trim()
+      ? `'self' ${frameOrigins.trim()}`
+      : isDev
+        ? "'self' https:" // Permissive in dev
+        : "'self'"; // Restrictive in prod (must configure MINIAPP_FRAME_ORIGINS)
+
+    // Connect sources for API calls
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const connectSrc = supabaseUrl.trim() ? `'self' ${supabaseUrl.trim()}` : isDev ? "'self' https:" : "'self'";
+
     const csp = [
       "default-src 'self'",
       "script-src 'self'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
-      "connect-src 'self' https:",
-      "frame-src 'self' https:",
+      `connect-src ${connectSrc}`,
+      `frame-src ${frameSrc}`,
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -31,4 +48,3 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
-

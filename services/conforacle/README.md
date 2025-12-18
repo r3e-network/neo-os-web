@@ -4,7 +4,9 @@ HTTP oracle proxy service for the Neo Service Layer.
 
 ## Overview
 
-The NeoOracle service provides a secure HTTP proxy for smart contracts to fetch external data. Requests are processed within the MarbleRun TEE, ensuring data integrity and authenticity.
+The NeoOracle service provides a secure HTTP proxy for fetching external data from within the MarbleRun TEE. It enforces an outbound URL allowlist and can inject user-owned secrets into outbound requests (for authenticated APIs).
+
+This service is intended to be reached via the gateway (Supabase Edge) rather than directly.
 
 ## Architecture
 
@@ -23,7 +25,7 @@ The NeoOracle service provides a secure HTTP proxy for smart contracts to fetch 
        │                    │ Response           │
        │                    │<───────────────────│
        │                    │                    │
-       │ Signed Response    │                    │
+       │ Response (mTLS)    │                    │
        │<───────────────────│                    │
 ```
 
@@ -33,35 +35,35 @@ The NeoOracle service provides a secure HTTP proxy for smart contracts to fetch 
 |----------|--------|-------------|
 | `/health` | GET | Service health check |
 | `/info` | GET | Service status |
-| `/fetch` | POST | Fetch external data |
-| `/request/{id}` | GET | Get request status |
+| `/query` | POST | Fetch external data (primary) |
+| `/fetch` | POST | Alias for `/query` (backward compatible) |
 
 ## Request/Response Types
 
-### Fetch Data
+### Query (Fetch Data)
 
 ```json
-POST /fetch
+POST /query
 {
     "url": "https://api.example.com/data",
-    "method": "GET",
     "headers": {
         "Accept": "application/json"
     },
-    "json_path": "$.data.value"
+    "method": "GET",
+    "secret_name": "my_api_key",
+    "secret_as_key": "X-API-Key"
 }
 ```
 
-### Fetch Response
+### Query Response
 
 ```json
 {
-    "request_id": "uuid",
-    "url": "https://api.example.com/data",
-    "result": "extracted-value",
-    "timestamp": 1733616000,
-    "signature": "0x...",
-    "public_key": "0x..."
+    "status_code": 200,
+    "headers": {
+        "Content-Type": "application/json"
+    },
+    "body": "{\"any\":\"string\"}"
 }
 ```
 
@@ -69,17 +71,16 @@ POST /fetch
 
 | Feature | Description |
 |---------|-------------|
-| HTTP Methods | GET, POST |
-| JSON Path | Extract specific values from JSON |
-| Headers | Custom request headers |
-| Timeout | Configurable request timeout |
+| HTTP Methods | GET/POST/PUT/etc via `method` |
+| URL allowlist | Restrict outbound destinations (required in strict identity / SGX mode) |
+| Secret injection | Inject a user secret into a header (`secret_name`, `secret_as_key`) |
+| Response cap | Enforced max body size (default 2MB) |
 
 ## Security
 
-- All requests made from within MarbleRun TEE
-- Responses signed with TEE key
-- URL whitelist support
-- Rate limiting per user
+- All outbound requests originate from within the MarbleRun TEE (attested identity via mTLS)
+- Strict identity mode enforces HTTPS-only outbound URLs
+- URL allowlist support via `ORACLE_HTTP_ALLOWLIST`
 
 ## Configuration
 
@@ -87,8 +88,9 @@ POST /fetch
 
 | Variable | Description |
 |----------|-------------|
-| `ORACLE_TIMEOUT` | Request timeout (default: 30s) |
-| `ORACLE_MAX_SIZE` | Max response size (default: 1MB) |
+| `ORACLE_HTTP_ALLOWLIST` | Comma-separated URL prefixes allowed for outbound fetches |
+| `ORACLE_TIMEOUT` | Outbound request timeout (Go duration, e.g. `20s`) |
+| `ORACLE_MAX_SIZE` | Max upstream response body size (bytes, or `KiB`/`MiB`/`GiB` suffix) |
 
 ## Testing
 
@@ -100,5 +102,5 @@ Current test coverage: **58.6%**
 
 ## Version
 
-- Service ID: `neooracle` (gateway also exposes `/api/v1/oracle/*` as an alias)
+- Service ID: `neooracle`
 - Version: `1.0.0`

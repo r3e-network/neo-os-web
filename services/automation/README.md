@@ -27,12 +27,10 @@ The NeoFlow service provides trigger-based task neoflow for smart contracts. Use
 
 ## Trigger Types
 
-| Type | ID | Description | Example |
-|------|-----|-------------|---------|
-| Time | 1 | Cron expressions | "Every Friday 00:00 UTC" |
-| Price | 2 | Price thresholds | "When BTC > $100,000" |
-| Event | 3 | On-chain events | "When contract X emits event Y" |
-| Threshold | 4 | Balance thresholds | "When balance < 10 GAS" |
+NeoFlow supports two trigger sources:
+
+- **Supabase triggers** (managed via `/triggers`): currently only `cron` triggers are executed, and they execute `webhook` actions.
+- **On-chain anchored tasks** (optional): tasks registered in the platform `AutomationAnchor` contract can be executed when chain execution is enabled. Anchored tasks support `cron` and `price` trigger specs and are executed via `txproxy`.
 
 ## API Endpoints
 
@@ -64,46 +62,6 @@ POST /triggers
         "type": "webhook",
         "url": "https://example.com/callback",
         "method": "POST"
-    }
-}
-```
-
-### Create Trigger (Price)
-
-```json
-POST /triggers
-{
-    "name": "BTC Alert",
-    "trigger_type": "price",
-    "condition": {
-        "feed_id": "BTC/USD",
-        "operator": ">",
-        "threshold": 10000000000000
-    },
-    "action": {
-        "type": "contract_call",
-        "contract": "0x...",
-        "method": "onPriceAlert"
-    }
-}
-```
-
-### Create Trigger (Threshold)
-
-```json
-POST /triggers
-{
-    "name": "Low Balance Alert",
-    "trigger_type": "threshold",
-    "condition": {
-        "address": "NAddr...",
-        "asset": "GAS",
-        "operator": "<",
-        "threshold": 1000000000
-    },
-    "action": {
-        "type": "webhook",
-        "url": "https://example.com/alert"
     }
 }
 ```

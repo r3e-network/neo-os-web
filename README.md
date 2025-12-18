@@ -37,6 +37,9 @@ Secrets are **not** a separate service: they are managed by the gateway and stor
 - `services/`: product services only (see “Scope”)
 - `contracts/`: Neo N3 MiniApp platform contracts
 - `platform/`: platform scaffolds (Supabase Edge functions, JS SDK, Next.js host app)
+- Export targets (intentionally empty in git; generated via scripts):
+  - `platform/host-app/public/miniapps/` + `platform/host-app/public/sdk/` (run `make export-miniapps`)
+  - `supabase/functions/` (run `make export-supabase-functions`)
 - `docker/`, `k8s/`, `manifests/`, `deploy/`: deployment and operations
 
 For enforced responsibility boundaries, see `docs/LAYERING.md`.

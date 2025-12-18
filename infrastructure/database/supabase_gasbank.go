@@ -262,3 +262,21 @@ func (r *Repository) UpdateDepositStatus(ctx context.Context, depositID, status 
 	}
 	return nil
 }
+
+// GetPendingDeposits retrieves all pending and confirming deposits that need verification.
+func (r *Repository) GetPendingDeposits(ctx context.Context, limit int) ([]DepositRequest, error) {
+	limit = ValidateLimit(limit, 100, 1000)
+
+	// Query for pending and confirming deposits with tx_hash set, ordered by creation time
+	query := fmt.Sprintf("status=in.(pending,confirming)&tx_hash=neq.&order=created_at.asc&limit=%d", limit)
+	data, err := r.client.request(ctx, "GET", "deposit_requests", nil, query)
+	if err != nil {
+		return nil, fmt.Errorf("%w: get pending deposits: %v", ErrDatabaseError, err)
+	}
+
+	var deposits []DepositRequest
+	if err := json.Unmarshal(data, &deposits); err != nil {
+		return nil, fmt.Errorf("%w: unmarshal deposit requests: %v", ErrDatabaseError, err)
+	}
+	return deposits, nil
+}

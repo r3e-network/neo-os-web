@@ -1,0 +1,38 @@
+{
+  "app_id": "builtin-price-ticker",
+  "entry_url": "https://cdn.example.com/miniapps/builtin/price-ticker/index.html",
+  "name": "Price Ticker",
+  "version": "0.1.0",
+  "developer_pubkey": "0x020000000000000000000000000000000000000000000000000000000000000000",
+  "permissions": {
+    "wallet": [
+      "read-address"
+    ],
+    "payments": false,
+    "governance": false,
+    "randomness": false,
+    "datafeed": true,
+    "storage": [
+      "kv"
+    ]
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "governance_assets_allowed": [
+    "NEO"
+  ],
+  "limits": {
+    "max_gas_per_tx": "5",
+    "daily_gas_cap_per_user": "20",
+    "governance_cap": "100"
+  },
+  "contracts_needed": [
+    "PriceFeed"
+  ],
+  "sandbox_flags": [
+    "no-eval",
+    "strict-csp"
+  ],
+  "attestation_required": true
+}

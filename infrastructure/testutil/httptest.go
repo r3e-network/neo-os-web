@@ -10,7 +10,7 @@ import (
 
 // NewHTTPTestServer creates an httptest.Server and skips the test if the sandbox
 // blocks opening a local listener (common in restricted CI environments).
-func NewHTTPTestServer(t *testing.T, handler http.Handler) *httptest.Server {
+func NewHTTPTestServer(t testing.TB, handler http.Handler) *httptest.Server {
 	t.Helper()
 	defer func() {
 		if r := recover(); r != nil {

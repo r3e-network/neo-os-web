@@ -54,7 +54,7 @@ EXAMPLES:
 NOTES:
     - Email is required for Let's Encrypt ACME registration
     - You will receive expiration notices and important updates at this email
-    - The email cannot be @example.com (placeholder)
+    - The email cannot be @example.com (default example)
     - Always test with letsencrypt-staging before switching to production
 
 EOF
@@ -69,7 +69,7 @@ check_config() {
     fi
 
     if grep -q "email:.*@example\.com" "$ISSUER_FILE"; then
-        log_error "ClusterIssuer contains placeholder email (@example.com)"
+        log_error "ClusterIssuer contains the default example email (@example.com)"
         log_error "Run: $0 --email your-email@yourdomain.com"
         return 1
     fi

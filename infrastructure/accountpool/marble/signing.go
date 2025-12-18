@@ -14,6 +14,7 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
 
+	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
 	intcrypto "github.com/R3E-Network/service_layer/infrastructure/crypto"
 )
@@ -125,6 +126,7 @@ func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress 
 		return "", fmt.Errorf("amount must be positive")
 	}
 
+	tokenHash = strings.TrimSpace(tokenHash)
 	s.mu.RLock()
 	acc, err := s.repo.GetByID(ctx, accountID)
 	if err != nil {
@@ -139,11 +141,12 @@ func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress 
 
 	// Default to GAS if no token hash specified
 	if tokenHash == "" {
-		tokenHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf" // GAS script hash
+		tokenHash = neoaccountssupabase.GASScriptHash
 	}
 	tokenHash = strings.TrimSpace(tokenHash)
 	tokenHash = strings.TrimPrefix(strings.TrimPrefix(tokenHash, "0x"), "0X")
 	if tokenHash == "" {
+		s.mu.RUnlock()
 		return "", fmt.Errorf("token_hash required")
 	}
 	tokenHash = "0x" + tokenHash
