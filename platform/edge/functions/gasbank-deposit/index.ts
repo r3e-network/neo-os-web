@@ -1,5 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
 
@@ -10,36 +11,38 @@ type CreateDepositRequest = {
 };
 
 // Creates a deposit request entry (verification/settlement runs elsewhere).
-Deno.serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED");
+  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
-  const scopeCheck = requireScope(auth, "gasbank-deposit");
+  const rl = await requireRateLimit(req, "gasbank-deposit", auth);
+  if (rl) return rl;
+  const scopeCheck = requireScope(req, auth, "gasbank-deposit");
   if (scopeCheck) return scopeCheck;
-  const walletCheck = await requirePrimaryWallet(auth.userId);
+  const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
   let body: CreateDepositRequest;
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON");
+    return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
   const fromAddress = String(body.from_address ?? "").trim();
-  if (!fromAddress) return error(400, "from_address required", "FROM_ADDRESS_REQUIRED");
+  if (!fromAddress) return error(400, "from_address required", "FROM_ADDRESS_REQUIRED", req);
 
   const rawAmount = String(body.amount ?? "").trim();
-  if (!/^\d+$/.test(rawAmount)) return error(400, "amount must be an integer string", "AMOUNT_INVALID");
+  if (!/^\d+$/.test(rawAmount)) return error(400, "amount must be an integer string", "AMOUNT_INVALID", req);
   const amount = BigInt(rawAmount);
-  if (amount <= 0n) return error(400, "amount must be > 0", "AMOUNT_INVALID");
+  if (amount <= 0n) return error(400, "amount must be > 0", "AMOUNT_INVALID", req);
 
   const txHash = String(body.tx_hash ?? "").trim() || null;
 
-  const ensured = await ensureUserRow(auth);
+  const ensured = await ensureUserRow(auth, {}, req);
   if (ensured instanceof Response) return ensured;
 
   const supabase = supabaseServiceClient();
@@ -50,7 +53,7 @@ Deno.serve(async (req) => {
     .select("id")
     .maybeSingle();
   if (accErr || !(account as any)?.id) {
-    return error(500, `failed to ensure gasbank account: ${accErr?.message ?? "unknown error"}`, "DB_ERROR");
+    return error(500, `failed to ensure gasbank account: ${accErr?.message ?? "unknown error"}`, "DB_ERROR", req);
   }
 
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -69,7 +72,11 @@ Deno.serve(async (req) => {
     .select("*")
     .maybeSingle();
 
-  if (depErr) return error(500, `failed to create deposit request: ${depErr.message}`, "DB_ERROR");
+  if (depErr) return error(500, `failed to create deposit request: ${depErr.message}`, "DB_ERROR", req);
 
-  return json({ deposit: inserted }, { status: 201 });
-});
+  return json({ deposit: inserted }, { status: 201 }, req);
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
+}

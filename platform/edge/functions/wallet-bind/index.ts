@@ -1,5 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { verifyNeoSignature } from "../_shared/neo.ts";
 import { ensureUserRow, requireUser, supabaseServiceClient } from "../_shared/supabase.ts";
 
@@ -14,19 +15,21 @@ type WalletBindRequest = {
 
 // Binds a Neo N3 address to the authenticated Supabase user.
 // The binding is proven via a Neo N3 signature over the provided message.
-Deno.serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED");
+  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
   const auth = await requireUser(req);
   if (auth instanceof Response) return auth;
+  const rl = await requireRateLimit(req, "wallet-bind", auth);
+  if (rl) return rl;
 
   let body: WalletBindRequest;
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON");
+    return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
   const address = String(body.address ?? "").trim();
@@ -36,27 +39,27 @@ Deno.serve(async (req) => {
   const nonce = String(body.nonce ?? "").trim();
   const label = String(body.label ?? "").trim().slice(0, 64);
 
-  if (!address) return error(400, "address required", "ADDRESS_REQUIRED");
-  if (!publicKey) return error(400, "public_key required", "PUBLIC_KEY_REQUIRED");
-  if (!signature) return error(400, "signature required", "SIGNATURE_REQUIRED");
-  if (!message) return error(400, "message required", "MESSAGE_REQUIRED");
-  if (!nonce) return error(400, "nonce required", "NONCE_REQUIRED");
+  if (!address) return error(400, "address required", "ADDRESS_REQUIRED", req);
+  if (!publicKey) return error(400, "public_key required", "PUBLIC_KEY_REQUIRED", req);
+  if (!signature) return error(400, "signature required", "SIGNATURE_REQUIRED", req);
+  if (!message) return error(400, "message required", "MESSAGE_REQUIRED", req);
+  if (!nonce) return error(400, "nonce required", "NONCE_REQUIRED", req);
 
   if (!verifyNeoSignature(address, message, signature, publicKey)) {
-    return error(401, "invalid signature", "SIGNATURE_INVALID");
+    return error(401, "invalid signature", "SIGNATURE_INVALID", req);
   }
 
   const supabase = supabaseServiceClient();
 
   // Ensure the public.users row exists and fetch the currently issued nonce.
-  const userRow = await ensureUserRow(auth);
+  const userRow = await ensureUserRow(auth, {}, req);
   if (userRow instanceof Response) return userRow;
 
   const storedNonce = String((userRow as any)?.nonce ?? "").trim();
-  if (!storedNonce) return error(400, "wallet nonce not issued (call wallet-nonce)", "NONCE_NOT_ISSUED");
-  if (storedNonce !== nonce) return error(401, "nonce mismatch", "NONCE_INVALID");
-  if (!message.includes(nonce)) return error(401, "nonce not present in signed message", "NONCE_INVALID");
-  if (!message.includes(auth.userId)) return error(401, "user id not present in signed message", "NONCE_INVALID");
+  if (!storedNonce) return error(400, "wallet nonce not issued (call wallet-nonce)", "NONCE_NOT_ISSUED", req);
+  if (storedNonce !== nonce) return error(401, "nonce mismatch", "NONCE_INVALID", req);
+  if (!message.includes(nonce)) return error(401, "nonce not present in signed message", "NONCE_INVALID", req);
+  if (!message.includes(auth.userId)) return error(401, "user id not present in signed message", "NONCE_INVALID", req);
 
   // Determine whether this is the first wallet (primary by default).
   const { data: existingWallets, error: walletsErr } = await supabase
@@ -64,7 +67,7 @@ Deno.serve(async (req) => {
     .select("id")
     .eq("user_id", auth.userId)
     .limit(1);
-  if (walletsErr) return error(500, `failed to load wallets: ${walletsErr.message}`, "DB_ERROR");
+  if (walletsErr) return error(500, `failed to load wallets: ${walletsErr.message}`, "DB_ERROR", req);
 
   const isPrimary = (existingWallets ?? []).length === 0;
 
@@ -84,7 +87,7 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (insertErr) {
     // Unique violation is the most common case when the wallet is already bound.
-    return error(409, `failed to bind wallet: ${insertErr.message}`, "WALLET_BIND_FAILED");
+    return error(409, `failed to bind wallet: ${insertErr.message}`, "WALLET_BIND_FAILED", req);
   }
 
   // Best-effort: mirror primary wallet into users.address (simplifies “must bind wallet” checks).
@@ -99,5 +102,9 @@ Deno.serve(async (req) => {
   const nextNonce = crypto.randomUUID();
   await supabase.from("users").update({ nonce: nextNonce }).eq("id", auth.userId);
 
-  return json({ wallet: inserted });
-});
+  return json({ wallet: inserted }, {}, req);
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
+}

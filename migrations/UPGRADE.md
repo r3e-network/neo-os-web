@@ -19,6 +19,7 @@ final schema consistent.
 - Apply `020_remove_vrf.sql` to remove legacy `vrf_requests` persistence (randomness now uses NeoCompute scripts).
 - Apply `022_neoflow_schema.sql` to canonicalize NeoFlow persistence (`neoflow_triggers`, `neoflow_executions`) and drop legacy `automation_*` tables.
 - Apply `023_cleanup_legacy_request_tables.sql` to drop unused legacy request tables and convert `service_requests.service_type` to TEXT.
+- Apply `024_rate_limit_bump.sql` if you use Supabase Edge rate limiting. It adds the `rate_limit_bump(...)` RPC used by the gateway.
 
 ## Verification checklist
 - Table `pool_accounts` exists with columns: `id`, `address`, `created_at`, `last_used_at`, `tx_count`, `is_retiring`, `locked_by`, `locked_at`.

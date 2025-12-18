@@ -4,7 +4,7 @@ This folder contains **Supabase Edge Functions** scaffolds for the MiniApp
 platform. The intended architecture is a **thin gateway**:
 
 - Auth via **Supabase Auth (GoTrue)**.
-- Stateless request validation + rate limiting.
+- Stateless request validation + rate limiting (backed by Postgres `rate_limits`).
 - Enforce platform rules:
   - **payments/settlement = GAS only**
   - **governance = NEO only**
@@ -77,6 +77,66 @@ API key management endpoints (`api-keys-*`) require `Authorization: Bearer <jwt>
 ## Optional Env Vars
 
 - `RNG_ANCHOR`: set to `1` to record RNG results on-chain via `txproxy` (`RandomnessLog.record`).
+- `EDGE_CORS_ORIGINS`: optional origin allowlist for browser clients (comma/space-separated). When unset, responses default to `Access-Control-Allow-Origin: *`.
+
+## Rate Limiting
+
+All Edge functions call `platform/edge/functions/_shared/ratelimit.ts`, which
+implements a simple fixed-window limiter backed by the `public.rate_limits`
+table (service-role only).
+
+It requires the Postgres RPC function `public.rate_limit_bump(...)` (added in
+`migrations/024_rate_limit_bump.sql`).
+
+Env vars:
+
+- `EDGE_RATELIMIT_DEFAULT_PER_MINUTE` (default: `60`)
+- `EDGE_RATELIMIT_WINDOW_SECONDS` (default: `60`)
+- Per-endpoint override: `EDGE_RATELIMIT_<ENDPOINT>_PER_MINUTE` (hyphens replaced with underscores),
+  e.g. `EDGE_RATELIMIT_PAY_GAS_PER_MINUTE=10`.
+
+## Typecheck (Deno)
+
+The Edge functions are Deno code. To typecheck locally (requires Deno installed):
+
+```bash
+cd platform/edge
+deno task check
+```
+
+## Local Dev Server (No Supabase CLI)
+
+This repo includes a lightweight local router that serves **all** Edge functions
+from a single port, without needing `supabase functions serve`.
+
+Start it with:
+
+```bash
+make edge-dev
+```
+
+Defaults:
+
+- listens on `http://localhost:8787` (override with `EDGE_DEV_PORT`)
+- serves function routes under both:
+  - `http://localhost:8787/functions/v1/<function-name>` (Supabase-compatible)
+  - `http://localhost:8787/api/rpc/<function-name>` (blueprint-compatible)
+  - `http://localhost:8787/<function-name>` (convenient direct form)
+
+Set your host/SDK base URL to:
+
+- `http://localhost:8787/functions/v1`
+  - or `http://localhost:8787/api/rpc` (blueprint form)
+
+When running the simulation stack (`make docker-up`), the marbles expose their
+ports on `127.0.0.1` (e.g. `neofeeds` on `8083`). For the local dev server,
+set:
+
+- `NEOFEEDS_URL=http://localhost:8083`
+- `NEOCOMPUTE_URL=http://localhost:8086`
+- `NEOORACLE_URL=http://localhost:8088`
+- `NEOFLOW_URL=http://localhost:8084`
+- `TXPROXY_URL=http://localhost:8090`
 
 ## mTLS to TEE
 

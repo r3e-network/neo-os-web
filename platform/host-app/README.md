@@ -17,7 +17,32 @@ Current state:
 - The Settings UI also includes a minimal **wallet binding** flow (`wallet-nonce` + `wallet-bind`)
   and an **on-chain intent** demo (`pay-gas` / `vote-neo` + NeoLine `invoke`).
 - The host UI includes a minimal **AppRegistry** demo (`app-register` / `app-update-manifest`).
-- CSP headers are set in `next.config.js` as a conservative starter.
+- CSP headers are set via `platform/host-app/middleware.ts` using a per-request nonce
+  (required for Next.js without falling back to `unsafe-inline` scripts).
+
+## Production Configuration
+
+- `MINIAPP_FRAME_ORIGINS`: space-separated allowlist for `frame-src` (embedded MiniApps).
+- `NEXT_PUBLIC_SUPABASE_URL`: used for `connect-src` allowlist (Edge/API calls).
+
+## `/api/rpc/*` Proxy (Blueprint Path)
+
+The architectural blueprint uses the prefix `/api/rpc/*` for gateway endpoints.
+In production, Supabase Edge Functions use `/functions/v1/*`.
+
+This host app includes an optional proxy route:
+
+- `platform/host-app/pages/api/rpc/[fn].ts`
+
+It forwards `GET/POST/...` requests to:
+
+- `${EDGE_BASE_URL}/<fn>` (preferred), or
+- `${NEXT_PUBLIC_SUPABASE_URL}/functions/v1/<fn>` (fallback)
+
+Set `EDGE_BASE_URL` to one of:
+
+- `https://<project>.supabase.co/functions/v1`
+- `http://localhost:8787/functions/v1` (repo Edge dev server)
 
 ## Local Demos
 

@@ -190,6 +190,10 @@ type MiniAppSDKHooks = {
 
 function createMiniAppSDK(cfg: SDKConfig, hooks: MiniAppSDKHooks = {}) {
   return {
+    // Blueprint-compatible convenience (alias of wallet.getAddress()).
+    async getAddress(): Promise<string> {
+      return getInjectedWalletAddress();
+    },
     wallet: {
       async getAddress(): Promise<string> {
         return getInjectedWalletAddress();
@@ -1413,7 +1417,7 @@ export default function Home() {
               border: "1px solid #ddd",
               borderRadius: 8,
             }}
-            sandbox="allow-scripts allow-same-origin allow-popups"
+            sandbox="allow-scripts allow-same-origin"
           />
         )}
       </main>

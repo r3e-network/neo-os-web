@@ -14,6 +14,10 @@ Supabase deploys Edge functions under:
 
 - `/functions/v1/<function-name>`
 
+The architectural blueprint sometimes describes these as `/api/rpc/<name>`. In
+production, Supabase uses `/functions/v1/<name>`. For local development, the
+repo’s Edge dev server supports both prefixes.
+
 The JS SDK (`platform/sdk`) is expected to set `edgeBaseUrl` to:
 
 - `https://<project>.supabase.co/functions/v1`

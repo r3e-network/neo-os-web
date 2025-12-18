@@ -118,6 +118,63 @@ This will:
 Note: the public gateway is **Supabase Edge Functions** and is not part of this
 Docker Compose stack.
 
+#### Supabase Local (Auth + DB + Edge Runtime)
+
+To run a full local gateway (Supabase Auth + Postgres + Edge Functions) using a
+**dockerized Supabase CLI**:
+
+```bash
+make supabase-start
+```
+
+If your environment cannot pull the Supabase CLI container image (registry
+mirrors / restricted networks), install the Supabase CLI locally and rerun:
+
+```bash
+make supabase-cli-install
+make supabase-start
+```
+
+You can also override the container image used by `./scripts/supabase.sh`:
+
+- `SUPABASE_CLI_IMAGE=...`
+  - Example: `registry-1.docker.io/supabase/cli:latest` (bypasses some Docker Hub mirrors)
+  - Example: `ghcr.io/supabase/cli:latest`
+
+This will:
+
+1. Export Edge functions into `supabase/functions/` (includes `verify_jwt=false` per function).
+2. Export SQL migrations into `supabase/migrations/`.
+3. Start Supabase local containers via `./scripts/supabase.sh start`.
+
+`./scripts/supabase.sh` loads environment variables from `.env` (repo root) and
+`supabase/.env` when present.
+
+To stop:
+
+```bash
+make supabase-stop
+```
+
+To view keys/URLs (copy into `.env` / host Settings panel):
+
+```bash
+make supabase-status
+```
+
+#### Local Edge Gateway (Deno Dev Server)
+
+If you want to iterate on the Edge gateway without deploying functions, you can
+run the local Edge dev server (requires `deno`):
+
+```bash
+make edge-dev
+```
+
+Set your SDK/host base URL to `http://localhost:8787/functions/v1` and export
+the required gateway env vars (Supabase keys + service URLs). See
+`platform/edge/README.md`.
+
 #### Option 2: Full Environment (Kubernetes)
 
 Start all services in Kubernetes:

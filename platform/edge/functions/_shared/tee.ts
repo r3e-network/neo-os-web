@@ -39,6 +39,7 @@ export async function requestJSON(
     headers?: Record<string, string>;
     body?: unknown;
   },
+  req?: Request,
 ): Promise<unknown | Response> {
   const headers = new Headers(init.headers);
   let body: string | undefined = undefined;
@@ -61,14 +62,14 @@ export async function requestJSON(
 
   const text = await resp.text();
   if (!resp.ok) {
-    return error(resp.status, text || `upstream error (${resp.status})`, "UPSTREAM_ERROR");
+    return error(resp.status, text || `upstream error (${resp.status})`, "UPSTREAM_ERROR", req);
   }
 
   if (!text) return {};
   try {
     return JSON.parse(text);
   } catch {
-    return error(502, "invalid upstream JSON", "UPSTREAM_INVALID_JSON");
+    return error(502, "invalid upstream JSON", "UPSTREAM_INVALID_JSON", req);
   }
 }
 
@@ -76,10 +77,11 @@ export async function postJSON(
   url: string,
   body: unknown,
   headers: Record<string, string> = {},
+  req?: Request,
 ): Promise<unknown | Response> {
-  return requestJSON(url, { method: "POST", headers, body });
+  return requestJSON(url, { method: "POST", headers, body }, req);
 }
 
-export async function getJSON(url: string, headers: Record<string, string> = {}): Promise<unknown | Response> {
-  return requestJSON(url, { method: "GET", headers });
+export async function getJSON(url: string, headers: Record<string, string> = {}, req?: Request): Promise<unknown | Response> {
+  return requestJSON(url, { method: "GET", headers }, req);
 }

@@ -40,11 +40,11 @@ export type AuthContext = {
 
 export async function requireUser(req: Request): Promise<AuthContext | Response> {
   const token = parseBearerToken(req);
-  if (!token) return error(401, "missing Authorization: Bearer <jwt>", "AUTH_REQUIRED");
+  if (!token) return error(401, "missing Authorization: Bearer <jwt>", "AUTH_REQUIRED", req);
 
   const supabase = supabaseClient();
   const { data, error: authErr } = await supabase.auth.getUser(token);
-  if (authErr || !data?.user?.id) return error(401, "invalid session", "AUTH_INVALID");
+  if (authErr || !data?.user?.id) return error(401, "invalid session", "AUTH_INVALID", req);
 
   return {
     userId: data.user.id,
@@ -59,18 +59,18 @@ export async function requireAuth(req: Request): Promise<AuthContext | Response>
   if (!(bearer instanceof Response)) return bearer;
 
   const apiKey = parseUserAPIKey(req);
-  if (!apiKey) return error(401, "missing Authorization or X-API-Key", "AUTH_REQUIRED");
+  if (!apiKey) return error(401, "missing Authorization or X-API-Key", "AUTH_REQUIRED", req);
 
   const supabase = supabaseServiceClient();
   const { data, error: verifyErr } = await supabase.rpc("verify_api_key", { input_key: apiKey });
-  if (verifyErr) return error(500, `failed to verify api key: ${verifyErr.message}`, "DB_ERROR");
+  if (verifyErr) return error(500, `failed to verify api key: ${verifyErr.message}`, "DB_ERROR", req);
 
   const row = Array.isArray(data) ? data[0] : data;
   const valid = Boolean((row as any)?.valid);
-  if (!valid) return error(401, "invalid api key", "AUTH_INVALID");
+  if (!valid) return error(401, "invalid api key", "AUTH_INVALID", req);
 
   const userId = String((row as any)?.user_id ?? "").trim();
-  if (!userId) return error(401, "invalid api key", "AUTH_INVALID");
+  if (!userId) return error(401, "invalid api key", "AUTH_INVALID", req);
 
   const scopes = Array.isArray((row as any)?.scopes) ? ((row as any)?.scopes as string[]) : undefined;
   const apiKeyId = String((row as any)?.key_id ?? "").trim() || undefined;
@@ -78,7 +78,7 @@ export async function requireAuth(req: Request): Promise<AuthContext | Response>
   return { userId, apiKeyId, scopes, authType: "api_key" };
 }
 
-export async function requirePrimaryWallet(userId: string): Promise<{ address: string } | Response> {
+export async function requirePrimaryWallet(userId: string, req?: Request): Promise<{ address: string } | Response> {
   const supabase = supabaseServiceClient();
   const { data, error: walletsErr } = await supabase
     .from("user_wallets")
@@ -88,17 +88,18 @@ export async function requirePrimaryWallet(userId: string): Promise<{ address: s
     .eq("verified", true)
     .limit(1);
 
-  if (walletsErr) return error(500, `failed to validate wallet binding: ${walletsErr.message}`, "DB_ERROR");
-  if (!data || data.length === 0) return error(428, "primary wallet binding required", "WALLET_REQUIRED");
+  if (walletsErr) return error(500, `failed to validate wallet binding: ${walletsErr.message}`, "DB_ERROR", req);
+  if (!data || data.length === 0) return error(428, "primary wallet binding required", "WALLET_REQUIRED", req);
 
   const address = String((data[0] as any)?.address ?? "").trim();
-  if (!address) return error(428, "primary wallet binding required", "WALLET_REQUIRED");
+  if (!address) return error(428, "primary wallet binding required", "WALLET_REQUIRED", req);
   return { address };
 }
 
 export async function ensureUserRow(
   auth: AuthContext,
   patch: Record<string, unknown> = {},
+  req?: Request,
 ): Promise<{ id: string; nonce?: string; address?: string } | Response> {
   const row: Record<string, unknown> = { id: auth.userId, ...patch };
   if (auth.email) row.email = auth.email;
@@ -113,6 +114,6 @@ export async function ensureUserRow(
     .select("id,nonce,address")
     .maybeSingle();
 
-  if (upsertErr) return error(500, `failed to ensure user: ${upsertErr.message}`, "DB_ERROR");
+  if (upsertErr) return error(500, `failed to ensure user: ${upsertErr.message}`, "DB_ERROR", req);
   return (data as any) ?? { id: auth.userId };
 }

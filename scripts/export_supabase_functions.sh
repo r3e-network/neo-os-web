@@ -41,4 +41,25 @@ else
     -exec rm -f {} +
 fi
 
+write_function_configs() {
+  # Supabase Edge runtime verifies JWTs by default before the function executes.
+  # This platform supports:
+  # - Bearer JWT (Supabase Auth) AND
+  # - X-API-Key (user API keys) AND
+  # - public endpoints (e.g. datafeed reads).
+  #
+  # Therefore we disable the runtime's pre-verification and let the functions
+  # enforce auth themselves (see platform/edge/functions/_shared/supabase.ts).
+  local fn
+  for fn in "$DEST_DIR"/*; do
+    if [[ -d "$fn" ]] && [[ -f "$fn/index.ts" ]]; then
+      cat >"$fn/config.toml" <<'EOF'
+verify_jwt = false
+EOF
+    fi
+  done
+}
+
+write_function_configs
+
 echo "Done."

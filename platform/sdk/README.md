@@ -28,7 +28,10 @@ await sdk.datafeed.getPrice("BTC-USD");
 Notes:
 
 - `payGAS` / `vote` return an `invocation` intent plus a `request_id`. The host (or wallet integration) should sign and submit the invocation.
-- Some hosts expose a convenience method: `window.MiniAppSDK.wallet.invokeIntent(request_id)`.
+- This SDK also exposes:
+  - `sdk.wallet.invokeInvocation(invocation)` (NeoLine N3 integration)
+  - `sdk.wallet.invokeIntent(request_id)` for intents created during this session
+  - `sdk.payments.payGASAndInvoke(...)` / `sdk.governance.voteAndInvoke(...)` convenience helpers
 
 ## Oracle (Host-only)
 
