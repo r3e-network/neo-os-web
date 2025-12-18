@@ -634,12 +634,32 @@ func SkipIfNoCompiledContracts(t *testing.T) {
 	}
 
 	if err := runContractBuildScript(t); err != nil {
+		if looksLikeMissingDotnetRuntime(err.Error()) {
+			t.Skipf("contracts build requires an additional .NET runtime: %v", err)
+		}
 		t.Fatalf("contracts build failed: %v", err)
 	}
 
 	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
 		t.Fatalf("contracts build completed but %s is still missing", nefPath)
 	}
+}
+
+func looksLikeMissingDotnetRuntime(output string) bool {
+	// Typical failure when the Neo.Compiler.CSharp tool targets a runtime that
+	// isn't installed in the current dev container/runner.
+	candidates := []string{
+		"You must install or update .NET to run this application.",
+		"framework: 'Microsoft.NETCore.App'",
+		"aka.ms/dotnet/app-launch-failed",
+		"To install missing framework, download:",
+	}
+	for _, c := range candidates {
+		if strings.Contains(output, c) {
+			return true
+		}
+	}
+	return false
 }
 
 func hasDotnet() bool {

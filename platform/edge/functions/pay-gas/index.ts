@@ -3,6 +3,7 @@ import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 
@@ -16,35 +17,37 @@ type PayGasRequest = {
 // - validates auth + basic shape
 // - enforces GAS-only settlement
 // - returns an invocation "intent" for the SDK/wallet to sign and submit
-Deno.serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED");
+  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
-  const scopeCheck = requireScope(auth, "pay-gas");
+  const rl = await requireRateLimit(req, "pay-gas", auth);
+  if (rl) return rl;
+  const scopeCheck = requireScope(req, auth, "pay-gas");
   if (scopeCheck) return scopeCheck;
-  const walletCheck = await requirePrimaryWallet(auth.userId);
+  const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
   let body: PayGasRequest;
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON");
+    return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
   const appId = (body.app_id ?? "").trim();
-  if (!appId) return error(400, "app_id required", "APP_ID_REQUIRED");
+  if (!appId) return error(400, "app_id required", "APP_ID_REQUIRED", req);
 
   let amount;
   try {
     amount = parseDecimalToInt(String(body.amount_gas ?? ""), 8);
   } catch (e) {
-    return error(400, `amount_gas invalid: ${(e as Error).message}`, "AMOUNT_INVALID");
+    return error(400, `amount_gas invalid: ${(e as Error).message}`, "AMOUNT_INVALID", req);
   }
-  if (amount <= 0n) return error(400, "amount_gas must be > 0", "AMOUNT_INVALID");
+  if (amount <= 0n) return error(400, "amount_gas must be > 0", "AMOUNT_INVALID", req);
 
   const paymentHubHash = normalizeUInt160(mustGetEnv("CONTRACT_PAYMENTHUB_HASH"));
 
@@ -65,5 +68,9 @@ Deno.serve(async (req) => {
         { type: "String", value: memo },
       ],
     },
-  });
-});
+  }, {}, req);
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
+}

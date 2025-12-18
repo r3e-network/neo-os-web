@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "check": "deno check --all dev_server.ts functions/_shared/*.ts functions/*/index.ts",
+    "dev": "deno run --allow-net --allow-env --allow-read dev_server.ts"
+  }
+}

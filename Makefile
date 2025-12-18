@@ -4,6 +4,8 @@
 # =============================================================================
 
 .PHONY: all build test clean docker frontend deploy help contracts-build test-contracts export-miniapps export-supabase-functions check-git
+.PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
+.PHONY: edge-check edge-dev
 
 # Variables
 CMD_BINARIES := marble create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
@@ -164,6 +166,24 @@ export-miniapps: ## Export demo MiniApps into host public/
 export-supabase-functions: ## Export Edge functions into supabase/functions/
 	./scripts/export_supabase_functions.sh
 
+export-supabase-migrations: ## Export SQL migrations into supabase/migrations/
+	./scripts/export_supabase_migrations.sh
+
+supabase-start: ## Start Supabase locally (dockerized CLI)
+	$(MAKE) export-supabase-functions
+	$(MAKE) export-supabase-migrations
+	./scripts/supabase.sh start
+
+supabase-stop: ## Stop local Supabase (dockerized CLI)
+	./scripts/supabase.sh stop || true
+
+supabase-status: ## Show local Supabase status (dockerized CLI)
+	./scripts/supabase.sh status
+
+supabase-cli-install: ## Install Supabase CLI into ./bin/supabase
+	@chmod +x ./scripts/install_supabase_cli.sh
+	./scripts/install_supabase_cli.sh
+
 check-git: ## Report untracked canonical source/scaffolds
 	./scripts/git_completeness_check.sh
 
@@ -179,6 +199,16 @@ frontend-build: ## Build frontend for production
 frontend-deploy: ## Deploy frontend to Vercel
 	cd platform/host-app && npm ci && npm run build
 	vercel deploy --prod
+
+# =============================================================================
+# Supabase Edge (Deno)
+# =============================================================================
+
+edge-check: ## Typecheck Edge functions (requires deno)
+	cd platform/edge && deno task check
+
+edge-dev: ## Run local Edge dev server (requires deno)
+	cd platform/edge && deno task dev
 
 # =============================================================================
 # Development

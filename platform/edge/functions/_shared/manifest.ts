@@ -8,6 +8,21 @@ export type MiniAppManifestCore = {
   manifestHashHex: string; // sha256, hex (no 0x)
 };
 
+const SUPPORTED_PERMISSION_KEYS = new Set([
+  "wallet",
+  "payments",
+  "governance",
+  "randomness",
+  "rng",
+  "datafeed",
+  "storage",
+  "oracle",
+  "compute",
+  "automation",
+  "apps",
+  "secrets",
+]);
+
 function isProductionEnv(): boolean {
   const candidates = [
     getEnv("ENV"),
@@ -51,6 +66,81 @@ function normalizeStringList(
   return Array.from(new Set(items)).sort();
 }
 
+function normalizePermissions(value: unknown): Record<string, unknown> {
+  if (value === null || value === undefined) {
+    throw new Error("manifest.permissions must be an object or array");
+  }
+
+  // Blueprint form: ["payments","rng",...]
+  if (Array.isArray(value)) {
+    const list = normalizeStringList(value, "manifest.permissions", "lower");
+    const out: Record<string, unknown> = {};
+    for (const key of list) {
+      if (!SUPPORTED_PERMISSION_KEYS.has(key)) {
+        throw new Error(`manifest.permissions contains unsupported permission: ${key}`);
+      }
+      out[key] = true;
+    }
+    return out;
+  }
+
+  // Expanded form: { payments: true, wallet: ["read-address"], ... }
+  if (typeof value !== "object") {
+    throw new Error("manifest.permissions must be an object or array");
+  }
+
+  const obj = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [rawKey, rawVal] of Object.entries(obj)) {
+    const key = String(rawKey ?? "").trim();
+    if (!key) continue;
+    if (!SUPPORTED_PERMISSION_KEYS.has(key)) {
+      throw new Error(`manifest.permissions contains unsupported permission: ${key}`);
+    }
+
+    if (typeof rawVal === "boolean") {
+      out[key] = rawVal;
+      continue;
+    }
+
+    if (Array.isArray(rawVal)) {
+      out[key] = normalizeStringList(rawVal, `manifest.permissions.${key}`, "lower");
+      continue;
+    }
+
+    if (rawVal === null || rawVal === undefined) {
+      // Treat explicit null/undefined as "not granted".
+      out[key] = false;
+      continue;
+    }
+
+    throw new Error(`manifest.permissions.${key} must be a boolean or array`);
+  }
+
+  return out;
+}
+
+function normalizeLimits(value: unknown): Record<string, unknown> {
+  if (value === null || value === undefined) {
+    throw new Error("manifest.limits must be an object");
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("manifest.limits must be an object");
+  }
+  const obj = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+
+  // Keep arbitrary limit keys, but normalize values to trimmed strings for hashing.
+  for (const [rawKey, rawVal] of Object.entries(obj)) {
+    const key = String(rawKey ?? "").trim();
+    if (!key) continue;
+    const val = String(rawVal ?? "").trim();
+    if (!val) continue;
+    out[key] = val;
+  }
+  return out;
+}
+
 export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, unknown> {
   if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
     throw new Error("manifest must be an object");
@@ -88,6 +178,12 @@ export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, u
   }
   if ("contracts_needed" in m) {
     out.contracts_needed = normalizeStringList(m.contracts_needed, "manifest.contracts_needed", "preserve");
+  }
+  if ("permissions" in m) {
+    out.permissions = normalizePermissions(m.permissions);
+  }
+  if ("limits" in m) {
+    out.limits = normalizeLimits(m.limits);
   }
 
   return out;
@@ -149,4 +245,3 @@ export async function parseMiniAppManifestCore(manifest: unknown): Promise<MiniA
     manifestHashHex,
   };
 }
-

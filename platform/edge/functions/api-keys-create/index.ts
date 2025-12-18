@@ -1,6 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { generateAPIKey, sha256Hex } from "../_shared/apikeys.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { ensureUserRow, requirePrimaryWallet, requireUser, supabaseServiceClient } from "../_shared/supabase.ts";
 
 type CreateAPIKeyRequest = {
@@ -11,25 +12,27 @@ type CreateAPIKeyRequest = {
 };
 
 // Creates a user API key. The raw key is returned once and is never stored in plaintext.
-Deno.serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED");
+  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
   const auth = await requireUser(req);
   if (auth instanceof Response) return auth;
-  const walletCheck = await requirePrimaryWallet(auth.userId);
+  const rl = await requireRateLimit(req, "api-keys-create", auth);
+  if (rl) return rl;
+  const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
   let body: CreateAPIKeyRequest;
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON");
+    return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
   const name = String(body.name ?? "").trim().slice(0, 255);
-  if (!name) return error(400, "name required", "NAME_REQUIRED");
+  if (!name) return error(400, "name required", "NAME_REQUIRED", req);
 
   const scopes = Array.isArray(body.scopes) ? body.scopes.map((s) => String(s).trim()).filter(Boolean).slice(0, 32) : [];
   const description = String(body.description ?? "").trim().slice(0, 1024) || null;
@@ -38,11 +41,11 @@ Deno.serve(async (req) => {
   if (body.expires_at) {
     const raw = String(body.expires_at).trim();
     const parsed = Date.parse(raw);
-    if (Number.isNaN(parsed)) return error(400, "expires_at must be an ISO timestamp", "EXPIRES_AT_INVALID");
+    if (Number.isNaN(parsed)) return error(400, "expires_at must be an ISO timestamp", "EXPIRES_AT_INVALID", req);
     expiresAt = new Date(parsed).toISOString();
   }
 
-  const ensured = await ensureUserRow(auth);
+  const ensured = await ensureUserRow(auth, {}, req);
   if (ensured instanceof Response) return ensured;
 
   const { rawKey, prefix } = generateAPIKey();
@@ -64,13 +67,16 @@ Deno.serve(async (req) => {
     .select("id,name,prefix,scopes,description,created_at,last_used,expires_at,revoked")
     .maybeSingle();
 
-  if (insertErr) return error(500, `failed to create api key: ${insertErr.message}`, "DB_ERROR");
+  if (insertErr) return error(500, `failed to create api key: ${insertErr.message}`, "DB_ERROR", req);
 
   return json({
     api_key: {
       ...(data as any),
       key: rawKey,
     },
-  }, { status: 201 });
-});
+  }, { status: 201 }, req);
+}
 
+if (import.meta.main) {
+  Deno.serve(handler);
+}

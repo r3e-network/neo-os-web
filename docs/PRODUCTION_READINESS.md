@@ -29,6 +29,7 @@ Service Layer as described in `docs/ARCHITECTURE.md`.
 - `SUPABASE_ANON_KEY` (Edge validates `Authorization: Bearer <jwt>`)
 - `SUPABASE_SERVICE_ROLE_KEY` (Edge reads/writes `public.*` platform tables)
 - `SECRETS_MASTER_KEY` (hex-encoded 32 bytes)
+- `rate_limit_bump(...)` RPC available in Postgres (see `migrations/024_rate_limit_bump.sql`) if you enable gateway rate limiting in production
 - Optional: `TEE_MTLS_CERT_PEM`, `TEE_MTLS_KEY_PEM`, `TEE_MTLS_ROOT_CA_PEM` when connecting Edge → TEE services over mTLS
 
 ### Enclave Workloads

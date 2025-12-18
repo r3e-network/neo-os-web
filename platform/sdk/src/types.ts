@@ -15,6 +15,14 @@ export type InvocationIntent = {
   params: ContractParam[];
 };
 
+// Wallet invocation result shape varies by wallet implementation (NeoLine/O3/etc).
+export type TxResult = unknown;
+
+export type IntentWithTx<TIntent> = {
+  intent: TIntent;
+  tx: TxResult;
+};
+
 export type PayGASResponse = {
   request_id: string;
   user_id: string;
@@ -226,16 +234,29 @@ export type AutomationDeleteResponse = { status: "ok" };
 export type AutomationStatusResponse = { status: string };
 
 export interface MiniAppSDK {
+  // Blueprint-compatible convenience (alias of wallet.getAddress()).
+  getAddress?: () => Promise<string>;
   wallet: {
     getAddress(): Promise<string>;
     // Optional: host-provided helper to submit a previously created invocation intent.
     invokeIntent?: (requestId: string) => Promise<unknown>;
+    // Optional: directly invoke a returned invocation (wallet-dependent).
+    invokeInvocation?: (invocation: InvocationIntent) => Promise<TxResult>;
   };
   payments: {
     payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse>;
+    // Convenience: create the intent via the gateway, then submit via the wallet.
+    payGASAndInvoke?: (appId: string, amount: string, memo?: string) => Promise<IntentWithTx<PayGASResponse>>;
   };
   governance: {
     vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteNEOResponse>;
+    // Convenience: create the intent via the gateway, then submit via the wallet.
+    voteAndInvoke?: (
+      appId: string,
+      proposalId: string,
+      neoAmount: string,
+      support?: boolean,
+    ) => Promise<IntentWithTx<VoteNEOResponse>>;
   };
   rng: {
     requestRandom(appId: string): Promise<RNGResponse>;

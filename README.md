@@ -5,6 +5,7 @@ A service layer for Neo N3 that combines a user-facing **Gateway** (Supabase Edg
 For the canonical, up-to-date architecture overview see `docs/ARCHITECTURE.md`.
 
 For the target MiniApp platform blueprint/spec, see `docs/neo-miniapp-platform-blueprint.md` and `docs/neo-miniapp-platform-full.md`.
+For the reviewed English architectural blueprint, see `docs/neo-miniapp-platform-architectural-blueprint.md`.
 
 ## Scope (Current)
 
@@ -40,6 +41,7 @@ Secrets are **not** a separate service: they are managed by the gateway and stor
 - Export targets (intentionally empty in git; generated via scripts):
   - `platform/host-app/public/miniapps/` + `platform/host-app/public/sdk/` (run `make export-miniapps`)
   - `supabase/functions/` (run `make export-supabase-functions`)
+  - `supabase/migrations/` (run `make export-supabase-migrations`)
 - `docker/`, `k8s/`, `manifests/`, `deploy/`: deployment and operations
 
 For enforced responsibility boundaries, see `docs/LAYERING.md`.

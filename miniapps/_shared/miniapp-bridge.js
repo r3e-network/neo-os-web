@@ -80,6 +80,7 @@
   }
 
   window.MiniAppSDK = {
+    getAddress: () => rpc("wallet.getAddress", []),
     wallet: {
       getAddress: () => rpc("wallet.getAddress", []),
       invokeIntent: (requestId) => rpc("wallet.invokeIntent", [requestId]),

@@ -200,6 +200,11 @@ jobs:
         working-directory: platform/host-app
         run: npm ci
 
+      - name: npm audit (host app)
+        working-directory: platform/host-app
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
+
       - name: Build host app
         working-directory: platform/host-app
         run: npm run build
@@ -222,9 +227,30 @@ jobs:
         working-directory: platform/sdk
         run: npm ci
 
+      - name: npm audit (sdk)
+        working-directory: platform/sdk
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
+
       - name: Build SDK
         working-directory: platform/sdk
         run: npm run build
+
+  edge-functions-check:
+    name: Edge Functions Check (Deno)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v1.x
+
+      - name: Typecheck Edge functions
+        working-directory: platform/edge
+        run: deno task check
 
   security-scan:
     name: Security Scan
@@ -290,7 +316,7 @@ jobs:
 
   summary:
     name: CI Summary
-    needs: [lint, build, unit-tests, integration-tests, e2e-tests, host-app-build, sdk-build, security-scan, docker-build]
+    needs: [lint, build, unit-tests, integration-tests, e2e-tests, host-app-build, sdk-build, edge-functions-check, security-scan, docker-build]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -303,6 +329,7 @@ jobs:
           echo "E2E Tests: ${{ needs.e2e-tests.result }}"
           echo "Host App Build: ${{ needs.host-app-build.result }}"
           echo "SDK Build: ${{ needs.sdk-build.result }}"
+          echo "Edge Functions Check: ${{ needs.edge-functions-check.result }}"
           echo "Security Scan: ${{ needs.security-scan.result }}"
           echo "Docker Build: ${{ needs.docker-build.result }}"
 
@@ -313,6 +340,7 @@ jobs:
              [ "${{ needs.e2e-tests.result }}" != "success" ] || \
              [ "${{ needs.host-app-build.result }}" != "success" ] || \
              [ "${{ needs.sdk-build.result }}" != "success" ] || \
+             [ "${{ needs.edge-functions-check.result }}" != "success" ] || \
              [ "${{ needs.docker-build.result }}" != "success" ]; then
             echo "CI pipeline failed!"
             exit 1

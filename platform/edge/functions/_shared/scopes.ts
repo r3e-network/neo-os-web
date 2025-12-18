@@ -7,7 +7,7 @@ import { error } from "./response.ts";
 // If scopes are provided, endpoints should call `requireScope(...)` with the
 // Edge function name (e.g. "pay-gas") to enforce least privilege.
 
-export function requireScopes(auth: AuthContext, requiredScopes: string[]): Response | null {
+export function requireScopes(req: Request, auth: AuthContext, requiredScopes: string[]): Response | null {
   if (auth.authType !== "api_key") return null;
 
   const scopes = Array.isArray(auth.scopes) ? auth.scopes : [];
@@ -17,10 +17,9 @@ export function requireScopes(auth: AuthContext, requiredScopes: string[]): Resp
   const missing = requiredScopes.filter((scope) => !scopes.includes(scope));
   if (missing.length === 0) return null;
 
-  return error(403, `api key missing required scope(s): ${missing.join(", ")}`, "SCOPE_REQUIRED");
+  return error(403, `api key missing required scope(s): ${missing.join(", ")}`, "SCOPE_REQUIRED", req);
 }
 
-export function requireScope(auth: AuthContext, requiredScope: string): Response | null {
-  return requireScopes(auth, [requiredScope]);
+export function requireScope(req: Request, auth: AuthContext, requiredScope: string): Response | null {
+  return requireScopes(req, auth, [requiredScope]);
 }
-

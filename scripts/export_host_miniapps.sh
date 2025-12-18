@@ -24,6 +24,7 @@ if command -v rsync >/dev/null 2>&1; then
   rsync -a --delete \
     --exclude ".gitignore" \
     --exclude "README.md" \
+    --exclude "templates/" \
     "$SRC_DIR/" "$DEST_DIR/"
 else
   # Minimal fallback when rsync isn't available.
@@ -33,7 +34,7 @@ else
     ! -name "README.md" \
     -exec rm -rf {} +
 
-  cp -R "$SRC_DIR"/!(README.md|.gitignore) "$DEST_DIR"/
+  cp -R "$SRC_DIR"/!(README.md|.gitignore|templates) "$DEST_DIR"/
 
   # Match the rsync behavior for nested files as well.
   find "$DEST_DIR" -mindepth 2 \

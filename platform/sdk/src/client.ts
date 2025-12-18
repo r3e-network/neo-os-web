@@ -14,6 +14,7 @@ import type {
   GasBankDepositsResponse,
   GasBankTransactionsResponse,
   HostSDK,
+  InvocationIntent,
   MiniAppSDK,
   MiniAppSDKConfig,
   ComputeExecuteRequest,
@@ -54,6 +55,61 @@ async function getInjectedWalletAddress(): Promise<string> {
   throw new Error("neo wallet not detected (install NeoLine N3) or host must bridge wallet.getAddress");
 }
 
+function getNeoLineN3Instance(): any {
+  if (typeof window === "undefined") {
+    throw new Error("wallet invocation must be called in a browser context");
+  }
+
+  const g = window as any;
+  const neoline = g?.NEOLineN3;
+  if (!neoline || typeof neoline.Init !== "function") {
+    throw new Error("NeoLine N3 not detected (install the NeoLine extension)");
+  }
+
+  return new neoline.Init();
+}
+
+async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<unknown> {
+  const inst = getNeoLineN3Instance();
+  if (!inst || typeof inst.invoke !== "function") {
+    throw new Error("wallet does not support invoke (NeoLine N3 required)");
+  }
+
+  const scriptHash = String(invocation.contract_hash ?? "").trim();
+  const operation = String(invocation.method ?? "").trim();
+  const args = Array.isArray(invocation.params) ? invocation.params : [];
+
+  if (!scriptHash) throw new Error("invocation missing contract_hash");
+  if (!operation) throw new Error("invocation missing method");
+
+  // NeoLine SDKs vary slightly in accepted shapes; try a small set of candidates.
+  const address = await getInjectedWalletAddress();
+  const candidates = [
+    { scriptHash, operation, args },
+    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args },
+    { scriptHash, operation, args, signers: [{ account: address, scopes: "CalledByEntry" }] },
+    { scriptHash, operation, args, signers: [{ account: address, scopes: 1 }] },
+    {
+      scriptHash: scriptHash.replace(/^0x/i, ""),
+      operation,
+      args,
+      signers: [{ account: address, scopes: "CalledByEntry" }],
+    },
+    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args, signers: [{ account: address, scopes: 1 }] },
+  ];
+
+  let lastErr: unknown = null;
+  for (const params of candidates) {
+    try {
+      return await inst.invoke(params);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "invoke failed"));
+}
+
 async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: RequestInit): Promise<T> {
   const base = cfg.edgeBaseUrl.replace(/\/$/, "");
   const url = `${base}${path.startsWith("/") ? "" : "/"}${path}`;
@@ -76,23 +132,50 @@ async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Request
 }
 
 export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
+  const pendingInvocations = new Map<string, InvocationIntent>();
+
   return {
+    async getAddress() {
+      return getInjectedWalletAddress();
+    },
     wallet: {
       async getAddress() {
         return getInjectedWalletAddress();
       },
+      async invokeIntent(requestId: string): Promise<unknown> {
+        const id = String(requestId ?? "").trim();
+        if (!id) throw new Error("request_id required");
+        const invocation = pendingInvocations.get(id);
+        if (!invocation) throw new Error("unknown request_id (no pending invocation)");
+        pendingInvocations.delete(id);
+        return invokeNeoLineInvocation(invocation);
+      },
+      async invokeInvocation(invocation: InvocationIntent): Promise<unknown> {
+        return invokeNeoLineInvocation(invocation);
+      },
     },
     payments: {
       async payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse> {
-        return requestJSON<PayGASResponse>(cfg, "/pay-gas", {
+        const res = await requestJSON<PayGASResponse>(cfg, "/pay-gas", {
           method: "POST",
           body: JSON.stringify({ app_id: appId, amount_gas: amount, memo }),
         });
+        try {
+          pendingInvocations.set(res.request_id, res.invocation);
+        } catch {
+          // ignore
+        }
+        return res;
+      },
+      async payGASAndInvoke(appId: string, amount: string, memo?: string) {
+        const intent = await this.payGAS(appId, amount, memo);
+        const tx = await invokeNeoLineInvocation(intent.invocation);
+        return { intent, tx };
       },
     },
     governance: {
       async vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteNEOResponse> {
-        return requestJSON<VoteNEOResponse>(cfg, "/vote-neo", {
+        const res = await requestJSON<VoteNEOResponse>(cfg, "/vote-neo", {
           method: "POST",
           body: JSON.stringify({
             app_id: appId,
@@ -101,6 +184,17 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
             support,
           }),
         });
+        try {
+          pendingInvocations.set(res.request_id, res.invocation);
+        } catch {
+          // ignore
+        }
+        return res;
+      },
+      async voteAndInvoke(appId: string, proposalId: string, neoAmount: string, support?: boolean) {
+        const intent = await this.vote(appId, proposalId, neoAmount, support);
+        const tx = await invokeNeoLineInvocation(intent.invocation);
+        return { intent, tx };
       },
     },
     rng: {

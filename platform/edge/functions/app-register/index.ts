@@ -3,6 +3,7 @@ import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { parseMiniAppManifestCore } from "../_shared/manifest.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 
@@ -15,33 +16,35 @@ type AppRegisterRequest = {
 // - enforces manifest policy (assets_allowed=["GAS"], governance_assets_allowed=["NEO"])
 // - computes the manifest hash deterministically
 // - returns an invocation "intent" for the SDK/wallet to sign and submit
-Deno.serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED");
+  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
-  const scopeCheck = requireScope(auth, "app-register");
+  const rl = await requireRateLimit(req, "app-register", auth);
+  if (rl) return rl;
+  const scopeCheck = requireScope(req, auth, "app-register");
   if (scopeCheck) return scopeCheck;
-  const walletCheck = await requirePrimaryWallet(auth.userId);
+  const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
   let body: AppRegisterRequest;
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON");
+    return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
   const manifest = (body as any)?.manifest;
-  if (!manifest) return error(400, "manifest required", "MANIFEST_REQUIRED");
+  if (!manifest) return error(400, "manifest required", "MANIFEST_REQUIRED", req);
 
   let core;
   try {
     core = await parseMiniAppManifestCore(manifest);
   } catch (e) {
-    return error(400, (e as Error).message, "BAD_INPUT");
+    return error(400, (e as Error).message, "BAD_INPUT", req);
   }
 
   const appRegistryHash = normalizeUInt160(mustGetEnv("CONTRACT_APPREGISTRY_HASH"));
@@ -62,5 +65,9 @@ Deno.serve(async (req) => {
         { type: "ByteArray", value: core.developerPubKeyHex },
       ],
     },
-  });
-});
+  }, {}, req);
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
+}

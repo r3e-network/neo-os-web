@@ -31,8 +31,11 @@ High level:
    - normalize lists as sets:
      - `assets_allowed`: uppercase + sort + unique
      - `governance_assets_allowed`: uppercase + sort + unique
+     - `permissions`: validated + canonicalized deterministically
      - `sandbox_flags`: lowercase + sort + unique
      - `contracts_needed`: trim + sort + unique
+   - normalize objects:
+     - `limits`: normalize values to trimmed strings (for hashing stability)
 2. **Stable JSON** encode:
    - recursively sort all object keys lexicographically
    - omit `undefined` values
