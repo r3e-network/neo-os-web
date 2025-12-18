@@ -11,8 +11,14 @@ import (
 	"time"
 
 	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	neoflow "github.com/R3E-Network/service_layer/services/automation/marble"
 	neocompute "github.com/R3E-Network/service_layer/services/confcompute/marble"
+	neooracle "github.com/R3E-Network/service_layer/services/conforacle/marble"
+	neofeeds "github.com/R3E-Network/service_layer/services/datafeed/marble"
+	neogasbank "github.com/R3E-Network/service_layer/services/gasbank/marble"
+	txproxy "github.com/R3E-Network/service_layer/services/txproxy/marble"
 )
 
 // TestNeoAccountsSmoke performs basic smoke tests on the NeoAccounts service.
@@ -255,6 +261,333 @@ func TestEndpointResponsivenessSmoke(t *testing.T) {
 
 		if duration > maxDuration {
 			t.Errorf("health endpoint too slow: %v > %v", duration, maxDuration)
+		}
+	})
+}
+
+// =============================================================================
+// Additional TEE Service Smoke Tests
+// =============================================================================
+
+// TestNeoOracleSmoke performs basic smoke tests on the NeoOracle service.
+func TestNeoOracleSmoke(t *testing.T) {
+	t.Run("service creates successfully", func(t *testing.T) {
+		m, err := marble.New(marble.Config{MarbleType: "neooracle"})
+		if err != nil {
+			t.Fatalf("marble.New: %v", err)
+		}
+
+		svc, err := neooracle.New(neooracle.Config{Marble: m})
+		if err != nil {
+			t.Fatalf("neooracle.New: %v", err)
+		}
+		if svc == nil {
+			t.Fatal("service should not be nil")
+		}
+	})
+
+	t.Run("health endpoint responds", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neooracle"})
+		svc, _ := neooracle.New(neooracle.Config{Marble: m})
+
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("service metadata correct", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neooracle"})
+		svc, _ := neooracle.New(neooracle.Config{Marble: m})
+
+		if svc.ID() != "neooracle" {
+			t.Errorf("expected ID 'neooracle', got '%s'", svc.ID())
+		}
+		if svc.Name() != "NeoOracle Service" {
+			t.Errorf("expected name 'NeoOracle Service', got '%s'", svc.Name())
+		}
+	})
+}
+
+// TestNeoFeedsSmoke performs basic smoke tests on the NeoFeeds/Datafeed service.
+func TestNeoFeedsSmoke(t *testing.T) {
+	t.Run("service creates successfully", func(t *testing.T) {
+		m, err := marble.New(marble.Config{MarbleType: "neofeeds"})
+		if err != nil {
+			t.Fatalf("marble.New: %v", err)
+		}
+
+		svc, err := neofeeds.New(neofeeds.Config{Marble: m})
+		if err != nil {
+			t.Fatalf("neofeeds.New: %v", err)
+		}
+		if svc == nil {
+			t.Fatal("service should not be nil")
+		}
+	})
+
+	t.Run("health endpoint responds", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+		svc, _ := neofeeds.New(neofeeds.Config{Marble: m})
+
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("service metadata correct", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+		svc, _ := neofeeds.New(neofeeds.Config{Marble: m})
+
+		if svc.ID() != "neofeeds" {
+			t.Errorf("expected ID 'neofeeds', got '%s'", svc.ID())
+		}
+		if svc.Name() != "NeoFeeds Service" {
+			t.Errorf("expected name 'NeoFeeds Service', got '%s'", svc.Name())
+		}
+	})
+}
+
+// TestNeoGasBankSmoke performs basic smoke tests on the NeoGasBank service.
+func TestNeoGasBankSmoke(t *testing.T) {
+	t.Run("service creates successfully", func(t *testing.T) {
+		m, err := marble.New(marble.Config{MarbleType: "neogasbank"})
+		if err != nil {
+			t.Fatalf("marble.New: %v", err)
+		}
+		mockDB := database.NewMockRepository()
+
+		svc, err := neogasbank.New(neogasbank.Config{Marble: m, DB: mockDB})
+		if err != nil {
+			t.Fatalf("neogasbank.New: %v", err)
+		}
+		if svc == nil {
+			t.Fatal("service should not be nil")
+		}
+	})
+
+	t.Run("health endpoint responds", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neogasbank"})
+		mockDB := database.NewMockRepository()
+		svc, _ := neogasbank.New(neogasbank.Config{Marble: m, DB: mockDB})
+
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("service metadata correct", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neogasbank"})
+		mockDB := database.NewMockRepository()
+		svc, _ := neogasbank.New(neogasbank.Config{Marble: m, DB: mockDB})
+
+		if svc.ID() != "neogasbank" {
+			t.Errorf("expected ID 'neogasbank', got '%s'", svc.ID())
+		}
+		if svc.Name() != "NeoGasBank Service" {
+			t.Errorf("expected name 'NeoGasBank Service', got '%s'", svc.Name())
+		}
+	})
+}
+
+// TestTxProxySmoke performs basic smoke tests on the TxProxy service.
+func TestTxProxySmoke(t *testing.T) {
+	t.Run("service creates successfully", func(t *testing.T) {
+		m, err := marble.New(marble.Config{MarbleType: "txproxy"})
+		if err != nil {
+			t.Fatalf("marble.New: %v", err)
+		}
+
+		allowlist, _ := txproxy.ParseAllowlist(`{"contracts":{}}`)
+		svc, err := txproxy.New(txproxy.Config{Marble: m, Allowlist: allowlist})
+		if err != nil {
+			t.Fatalf("txproxy.New: %v", err)
+		}
+		if svc == nil {
+			t.Fatal("service should not be nil")
+		}
+	})
+
+	t.Run("health endpoint responds", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "txproxy"})
+		allowlist, _ := txproxy.ParseAllowlist(`{"contracts":{}}`)
+		svc, _ := txproxy.New(txproxy.Config{Marble: m, Allowlist: allowlist})
+
+		ctx := context.Background()
+		_ = svc.Start(ctx)
+		defer svc.Stop()
+
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("service metadata correct", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "txproxy"})
+		allowlist, _ := txproxy.ParseAllowlist(`{"contracts":{}}`)
+		svc, _ := txproxy.New(txproxy.Config{Marble: m, Allowlist: allowlist})
+
+		if svc.ID() != "txproxy" {
+			t.Errorf("expected ID 'txproxy', got '%s'", svc.ID())
+		}
+		if svc.Name() != "Tx Proxy" {
+			t.Errorf("expected name 'Tx Proxy', got '%s'", svc.Name())
+		}
+	})
+}
+
+// TestNeoFlowSmoke performs basic smoke tests on the NeoFlow/Automation service.
+func TestNeoFlowSmoke(t *testing.T) {
+	t.Run("service creates successfully", func(t *testing.T) {
+		m, err := marble.New(marble.Config{MarbleType: "neoflow"})
+		if err != nil {
+			t.Fatalf("marble.New: %v", err)
+		}
+		mockDB := database.NewMockRepository()
+
+		svc, err := neoflow.New(neoflow.Config{Marble: m, DB: mockDB})
+		if err != nil {
+			t.Fatalf("neoflow.New: %v", err)
+		}
+		if svc == nil {
+			t.Fatal("service should not be nil")
+		}
+	})
+
+	t.Run("health endpoint responds", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
+		mockDB := database.NewMockRepository()
+		svc, _ := neoflow.New(neoflow.Config{Marble: m, DB: mockDB})
+
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("service metadata correct", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
+		mockDB := database.NewMockRepository()
+		svc, _ := neoflow.New(neoflow.Config{Marble: m, DB: mockDB})
+
+		if svc.ID() != "neoflow" {
+			t.Errorf("expected ID 'neoflow', got '%s'", svc.ID())
+		}
+		if svc.Name() != "NeoFlow Service" {
+			t.Errorf("expected name 'NeoFlow Service', got '%s'", svc.Name())
+		}
+	})
+}
+
+// =============================================================================
+// All Services Health Check
+// =============================================================================
+
+// TestAllServicesHealthSmoke verifies all 6 TEE services can start and respond to health checks.
+func TestAllServicesHealthSmoke(t *testing.T) {
+	t.Run("NeoAccounts", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+		m.SetTestSecret("POOL_MASTER_KEY", []byte("smoke-test-pool-key-32-bytes!!!!"))
+		svc, err := neoaccounts.New(neoaccounts.Config{Marble: m})
+		if err != nil {
+			t.Fatalf("failed to create: %v", err)
+		}
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("NeoCompute", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
+		m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("smoke-test-compute-master-key-32b!!"))
+		svc, err := neocompute.New(neocompute.Config{Marble: m})
+		if err != nil {
+			t.Fatalf("failed to create: %v", err)
+		}
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("NeoOracle", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neooracle"})
+		svc, err := neooracle.New(neooracle.Config{Marble: m})
+		if err != nil {
+			t.Fatalf("failed to create: %v", err)
+		}
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("NeoFeeds", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+		svc, err := neofeeds.New(neofeeds.Config{Marble: m})
+		if err != nil {
+			t.Fatalf("failed to create: %v", err)
+		}
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("NeoGasBank", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neogasbank"})
+		mockDB := database.NewMockRepository()
+		svc, err := neogasbank.New(neogasbank.Config{Marble: m, DB: mockDB})
+		if err != nil {
+			t.Fatalf("failed to create: %v", err)
+		}
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
+		}
+	})
+
+	t.Run("NeoFlow", func(t *testing.T) {
+		m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
+		mockDB := database.NewMockRepository()
+		svc, err := neoflow.New(neoflow.Config{Marble: m, DB: mockDB})
+		if err != nil {
+			t.Fatalf("failed to create: %v", err)
+		}
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+		svc.Router().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Errorf("health check failed: status %d", w.Code)
 		}
 	})
 }
