@@ -119,9 +119,9 @@ See `.env.example` for a full list.
 
 ### MiniApp Contracts (Optional)
 
-| Contract               | Source                              | Description                                            |
-| ---------------------- | ----------------------------------- | ------------------------------------------------------ |
-| MiniAppServiceConsumer | `contracts/MiniAppServiceConsumer/` | Sample callback receiver for on-chain service requests |
+| Contract               | Hash                                         | Description                                            |
+| ---------------------- | -------------------------------------------- | ------------------------------------------------------ |
+| MiniAppServiceConsumer | `0x8894b8d122cbc49c19439f680a4b5dbb2093b426` | Sample callback receiver for on-chain service requests |
 
 MiniApp contracts are **optional**. Built-in MiniApps use platform contracts via SDK. Custom MiniApps can deploy their own contracts for on-chain callback workflows. See `contracts/README.md` for details.
 
