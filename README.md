@@ -117,6 +117,14 @@ See `.env.example` for a full list.
 | AutomationAnchor    | `0x1c888d699ce76b0824028af310d90c3c18adeab5` | Automation triggers       |
 | ServiceLayerGateway | `0x27b79cf631eff4b520dd9d95cd1425ec33025a53` | Service request routing   |
 
+### MiniApp Contracts (Optional)
+
+| Contract               | Source                              | Description                                            |
+| ---------------------- | ----------------------------------- | ------------------------------------------------------ |
+| MiniAppServiceConsumer | `contracts/MiniAppServiceConsumer/` | Sample callback receiver for on-chain service requests |
+
+MiniApp contracts are **optional**. Built-in MiniApps use platform contracts via SDK. Custom MiniApps can deploy their own contracts for on-chain callback workflows. See `contracts/README.md` for details.
+
 ## Builtin MiniApps (23 Apps)
 
 **Phase 1 - Gaming:**
