@@ -3,7 +3,7 @@ kind: Kustomization
 
 namespace: supabase
 
-bases:
+resources:
   - ../../base
 
 # Local development patches
@@ -18,34 +18,34 @@ configMapGenerator:
     literals:
       - GOTRUE_LOG_LEVEL=debug
       - PGRST_LOG_LEVEL=info
-
-# Generate migrations ConfigMap from SQL files
-configMapGenerator:
   - name: supabase-migrations
     files:
-      - ../../../../../../supabase/migrations/20000101000001_initial_schema.sql
-      - ../../../../../../supabase/migrations/20000101000002_auth_enhancements.sql
-      - ../../../../../../supabase/migrations/20000101000003_service_persistence.sql
-      - ../../../../../../supabase/migrations/20000101000004_automation_executions.sql
-      - ../../../../../../supabase/migrations/20000101000005_mixer_deposits.sql
-      - ../../../../../../supabase/migrations/20000101000006_accountpool_schema.sql
-      - ../../../../../../supabase/migrations/20000101000007_secret_permissions.sql
-      - ../../../../../../supabase/migrations/20000101000008_mixer_tee_fields.sql
-      - ../../../../../../supabase/migrations/20000101000009_cleanup_legacy_mixer.sql
-      - ../../../../../../supabase/migrations/20000101000010_cleanup_legacy_pool.sql
-      - ../../../../../../supabase/migrations/20000101000011_multi_token_balances.sql
-      - ../../../../../../supabase/migrations/20000101000012_neovault_compliance.sql
-      - ../../../../../../supabase/migrations/20000101000013_users_address_optional.sql
-      - ../../../../../../supabase/migrations/20000101000014_processed_events.sql
-      - ../../../../../../supabase/migrations/20000101000015_chain_txs.sql
-      - ../../../../../../supabase/migrations/20000101000016_signer_key_rotations.sql
-      - ../../../../../../supabase/migrations/20000101000017_attestation_artifacts.sql
-      - ../../../../../../supabase/migrations/20000101000018_requests_enhanced.sql
-      - ../../../../../../supabase/migrations/20000101000019_remove_neovault.sql
-      - ../../../../../../supabase/migrations/20000101000020_remove_vrf.sql
-      - ../../../../../../supabase/migrations/20000101000021_api_keys_prefix_length.sql
-      - ../../../../../../supabase/migrations/20000101000022_neoflow_schema.sql
-      - ../../../../../../supabase/migrations/20000101000023_cleanup_legacy_request_tables.sql
-      - ../../../../../../supabase/migrations/20000101000024_rate_limit_bump.sql
-      - ../../../../../../supabase/migrations/20000101000025_contract_events.sql
-      - ../../../../../../supabase/migrations/20000101000027_simulation_txs.sql
+      - ../../../../supabase/migrations/20000101000001_initial_schema.sql
+      - ../../../../supabase/migrations/20000101000002_auth_enhancements.sql
+      - ../../../../supabase/migrations/20000101000003_service_persistence.sql
+      - ../../../../supabase/migrations/20000101000004_automation_executions.sql
+      - ../../../../supabase/migrations/20000101000005_mixer_deposits.sql
+      - ../../../../supabase/migrations/20000101000006_accountpool_schema.sql
+      - ../../../../supabase/migrations/20000101000007_secret_permissions.sql
+      - ../../../../supabase/migrations/20000101000008_mixer_tee_fields.sql
+      - ../../../../supabase/migrations/20000101000009_cleanup_legacy_mixer.sql
+      - ../../../../supabase/migrations/20000101000010_cleanup_legacy_pool.sql
+      - ../../../../supabase/migrations/20000101000011_multi_token_balances.sql
+      - ../../../../supabase/migrations/20000101000012_neovault_compliance.sql
+      - ../../../../supabase/migrations/20000101000013_users_address_optional.sql
+      - ../../../../supabase/migrations/20000101000014_processed_events.sql
+      - ../../../../supabase/migrations/20000101000015_chain_txs.sql
+      - ../../../../supabase/migrations/20000101000016_signer_key_rotations.sql
+      - ../../../../supabase/migrations/20000101000017_attestation_artifacts.sql
+      - ../../../../supabase/migrations/20000101000018_requests_enhanced.sql
+      - ../../../../supabase/migrations/20000101000019_remove_neovault.sql
+      - ../../../../supabase/migrations/20000101000020_remove_vrf.sql
+      - ../../../../supabase/migrations/20000101000021_api_keys_prefix_length.sql
+      - ../../../../supabase/migrations/20000101000022_neoflow_schema.sql
+      - ../../../../supabase/migrations/20000101000023_cleanup_legacy_request_tables.sql
+      - ../../../../supabase/migrations/20000101000024_rate_limit_bump.sql
+      - ../../../../supabase/migrations/20000101000025_contract_events.sql
+      - ../../../../supabase/migrations/20000101000027_simulation_txs.sql
+      - ../../../../supabase/migrations/20000101000028_service_role_grants.sql
+      - ../../../../supabase/migrations/20000101000029_miniapps.sql
+      - ../../../../supabase/migrations/20000101000030_miniapp_usage.sql

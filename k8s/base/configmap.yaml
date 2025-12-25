@@ -6,8 +6,8 @@ data:
   # MarbleRun Coordinator addresses (full K8s DNS)
   # - Mesh API (2001): used by Marbles (EDG_MARBLE_COORDINATOR_ADDR)
   # - Client API (4433): used by MarbleRun CLI (marblerun *)
-  COORDINATOR_MESH_ADDR: "coordinator-mesh-api.marblerun.svc.cluster.local:2001"
-  COORDINATOR_CLIENT_ADDR: "coordinator-client-api.marblerun.svc.cluster.local:4433"
+  COORDINATOR_MESH_ADDR: "marblerun-coordinator.marblerun.svc.cluster.local:2001"
+  COORDINATOR_CLIENT_ADDR: "marblerun-coordinator-client-api.marblerun.svc.cluster.local:4433"
   # Default to SGX hardware mode; overlays can override (e.g. simulation).
   OE_SIMULATION: "0"
   # Application environment; overlays should set this to "production" for real deployments.
@@ -19,18 +19,23 @@ data:
   # Supabase Configuration
   # Public Supabase project URL (not a secret). Override per environment.
   SUPABASE_URL: "https://your-project.supabase.co"
+  # REST prefix for PostgREST compatibility (default /rest/v1).
+  SUPABASE_REST_PREFIX: "/rest/v1"
+  # Allow http:// Supabase URL in dev/test when running in simulation mode.
+  SUPABASE_ALLOW_INSECURE: "false"
   # Neo RPC (Testnet)
   NEO_RPC_URL: "https://testnet1.neo.coz.io:443"
   # Neo N3 network magic (Testnet). Mainnet: 860833102
   NEO_NETWORK_MAGIC: "894710606"
   # On-chain MiniApp platform contract hashes (0x-prefixed Uint160 strings).
   # Set these per environment after deploying contracts.
-  CONTRACT_PAYMENTHUB_HASH: ""
-  CONTRACT_GOVERNANCE_HASH: ""
-  CONTRACT_PRICEFEED_HASH: ""
-  CONTRACT_RANDOMNESSLOG_HASH: ""
-  CONTRACT_APPREGISTRY_HASH: ""
-  CONTRACT_AUTOMATIONANCHOR_HASH: ""
+  CONTRACT_PAYMENTHUB_HASH: "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
+  CONTRACT_GOVERNANCE_HASH: "0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05"
+  CONTRACT_PRICEFEED_HASH: "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"
+  CONTRACT_RANDOMNESSLOG_HASH: "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"
+  CONTRACT_APPREGISTRY_HASH: "0x79d16bee03122e992bb80c478ad4ed405f33bc7f"
+  CONTRACT_AUTOMATIONANCHOR_HASH: "0x1c888d699ce76b0824028af310d90c3c18adeab5"
+  CONTRACT_SERVICEGATEWAY_HASH: "0x27b79cf631eff4b520dd9d95cd1425ec33025a53"
   # Oracle config
   ORACLE_HTTP_ALLOWLIST: "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com"
   # Optional Arbitrum RPC override for Chainlink (NeoFeeds). Defaults to https://arb1.arbitrum.io/rpc.
@@ -40,6 +45,38 @@ data:
 
   # Internal service endpoints (service-to-service clients)
   GLOBALSIGNER_SERVICE_URL: "https://globalsigner:8092"
+  TXPROXY_URL: "https://txproxy:8090"
+  # Timeout for TxProxy client calls (Go duration).
+  TXPROXY_TIMEOUT: "90s"
+  GASBANK_URL: "https://neogasbank:8091"
+  NEOACCOUNTS_SERVICE_URL: "https://neoaccounts:8085"
+  # GasBank deposit address (optional for dev/test).
+  GASBANK_DEPOSIT_ADDRESS: ""
+  # Enable NeoGasBank auto top-up worker (dev/test default false).
+  TOPUP_ENABLED: "false"
+  # AccountPool persistence controls.
+  NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY: "false"
+  NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS: "false"
+  NEOVRF_URL: "https://neovrf:8087"
+  NEOORACLE_URL: "https://neooracle:8088"
+  NEOCOMPUTE_URL: "https://neocompute:8086"
+  # NeoRequests callback result size limit (bytes) to stay under Neo Notify caps.
+  NEOREQUESTS_MAX_RESULT_BYTES: "800"
+  # Truncate error messages to avoid oversized notify payloads.
+  NEOREQUESTS_MAX_ERROR_LEN: "256"
+  # RNG response format: raw bytes or JSON.
+  NEOREQUESTS_RNG_RESULT_MODE: "raw"
+  # Wait for callback tx confirmation before marking request complete.
+  NEOREQUESTS_TX_WAIT: "true"
+  NEOREQUESTS_ENFORCE_APPREGISTRY: "true"
+  NEOREQUESTS_APPREGISTRY_CACHE_SECONDS: "60"
+
+  # Simulation service defaults (dev/test only).
+  SIMULATION_ENABLED: "false"
+  SIMULATION_MINIAPPS: "builtin-lottery,builtin-coin-flip,builtin-dice-game"
+  SIMULATION_TX_INTERVAL_MIN_MS: "1000"
+  SIMULATION_TX_INTERVAL_MAX_MS: "5000"
+  SIMULATION_WORKERS_PER_APP: "2"
 
   # TxProxy allowlist (JSON). Default deny-all when unset.
-  TXPROXY_ALLOWLIST: ""
+  TXPROXY_ALLOWLIST: '{"contracts":{"0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193":["pay"],"0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05":["stake","unstake","vote"],"0xc5d9117d255054489d1cf59b2c1d188c01bc9954":["update"],"0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39":["record"],"0x1c888d699ce76b0824028af310d90c3c18adeab5":["markExecuted"],"0x27b79cf631eff4b520dd9d95cd1425ec33025a53":["fulfillRequest"]}}'

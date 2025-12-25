@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GAS Circle - Daily Savings</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+        color: #fff;
+        min-height: 100vh;
+        padding: 15px;
+      }
+      .container {
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        font-size: 24px;
+      }
+      .header .subtitle {
+        color: #90caf9;
+        font-size: 13px;
+      }
+      .circle-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+      .circle-name {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .circle-stats {
+        display: flex;
+        justify-content: space-around;
+        margin: 15px 0;
+      }
+      .stat {
+        text-align: center;
+      }
+      .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #ffd700;
+      }
+      .stat-label {
+        font-size: 11px;
+        color: #90caf9;
+      }
+      .members-list {
+        margin: 15px 0;
+      }
+      .member {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        margin-bottom: 5px;
+        font-size: 13px;
+      }
+      .member.winner {
+        border-left: 3px solid #ffd700;
+        background: rgba(255, 215, 0, 0.1);
+      }
+      .member.you {
+        border-left: 3px solid #4caf50;
+      }
+      .countdown {
+        font-size: 32px;
+        font-weight: bold;
+        color: #ffd700;
+        margin: 15px 0;
+      }
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-bottom: 10px;
+      }
+      .btn-join {
+        background: #4caf50;
+        color: #fff;
+      }
+      .btn-deposit {
+        background: #ff9800;
+        color: #fff;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .status {
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        margin: 10px 0;
+        font-size: 14px;
+      }
+      .status-info {
+        background: rgba(33, 150, 243, 0.2);
+      }
+      .status-success {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4caf50;
+      }
+      .status-error {
+        background: rgba(244, 67, 54, 0.2);
+        color: #f44336;
+      }
+      #sdk-note {
+        display: none;
+        background: rgba(255, 152, 0, 0.2);
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      .info {
+        text-align: center;
+        font-size: 10px;
+        color: #90caf9;
+        margin-top: 15px;
+      }
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .tab {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #90caf9;
+        cursor: pointer;
+      }
+      .tab.active {
+        background: #ffd700;
+        color: #1a237e;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔄 GAS Circle</h1>
+        <div class="subtitle">Daily Savings & Lottery Pool</div>
+      </div>
+      <div id="sdk-note">SDK not available. Run inside MiniApp host.</div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('active')">Active</button>
+        <button class="tab" onclick="switchTab('create')">Create</button>
+        <button class="tab" onclick="switchTab('history')">History</button>
+      </div>
+      <div id="view-active">
+        <div class="circle-card">
+          <div class="circle-name" id="circle-name">Daily GAS Circle #1</div>
+          <div class="circle-stats">
+            <div class="stat">
+              <div class="stat-value" id="members-count">0/10</div>
+              <div class="stat-label">Members</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" id="pool-amount">0</div>
+              <div class="stat-label">Pool (GAS)</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" id="day-count">1</div>
+              <div class="stat-label">Day</div>
+            </div>
+          </div>
+          <div class="countdown" id="countdown">--:--:--</div>
+          <div class="members-list" id="members-list"></div>
+        </div>
+        <button class="btn btn-join" id="btn-join">Join Circle (1 GAS)</button>
+        <button class="btn btn-deposit" id="btn-deposit" style="display: none">Daily Deposit (1 GAS)</button>
+      </div>
+      <div id="view-create" style="display: none">
+        <div class="circle-card">
+          <h3>Create New Circle</h3>
+          <div style="margin: 15px 0">
+            <label style="display: block; margin-bottom: 5px; color: #90caf9">Daily Amount (GAS)</label>
+            <input
+              type="number"
+              id="create-amount"
+              value="1"
+              min="0.1"
+              max="10"
+              step="0.1"
+              style="
+                width: 100%;
+                padding: 10px;
+                border-radius: 8px;
+                border: none;
+                background: rgba(255, 255, 255, 0.1);
+                color: #fff;
+              "
+            />
+          </div>
+          <div style="margin: 15px 0">
+            <label style="display: block; margin-bottom: 5px; color: #90caf9">Max Members</label>
+            <input
+              type="number"
+              id="create-members"
+              value="10"
+              min="3"
+              max="20"
+              style="
+                width: 100%;
+                padding: 10px;
+                border-radius: 8px;
+                border: none;
+                background: rgba(255, 255, 255, 0.1);
+                color: #fff;
+              "
+            />
+          </div>
+          <button class="btn btn-join" id="btn-create">Create Circle</button>
+        </div>
+      </div>
+      <div id="view-history" style="display: none">
+        <div class="circle-card">
+          <h3>Past Winners</h3>
+          <div id="history-list"></div>
+        </div>
+      </div>
+      <div id="status" class="status status-info">Join a circle to start saving</div>
+      <div class="info">Automation-powered daily draws - VRF random selection</div>
+    </div>
+    <script src="../../_shared/miniapp-bridge.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

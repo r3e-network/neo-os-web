@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ import (
 type Client struct {
 	url        string
 	serviceKey string
+	restPrefix string
 	httpClient *http.Client
 }
 
@@ -27,13 +29,14 @@ type Client struct {
 type Config struct {
 	URL        string
 	ServiceKey string
+	RestPrefix string
 }
 
 // NewClient creates a new Supabase client.
 func NewClient(cfg Config) (*Client, error) {
-	url := cfg.URL
-	if url == "" {
-		url = os.Getenv("SUPABASE_URL")
+	baseURL := cfg.URL
+	if baseURL == "" {
+		baseURL = os.Getenv("SUPABASE_URL")
 	}
 
 	key := cfg.ServiceKey
@@ -43,15 +46,19 @@ func NewClient(cfg Config) (*Client, error) {
 
 	isDev := runtime.IsDevelopmentOrTesting()
 	strict := runtime.StrictIdentityMode()
+	allowInsecure := strings.EqualFold(os.Getenv("SUPABASE_ALLOW_INSECURE"), "true")
+	if allowInsecure && !isDev {
+		return nil, fmt.Errorf("SUPABASE_ALLOW_INSECURE is only supported in development/testing")
+	}
 
 	usingMockURL := false
-	if url == "" {
+	if baseURL == "" {
 		if strict {
 			return nil, fmt.Errorf("SUPABASE_URL is required")
 		}
 		// Allow running without database in development/testing mode
 		if isDev {
-			url = "http://localhost:54321" // Mock URL for development
+			baseURL = "http://localhost:54321" // Mock URL for development
 			usingMockURL = true
 		} else {
 			return nil, fmt.Errorf("SUPABASE_URL is required")
@@ -69,19 +76,60 @@ func NewClient(cfg Config) (*Client, error) {
 		}
 	}
 
-	if strict {
-		normalizedURL, _, err := httputil.NormalizeBaseURL(url, httputil.BaseURLOptions{RequireHTTPSInStrictMode: true})
-		if err != nil {
-			return nil, fmt.Errorf("SUPABASE_URL must be a valid https URL: %w", err)
+	allowHTTPInStrict := allowInsecure
+	isClusterLocal := false
+	if parsed, err := url.Parse(strings.TrimSpace(baseURL)); err == nil {
+		host := strings.ToLower(parsed.Hostname())
+		if host == "localhost" || host == "127.0.0.1" ||
+			strings.HasSuffix(host, ".svc.cluster.local") ||
+			strings.HasSuffix(host, ".cluster.local") {
+			isClusterLocal = true
 		}
-		url = normalizedURL
+	}
+	if !allowHTTPInStrict && isDev {
+		allowHTTPInStrict = isClusterLocal
+	}
+
+	restPrefix := strings.TrimSpace(cfg.RestPrefix)
+	restPrefixSet := restPrefix != ""
+	if !restPrefixSet {
+		restPrefix = strings.TrimSpace(os.Getenv("SUPABASE_REST_PREFIX"))
+		restPrefixSet = restPrefix != ""
+	}
+	if !restPrefixSet {
+		if isDev && isClusterLocal {
+			restPrefix = ""
+		} else {
+			restPrefix = "/rest/v1"
+		}
+	}
+	restPrefix = strings.TrimRight(restPrefix, "/")
+	if restPrefix == "/" {
+		restPrefix = ""
+	}
+	if restPrefix != "" && !strings.HasPrefix(restPrefix, "/") {
+		restPrefix = "/" + restPrefix
+	}
+
+	if strict {
+		normalizedURL, _, err := httputil.NormalizeBaseURL(baseURL, httputil.BaseURLOptions{
+			RequireHTTPSInStrictMode: !allowHTTPInStrict,
+		})
+		if err != nil {
+			if allowHTTPInStrict {
+				return nil, fmt.Errorf("SUPABASE_URL must be a valid URL: %w", err)
+			}
+			return nil, fmt.Errorf("SUPABASE_URL must be a valid https URL (set SUPABASE_ALLOW_INSECURE=true for dev/test): %w", err)
+		}
+		baseURL = normalizedURL
 	}
 
 	transport := httputil.DefaultTransportWithMinTLS12()
 
 	return &Client{
-		url:        url,
+		url:        baseURL,
 		serviceKey: key,
+		restPrefix: restPrefix,
 		httpClient: &http.Client{
 			Timeout:   30 * time.Second,
 			Transport: transport,
@@ -96,7 +144,12 @@ const (
 
 // request makes an HTTP request to the Supabase REST API.
 func (c *Client) request(ctx context.Context, method, table string, body interface{}, query string) ([]byte, error) {
-	url := fmt.Sprintf("%s/rest/v1/%s", c.url, table)
+	var url string
+	if c.restPrefix == "" {
+		url = fmt.Sprintf("%s/%s", c.url, table)
+	} else {
+		url = fmt.Sprintf("%s%s/%s", c.url, c.restPrefix, table)
+	}
 	if query != "" {
 		url += "?" + query
 	}

@@ -36,6 +36,9 @@ High level:
      - `contracts_needed`: trim + sort + unique
    - normalize objects:
      - `limits`: normalize values to trimmed strings (for hashing stability)
+   - normalize callback targets:
+     - `callback_contract`: lowercase hex hash160 (strip leading `0x`)
+     - `callback_method`: trim and preserve case
 2. **Stable JSON** encode:
    - recursively sort all object keys lexicographically
    - omit `undefined` values
@@ -67,6 +70,8 @@ High level:
     "daily_gas_cap_per_user": "20",
     "governance_cap": "100"
   },
+  "callback_contract": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "callback_method": "OnServiceCallback",
   "contracts_needed": [
     "PaymentHub",
     "RandomnessLog",
@@ -123,6 +128,19 @@ Suggested strings to avoid floating point ambiguity:
 - `limits.daily_gas_cap_per_user` (string): per-user/day cap in GAS.
 - `limits.governance_cap` (string): per-user governance cap (units defined by contract policy).
 
+### Service Callbacks
+
+These fields define the **default on-chain callback target** for service requests
+triggered by the MiniApp.
+
+- `callback_contract` (string): Neo N3 script hash (Hash160) for the MiniApp
+  callback contract.
+- `callback_method` (string): method name invoked by `ServiceLayerGateway.FulfillRequest`.
+
+If a request explicitly specifies a different callback target on-chain, the
+dispatcher will enforce that it matches the manifest unless the app is
+authorized for overrides.
+
 ### Contracts
 
 - `contracts_needed`: symbolic names resolved by the host using network config (testnet/mainnet).
@@ -136,3 +154,4 @@ Suggested strings to avoid floating point ambiguity:
 - `limits` must be within platform policy bounds (global caps set by governance).
 - `limits.daily_gas_cap_per_user` and `limits.governance_cap` are enforced by the gateway
   via `miniapp_usage_bump(...)` (daily usage tracking).
+- `callback_contract` must be a valid Hash160 (0x-prefixed or raw hex).

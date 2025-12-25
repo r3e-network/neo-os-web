@@ -13,6 +13,10 @@ GasBank is a TEE service that manages user GAS balances for the Neo N3 Mini-App 
 │  ├── Verify on-chain GAS transfers                          │
 │  └── Credit user balances on confirmation                   │
 ├─────────────────────────────────────────────────────────────┤
+│  Auto Top-Up Worker (5m interval, optional)                 │
+│  ├── Identify pool accounts below GAS threshold             │
+│  └── Request funding via NeoAccounts `/fund`                │
+├─────────────────────────────────────────────────────────────┤
 │  Balance Operations                                         │
 │  ├── GetAccount - Retrieve/create user account              │
 │  ├── DeductFee - Service fee deduction (mTLS only)          │
@@ -84,6 +88,15 @@ if !resp.Success {
 }
 ```
 
+## Auto Top-Up Flow (Optional)
+
+```
+1. NeoGasBank lists low-balance pool accounts via NeoAccounts
+2. For each account below the threshold, call /fund
+3. NeoAccounts uses the master wallet to transfer GAS on-chain
+4. NeoGasBank logs the funding tx hash
+```
+
 ## Configuration
 
 | Environment Variable      | Description                                    | Required          |
@@ -91,7 +104,9 @@ if !resp.Success {
 | `NEO_RPC_URL`             | Neo N3 RPC endpoint                            | Yes (strict mode) |
 | `SUPABASE_URL`            | Supabase project URL                           | Yes               |
 | `SUPABASE_SERVICE_KEY`    | Supabase service key                           | Yes               |
-| `GASBANK_DEPOSIT_ADDRESS` | Platform deposit address used for verification | Yes (strict mode) |
+| `GASBANK_DEPOSIT_ADDRESS` | Platform deposit address used for verification | Yes (production) |
+| `NEOACCOUNTS_SERVICE_URL` | NeoAccounts service URL (auto top-up)          | Optional          |
+| `TOPUP_ENABLED`           | Enable auto top-up worker                      | Optional          |
 
 ## Constants
 

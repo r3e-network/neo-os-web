@@ -14,12 +14,13 @@ import (
 // ContractAddresses holds the deployed contract addresses.
 type ContractAddresses struct {
 	// MiniApp platform contracts.
-	PaymentHub       string `json:"paymenthub"`
-	Governance       string `json:"governance"`
-	PriceFeed        string `json:"pricefeed"`
-	RandomnessLog    string `json:"randomnesslog"`
-	AppRegistry      string `json:"appregistry"`
-	AutomationAnchor string `json:"automationanchor"`
+	PaymentHub          string `json:"paymenthub"`
+	Governance          string `json:"governance"`
+	PriceFeed           string `json:"pricefeed"`
+	RandomnessLog       string `json:"randomnesslog"`
+	AppRegistry         string `json:"appregistry"`
+	AutomationAnchor    string `json:"automationanchor"`
+	ServiceLayerGateway string `json:"servicelayergateway"`
 }
 
 // LoadFromEnv loads contract addresses from environment variables.
@@ -42,6 +43,9 @@ func (c *ContractAddresses) LoadFromEnv() {
 	}
 	if h := firstNonEmptyEnv("CONTRACT_AUTOMATIONANCHOR_HASH", "CONTRACT_AUTOMATION_ANCHOR_HASH"); h != "" {
 		c.AutomationAnchor = h
+	}
+	if h := firstNonEmptyEnv("CONTRACT_SERVICEGATEWAY_HASH", "CONTRACT_SERVICE_GATEWAY_HASH"); h != "" {
+		c.ServiceLayerGateway = h
 	}
 }
 

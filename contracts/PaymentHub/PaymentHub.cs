@@ -10,19 +10,28 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
-    [DisplayName("PaymentHub")]
+    // Custom delegates for events with named parameters
+    public delegate void PaymentReceivedHandler(BigInteger paymentId, string appId, UInt160 sender, BigInteger amount, string memo);
+    public delegate void AppConfiguredHandler(string appId, UInt160 owner);
+    public delegate void WithdrawnHandler(string appId, BigInteger amount);
+
+    [DisplayName("PaymentHubV2")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "GAS-only payments & settlement hub")]
+    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Description", "GAS-only payments & settlement hub v2")]
     [ContractPermission("*", "onNEP17Payment")]
+    [ContractPermission("*", "transfer")]  // Permission to call GAS.Transfer
     public class PaymentHub : SmartContract
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_APP = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_BALANCE = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_RECEIPT = new byte[] { 0x04 };
-        private static readonly byte[] KEY_RECEIPT_COUNTER = new byte[] { 0x05 };
+        // Use a separate prefix for receipt counter to avoid collision with receipt data
+        // Receipt data uses PREFIX_RECEIPT + receiptId.ToByteArray()
+        // Counter uses PREFIX_RECEIPT_COUNTER directly (not under PREFIX_RECEIPT)
+        private static readonly byte[] PREFIX_RECEIPT_COUNTER = new byte[] { 0x05 };
 
         public struct AppConfig
         {
@@ -44,18 +53,18 @@ namespace NeoMiniAppPlatform.Contracts
             public string AppId;
             public UInt160 Payer;
             public BigInteger Amount;
-            public ulong Timestamp;
+            public BigInteger Timestamp;  // Changed from ulong to BigInteger to avoid Neo VM conversion issues
             public string Memo;
         }
 
         [DisplayName("PaymentReceived")]
-        public static event Action<BigInteger, string, UInt160, BigInteger, string> OnPaymentReceived;
+        public static event PaymentReceivedHandler OnPaymentReceived;
 
         [DisplayName("AppConfigured")]
-        public static event Action<string, UInt160> OnAppConfigured;
+        public static event AppConfiguredHandler OnAppConfigured;
 
         [DisplayName("Withdrawn")]
-        public static event Action<string, BigInteger> OnWithdrawn;
+        public static event WithdrawnHandler OnWithdrawn;
 
         public static void _deploy(object data, bool update)
         {
@@ -63,7 +72,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             Transaction tx = Runtime.Transaction;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, tx.Sender);
-            Storage.Put(Storage.CurrentContext, PREFIX_RECEIPT.Concat(KEY_RECEIPT_COUNTER), 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_RECEIPT_COUNTER, 0);
         }
 
         public static UInt160 Admin()
@@ -119,11 +128,11 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger NextReceiptId()
         {
-            StorageMap meta = new StorageMap(Storage.CurrentContext, PREFIX_RECEIPT);
-            ByteString raw = meta.Get(KEY_RECEIPT_COUNTER);
+            // Use PREFIX_RECEIPT_COUNTER directly to avoid collision with receipt data
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_RECEIPT_COUNTER);
             BigInteger current = raw == null ? 0 : (BigInteger)raw;
             BigInteger next = current + 1;
-            meta.Put(KEY_RECEIPT_COUNTER, next);
+            Storage.Put(Storage.CurrentContext, PREFIX_RECEIPT_COUNTER, next);
             return next;
         }
 
@@ -215,28 +224,25 @@ namespace NeoMiniAppPlatform.Contracts
         // Payments (GAS only)
         // ============================================================================
 
-        public static BigInteger Pay(string appId, BigInteger amount, string memo)
+        // NOTE: The Pay method has been removed due to a Neo VM CONVERT error
+        // when calling GAS.Transfer from within a contract method.
+        //
+        // To make a payment, users should call GAS.Transfer directly:
+        //   GAS.Transfer(payer, PaymentHubContract, amount, appId)
+        //
+        // The OnNEP17Payment callback will handle the payment processing.
+
+        // Helper method to validate payment parameters before direct GAS.Transfer
+        public static bool ValidatePayment(string appId, BigInteger amount)
         {
-            ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
-            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            if (appId == null || appId.Length == 0) return false;
+            if (amount <= 0) return false;
 
             AppConfig cfg = GetApp(appId);
-            ExecutionEngine.Assert(cfg.Owner != null && cfg.Owner.IsValid, "app not found");
-            ExecutionEngine.Assert(cfg.Enabled, "app disabled");
+            if (cfg.Owner == null || !cfg.Owner.IsValid) return false;
+            if (!cfg.Enabled) return false;
 
-            Transaction tx = Runtime.Transaction;
-            UInt160 payer = tx.Sender;
-
-            PaymentData data = new PaymentData { AppId = appId, Memo = memo ?? "" };
-            ByteString payload = (ByteString)StdLib.Serialize(data);
-
-            bool ok = GAS.Transfer(payer, Runtime.ExecutingScriptHash, amount, payload);
-            ExecutionEngine.Assert(ok, "GAS transfer failed");
-
-            // OnNEP17Payment records the receipt and increments the counter; return latest id.
-            StorageMap meta = new StorageMap(Storage.CurrentContext, PREFIX_RECEIPT);
-            ByteString raw = meta.Get(KEY_RECEIPT_COUNTER);
-            return raw == null ? 0 : (BigInteger)raw;
+            return true;
         }
 
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
@@ -256,34 +262,57 @@ namespace NeoMiniAppPlatform.Contracts
             // Ignore sender-side hooks during outbound transfers.
             if (from == Runtime.ExecutingScriptHash) return;
 
-            if (data == null) throw new Exception("Payment data required");
-            ByteString rawData = (ByteString)data;
-            PaymentData pd = (PaymentData)StdLib.Deserialize(rawData);
+            // Try to get appId from temporary storage first (set by Pay method)
+            // If not found, try to get it from the data parameter (direct GAS.Transfer)
+            ByteString appIdBytes = Storage.Get(Storage.CurrentContext, (ByteString)"pending_payment");
+            string appId;
 
-            ExecutionEngine.Assert(pd.AppId != null && pd.AppId.Length > 0, "app id required");
+            if (appIdBytes != null)
+            {
+                appId = appIdBytes;
+                // Clean up temporary storage
+                Storage.Delete(Storage.CurrentContext, (ByteString)"pending_payment");
+            }
+            else if (data != null)
+            {
+                // Direct GAS.Transfer with appId as data
+                // Use ByteString conversion to avoid Neo VM CONVERT errors
+                // The data parameter from GAS.Transfer is passed as a stack item
+                // which can be directly assigned to ByteString, then implicitly to string
+                ByteString dataBytes = (ByteString)data;
+                appId = dataBytes;
+            }
+            else
+            {
+                throw new Exception("Payment data required");
+            }
 
-            AppConfig cfg = GetApp(pd.AppId);
+            ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
+
+            AppConfig cfg = GetApp(appId);
             ExecutionEngine.Assert(cfg.Owner != null && cfg.Owner.IsValid, "app not found");
             ExecutionEngine.Assert(cfg.Enabled, "app disabled");
 
             // Update app balance.
-            BigInteger bal = GetAppBalance(pd.AppId);
-            SetAppBalance(pd.AppId, bal + amount);
+            BigInteger bal = GetAppBalance(appId);
+            SetAppBalance(appId, bal + amount);
 
             // Store receipt.
+            // Note: memo is not passed through GAS.Transfer to keep the data simple
+            // and avoid CONVERT errors. Memo can be added via a separate method if needed.
             BigInteger receiptId = NextReceiptId();
             Receipt receipt = new Receipt
             {
                 Id = receiptId,
-                AppId = pd.AppId,
+                AppId = appId,
                 Payer = from,
                 Amount = amount,
                 Timestamp = Runtime.Time,
-                Memo = pd.Memo ?? ""
+                Memo = ""
             };
             ReceiptMap().Put(receiptId.ToByteArray(), StdLib.Serialize(receipt));
 
-            OnPaymentReceived(receiptId, pd.AppId, from, amount, receipt.Memo);
+            OnPaymentReceived(receiptId, appId, from, amount, receipt.Memo);
         }
 
         // ============================================================================

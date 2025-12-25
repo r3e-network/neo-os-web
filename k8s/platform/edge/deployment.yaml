@@ -35,6 +35,15 @@ spec:
             capabilities:
               drop:
                 - ALL
+          command: ["deno"]
+          args:
+            - run
+            - --allow-net
+            - --allow-env
+            - --allow-read
+            - --unstable
+            - --unsafely-ignore-certificate-errors
+            - dev_server.ts
           ports:
             - name: http
               containerPort: 8787
@@ -87,6 +96,24 @@ spec:
                   name: edge-gateway-secrets
                   key: SUPABASE_SERVICE_KEY
                   optional: true
+            - name: TEE_MTLS_CERT_PEM
+              valueFrom:
+                secretKeyRef:
+                  name: edge-gateway-secrets
+                  key: TEE_MTLS_CERT_PEM
+                  optional: true
+            - name: TEE_MTLS_KEY_PEM
+              valueFrom:
+                secretKeyRef:
+                  name: edge-gateway-secrets
+                  key: TEE_MTLS_KEY_PEM
+                  optional: true
+            - name: TEE_MTLS_ROOT_CA_PEM
+              valueFrom:
+                secretKeyRef:
+                  name: edge-gateway-secrets
+                  key: TEE_MTLS_ROOT_CA_PEM
+                  optional: true
 
             # Neo RPC configuration
             - name: NEO_RPC_URL
@@ -136,6 +163,58 @@ spec:
                 configMapKeyRef:
                   name: edge-gateway-config
                   key: GLOBALSIGNER_SERVICE_URL
+            - name: NEOFEEDS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: NEOFEEDS_URL
+            - name: NEOFLOW_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: NEOFLOW_URL
+            - name: NEOCOMPUTE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: NEOCOMPUTE_URL
+            - name: NEOVRF_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: NEOVRF_URL
+            - name: NEOORACLE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: NEOORACLE_URL
+            - name: TXPROXY_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: TXPROXY_URL
+
+            # MiniApp platform contract hashes
+            - name: CONTRACT_PAYMENTHUB_HASH
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: CONTRACT_PAYMENTHUB_HASH
+            - name: CONTRACT_GOVERNANCE_HASH
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: CONTRACT_GOVERNANCE_HASH
+            - name: CONTRACT_RANDOMNESSLOG_HASH
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: CONTRACT_RANDOMNESSLOG_HASH
+            - name: CONTRACT_APPREGISTRY_HASH
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: CONTRACT_APPREGISTRY_HASH
 
           resources:
             requests:

@@ -67,5 +67,12 @@ alter table if exists public.automation_triggers
     alter column action type jsonb using action::jsonb;
 
 -- Price feeds (ensure sources is JSON array)
+drop view if exists public.latest_prices;
 alter table if exists public.price_feeds
-    alter column sources type jsonb using sources::jsonb;
+    alter column sources drop default,
+    alter column sources type jsonb using to_jsonb(sources),
+    alter column sources set default '[]'::jsonb;
+create view public.latest_prices as
+select distinct on (feed_id) *
+from public.price_feeds
+order by feed_id, timestamp desc;

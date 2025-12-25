@@ -100,6 +100,24 @@ SUPABASE_SERVICE_KEY=your-supabase-service-key
 NEO_RPC_URL=https://mainnet1.neo.org:443
 NEO_NETWORK_MAGIC=860833102
 
+# NeoRequests (on-chain service callbacks)
+NEOREQUESTS_MAX_RESULT_BYTES=800
+NEOREQUESTS_MAX_ERROR_LEN=256
+NEOREQUESTS_RNG_RESULT_MODE=raw
+NEOREQUESTS_TX_WAIT=true
+TXPROXY_TIMEOUT=90s
+NEOREQUESTS_ENFORCE_APPREGISTRY=true
+NEOREQUESTS_APPREGISTRY_CACHE_SECONDS=60
+
+# GasBank (optional)
+# Enables fee deduction in datafeed/automation and deposit verification.
+GASBANK_URL=https://neogasbank:8091
+NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
+# Required in production when GasBank deposit verification is enabled.
+GASBANK_DEPOSIT_ADDRESS=
+# Optional: enable auto top-up of pool accounts via NeoAccounts /fund.
+TOPUP_ENABLED=false
+
 # Supabase Edge (Gateway)
 # The user-facing gateway is Supabase Edge Functions and is configured in your
 # Supabase project environment (not in this Docker/K8s stack).
@@ -115,6 +133,7 @@ NEO_NETWORK_MAGIC=860833102
 # TXPROXY_URL=http://txproxy:8090
 # CONTRACT_PAYMENTHUB_HASH=0x...
 # CONTRACT_GOVERNANCE_HASH=0x...
+# CONTRACT_SERVICEGATEWAY_HASH=0x...
 # CONTRACT_RANDOMNESSLOG_HASH=0x... (optional; for RNG anchoring)
 ```
 
@@ -192,6 +211,9 @@ kubectl apply -f k8s/secrets.yaml
 # Alternatively, if you manage secrets in `.env`, you can generate/apply the Secret directly:
 #   ./scripts/apply_k8s_secrets_from_env.sh --namespace service-layer --name service-layer-secrets
 
+# Sync non-secret config (contract hashes, RPC URL, allowlists) from `.env`:
+#   ./scripts/apply_k8s_config_from_env.sh --namespace service-layer --name service-layer-config --env-file .env
+
 # Create TLS certificates (if not using cert-manager)
 kubectl create secret tls service-layer-tls \
   --cert=path/to/tls.crt \
@@ -237,6 +259,17 @@ COORDINATOR_CLIENT_ADDR=$(kubectl get svc -n marblerun coordinator-client-api -o
 # Set manifest
 marblerun manifest set manifests/manifest.json "$COORDINATOR_CLIENT_ADDR:4433"
 ```
+
+If `marblerun manifest set` returns `server is not in expected state`, the
+coordinator already has a manifest and is running. In that case:
+
+```bash
+# Update an existing manifest (preferred for running coordinators)
+marblerun manifest update manifests/manifest.json "$COORDINATOR_CLIENT_ADDR:4433"
+```
+
+If you need a clean reset (dev only), redeploy the coordinator or restore from
+backup, then re-run `manifest set`.
 
 #### 7. Verify Deployment
 
@@ -295,6 +328,8 @@ Helper (recommended): `./scripts/up.sh` supports `--signing-key` / `--signing-ke
 ### Service Configuration
 
 Services are configured via environment variables (see `.env.example`, `config/*.env`, and `k8s/base/configmap.yaml`). Sensitive values should live in Kubernetes Secrets (`k8s/secrets.yaml.template`) or MarbleRun manifest secrets.
+For Kubernetes, you can keep the `service-layer-config` ConfigMap aligned with
+your `.env` using `./scripts/apply_k8s_config_from_env.sh`.
 
 Example (Supabase Edge gateway env, configured in your Supabase project):
 

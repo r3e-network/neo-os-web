@@ -10,8 +10,10 @@ resources:
   - postgres.yaml
   - postgrest.yaml
   - gotrue.yaml
+  - gateway.yaml
   - services.yaml
   - ingress.yaml
+  - middleware-strip-prefix.yaml
 
 commonLabels:
   app.kubernetes.io/part-of: supabase

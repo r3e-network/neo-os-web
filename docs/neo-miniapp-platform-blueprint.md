@@ -86,7 +86,8 @@ neo-miniapp-platform/
 │   ├── PriceFeed/              # On-chain datafeed anchor (0.1% trigger)
 │   ├── RandomnessLog/          # Randomness anchoring (TEE report hash)
 │   ├── AppRegistry/            # App manifest hash + allowlist anchors
-│   └── AutomationAnchor/       # Task registry + anti-replay nonce
+│   ├── AutomationAnchor/       # Task registry + anti-replay nonce
+│   └── ServiceLayerGateway/    # On-chain service requests + callbacks
 │
 ├── services/                   # [Go] EGo + MarbleRun TEE services
 │   ├── datafeed-service/       # Price aggregation + publish policy
@@ -94,6 +95,7 @@ neo-miniapp-platform/
 │   ├── vrf-service/            # Verifiable randomness generation
 │   ├── compute-service/        # Restricted scripts/compute
 │   ├── automation-service/     # Triggers + anchored tasks execution
+│   ├── request-dispatcher/     # On-chain request listener + callbacks
 │   ├── tx-proxy/               # Allowlisted sign+broadcast gatekeeper
 │   └── marblerun/              # Manifests/policies (policy.json, manifest.json, CA)
 │
@@ -118,6 +120,7 @@ Current repo mapping (actual folder names and service IDs):
 - `services/vrf` (`neovrf`) → `vrf-service`
 - `services/automation` (`neoflow`) → `automation-service`
 - `services/txproxy` (`txproxy`) → `tx-proxy`
+- `services/requests` (`neorequests`) → `request-dispatcher`
 
 The repository also contains an explicit shared **infrastructure** layer:
 
@@ -149,6 +152,10 @@ The repository also contains an explicit shared **infrastructure** layer:
    - Stores manifest hash + status + allowlist anchor hash
 6. **AutomationAnchor**
    - Stores tasks + marks executed nonces to prevent replay
+7. **ServiceLayerGateway**
+   - Receives MiniApp service requests (`RequestService`)
+   - Emits `ServiceRequested` events for TEE dispatch
+   - Accepts `FulfillRequest` from the TEE updater and calls MiniApp callbacks
 
 ### B. TEE Services (The “Black Box”)
 
@@ -178,6 +185,10 @@ All signing keys and secret material stay **inside the enclave**.
 6. **`automation-service`**
    - Scheduler + triggers
    - Optional anchored tasks via `AutomationAnchor` and on-chain event monitoring
+7. **`request-dispatcher` (NeoRequests)**
+   - Listens for `ServiceRequested` events
+   - Routes to `neovrf`, `neooracle`, `neocompute`
+   - Submits `FulfillRequest` callbacks via `tx-proxy`
 
 ### C. Gateway (Supabase Edge)
 
@@ -200,6 +211,16 @@ Canonical endpoints:
 - `POST /functions/v1/compute-execute`, `GET /functions/v1/compute-jobs`, `GET /functions/v1/compute-job?id=<job_id>`
 - `GET/POST /functions/v1/automation-triggers` (trigger CRUD/lifecycle via `neoflow`)
 - `secrets-*`, `api-keys-*`, `gasbank-*`
+
+### D. On-Chain Service Request Flow (ServiceLayerGateway)
+
+MiniApps that require confidential services use on-chain requests:
+
+1. MiniApp contract calls `ServiceLayerGateway.RequestService(...)`.
+2. Gateway emits `ServiceRequested` with payload + callback target.
+3. NeoRequests executes the TEE workflow and prepares a result payload.
+4. NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)` via `tx-proxy`.
+5. Gateway calls the MiniApp callback method on-chain and records the result.
 
 ---
 
@@ -224,7 +245,7 @@ Canonical endpoints:
 ## 6. MVP Roadmap
 
 1. Deploy contracts to local `neo-express` / TestNet:
-   - PaymentHub, Governance, PriceFeed, RandomnessLog, AppRegistry, AutomationAnchor
+   - PaymentHub, Governance, PriceFeed, RandomnessLog, AppRegistry, AutomationAnchor, ServiceLayerGateway
 2. Bring up enclave services in simulation:
-   - tx-proxy, vrf-service, compute-service, datafeed-service, automation-service, oracle-gateway
+   - tx-proxy, vrf-service, compute-service, datafeed-service, automation-service, oracle-gateway, request-dispatcher
 3. Wire Supabase Edge → services (auth + routing) and the Next.js host app.

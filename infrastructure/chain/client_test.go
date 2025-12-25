@@ -166,7 +166,7 @@ func TestContractParams(t *testing.T) {
 
 	// Test byte array param
 	byteParam := NewByteArrayParam([]byte{0x01, 0x02, 0x03})
-	if byteParam.Type != "ByteArray" || byteParam.Value != "010203" {
+	if byteParam.Type != "ByteArray" || byteParam.Value != "AQID" {
 		t.Errorf("NewByteArrayParam failed")
 	}
 

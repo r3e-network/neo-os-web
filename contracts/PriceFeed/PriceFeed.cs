@@ -10,6 +10,9 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
+    // Custom delegate for event with named parameters
+    public delegate void PriceUpdatedHandler(string symbol, BigInteger roundId, BigInteger price, ulong timestamp, ByteString attestationHash, BigInteger sourceSetId);
+
     [DisplayName("PriceFeed")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
@@ -31,7 +34,7 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [DisplayName("PriceUpdated")]
-        public static event Action<string, BigInteger, BigInteger, ulong, ByteString, BigInteger> OnPriceUpdated;
+        public static event PriceUpdatedHandler OnPriceUpdated;
 
         public static void _deploy(object data, bool update)
         {

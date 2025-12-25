@@ -23,7 +23,7 @@ const rpcURL = "https://testnet1.neo.coz.io:443"
 
 // Contract addresses
 var contracts = map[string]string{
-	"PaymentHub": "0x45777109546ceaacfbeed9336d695bb8b8bd77ca",
+	"PaymentHub": "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193",
 }
 
 // All 7 MiniApps to configure

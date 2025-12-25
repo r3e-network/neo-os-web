@@ -580,17 +580,24 @@ func FindContractArtifacts(contractName string) (nefPath, manifestPath string, e
 
 	basePath := filepath.Join("..", "..", "contracts", "build")
 
-	nefPath = filepath.Join(basePath, contractName+".nef")
-	manifestPath = filepath.Join(basePath, contractName+".manifest.json")
-
-	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
-		return "", "", fmt.Errorf("NEF file not found: %s", nefPath)
-	}
-	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
-		return "", "", fmt.Errorf("manifest not found: %s", manifestPath)
+	candidates := []string{contractName}
+	if strings.EqualFold(contractName, "PaymentHub") {
+		candidates = append(candidates, "PaymentHubV2")
 	}
 
-	return nefPath, manifestPath, nil
+	for _, name := range candidates {
+		nefPath = filepath.Join(basePath, name+".nef")
+		manifestPath = filepath.Join(basePath, name+".manifest.json")
+		if _, err := os.Stat(nefPath); os.IsNotExist(err) {
+			continue
+		}
+		if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+			continue
+		}
+		return nefPath, manifestPath, nil
+	}
+
+	return "", "", fmt.Errorf("contract artifacts not found for %s", contractName)
 }
 
 func SkipIfNoNeoExpress(t *testing.T) {
@@ -618,8 +625,12 @@ func SkipIfNoNeoExpress(t *testing.T) {
 func SkipIfNoCompiledContracts(t *testing.T) {
 	t.Helper()
 	contractDir := filepath.Join("..", "..", "contracts", "build")
-	nefPath := filepath.Join(contractDir, "PaymentHub.nef")
-	if _, err := os.Stat(nefPath); err == nil {
+	legacyPath := filepath.Join(contractDir, "PaymentHub.nef")
+	v2Path := filepath.Join(contractDir, "PaymentHubV2.nef")
+	if _, err := os.Stat(legacyPath); err == nil {
+		return
+	}
+	if _, err := os.Stat(v2Path); err == nil {
 		return
 	}
 
@@ -640,8 +651,10 @@ func SkipIfNoCompiledContracts(t *testing.T) {
 		t.Fatalf("contracts build failed: %v", err)
 	}
 
-	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
-		t.Fatalf("contracts build completed but %s is still missing", nefPath)
+	if _, err := os.Stat(legacyPath); os.IsNotExist(err) {
+		if _, err := os.Stat(v2Path); os.IsNotExist(err) {
+			t.Fatalf("contracts build completed but PaymentHub artifacts are still missing")
+		}
 	}
 }
 

@@ -1,0 +1,25 @@
+{
+  "app_id": "builtin-secret-vote",
+  "entry_url": "https://cdn.example.com/miniapps/builtin/secret-vote/index.html",
+  "name": "Secret Vote",
+  "version": "0.1.0",
+  "developer_pubkey": "0x020000000000000000000000000000000000000000000000000000000000000000",
+  "permissions": {
+    "wallet": ["read-address"],
+    "payments": true,
+    "governance": true,
+    "randomness": false,
+    "datafeed": false,
+    "storage": ["kv"]
+  },
+  "assets_allowed": ["GAS", "NEO"],
+  "governance_assets_allowed": ["NEO"],
+  "limits": {
+    "max_gas_per_tx": "0.1",
+    "daily_gas_cap_per_user": "1",
+    "governance_cap": "10"
+  },
+  "contracts_needed": ["PaymentHub", "GovernanceHub"],
+  "sandbox_flags": ["no-eval", "strict-csp"],
+  "attestation_required": true
+}

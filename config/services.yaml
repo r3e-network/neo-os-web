@@ -45,6 +45,13 @@ services:
     port: 8088
     description: "External data delivery with cryptographic proofs for price feeds and real-world data"
 
+  # NeoRequests - On-chain request dispatcher + callbacks
+  # Use cases: MiniApp on-chain request/callback workflows
+  neorequests:
+    enabled: true
+    port: 8094
+    description: "On-chain service request dispatcher + ServiceLayerGateway callbacks"
+
   # TxProxy - Allowlisted Transaction Signing/Broadcast
   # Use cases: centralized policy enforcement for enclave-origin transactions
   txproxy:

@@ -10,6 +10,9 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
+    // Custom delegate for event with named parameters
+    public delegate void RandomnessRecordedHandler(string requestId, ByteString randomness, ByteString attestationHash, ulong timestamp);
+
     [DisplayName("RandomnessLog")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
@@ -30,7 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [DisplayName("RandomnessRecorded")]
-        public static event Action<string, ByteString, ByteString, ulong> OnRandomnessRecorded;
+        public static event RandomnessRecordedHandler OnRandomnessRecorded;
 
         public static void _deploy(object data, bool update)
         {

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gas Spin - Lucky Wheel</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #fff;
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 5px;
+      }
+      .header .subtitle {
+        color: #888;
+        font-size: 14px;
+      }
+      .address {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        display: inline-block;
+        margin-top: 10px;
+      }
+      .wheel-container {
+        position: relative;
+        width: 280px;
+        height: 280px;
+        margin: 20px auto;
+      }
+      #wheel-canvas {
+        width: 100%;
+        height: 100%;
+        transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+      }
+      .pointer {
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 15px solid transparent;
+        border-right: 15px solid transparent;
+        border-top: 30px solid #ffd700;
+        z-index: 10;
+      }
+      .controls {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .bet-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .bet-row label {
+        flex: 1;
+      }
+      .bet-row input {
+        width: 100px;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 16px;
+        text-align: center;
+      }
+      .max-win {
+        font-size: 12px;
+        color: #4caf50;
+        text-align: right;
+      }
+      #btn-spin {
+        width: 100%;
+        padding: 16px;
+        font-size: 20px;
+        font-weight: bold;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%);
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      #btn-spin:hover:not(:disabled) {
+        transform: scale(1.02);
+        box-shadow: 0 4px 20px rgba(233, 30, 99, 0.4);
+      }
+      #btn-spin:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .status {
+        text-align: center;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 15px 0;
+        font-weight: 500;
+      }
+      .status-info {
+        background: rgba(33, 150, 243, 0.2);
+      }
+      .status-success {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4caf50;
+      }
+      .status-warning {
+        background: rgba(255, 152, 0, 0.2);
+        color: #ff9800;
+      }
+      .status-error {
+        background: rgba(244, 67, 54, 0.2);
+        color: #f44336;
+      }
+      .stats {
+        display: flex;
+        justify-content: space-between;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+      .profit-positive {
+        color: #4caf50;
+      }
+      .profit-negative {
+        color: #f44336;
+      }
+      .history-section h3 {
+        font-size: 16px;
+        margin-bottom: 10px;
+        color: #888;
+      }
+      #history {
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .history-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        margin-bottom: 5px;
+        font-size: 13px;
+      }
+      .history-item.win {
+        border-left: 3px solid #4caf50;
+      }
+      .history-item.loss {
+        border-left: 3px solid #f44336;
+      }
+      #sdk-note {
+        display: none;
+        background: rgba(255, 152, 0, 0.2);
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .fairness {
+        text-align: center;
+        font-size: 11px;
+        color: #666;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Gas Spin</h1>
+        <div class="subtitle">Provably Fair Lucky Wheel</div>
+        <div class="address" id="address">Connect Wallet</div>
+      </div>
+      <div id="sdk-note">SDK not available. Run inside MiniApp host.</div>
+      <div class="wheel-container">
+        <div class="pointer"></div>
+        <canvas id="wheel-canvas" width="280" height="280"></canvas>
+      </div>
+      <div class="controls">
+        <div class="bet-row">
+          <label>Bet Amount (GAS)</label>
+          <input type="number" id="bet" value="0.1" min="0.05" max="1.0" step="0.05" />
+        </div>
+        <div class="max-win">Max Win: <span id="max-win">0.50</span> GAS</div>
+        <button id="btn-spin">SPIN</button>
+      </div>
+      <div id="status" class="status status-info">Ready to spin!</div>
+      <div class="stats" id="stats">
+        <span>Wagered: 0.00 GAS</span>
+        <span>Won: 0.00 GAS</span>
+        <span>P/L: 0.00 GAS</span>
+      </div>
+      <div class="history-section">
+        <h3>Recent Spins</h3>
+        <div id="history"></div>
+      </div>
+      <div class="fairness">Powered by TEE VRF - All results are provably fair</div>
+    </div>
+    <script src="../../_shared/miniapp-bridge.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -3,11 +3,13 @@ package neogasbank
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	neoaccountsclient "github.com/R3E-Network/service_layer/infrastructure/accountpool/client"
+	"github.com/R3E-Network/service_layer/infrastructure/runtime"
 )
 
 const (
@@ -88,7 +90,7 @@ func (s *Service) processAutoTopUp(ctx context.Context) {
 		}
 
 		// Perform top-up transfer from master wallet
-		txHash, err := s.topUpAccount(ctx, acc.Address, topUpAmount)
+		txHash, err := s.topUpAccount(ctx, poolClient, acc.Address, topUpAmount)
 		if err != nil {
 			s.Logger().WithContext(ctx).
 				WithError(err).
@@ -125,22 +127,44 @@ func (s *Service) processAutoTopUp(ctx context.Context) {
 		Info("auto top-up batch completed")
 }
 
-// topUpAccount transfers GAS from the master wallet to a pool account.
+// topUpAccount funds a pool account via NeoAccounts `/fund` (master wallet transfer).
+// In non-strict environments it can fall back to a simulated tx hash for local testing.
 // Returns the transaction hash on success.
-func (s *Service) topUpAccount(ctx context.Context, toAddress string, amount int64) (string, error) {
-	// TODO: Implement actual GAS transfer from master wallet
-	// This requires:
-	// 1. Load master wallet credentials (WIF or private key) from environment
-	// 2. Build NEP-17 transfer transaction (GAS contract)
-	// 3. Sign transaction with master wallet
-	// 4. Broadcast transaction
-	// 5. Wait for confirmation
-	//
-	// For now, return a simulated transaction hash for testing
+func (s *Service) topUpAccount(ctx context.Context, poolClient *neoaccountsclient.Client, toAddress string, amount int64) (string, error) {
+	if strings.TrimSpace(toAddress) == "" || amount <= 0 {
+		return s.simulatedTopUp(ctx, fmt.Errorf("invalid top-up request"), toAddress, amount)
+	}
+
+	if poolClient == nil {
+		return s.simulatedTopUp(ctx, fmt.Errorf("account pool client not configured"), toAddress, amount)
+	}
+
+	resp, err := poolClient.FundAccount(ctx, toAddress, amount)
+	if err != nil {
+		return s.simulatedTopUp(ctx, err, toAddress, amount)
+	}
+	if resp == nil || strings.TrimSpace(resp.TxHash) == "" {
+		return s.simulatedTopUp(ctx, fmt.Errorf("account pool fund returned empty tx hash"), toAddress, amount)
+	}
+
+	return resp.TxHash, nil
+}
+
+func (s *Service) simulatedTopUp(ctx context.Context, cause error, toAddress string, amount int64) (string, error) {
+	if runtime.IsProduction() || runtime.StrictIdentityMode() || s.Marble().IsEnclave() {
+		if cause == nil {
+			cause = fmt.Errorf("top-up failed in strict mode")
+		}
+		return "", cause
+	}
+
+	if cause != nil {
+		s.Logger().WithContext(ctx).WithError(cause).Warn("falling back to simulated top-up")
+	}
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 		"to_address": toAddress,
 		"amount":     amount,
-	}).Info("simulated top-up transfer (master wallet integration pending)")
+	}).Info("simulated top-up transfer")
 
 	return "0x0000000000000000000000000000000000000000000000000000000000000000", nil
 }
@@ -150,12 +174,13 @@ func (s *Service) getAccountPoolClient() (*neoaccountsclient.Client, error) {
 	// Get account pool service URL from environment or use default
 	poolURL := strings.TrimSpace(os.Getenv("NEOACCOUNTS_SERVICE_URL"))
 	if poolURL == "" {
-		poolURL = "http://neoaccounts:8080" // Default service mesh URL
+		poolURL = "https://neoaccounts:8085" // Default service mesh URL
 	}
 
 	return neoaccountsclient.New(neoaccountsclient.Config{
-		BaseURL:   poolURL,
-		ServiceID: ServiceID,
+		BaseURL:    poolURL,
+		ServiceID:  ServiceID,
+		HTTPClient: s.Marble().HTTPClient(),
 	})
 }
 

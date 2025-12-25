@@ -329,7 +329,7 @@ ego_signerid_from_private_key() {
 }
 
 build_signed_images() {
-  local packages=(neofeeds neoflow neoaccounts neocompute neovrf neooracle txproxy globalsigner)
+  local packages=(neofeeds neoflow neoaccounts neocompute neovrf neooracle neorequests txproxy globalsigner)
   local pkg
 
   export DOCKER_BUILDKIT=1
@@ -430,6 +430,11 @@ set -e
 
 if [[ $MANIFEST_RC -ne 0 ]]; then
   echo "Warning: 'marblerun manifest set' failed (rc=$MANIFEST_RC). It may already be set." >&2
+  if marblerun manifest update apply --help >/dev/null 2>&1; then
+    if ! marblerun manifest update apply "$MANIFEST_FILE" "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}"; then
+      echo "Warning: 'marblerun manifest update apply' failed. Coordinator may not be ready or update cert/key missing." >&2
+    fi
+  fi
 fi
 
 marblerun status "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}" || true

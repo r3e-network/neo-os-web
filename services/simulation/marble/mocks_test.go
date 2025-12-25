@@ -33,12 +33,20 @@ type mockPoolClient struct {
 	fundAccountResp *neoaccountsclient.FundAccountResponse
 	fundAccountErr  error
 
+	transferResp *neoaccountsclient.TransferResponse
+	transferErr  error
+
+	transferWithDataResp *neoaccountsclient.TransferWithDataResponse
+	transferWithDataErr  error
+
 	// Call tracking
 	requestAccountsCalls  []requestAccountsCall
 	releaseAccountsCalls  []releaseAccountsCall
 	invokeContractCalls   []invokeContractCall
 	invokeMasterCalls     []invokeMasterCall
 	fundAccountCalls      []fundAccountCall
+	transferCalls         []transferCall
+	transferWithDataCalls []transferWithDataCall
 }
 
 type requestAccountsCall struct {
@@ -68,6 +76,20 @@ type invokeMasterCall struct {
 type fundAccountCall struct {
 	ToAddress string
 	Amount    int64
+}
+
+type transferCall struct {
+	AccountID string
+	ToAddress string
+	Amount    int64
+	TokenHash string
+}
+
+type transferWithDataCall struct {
+	AccountID string
+	ToAddress string
+	Amount    int64
+	Data      string
 }
 
 func newMockPoolClient() *mockPoolClient {
@@ -104,6 +126,12 @@ func newMockPoolClient() *mockPoolClient {
 			FromAddress: "NMasterAddress",
 			ToAddress:   "NTestAddress",
 			Amount:      1000000000,
+		},
+		transferResp: &neoaccountsclient.TransferResponse{
+			TxHash: "0xtest-tx-hash-transfer",
+		},
+		transferWithDataResp: &neoaccountsclient.TransferWithDataResponse{
+			TxHash: "0xtest-tx-hash-transfer-with-data",
 		},
 	}
 }
@@ -154,6 +182,20 @@ func (m *mockPoolClient) FundAccount(ctx context.Context, toAddress string, amou
 	return m.fundAccountResp, m.fundAccountErr
 }
 
+func (m *mockPoolClient) Transfer(ctx context.Context, accountID, toAddress string, amount int64, tokenHash string) (*neoaccountsclient.TransferResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.transferCalls = append(m.transferCalls, transferCall{AccountID: accountID, ToAddress: toAddress, Amount: amount, TokenHash: tokenHash})
+	return m.transferResp, m.transferErr
+}
+
+func (m *mockPoolClient) TransferWithData(ctx context.Context, accountID, toAddress string, amount int64, data string) (*neoaccountsclient.TransferWithDataResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.transferWithDataCalls = append(m.transferWithDataCalls, transferWithDataCall{AccountID: accountID, ToAddress: toAddress, Amount: amount, Data: data})
+	return m.transferWithDataResp, m.transferWithDataErr
+}
+
 // Helper methods for test assertions
 func (m *mockPoolClient) getRequestAccountsCalls() []requestAccountsCall {
 	m.mu.Lock()
@@ -185,6 +227,12 @@ func (m *mockPoolClient) getFundAccountCalls() []fundAccountCall {
 	return append([]fundAccountCall{}, m.fundAccountCalls...)
 }
 
+func (m *mockPoolClient) getTransferWithDataCalls() []transferWithDataCall {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]transferWithDataCall{}, m.transferWithDataCalls...)
+}
+
 func (m *mockPoolClient) reset() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -193,6 +241,8 @@ func (m *mockPoolClient) reset() {
 	m.invokeContractCalls = nil
 	m.invokeMasterCalls = nil
 	m.fundAccountCalls = nil
+	m.transferCalls = nil
+	m.transferWithDataCalls = nil
 }
 
 // =============================================================================
@@ -213,10 +263,14 @@ type mockContractInvoker struct {
 	payToAppResp string
 	payToAppErr  error
 
+	payoutToUserResp string
+	payoutToUserErr  error
+
 	// Call tracking
 	updatePriceFeedCalls  []updatePriceFeedCall
 	recordRandomnessCalls []recordRandomnessCall
 	payToAppCalls         []payToAppCall
+	payoutToUserCalls     []payoutToUserCall
 
 	// Stats
 	stats map[string]interface{}
@@ -234,15 +288,24 @@ type payToAppCall struct {
 	Memo   string
 }
 
+type payoutToUserCall struct {
+	AppID       string
+	UserAddress string
+	Amount      int64
+	Memo        string
+}
+
 func newMockContractInvoker() *mockContractInvoker {
 	return &mockContractInvoker{
 		updatePriceFeedResp:  "0xtest-pricefeed-tx",
 		recordRandomnessResp: "0xtest-randomness-tx",
 		payToAppResp:         "0xtest-payment-tx",
+		payoutToUserResp:     "0xtest-payout-tx",
 		stats: map[string]interface{}{
 			"price_feed_updates":  int64(0),
 			"randomness_records":  int64(0),
 			"payment_hub_pays":    int64(0),
+			"callback_payouts":    int64(0),
 			"contract_errors":     int64(0),
 			"locked_accounts":     0,
 		},
@@ -277,6 +340,16 @@ func (m *mockContractInvoker) PayToApp(ctx context.Context, appID string, amount
 		m.stats["payment_hub_pays"] = m.stats["payment_hub_pays"].(int64) + 1
 	}
 	return m.payToAppResp, m.payToAppErr
+}
+
+func (m *mockContractInvoker) PayoutToUser(ctx context.Context, appID string, userAddress string, amount int64, memo string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.payoutToUserCalls = append(m.payoutToUserCalls, payoutToUserCall{AppID: appID, UserAddress: userAddress, Amount: amount, Memo: memo})
+	if m.payoutToUserErr == nil {
+		m.stats["callback_payouts"] = m.stats["callback_payouts"].(int64) + 1
+	}
+	return m.payoutToUserResp, m.payoutToUserErr
 }
 
 func (m *mockContractInvoker) GetStats() map[string]interface{} {
@@ -334,10 +407,12 @@ func (m *mockContractInvoker) reset() {
 	m.updatePriceFeedCalls = nil
 	m.recordRandomnessCalls = nil
 	m.payToAppCalls = nil
+	m.payoutToUserCalls = nil
 	m.stats = map[string]interface{}{
 		"price_feed_updates":  int64(0),
 		"randomness_records":  int64(0),
 		"payment_hub_pays":    int64(0),
+		"callback_payouts":    int64(0),
 		"contract_errors":     int64(0),
 		"locked_accounts":     0,
 	}

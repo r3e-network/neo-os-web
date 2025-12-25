@@ -10,6 +10,7 @@ The NeoGasBank service provides:
 - **Balance Management**: Credit/debit operations for user gas balances
 - **Service Fee Deduction**: Called by other TEE services (neofeeds, neoflow, etc.)
 - **Transaction History**: Tracks all balance changes
+- **Auto Top-Up (Optional)**: Funds low-balance pool accounts via NeoAccounts
 
 ## Architecture
 
@@ -53,7 +54,9 @@ The NeoGasBank service provides:
 | `NEO_RPC_URL`              | Neo N3 RPC endpoint                            | Required |
 | `SUPABASE_URL`             | Supabase API URL                               | Required |
 | `SUPABASE_SERVICE_KEY`     | Supabase service key                           | Required |
-| `GASBANK_DEPOSIT_ADDRESS`  | Platform deposit address used for verification | Required |
+| `GASBANK_DEPOSIT_ADDRESS`  | Platform deposit address used for verification | Required (production); optional for dev/test |
+| `NEOACCOUNTS_SERVICE_URL`  | NeoAccounts service URL (auto top-up)          | Optional |
+| `TOPUP_ENABLED`            | Enable auto top-up worker                      | Optional |
 
 ## Deposit Flow
 
@@ -78,6 +81,19 @@ resp, err := gasbankClient.DeductFee(ctx, &client.DeductFeeRequest{
 if !resp.Success {
     return fmt.Errorf("insufficient balance: %s", resp.Error)
 }
+```
+
+## Auto Top-Up (Optional)
+
+When enabled, NeoGasBank periodically checks pool accounts with low GAS balances
+and requests funding via the NeoAccounts `/fund` endpoint. This is intended to
+keep pool accounts funded for transaction fees.
+
+Enable with:
+
+```
+TOPUP_ENABLED=true
+NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
 ```
 
 ## Database Schema

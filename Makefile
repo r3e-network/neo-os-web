@@ -225,6 +225,9 @@ dev-stack-down: ## Tear down local k3s dev stack
 dev-stack-status: ## Check status of all dev stack components
 	@./scripts/k3s-local-setup.sh status
 
+dev-stack-bootstrap: ## Bootstrap full k3s dev stack (Supabase + services + Edge)
+	@./scripts/bootstrap_k3s_dev.sh
+
 # =============================================================================
 # Development
 # =============================================================================

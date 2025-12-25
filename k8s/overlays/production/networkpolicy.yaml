@@ -50,11 +50,19 @@ spec:
         - protocol: TCP
           port: 8086
         - protocol: TCP
+          port: 8087
+        - protocol: TCP
           port: 8088
         - protocol: TCP
           port: 8090
         - protocol: TCP
+          port: 8091
+        - protocol: TCP
           port: 8092
+        - protocol: TCP
+          port: 8093
+        - protocol: TCP
+          port: 8094
 ---
 # Optional: allow Prometheus scraping from a dedicated monitoring namespace.
 # If your cluster uses a different namespace/labels, adjust the selector.
@@ -81,8 +89,16 @@ spec:
         - protocol: TCP
           port: 8086
         - protocol: TCP
+          port: 8087
+        - protocol: TCP
           port: 8088
         - protocol: TCP
           port: 8090
         - protocol: TCP
+          port: 8091
+        - protocol: TCP
           port: 8092
+        - protocol: TCP
+          port: 8093
+        - protocol: TCP
+          port: 8094

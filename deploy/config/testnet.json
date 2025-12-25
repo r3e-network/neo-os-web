@@ -12,7 +12,8 @@
     "PriceFeed": null,
     "RandomnessLog": null,
     "AppRegistry": null,
-    "AutomationAnchor": null
+    "AutomationAnchor": null,
+    "ServiceLayerGateway": null
   },
   "wallets": {
     "owner": {
@@ -37,6 +38,6 @@
     "  1. Ensure wallets have sufficient GAS for deployment",
     "  2. Deploy contracts (manual signing required for testnet)",
     "  3. Update contract hashes in this file",
-    "  4. Call setUpdater on PriceFeed/RandomnessLog/AutomationAnchor from the admin wallet"
+    "  4. Call setUpdater on PriceFeed/RandomnessLog/AutomationAnchor/ServiceLayerGateway from the admin wallet"
   ]
 }

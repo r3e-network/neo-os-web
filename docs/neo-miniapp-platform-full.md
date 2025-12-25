@@ -26,7 +26,8 @@ neo-miniapp-platform/
 │  ├─ PriceFeed/        # Datafeed 上链存证（0.1% 触发）
 │  ├─ RandomnessLog/    # 随机数+TEE 报告存证
 │  ├─ AppRegistry/      # 应用上架/状态/allowlist(MRSIGNER/合约)
-│  └─ AutomationAnchor/ # 自动化任务登记/防重放
+│  ├─ AutomationAnchor/ # 自动化任务登记/防重放
+│  └─ ServiceLayerGateway/ # 服务请求路由/回调
 │
 ├─ services/            # TEE 服务层（MarbleRun + EGo）
 │  ├─ oracle-gateway/   # 隐私预言机/Datafeed 拉取+聚合
@@ -34,6 +35,7 @@ neo-miniapp-platform/
 │  ├─ vrf-service/      # 随机数服务（VRF）
 │  ├─ compute-service/  # 机密计算（可选 wasm/脚本）
 │  ├─ automation-service/# Keeper/定时/事件触发
+│  ├─ request-dispatcher/# 监听链上请求并回调
 │  ├─ tx-proxy/         # 交易签名/广播，资产&方法白名单
 │  └─ marblerun/        # policy.json / manifest.json / CA
 │
@@ -71,6 +73,7 @@ neo-miniapp-platform/
 - RandomnessLog：`requestId -> randomness + attestationHash + timestamp`。
 - AppRegistry：`app_id -> manifest_hash/status/allowlist`（合约/MRSIGNER）。
 - AutomationAnchor：登记自动化任务（target/method/trigger/gasLimit），记录 nonce/txHash 防重放。
+- ServiceLayerGateway：`RequestService` 发起服务请求，发出 `ServiceRequested` 事件；`FulfillRequest` 完成并回调 MiniApp 合约。
 
 ---
 
@@ -81,6 +84,7 @@ neo-miniapp-platform/
 - randomness（RNG/VRF）：通过 vrf-service 生成 → (randomness, signature, attestation) → RandomnessLog 或回调。
 - automation-service：事件/时间触发 → 调用目标合约（allowlist）。
 - tx-proxy：签名/广播；资产仅 GAS/NEO；方法白名单；mTLS；防重放/额度检查。
+- request-dispatcher：监听 ServiceLayerGateway 的 `ServiceRequested` 事件，调用 VRF/Oracle/Compute 并通过 tx-proxy 回调 `FulfillRequest`。
 - marblerun：policy/manifest 管理 MRSIGNER/MRENCLAVE、证书与密钥注入、轮换。
 
 ---
@@ -96,6 +100,18 @@ await window.MiniAppSDK.governance.vote(appId, proposalId, "10");
 const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD");
 ```
 - 小程序禁止自构交易；敏感操作经 SDK → Edge → TEE → 链上。
+
+---
+
+## 4.5 链上服务请求/回调流程（ServiceLayerGateway）
+
+1. MiniApp 合约调用 `ServiceLayerGateway.RequestService(app_id, service_type, payload, callback_contract, callback_method)`。
+2. 网关合约发出 `ServiceRequested` 事件（包含 request_id/服务类型/回调目标/载荷）。
+3. request-dispatcher 监听事件，调用对应 TEE 服务（neovrf/neooracle/neocompute）并生成结果 payload。
+4. request-dispatcher 通过 tx-proxy 提交 `ServiceLayerGateway.FulfillRequest(request_id, success, result, error)`。
+5. 网关合约校验 updater 权限并调用 MiniApp 回调方法，完成请求闭环。
+
+结果与事件会写入 Supabase 的 `contract_events` 和 `chain_txs` 用于审计与 UI 查询。
 
 ---
 
@@ -119,6 +135,8 @@ const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD");
   "assets_allowed": ["GAS"],
   "governance_assets_allowed": ["NEO"],
   "limits": { "max_gas_per_tx": "5", "daily_gas_cap_per_user": "20", "governance_cap": "100" },
+  "callback_contract": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "callback_method": "OnServiceCallback",
   "contracts_needed": ["PaymentHub","RandomnessLog","PriceFeed"],
   "sandbox_flags": ["no-eval","strict-csp"],
   "attestation_required": true

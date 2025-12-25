@@ -206,7 +206,13 @@ type Config struct {
 
 | Secret | Description |
 |--------|-------------|
-| `POOL_MASTER_KEY` | 32-byte HD wallet master key |
+| `POOL_MASTER_KEY` | 32-byte HD wallet master key (preferred) |
+| `COORD_MASTER_SEED` | 16+ byte coordinator seed (master key derived) |
+
+If neither secret is configured, the service fails fast by default to prevent
+creating unrecoverable accounts. For local experiments only, you can opt in to
+ephemeral keys with `NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY=true` (accounts are
+not recoverable after restart).
 
 ## Security Features
 
@@ -231,7 +237,8 @@ MarbleRun-provided mTLS HTTP client.
 
 - 10% of accounts rotated daily
 - Locked accounts NEVER rotated
-- Retiring accounts deleted when balance reaches zero
+- Retiring accounts are kept by default; enable deletion with
+  `NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS=true`
 - Ensures fresh, unlinkable accounts
 
 ## Background Workers

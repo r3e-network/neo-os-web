@@ -16,6 +16,11 @@ namespace NeoMiniAppPlatform.Contracts
         Disabled = 2
     }
 
+    // Custom delegates for events with named parameters
+    public delegate void AppRegisteredHandler(string appId, UInt160 developer);
+    public delegate void AppUpdatedHandler(string appId, ByteString manifestHash);
+    public delegate void StatusChangedHandler(string appId, AppStatus status);
+
     [DisplayName("AppRegistry")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
@@ -38,13 +43,13 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [DisplayName("AppRegistered")]
-        public static event Action<string, UInt160> OnAppRegistered;
+        public static event AppRegisteredHandler OnAppRegistered;
 
         [DisplayName("AppUpdated")]
-        public static event Action<string, ByteString> OnAppUpdated;
+        public static event AppUpdatedHandler OnAppUpdated;
 
         [DisplayName("StatusChanged")]
-        public static event Action<string, AppStatus> OnStatusChanged;
+        public static event StatusChangedHandler OnStatusChanged;
 
         public static void _deploy(object data, bool update)
         {

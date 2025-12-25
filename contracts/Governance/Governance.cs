@@ -10,6 +10,11 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
+    // Custom delegates for events with named parameters
+    public delegate void StakedHandler(UInt160 account, BigInteger amount);
+    public delegate void UnstakedHandler(UInt160 account, BigInteger amount);
+    public delegate void VotedHandler(UInt160 voter, string proposalId, bool support, BigInteger weight);
+
     [DisplayName("Governance")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
@@ -35,13 +40,13 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [DisplayName("Staked")]
-        public static event Action<UInt160, BigInteger> OnStaked;
+        public static event StakedHandler OnStaked;
 
         [DisplayName("Unstaked")]
-        public static event Action<UInt160, BigInteger> OnUnstaked;
+        public static event UnstakedHandler OnUnstaked;
 
         [DisplayName("Voted")]
-        public static event Action<UInt160, string, bool, BigInteger> OnVoted;
+        public static event VotedHandler OnVoted;
 
         public static void _deploy(object data, bool update)
         {

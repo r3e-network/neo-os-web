@@ -115,7 +115,7 @@ func TestTopUpAccountSimulated(t *testing.T) {
 	toAddress := "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq"
 	amount := int64(90000000) // 0.9 GAS
 
-	txHash, err := svc.topUpAccount(ctx, toAddress, amount)
+	txHash, err := svc.topUpAccount(ctx, nil, toAddress, amount)
 	if err != nil {
 		t.Fatalf("topUpAccount() error = %v", err)
 	}
@@ -228,7 +228,7 @@ func TestTopUpAccountWithEmptyAddress(t *testing.T) {
 
 	ctx := context.Background()
 	// Empty address should still work in simulated mode
-	txHash, err := svc.topUpAccount(ctx, "", 100000000)
+	txHash, err := svc.topUpAccount(ctx, nil, "", 100000000)
 	if err != nil {
 		t.Fatalf("topUpAccount() error = %v", err)
 	}
@@ -245,7 +245,7 @@ func TestTopUpAccountWithZeroAmount(t *testing.T) {
 	ctx := context.Background()
 	toAddress := "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq"
 	// Zero amount should still work in simulated mode
-	txHash, err := svc.topUpAccount(ctx, toAddress, 0)
+	txHash, err := svc.topUpAccount(ctx, nil, toAddress, 0)
 	if err != nil {
 		t.Fatalf("topUpAccount() error = %v", err)
 	}
@@ -262,7 +262,7 @@ func TestTopUpAccountWithNegativeAmount(t *testing.T) {
 	ctx := context.Background()
 	toAddress := "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq"
 	// Negative amount should still work in simulated mode (validation would happen in real implementation)
-	txHash, err := svc.topUpAccount(ctx, toAddress, -100)
+	txHash, err := svc.topUpAccount(ctx, nil, toAddress, -100)
 	if err != nil {
 		t.Fatalf("topUpAccount() error = %v", err)
 	}

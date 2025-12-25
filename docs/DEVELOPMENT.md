@@ -118,6 +118,39 @@ This will:
 Note: the public gateway is **Supabase Edge Functions** and is not part of this
 Docker Compose stack.
 
+#### Option 2: Local k3s Dev Stack (Recommended for End-to-End Workflows)
+
+Use k3s + local Supabase when you want full MiniApp workflows (on-chain requests
+→ NeoRequests → callbacks) and the Edge gateway running inside the cluster.
+
+Quick path:
+
+```bash
+# One-command bootstrap
+./scripts/bootstrap_k3s_dev.sh --env-file .env --edge-env-file .env.local
+# Or:
+# make dev-stack-bootstrap
+
+# Install k3s + MarbleRun + cert-manager
+make dev-stack-up
+
+# Deploy local Supabase into k3s
+./scripts/supabase-k3s.sh deploy
+
+# Apply secrets + config from env
+./scripts/apply_k8s_secrets_from_env.sh --env-file .env.local
+./scripts/apply_k8s_config_from_env.sh --env-file .env
+
+# Deploy services
+./scripts/deploy_k8s.sh --env dev
+
+# Set up Edge ↔ TEE mTLS
+./scripts/setup_edge_mtls.sh --env-file .env.local
+```
+
+For Edge gateway image build/deploy and additional troubleshooting, see
+`docs/LOCAL_DEV.md`.
+
 #### Supabase Local (Auth + DB + Edge Runtime)
 
 To run a full local gateway (Supabase Auth + Postgres + Edge Functions) using a
@@ -175,7 +208,7 @@ Set your SDK/host base URL to `http://localhost:8787/functions/v1` and export
 the required gateway env vars (Supabase keys + service URLs). See
 `platform/edge/README.md`.
 
-#### Option 2: Full Environment (Kubernetes)
+#### Option 3: Full Environment (Remote Kubernetes)
 
 Start all services in Kubernetes:
 
@@ -188,6 +221,8 @@ This will:
 2. Import images to k3s
 3. Deploy all services to Kubernetes
 4. Set up MarbleRun manifest
+
+For production-grade deployment steps, see `docs/DEPLOYMENT_GUIDE.md`.
 
 #### Option 3: Custom Service
 

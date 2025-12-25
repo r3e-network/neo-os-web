@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secret Hand Poker - TEE Texas Hold'em</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #1a472a 0%, #0d2818 100%);
+        color: #fff;
+        min-height: 100vh;
+        padding: 15px;
+      }
+      .container {
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      .header h1 {
+        font-size: 22px;
+        margin-bottom: 3px;
+      }
+      .header .subtitle {
+        color: #8fbc8f;
+        font-size: 13px;
+      }
+      .table {
+        background: radial-gradient(ellipse at center, #2d5a3d 0%, #1a3d28 100%);
+        border: 8px solid #8b4513;
+        border-radius: 120px;
+        padding: 20px;
+        margin-bottom: 15px;
+        min-height: 200px;
+        position: relative;
+      }
+      .community-cards {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin: 20px 0;
+      }
+      .card {
+        width: 45px;
+        height: 65px;
+        background: #fff;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+      .card.hidden {
+        background: linear-gradient(135deg, #1e3a5f 0%, #0d1f33 100%);
+      }
+      .card.red {
+        color: #d32f2f;
+      }
+      .card.black {
+        color: #212121;
+      }
+      .pot-info {
+        text-align: center;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 8px 15px;
+        border-radius: 20px;
+        display: inline-block;
+        margin: 0 auto;
+      }
+      .pot-label {
+        font-size: 11px;
+        color: #8fbc8f;
+      }
+      .pot-amount {
+        font-size: 20px;
+        font-weight: bold;
+        color: #ffd700;
+      }
+      .player-hand {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 15px 0;
+      }
+      .player-hand .card {
+        width: 55px;
+        height: 80px;
+        font-size: 22px;
+      }
+      .hand-rank {
+        text-align: center;
+        font-size: 14px;
+        color: #ffd700;
+        margin-bottom: 10px;
+      }
+      .controls {
+        margin-bottom: 15px;
+      }
+      .bet-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .bet-row label {
+        flex: 1;
+        color: #8fbc8f;
+        font-size: 14px;
+      }
+      .bet-row input {
+        width: 90px;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 16px;
+        text-align: center;
+      }
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .action-btn {
+        flex: 1;
+        min-width: 70px;
+        padding: 12px 8px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-fold {
+        background: #666;
+        color: #fff;
+      }
+      .btn-check {
+        background: #2196f3;
+        color: #fff;
+      }
+      .btn-call {
+        background: #4caf50;
+        color: #fff;
+      }
+      .btn-raise {
+        background: #ff9800;
+        color: #fff;
+      }
+      .btn-allin {
+        background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+        color: #fff;
+      }
+      .action-btn:hover:not(:disabled) {
+        transform: scale(1.02);
+      }
+      .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .status {
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        margin: 10px 0;
+        font-size: 14px;
+      }
+      .status-info {
+        background: rgba(33, 150, 243, 0.2);
+      }
+      .status-success {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4caf50;
+      }
+      .status-warning {
+        background: rgba(255, 152, 0, 0.2);
+        color: #ff9800;
+      }
+      .status-error {
+        background: rgba(244, 67, 54, 0.2);
+        color: #f44336;
+      }
+      .players-ring {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 10px;
+      }
+      .player-seat {
+        text-align: center;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        min-width: 60px;
+      }
+      .player-seat.active {
+        border: 2px solid #ffd700;
+      }
+      .player-seat.folded {
+        opacity: 0.4;
+      }
+      .seat-name {
+        font-size: 11px;
+        color: #8fbc8f;
+      }
+      .seat-chips {
+        font-size: 13px;
+        font-weight: bold;
+      }
+      .seat-bet {
+        font-size: 10px;
+        color: #ffd700;
+      }
+      #sdk-note {
+        display: none;
+        background: rgba(255, 152, 0, 0.2);
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 15px;
+        font-size: 13px;
+      }
+      .info {
+        text-align: center;
+        font-size: 10px;
+        color: #5a8a5a;
+        margin-top: 15px;
+      }
+      .tee-badge {
+        display: inline-block;
+        background: rgba(156, 39, 176, 0.3);
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        color: #ce93d8;
+        margin-left: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Secret Hand Poker <span class="tee-badge">TEE</span></h1>
+        <div class="subtitle">Privacy-Preserving Texas Hold'em</div>
+      </div>
+      <div id="sdk-note">SDK not available. Run inside MiniApp host.</div>
+      <div class="table">
+        <div class="players-ring" id="players"></div>
+        <div style="text-align: center">
+          <div class="pot-info">
+            <div class="pot-label">POT</div>
+            <div class="pot-amount" id="pot">0 GAS</div>
+          </div>
+        </div>
+        <div class="community-cards" id="community"></div>
+      </div>
+      <div class="hand-rank" id="hand-rank">Waiting for cards...</div>
+      <div class="player-hand" id="my-hand"></div>
+      <div class="controls">
+        <div class="bet-row">
+          <label>Raise Amount (GAS)</label>
+          <input type="number" id="raise-amount" value="0.5" min="0.1" max="10" step="0.1" />
+        </div>
+        <div class="action-buttons">
+          <button class="action-btn btn-fold" id="btn-fold">FOLD</button>
+          <button class="action-btn btn-check" id="btn-check">CHECK</button>
+          <button class="action-btn btn-call" id="btn-call">CALL</button>
+          <button class="action-btn btn-raise" id="btn-raise">RAISE</button>
+          <button class="action-btn btn-allin" id="btn-allin">ALL IN</button>
+        </div>
+      </div>
+      <div id="status" class="status status-info">Join table to start playing</div>
+      <button class="action-btn btn-call" id="btn-join" style="width: 100%; margin-top: 10px">
+        JOIN TABLE (1 GAS)
+      </button>
+      <div class="info">Cards shuffled in TEE - Provably fair & private</div>
+    </div>
+    <script src="../../_shared/miniapp-bridge.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

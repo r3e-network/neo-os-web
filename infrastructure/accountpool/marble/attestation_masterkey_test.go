@@ -55,6 +55,7 @@ func TestLoadMasterKey_SetsDerivedFields(t *testing.T) {
 
 func TestLoadMasterKey_FailsOnMissingSecrets(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+	t.Setenv("NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY", "true")
 	svc, _ := New(Config{Marble: m})
 
 	if err := svc.loadMasterKey(m); err == nil {

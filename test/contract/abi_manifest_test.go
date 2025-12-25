@@ -73,7 +73,7 @@ func TestContractABIAlignsWithEdgePayloads(t *testing.T) {
 	}
 
 	// Edge contract invocations use String IDs (app_id, proposal_id, request_id).
-	expectParams("PaymentHub", "pay", []string{"String", "Integer", "String"})
+	expectParams("PaymentHub", "onNEP17Payment", []string{"Hash160", "Integer", "Any"})
 	expectParams("Governance", "vote", []string{"String", "Boolean", "Integer"})
 	expectParams("Governance", "createProposal", []string{"String", "String", "Integer", "Integer"})
 	expectParams("RandomnessLog", "record", []string{"String", "ByteArray", "ByteArray", "Integer"})

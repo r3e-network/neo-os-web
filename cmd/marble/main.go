@@ -22,6 +22,7 @@ import (
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
 	"github.com/R3E-Network/service_layer/infrastructure/config"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
+	gasbankclient "github.com/R3E-Network/service_layer/infrastructure/gasbank/client"
 	sllogging "github.com/R3E-Network/service_layer/infrastructure/logging"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
 	slmetrics "github.com/R3E-Network/service_layer/infrastructure/metrics"
@@ -31,7 +32,6 @@ import (
 	secretssupabase "github.com/R3E-Network/service_layer/infrastructure/secrets/supabase"
 	txproxyclient "github.com/R3E-Network/service_layer/infrastructure/txproxy/client"
 	txproxytypes "github.com/R3E-Network/service_layer/infrastructure/txproxy/types"
-	gasbankclient "github.com/R3E-Network/service_layer/infrastructure/gasbank/client"
 
 	// Neo service imports
 	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
@@ -44,10 +44,12 @@ import (
 	neocompute "github.com/R3E-Network/service_layer/services/confcompute/marble"
 	neooracle "github.com/R3E-Network/service_layer/services/conforacle/marble"
 	neofeeds "github.com/R3E-Network/service_layer/services/datafeed/marble"
-	neovrf "github.com/R3E-Network/service_layer/services/vrf/marble"
-	txproxy "github.com/R3E-Network/service_layer/services/txproxy/marble"
 	neogasbank "github.com/R3E-Network/service_layer/services/gasbank/marble"
+	neorequests "github.com/R3E-Network/service_layer/services/requests/marble"
+	neorequestsupabase "github.com/R3E-Network/service_layer/services/requests/supabase"
 	neosimulation "github.com/R3E-Network/service_layer/services/simulation/marble"
+	txproxy "github.com/R3E-Network/service_layer/services/txproxy/marble"
+	neovrf "github.com/R3E-Network/service_layer/services/vrf/marble"
 )
 
 // ServiceRunner interface for all Neo services
@@ -66,6 +68,7 @@ var availableServices = []string{
 	"neoflow",
 	"neogasbank",
 	"neooracle",
+	"neorequests",
 	"neosimulation",
 	"neovrf",
 	"txproxy",
@@ -138,6 +141,7 @@ func main() {
 	globalSignerRepo := globalsignersupabase.NewRepository(db)
 	neoaccountsRepo := neoaccountssupabase.NewRepository(db)
 	neoflowRepo := neoflowsupabase.NewRepository(db)
+	neorequestsRepo := neorequestsupabase.NewRepository(db)
 
 	// Chain configuration
 	neoRPCURLs := chain.ParseEndpoints(strings.TrimSpace(os.Getenv("NEO_RPC_URLS")))
@@ -163,6 +167,11 @@ func main() {
 		} else {
 			networkMagic = uint32(magic)
 		}
+	}
+
+	chainID := ""
+	if networkMagic != 0 {
+		chainID = fmt.Sprintf("neo-n3:%d", networkMagic)
 	}
 
 	var chainClient *chain.Client
@@ -191,6 +200,24 @@ func main() {
 			automationAnchorHash = trimHexPrefix(string(secret))
 		} else if secret, ok := m.Secret("CONTRACT_AUTOMATION_ANCHOR_HASH"); ok && len(secret) > 0 {
 			automationAnchorHash = trimHexPrefix(string(secret))
+		}
+	}
+
+	appRegistryHash := trimHexPrefix(contracts.AppRegistry)
+	if appRegistryHash == "" {
+		if secret, ok := m.Secret("CONTRACT_APPREGISTRY_HASH"); ok && len(secret) > 0 {
+			appRegistryHash = trimHexPrefix(string(secret))
+		} else if secret, ok := m.Secret("CONTRACT_APP_REGISTRY_HASH"); ok && len(secret) > 0 {
+			appRegistryHash = trimHexPrefix(string(secret))
+		}
+	}
+
+	serviceGatewayHash := trimHexPrefix(contracts.ServiceLayerGateway)
+	if serviceGatewayHash == "" {
+		if secret, ok := m.Secret("CONTRACT_SERVICEGATEWAY_HASH"); ok && len(secret) > 0 {
+			serviceGatewayHash = trimHexPrefix(string(secret))
+		} else if secret, ok := m.Secret("CONTRACT_SERVICE_GATEWAY_HASH"); ok && len(secret) > 0 {
+			serviceGatewayHash = trimHexPrefix(string(secret))
 		}
 	}
 
@@ -247,8 +274,9 @@ func main() {
 		eventListener = chain.NewEventListener(&chain.ListenerConfig{
 			Client: chainClient,
 			Contracts: chain.ContractAddresses{
-				PriceFeed:        priceFeedHash,
-				AutomationAnchor: automationAnchorHash,
+				PriceFeed:           priceFeedHash,
+				AutomationAnchor:    automationAnchorHash,
+				ServiceLayerGateway: serviceGatewayHash,
 			},
 			StartBlock:   startBlock,
 			PollInterval: 5 * time.Second,
@@ -256,6 +284,27 @@ func main() {
 	}
 
 	arbitrumRPC := strings.TrimSpace(os.Getenv("ARBITRUM_RPC"))
+
+	neovrfURL := strings.TrimSpace(os.Getenv("NEOVRF_URL"))
+	if neovrfURL == "" {
+		if secret, ok := m.Secret("NEOVRF_URL"); ok && len(secret) > 0 {
+			neovrfURL = strings.TrimSpace(string(secret))
+		}
+	}
+
+	neooracleURL := strings.TrimSpace(os.Getenv("NEOORACLE_URL"))
+	if neooracleURL == "" {
+		if secret, ok := m.Secret("NEOORACLE_URL"); ok && len(secret) > 0 {
+			neooracleURL = strings.TrimSpace(string(secret))
+		}
+	}
+
+	neocomputeURL := strings.TrimSpace(os.Getenv("NEOCOMPUTE_URL"))
+	if neocomputeURL == "" {
+		if secret, ok := m.Secret("NEOCOMPUTE_URL"); ok && len(secret) > 0 {
+			neocomputeURL = strings.TrimSpace(string(secret))
+		}
+	}
 
 	// TxProxy is the centralized "sign + broadcast" gatekeeper. NeoFeeds/NeoFlow
 	// delegate all on-chain writes to it (single allowlist + audit surface).
@@ -266,13 +315,29 @@ func main() {
 		}
 	}
 
+	txproxyTimeout := 30 * time.Second
+	txproxyTimeoutSet := false
+	if raw := strings.TrimSpace(os.Getenv("TXPROXY_TIMEOUT")); raw != "" {
+		if parsed, parseErr := time.ParseDuration(raw); parseErr != nil || parsed <= 0 {
+			log.Printf("Warning: invalid TXPROXY_TIMEOUT %q: %v", raw, parseErr)
+		} else {
+			txproxyTimeout = parsed
+			txproxyTimeoutSet = true
+		}
+	}
+	if !txproxyTimeoutSet && serviceType == "neorequests" {
+		if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_WAIT")); raw != "" && strings.EqualFold(raw, "true") {
+			txproxyTimeout = 90 * time.Second
+		}
+	}
+
 	var txProxyInvoker txproxytypes.Invoker
 	if txproxyURL != "" && serviceType != "txproxy" {
 		txClient, txErr := txproxyclient.New(txproxyclient.Config{
 			BaseURL:    txproxyURL,
 			ServiceID:  serviceType,
 			HTTPClient: m.HTTPClient(),
-			Timeout:    15 * time.Second,
+			Timeout:    txproxyTimeout,
 		})
 		if txErr != nil {
 			log.Printf("Warning: failed to create TxProxy client: %v", txErr)
@@ -394,6 +459,22 @@ func main() {
 			MaxBodyBytes:   oracleMaxBodyBytes,
 			URLAllowlist:   oracleAllowlist,
 		})
+	case "neorequests":
+		svc, err = neorequests.New(neorequests.Config{
+			Marble:             m,
+			DB:                 db,
+			RequestsRepo:       neorequestsRepo,
+			EventListener:      eventListener,
+			TxProxy:            txProxyInvoker,
+			ChainClient:        chainClient,
+			ServiceGatewayHash: serviceGatewayHash,
+			AppRegistryHash:    appRegistryHash,
+			NeoVRFURL:          neovrfURL,
+			NeoOracleURL:       neooracleURL,
+			NeoComputeURL:      neocomputeURL,
+			HTTPClient:         m.HTTPClient(),
+			ChainID:            chainID,
+		})
 	case "neovrf":
 		svc, err = neovrf.New(neovrf.Config{
 			Marble: m,
@@ -409,7 +490,7 @@ func main() {
 		// Get account pool URL for simulation
 		accountPoolURL := strings.TrimSpace(os.Getenv("NEOACCOUNTS_SERVICE_URL"))
 		if accountPoolURL == "" {
-			accountPoolURL = "http://neoaccounts:8085"
+			accountPoolURL = "https://neoaccounts:8085"
 		}
 		svc, err = neosimulation.New(neosimulation.Config{
 			Marble:         m,

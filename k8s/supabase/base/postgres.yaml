@@ -43,10 +43,13 @@ data:
     set -e
 
     echo "Waiting for PostgreSQL to be ready..."
-    until pg_isready -U postgres -h localhost; do
+    until pg_isready -U postgres; do
       echo "PostgreSQL is unavailable - sleeping"
       sleep 2
     done
+
+    echo "PostgreSQL is ready - ensuring auth schema..."
+    psql -U postgres -d postgres -c "CREATE SCHEMA IF NOT EXISTS auth;"
 
     echo "PostgreSQL is ready - applying migrations..."
 
@@ -101,7 +104,7 @@ spec:
             - -c
             - |
               echo "Copying migrations to /migrations-work..."
-              cp -r /migrations-source/* /migrations-work/
+              cp -Lr /migrations-source/* /migrations-work/
               chmod -R 755 /migrations-work
               ls -la /migrations-work
           volumeMounts:
@@ -110,49 +113,12 @@ spec:
             - name: migrations-work
               mountPath: /migrations-work
 
-        # Wait for PostgreSQL and apply migrations
-        - name: run-migrations
-          image: postgres:15-alpine
-          command:
-            - sh
-            - -c
-            - |
-              echo "Waiting for PostgreSQL to be ready..."
-              until pg_isready -U postgres -h localhost -p 5432; do
-                echo "PostgreSQL is unavailable - sleeping"
-                sleep 2
-              done
-
-              echo "PostgreSQL is ready - applying migrations..."
-              for migration in /migrations/*.sql; do
-                if [ -f "$migration" ]; then
-                  echo "Applying migration: $(basename $migration)"
-                  PGPASSWORD=$POSTGRES_PASSWORD psql -U postgres -h localhost -d postgres -f "$migration" || {
-                    echo "Failed to apply migration: $(basename $migration)"
-                    exit 1
-                  }
-                fi
-              done
-
-              echo "All migrations applied successfully"
-          env:
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-secrets
-                  key: POSTGRES_PASSWORD
-          volumeMounts:
-            - name: migrations-work
-              mountPath: /migrations
-
       containers:
         - name: postgres
           image: postgres:15-alpine
+          args:
+            - -c
+            - config_file=/etc/postgresql/postgresql.conf
           ports:
             - containerPort: 5432
               name: postgres
@@ -174,6 +140,10 @@ spec:
             - name: postgres-config
               mountPath: /etc/postgresql/postgresql.conf
               subPath: postgresql.conf
+            - name: postgres-init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+            - name: migrations-work
+              mountPath: /migrations
           livenessProbe:
             exec:
               command:
@@ -206,6 +176,10 @@ spec:
         - name: postgres-config
           configMap:
             name: postgres-config
+        - name: postgres-init-scripts
+          configMap:
+            name: postgres-init-scripts
+            defaultMode: 0755
         - name: migrations-source
           configMap:
             name: supabase-migrations

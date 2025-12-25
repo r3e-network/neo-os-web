@@ -6,8 +6,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nspcc-dev/neo-go/pkg/config/netmode"
@@ -159,11 +161,34 @@ func (b *TxBuilder) estimateNetworkFee(tx *transaction.Transaction) int64 {
 }
 
 // parseGasValue parses a GAS value string to int64 (in fractions).
-// Neo N3 RPC returns gasconsumed as an integer string in GAS fractions (1 GAS = 10^8 fractions).
+// Neo N3 RPC returns gasconsumed as a decimal GAS string (1 GAS = 10^8 fractions),
+// but some endpoints may already return integer fractions.
 func parseGasValue(gasStr string) (int64, error) {
-	// GasConsumed is returned as an integer string (e.g., "1000114412" = 10.00114412 GAS)
-	// It's already in GAS fractions, so we just parse it as an integer.
-	return strconv.ParseInt(gasStr, 10, 64)
+	gasStr = strings.TrimSpace(gasStr)
+	if gasStr == "" {
+		return 0, fmt.Errorf("empty gas value")
+	}
+	if !strings.Contains(gasStr, ".") {
+		return strconv.ParseInt(gasStr, 10, 64)
+	}
+
+	rat := new(big.Rat)
+	if _, ok := rat.SetString(gasStr); !ok {
+		return 0, fmt.Errorf("invalid gas value: %s", gasStr)
+	}
+
+	scale := big.NewRat(100000000, 1)
+	rat.Mul(rat, scale)
+
+	if rat.Denom().Cmp(big.NewInt(1)) != 0 {
+		return 0, fmt.Errorf("gas value has too many decimals: %s", gasStr)
+	}
+
+	value := rat.Num()
+	if !value.IsInt64() {
+		return 0, fmt.Errorf("gas value out of range: %s", gasStr)
+	}
+	return value.Int64(), nil
 }
 
 // =============================================================================

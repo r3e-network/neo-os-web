@@ -1,0 +1,27 @@
+{
+  "app_id": "builtin-guardian-policy",
+  "name": "Guardian Policy",
+  "description": "Multi-sig security guardian - TEE-enforced transaction rules",
+  "version": "1.0.0",
+  "entry_url": "https://cdn.miniapps.com/miniapps/builtin/guardian-policy/index.html",
+  "developer_pubkey": "0x03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5",
+  "permissions": {
+    "wallet": ["read-address"],
+    "payments": true,
+    "governance": false,
+    "rng": false,
+    "datafeed": false,
+    "compute": true
+  },
+  "assets_allowed": ["GAS"],
+  "governance_assets_allowed": [],
+  "limits": {
+    "max_gas_per_tx": "5",
+    "daily_gas_cap_per_user": "50"
+  },
+  "contracts_needed": ["PaymentHub"],
+  "sandbox_flags": ["no-eval", "strict-csp"],
+  "attestation_required": true,
+  "category": "security",
+  "tags": ["multi-sig", "security", "guardian", "tee", "policy"]
+}

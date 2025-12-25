@@ -7,6 +7,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/contracts/build"
 CONFIG_DIR="$PROJECT_ROOT/deploy/config"
 DEPLOYED_FILE="$CONFIG_DIR/deployed_contracts.json"
+WALLETS_DIR="$PROJECT_ROOT/deploy/wallets"
 
 # Network selection
 NETWORK=${1:-neoexpress}
@@ -51,13 +52,54 @@ if [ ! -d "$BUILD_DIR" ] || [ -z "$(ls -A $BUILD_DIR/*.nef 2>/dev/null)" ]; then
     exit 1
 fi
 
-# Initialize deployed contracts file
-echo "{}" > "$DEPLOYED_FILE"
+# Initialize deployed contracts file (preserve existing entries if present)
+if [ -f "$DEPLOYED_FILE" ] && command -v jq >/dev/null 2>&1; then
+    if ! jq -e . "$DEPLOYED_FILE" >/dev/null 2>&1; then
+        echo "Warning: invalid $DEPLOYED_FILE, reinitializing"
+        echo "{}" > "$DEPLOYED_FILE"
+    fi
+else
+    echo "{}" > "$DEPLOYED_FILE"
+fi
+
+update_contract() {
+    local name=$1
+    local nef_path=$2
+    local manifest_path=$3
+    local hash=$4
+
+    echo "  Updating $name at $hash..."
+
+    if ! command -v "$NEOXP" >/dev/null 2>&1; then
+        echo "  Error: neoxp not found; cannot update $name" >&2
+        return 1
+    fi
+
+    # Try Neo Express contract update (preferred).
+    local result
+    if result=$("$NEOXP" contract update "$nef_path" owner -i "$NEOEXPRESS_CONFIG" --hash "$hash" 2>&1); then
+        echo "  Updated via neoxp contract update"
+        return 0
+    fi
+
+    # Fallback: some neoxp versions expect the hash as a positional argument.
+    if result=$("$NEOXP" contract update "$nef_path" owner "$hash" -i "$NEOEXPRESS_CONFIG" 2>&1); then
+        echo "  Updated via neoxp contract update (positional hash)"
+        return 0
+    fi
+
+    echo "  Error: failed to update $name"
+    echo "  Output: $result"
+    echo "  Tip: update manually with neo-go CLI:"
+    echo "    neo-go contract update -i $nef_path -m $manifest_path -w $WALLETS_DIR/owner.json --hash $hash"
+    return 1
+}
 
 deploy_contract() {
     local name=$1
     local nef_path="$BUILD_DIR/${name}.nef"
     local manifest_path="$BUILD_DIR/${name}.manifest.json"
+    local existing=""
 
     if [ ! -f "$nef_path" ]; then
         echo "  Skipping $name (not built)"
@@ -67,20 +109,34 @@ deploy_contract() {
     echo "Deploying $name..."
 
     if [ "$NETWORK" = "neoexpress" ]; then
+        if command -v jq >/dev/null 2>&1 && [ -f "$DEPLOYED_FILE" ]; then
+            existing=$(jq -r --arg name "$name" '.[$name] // empty' "$DEPLOYED_FILE")
+        fi
+
+        if [ -n "$existing" ]; then
+            echo "  Already deployed at: $existing"
+            if ! update_contract "$name" "$nef_path" "$manifest_path" "$existing"; then
+                exit 1
+            fi
+            return
+        fi
+
         # Deploy to Neo Express
         if ! result=$("$NEOXP" contract deploy "$nef_path" owner -i "$NEOEXPRESS_CONFIG" 2>&1); then
             if echo "$result" | grep -qi "already deployed"; then
-                echo "  Contract name already deployed; redeploying with --force..."
-                if ! result=$("$NEOXP" contract deploy "$nef_path" owner -i "$NEOEXPRESS_CONFIG" --force 2>&1); then
-                    echo "  Error: failed to deploy $name with --force"
-                    echo "  Output: $result"
+                if [ -z "$existing" ]; then
+                    echo "  Error: contract already deployed but no hash in $DEPLOYED_FILE"
+                    echo "  Add the existing hash to $DEPLOYED_FILE and rerun to update."
                     exit 1
                 fi
-            else
-                echo "  Error: failed to deploy $name"
-                echo "  Output: $result"
-                exit 1
+                if ! update_contract "$name" "$nef_path" "$manifest_path" "$existing"; then
+                    exit 1
+                fi
+                return
             fi
+            echo "  Error: failed to deploy $name"
+            echo "  Output: $result"
+            exit 1
         fi
         # Extract contract hash from output
         hash=$(echo "$result" | grep -oP '0x[a-fA-F0-9]{40}' | head -1 || echo "")
@@ -108,6 +164,7 @@ deploy_contract "PriceFeed"
 deploy_contract "RandomnessLog"
 deploy_contract "AppRegistry"
 deploy_contract "AutomationAnchor"
+deploy_contract "ServiceLayerGateway"
 
 echo ""
 echo "=== Deployment Complete ==="

@@ -21,6 +21,7 @@ var coreContracts = []string{
 	"RandomnessLog",
 	"AppRegistry",
 	"AutomationAnchor",
+	"ServiceLayerGateway",
 }
 
 // DeployedContract and DeploymentResult are imported from internal/chain package

@@ -24,6 +24,7 @@ var platformContracts = []string{
 	"RandomnessLog",
 	"AppRegistry",
 	"AutomationAnchor",
+	"ServiceLayerGateway",
 }
 
 func main() {
@@ -362,9 +363,11 @@ func runVerify(rpcURL, configFile string) {
 		case "PriceFeed":
 			testMethod = "getLatest"
 		case "RandomnessLog":
-			testMethod = "getUpdater"
+			testMethod = "updater"
 		case "AutomationAnchor":
-			testMethod = "getUpdater"
+			testMethod = "updater"
+		case "ServiceLayerGateway":
+			testMethod = "updater"
 		default:
 			testMethod = ""
 		}

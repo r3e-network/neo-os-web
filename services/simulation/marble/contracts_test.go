@@ -53,11 +53,12 @@ func TestNewContractInvoker_MissingContractHashes(t *testing.T) {
 		priceFeedHash     string
 		randomnessLogHash string
 		paymentHubHash    string
+		expectErr         bool
 	}{
-		{"missing price feed", "", "0xdef456", "0x789ghi"},
-		{"missing randomness log", "0xabc123", "", "0x789ghi"},
-		{"missing payment hub", "0xabc123", "0xdef456", ""},
-		{"all missing", "", "", ""},
+		{"missing price feed", "", "0xdef456", "0x789ghi", false},
+		{"missing randomness log", "0xabc123", "", "0x789ghi", false},
+		{"missing payment hub", "0xabc123", "0xdef456", "", true},
+		{"all missing", "", "", "", true},
 	}
 
 	for _, tt := range tests {
@@ -69,9 +70,15 @@ func TestNewContractInvoker_MissingContractHashes(t *testing.T) {
 				PaymentHubHash:    tt.paymentHubHash,
 			})
 
-			assert.Error(t, err)
-			assert.Nil(t, inv)
-			assert.Contains(t, err.Error(), "all contract hashes are required")
+			if tt.expectErr {
+				assert.Error(t, err)
+				assert.Nil(t, inv)
+				assert.Contains(t, err.Error(), "payment hub hash is required")
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.NotNil(t, inv)
 		})
 	}
 }
@@ -137,6 +144,22 @@ func TestContractInvoker_UpdatePriceFeed_Success(t *testing.T) {
 	// Verify stats updated
 	stats := inv.GetStats()
 	assert.Equal(t, int64(1), stats["price_feed_updates"])
+}
+
+func TestContractInvoker_UpdatePriceFeed_MissingHash(t *testing.T) {
+	mockClient := newMockPoolClient()
+	inv, err := NewContractInvoker(ContractInvokerConfig{
+		PoolClient:        mockClient,
+		PriceFeedHash:     "",
+		RandomnessLogHash: "0xrandomness",
+		PaymentHubHash:    "0xpaymenthub",
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	_, err = inv.UpdatePriceFeed(ctx, "BTCUSD")
+
+	assert.ErrorIs(t, err, ErrPriceFeedNotConfigured)
 }
 
 func TestContractInvoker_UpdatePriceFeed_UnknownSymbol(t *testing.T) {
@@ -239,6 +262,22 @@ func TestContractInvoker_RecordRandomness_Success(t *testing.T) {
 	assert.Equal(t, int64(1), stats["randomness_records"])
 }
 
+func TestContractInvoker_RecordRandomness_MissingHash(t *testing.T) {
+	mockClient := newMockPoolClient()
+	inv, err := NewContractInvoker(ContractInvokerConfig{
+		PoolClient:        mockClient,
+		PriceFeedHash:     "0xpricefeed",
+		RandomnessLogHash: "",
+		PaymentHubHash:    "0xpaymenthub",
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	_, err = inv.RecordRandomness(ctx)
+
+	assert.ErrorIs(t, err, ErrRandomnessLogNotConfigured)
+}
+
 func TestContractInvoker_RecordRandomness_InvokeError(t *testing.T) {
 	mockClient := newMockPoolClient()
 	mockClient.invokeMasterErr = errors.New("network error")
@@ -263,7 +302,7 @@ func TestContractInvoker_RecordRandomness_InvokeError(t *testing.T) {
 }
 
 // =============================================================================
-// PayToApp Tests (uses InvokeContract - pool account with Global scope)
+// PayToApp Tests (uses TransferWithData)
 // =============================================================================
 
 func TestContractInvoker_PayToApp_Success(t *testing.T) {
@@ -280,7 +319,7 @@ func TestContractInvoker_PayToApp_Success(t *testing.T) {
 	txHash, err := inv.PayToApp(ctx, "builtin-lottery", 1000000, "test-memo")
 
 	require.NoError(t, err)
-	assert.Equal(t, "0xtest-tx-hash-invoke-contract", txHash)
+	assert.Equal(t, "0xtest-tx-hash-transfer-with-data", txHash)
 
 	// Verify pool account was requested
 	reqCalls := mockClient.getRequestAccountsCalls()
@@ -288,22 +327,13 @@ func TestContractInvoker_PayToApp_Success(t *testing.T) {
 	assert.Equal(t, 1, reqCalls[0].Count)
 	assert.Equal(t, "payment-builtin-lottery", reqCalls[0].Purpose)
 
-	// Verify InvokeContract was called (not InvokeMaster)
-	invCalls := mockClient.getInvokeContractCalls()
-	require.Len(t, invCalls, 1)
-	assert.Equal(t, "test-account-1", invCalls[0].AccountID)
-	assert.Equal(t, "paymenthub", invCalls[0].ContractHash)
-	assert.Equal(t, "pay", invCalls[0].Method)
-	assert.Equal(t, "Global", invCalls[0].Scope) // Global scope for GAS.Transfer
-
-	// Verify params
-	require.Len(t, invCalls[0].Params, 3)
-	assert.Equal(t, "String", invCalls[0].Params[0].Type)
-	assert.Equal(t, "builtin-lottery", invCalls[0].Params[0].Value)
-	assert.Equal(t, "Integer", invCalls[0].Params[1].Type)
-	assert.Equal(t, int64(1000000), invCalls[0].Params[1].Value)
-	assert.Equal(t, "String", invCalls[0].Params[2].Type)
-	assert.Equal(t, "test-memo", invCalls[0].Params[2].Value)
+	// Verify TransferWithData was called (direct GAS transfer with appId data)
+	transferCalls := mockClient.getTransferWithDataCalls()
+	require.Len(t, transferCalls, 1)
+	assert.Equal(t, "test-account-1", transferCalls[0].AccountID)
+	assert.Equal(t, "0xpaymenthub", transferCalls[0].ToAddress)
+	assert.Equal(t, int64(1000000), transferCalls[0].Amount)
+	assert.Equal(t, "builtin-lottery", transferCalls[0].Data)
 
 	// Verify stats updated
 	stats := inv.GetStats()
@@ -334,9 +364,9 @@ func TestContractInvoker_PayToApp_ReusesAccount(t *testing.T) {
 	reqCalls := mockClient.getRequestAccountsCalls()
 	assert.Len(t, reqCalls, 1)
 
-	// Verify two invocations were made
-	invCalls := mockClient.getInvokeContractCalls()
-	assert.Len(t, invCalls, 2)
+	// Verify two transfers were made
+	transferCalls := mockClient.getTransferWithDataCalls()
+	assert.Len(t, transferCalls, 2)
 }
 
 func TestContractInvoker_PayToApp_DifferentAppsGetDifferentAccounts(t *testing.T) {
@@ -413,7 +443,7 @@ func TestContractInvoker_PayToApp_EmptyAccountsResponse(t *testing.T) {
 
 func TestContractInvoker_PayToApp_InvokeError(t *testing.T) {
 	mockClient := newMockPoolClient()
-	mockClient.invokeContractErr = errors.New("invoke failed")
+	mockClient.transferWithDataErr = errors.New("transfer failed")
 
 	inv, err := NewContractInvoker(ContractInvokerConfig{
 		PoolClient:        mockClient,
@@ -428,6 +458,9 @@ func TestContractInvoker_PayToApp_InvokeError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Empty(t, txHash)
+
+	stats := inv.GetStats()
+	assert.Equal(t, int64(1), stats["contract_errors"])
 }
 
 // =============================================================================
@@ -552,7 +585,9 @@ func TestContractInvoker_GetPriceSymbols(t *testing.T) {
 
 	symbols := inv.GetPriceSymbols()
 
-	assert.Len(t, symbols, 4)
+	// We have 52 Chainlink Arbitrum price feeds
+	assert.Len(t, symbols, 52)
+	// Verify some key symbols are present
 	assert.Contains(t, symbols, "BTCUSD")
 	assert.Contains(t, symbols, "ETHUSD")
 	assert.Contains(t, symbols, "NEOUSD")

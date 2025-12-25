@@ -3,6 +3,13 @@ import { error } from "./response.ts";
 
 let mtlsClient: Deno.HttpClient | null | undefined;
 let mtlsWarningLogged = false;
+let mtlsStatusLogged = false;
+
+function logMTLSStatus(message: string) {
+  if (mtlsStatusLogged) return;
+  console.log(`[TEE] ${message}`);
+  mtlsStatusLogged = true;
+}
 
 function getMTLSClient(): Deno.HttpClient | undefined {
   if (mtlsClient !== undefined) return mtlsClient ?? undefined;
@@ -11,8 +18,9 @@ function getMTLSClient(): Deno.HttpClient | undefined {
   const key = getEnv("TEE_MTLS_KEY_PEM") ?? getEnv("EDGE_MTLS_KEY_PEM");
   const ca = getEnv("TEE_MTLS_ROOT_CA_PEM") ?? getEnv("MARBLERUN_ROOT_CA_PEM");
 
-  if (!cert || !key || !ca) {
+  if (!cert || !key) {
     mtlsClient = null;
+    logMTLSStatus("mTLS disabled: missing client certificate or key.");
     // Log warning once in production mode
     if (!mtlsWarningLogged && isProductionEnv()) {
       console.warn(
@@ -24,11 +32,21 @@ function getMTLSClient(): Deno.HttpClient | undefined {
     return undefined;
   }
 
-  mtlsClient = Deno.createHttpClient({
-    caCerts: [ca],
-    cert,
-    key,
-  });
+  if (typeof Deno.createHttpClient !== "function") {
+    mtlsClient = null;
+    logMTLSStatus("mTLS disabled: Deno.createHttpClient unavailable (enable --unstable).");
+    return undefined;
+  }
+
+  const opts: Deno.HttpClientOptions = { cert, key };
+  if (ca) {
+    opts.caCerts = [ca];
+  }
+
+  mtlsClient = Deno.createHttpClient(opts);
+  logMTLSStatus(
+    `mTLS enabled: cert=${cert.length} key=${key.length} ca=${ca ? ca.length : 0}`,
+  );
   return mtlsClient;
 }
 

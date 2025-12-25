@@ -89,6 +89,21 @@ func DefaultServicesConfig() *ServicesConfig {
 				Port:        8088,
 				Description: "External data delivery with proofs",
 			},
+			"neorequests": {
+				Enabled:     true,
+				Port:        8094,
+				Description: "On-chain service request dispatcher + callbacks",
+			},
+			"neogasbank": {
+				Enabled:     true,
+				Port:        8091,
+				Description: "GAS balance management for MiniApps",
+			},
+			"neosimulation": {
+				Enabled:     true,
+				Port:        8093,
+				Description: "Automated transaction simulation for MiniApps",
+			},
 		},
 	}
 }
@@ -102,6 +117,7 @@ var ServiceNameMapping = map[string]string{
 	"neoflow":     "neoflow",
 	"vrf":         "neovrf",
 	"tx-proxy":    "txproxy",
+	"requests":    "neorequests",
 }
 
 // GetNeoServiceName converts old service name to new Neo name

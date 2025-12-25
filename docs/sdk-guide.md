@@ -73,6 +73,13 @@ user API key (`X-API-Key`) via `MiniAppSDKConfig.getAPIKey`. In production,
 host-only endpoints (oracle/compute/automation/secrets) require API keys with
 explicit scopes; bearer JWTs are rejected there.
 
+## On-Chain Service Requests
+
+MiniApps that use the on-chain request/callback pattern should invoke their
+MiniApp contract (or `ServiceLayerGateway`) via the wallet. The callback target
+is configured in the manifest (`callback_contract`, `callback_method`) and
+executed on-chain by the gateway when the TEE result is ready.
+
 ## Example
 
 ```ts
@@ -86,7 +93,7 @@ await window.MiniAppSDK.wallet.invokeIntent?.(pay.request_id);
 
 const { randomness, reportHash } = await window.MiniAppSDK.rng.requestRandom("raffle");
 
-const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD");
+const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD"); // or "BTC" (defaults to BTC-USD)
 ```
 
 ## Security Notes

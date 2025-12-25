@@ -16,6 +16,7 @@ func newClientWithHandler(t *testing.T, handler http.Handler) *Client {
 	client, err := NewClient(Config{
 		URL:        "http://supabase.test",
 		ServiceKey: "test-key",
+		RestPrefix: "/rest/v1",
 	})
 	if err != nil {
 		t.Fatalf("NewClient() error = %v", err)

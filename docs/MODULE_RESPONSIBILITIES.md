@@ -25,6 +25,7 @@ Platform contracts only:
 - `RandomnessLog` (randomness anchoring; randomness is provided via NeoVRF)
 - `AppRegistry` (manifest hash + allowlist anchors)
 - `AutomationAnchor` (task registry + nonce anti-replay)
+- `ServiceLayerGateway` (on-chain service requests + callbacks)
 
 Contracts enforce asset constraints at the final authorization layer.
 
@@ -53,6 +54,9 @@ Product services (only these):
 - `services/confcompute` (`neocompute`): restricted scripts + optional secret injection
 - `services/automation` (`neoflow`): triggers/scheduler + optional anchored tasks via `AutomationAnchor`
 - `services/txproxy` (`txproxy`): allowlisted sign+broadcast gatekeeper (single surface for chain writes)
+- `services/requests` (`neorequests`): on-chain ServiceLayerGateway request dispatcher + callback submitter
+- `services/gasbank` (`neogasbank`): GAS deposit ledger + fee deduction (optional)
+- `services/simulation` (`neosimulation`): dev-only transaction simulator (optional)
 
 Rules:
 

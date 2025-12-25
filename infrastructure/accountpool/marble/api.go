@@ -20,6 +20,7 @@ func (s *Service) registerRoutes() {
 	router.HandleFunc("/batch-sign", s.handleBatchSign).Methods("POST")
 	router.HandleFunc("/balance", s.handleUpdateBalance).Methods("POST")
 	router.HandleFunc("/transfer", s.handleTransfer).Methods("POST")
+	router.HandleFunc("/transfer-with-data", s.handleTransferWithData).Methods("POST")
 
 	// Fund pool accounts from master wallet (TEE_PRIVATE_KEY)
 	router.HandleFunc("/fund", s.handleFundAccount).Methods("POST")

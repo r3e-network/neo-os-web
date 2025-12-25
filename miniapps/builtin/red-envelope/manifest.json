@@ -1,0 +1,26 @@
+{
+  "app_id": "builtin-red-envelope",
+  "name": "Gas Red Envelope",
+  "description": "Web3 lucky red packets with VRF random distribution - share GAS with friends",
+  "version": "1.0.0",
+  "entry_url": "https://cdn.miniapps.com/miniapps/builtin/red-envelope/index.html",
+  "developer_pubkey": "0x03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5",
+  "permissions": {
+    "wallet": ["read-address"],
+    "payments": true,
+    "governance": false,
+    "rng": true,
+    "datafeed": false
+  },
+  "assets_allowed": ["GAS"],
+  "governance_assets_allowed": [],
+  "limits": {
+    "max_gas_per_tx": "100",
+    "daily_gas_cap_per_user": "500"
+  },
+  "contracts_needed": ["PaymentHub", "RandomnessLog"],
+  "sandbox_flags": ["no-eval", "strict-csp"],
+  "attestation_required": true,
+  "category": "social",
+  "tags": ["red-envelope", "social", "gift", "lucky", "sharing"]
+}

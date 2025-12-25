@@ -258,6 +258,23 @@ func (c *Client) Transfer(ctx context.Context, accountID, toAddress string, amou
 	return &out, nil
 }
 
+// TransferWithData transfers GAS from a pool account to an external address with optional data.
+// The data parameter is passed to the OnNEP17Payment callback of the receiving contract.
+// This is used for payments to contracts like PaymentHub that need to identify the payment source.
+func (c *Client) TransferWithData(ctx context.Context, accountID, toAddress string, amount int64, data string) (*TransferWithDataResponse, error) {
+	var out TransferWithDataResponse
+	if err := c.doJSON(ctx, http.MethodPost, "/transfer-with-data", TransferWithDataInput{
+		ServiceID: c.serviceID,
+		AccountID: accountID,
+		ToAddress: toAddress,
+		Amount:    amount,
+		Data:      data,
+	}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // FundAccount transfers tokens from the master wallet (TEE_PRIVATE_KEY) to a target address.
 // This is used to fund pool accounts with GAS for transaction fees.
 func (c *Client) FundAccount(ctx context.Context, toAddress string, amount int64) (*FundAccountResponse, error) {

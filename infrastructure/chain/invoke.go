@@ -237,20 +237,26 @@ func (c *Client) InvokeFunctionWithSignerAndWait(
 // InvokeFunctionWithSigners simulates a contract invocation with signers.
 // This is used to get accurate gas estimates before building the actual transaction.
 func (c *Client) InvokeFunctionWithSigners(ctx context.Context, scriptHash, method string, params []ContractParam, signerHash interface{}) (*InvokeResult, error) {
+	return c.InvokeFunctionWithScope(ctx, scriptHash, method, params, signerHash, ScopeCalledByEntry)
+}
+
+// InvokeFunctionWithScope simulates a contract invocation with signers and a specific scope.
+// This is used when the contract requires a specific witness scope (e.g., Global for GAS transfers).
+func (c *Client) InvokeFunctionWithScope(ctx context.Context, scriptHash, method string, params []ContractParam, signerHash interface{}, scope string) (*InvokeResult, error) {
 	// Build signers array for the RPC call
 	var signers []Signer
 	switch v := signerHash.(type) {
 	case string:
-		signers = []Signer{{Account: v, Scopes: ScopeCalledByEntry}}
+		signers = []Signer{{Account: v, Scopes: scope}}
 	case util.Uint160:
 		// Neo RPC expects script hash in little-endian format
-		signers = []Signer{{Account: "0x" + v.StringLE(), Scopes: ScopeCalledByEntry}}
+		signers = []Signer{{Account: "0x" + v.StringLE(), Scopes: scope}}
 	default:
 		// Fallback for other types - try to use StringLE if available
 		if hasStringLE, ok := v.(interface{ StringLE() string }); ok {
-			signers = []Signer{{Account: "0x" + hasStringLE.StringLE(), Scopes: ScopeCalledByEntry}}
+			signers = []Signer{{Account: "0x" + hasStringLE.StringLE(), Scopes: scope}}
 		} else {
-			signers = []Signer{{Account: fmt.Sprintf("0x%s", v), Scopes: ScopeCalledByEntry}}
+			signers = []Signer{{Account: fmt.Sprintf("0x%s", v), Scopes: scope}}
 		}
 	}
 

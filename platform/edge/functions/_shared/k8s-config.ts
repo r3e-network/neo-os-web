@@ -46,21 +46,21 @@ export function getServiceConfig(): ServiceConfig {
   if (inCluster) {
     // Use internal k8s service URLs (cluster DNS)
     return {
-      supabaseUrl: getEnv("SUPABASE_URL") || "http://supabase.platform.svc.cluster.local:8000",
-      neoRpcUrl: getEnv("NEO_RPC_URL") || "http://neoaccounts.service-layer.svc.cluster.local:8085",
-      neoFeedsUrl: getEnv("NEOFEEDS_SERVICE_URL") || "http://neofeeds.service-layer.svc.cluster.local:8083",
-      neoFlowUrl: getEnv("NEOFLOW_SERVICE_URL") || "http://neoflow.service-layer.svc.cluster.local:8084",
-      neoComputeUrl: getEnv("NEOCOMPUTE_SERVICE_URL") || "http://neocompute.service-layer.svc.cluster.local:8086",
-      neoVrfUrl: getEnv("NEOVRF_SERVICE_URL") || "http://neovrf.service-layer.svc.cluster.local:8087",
-      neoOracleUrl: getEnv("NEOORACLE_SERVICE_URL") || "http://neooracle.service-layer.svc.cluster.local:8088",
-      txProxyUrl: getEnv("TXPROXY_SERVICE_URL") || "http://txproxy.service-layer.svc.cluster.local:8090",
-      globalSignerUrl: getEnv("GLOBALSIGNER_SERVICE_URL") || "http://globalsigner.service-layer.svc.cluster.local:8092",
+      supabaseUrl: getEnv("SUPABASE_URL") || "http://supabase-gateway.supabase.svc.cluster.local:8000",
+      neoRpcUrl: getEnv("NEO_RPC_URL") || "https://testnet1.neo.coz.io:443",
+      neoFeedsUrl: getEnv("NEOFEEDS_SERVICE_URL") || "https://neofeeds.service-layer.svc.cluster.local:8083",
+      neoFlowUrl: getEnv("NEOFLOW_SERVICE_URL") || "https://neoflow.service-layer.svc.cluster.local:8084",
+      neoComputeUrl: getEnv("NEOCOMPUTE_SERVICE_URL") || "https://neocompute.service-layer.svc.cluster.local:8086",
+      neoVrfUrl: getEnv("NEOVRF_SERVICE_URL") || "https://neovrf.service-layer.svc.cluster.local:8087",
+      neoOracleUrl: getEnv("NEOORACLE_SERVICE_URL") || "https://neooracle.service-layer.svc.cluster.local:8088",
+      txProxyUrl: getEnv("TXPROXY_SERVICE_URL") || "https://txproxy.service-layer.svc.cluster.local:8090",
+      globalSignerUrl: getEnv("GLOBALSIGNER_SERVICE_URL") || "https://globalsigner.service-layer.svc.cluster.local:8092",
     };
   } else {
     // Use localhost URLs for local development
     return {
       supabaseUrl: getEnv("SUPABASE_URL") || "http://localhost:54321",
-      neoRpcUrl: getEnv("NEO_RPC_URL") || "http://localhost:8085",
+      neoRpcUrl: getEnv("NEO_RPC_URL") || "https://testnet1.neo.coz.io:443",
       neoFeedsUrl: getEnv("NEOFEEDS_SERVICE_URL") || "http://localhost:8083",
       neoFlowUrl: getEnv("NEOFLOW_SERVICE_URL") || "http://localhost:8084",
       neoComputeUrl: getEnv("NEOCOMPUTE_SERVICE_URL") || "http://localhost:8086",

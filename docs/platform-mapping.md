@@ -6,8 +6,8 @@ This document maps the current repository structure into the target **Neo N3 Min
 
 The target structure is:
 
-- `contracts/`: platform contracts (GAS-only payments, NEO-only governance, feeds, randomness logs, app registry, automation anchor)
-- `services/`: attested SGX services (datafeed/oracle/vrf/compute/automation/tx-proxy)
+- `contracts/`: platform contracts (GAS-only payments, NEO-only governance, feeds, randomness logs, app registry, automation anchor, service gateway)
+- `services/`: attested SGX services (datafeed/oracle/vrf/compute/automation/tx-proxy/request-dispatcher)
 - `platform/`: Next.js host + SDK + Supabase Edge + RLS policies
 - `miniapps/`: builtin miniapps + developer templates
 - `deploy/`: neo-express config + deployment scripts
@@ -29,6 +29,9 @@ platform naming in docs:
 - `services/vrf` (`neovrf`) → `vrf-service`
 - `services/automation` (`neoflow`) → `automation-service`
 - `services/txproxy` (`txproxy`) → `tx-proxy`
+- `services/requests` (`neorequests`) → `request-dispatcher`
+- `services/gasbank` (`neogasbank`) → `gasbank-service` (optional)
+- `services/simulation` (`neosimulation`) → `simulation-service` (dev-only)
 
 ### Existing Infrastructure (keep)
 

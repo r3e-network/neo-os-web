@@ -1,5 +1,5 @@
 import { isProductionEnv } from "./env.ts";
-import { bytesToHex, normalizeHex } from "./hex.ts";
+import { bytesToHex, normalizeHex, normalizeHexBytes } from "./hex.ts";
 
 export type MiniAppManifestCore = {
   appId: string;
@@ -189,6 +189,19 @@ export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, u
   }
   if ("limits" in m) {
     out.limits = normalizeLimits(m.limits);
+  }
+
+  const callbackContractRaw = String(m.callback_contract ?? "").trim();
+  const callbackMethodRaw = String(m.callback_method ?? "").trim();
+  if (callbackContractRaw || callbackMethodRaw) {
+    if (!callbackContractRaw) {
+      throw new Error("manifest.callback_contract required when callback_method is set");
+    }
+    if (!callbackMethodRaw) {
+      throw new Error("manifest.callback_method required when callback_contract is set");
+    }
+    out.callback_contract = normalizeHexBytes(callbackContractRaw, 20, "manifest.callback_contract");
+    out.callback_method = callbackMethodRaw;
   }
 
   return out;

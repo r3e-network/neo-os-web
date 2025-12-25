@@ -6,6 +6,7 @@ metadata:
     cert-manager.io/cluster-issuer: "selfsigned-issuer"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: "supabase/supabase-strip-prefix@kubernetescrd"
 spec:
   ingressClassName: traefik
   tls:

@@ -17,6 +17,9 @@ For the reviewed English architectural blueprint, see `docs/neo-miniapp-platform
 - `services/vrf` (`service_id`: `neovrf`)
 - `services/conforacle` (`service_id`: `neooracle`)
 - `services/txproxy` (`service_id`: `txproxy`)
+- `services/requests` (`service_id`: `neorequests`)
+- `services/gasbank` (`service_id`: `neogasbank`, optional)
+- `services/simulation` (`service_id`: `neosimulation`, dev-only)
 
 Randomness is provided via `services/vrf` (NeoVRF) inside the enclave.
 
@@ -65,6 +68,14 @@ SERVICE_TYPE=neocompute go run ./cmd/marble
 
 Supabase Edge functions are the intended public gateway. See `platform/edge/README.md` for setup and required env vars.
 
+For the full local k3s stack (Supabase + Edge + MarbleRun), run:
+
+```bash
+./scripts/bootstrap_k3s_dev.sh --env-file .env --edge-env-file .env.local
+```
+
+Or see `docs/LOCAL_DEV.md` for detailed steps.
+
 ## Key Environment Variables
 
 - `SUPABASE_URL`: Supabase project URL.
@@ -72,14 +83,20 @@ Supabase Edge functions are the intended public gateway. See `platform/edge/READ
 - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key (used by Supabase Edge functions).
 - `SECRETS_MASTER_KEY`: encryption master key for secrets APIs (`platform/edge/functions/secrets-*`) and secret injection into TEE services.
 - `NEO_RPC_URL` / `NEO_RPC_URLS`, `NEO_NETWORK_MAGIC`: Neo RPC configuration (services).
-- `CONTRACT_PAYMENTHUB_HASH`, `CONTRACT_GOVERNANCE_HASH`, `CONTRACT_PRICEFEED_HASH`, `CONTRACT_RANDOMNESSLOG_HASH`, `CONTRACT_APPREGISTRY_HASH`, `CONTRACT_AUTOMATIONANCHOR_HASH`: MiniApp platform contract hashes.
+- `CONTRACT_PAYMENTHUB_HASH`, `CONTRACT_GOVERNANCE_HASH`, `CONTRACT_PRICEFEED_HASH`, `CONTRACT_RANDOMNESSLOG_HASH`, `CONTRACT_APPREGISTRY_HASH`, `CONTRACT_AUTOMATIONANCHOR_HASH`, `CONTRACT_SERVICEGATEWAY_HASH`: MiniApp platform contract hashes.
+- `CONTRACT_MINIAPP_CONSUMER_HASH` (optional): MiniApp callback test contract hash for workflow scripts.
 - `TXPROXY_ALLOWLIST`: tx-proxy allowlist JSON (contract+method policy).
+- `GASBANK_URL` (optional): GasBank service URL for fee deduction.
+- `GASBANK_DEPOSIT_ADDRESS` (optional): deposit address for GasBank verification.
+- `NEOACCOUNTS_SERVICE_URL` (optional): account pool service URL.
 
 See `.env.example` for a full list.
 
 ## Docs
 
 - `docs/ARCHITECTURE.md`: current end-to-end architecture and TEE boundary
+- `docs/WORKFLOWS.md`: MiniApp lifecycle + callback workflows
+- `docs/DATAFLOWS.md`: request/dataflow + audit tables
 - `docs/LAYERING.md`: layering rules + boundaries (what goes where)
 - `docs/MODULE_RESPONSIBILITIES.md`: per-module responsibilities + dependency rules
 - `docs/API_DOCUMENTATION.md`: gateway/service API reference

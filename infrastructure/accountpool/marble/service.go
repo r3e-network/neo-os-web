@@ -5,10 +5,15 @@ package neoaccounts
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/ecdsa"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,6 +55,7 @@ type Service struct {
 	masterPubKey           []byte
 	masterKeyHash          []byte
 	masterKeyAttestationID string
+	encryptionKey          []byte // For decrypting stored WIFs
 
 	// Service-specific repository
 	repo neoaccountssupabase.RepositoryInterface
@@ -90,11 +96,11 @@ func New(cfg Config) (*Service, error) {
 
 	// Load and validate master key material.
 	if err := s.loadMasterKey(cfg.Marble); err != nil {
-		if strict {
+		if strict || !allowEphemeralMasterKey() {
 			return nil, err
 		}
 
-		s.Logger().WithError(err).Warn("master key not configured; generating ephemeral key (development/testing only)")
+		s.Logger().WithError(err).Warn("master key not configured; generating ephemeral key (explicitly allowed)")
 
 		key, keyErr := crypto.GenerateRandomBytes(32)
 		if keyErr != nil {
@@ -112,6 +118,11 @@ func New(cfg Config) (*Service, error) {
 		s.masterKeyHash = computedHash[:]
 	}
 
+	// Load encryption key for stored WIFs (optional - only needed for pre-generated accounts)
+	if err := s.loadEncryptionKey(cfg.Marble); err != nil {
+		s.Logger().WithError(err).Debug("encryption key not configured; stored WIF accounts disabled")
+	}
+
 	base.WithHydrate(s.initializePool)
 	base.AddTickerWorker(time.Hour, func(ctx context.Context) error {
 		s.rotateAccounts(ctx)
@@ -125,6 +136,31 @@ func New(cfg Config) (*Service, error) {
 	base.RegisterStandardRoutes()
 	s.registerRoutes()
 	return s, nil
+}
+
+func allowEphemeralMasterKey() bool {
+	raw := strings.TrimSpace(os.Getenv("NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY"))
+	switch strings.ToLower(raw) {
+	case "1", "true", "yes":
+		return true
+	default:
+		return false
+	}
+}
+
+const secretPoolEncryptionKey = "POOL_ENCRYPTION_KEY"
+
+// loadEncryptionKey loads the encryption key for decrypting stored WIFs.
+func (s *Service) loadEncryptionKey(m *marble.Marble) error {
+	key, ok := m.Secret(secretPoolEncryptionKey)
+	if !ok || len(key) == 0 {
+		return fmt.Errorf("missing %s secret", secretPoolEncryptionKey)
+	}
+	if len(key) != 32 {
+		return fmt.Errorf("%s must be 32 bytes", secretPoolEncryptionKey)
+	}
+	s.encryptionKey = key
+	return nil
 }
 
 // initializePool ensures the pool has at least MinPoolAccounts.
@@ -237,22 +273,29 @@ func (s *Service) deriveAccountKey(accountID string) ([]byte, error) {
 	return crypto.DeriveKey(s.masterKey, []byte(accountID), "pool-account", 32)
 }
 
-// getPrivateKey derives and returns the private key for an account.
+// getPrivateKey returns the private key for an account.
+// Priority: 1) Stored encrypted WIF, 2) HD derivation from master key.
 // This is internal only - private keys never leave this service.
-// Uses neo-go's secp256k1 keys for Neo N3 compatibility.
 func (s *Service) getPrivateKey(accountID string) (*ecdsa.PrivateKey, error) {
+	// Try stored encrypted WIF first (for pre-generated accounts)
+	if s.encryptionKey != nil && s.repo != nil {
+		acc, err := s.repo.GetByID(context.Background(), accountID)
+		if err == nil && acc != nil && acc.EncryptedWIF != "" {
+			return s.decryptWIFToPrivateKey(acc.EncryptedWIF)
+		}
+	}
+
+	// Fall back to HD derivation (for legacy accounts)
 	derivedKey, err := s.deriveAccountKey(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Use neo-go's keys package which uses secp256k1 (Neo N3 curve)
 	neoPrivKey, err := keys.NewPrivateKeyFromBytes(derivedKey)
 	if err != nil {
 		return nil, fmt.Errorf("create neo private key: %w", err)
 	}
 
-	// Return the underlying ecdsa.PrivateKey (secp256k1)
 	return &neoPrivKey.PrivateKey, nil
 }
 
@@ -264,4 +307,54 @@ func (s *Service) getPrivateKeyHex(accountID string) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(derivedKey), nil
+}
+
+// decryptWIFToPrivateKey decrypts an encrypted WIF and returns the private key.
+func (s *Service) decryptWIFToPrivateKey(encryptedWIF string) (*ecdsa.PrivateKey, error) {
+	if s.encryptionKey == nil {
+		return nil, fmt.Errorf("encryption key not configured")
+	}
+
+	wif, err := s.decryptWIF(encryptedWIF)
+	if err != nil {
+		return nil, fmt.Errorf("decrypt WIF: %w", err)
+	}
+
+	neoPrivKey, err := keys.NewPrivateKeyFromWIF(wif)
+	if err != nil {
+		return nil, fmt.Errorf("parse WIF: %w", err)
+	}
+
+	return &neoPrivKey.PrivateKey, nil
+}
+
+// decryptWIF decrypts an AES-256-GCM encrypted WIF.
+func (s *Service) decryptWIF(encryptedWIF string) (string, error) {
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedWIF)
+	if err != nil {
+		return "", fmt.Errorf("decode base64: %w", err)
+	}
+
+	block, err := aes.NewCipher(s.encryptionKey)
+	if err != nil {
+		return "", fmt.Errorf("create cipher: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("create GCM: %w", err)
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return "", fmt.Errorf("ciphertext too short")
+	}
+
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return "", fmt.Errorf("decrypt: %w", err)
+	}
+
+	return string(plaintext), nil
 }

@@ -12,6 +12,15 @@ patches:
       - op: replace
         path: /data/OE_SIMULATION
         value: "1"
+      - op: replace
+        path: /data/SUPABASE_URL
+        value: "http://postgrest.supabase.svc.cluster.local:3000"
+      - op: replace
+        path: /data/SUPABASE_REST_PREFIX
+        value: "/"
+      - op: replace
+        path: /data/SUPABASE_ALLOW_INSECURE
+        value: "true"
     target:
       kind: ConfigMap
       name: service-layer-config

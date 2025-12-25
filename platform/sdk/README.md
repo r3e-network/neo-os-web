@@ -22,7 +22,7 @@ const sdk = createMiniAppSDK({
 await sdk.payments.payGAS("my-app", "1.5", "entry fee");
 await sdk.governance.vote("my-app", "proposal-1", "10", true);
 await sdk.rng.requestRandom("my-app");
-await sdk.datafeed.getPrice("BTC-USD");
+await sdk.datafeed.getPrice("BTC-USD"); // or "BTC" (defaults to BTC-USD)
 ```
 
 Notes:

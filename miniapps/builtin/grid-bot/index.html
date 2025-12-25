@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grid Trading Bot</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
+        color: #fff;
+        min-height: 100vh;
+        padding: 16px;
+      }
+      .container {
+        max-width: 420px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        font-size: 24px;
+        color: #00ff88;
+      }
+      .header p {
+        color: #888;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .card-title {
+        font-size: 14px;
+        color: #888;
+        margin-bottom: 12px;
+      }
+      .grid-visual {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+        margin: 12px 0;
+      }
+      .grid-level {
+        height: 24px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+      }
+      .grid-level.buy {
+        background: rgba(0, 255, 136, 0.3);
+        border: 1px solid #00ff88;
+      }
+      .grid-level.sell {
+        background: rgba(255, 68, 68, 0.3);
+        border: 1px solid #ff4444;
+      }
+      .grid-level.current {
+        background: rgba(255, 200, 0, 0.5);
+        border: 2px solid #ffc800;
+      }
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0;
+      }
+      .stat-label {
+        color: #888;
+        font-size: 13px;
+      }
+      .stat-value {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .input-group {
+        margin-bottom: 12px;
+      }
+      .input-group label {
+        display: block;
+        color: #888;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .input-group input {
+        width: 100%;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 14px;
+      }
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 8px;
+      }
+      .btn-primary {
+        background: #00ff88;
+        color: #000;
+      }
+      .btn-danger {
+        background: #ff4444;
+        color: #fff;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .orders-list {
+        max-height: 120px;
+        overflow-y: auto;
+      }
+      .order-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 11px;
+      }
+      .sdk-note {
+        background: rgba(255, 200, 0, 0.1);
+        border: 1px solid rgba(255, 200, 0, 0.3);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        color: #ffc800;
+        display: none;
+      }
+      #status {
+        text-align: center;
+        padding: 8px;
+        font-size: 13px;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>📊 Grid Bot</h1>
+        <p>Automated Grid Trading</p>
+      </div>
+      <div id="sdk-note" class="sdk-note">⚠️ SDK not detected. Running in demo mode.</div>
+      <div class="card">
+        <div class="card-title">Grid Visualization</div>
+        <div id="grid-visual" class="grid-visual"></div>
+        <div class="stat-row">
+          <span class="stat-label">Current Price</span>
+          <span id="current-price" class="stat-value">$0.00</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">⚙️ Grid Settings</div>
+        <div class="input-group">
+          <label>Upper Price ($)</label>
+          <input type="number" id="upper-price" value="5.0" step="0.1" />
+        </div>
+        <div class="input-group">
+          <label>Lower Price ($)</label>
+          <input type="number" id="lower-price" value="3.0" step="0.1" />
+        </div>
+        <div class="input-group">
+          <label>Grid Count</label>
+          <input type="number" id="grid-count" value="10" min="5" max="50" />
+        </div>
+        <div class="input-group">
+          <label>Investment (GAS)</label>
+          <input type="number" id="investment" value="10" min="1" max="100" />
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📈 Performance</div>
+        <div class="stat-row">
+          <span class="stat-label">Grid Profit</span><span id="grid-profit" class="stat-value">0.00 GAS</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Filled Orders</span><span id="filled-orders" class="stat-value">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Active Orders</span><span id="active-orders" class="stat-value">0</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 Recent Orders</div>
+        <div id="orders-list" class="orders-list">
+          <div style="text-align: center; color: #666; padding: 15px">No orders</div>
+        </div>
+      </div>
+      <button id="start-btn" class="btn btn-primary" onclick="startGrid()">Start Grid Bot</button>
+      <button id="stop-btn" class="btn btn-danger" onclick="stopGrid()" style="display: none">Stop Grid Bot</button>
+      <div id="status"></div>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
