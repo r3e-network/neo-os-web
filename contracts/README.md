@@ -54,15 +54,41 @@ must:
 - register any on-chain dependencies in `manifest.contracts_needed`
 - use `tx-proxy` allowlists for any enclave-origin writes
 
-### Sample MiniApp Contract
+### MiniApp Contract: MiniAppServiceConsumer
 
 This repo includes a **sample** on-chain MiniApp contract that demonstrates the
 ServiceLayerGateway request/callback workflow:
 
-- `MiniAppServiceConsumer/MiniAppServiceConsumer.cs`
+| Contract                   | Source                                             | Description                                      |
+| -------------------------- | -------------------------------------------------- | ------------------------------------------------ |
+| **MiniAppServiceConsumer** | `MiniAppServiceConsumer/MiniAppServiceConsumer.cs` | Sample callback receiver for ServiceLayerGateway |
 
-It is **not** deployed by default; build it with `./build.sh` and deploy it as
-needed for testnet workflows.
+**Features:**
+
+- Receives callbacks from ServiceLayerGateway after TEE service execution
+- Stores callback records (requestId, appId, serviceType, success, result, error)
+- Emits `ServiceCallback` event for off-chain indexing
+- Admin-controlled gateway address configuration
+
+**Key Methods:**
+
+```
+SetGateway(gateway)      - Set the ServiceLayerGateway contract address
+OnServiceCallback(...)   - Callback entry point (called by gateway)
+GetLastCallback()        - Query the most recent callback record
+```
+
+**Deployment (Optional):**
+
+```bash
+# Build the contract
+./build.sh
+
+# Deploy to testnet (requires NEO_TESTNET_WIF)
+go run scripts/deploy_miniapp_consumer.go
+```
+
+It is **not** deployed by default; deploy it as needed for testnet workflows.
 
 ## Common Contract Features
 
