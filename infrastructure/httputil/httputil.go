@@ -341,15 +341,18 @@ func PaginationParams(r *http.Request, defaultLimit, maxLimit int) (offset, limi
 }
 
 var canonicalServiceIDs = map[string]struct{}{
-	"gateway":      {},
-	"globalsigner": {},
-	"neooracle":    {},
-	"neofeeds":     {},
-	"neoflow":      {},
-	"neocompute":   {},
-	"neovrf":       {},
-	"neoaccounts":  {},
-	"txproxy":      {},
+	"gateway":       {},
+	"globalsigner":  {},
+	"neooracle":     {},
+	"neofeeds":      {},
+	"neoflow":       {},
+	"neocompute":    {},
+	"neovrf":        {},
+	"neoaccounts":   {},
+	"neorequests":   {},
+	"txproxy":       {},
+	"neogasbank":    {},
+	"neosimulation": {},
 }
 
 var serviceIDAliases = map[string]string{
@@ -360,6 +363,7 @@ var serviceIDAliases = map[string]string{
 	"confidential": "neocompute",
 	"vrf":          "neovrf",
 	"tx-proxy":     "txproxy",
+	"requests":     "neorequests",
 }
 
 func canonicalizeServiceID(raw string) string {

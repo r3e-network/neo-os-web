@@ -45,6 +45,10 @@ Injected via MarbleRun secrets (values depend on which services you run):
 - `COMPUTE_MASTER_KEY` for Confidential Compute
 - `GASBANK_DEPOSIT_ADDRESS` (public) for GasBank deposit verification
 - `TEE_PRIVATE_KEY` (fallback only) if `txproxy` cannot use GlobalSigner and must sign/broadcast directly
+- NeoRequests limits + enforcement (recommended in production):
+  `NEOREQUESTS_MAX_RESULT_BYTES`, `NEOREQUESTS_MAX_ERROR_LEN`,
+  `NEOREQUESTS_RNG_RESULT_MODE`, `NEOREQUESTS_TX_WAIT`, `TXPROXY_TIMEOUT`,
+  `NEOREQUESTS_ENFORCE_APPREGISTRY`, `NEOREQUESTS_APPREGISTRY_CACHE_SECONDS`
 
 ## Chain / Contract Configuration
 
@@ -56,6 +60,7 @@ Contract hashes are configured via environment variables (0x-prefixed Uint160 st
 - `CONTRACT_RANDOMNESSLOG_HASH` (optional randomness anchoring)
 - `CONTRACT_APPREGISTRY_HASH` (app allowlist + manifest hashes)
 - `CONTRACT_AUTOMATIONANCHOR_HASH` (automation task registry + anti-replay)
+- `CONTRACT_SERVICEGATEWAY_HASH` (on-chain service requests + callbacks)
 
 The gateway for user workflows is **Supabase Edge** (there is no on-chain
 gateway contract in the current blueprint).

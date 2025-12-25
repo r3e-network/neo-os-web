@@ -1,0 +1,26 @@
+{
+  "app_id": "builtin-bridge-guardian",
+  "name": "Bridge Guardian",
+  "description": "Trustless cross-chain bridge guardian with SPV proof verification and TEE-secured signing",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=bridge-guardian",
+  "developer_pubkey": "",
+  "permissions": {
+    "wallet": ["read-address"],
+    "payments": true,
+    "datafeed": true,
+    "automation": true,
+    "compute": true
+  },
+  "assets_allowed": ["GAS"],
+  "limits": {
+    "max_per_tx": 1000,
+    "max_per_user_per_day": 10000
+  },
+  "category": "defi",
+  "tags": ["bridge", "cross-chain", "security", "tee"],
+  "security": {
+    "attestation_required": true
+  },
+  "sandbox_flags": ["no-eval", "strict-csp"]
+}

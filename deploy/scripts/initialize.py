@@ -8,6 +8,7 @@ This script initializes the **MiniApp platform** contracts after deployment:
   - `PriceFeed.setUpdater(tee)`
   - `RandomnessLog.setUpdater(tee)`
   - `AutomationAnchor.setUpdater(tee)`
+  - `ServiceLayerGateway.setUpdater(tee)`
 
 The updater is expected to be the enclave-managed signer (GlobalSigner/TxProxy)
 in production, but for Neo Express we use the `tee` wallet created by
@@ -174,7 +175,7 @@ class PlatformInitializer:
         updater_arg = reverse_hash160(tee_hash)
 
         print("\n=== Setting platform Updater (TEE signer) ===")
-        for contract_name in ("PriceFeed", "RandomnessLog", "AutomationAnchor"):
+        for contract_name in ("PriceFeed", "RandomnessLog", "AutomationAnchor", "ServiceLayerGateway"):
             if contract_name not in self.deployed:
                 print(f"  - {contract_name}: not deployed, skipping")
                 continue

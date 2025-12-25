@@ -37,7 +37,7 @@ See `platform/edge/functions/`:
 - `compute-execute`: runs a script via `neocompute` (`/execute`) (host-gated).
 - `compute-jobs`: lists compute jobs via `neocompute` (`/jobs`) (host-gated).
 - `compute-job`: gets a compute job via `neocompute` (`/jobs/{id}`) (host-gated; uses `?id=`).
-- `datafeed-price`: read proxy to `neofeeds`.
+- `datafeed-price`: read proxy to `neofeeds` (symbols like `BTC-USD` or `BTC` which defaults to `BTC-USD`).
 - `oracle-query`: forwards allowlisted HTTP fetch requests to `neooracle` (optional secret injection).
 - `automation-triggers`: list/create automation triggers via `neoflow` (host-gated).
 - `automation-trigger`: get a trigger via `neoflow` (host-gated; uses `?id=`).
@@ -150,6 +150,29 @@ set:
 - `NEOORACLE_URL=http://localhost:8088`
 - `NEOFLOW_URL=http://localhost:8084`
 - `TXPROXY_URL=http://localhost:8090`
+
+## k3s Gateway (Local Supabase)
+
+When running the Edge gateway inside k3s, use the internal Supabase gateway
+service to provide `/rest/v1` and `/auth/v1` on a single URL:
+
+- `SUPABASE_URL=http://supabase-gateway.supabase.svc.cluster.local:8000`
+
+This gateway is a lightweight HTTP proxy deployed alongside the local Supabase
+stack and avoids relying on external TLS or host-based routing.
+
+For Edge → TEE mTLS inside k3s, use:
+
+```bash
+./scripts/setup_edge_mtls.sh --env-file .env.local
+```
+
+The k3s deployment uses Deno's `--unsafely-ignore-certificate-errors` for local
+development. Do not use this flag in production.
+
+Because mTLS uses Deno's experimental `HttpClient` API, run the Edge gateway
+with `--unstable` (or `--unstable-net` on newer Deno versions). The k3s
+deployment and `deno task dev` already include this flag.
 
 ## mTLS to TEE
 

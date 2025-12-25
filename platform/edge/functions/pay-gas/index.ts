@@ -1,6 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { normalizeUInt160 } from "../_shared/contracts.ts";
-import { mustGetEnv } from "../_shared/env.ts";
+import { mustGetEnv, getEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
@@ -14,10 +14,20 @@ type PayGasRequest = {
   memo?: string;
 };
 
+// Neo N3 Testnet GAS contract hash (native contract)
+const NEO_TESTNET_GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+
 // Thin gateway:
 // - validates auth + basic shape
 // - enforces GAS-only settlement
 // - returns an invocation "intent" for the SDK/wallet to sign and submit
+//
+// Payment Flow (Direct GAS.Transfer):
+// 1. User calls GAS.Transfer(from, PaymentHub, amount, appId)
+// 2. GAS contract transfers GAS to PaymentHub
+// 3. PaymentHub.OnNEP17Payment callback is triggered
+// 4. PaymentHub validates appId and updates balance
+// 5. Receipt is created and PaymentReceived event is emitted
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -70,25 +80,43 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const paymentHubHash = normalizeUInt160(mustGetEnv("CONTRACT_PAYMENTHUB_HASH"));
+  const gasContractHash = normalizeUInt160(getEnv("CONTRACT_GAS_HASH") ?? NEO_TESTNET_GAS_HASH);
 
   const requestId = crypto.randomUUID();
-  const memo = (body.memo ?? "").slice(0, 256);
 
-  return json({
-    request_id: requestId,
-    user_id: auth.userId,
-    intent: "payments",
-    constraints: { settlement: "GAS_ONLY" },
-    invocation: {
-      contract_hash: paymentHubHash,
-      method: "pay",
-      params: [
-        { type: "String", value: appId },
-        { type: "Integer", value: amount.toString() },
-        { type: "String", value: memo },
-      ],
+  // Direct GAS.Transfer flow:
+  // The wallet will call GAS.Transfer(from, to, amount, data)
+  // - from: user's wallet address (filled by wallet at signing time)
+  // - to: PaymentHub contract address
+  // - amount: payment amount in GAS fractions (8 decimals)
+  // - data: appId string (used by OnNEP17Payment to identify the MiniApp)
+  //
+  // Note: memo is not passed through GAS.Transfer to keep the data simple
+  // and avoid Neo VM CONVERT errors. The appId is sufficient for routing.
+  return json(
+    {
+      request_id: requestId,
+      user_id: auth.userId,
+      intent: "payments",
+      constraints: { settlement: "GAS_ONLY" },
+      invocation: {
+        contract_hash: gasContractHash,
+        method: "transfer",
+        params: [
+          // from: will be filled by wallet with user's address
+          { type: "Hash160", value: "SENDER" },
+          // to: PaymentHub contract
+          { type: "Hash160", value: paymentHubHash },
+          // amount: GAS amount in fractions (8 decimals)
+          { type: "Integer", value: amount.toString() },
+          // data: appId for OnNEP17Payment callback
+          { type: "String", value: appId },
+        ],
+      },
     },
-  }, {}, req);
+    {},
+    req,
+  );
 }
 
 if (import.meta.main) {

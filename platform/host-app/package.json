@@ -13,7 +13,8 @@
     "@module-federation/nextjs-mf": "^8.4.1",
     "next": "^14.2.5",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "webpack": "^5.104.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",

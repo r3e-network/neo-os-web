@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secret Vote - Privacy Governance</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+        color: #fff;
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        font-size: 24px;
+        margin-bottom: 5px;
+      }
+      .header .subtitle {
+        color: #888;
+        font-size: 14px;
+      }
+      #proposal-list {
+        margin-bottom: 20px;
+      }
+      .proposal-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+      }
+      .proposal-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .proposal-item.selected {
+        border-color: #9c27b0;
+      }
+      .proposal-item.ended {
+        opacity: 0.6;
+      }
+      .proposal-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .proposal-id {
+        color: #888;
+        font-size: 12px;
+      }
+      .proposal-status {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 10px;
+      }
+      .proposal-status.active {
+        background: #4caf50;
+      }
+      .proposal-status.ended {
+        background: #666;
+      }
+      .proposal-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+      .proposal-desc {
+        color: #888;
+        font-size: 13px;
+      }
+      .vote-section {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .vote-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .vote-row label {
+        flex: 1;
+        color: #888;
+      }
+      .vote-row input {
+        width: 80px;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 16px;
+        text-align: center;
+      }
+      .vote-buttons {
+        display: flex;
+        gap: 12px;
+      }
+      .vote-btn {
+        flex: 1;
+        padding: 14px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      #btn-yes {
+        background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+        color: #fff;
+      }
+      #btn-no {
+        background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+        color: #fff;
+      }
+      .vote-btn:hover:not(:disabled) {
+        transform: scale(1.02);
+      }
+      .vote-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #results {
+        margin-top: 15px;
+      }
+      .results-bar {
+        height: 20px;
+        background: #f44336;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .yes-bar {
+        height: 100%;
+        background: #4caf50;
+        transition: width 0.3s;
+      }
+      .results-text {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        font-size: 13px;
+      }
+      .yes-text {
+        color: #4caf50;
+      }
+      .no-text {
+        color: #f44336;
+      }
+      .status {
+        text-align: center;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 15px 0;
+      }
+      .status-info {
+        background: rgba(33, 150, 243, 0.2);
+      }
+      .status-success {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4caf50;
+      }
+      .status-warning {
+        background: rgba(255, 152, 0, 0.2);
+        color: #ff9800;
+      }
+      .status-error {
+        background: rgba(244, 67, 54, 0.2);
+        color: #f44336;
+      }
+      #sdk-note {
+        display: none;
+        background: rgba(255, 152, 0, 0.2);
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .info {
+        text-align: center;
+        font-size: 11px;
+        color: #666;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Secret Vote</h1>
+        <div class="subtitle">Privacy-Preserving Governance</div>
+      </div>
+      <div id="sdk-note">SDK not available. Run inside MiniApp host.</div>
+      <div id="proposal-list"></div>
+      <div class="vote-section">
+        <div class="vote-row">
+          <label>Voting Power (NEO)</label>
+          <input type="number" id="neo-amount" value="1" min="1" max="100" step="1" />
+        </div>
+        <div class="vote-buttons">
+          <button class="vote-btn" id="btn-yes">YES</button>
+          <button class="vote-btn" id="btn-no">NO</button>
+        </div>
+        <div id="results"></div>
+      </div>
+      <div id="status" class="status status-info">Select a proposal to vote</div>
+      <div class="info">Votes processed in TEE - Your choice remains private</div>
+    </div>
+    <script src="../../_shared/miniapp-bridge.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

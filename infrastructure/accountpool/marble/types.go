@@ -73,6 +73,12 @@ type TransferInput = neoaccountstypes.TransferInput
 // TransferResponse returns the transfer result.
 type TransferResponse = neoaccountstypes.TransferResponse
 
+// TransferWithDataInput for transferring GAS with data to a contract.
+type TransferWithDataInput = neoaccountstypes.TransferWithDataInput
+
+// TransferWithDataResponse returns the transfer with data result.
+type TransferWithDataResponse = neoaccountstypes.TransferWithDataResponse
+
 // MasterKeyAttestation is a non-sensitive bundle proving the master key hash
 // is bound to enclave report data.
 type MasterKeyAttestation = neoaccountstypes.MasterKeyAttestation

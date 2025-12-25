@@ -24,14 +24,18 @@ const (
 // Account represents an account pool account with locking support.
 // Balance is now tracked per-token in the AccountBalance table.
 type Account struct {
-	ID         string    `json:"id"`
-	Address    string    `json:"address"`
-	CreatedAt  time.Time `json:"created_at"`
-	LastUsedAt time.Time `json:"last_used_at"`
-	TxCount    int64     `json:"tx_count"`
-	IsRetiring bool      `json:"is_retiring"`
-	LockedBy   string    `json:"locked_by,omitempty"`
-	LockedAt   time.Time `json:"locked_at,omitempty"`
+	ID           string    `json:"id"`
+	Address      string    `json:"address"`
+	PublicKey    string    `json:"public_key,omitempty"`
+	EncryptedWIF string    `json:"encrypted_wif,omitempty"`
+	KeyVersion   int       `json:"key_version,omitempty"`
+	GenBatch     string    `json:"generation_batch,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	LastUsedAt   time.Time `json:"last_used_at"`
+	TxCount      int64     `json:"tx_count"`
+	IsRetiring   bool      `json:"is_retiring"`
+	LockedBy     string    `json:"locked_by,omitempty"`
+	LockedAt     time.Time `json:"locked_at,omitempty"`
 }
 
 // AccountBalance represents a per-token balance for an account.

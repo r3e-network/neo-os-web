@@ -36,6 +36,7 @@ these are the primary contract vars:
 - `CONTRACT_RANDOMNESSLOG_HASH`
 - `CONTRACT_APPREGISTRY_HASH`
 - `CONTRACT_AUTOMATIONANCHOR_HASH`
+- `CONTRACT_SERVICEGATEWAY_HASH`
 
 ```go
 contracts := chain.ContractAddressesFromEnv()

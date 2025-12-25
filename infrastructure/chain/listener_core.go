@@ -32,10 +32,12 @@ type EventHandler func(event *ContractEvent) error
 type ContractEvent struct {
 	TxHash     string
 	BlockIndex uint64
+	BlockHash  string
 	Contract   string
 	EventName  string
 	State      []StackItem
 	Timestamp  time.Time
+	LogIndex   int
 }
 
 // ListenerConfig holds event listener configuration.
@@ -67,6 +69,7 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 		cfg.Contracts.RandomnessLog,
 		cfg.Contracts.AppRegistry,
 		cfg.Contracts.AutomationAnchor,
+		cfg.Contracts.ServiceLayerGateway,
 	} {
 		if normalized := normalizeContractHash(contractHash); normalized != "" {
 			contractHashes[normalized] = true
@@ -161,7 +164,7 @@ func (l *EventListener) processNewBlocks(ctx context.Context) {
 
 		// Process each transaction in the block
 		for i := range block.Tx {
-			l.processTransaction(ctx, block.Tx[i].Hash, blockIndex)
+			l.processTransaction(ctx, block.Tx[i].Hash, blockIndex, block.Hash)
 		}
 
 		l.mu.Lock()
@@ -171,12 +174,13 @@ func (l *EventListener) processNewBlocks(ctx context.Context) {
 }
 
 // processTransaction processes a transaction for events.
-func (l *EventListener) processTransaction(ctx context.Context, txHash string, blockIndex uint64) {
+func (l *EventListener) processTransaction(ctx context.Context, txHash string, blockIndex uint64, blockHash string) {
 	appLog, err := l.client.GetApplicationLog(ctx, txHash)
 	if err != nil {
 		return
 	}
 
+	logIndex := 0
 	for _, exec := range appLog.Executions {
 		if exec.VMState != "HALT" {
 			continue
@@ -193,10 +197,13 @@ func (l *EventListener) processTransaction(ctx context.Context, txHash string, b
 			event := &ContractEvent{
 				TxHash:     txHash,
 				BlockIndex: blockIndex,
+				BlockHash:  blockHash,
 				Contract:   contractHash,
 				EventName:  notif.EventName,
 				Timestamp:  time.Now(),
+				LogIndex:   logIndex,
 			}
+			logIndex++
 
 			// Parse state array
 			if notif.State.Type == "Array" {

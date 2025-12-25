@@ -84,6 +84,20 @@
         "OutOfDateConfigurationNeeded"
       ]
     },
+    "neorequests": {
+      "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded",
+        "ConfigurationAndSWHardeningNeeded",
+        "ConfigurationNeeded",
+        "OutOfDate",
+        "OutOfDateConfigurationNeeded"
+      ]
+    },
     "globalsigner": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
@@ -113,6 +127,20 @@
       ]
     },
     "neogasbank": {
+      "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded",
+        "ConfigurationAndSWHardeningNeeded",
+        "ConfigurationNeeded",
+        "OutOfDate",
+        "OutOfDateConfigurationNeeded"
+      ]
+    },
+    "neosimulation": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
@@ -169,14 +197,17 @@
       "Package": "neofeeds",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neofeeds",
           "SERVICE_TYPE": "neofeeds",
           "NEOFEEDS_SIGNING_KEY": "{{ hex .Secrets.NEOFEEDS_SIGNING_KEY.Private }}",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
         }
       }
     },
@@ -184,13 +215,16 @@
       "Package": "neoflow",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neoflow",
           "SERVICE_TYPE": "neoflow",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
         }
       }
     },
@@ -198,7 +232,9 @@
       "Package": "neocompute",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neocompute",
           "SERVICE_TYPE": "neocompute",
@@ -206,7 +242,8 @@
           "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
         }
       }
     },
@@ -214,14 +251,17 @@
       "Package": "neovrf",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neovrf",
           "SERVICE_TYPE": "neovrf",
           "NEOVRF_SIGNING_KEY": "{{ hex .Secrets.NEOVRF_SIGNING_KEY.Private }}",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
         }
       }
     },
@@ -229,14 +269,17 @@
       "Package": "neoaccounts",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neoaccounts",
           "SERVICE_TYPE": "neoaccounts",
           "POOL_MASTER_KEY": "{{ hex .Secrets.POOL_MASTER_KEY.Private }}",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
         }
       }
     },
@@ -244,7 +287,9 @@
       "Package": "neooracle",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neooracle",
           "SERVICE_TYPE": "neooracle",
@@ -252,7 +297,25 @@
           "ORACLE_HTTP_ALLOWLIST": "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
+        }
+      }
+    },
+    "neorequests": {
+      "Package": "neorequests",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neorequests",
+          "SERVICE_TYPE": "neorequests",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
         }
       }
     },
@@ -260,14 +323,17 @@
       "Package": "globalsigner",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "globalsigner",
           "SERVICE_TYPE": "globalsigner",
           "GLOBALSIGNER_MASTER_SEED": "{{ hex .Secrets.GLOBALSIGNER_MASTER_SEED.Private }}",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
         }
       }
     },
@@ -275,13 +341,16 @@
       "Package": "txproxy",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "txproxy",
           "SERVICE_TYPE": "txproxy",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
         }
       }
     },
@@ -289,13 +358,33 @@
       "Package": "neogasbank",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neogasbank",
           "SERVICE_TYPE": "neogasbank",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
-          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}"
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
+        }
+      }
+    },
+    "neosimulation": {
+      "Package": "neosimulation",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neosimulation",
+          "SERVICE_TYPE": "neosimulation",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "{{ env \"MARBLE_EXTRA_CLIENT_CA\" }}"
         }
       }
     }

@@ -21,12 +21,22 @@ import (
 
 const rpcURL = "https://testnet1.neo.coz.io:443"
 
-// Contract addresses (new v2.0 platform contracts)
+// Contract addresses (new v2.0 platform contracts).
+// Prefer environment overrides to avoid stale hardcoded hashes.
 var contracts = map[string]string{
-	"PriceFeed":        "0xc5d9117d255054489d1cf59b2c1d188c01bc9954",
-	"RandomnessLog":    "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39",
-	"PaymentHub":       "0x45777109546ceaacfbeed9336d695bb8b8bd77ca",
-	"AutomationAnchor": "0x1c888d699ce76b0824028af310d90c3c18adeab5",
+	"PriceFeed":           envOrDefault("CONTRACT_PRICEFEED_HASH", "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"),
+	"RandomnessLog":       envOrDefault("CONTRACT_RANDOMNESSLOG_HASH", "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"),
+	"PaymentHub":          envOrDefault("CONTRACT_PAYMENTHUB_HASH", "0x45777109546ceaacfbeed9336d695bb8b8bd77ca"),
+	"AutomationAnchor":    envOrDefault("CONTRACT_AUTOMATIONANCHOR_HASH", "0x1c888d699ce76b0824028af310d90c3c18adeab5"),
+	"ServiceLayerGateway": envOrDefault("CONTRACT_SERVICEGATEWAY_HASH", ""),
+}
+
+func envOrDefault(key, fallback string) string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw != "" {
+		return raw
+	}
+	return fallback
 }
 
 // MiniApps to configure
@@ -88,7 +98,21 @@ func main() {
 	}
 	time.Sleep(2 * time.Second)
 
-	// 3. Configure MiniApps in PaymentHub
+	// 3. Set updater for ServiceLayerGateway (if configured)
+	if strings.TrimSpace(contracts["ServiceLayerGateway"]) != "" {
+		fmt.Println("\n--- ServiceLayerGateway: SetUpdater ---")
+		if err := setUpdater(ctx, client, act, contracts["ServiceLayerGateway"], deployerHash); err != nil {
+			fmt.Printf("ServiceLayerGateway SetUpdater failed: %v\n", err)
+		} else {
+			fmt.Println("✅ ServiceLayerGateway updater set")
+		}
+		time.Sleep(2 * time.Second)
+	} else {
+		fmt.Println("\n--- ServiceLayerGateway: SetUpdater ---")
+		fmt.Println("⚠️  ServiceLayerGateway hash not configured; skipping")
+	}
+
+	// 4. Configure MiniApps in PaymentHub
 	fmt.Println("\n--- PaymentHub: ConfigureApp ---")
 	for _, appID := range miniApps {
 		if err := configureApp(ctx, client, act, contracts["PaymentHub"], appID, deployerHash); err != nil {

@@ -17,7 +17,7 @@ import (
 func TestAllMiniApps(t *testing.T) {
 	apps := AllMiniApps()
 
-	assert.Len(t, apps, 7)
+	assert.Len(t, apps, 23)
 
 	// Verify all expected apps are present
 	appIDs := make(map[string]bool)
@@ -32,6 +32,25 @@ func TestAllMiniApps(t *testing.T) {
 	assert.True(t, appIDs["builtin-prediction-market"])
 	assert.True(t, appIDs["builtin-flashloan"])
 	assert.True(t, appIDs["builtin-price-ticker"])
+	assert.True(t, appIDs["builtin-gas-spin"])
+	assert.True(t, appIDs["builtin-price-predict"])
+	assert.True(t, appIDs["builtin-secret-vote"])
+	// Phase 2 MiniApps
+	assert.True(t, appIDs["builtin-secret-poker"])
+	assert.True(t, appIDs["builtin-micro-predict"])
+	assert.True(t, appIDs["builtin-red-envelope"])
+	assert.True(t, appIDs["builtin-gas-circle"])
+	assert.True(t, appIDs["builtin-fog-chess"])
+	assert.True(t, appIDs["builtin-gov-booster"])
+	// Phase 3 MiniApps
+	assert.True(t, appIDs["builtin-turbo-options"])
+	assert.True(t, appIDs["builtin-il-guard"])
+	assert.True(t, appIDs["builtin-guardian-policy"])
+	// Phase 4 MiniApps - Long-Running Processes
+	assert.True(t, appIDs["builtin-ai-trader"])
+	assert.True(t, appIDs["builtin-grid-bot"])
+	assert.True(t, appIDs["builtin-nft-evolve"])
+	assert.True(t, appIDs["builtin-bridge-guardian"])
 }
 
 func TestAllMiniApps_Categories(t *testing.T) {
@@ -39,17 +58,29 @@ func TestAllMiniApps_Categories(t *testing.T) {
 
 	gaming := 0
 	defi := 0
+	governance := 0
+	social := 0
+	security := 0
 	for _, app := range apps {
 		switch app.Category {
 		case "gaming":
 			gaming++
 		case "defi":
 			defi++
+		case "governance":
+			governance++
+		case "social":
+			social++
+		case "security":
+			security++
 		}
 	}
 
-	assert.Equal(t, 4, gaming) // lottery, coin-flip, dice-game, scratch-card
-	assert.Equal(t, 3, defi)   // prediction-market, flashloan, price-ticker
+	assert.Equal(t, 8, gaming)      // lottery, coin-flip, dice-game, scratch-card, gas-spin, secret-poker, fog-chess, nft-evolve
+	assert.Equal(t, 10, defi)       // prediction-market, flashloan, price-ticker, price-predict, micro-predict, turbo-options, il-guard, ai-trader, grid-bot, bridge-guardian
+	assert.Equal(t, 2, governance)  // secret-vote, gov-booster
+	assert.Equal(t, 2, social)      // red-envelope, gas-circle
+	assert.Equal(t, 1, security)    // guardian-policy
 }
 
 func TestAllMiniApps_BetAmounts(t *testing.T) {
@@ -284,9 +315,9 @@ func TestMiniAppSimulator_SimulatePredictionMarket_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify UpdatePriceFeed was called twice (query + resolve)
+	// Verify UpdatePriceFeed was called once (query)
 	priceFeedCalls := mockInvoker.getUpdatePriceFeedCalls()
-	assert.Len(t, priceFeedCalls, 2)
+	assert.Len(t, priceFeedCalls, 1)
 
 	// Verify PayToApp was called
 	payToAppCalls := mockInvoker.getPayToAppCalls()
@@ -378,19 +409,9 @@ func TestMiniAppSimulator_SimulatePriceTicker_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify UpdatePriceFeed was called for all 4 symbols
+	// Price ticker uses cached price feed updates (no UpdatePriceFeed calls here)
 	priceFeedCalls := mockInvoker.getUpdatePriceFeedCalls()
-	assert.Len(t, priceFeedCalls, 4)
-
-	// Verify all symbols were queried
-	symbols := make(map[string]bool)
-	for _, call := range priceFeedCalls {
-		symbols[call.Symbol] = true
-	}
-	assert.True(t, symbols["BTCUSD"])
-	assert.True(t, symbols["ETHUSD"])
-	assert.True(t, symbols["NEOUSD"])
-	assert.True(t, symbols["GASUSD"])
+	assert.Empty(t, priceFeedCalls)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -406,8 +427,11 @@ func TestMiniAppSimulator_SimulatePriceTicker_PriceError(t *testing.T) {
 	ctx := context.Background()
 	err := sim.SimulatePriceTicker(ctx)
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "query")
+	assert.NoError(t, err)
+
+	stats := sim.GetStats()
+	priceStats := stats["price_ticker"].(map[string]int64)
+	assert.Equal(t, int64(4), priceStats["queries"])
 }
 
 // =============================================================================
@@ -428,6 +452,9 @@ func TestMiniAppSimulator_GetStats(t *testing.T) {
 	assert.Contains(t, stats, "prediction_market")
 	assert.Contains(t, stats, "flashloan")
 	assert.Contains(t, stats, "price_ticker")
+	assert.Contains(t, stats, "gas_spin")
+	assert.Contains(t, stats, "price_predict")
+	assert.Contains(t, stats, "secret_vote")
 	assert.Contains(t, stats, "errors")
 }
 
@@ -474,7 +501,7 @@ func TestGenerateGameID(t *testing.T) {
 
 func TestMiniAppSimulator_VerifyPoolAccountUsage(t *testing.T) {
 	// This test verifies that all MiniApps that make payments use pool accounts
-	// (via PayToApp which uses InvokeContract with Global scope)
+	// (via PayToApp which uses TransferWithData)
 
 	mockInvoker := newMockContractInvoker()
 	sim := NewMiniAppSimulator(mockInvoker)
@@ -488,12 +515,16 @@ func TestMiniAppSimulator_VerifyPoolAccountUsage(t *testing.T) {
 	_ = sim.SimulatePredictionMarket(ctx)
 	_ = sim.SimulateFlashLoan(ctx)
 	_ = sim.SimulatePriceTicker(ctx)
+	_ = sim.SimulateGasSpin(ctx)
+	_ = sim.SimulatePricePredict(ctx)
+	_ = sim.SimulateSecretVote(ctx)
 
 	// Verify PayToApp was called for all payment-based MiniApps
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 
-	// Expected: lottery(1) + coin-flip(1) + dice(1) + scratch(1) + prediction(1) + flashloan(2) = 7
-	assert.GreaterOrEqual(t, len(payToAppCalls), 7)
+	// Expected: lottery(1) + coin-flip(1) + dice(1) + scratch(1) + prediction(1)
+	// + flashloan(2) + gas-spin(1) + price-predict(1) + secret-vote(1) = 10
+	assert.GreaterOrEqual(t, len(payToAppCalls), 10)
 
 	// Verify all expected apps made payments
 	appPayments := make(map[string]int)
@@ -507,6 +538,9 @@ func TestMiniAppSimulator_VerifyPoolAccountUsage(t *testing.T) {
 	assert.Greater(t, appPayments["builtin-scratch-card"], 0)
 	assert.Greater(t, appPayments["builtin-prediction-market"], 0)
 	assert.Equal(t, 2, appPayments["builtin-flashloan"]) // borrow + repay
+	assert.Greater(t, appPayments["builtin-gas-spin"], 0)
+	assert.Greater(t, appPayments["builtin-price-predict"], 0)
+	assert.Greater(t, appPayments["builtin-secret-vote"], 0)
 }
 
 func TestMiniAppSimulator_VerifyMasterAccountUsage(t *testing.T) {
@@ -518,7 +552,7 @@ func TestMiniAppSimulator_VerifyMasterAccountUsage(t *testing.T) {
 	ctx := context.Background()
 
 	// Run simulations that use master account
-	_ = sim.SimulatePriceTicker(ctx)      // Uses UpdatePriceFeed
+	_ = sim.SimulatePriceTicker(ctx)      // Cached price queries
 	_ = sim.SimulatePredictionMarket(ctx) // Uses UpdatePriceFeed
 	_ = sim.SimulateLottery(ctx)          // May use RecordRandomness
 	_ = sim.SimulateCoinFlip(ctx)         // Uses RecordRandomness

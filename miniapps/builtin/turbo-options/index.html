@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Turbo Options - Binary Trading</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 100%);
+        color: #fff;
+        min-height: 100vh;
+        padding: 12px;
+      }
+      .container {
+        max-width: 420px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 12px;
+      }
+      .header h1 {
+        font-size: 20px;
+        color: #00d4ff;
+      }
+      .header .subtitle {
+        color: #888;
+        font-size: 11px;
+      }
+      .price-display {
+        background: rgba(0, 212, 255, 0.1);
+        border: 1px solid #00d4ff;
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+        margin-bottom: 12px;
+      }
+      .asset-selector {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+        justify-content: center;
+      }
+      .asset-btn {
+        padding: 6px 12px;
+        border: 1px solid #333;
+        border-radius: 6px;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        font-size: 11px;
+      }
+      .asset-btn.active {
+        border-color: #00d4ff;
+        color: #00d4ff;
+        background: rgba(0, 212, 255, 0.1);
+      }
+      .current-price {
+        font-size: 32px;
+        font-weight: bold;
+        color: #00d4ff;
+      }
+      .price-change {
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .price-change.up {
+        color: #00ff88;
+      }
+      .price-change.down {
+        color: #ff4444;
+      }
+      .countdown-bar {
+        height: 4px;
+        background: #333;
+        border-radius: 2px;
+        margin: 10px 0;
+        overflow: hidden;
+      }
+      .countdown-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00d4ff, #00ff88);
+        transition: width 1s linear;
+      }
+      .countdown-text {
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        color: #fff;
+      }
+      .trade-panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 12px;
+      }
+      .duration-selector {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .duration-btn {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #333;
+        border-radius: 8px;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .duration-btn.active {
+        border-color: #00d4ff;
+        color: #00d4ff;
+      }
+      .amount-input {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .amount-input input {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid #333;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        color: #fff;
+        font-size: 16px;
+        text-align: center;
+      }
+      .amount-btn {
+        padding: 8px 12px;
+        border: 1px solid #333;
+        border-radius: 6px;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+      }
+      .trade-buttons {
+        display: flex;
+        gap: 10px;
+      }
+      .trade-btn {
+        flex: 1;
+        padding: 16px;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .trade-btn.up {
+        background: linear-gradient(135deg, #00ff88, #00cc66);
+        color: #000;
+      }
+      .trade-btn.down {
+        background: linear-gradient(135deg, #ff4444, #cc0000);
+        color: #fff;
+      }
+      .trade-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .trade-btn .payout {
+        font-size: 11px;
+        opacity: 0.8;
+      }
+      .positions {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .positions-title {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 8px;
+      }
+      .position {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 6px;
+        margin-bottom: 6px;
+        font-size: 11px;
+      }
+      .position.won {
+        border-left: 3px solid #00ff88;
+      }
+      .position.lost {
+        border-left: 3px solid #ff4444;
+      }
+      .position.pending {
+        border-left: 3px solid #00d4ff;
+      }
+      .status {
+        text-align: center;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 12px;
+        background: rgba(0, 212, 255, 0.1);
+      }
+      #sdk-note {
+        display: none;
+        background: rgba(255, 152, 0, 0.2);
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 11px;
+      }
+      .info {
+        text-align: center;
+        font-size: 9px;
+        color: #666;
+        margin-top: 10px;
+      }
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 12px;
+        font-size: 11px;
+      }
+      .stat {
+        text-align: center;
+      }
+      .stat-value {
+        font-size: 16px;
+        font-weight: bold;
+        color: #00d4ff;
+      }
+      .stat-label {
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>⚡ Turbo Options</h1>
+        <div class="subtitle">0.1% Datafeed • Instant Settlement</div>
+      </div>
+      <div id="sdk-note">SDK not available</div>
+      <div class="price-display">
+        <div class="asset-selector">
+          <button class="asset-btn active" onclick="selectAsset('NEO')">NEO</button>
+          <button class="asset-btn" onclick="selectAsset('GAS')">GAS</button>
+          <button class="asset-btn" onclick="selectAsset('BTC')">BTC</button>
+        </div>
+        <div class="current-price" id="current-price">$12.45</div>
+        <div class="price-change up" id="price-change">+0.12%</div>
+        <div class="countdown-bar"><div class="countdown-fill" id="countdown-fill" style="width: 100%"></div></div>
+        <div class="countdown-text" id="countdown">30</div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="win-rate">52%</div>
+          <div class="stat-label">Win Rate</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="total-trades">0</div>
+          <div class="stat-label">Trades</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="pnl">0</div>
+          <div class="stat-label">P&L (GAS)</div>
+        </div>
+      </div>
+      <div class="trade-panel">
+        <div class="duration-selector">
+          <button class="duration-btn active" onclick="selectDuration(30)">30s</button>
+          <button class="duration-btn" onclick="selectDuration(60)">60s</button>
+          <button class="duration-btn" onclick="selectDuration(120)">2m</button>
+        </div>
+        <div class="amount-input">
+          <button class="amount-btn" onclick="adjustAmount(-0.1)">-</button>
+          <input type="number" id="amount" value="0.5" min="0.1" max="50" step="0.1" />
+          <button class="amount-btn" onclick="adjustAmount(0.1)">+</button>
+        </div>
+        <div class="trade-buttons">
+          <button class="trade-btn up" id="btn-up" onclick="placeTrade('up')">
+            ▲ UP<span class="payout">1.85x payout</span>
+          </button>
+          <button class="trade-btn down" id="btn-down" onclick="placeTrade('down')">
+            ▼ DOWN<span class="payout">1.85x payout</span>
+          </button>
+        </div>
+      </div>
+      <div class="positions">
+        <div class="positions-title">Active Positions</div>
+        <div id="positions-list"></div>
+      </div>
+      <div id="status" class="status">Connect wallet to trade</div>
+      <div class="info">Powered by 0.1% sensitivity datafeed • Automation-settled</div>
+    </div>
+    <script src="../../_shared/miniapp-bridge.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

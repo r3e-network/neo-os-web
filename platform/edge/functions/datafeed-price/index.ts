@@ -11,8 +11,10 @@ export async function handler(req: Request): Promise<Response> {
   if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
   const url = new URL(req.url);
-  const symbol = (url.searchParams.get("symbol") ?? "").trim();
-  if (!symbol) return error(400, "symbol required", "SYMBOL_REQUIRED", req);
+  const rawSymbol = (url.searchParams.get("symbol") ?? "").trim();
+  if (!rawSymbol) return error(400, "symbol required", "SYMBOL_REQUIRED", req);
+  const normalizedSymbol = rawSymbol.toUpperCase();
+  const symbol = /[-/_]/.test(normalizedSymbol) ? normalizedSymbol : `${normalizedSymbol}-USD`;
 
   const rl = await requireRateLimit(req, "datafeed-price");
   if (rl) return rl;

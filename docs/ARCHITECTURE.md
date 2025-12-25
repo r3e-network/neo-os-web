@@ -2,6 +2,7 @@
 
 This document describes the **current** architecture of the Neo Service Layer.
 For a quick map of directory responsibilities, see `docs/LAYERING.md`.
+For end-to-end flow details, see `docs/WORKFLOWS.md` and `docs/DATAFLOWS.md`.
 
 ## Goals
 
@@ -9,6 +10,14 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
 - **Minimal TEE surface**: only sensitive computation + signing runs in enclaves.
 - **No duplicated chain I/O**: Neo RPC, tx building, and event monitoring live in one place.
 - **Consistent service shape**: same patterns for config, routing, storage, and workers.
+
+## Core Constraints
+
+- **Settlement**: GAS only (PaymentHub rejects all other assets).
+- **Governance**: NEO only (Governance rejects all other assets).
+- **Confidentiality**: MarbleRun + EGo enclaves for sensitive services.
+- **Gateway**: Supabase Edge Functions (Auth + routing + RLS).
+- **Dev stack**: k3s + local Supabase for development.
 
 ## High-Level Topology
 
@@ -44,7 +53,10 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
 │   - NeoFlow     (automation)                                                │
 │   - NeoCompute  (confidential compute)                                      │
 │   - NeoOracle   (confidential oracle)                                       │
+│   - NeoRequests (on-chain request dispatcher + callbacks)                   │
 │   - TxProxy     (allowlisted tx signing/broadcast)                           │
+│   - NeoGasBank  (GAS deposits + fee deduction, optional)                    │
+│   - NeoSimulation (dev/test transaction simulator, optional)                │
 │   - Randomness  (via NeoCompute scripts, optional on-chain anchoring)        │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -57,7 +69,7 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                  NEO N3 CHAIN                                │
-│                          MiniApp platform contracts                           │
+│   MiniApp platform contracts + ServiceLayerGateway (requests + callbacks)    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -66,7 +78,7 @@ For a quick map of directory responsibilities, see `docs/LAYERING.md`.
 The repo is split into:
 
 - `infrastructure/`: shared building blocks (runtime, middleware, storage, chain I/O, secrets, signing).
-- `services/`: product services only (`datafeed`, `automation`, `confcompute`, `conforacle`, `txproxy`).
+- `services/`: product services only (`datafeed`, `automation`, `confcompute`, `conforacle`, `vrf`, `requests`, `txproxy`, `gasbank`, `simulation`).
 - `cmd/`: binaries (`cmd/marble`, deployment tooling, bundle verification helpers).
 - `platform/`: Supabase Edge gateway + host app + SDK.
 
@@ -120,12 +132,31 @@ All Neo chain communication belongs to `infrastructure/chain`:
 
 Contract wrappers and typed event parsing also live in `infrastructure/chain`
 (`contracts_*.go`, `listener_events_*.go`) to keep services free of duplicated
-chain bindings.
+chain bindings. This includes the **ServiceLayerGateway** request/callback
+events used by NeoRequests.
 
 State-changing on-chain writes are centralized behind `services/txproxy`, which
 uses `infrastructure/chain` for tx building/broadcast and enforces an explicit
 contract+method allowlist. Other services should only use `infrastructure/chain`
 for **read-only** calls and event monitoring.
+
+TxProxy clients use a configurable request timeout (`TXPROXY_TIMEOUT`) to
+accommodate on-chain confirmation waits (e.g., NeoRequests callbacks or
+anchored automation tasks).
+
+## App Registry (On-Chain Anchor + Supabase Mirror)
+
+The AppRegistry contract is the on-chain anchor for MiniApp manifests and
+approval status:
+
+- Developers register a `manifest_hash` + `entry_url` on-chain (typically via
+  the Edge `app-register` intent).
+- An admin sets status to `Approved` or `Disabled` on-chain.
+- Supabase `miniapps` stores the canonical manifest for fast runtime checks and
+  auditing. NeoRequests currently uses Supabase for enforcement; AppRegistry is
+  the immutable on-chain reference for governance and third‑party verification.
+  When enabled, NeoRequests verifies AppRegistry status + manifest hash before
+  executing callbacks.
 
 ## Global Signer (TEE-Managed Signing)
 
@@ -150,6 +181,25 @@ Use cases:
 This is an infrastructure capability used by multiple services; it is not a
 product-facing API.
 
+### Account Pool Persistence (Supabase)
+
+Account pool metadata and balances are **durably stored** in Supabase:
+
+- `pool_accounts`: address, lock state, rotation flags, usage stats
+- `pool_account_balances`: per-token balances per account
+
+The pool is **deterministically derived** from `POOL_MASTER_KEY`, but Supabase
+holds critical state (locks, rotations, balances). Losing the database loses
+allocation history and makes active locks ambiguous, so:
+
+- keep `POOL_MASTER_KEY` stable across upgrades
+- do **not** enable `NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY` outside explicit
+  local experiments
+- ensure Postgres storage is persistent (PVC or Docker volume)
+
+Use backups for production and avoid destructive resets in local dev if you
+need to preserve pool allocations.
+
 ## Product Services (Responsibilities)
 
 Only these services are considered product services right now:
@@ -159,8 +209,33 @@ Only these services are considered product services right now:
 - **NeoCompute (`neocompute`)**: execute JS with strict limits + optional secret injection.
 - **NeoOracle (`neooracle`)**: fetch external data with allowlist + optional secret injection.
 - **TxProxy (`txproxy`)**: allowlisted transaction signing + broadcast proxy (single point for tx policy).
+- **NeoRequests (`neorequests`)**: listens to on-chain ServiceLayerGateway
+  requests, routes to TEE services, and submits callback transactions via
+  `txproxy`.
+- **NeoGasBank (`neogasbank`)**: manages GAS deposits/balances and supports
+  service fee deduction (optional).
+- **NeoSimulation (`neosimulation`)**: development-only transaction simulator
+  for MiniApp workflows (optional).
 
 Randomness is provided by running scripts in NeoCompute (`neocompute`) inside the enclave (optionally anchoring results via `RandomnessLog`).
+
+## On-Chain Request/Callback Workflow (ServiceLayerGateway)
+
+The ServiceLayerGateway contract coordinates on-chain service requests:
+
+1. MiniApp contract calls `ServiceLayerGateway.RequestService(...)`.
+2. Gateway emits `ServiceRequested` event (payload is a `ByteString` — see
+   `docs/service-request-payloads.md` for the canonical JSON formats).
+3. NeoRequests listens to the event, validates the MiniApp manifest, and calls
+   the appropriate TEE service
+   (`neovrf`, `neooracle`, `neocompute`), and prepares the result payload.
+4. NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)` via `txproxy`
+   (txproxy must be allowlisted and the Gateway updater set).
+5. Gateway emits `ServiceFulfilled` and calls the MiniApp callback method
+   on-chain with `(request_id, app_id, service_type, success, result, error)`.
+
+Events are persisted to Supabase `contract_events` and the callback transaction
+is recorded in `chain_txs` for auditing and UI consumption.
 
 Each service follows the same internal pattern:
 

@@ -15,6 +15,8 @@ type PoolClientInterface interface {
 	InvokeContract(ctx context.Context, accountID, contractHash, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error)
 	InvokeMaster(ctx context.Context, contractHash, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error)
 	FundAccount(ctx context.Context, toAddress string, amount int64) (*neoaccountsclient.FundAccountResponse, error)
+	Transfer(ctx context.Context, accountID, toAddress string, amount int64, tokenHash string) (*neoaccountsclient.TransferResponse, error)
+	TransferWithData(ctx context.Context, accountID, toAddress string, amount int64, data string) (*neoaccountsclient.TransferWithDataResponse, error)
 }
 
 // ContractInvokerInterface defines the interface for contract invocation operations.
@@ -23,6 +25,7 @@ type ContractInvokerInterface interface {
 	UpdatePriceFeed(ctx context.Context, symbol string) (string, error)
 	RecordRandomness(ctx context.Context) (string, error)
 	PayToApp(ctx context.Context, appID string, amount int64, memo string) (string, error)
+	PayoutToUser(ctx context.Context, appID string, userAddress string, amount int64, memo string) (string, error)
 	GetStats() map[string]interface{}
 	GetPriceSymbols() []string
 	GetLockedAccountCount() int

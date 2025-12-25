@@ -41,6 +41,7 @@ var PlatformContracts = []string{
 	"RandomnessLog",
 	"AppRegistry",
 	"AutomationAnchor",
+	"ServiceLayerGateway",
 }
 
 // LegacyContractMapping maps legacy contract names to new platform contracts.
@@ -54,12 +55,13 @@ var LegacyContractMapping = map[string]string{
 
 // EnvVarMapping maps contract names to environment variable names.
 var EnvVarMapping = map[string][]string{
-	"PaymentHub":       {"CONTRACT_PAYMENTHUB_HASH", "CONTRACT_PAYMENT_HUB_HASH", "CONTRACT_GATEWAY_HASH"},
-	"Governance":       {"CONTRACT_GOVERNANCE_HASH"},
-	"PriceFeed":        {"CONTRACT_PRICEFEED_HASH", "CONTRACT_PRICE_FEED_HASH", "CONTRACT_DATAFEEDS_HASH"},
-	"RandomnessLog":    {"CONTRACT_RANDOMNESSLOG_HASH", "CONTRACT_RANDOMNESS_LOG_HASH", "CONTRACT_VRF_HASH"},
-	"AppRegistry":      {"CONTRACT_APPREGISTRY_HASH", "CONTRACT_APP_REGISTRY_HASH"},
-	"AutomationAnchor": {"CONTRACT_AUTOMATIONANCHOR_HASH", "CONTRACT_AUTOMATION_ANCHOR_HASH", "CONTRACT_AUTOMATION_HASH"},
+	"PaymentHub":          {"CONTRACT_PAYMENTHUB_HASH", "CONTRACT_PAYMENT_HUB_HASH", "CONTRACT_GATEWAY_HASH"},
+	"Governance":          {"CONTRACT_GOVERNANCE_HASH"},
+	"PriceFeed":           {"CONTRACT_PRICEFEED_HASH", "CONTRACT_PRICE_FEED_HASH", "CONTRACT_DATAFEEDS_HASH"},
+	"RandomnessLog":       {"CONTRACT_RANDOMNESSLOG_HASH", "CONTRACT_RANDOMNESS_LOG_HASH", "CONTRACT_VRF_HASH"},
+	"AppRegistry":         {"CONTRACT_APPREGISTRY_HASH", "CONTRACT_APP_REGISTRY_HASH"},
+	"AutomationAnchor":    {"CONTRACT_AUTOMATIONANCHOR_HASH", "CONTRACT_AUTOMATION_ANCHOR_HASH", "CONTRACT_AUTOMATION_HASH"},
+	"ServiceLayerGateway": {"CONTRACT_SERVICEGATEWAY_HASH", "CONTRACT_SERVICE_GATEWAY_HASH"},
 }
 
 // NewContractRegistry creates a new contract registry.
@@ -246,12 +248,13 @@ func (r *ContractRegistry) GetAddresses() ContractAddresses {
 	defer r.mu.RUnlock()
 
 	return ContractAddresses{
-		PaymentHub:       r.getHashUnsafe("PaymentHub"),
-		Governance:       r.getHashUnsafe("Governance"),
-		PriceFeed:        r.getHashUnsafe("PriceFeed"),
-		RandomnessLog:    r.getHashUnsafe("RandomnessLog"),
-		AppRegistry:      r.getHashUnsafe("AppRegistry"),
-		AutomationAnchor: r.getHashUnsafe("AutomationAnchor"),
+		PaymentHub:          r.getHashUnsafe("PaymentHub"),
+		Governance:          r.getHashUnsafe("Governance"),
+		PriceFeed:           r.getHashUnsafe("PriceFeed"),
+		RandomnessLog:       r.getHashUnsafe("RandomnessLog"),
+		AppRegistry:         r.getHashUnsafe("AppRegistry"),
+		AutomationAnchor:    r.getHashUnsafe("AutomationAnchor"),
+		ServiceLayerGateway: r.getHashUnsafe("ServiceLayerGateway"),
 	}
 }
 

@@ -73,6 +73,23 @@ function getNeoLineN3Instance(): any {
   return new neoline.Init();
 }
 
+// Resolve SENDER placeholder in invocation params with the user's wallet address.
+// This is used for GAS.Transfer where the 'from' parameter must be the user's address.
+function resolveInvocationParams(params: InvocationIntent["params"], userAddress: string): InvocationIntent["params"] {
+  return params.map((param) => {
+    if (param.type === "Hash160" && param.value === "SENDER") {
+      return { type: "Hash160", value: userAddress };
+    }
+    if (param.type === "Array" && Array.isArray(param.value)) {
+      return {
+        type: "Array",
+        value: resolveInvocationParams(param.value, userAddress),
+      };
+    }
+    return param;
+  });
+}
+
 async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<unknown> {
   const inst = getNeoLineN3Instance();
   if (!inst || typeof inst.invoke !== "function") {
@@ -81,25 +98,28 @@ async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<un
 
   const scriptHash = String(invocation.contract_hash ?? "").trim();
   const operation = String(invocation.method ?? "").trim();
-  const args = Array.isArray(invocation.params) ? invocation.params : [];
 
   if (!scriptHash) throw new Error("invocation missing contract_hash");
   if (!operation) throw new Error("invocation missing method");
 
-  // NeoLine SDKs vary slightly in accepted shapes; try a small set of candidates.
+  // Get user's wallet address for SENDER placeholder resolution and signing
   const address = await getInjectedWalletAddress();
+
+  // Resolve SENDER placeholders in params with the user's actual address
+  const rawArgs = Array.isArray(invocation.params) ? invocation.params : [];
+  const args = resolveInvocationParams(rawArgs, address);
+
+  // NeoLine SDKs vary slightly in accepted shapes; try a small set of candidates.
+  // For GAS.Transfer, we need Global scope to allow the transfer to trigger callbacks.
   const candidates = [
-    { scriptHash, operation, args },
-    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args },
+    { scriptHash, operation, args, signers: [{ account: address, scopes: "Global" }] },
+    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args, signers: [{ account: address, scopes: "Global" }] },
+    { scriptHash, operation, args, signers: [{ account: address, scopes: 16 }] },
+    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args, signers: [{ account: address, scopes: 16 }] },
     { scriptHash, operation, args, signers: [{ account: address, scopes: "CalledByEntry" }] },
     { scriptHash, operation, args, signers: [{ account: address, scopes: 1 }] },
-    {
-      scriptHash: scriptHash.replace(/^0x/i, ""),
-      operation,
-      args,
-      signers: [{ account: address, scopes: "CalledByEntry" }],
-    },
-    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args, signers: [{ account: address, scopes: 1 }] },
+    { scriptHash, operation, args },
+    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args },
   ];
 
   let lastErr: unknown = null;

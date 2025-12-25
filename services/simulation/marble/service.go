@@ -15,12 +15,12 @@ import (
 	"sync"
 	"time"
 
+	neoaccountsclient "github.com/R3E-Network/service_layer/infrastructure/accountpool/client"
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
 	"github.com/R3E-Network/service_layer/infrastructure/runtime"
 	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
-	neoaccountsclient "github.com/R3E-Network/service_layer/infrastructure/accountpool/client"
 )
 
 // Service implements the simulation service.
@@ -48,12 +48,12 @@ type Service struct {
 	workersPerApp int
 
 	// Simulation state
-	running   bool
-	stopCh    chan struct{}
-	startedAt *time.Time
-	txCounts  map[string]int64
+	running     bool
+	stopCh      chan struct{}
+	startedAt   *time.Time
+	txCounts    map[string]int64
 	lastTxTimes map[string]time.Time
-	rng       *rand.Rand
+	rng         *rand.Rand
 }
 
 // New creates a new simulation service.
@@ -97,7 +97,7 @@ func New(cfg Config) (*Service, error) {
 		accountPoolURL = strings.TrimSpace(os.Getenv("NEOACCOUNTS_SERVICE_URL"))
 	}
 	if accountPoolURL == "" {
-		accountPoolURL = "http://neoaccounts:8080" // Default service mesh URL
+		accountPoolURL = "https://neoaccounts:8085" // Default service mesh URL
 	}
 
 	// Get MiniApps list
@@ -157,10 +157,11 @@ func New(cfg Config) (*Service, error) {
 		workersPerApp = DefaultWorkersPerApp
 	}
 
-	// Initialize account pool client
+	// Initialize account pool client with MarbleRun mTLS client for secure mesh communication
 	poolClient, err := neoaccountsclient.New(neoaccountsclient.Config{
-		BaseURL:   accountPoolURL,
-		ServiceID: ServiceID,
+		BaseURL:    accountPoolURL,
+		ServiceID:  ServiceID,
+		HTTPClient: marble.HTTPClient(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("neosimulation: failed to create account pool client: %w", err)
@@ -199,15 +200,15 @@ func New(cfg Config) (*Service, error) {
 		contractInvoker:  contractInvoker,
 		miniAppSimulator: miniAppSimulator,
 		miniApps:         miniApps,
-		minInterval:    time.Duration(minIntervalMS) * time.Millisecond,
-		maxInterval:    time.Duration(maxIntervalMS) * time.Millisecond,
-		minAmount:      minAmount,
-		maxAmount:      maxAmount,
-		workersPerApp:  workersPerApp,
-		running:        false,
-		txCounts:       make(map[string]int64),
-		lastTxTimes:    make(map[string]time.Time),
-		rng:            rand.New(rand.NewSource(time.Now().UnixNano())),
+		minInterval:      time.Duration(minIntervalMS) * time.Millisecond,
+		maxInterval:      time.Duration(maxIntervalMS) * time.Millisecond,
+		minAmount:        minAmount,
+		maxAmount:        maxAmount,
+		workersPerApp:    workersPerApp,
+		running:          false,
+		txCounts:         make(map[string]int64),
+		lastTxTimes:      make(map[string]time.Time),
+		rng:              rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	// Register statistics provider for /info endpoint
@@ -290,11 +291,15 @@ func (s *Service) Start(ctx context.Context) error {
 
 	// Start contract invocation workers if contract invoker is available
 	if s.contractInvoker != nil {
-		// PriceFeed updater (every 5 seconds per symbol)
-		go s.runPriceFeedUpdater()
+		if s.contractInvoker.HasPriceFeed() {
+			// PriceFeed updater (every 5 seconds per symbol)
+			go s.runPriceFeedUpdater()
+		}
 
-		// RandomnessLog recorder (every 10 seconds)
-		go s.runRandomnessRecorder()
+		if s.contractInvoker.HasRandomnessLog() {
+			// RandomnessLog recorder (every 10 seconds)
+			go s.runRandomnessRecorder()
+		}
 
 		// Auto top-up worker for pool accounts with low GAS balance (every 30 seconds)
 		go s.runAutoTopUp()
@@ -315,15 +320,26 @@ func (s *Service) Start(ctx context.Context) error {
 		go s.runMiniAppWorkflow("flashloan", 15*time.Second, s.miniAppSimulator.SimulateFlashLoan)
 		go s.runMiniAppWorkflow("price-ticker", 8*time.Second, s.miniAppSimulator.SimulatePriceTicker)
 
-		s.Logger().WithContext(ctx).Info("MiniApp workflow simulators started for all 7 apps")
+		// New MiniApps
+		go s.runMiniAppWorkflow("gas-spin", 5*time.Second, s.miniAppSimulator.SimulateGasSpin)
+		go s.runMiniAppWorkflow("price-predict", 8*time.Second, s.miniAppSimulator.SimulatePricePredict)
+		go s.runMiniAppWorkflow("secret-vote", 10*time.Second, s.miniAppSimulator.SimulateSecretVote)
+
+		// Phase 4 MiniApps - Long-Running Processes
+		go s.runMiniAppWorkflow("ai-trader", 5*time.Second, s.miniAppSimulator.SimulateAITrader)
+		go s.runMiniAppWorkflow("grid-bot", 4*time.Second, s.miniAppSimulator.SimulateGridBot)
+		go s.runMiniAppWorkflow("nft-evolve", 6*time.Second, s.miniAppSimulator.SimulateNFTEvolve)
+		go s.runMiniAppWorkflow("bridge-guardian", 10*time.Second, s.miniAppSimulator.SimulateBridgeGuardian)
+
+		s.Logger().WithContext(ctx).Info("MiniApp workflow simulators started for all 14 apps")
 	}
 
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
-		"mini_apps":          s.miniApps,
-		"workers_per_app":    s.workersPerApp,
-		"total_workers":      len(s.miniApps) * s.workersPerApp,
-		"contract_invoker":   s.contractInvoker != nil,
-		"miniapp_simulator":  s.miniAppSimulator != nil,
+		"mini_apps":         s.miniApps,
+		"workers_per_app":   s.workersPerApp,
+		"total_workers":     len(s.miniApps) * s.workersPerApp,
+		"contract_invoker":  s.contractInvoker != nil,
+		"miniapp_simulator": s.miniAppSimulator != nil,
 	}).Info("simulation started")
 
 	return nil
@@ -447,9 +463,9 @@ func (s *Service) simulateApp(appID string, workerID int) {
 
 		destAccount := resp.Accounts[0]
 
-		// Use a small amount for the transfer (0.00001 GAS = 1000 in 8 decimals)
-		// This is small enough to allow many transactions without draining the master account
-		amount := int64(1000) // 0.00001 GAS
+		// Use a larger amount for the transfer to support MiniApp workflows
+		// MiniApp workflows need 0.05-0.2 GAS per transaction, so fund with 0.5 GAS
+		amount := int64(50000000) // 0.5 GAS
 		txType := "fund"
 		txHash := ""
 		status := "pending"

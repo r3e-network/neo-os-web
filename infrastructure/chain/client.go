@@ -224,6 +224,13 @@ func (c *Client) GetApplicationLog(ctx context.Context, txHash string) (*Applica
 // TransferGAS transfers GAS from a signer account to a target address using the neo-go actor pattern.
 // This uses a persistent actor for the account to support concurrent transactions with proper nonce management.
 func (c *Client) TransferGAS(ctx context.Context, account *wallet.Account, to util.Uint160, amount *big.Int) (util.Uint256, error) {
+	return c.TransferGASWithData(ctx, account, to, amount, nil)
+}
+
+// TransferGASWithData transfers GAS from a signer account to a target address with optional data.
+// The data parameter is passed to the OnNEP17Payment callback of the receiving contract.
+// This is used for payments to contracts like PaymentHub that need to identify the payment source.
+func (c *Client) TransferGASWithData(ctx context.Context, account *wallet.Account, to util.Uint160, amount *big.Int, data any) (util.Uint256, error) {
 	// Get or create the actor (hold lock only during setup)
 	act, err := c.getOrCreateActor(ctx, account)
 	if err != nil {
@@ -233,8 +240,8 @@ func (c *Client) TransferGAS(ctx context.Context, account *wallet.Account, to ut
 	// Get GAS contract using the actor
 	gasContract := gas.New(act)
 
-	// Transfer GAS - this can run concurrently, actor handles nonce management
-	txHash, _, err := gasContract.Transfer(account.ScriptHash(), to, amount, nil)
+	// Transfer GAS with data - this can run concurrently, actor handles nonce management
+	txHash, _, err := gasContract.Transfer(account.ScriptHash(), to, amount, data)
 	if err != nil {
 		// If transfer fails, reset the actor so it gets recreated on next call
 		c.resetActor()

@@ -7,8 +7,9 @@ FROM denoland/deno:1.45.5
 # Set working directory
 WORKDIR /app
 
-# Create non-root user for security
-RUN groupadd -r deno && useradd -r -g deno deno
+# Create non-root user for security (base image may already include it)
+RUN if ! getent group deno >/dev/null; then groupadd -r deno; fi && \
+    if ! id -u deno >/dev/null 2>&1; then useradd -r -g deno deno; fi
 
 # Copy edge functions and dev server
 COPY --chown=deno:deno functions/ /app/functions/
@@ -29,4 +30,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD deno eval "fetch('http://localhost:8787/health').then(r => r.ok ? Deno.exit(0) : Deno.exit(1))"
 
 # Run dev server with required permissions
-CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read", "dev_server.ts"]
+CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read", "--unstable", "dev_server.ts"]

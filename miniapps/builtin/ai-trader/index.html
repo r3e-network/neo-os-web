@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Trader</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #fff;
+        min-height: 100vh;
+        padding: 16px;
+      }
+      .container {
+        max-width: 420px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        font-size: 24px;
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .header p {
+        color: #888;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .card-title {
+        font-size: 14px;
+        color: #888;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .status-dot.active {
+        background: #00ff88;
+        animation: pulse 2s infinite;
+      }
+      .status-dot.inactive {
+        background: #ff4444;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0;
+      }
+      .stat-label {
+        color: #888;
+        font-size: 13px;
+      }
+      .stat-value {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .stat-value.positive {
+        color: #00ff88;
+      }
+      .stat-value.negative {
+        color: #ff4444;
+      }
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-primary {
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+      }
+      .btn-danger {
+        background: #ff4444;
+        color: #fff;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .strategy-select {
+        width: 100%;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 14px;
+        margin-bottom: 12px;
+      }
+      .strategy-select option {
+        background: #1a1a2e;
+      }
+      .input-group {
+        margin-bottom: 12px;
+      }
+      .input-group label {
+        display: block;
+        color: #888;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .input-group input {
+        width: 100%;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 14px;
+      }
+      .trades-list {
+        max-height: 150px;
+        overflow-y: auto;
+      }
+      .trade-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 12px;
+      }
+      .trade-item:last-child {
+        border-bottom: none;
+      }
+      .sdk-note {
+        background: rgba(255, 200, 0, 0.1);
+        border: 1px solid rgba(255, 200, 0, 0.3);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        color: #ffc800;
+        display: none;
+      }
+      #status {
+        text-align: center;
+        padding: 8px;
+        font-size: 13px;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🤖 AI Trader</h1>
+        <p>Autonomous Trading Agent</p>
+      </div>
+
+      <div id="sdk-note" class="sdk-note">⚠️ SDK not detected. Running in demo mode.</div>
+
+      <div class="card">
+        <div class="card-title"><span id="status-dot" class="status-dot inactive"></span> Agent Status</div>
+        <div class="stat-row">
+          <span class="stat-label">Status</span>
+          <span id="agent-status" class="stat-value">Inactive</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Uptime</span>
+          <span id="uptime" class="stat-value">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Last Decision</span>
+          <span id="last-decision" class="stat-value">--</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📊 Performance</div>
+        <div class="stat-row">
+          <span class="stat-label">Total P&L</span>
+          <span id="total-pnl" class="stat-value">0.00 GAS</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Win Rate</span>
+          <span id="win-rate" class="stat-value">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Total Trades</span>
+          <span id="total-trades" class="stat-value">0</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚙️ Configuration</div>
+        <select id="strategy" class="strategy-select">
+          <option value="momentum">Momentum Strategy</option>
+          <option value="mean-reversion">Mean Reversion</option>
+          <option value="breakout">Breakout Trading</option>
+          <option value="sentiment">Sentiment Analysis</option>
+        </select>
+        <div class="input-group">
+          <label>Max Position (GAS)</label>
+          <input type="number" id="max-position" value="10" min="1" max="100" />
+        </div>
+        <div class="input-group">
+          <label>Risk Level (1-10)</label>
+          <input type="number" id="risk-level" value="5" min="1" max="10" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📜 Recent Trades</div>
+        <div id="trades-list" class="trades-list">
+          <div style="text-align: center; color: #666; padding: 20px">No trades yet</div>
+        </div>
+      </div>
+
+      <button id="toggle-btn" class="btn btn-primary" onclick="toggleAgent()">Start Agent</button>
+      <div id="status"></div>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

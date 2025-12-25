@@ -33,6 +33,7 @@ SIGNING_KEY=""
 SIGNING_KEY_DIR=""
 SKIP_SIGNER_CHECK=false
 OVERLAY_PATH=""
+FORCE_K3S_IMPORT="${FORCE_K3S_IMPORT:-false}"
 
 # Services to build and deploy
 SERVICES=(
@@ -42,6 +43,9 @@ SERVICES=(
     "neocompute"
     "neovrf"
     "neooracle"
+    "neorequests"
+    "neogasbank"
+    "neosimulation"
     "txproxy"
     "globalsigner"
 )
@@ -391,7 +395,14 @@ run_tests() {
         return 0
     fi
 
-    if ! go test -v ./...; then
+    local packages
+    packages=$(go list ./... | grep -v '/scripts$' || true)
+    if [[ -z "$packages" ]]; then
+        log_error "No Go packages found to test."
+        exit 1
+    fi
+
+    if ! go test -v $packages; then
         log_error "Tests failed. Aborting deployment."
         exit 1
     fi
@@ -503,7 +514,7 @@ push_images() {
 # Import Images to k3s (for local development)
 # =============================================================================
 import_images_k3s() {
-    if [ "$ENVIRONMENT" != "dev" ]; then
+    if [[ "$ENVIRONMENT" != "dev" && "$FORCE_K3S_IMPORT" != "true" ]]; then
         log_info "Skipping k3s import (not dev environment)"
         return 0
     fi
@@ -515,6 +526,12 @@ import_images_k3s() {
 
     log_step "Importing images to k3s..."
 
+    local sudo_cmd=(sudo)
+    if [[ -n "${ROOT_PASSWORD:-}" ]]; then
+        echo "$ROOT_PASSWORD" | sudo -S -v >/dev/null
+        sudo_cmd=(sudo -n)
+    fi
+
     for service in "${SERVICES[@]}"; do
         local image_name="${IMAGE_PREFIX}${service}:${ENVIRONMENT}"
 
@@ -525,7 +542,7 @@ import_images_k3s() {
             continue
         fi
 
-        docker save "$image_name" | sudo k3s ctr images import - || {
+        docker save "$image_name" | "${sudo_cmd[@]}" k3s ctr images import - || {
             log_warn "Failed to import $service to k3s"
         }
     done
@@ -574,12 +591,33 @@ setup_marblerun_manifest() {
     # Set the manifest
     log_info "Setting MarbleRun manifest..."
     local flags=()
+    local manifest_file="$PROJECT_ROOT/manifests/manifest.json"
+    local tmp_manifest=""
     if [[ "$ENVIRONMENT" != "prod" ]]; then
         flags+=(--insecure)
+        if command -v jq &> /dev/null; then
+            tmp_manifest="$(mktemp -t service-layer-manifest.simulation.XXXXXX.json)"
+            jq --arg signerid "0000000000000000000000000000000000000000000000000000000000000000" \
+                '.Packages |= with_entries(.value.SignerID = $signerid)' \
+                "$manifest_file" > "$tmp_manifest"
+            manifest_file="$tmp_manifest"
+        else
+            log_warn "jq not found; using manifest with existing SignerIDs"
+        fi
     fi
-    marblerun manifest set "$PROJECT_ROOT/manifests/manifest.json" "localhost:4433" "${flags[@]}" || {
-        log_warn "Manifest may already be set or coordinator not ready"
-    }
+    if ! marblerun manifest set "$manifest_file" "localhost:4433" "${flags[@]}"; then
+        log_warn "Manifest set failed; attempting manifest update"
+        if marblerun manifest update apply --help >/dev/null 2>&1; then
+            if ! marblerun manifest update apply "$manifest_file" "localhost:4433" "${flags[@]}"; then
+                log_warn "Manifest update failed; coordinator may not be ready"
+            fi
+        else
+            log_warn "marblerun manifest update not available; skipping"
+        fi
+    fi
+    if [[ -n "$tmp_manifest" ]]; then
+        rm -f "$tmp_manifest"
+    fi
 
     # Kill port forward
     kill $PF_PID 2>/dev/null || true

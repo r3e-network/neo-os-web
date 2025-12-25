@@ -11,6 +11,7 @@ The local development stack provides a complete Kubernetes environment running o
 - **Traefik**: Ingress controller with TLS
 - **cert-manager**: Automatic TLS certificate management
 - **Self-signed certificates**: For `*.localhost` domains
+- **Supabase**: Local Postgres + Auth + PostgREST
 
 ## Prerequisites
 
@@ -40,6 +41,21 @@ echo 'export PATH=$PATH:/usr/local/bin/go/bin' >> ~/.bashrc
 ```
 
 ## Quick Start
+
+### One-Command Bootstrap (k3s + Supabase + Services + Edge)
+
+```bash
+./scripts/bootstrap_k3s_dev.sh --env-file .env --edge-env-file .env.local
+```
+
+Or use the Make target:
+
+```bash
+make dev-stack-bootstrap
+```
+
+Ensure `.env` contains contract hashes and `.env.local` contains Supabase keys
+before running the bootstrap script.
 
 ### 1. Bootstrap k3s Local Stack
 
@@ -102,7 +118,7 @@ The local stack creates the following namespaces:
 
 - `marblerun`: MarbleRun coordinator
 - `service-layer`: Core services (neoaccounts, neofeeds, etc.)
-- `supabase`: Database and auth services (DEVSTACK-2)
+- `supabase`: Database and auth services (local dev)
 - `platform`: Edge gateway and admin console (DEVSTACK-3/4)
 - `cert-manager`: Certificate management
 - `kube-system`: k3s system components
@@ -119,11 +135,13 @@ The local stack creates the following namespaces:
         │                     │                     │
 ┌───────▼────────┐  ┌─────────▼────────┐  ┌────────▼────────┐
 │   MarbleRun    │  │  Service Layer   │  │    Supabase     │
-│  Coordinator   │  │    Services      │  │   (future)      │
+│  Coordinator   │  │    Services      │  │   (local)       │
 │                │  │                  │  │                 │
 │ :4433 (client) │  │ neoaccounts:8085 │  │ postgres:5432   │
 │ :2001 (mesh)   │  │ neofeeds:8083    │  │ postgrest:3000  │
 └────────────────┘  │ neoflow:8084     │  └─────────────────┘
+                    │ neogasbank:8091  │
+                    │ neosimulation:8093 │
                     │ ...              │
                     └──────────────────┘
 ```
@@ -134,7 +152,7 @@ All services are accessible via `*.localhost` domains:
 
 - **MarbleRun Coordinator**: `https://coordinator.marblerun.localhost:4433`
 - **Services**: Port-forward individual services as needed
-- **Supabase** (future): `https://supabase.localhost`
+- **Supabase** (local): `https://supabase.localhost`
 - **Admin Console** (future): `https://admin.localhost`
 
 ## Common Operations
@@ -164,6 +182,86 @@ marblerun manifest set manifests/manifest.json localhost:4433 --insecure
 # Check status
 marblerun status localhost:4433 --insecure
 ```
+
+If `manifest set` reports `server is not in expected state`, the coordinator
+already has a manifest and is running. Use:
+
+```bash
+marblerun manifest update manifests/manifest.json localhost:4433 --insecure
+```
+
+### Local Supabase
+
+```bash
+# Deploy Supabase into k3s
+./scripts/supabase-k3s.sh deploy
+
+# Apply secrets from .env.local (Supabase URL/keys included)
+./scripts/apply_k8s_secrets_from_env.sh --env-file .env.local
+
+# Sync non-secret config (contract hashes, RPC, allowlists) into k3s ConfigMap
+./scripts/apply_k8s_config_from_env.sh --env-file .env
+```
+
+Local Supabase credentials are stored in `.env.local` (and generated into
+`.env.supabase` when first bootstrapped). Contract hashes and service endpoints
+are also loaded from `.env` / `config/*.env` for consistency across dev and
+testnet.
+
+`apply_k8s_config_from_env.sh` patches the `service-layer-config` ConfigMap with
+non-secret values from `.env` (contract hashes, RPC URL, allowlists), keeping
+k3s aligned with your local configuration.
+
+For k3s local dev, the service-layer marbles typically use:
+
+- `SUPABASE_URL=http://postgrest.supabase.svc.cluster.local:3000`
+- `SUPABASE_REST_PREFIX=/` (no `/rest/v1` prefix for direct PostgREST)
+- `SUPABASE_ALLOW_INSECURE=true`
+
+For the **Edge gateway** (Supabase functions), use the internal gateway service:
+
+- `SUPABASE_URL=http://supabase-gateway.supabase.svc.cluster.local:8000`
+
+### Edge Gateway (Supabase Functions)
+
+The Edge gateway runs the Deno-based Supabase functions inside k3s.
+In local dev it uses Deno's `--unsafely-ignore-certificate-errors` to allow
+self-signed mTLS endpoints.
+Because the mTLS client uses Deno's experimental `HttpClient` API, the Edge
+runtime must run with `--unstable` (already enabled in the k3s deployment and
+`deno task dev`).
+
+```bash
+# Build the edge gateway image
+docker build -f platform/edge/k8s.dockerfile -t service-layer/edge-gateway:latest platform/edge
+
+# Import into k3s (uses sudo)
+docker save service-layer/edge-gateway:latest | sudo k3s ctr images import -
+
+# Apply Edge secrets from .env.local
+./scripts/apply_edge_secrets_from_env.sh --env-file .env.local
+
+# Deploy Edge gateway
+kubectl apply -k k8s/platform/edge
+```
+
+For browser access, map the node IP to `edge.localhost` in `/etc/hosts`:
+
+```
+<node-ip> edge.localhost
+```
+
+### Edge mTLS (TEE Services)
+
+To allow the Edge gateway to call TEE services over **mTLS**, run:
+
+```bash
+./scripts/setup_edge_mtls.sh --env-file .env.local
+```
+
+This generates a client CA + cert, registers the CA with service-layer marbles
+via `MARBLE_EXTRA_CLIENT_CA`, and configures the Edge gateway with the client
+certificate plus the MarbleRun root CA for server verification.
 
 ### Access Services
 
@@ -202,6 +300,12 @@ done
 # Restart deployments
 kubectl -n service-layer rollout restart deployment
 ```
+
+## End-to-End Validation (Testnet)
+
+Once the local stack is running, validate the on-chain request/callback path on
+testnet using the runbook in `docs/WORKFLOWS.md` ("Testnet Callback Validation").
+This ensures NeoRequests, TxProxy, and the TEE services are wired correctly.
 
 ## Troubleshooting
 

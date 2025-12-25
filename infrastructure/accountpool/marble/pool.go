@@ -4,6 +4,8 @@ package neoaccounts
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -384,11 +386,13 @@ func (s *Service) rotateAccounts(ctx context.Context) {
 	}
 
 	// Delete empty retiring accounts (only if not locked and all balances are zero)
-	for i := range accounts {
-		acc := &accounts[i]
-		if acc.IsRetiring && acc.IsEmpty() && acc.LockedBy == "" {
-			if err := s.repo.Delete(ctx, acc.ID); err != nil {
-				s.Logger().WithContext(ctx).WithError(err).WithField("account_id", acc.ID).Warn("failed to delete retiring account")
+	if deleteRetiringAccountsEnabled() {
+		for i := range accounts {
+			acc := &accounts[i]
+			if acc.IsRetiring && acc.IsEmpty() && acc.LockedBy == "" {
+				if err := s.repo.Delete(ctx, acc.ID); err != nil {
+					s.Logger().WithContext(ctx).WithError(err).WithField("account_id", acc.ID).Warn("failed to delete retiring account")
+				}
 			}
 		}
 	}
@@ -420,5 +424,15 @@ func (s *Service) cleanupStaleLocks(ctx context.Context) {
 				}
 			}
 		}
+	}
+}
+
+func deleteRetiringAccountsEnabled() bool {
+	raw := strings.TrimSpace(os.Getenv("NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS"))
+	switch strings.ToLower(raw) {
+	case "1", "true", "yes":
+		return true
+	default:
+		return false
 	}
 }

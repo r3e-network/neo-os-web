@@ -70,6 +70,7 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	strict := runtime.StrictIdentityMode() || cfg.Marble.IsEnclave()
+	requireDepositAddress := runtime.IsProduction()
 
 	if strict && cfg.ChainClient == nil {
 		return nil, fmt.Errorf("neogasbank: chain client is required in strict/enclave mode")
@@ -87,8 +88,8 @@ func New(cfg Config) (*Service, error) {
 	if depositAddress == "" {
 		depositAddress = strings.TrimSpace(os.Getenv("GASBANK_DEPOSIT_ADDRESS"))
 	}
-	if strict && depositAddress == "" {
-		return nil, fmt.Errorf("neogasbank: GASBANK_DEPOSIT_ADDRESS is required in strict/enclave mode")
+	if requireDepositAddress && depositAddress == "" {
+		return nil, fmt.Errorf("neogasbank: GASBANK_DEPOSIT_ADDRESS is required in production")
 	}
 	if depositAddress == "" {
 		base.Logger().WithFields(nil).Warn("GASBANK_DEPOSIT_ADDRESS not configured; deposits will only validate sender and amount")

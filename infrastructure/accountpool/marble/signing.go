@@ -17,6 +17,7 @@ import (
 
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
+	"github.com/nspcc-dev/neo-go/pkg/util"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
 
 	"github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
@@ -191,6 +192,112 @@ func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress 
 		"amount":     amount,
 		"tx_hash":    txHashString,
 	}).Info("transfer completed")
+
+	return txHashString, nil
+}
+
+// TransferWithData transfers GAS from a pool account to a target address with optional data.
+// The data parameter is passed to the OnNEP17Payment callback of the receiving contract.
+// This is used for payments to contracts like PaymentHub that need to identify the payment source.
+func (s *Service) TransferWithData(ctx context.Context, serviceID, accountID, toAddress string, amount int64, data string) (string, error) {
+	if s.repo == nil {
+		return "", fmt.Errorf("repository not configured")
+	}
+	if s.chainClient == nil {
+		return "", fmt.Errorf("chain client not configured")
+	}
+	if accountID == "" {
+		return "", fmt.Errorf("account_id required")
+	}
+	if toAddress == "" {
+		return "", fmt.Errorf("to_address required")
+	}
+	if amount <= 0 {
+		return "", fmt.Errorf("amount must be positive")
+	}
+
+	s.mu.RLock()
+	acc, err := s.repo.GetByID(ctx, accountID)
+	if err != nil {
+		s.mu.RUnlock()
+		return "", fmt.Errorf("account not found: %w", err)
+	}
+
+	if acc.LockedBy != serviceID {
+		s.mu.RUnlock()
+		return "", fmt.Errorf("account not locked by service %s", serviceID)
+	}
+	s.mu.RUnlock()
+
+	// Derive pool account private key and build a neo-go wallet account.
+	priv, err := s.getPrivateKey(accountID)
+	if err != nil {
+		return "", fmt.Errorf("derive key: %w", err)
+	}
+
+	dBytes := priv.D.Bytes()
+	keyBytes := make([]byte, 32)
+	copy(keyBytes[32-len(dBytes):], dBytes)
+	walletAccount, err := chain.AccountFromPrivateKey(hex.EncodeToString(keyBytes))
+	if err != nil {
+		return "", fmt.Errorf("create signer account: %w", err)
+	}
+
+	// Convert to address or script hash to Uint160
+	// Support both Neo N3 addresses (starting with 'N') and script hashes (0x... or hex)
+	toAddress = strings.TrimSpace(toAddress)
+	var toU160 util.Uint160
+	if len(toAddress) > 0 && toAddress[0] == 'N' {
+		// Neo N3 address format
+		toU160, err = address.StringToUint160(toAddress)
+		if err != nil {
+			return "", fmt.Errorf("invalid to address %q: %w", toAddress, err)
+		}
+	} else {
+		// Script hash format (0x... or plain hex)
+		hashStr := strings.TrimPrefix(strings.TrimPrefix(toAddress, "0x"), "0X")
+		toU160, err = util.Uint160DecodeStringLE(hashStr)
+		if err != nil {
+			return "", fmt.Errorf("invalid script hash %q: %w", toAddress, err)
+		}
+	}
+
+	// Use the chain client's TransferGASWithData method which uses the actor pattern
+	// The data parameter is passed to the OnNEP17Payment callback
+	// IMPORTANT: Pass data as []byte to avoid Neo VM CONVERT errors
+	// The C# contract expects ByteString which can be cast to string
+	var txHash util.Uint256
+	if data != "" {
+		// Convert string to []byte for proper Neo VM serialization
+		txHash, err = s.chainClient.TransferGASWithData(ctx, walletAccount, toU160, big.NewInt(amount), []byte(data))
+	} else {
+		txHash, err = s.chainClient.TransferGAS(ctx, walletAccount, toU160, big.NewInt(amount))
+	}
+	if err != nil {
+		return "", fmt.Errorf("transfer GAS: %w", err)
+	}
+
+	txHashString := "0x" + txHash.StringLE()
+
+	// Best-effort account metadata update; the chain tx succeeded regardless.
+	s.mu.Lock()
+	acc.LastUsedAt = time.Now()
+	acc.TxCount++
+	if updateErr := s.repo.Update(ctx, acc); updateErr != nil {
+		s.Logger().WithContext(ctx).WithError(updateErr).WithFields(map[string]interface{}{
+			"account_id": accountID,
+			"tx_hash":    txHashString,
+		}).Warn("failed to update account metadata after transfer")
+	}
+	s.mu.Unlock()
+
+	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
+		"account_id": accountID,
+		"to_address": toAddress,
+		"amount":     amount,
+		"data":       data,
+		"tx_hash":    txHashString,
+	}).Info("transfer with data completed")
 
 	return txHashString, nil
 }
@@ -510,8 +617,30 @@ func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, cont
 		chainParams[i] = convertToChainParam(p)
 	}
 
-	// Simulate invocation
-	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractHash, method, chainParams, signer.ScriptHash())
+	// Determine transaction scope (default to CalledByEntry for safety)
+	// Must be determined BEFORE simulation so the correct scope is used
+	rpcScope := chain.ScopeCalledByEntry
+	txScope := transaction.CalledByEntry
+	switch strings.ToLower(scope) {
+	case "global":
+		rpcScope = chain.ScopeGlobal
+		txScope = transaction.Global
+	case "customcontracts":
+		rpcScope = chain.ScopeCustomContracts
+		txScope = transaction.CustomContracts
+	case "customgroups":
+		rpcScope = chain.ScopeCustomGroups
+		txScope = transaction.CustomGroups
+	case "none":
+		rpcScope = chain.ScopeNone
+		txScope = transaction.None
+	case "calledbyentry", "":
+		rpcScope = chain.ScopeCalledByEntry
+		txScope = transaction.CalledByEntry
+	}
+
+	// Simulate invocation with the correct scope
+	invokeResult, err := s.chainClient.InvokeFunctionWithScope(ctx, contractHash, method, chainParams, signer.ScriptHash(), rpcScope)
 	if err != nil {
 		return nil, fmt.Errorf("invocation simulation failed: %w", err)
 	}
@@ -522,21 +651,6 @@ func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, cont
 			Exception:   invokeResult.Exception,
 			AccountID:   accountID,
 		}, fmt.Errorf("invocation simulation faulted: %s", invokeResult.Exception)
-	}
-
-	// Determine transaction scope (default to CalledByEntry for safety)
-	txScope := transaction.CalledByEntry
-	switch strings.ToLower(scope) {
-	case "global":
-		txScope = transaction.Global
-	case "customcontracts":
-		txScope = transaction.CustomContracts
-	case "customgroups":
-		txScope = transaction.CustomGroups
-	case "none":
-		txScope = transaction.None
-	case "calledbyentry", "":
-		txScope = transaction.CalledByEntry
 	}
 
 	// Build and sign the transaction inside TEE
@@ -778,6 +892,23 @@ func (s *Service) FundAccount(ctx context.Context, toAddress string, amount int6
 
 	txHashString := "0x" + txHash.StringLE()
 
+	// Wait for the funding transaction to be confirmed on-chain
+	// This ensures the pool account has GAS before we return
+	waitCtx, cancel := context.WithTimeout(ctx, chain.DefaultTxWaitTimeout)
+	defer cancel()
+
+	appLog, err := s.chainClient.WaitForApplicationLog(waitCtx, txHashString, chain.DefaultPollInterval)
+	if err != nil {
+		return nil, fmt.Errorf("wait for funding confirmation (tx: %s): %w", txHashString, err)
+	}
+	if appLog != nil && len(appLog.Executions) > 0 && appLog.Executions[0].VMState != "HALT" {
+		return nil, fmt.Errorf("funding transaction failed (tx: %s): %s", txHashString, appLog.Executions[0].Exception)
+	}
+
+	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
+		"tx_hash": txHashString,
+	}).Info("funding transaction confirmed on-chain")
+
 	// Update database balance for the target pool account
 	if s.repo != nil {
 		acc, accErr := s.repo.GetByAddress(ctx, toAddress)
@@ -867,8 +998,30 @@ func (s *Service) InvokeMaster(ctx context.Context, contractHash, method string,
 		chainParams[i] = convertToChainParam(p)
 	}
 
-	// Simulate invocation
-	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractHash, method, chainParams, signer.ScriptHash())
+	// Determine transaction scope (default to CalledByEntry for safety)
+	// Must be determined BEFORE simulation so the correct scope is used
+	rpcScope := chain.ScopeCalledByEntry
+	txScope := transaction.CalledByEntry
+	switch strings.ToLower(scope) {
+	case "global":
+		rpcScope = chain.ScopeGlobal
+		txScope = transaction.Global
+	case "customcontracts":
+		rpcScope = chain.ScopeCustomContracts
+		txScope = transaction.CustomContracts
+	case "customgroups":
+		rpcScope = chain.ScopeCustomGroups
+		txScope = transaction.CustomGroups
+	case "none":
+		rpcScope = chain.ScopeNone
+		txScope = transaction.None
+	case "calledbyentry", "":
+		rpcScope = chain.ScopeCalledByEntry
+		txScope = transaction.CalledByEntry
+	}
+
+	// Simulate invocation with the correct scope
+	invokeResult, err := s.chainClient.InvokeFunctionWithScope(ctx, contractHash, method, chainParams, signer.ScriptHash(), rpcScope)
 	if err != nil {
 		return nil, fmt.Errorf("invocation simulation failed: %w", err)
 	}
@@ -879,21 +1032,6 @@ func (s *Service) InvokeMaster(ctx context.Context, contractHash, method string,
 			Exception:   invokeResult.Exception,
 			AccountID:   "master",
 		}, fmt.Errorf("invocation simulation faulted: %s", invokeResult.Exception)
-	}
-
-	// Determine transaction scope (default to CalledByEntry for safety)
-	txScope := transaction.CalledByEntry
-	switch strings.ToLower(scope) {
-	case "global":
-		txScope = transaction.Global
-	case "customcontracts":
-		txScope = transaction.CustomContracts
-	case "customgroups":
-		txScope = transaction.CustomGroups
-	case "none":
-		txScope = transaction.None
-	case "calledbyentry", "":
-		txScope = transaction.CalledByEntry
 	}
 
 	// Build and sign the transaction inside TEE

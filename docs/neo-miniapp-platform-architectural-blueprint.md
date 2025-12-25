@@ -61,14 +61,17 @@ neo-miniapp-platform/
 │   ├── PriceFeed/              # Logic: Datafeed storage (0.1% trigger)
 │   ├── RandomnessLog/          # Logic: VRF verification storage
 │   ├── AppRegistry/            # Logic: Manifest hash & Dev Allowlist
-│   └── AutomationAnchor/       # Logic: Task registry
+│   ├── AutomationAnchor/       # Logic: Task registry
+│   └── ServiceLayerGateway/    # Logic: Service request + callback router
 │
 ├── services/                   # [Go] EGo + MarbleRun TEE Services
-│   ├── datafeed-service/       # High-freq polling, threshold logic
-│   ├── oracle-gateway/         # General purpose fetcher
-│   ├── vrf-service/            # Verifiable randomness generation
-│   ├── compute-service/        # Confidential compute scripts
-│   ├── tx-proxy/               # The "Key Holder". Signs transactions.
+│   ├── datafeed/               # High-freq polling, threshold logic
+│   ├── conforacle/             # Confidential oracle fetcher
+│   ├── vrf/                    # Verifiable randomness generation
+│   ├── confcompute/            # Confidential compute scripts
+│   ├── requests/               # On-chain request listener + callbacks
+│   ├── automation/             # Scheduler + anchoring
+│   ├── txproxy/                # The "Key Holder". Signs transactions.
 │   └── marblerun/              # Manifests & policies
 │
 ├── platform/                   # [TS] Host Platform
@@ -100,27 +103,51 @@ neo-miniapp-platform/
    - Stores `(Symbol, Price, Timestamp, RoundID, AttestationHash)`.
    - Enforces `RoundID` monotonicity.
    - Validates authorized updater (TEE node allowlist).
+4. **RandomnessLog.cs**
+   - Anchors `(RequestId, Randomness, AttestationHash, Timestamp)`.
+5. **AppRegistry.cs**
+   - Stores manifest hash + status + allowlist anchor hash.
+6. **AutomationAnchor.cs**
+   - Task registry + nonce-based anti-replay for automation tasks.
+7. **ServiceLayerGateway.cs**
+   - Accepts `RequestService(...)` from MiniApps.
+   - Emits `ServiceRequested` events and routes callbacks via `FulfillRequest(...)`.
 
 ### B. TEE Services (The "Black Box")
 All services run inside EGo enclaves. Keys **never** leave the enclave.
 
-1. **tx-proxy**
+1. **txproxy**
    - Holds platform signing key(s).
    - Enforces contract+method allowlist and intent gates.
-2. **datafeed-service**
+2. **datafeed**
    - Polls multiple sources, computes median.
    - Pushes updates when deviation ≥0.1% with hysteresis + throttling.
-3. **vrf-service**
+3. **vrf**
    - Signs `request_id` inside TEE and derives randomness from the signature.
-   - Optionally anchors randomness in `RandomnessLog` via `tx-proxy`.
-4. **compute-service**
+   - Optionally anchors randomness in `RandomnessLog` via `txproxy`.
+4. **confcompute**
    - Runs restricted scripts inside TEE (confidential jobs).
+5. **conforacle**
+   - Allowlisted HTTP fetch with optional secret injection.
+6. **automation**
+   - Scheduler + triggers (cron/price).
+7. **requests (NeoRequests)**
+   - Listens for `ServiceRequested` events.
+   - Routes to VRF/Oracle/Compute and submits `FulfillRequest` callbacks via `txproxy`.
 
 ### C. Gateway (Supabase Edge)
 - Stateless router + rate limiter.
 - Validates Supabase Auth JWT / API keys.
 - Enforces **GAS-only** (payments) and **NEO-only** (governance).
 - Uses mTLS when calling TEE services.
+
+### D. On-Chain Service Request Flow
+
+1. MiniApp contract calls `ServiceLayerGateway.RequestService(...)`.
+2. Gateway emits `ServiceRequested`.
+3. NeoRequests processes the request and prepares the result.
+4. NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)`.
+5. Gateway calls the MiniApp callback method on-chain.
 
 ## 4. Frontend & Security Sandbox
 
@@ -157,6 +184,6 @@ interface MiniAppSDK {
 ## 7. MVP Roadmap
 
 1. Infra setup (neo-express, Supabase, CI).
-2. Deploy PaymentHub + AppRegistry to local chain.
-3. TEE skeleton (EGo hello world, tx-proxy).
-4. End-to-end `payGAS` flow with a built-in MiniApp.
+2. Deploy PaymentHub + AppRegistry + ServiceLayerGateway to local chain.
+3. TEE skeleton (EGo hello world, txproxy, requests).
+4. End-to-end `payGAS` + on-chain service request callbacks with a built-in MiniApp.

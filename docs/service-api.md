@@ -1,6 +1,8 @@
 # Service API (Draft)
 
 This document describes the intended API surface for the MiniApp platform.
+For lifecycle and event flow details, see `docs/WORKFLOWS.md` and
+`docs/DATAFLOWS.md`.
 
 ## Layers
 
@@ -36,6 +38,30 @@ explicit scopes** in production; bearer JWTs are rejected there.
 
 Most state-changing endpoints also require a **verified primary wallet binding**
 (`wallet-nonce` + `wallet-bind`).
+
+## On-Chain Service Requests (ServiceLayerGateway)
+
+MiniApps that need confidential services can use the on-chain request/callback
+pattern instead of calling Edge endpoints directly:
+
+1. MiniApp contract calls `ServiceLayerGateway.RequestService(...)`.
+2. Gateway emits `ServiceRequested` event.
+3. NeoRequests executes the TEE workflow and prepares the result.
+4. NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)` via `tx-proxy`.
+5. Gateway calls the MiniApp callback method on-chain.
+
+This flow is recorded in Supabase `contract_events` and `chain_txs`.
+
+When configured, NeoRequests also verifies that the MiniApp is **Approved** in
+AppRegistry and that the on-chain `manifest_hash` matches the Supabase record
+before executing the request.
+
+Payload formats are defined in `docs/service-request-payloads.md`.
+
+**Callback payload size:** the ServiceLayerGateway `ServiceFulfilled` event
+emits the result bytes. Neo limits notifications to 1024 bytes, so NeoRequests
+enforces a conservative result size cap (configurable via
+`NEOREQUESTS_MAX_RESULT_BYTES`).
 
 ### Payments (GAS only)
 
@@ -76,6 +102,9 @@ Most state-changing endpoints also require a **verified primary wallet binding**
   - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["NEO"]`
   - persists: updated canonical manifest in Supabase `miniapps` table
   - returns: an AppRegistry `updateManifest` invocation for the developer wallet to sign and submit
+
+After `register` / `updateManifest`, an **admin** must approve or disable the
+MiniApp on-chain via `AppRegistry.setStatus`.
 
 ### Wallet Binding
 
@@ -135,6 +164,7 @@ These endpoints manage user secrets stored in Supabase:
 
 - `GET /functions/v1/datafeed-price?symbol=BTC-USD`
   - read proxy to `neofeeds` (or a future cache)
+  - symbols without a quote default to `-USD` (e.g., `BTC` → `BTC-USD`)
 - `GET /functions/v1/datafeed-stream?symbol=BTC-USD` (future: SSE/WebSocket proxy)
 
 ### Oracle

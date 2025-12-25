@@ -10,6 +10,10 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
+    // Custom delegates for events with named parameters
+    public delegate void TaskRegisteredHandler(ByteString taskId, UInt160 target, string method);
+    public delegate void ExecutedHandler(ByteString taskId, BigInteger nonce, ByteString txHash);
+
     [DisplayName("AutomationAnchor")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
@@ -42,10 +46,10 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [DisplayName("TaskRegistered")]
-        public static event Action<ByteString, UInt160, string> OnTaskRegistered;
+        public static event TaskRegisteredHandler OnTaskRegistered;
 
         [DisplayName("Executed")]
-        public static event Action<ByteString, BigInteger, ByteString> OnExecuted;
+        public static event ExecutedHandler OnExecuted;
 
         public static void _deploy(object data, bool update)
         {

@@ -1,0 +1,26 @@
+{
+  "app_id": "builtin-grid-bot",
+  "name": "Grid Trading Bot",
+  "description": "Automated grid trading market maker with price-triggered order management and TEE strategy protection",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=grid-bot",
+  "developer_pubkey": "",
+  "permissions": {
+    "wallet": ["read-address"],
+    "payments": true,
+    "datafeed": true,
+    "automation": true,
+    "compute": true
+  },
+  "assets_allowed": ["GAS"],
+  "limits": {
+    "max_per_tx": 50,
+    "max_per_user_per_day": 500
+  },
+  "category": "defi",
+  "tags": ["trading", "grid", "market-maker", "automation"],
+  "security": {
+    "attestation_required": true
+  },
+  "sandbox_flags": ["no-eval", "strict-csp"]
+}

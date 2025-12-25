@@ -19,6 +19,8 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 		"CONTRACT_APP_REGISTRY_HASH",
 		"CONTRACT_AUTOMATIONANCHOR_HASH",
 		"CONTRACT_AUTOMATION_ANCHOR_HASH",
+		"CONTRACT_SERVICEGATEWAY_HASH",
+		"CONTRACT_SERVICE_GATEWAY_HASH",
 	}
 	saved := make(map[string]string)
 	for _, k := range envVars {
@@ -42,6 +44,7 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 		os.Setenv("CONTRACT_RANDOMNESSLOG_HASH", "0xrandom")
 		os.Setenv("CONTRACT_APPREGISTRY_HASH", "0xapp")
 		os.Setenv("CONTRACT_AUTOMATIONANCHOR_HASH", "0xauto")
+		os.Setenv("CONTRACT_SERVICEGATEWAY_HASH", "0xservice")
 		defer func() {
 			for _, k := range envVars {
 				os.Unsetenv(k)
@@ -69,6 +72,9 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 		if c.AutomationAnchor != "0xauto" {
 			t.Errorf("AutomationAnchor = %s, want 0xauto", c.AutomationAnchor)
 		}
+		if c.ServiceLayerGateway != "0xservice" {
+			t.Errorf("ServiceLayerGateway = %s, want 0xservice", c.ServiceLayerGateway)
+		}
 	})
 
 	t.Run("fallback env vars", func(t *testing.T) {
@@ -77,6 +83,7 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 		os.Setenv("CONTRACT_RANDOMNESS_LOG_HASH", "0xrandom2")
 		os.Setenv("CONTRACT_APP_REGISTRY_HASH", "0xapp2")
 		os.Setenv("CONTRACT_AUTOMATION_ANCHOR_HASH", "0xauto2")
+		os.Setenv("CONTRACT_SERVICE_GATEWAY_HASH", "0xservice2")
 		defer func() {
 			for _, k := range envVars {
 				os.Unsetenv(k)
@@ -100,6 +107,9 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 		}
 		if c.AutomationAnchor != "0xauto2" {
 			t.Errorf("AutomationAnchor = %s, want 0xauto2", c.AutomationAnchor)
+		}
+		if c.ServiceLayerGateway != "0xservice2" {
+			t.Errorf("ServiceLayerGateway = %s, want 0xservice2", c.ServiceLayerGateway)
 		}
 	})
 

@@ -31,6 +31,8 @@ type (
 	ListAccountsResponse    = neoaccountstypes.ListAccountsResponse
 	TransferInput           = neoaccountstypes.TransferInput
 	TransferResponse        = neoaccountstypes.TransferResponse
+	TransferWithDataInput   = neoaccountstypes.TransferWithDataInput
+	TransferWithDataResponse = neoaccountstypes.TransferWithDataResponse
 	MasterKeyAttestation    = neoaccountstypes.MasterKeyAttestation
 
 	// Fund account types - transfer from master wallet to pool accounts

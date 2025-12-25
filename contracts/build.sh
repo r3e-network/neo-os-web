@@ -104,10 +104,31 @@ platform_contracts=(
     "RandomnessLog:RandomnessLog"
     "AppRegistry:AppRegistry"
     "AutomationAnchor:AutomationAnchor"
+    "ServiceLayerGateway:ServiceLayerGateway"
+)
+
+# Sample MiniApp contracts (optional)
+sample_contracts=(
+    "MiniAppServiceConsumer:MiniAppServiceConsumer"
 )
 
 echo "=== Building Platform Contracts ==="
 for entry in "${platform_contracts[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_sources "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building Sample MiniApp Contracts ==="
+for entry in "${sample_contracts[@]}"; do
     dir="${entry%%:*}"
     name="${entry##*:}"
 

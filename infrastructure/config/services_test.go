@@ -21,6 +21,9 @@ func TestDefaultServicesConfig(t *testing.T) {
 		"neocompute",
 		"neovrf",
 		"neooracle",
+		"neorequests",
+		"neogasbank",
+		"neosimulation",
 	}
 
 	for _, svc := range expectedServices {
@@ -53,6 +56,7 @@ func TestGetNeoServiceName(t *testing.T) {
 		{"neoflow", "neoflow"},
 		{"vrf", "neovrf"},
 		{"tx-proxy", "txproxy"},
+		{"requests", "neorequests"},
 		{"unknown", "unknown"},
 		{"", ""},
 	}

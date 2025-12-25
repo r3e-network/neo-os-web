@@ -237,6 +237,41 @@ func (s *Service) handleTransfer(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleTransferWithData transfers GAS from a pool account to a target address with optional data.
+// The data parameter is passed to the OnNEP17Payment callback of the receiving contract.
+// This is used for payments to contracts like PaymentHub that need to identify the payment source.
+func (s *Service) handleTransferWithData(w http.ResponseWriter, r *http.Request) {
+	var input TransferWithDataInput
+	if !httputil.DecodeJSON(w, r, &input) {
+		return
+	}
+
+	serviceID, ok := resolveServiceID(w, r, input.ServiceID)
+	if !ok {
+		return
+	}
+	input.ServiceID = serviceID
+
+	if input.AccountID == "" || input.ToAddress == "" || input.Amount <= 0 {
+		httputil.BadRequest(w, "account_id, to_address, and positive amount required")
+		return
+	}
+
+	txHash, err := s.TransferWithData(r.Context(), input.ServiceID, input.AccountID, input.ToAddress, input.Amount, input.Data)
+	if err != nil {
+		httputil.InternalError(w, err.Error())
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, TransferWithDataResponse{
+		TxHash:    txHash,
+		AccountID: input.AccountID,
+		ToAddress: input.ToAddress,
+		Amount:    input.Amount,
+		Data:      input.Data,
+	})
+}
+
 // handleDeployContract deploys a new smart contract using a pool account.
 // All signing happens inside TEE - private keys never leave the enclave.
 func (s *Service) handleDeployContract(w http.ResponseWriter, r *http.Request) {

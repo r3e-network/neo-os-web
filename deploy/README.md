@@ -39,6 +39,7 @@ deploy/
 ├── scripts/
 │   ├── setup_neoexpress.sh    # Setup Neo Express environment
 │   ├── deploy_all.sh          # Deploy contracts
+│   ├── sync_deployed_contracts.sh # Sync deployed hashes from Neo Express
 │   ├── initialize.py          # Initialize deployed contracts
 │   └── (tests live under ./test/contract)
 └── wallets/
@@ -80,6 +81,19 @@ make deploy
 make init
 ```
 
+If a contract is already deployed (present in `deploy/config/deployed_contracts.json`),
+`deploy_all.sh` will **update** it in-place instead of redeploying. This preserves
+storage and avoids losing on-chain state.
+Keep `deployed_contracts.json` under version control or back it up so update
+targets remain available.
+
+If Neo Express already has contracts deployed but `deployed_contracts.json` is
+missing or incomplete, sync the hashes from the chain:
+
+```bash
+./deploy/scripts/sync_deployed_contracts.sh
+```
+
 ### TestNet
 
 1. Set environment variables:
@@ -102,6 +116,9 @@ make deploy NETWORK=testnet
 make init NETWORK=testnet
 ```
 
+If the contracts are already deployed on testnet, use `neo-go contract update`
+with the existing hash instead of redeploying.
+
 ## Contract Initialization
 
 After deployment, contracts are initialized with:
@@ -110,6 +127,7 @@ After deployment, contracts are initialized with:
    - `PriceFeed.setUpdater(tee)`
    - `RandomnessLog.setUpdater(tee)`
    - `AutomationAnchor.setUpdater(tee)`
+   - `ServiceLayerGateway.setUpdater(tee)`
 
 In production, the updater should be the enclave-managed signer (GlobalSigner / TxProxy).
 
@@ -140,14 +158,15 @@ After deployment, contract addresses are saved to `config/deployed_contracts.jso
 
 ### Neo N3 Testnet (Live)
 
-| Contract         | Address                                      | Description               |
-| ---------------- | -------------------------------------------- | ------------------------- |
-| PaymentHub       | `0x56730a72af8363c8da7ae61ed930accb30aefe87` | GAS payments & settlement |
-| Governance       | `0x75b653ebe873d706757bab6f1166323d701da445` | NEO voting & governance   |
-| PriceFeed        | `0x1d1b28a968d45bce20ef9344f605856ac5b93418` | Price oracle anchoring    |
-| RandomnessLog    | `0xef79193a3a7d8c27655a7c111d4df6f8cec1d253` | Randomness anchoring      |
-| AppRegistry      | `0x3e23e14355209e6f48cd24174143535ae3f211a1` | MiniApp registration      |
-| AutomationAnchor | `0xde6bd82083eb52c214b50877d6a7b4e45fd806fd` | Task execution logs       |
+| Contract            | Address                                      | Description                       |
+| ------------------- | -------------------------------------------- | --------------------------------- |
+| PaymentHub          | `0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193` | GAS payments & settlement         |
+| Governance          | `0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05` | NEO voting & governance           |
+| PriceFeed           | `0xc5d9117d255054489d1cf59b2c1d188c01bc9954` | Price oracle anchoring            |
+| RandomnessLog       | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` | Randomness anchoring              |
+| AppRegistry         | `0x79d16bee03122e992bb80c478ad4ed405f33bc7f` | MiniApp registration              |
+| AutomationAnchor    | `0x1c888d699ce76b0824028af310d90c3c18adeab5` | Task execution logs               |
+| ServiceLayerGateway | `0x27b79cf631eff4b520dd9d95cd1425ec33025a53` | On-chain service callbacks        |
 
 **Network:** Neo N3 Testnet
 **RPC:** `https://testnet1.neo.coz.io:443`
@@ -162,7 +181,8 @@ After deployment, contract addresses are saved to `config/deployed_contracts.jso
   "PriceFeed": "0xaaaa...",
   "RandomnessLog": "0xbbbb...",
   "AppRegistry": "0xcccc...",
-  "AutomationAnchor": "0xdddd..."
+  "AutomationAnchor": "0xdddd...",
+  "ServiceLayerGateway": "0xeeee..."
 }
 ```
 

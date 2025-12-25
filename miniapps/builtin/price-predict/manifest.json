@@ -1,0 +1,25 @@
+{
+  "app_id": "builtin-price-predict",
+  "entry_url": "https://cdn.example.com/miniapps/builtin/price-predict/index.html",
+  "name": "Price Predict",
+  "version": "0.1.0",
+  "developer_pubkey": "0x020000000000000000000000000000000000000000000000000000000000000000",
+  "permissions": {
+    "wallet": ["read-address"],
+    "payments": true,
+    "governance": false,
+    "randomness": false,
+    "datafeed": true,
+    "storage": ["kv"]
+  },
+  "assets_allowed": ["GAS"],
+  "governance_assets_allowed": [],
+  "limits": {
+    "max_gas_per_tx": "0.3",
+    "daily_gas_cap_per_user": "3",
+    "governance_cap": "0"
+  },
+  "contracts_needed": ["PaymentHub", "PriceFeed"],
+  "sandbox_flags": ["no-eval", "strict-csp"],
+  "attestation_required": true
+}

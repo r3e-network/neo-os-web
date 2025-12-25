@@ -152,6 +152,26 @@ type TransferResponse struct {
 	Amount    int64  `json:"amount"`
 }
 
+// TransferWithDataInput transfers GAS from a pool account with optional data.
+// The data parameter is passed to the OnNEP17Payment callback of the receiving contract.
+// This is used for payments to contracts like PaymentHub that need to identify the payment source.
+type TransferWithDataInput struct {
+	ServiceID string `json:"service_id"`
+	AccountID string `json:"account_id"`
+	ToAddress string `json:"to_address"`
+	Amount    int64  `json:"amount"`
+	Data      string `json:"data,omitempty"` // Data passed to OnNEP17Payment callback
+}
+
+// TransferWithDataResponse returns the transfer result.
+type TransferWithDataResponse struct {
+	TxHash    string `json:"tx_hash"`
+	AccountID string `json:"account_id"`
+	ToAddress string `json:"to_address"`
+	Amount    int64  `json:"amount"`
+	Data      string `json:"data,omitempty"`
+}
+
 // MasterKeyAttestation is a non-sensitive bundle proving the master key hash
 // is bound to enclave report data. The quote is intended for off-chain
 // verification; the account pool does not parse or validate it here.

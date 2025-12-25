@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Price Predict - Binary Options</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
+        color: #fff;
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        font-size: 24px;
+        margin-bottom: 5px;
+      }
+      .header .subtitle {
+        color: #888;
+        font-size: 14px;
+      }
+      .price-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .price-label {
+        color: #888;
+        font-size: 12px;
+        margin-bottom: 5px;
+      }
+      #price {
+        font-size: 36px;
+        font-weight: bold;
+      }
+      .change {
+        font-size: 14px;
+        margin-top: 5px;
+      }
+      .change.up {
+        color: #4caf50;
+      }
+      .change.down {
+        color: #f44336;
+      }
+      #countdown {
+        display: none;
+        font-size: 48px;
+        font-weight: bold;
+        color: #ffd700;
+        margin: 10px 0;
+      }
+      .chart-container {
+        height: 100px;
+        margin: 15px 0;
+      }
+      #chart {
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+      }
+      .controls {
+        margin-bottom: 20px;
+      }
+      .bet-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .bet-row label {
+        flex: 1;
+        color: #888;
+      }
+      .bet-row input {
+        width: 100px;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 16px;
+        text-align: center;
+      }
+      .bet-buttons {
+        display: flex;
+        gap: 12px;
+      }
+      .bet-btn {
+        flex: 1;
+        padding: 16px;
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      #btn-up {
+        background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+        color: #fff;
+      }
+      #btn-down {
+        background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+        color: #fff;
+      }
+      .bet-btn:hover:not(:disabled) {
+        transform: scale(1.02);
+      }
+      .bet-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .status {
+        text-align: center;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 15px 0;
+      }
+      .status-info {
+        background: rgba(33, 150, 243, 0.2);
+      }
+      .status-success {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4caf50;
+      }
+      .status-warning {
+        background: rgba(255, 152, 0, 0.2);
+        color: #ff9800;
+      }
+      .status-error {
+        background: rgba(244, 67, 54, 0.2);
+        color: #f44336;
+      }
+      .history-section {
+        margin-top: 20px;
+      }
+      .history-section h3 {
+        font-size: 14px;
+        color: #888;
+        margin-bottom: 10px;
+      }
+      .history-item {
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        margin-bottom: 5px;
+        font-size: 13px;
+      }
+      .history-item.win {
+        border-left: 3px solid #4caf50;
+      }
+      .history-item.loss {
+        border-left: 3px solid #f44336;
+      }
+      #sdk-note {
+        display: none;
+        background: rgba(255, 152, 0, 0.2);
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .info {
+        text-align: center;
+        font-size: 11px;
+        color: #666;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Price Predict</h1>
+        <div class="subtitle">60-Second Binary Options</div>
+      </div>
+      <div id="sdk-note">SDK not available. Run inside MiniApp host.</div>
+      <div class="price-card">
+        <div class="price-label">GAS/USD</div>
+        <div id="price">$--</div>
+        <div id="price-change" class="change"></div>
+        <div id="countdown"></div>
+        <div class="chart-container">
+          <canvas id="chart" width="440" height="100"></canvas>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="bet-row">
+          <label>Bet Amount (GAS)</label>
+          <input type="number" id="bet" value="0.1" min="0.05" max="0.5" step="0.05" />
+        </div>
+        <div class="bet-buttons">
+          <button class="bet-btn" id="btn-up">📈 UP</button>
+          <button class="bet-btn" id="btn-down">📉 DOWN</button>
+        </div>
+      </div>
+      <div id="status" class="status status-info">Predict price direction in 60s</div>
+      <div class="history-section">
+        <h3>Recent Predictions</h3>
+        <div id="history"></div>
+      </div>
+      <div class="info">Powered by High-Frequency Datafeed (0.1% updates)</div>
+    </div>
+    <script src="../../_shared/miniapp-bridge.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

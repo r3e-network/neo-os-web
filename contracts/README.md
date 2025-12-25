@@ -27,7 +27,7 @@ gateway + TEE services, with final enforcement at the contract layer.
 ┌────────────────────────────────────────────────────────────────┐
 │                    Platform Contracts (C#)                     │
 │   PaymentHub · Governance · PriceFeed · RandomnessLog          │
-│   AppRegistry · AutomationAnchor                               │
+│   AppRegistry · AutomationAnchor · ServiceLayerGateway         │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -41,6 +41,7 @@ gateway + TEE services, with final enforcement at the contract layer.
 | **RandomnessLog**    | `RandomnessLog/RandomnessLog.cs`       | Verifiable randomness with TEE attestation         |
 | **AppRegistry**      | `AppRegistry/AppRegistry.cs`           | MiniApp manifest and status registry               |
 | **AutomationAnchor** | `AutomationAnchor/AutomationAnchor.cs` | Task scheduling with nonce-based anti-replay       |
+| **ServiceLayerGateway** | `ServiceLayerGateway/ServiceLayerGateway.cs` | On-chain service request routing + callbacks |
 
 ## Custom MiniApp Contracts
 
@@ -52,6 +53,16 @@ must:
 - enforce **GAS-only** settlement or **NEO-only** governance where applicable
 - register any on-chain dependencies in `manifest.contracts_needed`
 - use `tx-proxy` allowlists for any enclave-origin writes
+
+### Sample MiniApp Contract
+
+This repo includes a **sample** on-chain MiniApp contract that demonstrates the
+ServiceLayerGateway request/callback workflow:
+
+- `MiniAppServiceConsumer/MiniAppServiceConsumer.cs`
+
+It is **not** deployed by default; build it with `./build.sh` and deploy it as
+needed for testnet workflows.
 
 ## Common Contract Features
 
@@ -111,6 +122,23 @@ For actual deployment, use `neo-go contract deploy` with the compiled `.nef` and
 - `PriceFeed.SetUpdater(teeSigner)`
 - `RandomnessLog.SetUpdater(teeSigner)`
 - `AutomationAnchor.SetUpdater(teeSigner)`
+
+### Updating Existing Contracts (Preferred Over Redeploy)
+
+If a contract hash is already in use (and referenced by clients), **do not
+redeploy**. Use the on-chain `Update(nef, manifest)` method instead:
+
+```bash
+# Example (testnet): update an existing contract hash
+neo-go contract update -i contracts/build/PaymentHub.nef \
+  -m contracts/build/PaymentHub.manifest.json \
+  -r https://testnet1.neo.coz.io:443 \
+  -w wallet.json \
+  --hash <existing_contract_hash>
+```
+
+For Neo Express local dev, `deploy/scripts/deploy_all.sh` automatically updates
+contracts if they already exist in `deploy/config/deployed_contracts.json`.
 
 ## Security Considerations
 

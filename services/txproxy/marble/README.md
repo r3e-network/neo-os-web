@@ -59,7 +59,9 @@ Example (allow platform contracts):
     "<paymenthub_hash>": ["pay"],
     "<governance_hash>": ["stake", "unstake", "vote"],
     "<randomnesslog_hash>": ["record"],
-    "<pricefeed_hash>": ["update"]
+    "<pricefeed_hash>": ["update"],
+    "<automationanchor_hash>": ["markExecuted"],
+    "<servicegateway_hash>": ["fulfillRequest"]
   }
 }
 ```

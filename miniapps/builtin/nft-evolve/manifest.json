@@ -1,0 +1,23 @@
+{
+  "app_id": "builtin-nft-evolve",
+  "name": "NFT Evolve",
+  "description": "Dynamic NFT evolution engine - digital pets that grow, evolve and respond to environment over time",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=nft-evolve",
+  "developer_pubkey": "",
+  "permissions": {
+    "wallet": ["read-address"],
+    "payments": true,
+    "datafeed": true,
+    "automation": true,
+    "rng": true
+  },
+  "assets_allowed": ["GAS"],
+  "limits": {
+    "max_per_tx": 10,
+    "max_per_user_per_day": 100
+  },
+  "category": "gaming",
+  "tags": ["nft", "gaming", "evolution", "pets"],
+  "sandbox_flags": ["no-eval", "strict-csp"]
+}
