@@ -178,6 +178,12 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | AutomationAnchor    | `0x1c888d699ce76b0824028af310d90c3c18adeab5` | ✅ Active |
 | ServiceLayerGateway | `0x27b79cf631eff4b520dd9d95cd1425ec33025a53` | ✅ Active |
 
+### MiniApp Contracts (Testnet)
+
+| Contract               | Hash                                         | Status    |
+| ---------------------- | -------------------------------------------- | --------- |
+| MiniAppServiceConsumer | `0x8894b8d122cbc49c19439f680a4b5dbb2093b426` | ✅ Active |
+
 ## Security Considerations
 
 1. **Admin Keys**: Store admin private keys securely, preferably in TEE.
