@@ -127,6 +127,8 @@ MiniApp contracts are **optional**. Built-in MiniApps use platform contracts via
 
 ## Builtin MiniApps (23 Apps)
 
+> **Note:** Builtin MiniApps are **frontend applications**, not smart contracts. They are registered in the `AppRegistry` contract and use platform contracts (PaymentHub, RandomnessLog, PriceFeed) via the SDK. Each MiniApp has an `app_id` registered on-chain, but no separate contract address.
+
 **Phase 1 - Gaming:**
 
 - `builtin-lottery` - Neo Lottery with provable randomness
