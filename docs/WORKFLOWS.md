@@ -7,63 +7,66 @@ off-chain gateway flows.
 ## MiniApp Lifecycle (Developer + Host)
 
 1. **Build the MiniApp**
-   - Create a bundle (Module Federation or iframe bundle).
-   - Author `manifest.json` following `docs/manifest-spec.md`.
+    - Create a bundle (Module Federation or iframe bundle).
+    - Author `manifest.json` following `docs/manifest-spec.md`.
 2. **Register or Update Manifest**
-   - Call `app-register` or `app-update-manifest` (Supabase Edge).
-   - Edge canonicalizes the manifest, enforces **GAS-only / NEO-only**, and
-     returns an `AppRegistry` invocation for the developer wallet to sign.
+    - Call `app-register` or `app-update-manifest` (Supabase Edge).
+    - Edge canonicalizes the manifest, enforces **GAS-only / NEO-only**, and
+      returns an `AppRegistry` invocation for the developer wallet to sign.
 3. **On-Chain Registry Approval**
-   - Developer wallet signs and submits the `AppRegistry.register` (or
-     `updateManifest`) invocation.
-   - Platform admin sets the AppRegistry status to `Approved` (or `Disabled`)
-     after verification.
+    - Developer wallet signs and submits the `AppRegistry.registerApp` (or
+      `updateApp`) invocation, anchoring metadata on-chain.
+    - Platform admin sets the AppRegistry status to `Approved` (or `Disabled`)
+      after verification.
 4. **Publish**
-   - Upload the bundle to CDN.
-   - Host app reads registry + manifest metadata from Supabase.
+    - Upload the bundle to CDN.
+    - Host app reads AppRegistry metadata from Supabase cache + manifest policy.
 5. **Runtime Access**
-   - Users authenticate via Supabase Auth.
-   - Users bind a Neo N3 wallet via `wallet-nonce` + `wallet-bind`.
-   - SDK calls Edge functions or on-chain ServiceLayerGateway for services.
+    - Users authenticate via Supabase Auth.
+    - Users bind a Neo N3 wallet via `wallet-nonce` + `wallet-bind`.
+    - SDK calls Edge functions or on-chain ServiceLayerGateway for services.
+6. **Platform Indexing**
+    - Indexer tracks approved MiniApps and parses platform events.
+    - Host UI reads `miniapp-stats` and `miniapp-notifications` for analytics and news.
 
 ## On-Chain Service Request/Callback Workflow
 
 This is the **callback workflow** for service contracts requested by MiniApps.
 
 1. **MiniApp Contract Request**
-   - Contract calls:
-     `ServiceLayerGateway.RequestService(app_id, service_type, payload, callback_contract, callback_method)`.
-   - `payload` is a `ByteString` (UTF-8 JSON); canonical formats live in
-     `docs/service-request-payloads.md`.
+    - Contract calls:
+      `ServiceLayerGateway.RequestService(app_id, service_type, payload, callback_contract, callback_method)`.
+    - `payload` is a `ByteString` (UTF-8 JSON); canonical formats live in
+      `docs/service-request-payloads.md`.
 2. **ServiceRequested Event**
-   - `ServiceLayerGateway` emits `ServiceRequested` with:
-     `(request_id, app_id, service_type, requester, callback_contract, callback_method, payload)`.
+    - `ServiceLayerGateway` emits `ServiceRequested` with:
+      `(request_id, app_id, service_type, requester, callback_contract, callback_method, payload)`.
 3. **NeoRequests Dispatcher**
-   - Listens to `ServiceRequested`.
-   - Stores the event in Supabase `contract_events`.
-   - Marks `processed_events` for idempotency.
-   - Loads the MiniApp manifest from Supabase.
-   - Validates:
-     - app status is active
-     - service permission is granted
-     - callback target matches manifest (unless explicitly allowed)
-     - AppRegistry status is `Approved` (when enabled)
-     - AppRegistry manifest hash matches Supabase (when enabled)
+    - Listens to `ServiceRequested`.
+    - Stores the event in Supabase `contract_events`.
+    - Marks `processed_events` for idempotency.
+    - Loads the MiniApp manifest from Supabase.
+    - Validates:
+        - app status is active (pending/disabled blocked)
+        - service permission is granted
+        - callback target matches manifest (unless explicitly allowed)
+        - AppRegistry status is `Approved` (when enabled)
+        - AppRegistry manifest hash matches Supabase (when enabled)
 4. **Service Execution**
-   - Routes to the enclave service:
-     - `neovrf` (`/random`)
-     - `neooracle` (`/query`)
-     - `neocompute` (`/execute`)
-   - Normalizes and truncates the result to `NEOREQUESTS_MAX_RESULT_BYTES`.
+    - Routes to the enclave service:
+        - `neovrf` (`/random`)
+        - `neooracle` (`/query`)
+        - `neocompute` (`/execute`)
+    - Normalizes and truncates the result to `NEOREQUESTS_MAX_RESULT_BYTES`.
 5. **Callback Transaction**
-   - NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)` via `txproxy`.
-   - `txproxy` enforces allowlisted contract + method.
+    - NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)` via `txproxy`.
+    - `txproxy` enforces allowlisted contract + method.
 6. **MiniApp Callback**
-   - `ServiceLayerGateway` emits `ServiceFulfilled`.
-   - `ServiceLayerGateway` invokes the MiniApp callback:
-     `(request_id, app_id, service_type, success, result, error)`.
+    - `ServiceLayerGateway` emits `ServiceFulfilled`.
+    - `ServiceLayerGateway` invokes the MiniApp callback:
+      `(request_id, app_id, service_type, success, result, error)`.
 7. **Audit Records**
-   - `service_requests` and `chain_txs` rows are updated for status + auditing.
+    - `service_requests` and `chain_txs` rows are updated for status + auditing.
 
 ### MiniApp Callback Contract Requirements
 
@@ -81,24 +84,135 @@ This is the **callback workflow** for service contracts requested by MiniApps.
 - Failed callbacks are recorded with error details; retries are performed using
   `retry_count` and the queued request state.
 
+## Platform Indexer + Analytics Workflow
+
+1. **Block Sync**
+    - Indexer subscribes to Neo N3 blocks with a confirmation depth.
+    - Reorgs trigger backfill to keep stats consistent.
+2. **Event Filtering**
+    - Loads AppRegistry approvals and manifest hashes.
+    - Filters events to approved MiniApps only.
+3. **Notification Ingestion**
+    - Parses `Platform_Notification(app_id, title, content, notification_type, priority)`.
+    - Requires a valid `manifest.contract_hash` when strict ingestion is enabled.
+    - Writes `miniapp_notifications` rows for the host feed.
+4. **Metric Ingestion**
+    - Parses `Platform_Metric(app_id, metric_name, value)` and scans tx scripts for
+      `System.Contract.Call` activity.
+    - Writes `miniapp_tx_events` and daily snapshots to `miniapp_stats_daily`.
+5. **Aggregation**
+    - Aggregator rolls up into `miniapp_stats` (totals, DAU/WAU, gas).
+6. **Realtime Push**
+    - Supabase Realtime broadcasts new `miniapp_notifications`.
+
+## MiniApp Payment Workflow (Frontend → Contract → Payout)
+
+This is the **correct business workflow** for MiniApps that involve payments
+(gaming, DeFi, social). The simulation layer follows this exact pattern.
+
+### Workflow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           MiniApp Payment Workflow                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌──────────┐    ┌─────────┐    ┌────────────┐    ┌──────────────────────┐ │
+│  │  User    │───▶│   SDK   │───▶│ PaymentHub │───▶│ OnNEP17Payment       │ │
+│  │ (Wallet) │    │ payGAS  │    │  (GAS)     │    │ (records payment)    │ │
+│  └──────────┘    └─────────┘    └────────────┘    └──────────────────────┘ │
+│       │                                                     │               │
+│       │ USER ACTION                                         │               │
+│       ▼                                                     ▼               │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                        PLATFORM ACTIONS                               │  │
+│  ├──────────────────────────────────────────────────────────────────────┤  │
+│  │  1. Platform detects payment via PaymentHub events                    │  │
+│  │  2. Platform invokes MiniApp Contract (game logic, state updates)     │  │
+│  │  3. Platform determines winners (using VRF for randomness)            │  │
+│  │  4. Platform sends payouts to winners via PayoutToUser                │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Step-by-Step Flow
+
+1. **USER ACTION: Pay via SDK**
+    - User interacts with MiniApp frontend (e.g., buy lottery ticket, place bet)
+    - MiniApp calls `window.MiniAppSDK.payments.payGAS(appId, amount, memo)`
+    - SDK returns an invocation intent for GAS `transfer` to `PaymentHub`
+    - User's wallet signs and broadcasts the GAS transfer
+
+2. **PLATFORM ACTION: Process Payment**
+    - `PaymentHub.OnNEP17Payment` callback receives the GAS
+    - Payment is recorded with `appId` extracted from memo/data
+    - Platform services detect the payment event
+
+3. **PLATFORM ACTION: Invoke MiniApp Contract**
+    - Platform calls the MiniApp's own contract to process game logic
+    - Example: `MiniAppLottery.recordTickets(round, user, ticketCount)`
+    - MiniApp contract stores app-specific state (bets, tickets, votes, etc.)
+
+4. **PLATFORM ACTION: Determine Outcome**
+    - For games: Platform uses VRF service for provable randomness
+    - For predictions: Platform checks oracle price feeds
+    - MiniApp contract records the outcome
+
+5. **PLATFORM ACTION: Send Payouts**
+    - Platform calls `PayoutToUser(appId, winner, amount, memo)`
+    - Winners receive GAS directly to their wallets
+    - Payout is recorded for auditing
+
+### Example: Lottery Workflow
+
+```
+User clicks "Buy 5 Tickets" in Lottery MiniApp
+    │
+    ▼
+SDK.payGAS("builtin-lottery", "0.5", "lottery:round:42:tickets:5")
+    │
+    ▼
+PaymentHub receives 0.5 GAS with memo
+    │
+    ▼
+Platform invokes MiniAppLottery.recordTickets(42, userAddr, 5)
+    │
+    ▼
+[Later] Platform triggers draw using VRF randomness
+    │
+    ▼
+Platform invokes MiniAppLottery.recordWinner(42, winnerAddr)
+    │
+    ▼
+Platform calls PayoutToUser("builtin-lottery", winnerAddr, prizeAmount, "lottery:win:42")
+```
+
+### Key Principles
+
+- **Users never directly invoke MiniApp contracts** - they only pay via SDK
+- **MiniApp contracts store app-specific state** - not payment logic
+- **Platform orchestrates the workflow** - payment → logic → payout
+- **All payments flow through PaymentHub** - single audit point
+
 ## Off-Chain (Gateway) Workflows
 
 ### Payments (GAS only)
 
 1. SDK calls `pay-gas` Edge function.
 2. Edge validates:
-   - manifest permissions (`payments`)
-   - `assets_allowed == ["GAS"]`
-   - per-user daily caps
-3. Edge returns a `PaymentHub.pay` invocation.
-4. Wallet signs and broadcasts to the network.
+    - manifest permissions (`payments`)
+    - `assets_allowed == ["GAS"]`
+    - per-user daily caps
+3. Edge returns a GAS `transfer` invocation to `PaymentHub`.
+4. Wallet signs and broadcasts the network.
 
 ### Governance (NEO only)
 
 1. SDK calls `vote-neo`.
 2. Edge validates:
-   - manifest permissions (`governance`)
-   - `governance_assets_allowed == ["NEO"]`
+    - manifest permissions (`governance`)
+    - `governance_assets_allowed == ["NEO"]`
 3. Edge returns a `Governance.vote` invocation.
 4. Wallet signs and broadcasts to the network.
 
@@ -171,68 +285,71 @@ Use this runbook to validate the **full on-chain request → service → callbac
 workflow on Neo N3 testnet.
 
 1. **Deploy the sample MiniApp callback contract**
-   - Build artifacts are expected in `contracts/build/`.
-   - If missing, run: `./contracts/build.sh`.
-   - Run:
-     ```bash
-     # deploy MiniAppServiceConsumer and set its gateway
-     go run scripts/deploy_miniapp_consumer.go
-     ```
-   - Record the deployed contract hash printed by the script.
+    - Build artifacts are expected in `contracts/build/`.
+    - If missing, run: `./contracts/build.sh`.
+    - Run:
+        ```bash
+        # deploy MiniAppServiceConsumer and set its gateway
+        go run scripts/deploy_miniapp_consumer.go
+        ```
+    - Record the deployed contract hash printed by the script.
 2. **Seed Supabase `miniapps`**
-   - Insert a manifest row with:
-     - `app_id` matching the request (e.g., `com.test.consumer`).
-     - `permissions.rng=true` (or `oracle` / `compute`).
-     - `callback_contract` set to the deployed MiniApp contract hash.
-     - `callback_method` set to `onServiceCallback`.
+    - Insert a manifest row with:
+        - `app_id` matching the request (e.g., `com.test.consumer`).
+        - `permissions.rng=true` (or `oracle` / `compute`).
+        - `callback_contract` set to the deployed MiniApp contract hash.
+        - `callback_method` set to `onServiceCallback`.
 3. **Register + Approve in AppRegistry**
-   - Register the manifest on-chain and approve it:
-     ```bash
-     # uses manifest from Supabase by default (set MINIAPP_APP_ID if needed)
-     go run scripts/register_miniapp_appregistry.go
-     ```
-   - Optional overrides:
-     ```bash
-     # use a local manifest file instead of Supabase
-     export MINIAPP_MANIFEST_PATH=miniapps/templates/react-starter/manifest.json
-     # override developer pubkey if needed
-     export MINIAPP_DEVELOPER_PUBKEY=03...
-     # use a separate admin key (optional)
-     export MINIAPP_ADMIN_WIF=Kx...
-     ```
+    - Register the manifest on-chain and approve it:
+        ```bash
+        # uses manifest from Supabase by default (set MINIAPP_APP_ID if needed)
+        go run scripts/register_miniapp_appregistry.go
+        ```
+    - Optional overrides:
+        ```bash
+        # use a local manifest file instead of Supabase
+        export MINIAPP_MANIFEST_PATH=miniapps/templates/react-starter/manifest.json
+        # override developer pubkey if needed
+        export MINIAPP_DEVELOPER_PUBKEY=03...
+        # use a separate admin key (optional)
+        export MINIAPP_ADMIN_WIF=Kx...
+        ```
 4. **Trigger a service request**
-   - Run:
-     ```bash
-     # set the MiniApp contract hash from step 1
-     export MINIAPP_CONSUMER_HASH=0x...
-     # wait for the callback to land in the MiniApp contract
-     export MINIAPP_WAIT_CALLBACK=true
-     # optional: override callback wait timeout (default 180s)
-     export MINIAPP_CALLBACK_TIMEOUT_SECONDS=240
-     # calls MiniAppServiceConsumer.requestRng(app_id)
-     go run scripts/request_miniapp_rng.go
-     ```
-   - For Oracle / Compute:
-     ```bash
-     export MINIAPP_CONSUMER_HASH=0x...
-     export MINIAPP_SERVICE_TYPE=oracle
-     export MINIAPP_WAIT_CALLBACK=true
-     # optional override; uses a Binance price query by default
-     export MINIAPP_SERVICE_PAYLOAD='{"url":"https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT","json_path":"price"}'
-     go run scripts/request_miniapp_service.go
+    - Run:
+        ```bash
+        # set the MiniApp contract hash from step 1
+        export MINIAPP_CONSUMER_HASH=0x...
+        # wait for the callback to land in the MiniApp contract
+        export MINIAPP_WAIT_CALLBACK=true
+        # optional: override callback wait timeout (default 180s)
+        export MINIAPP_CALLBACK_TIMEOUT_SECONDS=240
+        # calls MiniAppServiceConsumer.requestRng(app_id)
+        go run scripts/request_miniapp_rng.go
+        ```
+    - For Oracle / Compute:
 
-     export MINIAPP_SERVICE_TYPE=compute
-     export MINIAPP_WAIT_CALLBACK=true
-     export MINIAPP_SERVICE_PAYLOAD='{"script":"function main(){return {ok:true,sum:input.a+input.b};}","entry_point":"main","input":{"a":2,"b":3}}'
-     go run scripts/request_miniapp_service.go
-     ```
+        ```bash
+        export MINIAPP_CONSUMER_HASH=0x...
+        export MINIAPP_SERVICE_TYPE=oracle
+        export MINIAPP_WAIT_CALLBACK=true
+        # optional override; uses a Binance price query by default
+        export MINIAPP_SERVICE_PAYLOAD='{"url":"https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT","json_path":"price"}'
+        go run scripts/request_miniapp_service.go
+
+        export MINIAPP_SERVICE_TYPE=compute
+        export MINIAPP_WAIT_CALLBACK=true
+        export MINIAPP_SERVICE_PAYLOAD='{"script":"function main(){return {ok:true,sum:input.a+input.b};}","entry_point":"main","input":{"a":2,"b":3}}'
+        go run scripts/request_miniapp_service.go
+        ```
+
 5. **Verify the callback**
-   - Check `neorequests` logs for `ServiceRequested` and `fulfillRequest`.
-   - Check `txproxy` logs for the callback submission.
-   - Query `service_requests` and `chain_txs` in Supabase.
-   - Invoke `MiniAppServiceConsumer.getLastCallback` to confirm it was stored.
+    - Check `neorequests` logs for `ServiceRequested` and `fulfillRequest`.
+    - Check `txproxy` logs for the callback submission.
+    - Query `service_requests` and `chain_txs` in Supabase.
+    - Invoke `MiniAppServiceConsumer.getLastCallback` to confirm it was stored.
 
 If the callback does not arrive, verify:
+
 - `TXPROXY_ALLOWLIST` includes `ServiceLayerGateway.fulfillRequest`.
 - `ServiceLayerGateway` updater is set to the TEE signer.
 - `miniapps.manifest.permissions` includes the requested service.
@@ -249,6 +366,7 @@ flows in one sequence.
 ```
 
 Required environment variables:
+
 - `NEO_TESTNET_WIF`
 - `CONTRACT_PAYMENTHUB_HASH`
 - `CONTRACT_GOVERNANCE_HASH`

@@ -1,0 +1,418 @@
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:21:// Mock logger to always output (bypass NODE_ENV check)
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:22:jest.mock("../../lib/logger", () => ({
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:23:  logger: {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:24:    debug: (message: string, ...args: unknown[]) => console.log(`[DEBUG] ${message}`, ...args),
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:25:    info: (message: string, ...args: unknown[]) => console.log(`[INFO] ${message}`, ...args),
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:26:    warn: (message: string, ...args: unknown[]) => console.warn(`[WARN] ${message}`, ...args),
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:27:    error: (message: string, error?: unknown) => console.error(`[ERROR] ${message}`, error),
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:38:  const originalConsoleError = console.error;
+infrastructure/logging/logger_test.go:10:	"github.com/sirupsen/logrus"
+infrastructure/logging/logger_test.go:20:		{"json logger", "test-service", "info", "json"},
+infrastructure/logging/logger_test.go:21:		{"text logger", "test-service", "debug", "text"},
+infrastructure/logging/logger_test.go:27:			logger := New(tt.service, tt.level, tt.format)
+infrastructure/logging/logger_test.go:28:			if logger == nil {
+infrastructure/logging/logger_test.go:31:			if logger.service != tt.service {
+infrastructure/logging/logger_test.go:32:				t.Errorf("service = %v, want %v", logger.service, tt.service)
+infrastructure/logging/logger_test.go:39:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:44:	entry := logger.WithContext(ctx)
+infrastructure/logging/logger_test.go:62:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:63:	entry := logger.WithTraceID("trace-123")
+infrastructure/logging/logger_test.go:74:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:75:	entry := logger.WithUserID("user-456")
+infrastructure/logging/logger_test.go:83:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:89:	entry := logger.WithFields(fields)
+infrastructure/logging/logger_test.go:103:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:106:	entry := logger.WithError(err)
+infrastructure/logging/logger_test.go:114:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:117:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:118:	logger.Logger.Info("test message")
+infrastructure/logging/logger_test.go:255:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:257:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:260:	logger.LogRequest(ctx, "GET", "/api/test", 200, 100*time.Millisecond)
+infrastructure/logging/logger_test.go:268:	logger := New("test", "debug", "json")
+infrastructure/logging/logger_test.go:270:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:275:	logger.LogDatabaseQuery(ctx, "SELECT * FROM users", 50*time.Millisecond, nil)
+infrastructure/logging/logger_test.go:282:	logger.LogDatabaseQuery(ctx, "SELECT * FROM users", 50*time.Millisecond, errors.New("connection failed"))
+infrastructure/logging/logger_test.go:289:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:291:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:296:	logger.LogBlockchainTx(ctx, "0x123", "transfer", nil)
+infrastructure/logging/logger_test.go:303:	logger.LogBlockchainTx(ctx, "0x123", "transfer", errors.New("insufficient gas"))
+infrastructure/logging/logger_test.go:310:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:312:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:320:	logger.LogSecurityEvent(ctx, "suspicious_activity", details)
+infrastructure/logging/logger_test.go:328:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:330:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:333:	logger.LogAudit(ctx, "delete", "user", "456", "success")
+infrastructure/logging/logger_test.go:341:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:343:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:348:	logger.Info(ctx, "test message", fields)
+infrastructure/logging/logger_test.go:356:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:358:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:364:	logger.Error(ctx, "error occurred", err, fields)
+infrastructure/logging/logger_test.go:372:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:374:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:379:	logger.Warn(ctx, "warning message", fields)
+infrastructure/logging/logger_test.go:387:	logger := New("test", "debug", "json")
+infrastructure/logging/logger_test.go:389:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:394:	logger.Debug(ctx, "debug message", fields)
+infrastructure/logging/logger_test.go:404:	logger := Default()
+infrastructure/logging/logger_test.go:405:	if logger == nil {
+infrastructure/logging/logger_test.go:408:	if logger.service != "test-service" {
+infrastructure/logging/logger_test.go:409:		t.Errorf("service = %v, want test-service", logger.service)
+infrastructure/logging/logger_test.go:414:	// Reset default logger
+infrastructure/logging/logger_test.go:417:	logger := Default()
+infrastructure/logging/logger_test.go:418:	if logger == nil {
+infrastructure/logging/logger_test.go:421:	if logger.service != "unknown" {
+infrastructure/logging/logger_test.go:422:		t.Errorf("service = %v, want unknown", logger.service)
+infrastructure/logging/logger_test.go:477:		logLevel logrus.Level
+infrastructure/logging/logger_test.go:479:		{"debug level", "debug", logrus.DebugLevel},
+infrastructure/logging/logger_test.go:480:		{"info level", "info", logrus.InfoLevel},
+infrastructure/logging/logger_test.go:481:		{"warn level", "warn", logrus.WarnLevel},
+infrastructure/logging/logger_test.go:482:		{"error level", "error", logrus.ErrorLevel},
+infrastructure/logging/logger_test.go:487:			logger := New("test", tt.level, "json")
+infrastructure/logging/logger_test.go:488:			if logger.Logger.Level != tt.logLevel {
+infrastructure/logging/logger_test.go:489:				t.Errorf("Level = %v, want %v", logger.Logger.Level, tt.logLevel)
+infrastructure/logging/logger_test.go:496:	logger := New("test", "info", "json")
+infrastructure/logging/logger_test.go:498:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:500:	logger.Logger.Info("test")
+infrastructure/logging/logger_test.go:513:	logger := New("test", "info", "text")
+infrastructure/logging/logger_test.go:515:	logger.SetOutput(buf)
+infrastructure/logging/logger_test.go:517:	logger.Logger.Info("test")
+infrastructure/logging/logger.go:13:	"github.com/sirupsen/logrus"
+infrastructure/logging/logger.go:30:// Logger wraps logrus.Logger with additional functionality
+infrastructure/logging/logger.go:32:	*logrus.Logger
+infrastructure/logging/logger.go:38:	logger := logrus.New()
+infrastructure/logging/logger.go:41:	logLevel, err := logrus.ParseLevel(level)
+infrastructure/logging/logger.go:43:		logLevel = logrus.InfoLevel
+infrastructure/logging/logger.go:45:	logger.SetLevel(logLevel)
+infrastructure/logging/logger.go:49:		logger.SetFormatter(&logrus.JSONFormatter{
+infrastructure/logging/logger.go:51:			FieldMap: logrus.FieldMap{
+infrastructure/logging/logger.go:52:				logrus.FieldKeyTime:  "timestamp",
+infrastructure/logging/logger.go:53:				logrus.FieldKeyLevel: "level",
+infrastructure/logging/logger.go:54:				logrus.FieldKeyMsg:   "message",
+infrastructure/logging/logger.go:58:		logger.SetFormatter(&logrus.TextFormatter{
+infrastructure/logging/logger.go:64:	logger.SetOutput(os.Stdout)
+infrastructure/logging/logger.go:67:		Logger:  logger,
+infrastructure/logging/logger.go:72:// NewFromEnv constructs a logger using LOG_LEVEL and LOG_FORMAT environment variables.
+infrastructure/logging/logger.go:86:// WithContext creates a new logger entry with context values
+infrastructure/logging/logger.go:87:func (l *Logger) WithContext(ctx context.Context) *logrus.Entry {
+infrastructure/logging/logger.go:108:// WithTraceID creates a new logger entry with trace ID
+infrastructure/logging/logger.go:109:func (l *Logger) WithTraceID(traceID string) *logrus.Entry {
+infrastructure/logging/logger.go:110:	return l.Logger.WithFields(logrus.Fields{
+infrastructure/logging/logger.go:116:// WithUserID creates a new logger entry with user ID
+infrastructure/logging/logger.go:117:func (l *Logger) WithUserID(userID string) *logrus.Entry {
+infrastructure/logging/logger.go:118:	return l.Logger.WithFields(logrus.Fields{
+infrastructure/logging/logger.go:124:// WithFields creates a new logger entry with custom fields
+infrastructure/logging/logger.go:125:func (l *Logger) WithFields(fields map[string]interface{}) *logrus.Entry {
+infrastructure/logging/logger.go:133:// WithError creates a new logger entry with error
+infrastructure/logging/logger.go:134:func (l *Logger) WithError(err error) *logrus.Entry {
+infrastructure/logging/logger.go:135:	return l.Logger.WithFields(logrus.Fields{
+infrastructure/logging/logger.go:141:// SetOutput sets the logger output
+infrastructure/logging/logger.go:209:	l.WithContext(ctx).WithFields(logrus.Fields{
+infrastructure/logging/logger.go:219:	entry := l.WithContext(ctx).WithFields(logrus.Fields{
+infrastructure/logging/logger.go:233:	entry := l.WithContext(ctx).WithFields(logrus.Fields{
+infrastructure/logging/logger.go:247:	entry := l.WithContext(ctx).WithFields(logrus.Fields{
+infrastructure/logging/logger.go:261:	entry := l.WithContext(ctx).WithFields(logrus.Fields{
+infrastructure/logging/logger.go:276:	fields := logrus.Fields{
+infrastructure/logging/logger.go:289:	l.WithContext(ctx).WithFields(logrus.Fields{
+infrastructure/logging/logger.go:302:	fields := logrus.Fields{
+infrastructure/logging/logger.go:317:	logFields := logrus.Fields{
+infrastructure/logging/logger.go:341:	if l.Logger.Level >= logrus.DebugLevel {
+infrastructure/logging/logger.go:365:// Global logger instance (can be initialized once at startup)
+infrastructure/logging/logger.go:368:// InitDefault initializes the default logger
+infrastructure/logging/logger.go:373:// Default returns the default logger
+infrastructure/logging/logger.go:376:		// Fallback to a basic logger if not initialized
+infrastructure/logging/logger.go:382:// Convenience functions using default logger
+infrastructure/logging/logger.go:384:// InfoDefault logs an info message using the default logger
+infrastructure/logging/logger.go:389:// ErrorDefault logs an error message using the default logger
+infrastructure/logging/logger.go:394:// WarnDefault logs a warning message using the default logger
+infrastructure/logging/logger.go:399:// DebugDefault logs a debug message using the default logger
+platform/host-app/hooks/useRealtimeNotifications.ts:17:import { logger } from "../lib/logger";
+platform/host-app/hooks/useRealtimeNotifications.ts:98:        logger.error("Error processing notification:", err);
+platform/host-app/hooks/useRealtimeNotifications.ts:151:            logger.info("Realtime notifications: Connected");
+platform/host-app/hooks/useRealtimeNotifications.ts:156:            logger.error("Realtime notifications: Channel error", errorObj);
+platform/host-app/hooks/useRealtimeNotifications.ts:161:            logger.debug(`Reconnecting in ${delay}ms (attempt ${retryCountRef.current})...`);
+platform/host-app/hooks/useRealtimeNotifications.ts:171:            logger.warn("Realtime notifications: Subscription timed out");
+platform/host-app/hooks/useRealtimeNotifications.ts:183:            logger.debug("Realtime notifications: Channel closed");
+platform/host-app/hooks/useRealtimeNotifications.ts:189:      logger.error("Failed to create Realtime channel:", err);
+services/requests/marble/dispatcher.go:47:	logger := s.Logger().WithFields(map[string]interface{}{
+services/requests/marble/dispatcher.go:56:			logger.WithError(err).Warn("failed to mark event processed")
+services/requests/marble/dispatcher.go:68:		logger.WithError(err).Warn("miniapp not found")
+services/requests/marble/dispatcher.go:72:		logger.WithError(nil).Warn("miniapp disabled")
+services/requests/marble/dispatcher.go:79:		logger.WithError(err).Warn("app registry validation failed")
+services/requests/marble/dispatcher.go:89:		logger.WithError(err).Warn("invalid manifest")
+services/requests/marble/dispatcher.go:96:		logger.WithError(nil).Warn("permission denied")
+services/requests/marble/dispatcher.go:104:			logger.WithFields(map[string]interface{}{
+services/requests/marble/dispatcher.go:126:		logger.WithError(fulfillErr).Warn("callback fulfillment failed")
+services/requests/marble/dispatcher.go:130:		logger.WithError(execErr).Warn("service execution failed")
+services/requests/marble/dispatcher.go:925:	logger := s.Logger().WithFields(map[string]interface{}{
+services/requests/marble/dispatcher.go:933:			logger.WithContext(ctx).WithError(err).Warn("failed to mark notification event processed")
+services/requests/marble/dispatcher.go:949:				logger = s.Logger().WithFields(map[string]interface{}{
+services/requests/marble/dispatcher.go:959:			logger.WithContext(ctx).WithError(err).Warn("failed to load miniapp manifest")
+services/requests/marble/dispatcher.go:966:					logger.WithContext(ctx).WithError(err).Warn("app registry validation failed")
+services/requests/marble/dispatcher.go:976:					logger.WithContext(ctx).Warn("miniapp contract hash mismatch")
+services/requests/marble/dispatcher.go:980:				logger.WithContext(ctx).Warn("contract_hash missing; notification rejected")
+services/requests/marble/dispatcher.go:1004:		logger.WithError(err).Error("failed to store notification")
+services/requests/marble/dispatcher.go:1008:	logger.Info("notification stored from contract event")
+services/requests/marble/dispatcher.go:1022:	logger := s.Logger().WithFields(map[string]interface{}{
+services/requests/marble/dispatcher.go:1030:			logger.WithContext(ctx).WithError(err).Warn("failed to mark metric event processed")
+services/requests/marble/dispatcher.go:1046:				logger = s.Logger().WithFields(map[string]interface{}{
+services/requests/marble/dispatcher.go:1056:			logger.WithContext(ctx).WithError(err).Warn("failed to load miniapp manifest")
+services/requests/marble/dispatcher.go:1063:					logger.WithContext(ctx).WithError(err).Warn("app registry validation failed")
+services/requests/marble/dispatcher.go:1069:					logger.WithContext(ctx).Warn("miniapp contract hash mismatch")
+services/requests/marble/dispatcher.go:1073:				logger.WithContext(ctx).Warn("contract_hash missing; metric rejected")
+services/requests/marble/payment_events.go:27:	logger := s.Logger().WithFields(map[string]interface{}{
+services/requests/marble/payment_events.go:36:			logger.WithContext(ctx).WithError(err).Warn("failed to mark payment event processed")
+services/requests/marble/payment_events.go:49:			logger.WithContext(ctx).WithError(err).Warn("failed to load miniapp manifest")
+services/requests/marble/payment_events.go:56:					logger.WithContext(ctx).WithError(err).Warn("app registry validation failed")
+services/requests/marble/payment_events.go:82:		logger.WithContext(ctx).WithError(err).Warn("failed to resolve user by address")
+services/requests/marble/payment_events.go:98:		logger.WithContext(ctx).WithError(err).Warn("failed to bump miniapp usage")
+services/requests/marble/appregistry_events.go:35:	logger := s.Logger().WithFields(map[string]interface{}{
+services/requests/marble/appregistry_events.go:48:		logger.WithContext(ctx).WithError(err).Warn("failed to mark AppRegistry event processed")
+services/requests/marble/appregistry_events.go:62:		logger.WithContext(ctx).WithError(err).Warn("failed to load miniapp manifest")
+services/requests/marble/appregistry_events.go:68:		logger.WithContext(ctx).WithError(err).Warn("failed to read AppRegistry entry")
+services/requests/marble/appregistry_events.go:108:		logger.WithContext(ctx).WithError(err).Warn("failed to sync AppRegistry state")
+services/simulation/marble/service.go:410:	logger := s.Logger().WithFields(map[string]interface{}{"app_id": appID, "worker_id": workerID})
+services/simulation/marble/service.go:412:	logger.WithContext(ctx).Info("starting simulation worker for app")
+services/simulation/marble/service.go:422:			logger.WithContext(ctx).Info("stopping simulation worker for app")
+services/simulation/marble/service.go:436:			logger.WithFields(map[string]interface{}{
+services/simulation/marble/service.go:453:			logger.WithError(err).Warn("failed to request accounts from pool")
+services/simulation/marble/service.go:463:			logger.Warn("no accounts available in pool")
+services/simulation/marble/service.go:484:			logger.WithError(err).WithFields(map[string]interface{}{
+services/simulation/marble/service.go:492:			logger.WithFields(map[string]interface{}{
+services/simulation/marble/service.go:512:				logger.WithError(err).Warn("failed to record transaction")
+services/simulation/marble/service.go:526:				logger.WithError(err).Warn("failed to release account")
+services/simulation/marble/service.go:618:	logger := s.Logger().WithFields(map[string]interface{}{"worker": "pricefeed"})
+services/simulation/marble/service.go:626:			logger.WithContext(ctx).Info("stopping PriceFeed updater")
+services/simulation/marble/service.go:632:					logger.WithError(err).WithField("symbol", symbol).Warn("PriceFeed update failed")
+services/simulation/marble/service.go:634:					logger.WithFields(map[string]interface{}{
+services/simulation/marble/service.go:648:	logger := s.Logger().WithFields(map[string]interface{}{"worker": "randomness"})
+services/simulation/marble/service.go:656:			logger.WithContext(ctx).Info("stopping RandomnessLog recorder")
+services/simulation/marble/service.go:661:				logger.WithError(err).Warn("RandomnessLog record failed")
+services/simulation/marble/service.go:663:				logger.WithFields(map[string]interface{}{
+services/simulation/marble/service.go:674:	logger := s.Logger().WithFields(map[string]interface{}{"worker": "paymenthub", "app_id": appID})
+services/simulation/marble/service.go:686:			logger.WithContext(ctx).Info("stopping PaymentHub payer")
+services/simulation/marble/service.go:695:				logger.WithError(err).Warn("PaymentHub payment failed")
+services/simulation/marble/service.go:697:				logger.WithFields(map[string]interface{}{
+services/simulation/marble/service.go:709:	logger := s.Logger().WithFields(map[string]interface{}{"worker": "miniapp", "app": appName})
+services/simulation/marble/service.go:717:	logger.WithContext(ctx).WithField("interval", interval.String()).Info("starting MiniApp workflow simulator")
+services/simulation/marble/service.go:722:			logger.WithContext(ctx).Info("stopping MiniApp workflow simulator")
+services/simulation/marble/service.go:727:				logger.WithError(err).Warn("MiniApp workflow failed")
+services/simulation/marble/service.go:729:				logger.WithContext(ctx).Debug("MiniApp workflow completed")
+services/simulation/marble/service.go:739:	logger := s.Logger().WithFields(map[string]interface{}{"worker": "auto-topup"})
+services/simulation/marble/service.go:747:	logger.WithContext(ctx).Info("starting auto top-up worker for pool accounts")
+services/simulation/marble/service.go:757:			logger.WithContext(ctx).Info("stopping auto top-up worker")
+services/simulation/marble/service.go:763:				logger.WithError(err).Warn("failed to list low balance accounts")
+services/simulation/marble/service.go:768:				logger.WithContext(ctx).Debug("no accounts need top-up")
+services/simulation/marble/service.go:772:			logger.WithContext(ctx).WithField("count", len(accounts)).Info("found accounts with low GAS balance")
+services/simulation/marble/service.go:778:					logger.WithError(err).WithFields(map[string]interface{}{
+services/simulation/marble/service.go:785:				logger.WithFields(map[string]interface{}{
+platform/host-app/lib/supabase.ts:9:import { logger } from "./logger";
+platform/host-app/lib/supabase.ts:21:  logger.warn("Supabase environment variables not configured. Realtime features will be disabled.");
+platform/host-app/lib/logger.ts:2: * Simple logger utility for production-safe logging
+platform/host-app/lib/logger.ts:9:export const logger = {
+platform/host-app/lib/logger.ts:12:      console.log(`[DEBUG] ${message}`, ...args);
+platform/host-app/lib/logger.ts:18:      console.log(`[INFO] ${message}`, ...args);
+platform/host-app/lib/logger.ts:23:    console.warn(`[WARN] ${message}`, ...args);
+platform/host-app/lib/logger.ts:27:    console.error(`[ERROR] ${message}`, error);
+services/confcompute/marble/core.go:260:	// Provide console.log for debugging with limits
+services/confcompute/marble/core.go:263:	if err := console.Set("log", func(call goja.FunctionCall) goja.Value {
+services/confcompute/marble/core.go:280:		return nil, fmt.Errorf("failed to set console.log: %w", err)
+services/confcompute/marble/service.go:54:	MaxLogEntries     = 100             // Max console.log entries
+infrastructure/logging/logger_extended_test.go:34:		logger := NewFromEnv("test-service")
+infrastructure/logging/logger_extended_test.go:35:		if logger == nil {
+infrastructure/logging/logger_extended_test.go:44:		logger := NewFromEnv("test-service")
+infrastructure/logging/logger_extended_test.go:45:		if logger == nil {
+infrastructure/logging/logger_extended_test.go:54:		logger := NewFromEnv("test-service")
+infrastructure/logging/logger_extended_test.go:55:		if logger == nil {
+infrastructure/logging/logger_extended_test.go:83:	logger := New("test-service", "debug", "json")
+infrastructure/logging/logger_extended_test.go:84:	logger.SetOutput(&buf)
+infrastructure/logging/logger_extended_test.go:90:		logger.LogCryptoOperation(ctx, "encrypt", true, nil)
+infrastructure/logging/logger_extended_test.go:99:		logger.LogCryptoOperation(ctx, "decrypt", false, errors.New("key error"))
+infrastructure/logging/logger_extended_test.go:109:	logger := New("test-service", "debug", "json")
+infrastructure/logging/logger_extended_test.go:110:	logger.SetOutput(&buf)
+infrastructure/logging/logger_extended_test.go:116:		logger.LogServiceCall(ctx, "auth-service", "validate", 100*time.Millisecond, nil)
+infrastructure/logging/logger_extended_test.go:125:		logger.LogServiceCall(ctx, "auth-service", "validate", 100*time.Millisecond, errors.New("timeout"))
+infrastructure/logging/logger_extended_test.go:135:	logger := New("test-service", "info", "json")
+infrastructure/logging/logger_extended_test.go:136:	logger.SetOutput(&buf)
+infrastructure/logging/logger_extended_test.go:140:	logger.LogPerformance(ctx, "database_query", map[string]interface{}{
+infrastructure/logging/logger_extended_test.go:156:	logger := New("test-service", "error", "json")
+infrastructure/logging/logger_extended_test.go:157:	logger.SetOutput(&buf)
+infrastructure/logging/logger_extended_test.go:162:	logger.LogErrorWithStack(ctx, err, "operation failed", map[string]interface{}{
+infrastructure/logging/logger_extended_test.go:177:	logger := New("test-service", "error", "json")
+infrastructure/logging/logger_extended_test.go:178:	logger.SetOutput(&buf)
+infrastructure/logging/logger_extended_test.go:184:	logger.LogErrorWithStack(ctx, err, "operation failed", nil)
+infrastructure/logging/logger_extended_test.go:193:	// WarnDefault uses the default logger
+infrastructure/logging/logger_extended_test.go:200:	// DebugDefault uses the default logger
+infrastructure/logging/logger_extended_test.go:208:	logger := New("test-service", "info", "json")
+infrastructure/logging/logger_extended_test.go:209:	logger.SetOutput(&buf)
+infrastructure/logging/logger_extended_test.go:216:	logger.WithContext(ctx).Info("test message")
+infrastructure/logging/logger_extended_test.go:232:	logger := New("test-service", "info", "json")
+infrastructure/logging/logger_extended_test.go:233:	logger.SetOutput(&buf)
+infrastructure/logging/logger_extended_test.go:236:	entry := logger.WithFields(nil)
+infrastructure/service/base.go:59:	logger *logging.Logger
+infrastructure/service/base.go:74:	logger := cfgValue.Logger
+infrastructure/service/base.go:75:	if logger == nil {
+infrastructure/service/base.go:80:		logger = logging.NewFromEnv(serviceName)
+infrastructure/service/base.go:95:		logger:          logger,
+infrastructure/service/base.go:99:// Logger returns the service's structured logger.
+infrastructure/service/base.go:104:	if b.logger != nil {
+infrastructure/service/base.go:105:		return b.logger
+infrastructure/service/base.go:111:	b.logger = logging.NewFromEnv(serviceName)
+infrastructure/service/base.go:112:	return b.logger
+infrastructure/middleware/tracing.go:12:	logger *logging.Logger
+infrastructure/middleware/tracing.go:16:func NewTracingMiddleware(logger *logging.Logger) *TracingMiddleware {
+infrastructure/middleware/tracing.go:18:		logger: logger,
+infrastructure/middleware/tracing.go:26:	return LoggingMiddleware(m.logger)(next)
+infrastructure/globalsigner/marble/service.go:675:// Logger returns the service logger.
+infrastructure/middleware/ratelimit.go:26:	logger   *logging.Logger
+infrastructure/middleware/ratelimit.go:40:func NewRateLimiter(requestsPerSecond, burst int, logger *logging.Logger) *RateLimiter {
+infrastructure/middleware/ratelimit.go:47:		logger:   logger,
+infrastructure/middleware/ratelimit.go:53:func NewRateLimiterWithWindow(limit int, window time.Duration, burst int, logger *logging.Logger) *RateLimiter {
+infrastructure/middleware/ratelimit.go:68:		logger:   logger,
+infrastructure/middleware/ratelimit.go:101:			if rl.logger != nil {
+infrastructure/middleware/ratelimit.go:102:				rl.logger.LogSecurityEvent(r.Context(), "rate_limit_exceeded", map[string]interface{}{
+infrastructure/middleware/serviceauth.go:69:	logger          *logging.Logger
+infrastructure/middleware/serviceauth.go:104:	logger := cfg.Logger
+infrastructure/middleware/serviceauth.go:105:	if logger == nil {
+infrastructure/middleware/serviceauth.go:106:		logger = logging.New("serviceauth", "info", "json")
+infrastructure/middleware/serviceauth.go:111:		logger:          logger,
+infrastructure/middleware/serviceauth.go:138:			m.logger.WithContext(r.Context()).WithError(err).Warn("Service token validation failed")
+infrastructure/middleware/serviceauth.go:145:			m.logger.WithContext(r.Context()).WithFields(map[string]interface{}{
+infrastructure/middleware/serviceauth.go:172:		m.logger.WithContext(ctx).WithFields(map[string]interface{}{
+infrastructure/middleware/serviceauth.go:308:	m.logger.WithContext(r.Context()).WithError(err).WithFields(map[string]interface{}{
+infrastructure/middleware/recovery.go:16:	logger *logging.Logger
+infrastructure/middleware/recovery.go:20:func NewRecoveryMiddleware(logger *logging.Logger) *RecoveryMiddleware {
+infrastructure/middleware/recovery.go:22:		logger: logger,
+infrastructure/middleware/recovery.go:33:				m.logger.WithContext(r.Context()).WithFields(map[string]interface{}{
+infrastructure/middleware/ratelimit_test.go:16:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:17:	rl := NewRateLimiter(10, 20, logger)
+infrastructure/middleware/ratelimit_test.go:31:	if rl.logger != logger {
+infrastructure/middleware/ratelimit_test.go:32:		t.Error("logger not set correctly")
+infrastructure/middleware/ratelimit_test.go:41:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:42:	rl := NewRateLimiter(10, 20, logger)
+infrastructure/middleware/ratelimit_test.go:69:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:70:	rl := NewRateLimiter(100, 100, logger) // High limit
+infrastructure/middleware/ratelimit_test.go:88:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:89:	rl := NewRateLimiter(1, 1, logger) // Very low limit
+infrastructure/middleware/ratelimit_test.go:117:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:118:	rl := NewRateLimiter(1, 1, logger)
+infrastructure/middleware/ratelimit_test.go:149:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:150:	rl := NewRateLimiter(1, 1, logger)
+infrastructure/middleware/ratelimit_test.go:178:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:179:	rl := NewRateLimiter(1, 3, logger) // Allow burst of 3
+infrastructure/middleware/ratelimit_test.go:209:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:210:	rl := NewRateLimiter(10, 20, logger)
+infrastructure/middleware/ratelimit_test.go:232:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:233:	rl := NewRateLimiter(10, 20, logger)
+infrastructure/middleware/ratelimit_test.go:252:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:253:	rl := NewRateLimiter(10, 20, logger)
+infrastructure/middleware/ratelimit_test.go:275:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:276:	rl := NewRateLimiter(1, 1, logger)
+infrastructure/middleware/ratelimit_test.go:301:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:302:	rl := NewRateLimiter(100, 100, logger)
+infrastructure/middleware/ratelimit_test.go:327:	logger := logging.New("test", "info", "json")
+infrastructure/middleware/ratelimit_test.go:328:	rl := NewRateLimiter(100, 100, logger)
+infrastructure/middleware/misc_test.go:107:	logger := logging.New("test", "error", "text")
+infrastructure/middleware/misc_test.go:109:	router.Use(LoggingMiddleware(logger))
+infrastructure/middleware/misc_test.go:129:	logger := logging.New("test", "error", "text")
+infrastructure/middleware/misc_test.go:130:	mw := NewTracingMiddleware(logger)
+infrastructure/middleware/misc_test.go:149:	logger := logging.New("test", "error", "text")
+infrastructure/middleware/misc_test.go:150:	mw := NewRecoveryMiddleware(logger)
+infrastructure/middleware/logging.go:14:func LoggingMiddleware(logger *logging.Logger) mux.MiddlewareFunc {
+infrastructure/middleware/logging.go:43:			logger.LogRequest(ctx, r.Method, r.URL.Path, wrapped.statusCode, duration)
+infrastructure/middleware/serviceauth_test.go:73:	logger := logging.New("test", "error", "text")
+infrastructure/middleware/serviceauth_test.go:76:		Logger:          logger,
+platform/host-app/pages/index.tsx:7:import { logger } from "../lib/logger";
+platform/host-app/pages/index.tsx:79:      logger.error("Failed to fetch stats", e);
+platform/host-app/pages/index.tsx:95:      logger.error("Failed to fetch trending apps", e);
+platform/host-app/pages/index.tsx:108:      logger.error("Failed to fetch notifications", e);
+platform/host-app/pages/index.tsx:123:      logger.error("Wallet connection failed", e);
+platform/host-app/pages/launch/[id].tsx:10:import { logger } from "../../lib/logger";
+platform/host-app/pages/launch/[id].tsx:238:        logger.debug("Link copied:", url);
+platform/host-app/pages/launch/[id].tsx:241:        logger.error("Failed to copy link", e);
+platform/host-app/pages/launch/[id].tsx:408:    logger.error("Failed to load launch app info:", error);
+platform/edge/functions/_shared/k8s-config.ts:96:  console.log("[k8s-config] Running in:", inCluster ? "Kubernetes cluster" : "Local development");
+platform/edge/functions/_shared/k8s-config.ts:97:  console.log("[k8s-config] Supabase URL:", config.supabaseUrl);
+platform/edge/functions/_shared/k8s-config.ts:98:  console.log("[k8s-config] Neo RPC URL:", config.neoRpcUrl);
+platform/edge/functions/_shared/tee.ts:10:  console.log(`[TEE] ${message}`);
+platform/edge/functions/_shared/tee.ts:26:      console.warn(
+platform/edge/functions/_shared/apps.ts:105:      console.warn("usage tracking unavailable", err);
+platform/edge/functions/_shared/apps.ts:126:      console.warn("usage tracking failed", message);
+infrastructure/chain/listener_core.go:27:	logger         *logging.Logger
+infrastructure/chain/listener_core.go:97:	logger := cfg.Logger
+infrastructure/chain/listener_core.go:98:	if logger == nil {
+infrastructure/chain/listener_core.go:99:		logger = logging.NewFromEnv("chain")
+infrastructure/chain/listener_core.go:110:		logger:         logger,
+infrastructure/chain/listener_core.go:241:			l.logger.WithFields(map[string]interface{}{
+infrastructure/chain/listener_core.go:257:						l.logger.WithFields(map[string]interface{}{
+infrastructure/chain/listener_core.go:308:						l.logger.WithFields(map[string]interface{}{
+platform/host-app/pages/app/[id].tsx:16:import { logger } from "../../lib/logger";
+platform/host-app/pages/app/[id].tsx:327:    logger.error("Failed to fetch app details:", error);
+contracts/cmd/update-paymenthub/main.go:26:		log.Fatal("NEO_TESTNET_WIF environment variable not set")
+contracts/cmd/update-paymenthub/main.go:47:	log.Printf("Updater address: %s", signer.Address)
+contracts/cmd/update-paymenthub/main.go:48:	log.Printf("Contract to update: %s", contractHash)
+contracts/cmd/update-paymenthub/main.go:60:	log.Printf("NEF size: %d bytes", len(nefData))
+contracts/cmd/update-paymenthub/main.go:61:	log.Printf("Manifest size: %d bytes", len(manifestData))
+contracts/cmd/update-paymenthub/main.go:68:	log.Println("Simulating update...")
+contracts/cmd/update-paymenthub/main.go:79:	log.Printf("Simulation passed, estimated GAS: %s", invokeResult.GasConsumed)
+contracts/cmd/update-paymenthub/main.go:87:	log.Println("Broadcasting transaction...")
+contracts/cmd/update-paymenthub/main.go:95:	log.Printf("Transaction broadcast: %s", txHashString)
+contracts/cmd/update-paymenthub/main.go:97:	log.Println("Waiting for confirmation...")
+contracts/cmd/update-paymenthub/main.go:113:	log.Println("=== Update Successful ===")
+contracts/cmd/update-paymenthub/main.go:114:	log.Printf("Contract Hash: %s", contractHash)
+contracts/cmd/update-paymenthub/main.go:115:	log.Printf("Transaction: %s", txHashString)
+contracts/cmd/update-paymenthub/main.go:116:	log.Printf("GAS Consumed: %s", invokeResult.GasConsumed)
+platform/edge/functions/market-trending/index.ts:96:      console.warn("market-trending: service client unavailable, metadata will be limited", err);
+platform/edge/functions/market-trending/index.ts:214:      console.warn("market-trending: failed to fetch app metadata", appsErr.message ?? appsErr);
+platform/edge/functions/miniapp-stats/index.ts:119:    console.warn("miniapp-stats: service client unavailable, skipping manifest merge", err);
+platform/edge/functions/miniapp-stats/index.ts:131:    console.warn("miniapp-stats: failed to load miniapp metadata", err?.message ?? err);
+platform/admin-console/src/app/api/analytics/route.ts:71:    console.error("Analytics error:", error);
+platform/sdk/examples/basic-usage.ts:51:  console.log("SDK initialized successfully");
+platform/sdk/examples/basic-usage.ts:64:  console.log("Host SDK initialized successfully");
+platform/sdk/examples/basic-usage.ts:75:    console.log("User wallet address:", address);
+platform/sdk/examples/basic-usage.ts:78:    console.error("Failed to get wallet address:", error);
+platform/sdk/examples/basic-usage.ts:89:    console.log(`Initiating GAS payment: ${amount} GAS to app ${appId}`);
+platform/sdk/examples/basic-usage.ts:94:    console.log("Payment intent created:", {
+platform/sdk/examples/basic-usage.ts:102:    console.log("Invocation details:", response.invocation);
+platform/sdk/examples/basic-usage.ts:106:    console.error("Payment failed:", error);
+platform/sdk/examples/basic-usage.ts:123:    console.log(`Voting on proposal ${proposalId} with ${neoAmount} NEO`);
+platform/sdk/examples/basic-usage.ts:127:    console.log("Vote intent created:", {
+platform/sdk/examples/basic-usage.ts:135:    console.error("Vote failed:", error);
+platform/sdk/examples/basic-usage.ts:146:    console.log("Requesting random number...");
+platform/sdk/examples/basic-usage.ts:150:    console.log("Random number received:", {
+platform/sdk/examples/basic-usage.ts:160:    console.error("RNG request failed:", error);
+platform/sdk/examples/basic-usage.ts:171:    console.log(`Fetching price for ${symbol}...`);
+platform/sdk/examples/basic-usage.ts:175:    console.log("Price data received:", {
+platform/sdk/examples/basic-usage.ts:186:    console.error("Price fetch failed:", error);
+platform/sdk/examples/basic-usage.ts:198:    console.log("Daily usage (base units):", usage);
+platform/sdk/examples/basic-usage.ts:200:    console.error("Usage fetch failed:", error);
+platform/sdk/examples/basic-usage.ts:212:    console.log("Fetching GasBank account...");
+platform/sdk/examples/basic-usage.ts:215:    console.log("GasBank Account:", {
+platform/sdk/examples/basic-usage.ts:223:    console.log("Fetching deposit history...");
+platform/sdk/examples/basic-usage.ts:225:    console.log(`Found ${depositsResponse.deposits.length} deposits`);
+platform/sdk/examples/basic-usage.ts:228:    console.log("Fetching transaction history...");
+platform/sdk/examples/basic-usage.ts:230:    console.log(`Found ${transactionsResponse.transactions.length} transactions`);
+platform/sdk/examples/basic-usage.ts:232:    console.error("GasBank operation failed:", error);
+platform/sdk/examples/basic-usage.ts:244:    console.log("Listing secrets...");
+platform/sdk/examples/basic-usage.ts:246:    console.log(`Found ${listResponse.secrets.length} secrets`);
+platform/sdk/examples/basic-usage.ts:249:    console.log("Creating/updating secret...");
+platform/sdk/examples/basic-usage.ts:251:    console.log("Secret upserted:", {
+platform/sdk/examples/basic-usage.ts:258:    console.log("Retrieving secret...");
+platform/sdk/examples/basic-usage.ts:260:    console.log("Secret retrieved:", {
+platform/sdk/examples/basic-usage.ts:266:    console.log("Setting secret permissions...");
+platform/sdk/examples/basic-usage.ts:268:    console.log("Permissions updated");
+platform/sdk/examples/basic-usage.ts:270:    console.error("Secrets operation failed:", error);
+platform/sdk/examples/basic-usage.ts:282:    console.log("Creating automation trigger...");
+platform/sdk/examples/basic-usage.ts:292:    console.log("Trigger created:", trigger.id);
+platform/sdk/examples/basic-usage.ts:296:    console.log(`Found ${triggers.length} triggers`);
+platform/sdk/examples/basic-usage.ts:300:    console.log("Trigger enabled");
+platform/sdk/examples/basic-usage.ts:304:    console.log(`Found ${executions.length} executions`);
+platform/sdk/examples/basic-usage.ts:306:    console.error("Automation operation failed:", error);
+platform/sdk/examples/basic-usage.ts:316:  console.log("=== Neo N3 MiniApp Platform SDK Run ===\n");
+platform/sdk/examples/basic-usage.ts:323:  console.log(`Connected wallet: ${address}\n`);
+platform/sdk/examples/basic-usage.ts:327:  console.log(`Current NEO price: $${price.price}\n`);
+platform/sdk/examples/basic-usage.ts:331:  console.log(`Random number for game: ${rng.randomness}\n`);
+platform/sdk/examples/basic-usage.ts:335:  console.log(`Payment intent: ${payment.request_id}\n`);
+platform/sdk/examples/basic-usage.ts:337:  console.log("=== Run Complete ===");
+platform/sdk/examples/basic-usage.ts:345:// completeMiniAppFlow().catch(console.error);

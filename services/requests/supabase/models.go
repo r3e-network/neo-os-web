@@ -13,6 +13,27 @@ type MiniApp struct {
 	Status          string          `json:"status"`
 	ManifestHash    string          `json:"manifest_hash"`
 	EntryURL        string          `json:"entry_url"`
+	ContractHash    string          `json:"contract_hash"`
+	Name            string          `json:"name"`
+	Description     string          `json:"description"`
+	Icon            string          `json:"icon"`
+	Banner          string          `json:"banner"`
+	Category        string          `json:"category"`
+}
+
+// MiniAppRegistryUpdate represents a partial update from AppRegistry sync.
+type MiniAppRegistryUpdate struct {
+	ManifestHash    string    `json:"manifest_hash,omitempty"`
+	EntryURL        string    `json:"entry_url,omitempty"`
+	DeveloperPubKey string    `json:"developer_pubkey,omitempty"`
+	Status          string    `json:"status,omitempty"`
+	ContractHash    string    `json:"contract_hash,omitempty"`
+	Name            string    `json:"name,omitempty"`
+	Description     string    `json:"description,omitempty"`
+	Icon            string    `json:"icon,omitempty"`
+	Banner          string    `json:"banner,omitempty"`
+	Category        string    `json:"category,omitempty"`
+	UpdatedAt       time.Time `json:"updated_at,omitempty"`
 }
 
 // ServiceRequest represents a service_requests row for audit tracking.

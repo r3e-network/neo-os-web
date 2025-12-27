@@ -1,6 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { normalizeUInt160 } from "../_shared/contracts.ts";
-import { mustGetEnv } from "../_shared/env.ts";
+import { getEnv, mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
@@ -60,16 +60,16 @@ export async function handler(req: Request): Promise<Response> {
   if (policy?.limits.governanceCap && amount > policy.limits.governanceCap) {
     return error(403, "neo_amount exceeds manifest limit", "LIMIT_EXCEEDED", req);
   }
-  if (policy?.limits.governanceCap) {
-    const usageErr = await enforceUsageCaps({
-      appId,
-      userId: auth.userId,
-      governanceDelta: amount,
-      governanceCap: policy.limits.governanceCap,
-      req,
-    });
-    if (usageErr) return usageErr;
-  }
+  const usageMode = getEnv("MINIAPP_USAGE_MODE_GOVERNANCE");
+  const usageErr = await enforceUsageCaps({
+    appId,
+    userId: auth.userId,
+    governanceDelta: amount,
+    governanceCap: policy?.limits.governanceCap,
+    mode: usageMode,
+    req,
+  });
+  if (usageErr) return usageErr;
 
   const governanceHash = normalizeUInt160(mustGetEnv("CONTRACT_GOVERNANCE_HASH"));
 

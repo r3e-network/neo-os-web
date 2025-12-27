@@ -106,5 +106,9 @@ describe("Utility Functions", () => {
     it("should return correct color for disabled status", () => {
       expect(getStatusColor("disabled")).toBe("text-danger-600 bg-danger-50");
     });
+
+    it("should return correct color for pending status", () => {
+      expect(getStatusColor("pending")).toBe("text-warning-600 bg-warning-50");
+    });
   });
 });

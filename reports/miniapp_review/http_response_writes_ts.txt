@@ -1,0 +1,13 @@
+platform/host-app/pages/api/market-trending.ts:23:  res.status(upstream.status).json(payload);
+platform/host-app/pages/api/market/trending.ts:23:  res.status(upstream.status).json(payload);
+platform/host-app/pages/api/miniapp-stats.ts:24:    res.status(upstream.status).json(payload);
+platform/host-app/pages/api/miniapp-stats.ts:30:  res.status(200).json({ stats });
+platform/host-app/pages/api/health.ts:15:  res.status(200).json({ status: "ok" });
+platform/host-app/pages/api/miniapp-notifications.ts:23:  res.status(upstream.status).json(payload);
+platform/host-app/pages/api/rpc/[fn].ts:56:    res.status(400).json({ error: "function name required" });
+platform/host-app/pages/api/rpc/[fn].ts:62:    res.status(500).json({ error: "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured" });
+platform/host-app/pages/api/rpc/[fn].ts:102:    res.status(504).json({ error: message, code: "GATEWAY_TIMEOUT" });
+platform/host-app/pages/api/rpc/relay.ts:37:    res.status(500).json({ error: "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured" });
+platform/host-app/pages/api/rpc/relay.ts:56:    res.status(400).json({ error: "function name required" });
+platform/host-app/pages/api/miniapp-usage.ts:23:  res.status(upstream.status).json(payload);
+platform/host-app/pages/api/app/[id]/news.ts:32:  res.status(upstream.status).json(payload);

@@ -119,7 +119,11 @@ export default function DashboardPage() {
                     <div className="font-medium text-gray-900">{app.app_id}</div>
                     <div className="text-sm text-gray-500">{formatRelativeTime(app.created_at)}</div>
                   </div>
-                  <Badge variant={app.status === "active" ? "success" : "default"}>{app.status}</Badge>
+                  <Badge
+                    variant={app.status === "active" ? "success" : app.status === "pending" ? "warning" : "danger"}
+                  >
+                    {app.status}
+                  </Badge>
                 </div>
               ))}
             </div>

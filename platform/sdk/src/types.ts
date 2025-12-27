@@ -235,6 +235,20 @@ export type AutomationExecution = {
 export type AutomationDeleteResponse = { status: "ok" };
 export type AutomationStatusResponse = { status: string };
 
+// Usage
+export type MiniAppUsage = {
+  app_id: string;
+  usage_date: string;
+  gas_used: string;
+  governance_used: string;
+  tx_count: number;
+};
+
+export type MiniAppUsageResponse = {
+  usage: MiniAppUsage | MiniAppUsage[];
+  date?: string;
+};
+
 // Events
 export type ContractEvent = {
   id: string;
@@ -319,6 +333,9 @@ export interface MiniAppSDK {
   datafeed: {
     getPrice(symbol: string): Promise<PriceResponse>;
   };
+  stats: {
+    getMyUsage(appId?: string, date?: string): Promise<MiniAppUsage | MiniAppUsage[]>;
+  };
   events: {
     list(params: EventsListParams): Promise<EventsListResponse>;
   };
@@ -394,6 +411,7 @@ export interface HostSDK {
   governance: MiniAppSDK["governance"];
   rng: MiniAppSDK["rng"];
   datafeed: MiniAppSDK["datafeed"];
+  stats: MiniAppSDK["stats"];
   events: MiniAppSDK["events"];
   transactions: MiniAppSDK["transactions"];
 }
@@ -402,4 +420,5 @@ export type MiniAppSDKConfig = {
   edgeBaseUrl: string;
   getAuthToken?: () => Promise<string | undefined>;
   getAPIKey?: () => Promise<string | undefined>;
+  appId?: string;
 };

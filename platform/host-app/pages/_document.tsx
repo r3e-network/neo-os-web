@@ -12,8 +12,11 @@ export default class MyDocument extends Document<Props> {
   render() {
     const nonce = this.props.nonce;
     return (
-      <Html>
-        <Head />
+      <Html lang="en">
+        <Head>
+          <meta charSet="utf-8" />
+          <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
+        </Head>
         <body>
           <Main />
           <NextScript nonce={nonce} />
@@ -22,4 +25,3 @@ export default class MyDocument extends Document<Props> {
     );
   }
 }
-

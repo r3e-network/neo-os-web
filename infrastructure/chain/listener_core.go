@@ -18,8 +18,10 @@ type EventListener struct {
 	client         *Client
 	contractHashes map[string]bool // Multiple contracts to monitor
 	handlers       map[string][]EventHandler
+	txHandlers     []TxHandler
 	pollInterval   time.Duration
 	lastBlock      uint64
+	confirmations  uint64
 	running        bool
 	stopCh         chan struct{}
 	logger         *logging.Logger
@@ -27,6 +29,9 @@ type EventListener struct {
 
 // EventHandler is a callback for contract events.
 type EventHandler func(event *ContractEvent) error
+
+// TxHandler is a callback for transaction-level events.
+type TxHandler func(event *TransactionEvent) error
 
 // ContractEvent represents a contract event.
 type ContractEvent struct {
@@ -37,16 +42,29 @@ type ContractEvent struct {
 	EventName  string
 	State      []StackItem
 	Timestamp  time.Time
+	Sender     string
 	LogIndex   int
+}
+
+// TransactionEvent represents a transaction invocation.
+type TransactionEvent struct {
+	TxHash     string
+	BlockIndex uint64
+	BlockHash  string
+	Sender     string
+	Timestamp  time.Time
+	Script     string
+	Contracts  []string
 }
 
 // ListenerConfig holds event listener configuration.
 type ListenerConfig struct {
-	Client       *Client
-	Contracts    ContractAddresses // All contract addresses to monitor
-	PollInterval time.Duration
-	StartBlock   uint64
-	Logger       *logging.Logger
+	Client        *Client
+	Contracts     ContractAddresses // All contract addresses to monitor
+	PollInterval  time.Duration
+	StartBlock    uint64
+	Confirmations uint64
+	Logger        *logging.Logger
 }
 
 // NewEventListener creates a new event listener.
@@ -87,6 +105,7 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 		handlers:       make(map[string][]EventHandler),
 		pollInterval:   interval,
 		lastBlock:      cfg.StartBlock,
+		confirmations:  cfg.Confirmations,
 		stopCh:         make(chan struct{}),
 		logger:         logger,
 	}
@@ -97,6 +116,16 @@ func (l *EventListener) On(eventName string, handler EventHandler) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.handlers[eventName] = append(l.handlers[eventName], handler)
+}
+
+// OnTransaction registers a transaction-level handler.
+func (l *EventListener) OnTransaction(handler TxHandler) {
+	if handler == nil {
+		return
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.txHandlers = append(l.txHandlers, handler)
 }
 
 // Start starts the event listener.
@@ -150,10 +179,20 @@ func (l *EventListener) processNewBlocks(ctx context.Context) {
 	if err != nil {
 		return
 	}
+	if l.confirmations > 0 {
+		if currentBlock <= l.confirmations {
+			return
+		}
+		currentBlock -= l.confirmations
+	}
 
 	l.mu.RLock()
 	lastBlock := l.lastBlock
 	l.mu.RUnlock()
+
+	if lastBlock >= currentBlock {
+		return
+	}
 
 	// Process new blocks
 	for blockIndex := lastBlock + 1; blockIndex < currentBlock; blockIndex++ {
@@ -162,9 +201,10 @@ func (l *EventListener) processNewBlocks(ctx context.Context) {
 			continue
 		}
 
+		blockTime := time.Unix(int64(block.Time), 0).UTC()
 		// Process each transaction in the block
 		for i := range block.Tx {
-			l.processTransaction(ctx, block.Tx[i].Hash, blockIndex, block.Hash)
+			l.processTransaction(ctx, block.Tx[i], blockIndex, block.Hash, blockTime)
 		}
 
 		l.mu.Lock()
@@ -174,10 +214,53 @@ func (l *EventListener) processNewBlocks(ctx context.Context) {
 }
 
 // processTransaction processes a transaction for events.
-func (l *EventListener) processTransaction(ctx context.Context, txHash string, blockIndex uint64, blockHash string) {
+func (l *EventListener) processTransaction(
+	ctx context.Context,
+	tx Transaction,
+	blockIndex uint64,
+	blockHash string,
+	blockTime time.Time,
+) {
+	txHash := tx.Hash
 	appLog, err := l.client.GetApplicationLog(ctx, txHash)
 	if err != nil {
 		return
+	}
+
+	timestamp := blockTime
+	if timestamp.IsZero() {
+		timestamp = time.Now().UTC()
+	}
+
+	l.mu.RLock()
+	txHandlers := append([]TxHandler(nil), l.txHandlers...)
+	l.mu.RUnlock()
+	if len(txHandlers) > 0 {
+		contracts, parseErr := ExtractContractCallTargets(tx.Script)
+		if parseErr != nil {
+			l.logger.WithFields(map[string]interface{}{
+				"tx_hash": txHash,
+			}).WithError(parseErr).Warn("failed to parse tx script")
+		} else if len(contracts) > 0 {
+			txEvent := &TransactionEvent{
+				TxHash:     txHash,
+				BlockIndex: blockIndex,
+				BlockHash:  blockHash,
+				Sender:     tx.Sender,
+				Timestamp:  timestamp,
+				Script:     tx.Script,
+				Contracts:  contracts,
+			}
+			for _, handler := range txHandlers {
+				go func(h TxHandler, e *TransactionEvent) {
+					if err := h(e); err != nil {
+						l.logger.WithFields(map[string]interface{}{
+							"tx_hash": e.TxHash,
+						}).WithError(err).Warn("transaction handler failed")
+					}
+				}(handler, txEvent)
+			}
+		}
 	}
 
 	logIndex := 0
@@ -200,7 +283,8 @@ func (l *EventListener) processTransaction(ctx context.Context, txHash string, b
 				BlockHash:  blockHash,
 				Contract:   contractHash,
 				EventName:  notif.EventName,
-				Timestamp:  time.Now(),
+				Timestamp:  timestamp,
+				Sender:     tx.Sender,
 				LogIndex:   logIndex,
 			}
 			logIndex++

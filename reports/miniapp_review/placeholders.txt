@@ -1,0 +1,69 @@
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:13:jest.mock("../../lib/supabase", () => ({
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:22:jest.mock("../../lib/logger", () => ({
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:59:    // Setup mock channel chain
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:136:      const onCallArgs = mockChannel.on.mock.calls[0];
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:163:      const onCallArgs = mockChannel.on.mock.calls[0];
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:194:      const onCallArgs = mockChannel.on.mock.calls[0];
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:233:      const onCallArgs = mockChannel.on.mock.calls[0];
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:269:      const onCallArgs = mockChannel.on.mock.calls[0];
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:412:      const onCallArgs = mockChannel.on.mock.calls[0];
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:528:      const onCallArgs = mockChannel.on.mock.calls[0];
+platform/host-app/__tests__/pages/app.[id].test.tsx:9:jest.mock("next/router", () => ({
+platform/host-app/__tests__/pages/app.[id].test.tsx:318:  it("returns mock data for builtin apps when not found in API", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:9:jest.mock("next/router", () => ({
+platform/host-app/__tests__/pages/launch.[id].test.tsx:14:jest.mock("../../components/LaunchDock", () => ({
+platform/host-app/__tests__/pages/launch.[id].test.tsx:24:jest.mock("../../lib/miniapp-sdk", () => ({
+platform/host-app/__tests__/pages/launch.[id].test.tsx:323:      return contentWindow.postMessage.mock.calls.at(-1);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:397:      const dispatched = (contentWindow.dispatchEvent as jest.Mock).mock.calls.at(-1)?.[0];
+platform/host-app/__tests__/pages/launch.[id].test.tsx:409:      const initialCallCount = mockFetch.mock.calls.length;
+platform/host-app/__tests__/lib/supabase.test.ts:6:jest.mock("@supabase/supabase-js", () => ({
+contracts/PaymentHub/PaymentHub.cs:265:            // Try to get appId from temporary storage first (set by Pay method)
+contracts/PaymentHub/PaymentHub.cs:273:                // Clean up temporary storage
+services/simulation/marble/service_test.go:48:		// This would require a valid marble mock
+services/simulation/marble/service_test.go:49:		t.Skip("requires mock marble setup")
+infrastructure/database/README.md:175:// Create mock for testing
+infrastructure/database/README.md:181:// Reset mock state
+services/simulation/marble/mocks_test.go:17:// mockPoolClient implements a mock version of the account pool client for testing.
+services/simulation/marble/mocks_test.go:253:// mockContractInvoker implements a mock version of ContractInvoker for testing.
+platform/host-app/components/SocialCommentThread.tsx:82:            placeholder="Write a comment..."
+platform/host-app/components/SocialRatingWidget.tsx:114:                placeholder="Write a review (optional)"
+infrastructure/database/mock_repository.go:25:// NewMockRepository creates a new mock repository for testing.
+infrastructure/database/mock_repository.go:47:// Reset clears all data in the mock repository.
+platform/host-app/components/SocialCommentItem.tsx:83:            placeholder="Write a reply..."
+infrastructure/database/supabase_test.go:65:			name:    "dev missing URL uses mock",
+services/datafeed/marble/service_test.go:318:	// Create mock price API server
+services/datafeed/marble/service_test.go:321:		// Return a mock price response
+services/datafeed/marble/service_test.go:379:			{ID: "dummy", URL: "http://invalid", JSONPath: "price"},
+services/datafeed/marble/service_test.go:396:	// Create mock server that always fails
+services/datafeed/marble/service_test.go:433:			{ID: "mock", Name: "Mock", URL: mockServer.URL, JSONPath: "price", Weight: 1},
+services/datafeed/marble/service_test.go:436:			{ID: "BTCUSDT", Pair: "BTCUSDT", Sources: []string{"mock"}, Enabled: true},
+services/datafeed/marble/service_test.go:579:			{ID: "mock", Name: "Mock", URL: mockServer.URL, JSONPath: "price", Weight: 1},
+services/datafeed/marble/service_test.go:582:			{ID: "BTCUSDT", Pair: "BTCUSDT", Sources: []string{"mock"}, Enabled: true},
+services/datafeed/marble/service_test.go:619:			{ID: "mock", Name: "Mock", URL: mockServer.URL, JSONPath: "price", Weight: 1},
+services/datafeed/marble/service_test.go:622:			{ID: "BTC-USD", Pair: "BTCUSDT", Sources: []string{"mock"}, Enabled: true},
+services/datafeed/marble/service_test.go:656:			{ID: "dummy", URL: "http://invalid", JSONPath: "price"},
+infrastructure/marble/README.md:9:1. A stable Go API inside services (tests and simulation can mock it).
+infrastructure/marble/marble_test.go:499:	os.Setenv("MARBLE_CERT", "dummy-cert")
+infrastructure/marble/marble_test.go:500:	os.Setenv("MARBLE_KEY", "dummy-key")
+infrastructure/globalsigner/supabase/repository.go:302:// MockRepository is a mock implementation for testing.
+infrastructure/globalsigner/supabase/repository.go:309:// NewMockRepository creates a new mock repository.
+infrastructure/accountpool/marble/service_test.go:290:// newTestServiceWithMock creates a test service instance with mock repository.
+infrastructure/accountpool/marble/service_test.go:1785:	// Set some mock values for the summary
+platform/host-app/pages/launch/[id].tsx:237:        // TODO: Show toast notification "Link copied!"
+platform/host-app/lib/supabase.ts:14:// Use placeholder URL during build if not configured
+platform/host-app/lib/supabase.ts:15:const PLACEHOLDER_URL = "https://placeholder.supabase.co";
+platform/host-app/lib/supabase.ts:16:const PLACEHOLDER_KEY = "placeholder-key";
+platform/host-app/jest.setup.js:4:jest.mock("next/router", () => ({
+platform/sdk/src/client.ts:100:// Resolve SENDER placeholder in invocation params with the user's wallet address.
+platform/sdk/src/client.ts:129:  // Get user's wallet address for SENDER placeholder resolution and signing
+platform/admin-console/src/components/layout/__tests__/Sidebar.test.tsx:10:vi.mock("next/navigation", () => ({
+platform/admin-console/src/components/layout/__tests__/Sidebar.test.tsx:15:vi.mock("next/link", () => ({
+platform/admin-console/src/app/contracts/page.tsx:67:            <p className="text-gray-600">Contract deployment wizard placeholder</p>
+platform/admin-console/src/app/users/page.tsx:38:              placeholder="Search by address or email..."
+platform/admin-console/src/components/ui/__tests__/Input.test.tsx:11:    render(<Input placeholder="Enter text" />);
+platform/admin-console/src/components/ui/__tests__/Input.test.tsx:33:    render(<Input onChange={handleChange} placeholder="Type here" />);
+platform/admin-console/src/components/ui/__tests__/Input.test.tsx:40:    render(<Input disabled placeholder="Disabled" />);
+platform/admin-console/src/components/ui/__tests__/Input.test.tsx:57:    render(<Input type="password" placeholder="Password" />);
+platform/admin-console/src/app/analytics/page.tsx:73:                Chart visualization placeholder - {usage?.length || 0} data points available
+platform/edge/functions/market-trending/index_test.ts:30:// Create mock supabase client factory
+platform/edge/functions/market-trending/index_test.ts:402:  // Create a mock that throws during query execution

@@ -4,6 +4,11 @@
 >
 > 实现备注（本仓库）：已提供独立 `vrf-service`（`neovrf`）用于随机数生成与签名证明；`compute-service`（`neocompute`）专注机密计算。
 
+核心理念：**平台即后端 (Platform as a Backend)**  
+- 开发者只需编写合约与前端，索引、统计、消息推送由平台自动完成。  
+- 宿主是“内核”，MiniApp 是“插件”，统一体验与安全边界。  
+- 统一事件标准驱动新闻流与数据分析。
+
 ---
 
 ## 0. 技术栈
@@ -42,7 +47,7 @@ neo-miniapp-platform/
 ├─ platform/
 │  ├─ host-app/         # 前端宿主（Next.js/Vercel）
 │  ├─ builtin-app/      # 内置小程序（Module Federation 远程）
-│  ├─ sdk/              # JS SDK（payGAS/vote/rng/datafeed）
+│  ├─ sdk/              # JS SDK（payGAS/vote/rng/datafeed/stats）
 │  ├─ edge/             # Supabase Edge（鉴权/限流/路由）
 │  ├─ rls/              # Supabase RLS 策略 SQL
 │  └─ admin-console/    # 审核/运维后台（可选）
@@ -67,11 +72,11 @@ neo-miniapp-platform/
 
 ## 2. 合约要点（资产白名单）
 - 常量：`GAS`、`NEO`。
-- PaymentHub：仅 GAS；pay/refund；分账配置；限额/频率。
+- PaymentHub：仅 GAS；GAS transfer + withdraw；分账配置；限额/频率。
 - Governance：仅 NEO；stake/unstake/vote；治理平台参数（费率、白名单）。
 - PriceFeed：`symbol -> { round_id, price, ts, attestation_hash, sourceset_id }`；TEE 签名/测量校验；round_id 单调。
 - RandomnessLog：`requestId -> randomness + attestationHash + timestamp`。
-- AppRegistry：`app_id -> manifest_hash/status/allowlist`（合约/MRSIGNER）。
+- AppRegistry：`app_id -> manifest_hash/entry_url/contract_hash/metadata/status/allowlist`（合约/MRSIGNER）。
 - AutomationAnchor：登记自动化任务（target/method/trigger/gasLimit），记录 nonce/txHash 防重放。
 - ServiceLayerGateway：`RequestService` 发起服务请求，发出 `ServiceRequested` 事件；`FulfillRequest` 完成并回调 MiniApp 合约。
 
@@ -87,6 +92,44 @@ neo-miniapp-platform/
 - request-dispatcher：监听 ServiceLayerGateway 的 `ServiceRequested` 事件，调用 VRF/Oracle/Compute 并通过 tx-proxy 回调 `FulfillRequest`。
 - marblerun：policy/manifest 管理 MRSIGNER/MRENCLAVE、证书与密钥注入、轮换。
 
+## 3.5 平台引擎（Indexer + Analytics + Notifications）
+
+### 3.5.1 链上同步器（Chain Syncer）
+- 监听每个新区块，解析 AppRegistry 与已批准 MiniApp 合约事件。
+- 使用 `processed_events` 做幂等与去重，支持确认深度与链重组回滚。
+- 可回放/补偿（replay/backfill）以重建统计与通知。
+
+### 3.5.2 事件标准（合约端推荐）
+```csharp
+// 1. 平台新闻/通知
+[DisplayName("Platform_Notification")]
+public static event Action<string, string, string> OnNotification;
+// notification_type, title, content (或 IPFS Hash)
+// 可选扩展：Platform_Notification(app_id, title, content, notification_type, priority)
+
+// 2. 业务指标
+[DisplayName("Platform_Metric")]
+public static event Action<string, BigInteger> OnMetric;
+// metric_name, value
+// 可选扩展：Platform_Metric(app_id, metric_name, value)
+```
+
+建议在 manifest 中设置 `contract_hash` 以便 AppRegistry 锚定；索引器依据链上
+`contract_hash` 校验事件来源。当新闻/统计开启时平台会要求该字段（严格模式下即使
+提供 `app_id` 也会要求）。
+
+### 3.5.3 统计聚合与趋势
+- 写入 `miniapp_tx_events`（交易哈希 + 发送者，基于 `System.Contract.Call` 扫描，
+  事件 fallback，用于统计与活跃度）。
+- 写入 `miniapp_stats`（累计交易数、活跃用户、GAS 消耗等）。
+- 写入 `miniapp_stats_daily`（每日快照，用于 trending 计算）。
+- 写入 `miniapp_notifications`（新闻与通知）。
+
+### 3.5.4 企业级稳定性
+- 事件处理可重入/幂等；链重组自动回滚或重算。
+- 指标与通知写入遵循“先落库、再推送”，保证一致性。
+- 指标与通知可按 app_id 分区或分表以支持扩展。
+
 ---
 
 ## 4. 平台宿主 & SDK
@@ -98,6 +141,7 @@ await window.MiniAppSDK.payments.payGAS(appId, "1.5", "entry fee");
 const { randomness, reportHash } = await window.MiniAppSDK.rng.requestRandom(appId);
 await window.MiniAppSDK.governance.vote(appId, proposalId, "10");
 const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD");
+await window.MiniAppSDK.stats.getMyUsage(appId);
 ```
 - 小程序禁止自构交易；敏感操作经 SDK → Edge → TEE → 链上。
 
@@ -118,8 +162,15 @@ const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD");
 ## 5. Supabase（Auth/PG/RLS/Edge）
 - Auth：登录；地址绑定（一次签名）。
 - RLS：按 `user_id + app_id` 隔离，默认拒绝；写入仅服务角色（密钥在 TEE）。
+- 数据表：`miniapps`（清单/状态）、`miniapp_tx_events`、`miniapp_stats`、`miniapp_stats_daily`、`miniapp_notifications`、`processed_events`、`contract_events`、`chain_txs`。
 - Edge：鉴权、nonce、防重放、限流、资产预检（支付仅 GAS；治理仅 NEO）；mTLS 转发到 TEE。
 - Storage：按 `app_id` 路径隔离对象。
+
+## 5.5 平台 API 与实时推送
+- `GET /functions/v1/miniapp-stats?app_id=...`：单应用统计（或不带 `app_id` 返回榜单）。
+- `GET /functions/v1/miniapp-notifications?app_id=...&limit=20`：应用公告/新闻流。
+- `GET /functions/v1/market-trending?period=7d&limit=20`：趋势榜单（基于 `miniapp_stats_daily`）。
+- Supabase Realtime：订阅 `miniapp_notifications` 的 INSERT 事件，前端实时提示。
 
 ---
 
@@ -138,6 +189,8 @@ const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD");
   "callback_contract": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "callback_method": "OnServiceCallback",
   "contracts_needed": ["PaymentHub","RandomnessLog","PriceFeed"],
+  "news_integration": true,
+  "stats_display": ["total_transactions","daily_active_users","total_gas_used","weekly_active_users"],
   "sandbox_flags": ["no-eval","strict-csp"],
   "attestation_required": true
 }
@@ -182,7 +235,7 @@ const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD");
 
 ## 11. 开发者（小程序）流程
 1) 用 starter kit 创建前端；填 manifest（assets_allowed 仅 GAS，governance_assets_allowed 仅 NEO）。
-2) 接入 `window.MiniAppSDK`（payGAS / rng / datafeed / vote）。
+2) 接入 `window.MiniAppSDK`（payGAS / rng / datafeed / vote）；合约可触发 `Platform_Notification`/`Platform_Metric` 事件。
 3) 本地：neo-express + Supabase 本地 + SDK Mock/TEE 仿真，自测支付/随机数/价格订阅。
 4) 打包前端，提交 manifest（由 Edge 计算 `manifest_hash`）并提交审核；（若有）合约部署测试网。
 5) 审核通过，上架目录；平台签名 manifest。

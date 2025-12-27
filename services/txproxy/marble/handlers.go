@@ -35,7 +35,7 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if status, msg := s.checkIntentPolicy(contractHash, method, req.Intent); status != 0 {
+	if status, msg := s.checkIntentPolicy(contractHash, method, req.Intent, req.Params); status != 0 {
 		httputil.WriteError(w, status, msg)
 		return
 	}

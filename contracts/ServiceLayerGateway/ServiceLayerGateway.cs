@@ -33,6 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_UPDATER = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_REQUEST = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_COUNTER = new byte[] { 0x04 };
+        private static readonly byte[] PREFIX_ALLOWED_CALLBACK = new byte[] { 0x05 };
 
         public struct ServiceRequest
         {
@@ -102,6 +103,26 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAdmin();
             ExecutionEngine.Assert(updater != null && updater.IsValid, "invalid updater");
             Storage.Put(Storage.CurrentContext, PREFIX_UPDATER, updater);
+        }
+
+        private static StorageMap AllowedCallbackMap() => new StorageMap(Storage.CurrentContext, PREFIX_ALLOWED_CALLBACK);
+
+        public static void AddAllowedCallback(UInt160 contractHash)
+        {
+            ValidateAdmin();
+            ExecutionEngine.Assert(contractHash != null && contractHash.IsValid, "invalid contract");
+            AllowedCallbackMap().Put((byte[])contractHash, 1);
+        }
+
+        public static void RemoveAllowedCallback(UInt160 contractHash)
+        {
+            ValidateAdmin();
+            AllowedCallbackMap().Delete((byte[])contractHash);
+        }
+
+        public static bool IsAllowedCallback(UInt160 contractHash)
+        {
+            return AllowedCallbackMap().Get((byte[])contractHash) != null;
         }
 
         private static StorageMap RequestMap() => new StorageMap(Storage.CurrentContext, PREFIX_REQUEST);
@@ -177,6 +198,7 @@ namespace NeoMiniAppPlatform.Contracts
             ServiceRequest req = GetRequest(requestId);
             ExecutionEngine.Assert(req.Id > 0, "request not found");
             ExecutionEngine.Assert(req.Status == ServiceRequestStatus.Pending, "request already fulfilled");
+            ExecutionEngine.Assert(IsAllowedCallback(req.CallbackContract), "callback contract not allowed");
 
             req.Status = success ? ServiceRequestStatus.Fulfilled : ServiceRequestStatus.Failed;
             req.FulfilledAt = Runtime.Time;
@@ -187,7 +209,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             OnServiceFulfilled(requestId, success, req.Result, req.Error);
 
-            Contract.Call(req.CallbackContract, req.CallbackMethod, CallFlags.All,
+            Contract.Call(req.CallbackContract, req.CallbackMethod, CallFlags.ReadStates,
                 requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
         }
 

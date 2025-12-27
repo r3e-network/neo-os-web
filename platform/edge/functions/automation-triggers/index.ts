@@ -49,10 +49,10 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
-  const name = String((body as any)?.name ?? "").trim();
-  const triggerType = String((body as any)?.trigger_type ?? "").trim();
+  const name = String(body?.name ?? "").trim();
+  const triggerType = String(body?.trigger_type ?? "").trim();
   if (!name || !triggerType) return error(400, "name and trigger_type required", "BAD_INPUT", req);
-  if ((body as any)?.action === undefined || (body as any)?.action === null) {
+  if (body?.action === undefined || body?.action === null) {
     return error(400, "action required", "BAD_INPUT", req);
   }
 

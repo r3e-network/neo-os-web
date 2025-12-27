@@ -1,0 +1,92 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "liveNow": true,
+  "panels": [
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-pg" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "rawSql": "SELECT COUNT(*) FROM users", "refId": "A", "format": "table" }],
+      "title": "Total Users",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-pg" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "blue", "value": null }] }
+        }
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) FROM chain_txs WHERE submitted_at > NOW() - INTERVAL '24 hours'",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "Transactions (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-pg" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "yellow", "value": null }] }
+        }
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) FROM contract_events WHERE created_at > NOW() - INTERVAL '24 hours'",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "Events (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "supabase-pg" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "orange", "value": null }] }
+        }
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) FROM service_requests WHERE created_at > NOW() - INTERVAL '24 hours'",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "Requests (24h)",
+      "type": "stat"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["miniapp", "neo"],
+  "time": { "from": "now-24h", "to": "now" },
+  "title": "MiniApp Platform Overview",
+  "uid": "miniapp-overview"
+}

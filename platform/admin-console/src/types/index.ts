@@ -28,7 +28,7 @@ export interface MiniApp {
   assets_allowed: string[];
   governance_assets_allowed: string[];
   manifest: Record<string, unknown>;
-  status: "active" | "disabled";
+  status: "active" | "disabled" | "pending";
   created_at: string;
   updated_at: string;
 }

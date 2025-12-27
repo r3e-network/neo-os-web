@@ -19,6 +19,7 @@ import type {
   InvocationIntent,
   MiniAppSDK,
   MiniAppSDKConfig,
+  MiniAppUsageResponse,
   ComputeExecuteRequest,
   ComputeJob,
   OracleQueryRequest,
@@ -38,12 +39,35 @@ import type {
   WalletNonceResponse,
 } from "./types.js";
 
+/** NeoLine N3 wallet interface */
+interface NeoLineN3Wallet {
+  Init: new () => NeoLineN3Instance;
+}
+
+interface NeoLineN3Instance {
+  getAccount: () => Promise<{ address?: string; account?: { address?: string } }>;
+  invoke: (params: NeoLineInvokeParams) => Promise<unknown>;
+}
+
+interface NeoLineInvokeParams {
+  scriptHash: string;
+  operation: string;
+  args: unknown[];
+  signers?: Array<{ account: string; scopes: string | number }>;
+}
+
+/** Extended window with NeoLine */
+interface WindowWithNeoLine extends Window {
+  NEOLineN3?: NeoLineN3Wallet;
+  [key: string]: unknown;
+}
+
 async function getInjectedWalletAddress(): Promise<string> {
   if (typeof window === "undefined") {
     throw new Error("wallet.getAddress must be called in a browser context");
   }
 
-  const g = window as any;
+  const g = window as unknown as WindowWithNeoLine;
 
   // NeoLine N3 (common browser wallet).
   const neoline = g?.NEOLineN3;
@@ -59,12 +83,12 @@ async function getInjectedWalletAddress(): Promise<string> {
   throw new Error("neo wallet not detected (install NeoLine N3) or host must bridge wallet.getAddress");
 }
 
-function getNeoLineN3Instance(): any {
+function getNeoLineN3Instance(): NeoLineN3Instance {
   if (typeof window === "undefined") {
     throw new Error("wallet invocation must be called in a browser context");
   }
 
-  const g = window as any;
+  const g = window as unknown as WindowWithNeoLine;
   const neoline = g?.NEOLineN3;
   if (!neoline || typeof neoline.Init !== "function") {
     throw new Error("NeoLine N3 not detected (install the NeoLine extension)");
@@ -110,14 +134,18 @@ async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<un
   const args = resolveInvocationParams(rawArgs, address);
 
   // NeoLine SDKs vary slightly in accepted shapes; try a small set of candidates.
-  // For GAS.Transfer, we need Global scope to allow the transfer to trigger callbacks.
+  // SECURITY: Use CalledByEntry scope by default (most restrictive).
+  // Only fall back to Global scope if explicitly required by the contract.
   const candidates = [
-    { scriptHash, operation, args, signers: [{ account: address, scopes: "Global" }] },
-    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args, signers: [{ account: address, scopes: "Global" }] },
-    { scriptHash, operation, args, signers: [{ account: address, scopes: 16 }] },
-    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args, signers: [{ account: address, scopes: 16 }] },
     { scriptHash, operation, args, signers: [{ account: address, scopes: "CalledByEntry" }] },
+    {
+      scriptHash: scriptHash.replace(/^0x/i, ""),
+      operation,
+      args,
+      signers: [{ account: address, scopes: "CalledByEntry" }],
+    },
     { scriptHash, operation, args, signers: [{ account: address, scopes: 1 }] },
+    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args, signers: [{ account: address, scopes: 1 }] },
     { scriptHash, operation, args },
     { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args },
   ];
@@ -253,6 +281,17 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         return requestJSON<PriceResponse>(cfg, `/datafeed-price?symbol=${encodeURIComponent(symbol)}`, {
           method: "GET",
         });
+      },
+    },
+    stats: {
+      async getMyUsage(appId?: string, date?: string) {
+        const resolvedAppId = String(appId ?? cfg.appId ?? "").trim();
+        const qs = new URLSearchParams();
+        if (resolvedAppId) qs.set("app_id", resolvedAppId);
+        if (date) qs.set("date", date);
+        const path = qs.toString() ? `/miniapp-usage?${qs.toString()}` : "/miniapp-usage";
+        const res = await requestJSON<MiniAppUsageResponse>(cfg, path, { method: "GET" });
+        return res.usage;
       },
     },
     events: {

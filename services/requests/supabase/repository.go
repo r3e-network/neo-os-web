@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/R3E-Network/service_layer/infrastructure/database"
 )
@@ -22,6 +24,11 @@ const (
 // RepositoryInterface defines NeoRequests data access methods.
 type RepositoryInterface interface {
 	GetMiniApp(ctx context.Context, appID string) (*MiniApp, error)
+	GetMiniAppByContractHash(ctx context.Context, contractHash string) (*MiniApp, error)
+	UpdateMiniAppRegistry(ctx context.Context, appID string, update *MiniAppRegistryUpdate) error
+	LogMiniAppTx(ctx context.Context, appID, txHash, senderAddress string, blockTime time.Time) error
+	RollupMiniAppStats(ctx context.Context, date time.Time) error
+	BumpMiniAppUsage(ctx context.Context, userID, appID string, gasDelta, governanceDelta *big.Int) error
 	CreateServiceRequest(ctx context.Context, req *ServiceRequest) error
 	UpdateServiceRequest(ctx context.Context, req *ServiceRequest) error
 	CreateChainTx(ctx context.Context, tx *ChainTx) error
@@ -30,6 +37,7 @@ type RepositoryInterface interface {
 	HasProcessedEvent(ctx context.Context, chainID, txHash string, logIndex int) (bool, error)
 	CreateProcessedEvent(ctx context.Context, event *ProcessedEvent) error
 	MarkProcessedEvent(ctx context.Context, event *ProcessedEvent) (bool, error)
+	LatestProcessedBlock(ctx context.Context, chainID string) (uint64, bool, error)
 	CreateNotification(ctx context.Context, n *Notification) error
 }
 
@@ -65,6 +73,140 @@ func (r *Repository) GetMiniApp(ctx context.Context, appID string) (*MiniApp, er
 		return nil, database.NewNotFoundError(miniappsTable, appID)
 	}
 	return &rows[0], nil
+}
+
+// GetMiniAppByContractHash retrieves a MiniApp manifest row by on-chain contract_hash.
+func (r *Repository) GetMiniAppByContractHash(ctx context.Context, contractHash string) (*MiniApp, error) {
+	if contractHash == "" {
+		return nil, fmt.Errorf("contract_hash cannot be empty")
+	}
+
+	query := database.NewQuery().
+		Eq("contract_hash", contractHash).
+		Limit(1).
+		Build()
+
+	rows, err := database.GenericListWithQuery[MiniApp](r.base, ctx, miniappsTable, query)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		// Backward-compatible fallback while caches are backfilled.
+		fallbackQuery := database.NewQuery().
+			Eq("manifest->>contract_hash", contractHash).
+			Limit(1).
+			Build()
+		rows, err = database.GenericListWithQuery[MiniApp](r.base, ctx, miniappsTable, fallbackQuery)
+		if err != nil {
+			return nil, err
+		}
+		if len(rows) == 0 {
+			return nil, database.NewNotFoundError(miniappsTable, contractHash)
+		}
+	}
+	return &rows[0], nil
+}
+
+// UpdateMiniAppRegistry updates a MiniApp record with AppRegistry data.
+func (r *Repository) UpdateMiniAppRegistry(ctx context.Context, appID string, update *MiniAppRegistryUpdate) error {
+	if r == nil || r.base == nil {
+		return fmt.Errorf("repository not configured")
+	}
+	if update == nil {
+		return fmt.Errorf("miniapp update cannot be nil")
+	}
+	if strings.TrimSpace(appID) == "" {
+		return fmt.Errorf("app_id cannot be empty")
+	}
+
+	return database.GenericUpdate(r.base, ctx, miniappsTable, "app_id", appID, update)
+}
+
+// LogMiniAppTx records a MiniApp transaction for usage analytics.
+func (r *Repository) LogMiniAppTx(
+	ctx context.Context,
+	appID, txHash, senderAddress string,
+	blockTime time.Time,
+) error {
+	if r == nil || r.base == nil {
+		return fmt.Errorf("repository not configured")
+	}
+	if strings.TrimSpace(appID) == "" {
+		return fmt.Errorf("app_id cannot be empty")
+	}
+	if strings.TrimSpace(txHash) == "" {
+		return fmt.Errorf("tx_hash cannot be empty")
+	}
+	if blockTime.IsZero() {
+		blockTime = time.Now().UTC()
+	}
+
+	payload := map[string]interface{}{
+		"p_app_id":         appID,
+		"p_tx_hash":        txHash,
+		"p_sender_address": strings.TrimSpace(senderAddress),
+		"p_block_time":     blockTime,
+	}
+
+	if _, err := r.base.Request(ctx, "POST", "rpc/miniapp_tx_log", payload, ""); err != nil {
+		return fmt.Errorf("log miniapp tx: %w", err)
+	}
+	return nil
+}
+
+// RollupMiniAppStats triggers the server-side stats rollup for the given date.
+func (r *Repository) RollupMiniAppStats(ctx context.Context, date time.Time) error {
+	if r == nil || r.base == nil {
+		return fmt.Errorf("repository not configured")
+	}
+	if date.IsZero() {
+		date = time.Now().UTC()
+	}
+
+	payload := map[string]string{
+		"p_date": date.Format("2006-01-02"),
+	}
+
+	if _, err := r.base.Request(ctx, "POST", "rpc/miniapp_stats_rollup", payload, ""); err != nil {
+		return fmt.Errorf("rollup miniapp stats: %w", err)
+	}
+	return nil
+}
+
+// BumpMiniAppUsage increments per-user MiniApp usage in Supabase.
+func (r *Repository) BumpMiniAppUsage(ctx context.Context, userID, appID string, gasDelta, governanceDelta *big.Int) error {
+	if r == nil || r.base == nil {
+		return fmt.Errorf("repository not configured")
+	}
+	if strings.TrimSpace(userID) == "" {
+		return fmt.Errorf("user_id cannot be empty")
+	}
+	if strings.TrimSpace(appID) == "" {
+		return fmt.Errorf("app_id cannot be empty")
+	}
+
+	gasValue := "0"
+	if gasDelta != nil {
+		gasValue = gasDelta.String()
+	}
+	governanceValue := "0"
+	if governanceDelta != nil {
+		governanceValue = governanceDelta.String()
+	}
+
+	payload := map[string]interface{}{
+		"p_user_id":          userID,
+		"p_app_id":           appID,
+		"p_gas_delta":        gasValue,
+		"p_governance_delta": governanceValue,
+		"p_gas_cap":          nil,
+		"p_governance_cap":   nil,
+	}
+
+	if _, err := r.base.Request(ctx, "POST", "rpc/miniapp_usage_bump", payload, ""); err != nil {
+		return fmt.Errorf("bump miniapp usage: %w", err)
+	}
+	return nil
 }
 
 // CreateServiceRequest inserts a new service request.
@@ -201,6 +343,31 @@ func (r *Repository) MarkProcessedEvent(ctx context.Context, event *ProcessedEve
 		return false, err
 	}
 	return true, nil
+}
+
+// LatestProcessedBlock returns the highest processed block height for a chain.
+func (r *Repository) LatestProcessedBlock(ctx context.Context, chainID string) (uint64, bool, error) {
+	if r == nil || r.base == nil {
+		return 0, false, fmt.Errorf("repository not configured")
+	}
+	if strings.TrimSpace(chainID) == "" {
+		return 0, false, nil
+	}
+
+	query := database.NewQuery().
+		Eq("chain_id", chainID).
+		OrderDesc("block_height").
+		Limit(1).
+		Build()
+
+	rows, err := database.GenericListWithQuery[ProcessedEvent](r.base, ctx, processedEventsTable, query)
+	if err != nil {
+		return 0, false, err
+	}
+	if len(rows) == 0 {
+		return 0, false, nil
+	}
+	return rows[0].BlockHeight, true, nil
 }
 
 // MarshalParams marshals params to JSON.

@@ -31,11 +31,21 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
-  const name = String(body.name ?? "").trim().slice(0, 255);
+  const name = String(body.name ?? "")
+    .trim()
+    .slice(0, 255);
   if (!name) return error(400, "name required", "NAME_REQUIRED", req);
 
-  const scopes = Array.isArray(body.scopes) ? body.scopes.map((s) => String(s).trim()).filter(Boolean).slice(0, 32) : [];
-  const description = String(body.description ?? "").trim().slice(0, 1024) || null;
+  const scopes = Array.isArray(body.scopes)
+    ? body.scopes
+        .map((s) => String(s).trim())
+        .filter(Boolean)
+        .slice(0, 32)
+    : [];
+  const description =
+    String(body.description ?? "")
+      .trim()
+      .slice(0, 1024) || null;
 
   let expiresAt: string | null = null;
   if (body.expires_at) {
@@ -69,12 +79,16 @@ export async function handler(req: Request): Promise<Response> {
 
   if (insertErr) return error(500, `failed to create api key: ${insertErr.message}`, "DB_ERROR", req);
 
-  return json({
-    api_key: {
-      ...(data as any),
-      key: rawKey,
+  return json(
+    {
+      api_key: {
+        ...data,
+        key: rawKey,
+      },
     },
-  }, { status: 201 }, req);
+    { status: 201 },
+    req,
+  );
 }
 
 if (import.meta.main) {

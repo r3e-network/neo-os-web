@@ -1,0 +1,976 @@
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:61:    mockChannel.subscribe.mockImplementation((callback: any) => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:62:      subscribeCallback = callback;
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:102:    it("should set isConnected to true when subscription succeeds", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:109:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:132:    it("should add new notification to state on INSERT event", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:153:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:159:    it("should invoke onNotification callback when new notification arrives", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:180:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:185:    it("should filter notifications by appId when specified", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:222:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:230:    it("should keep only 50 most recent notifications", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:252:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:261:    it("should handle errors during notification processing", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:287:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:296:    it("should set error state on CHANNEL_ERROR", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:305:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:311:    it("should retry connection with exponential backoff on CHANNEL_ERROR", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:320:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:331:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:340:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:347:    it("should cap retry delay at 30 seconds", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:364:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:370:    it("should handle TIMED_OUT status and retry", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:377:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:383:      await act(async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:390:    it("should handle CLOSED status", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:398:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:404:    it("should reset retry count on successful message", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:446:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:455:    it("should provide reconnect function that resets retry count", async () => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:473:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:484:      await waitFor(() => {
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:525:    it("should not update state after unmount", async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:56:    it("fetches comments and updates state", async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:64:      await act(async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:65:        await result.current.fetchComments();
+platform/host-app/__tests__/hooks/useCommunity.test.ts:72:    it("appends comments when offset > 0", async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:85:      await act(async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:86:        await result.current.fetchComments(0);
+platform/host-app/__tests__/hooks/useCommunity.test.ts:89:      await act(async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:90:        await result.current.fetchComments(1);
+platform/host-app/__tests__/hooks/useCommunity.test.ts:96:    it("sets loading state during fetch", async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:98:      const promise = new Promise((resolve) => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:115:      await act(async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:124:    it("fetches rating and updates state", async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:132:      await act(async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:133:        await result.current.fetchRating();
+platform/host-app/__tests__/hooks/useCommunity.test.ts:141:    it("verifies proof and updates state when token provided", async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:149:      await act(async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:150:        await result.current.verifyProof();
+platform/host-app/__tests__/hooks/useCommunity.test.ts:156:    it("does nothing when no token provided", async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:159:      await act(async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:160:        await result.current.verifyProof();
+platform/host-app/__tests__/hooks/useCommunity.test.ts:169:    it("includes Authorization header when token provided", async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:177:      await act(async () => {
+platform/host-app/__tests__/hooks/useCommunity.test.ts:178:        await result.current.fetchComments();
+platform/host-app/__tests__/components/SocialRatingWidget.test.tsx:123:    it("submits rating when clicking Submit", async () => {
+platform/host-app/__tests__/components/SocialRatingWidget.test.tsx:139:      await waitFor(() => {
+platform/host-app/__tests__/components/SocialRatingWidget.test.tsx:144:    it("does not submit when no stars selected", async () => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:75:    it("calls onVote with upvote when clicking upvote button", async () => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:81:      await waitFor(() => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:86:    it("calls onVote with downvote when clicking downvote button", async () => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:92:      await waitFor(() => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:126:    it("submits reply and clears form", async () => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:141:      await waitFor(() => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:146:    it("does not submit empty reply", async () => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:170:    it("loads replies when clicking reply count", async () => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:182:      await waitFor(() => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:186:      await waitFor(() => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:191:    it("does not load replies when already loading", async () => {
+platform/host-app/__tests__/components/SocialCommentItem.test.tsx:209:      await waitFor(() => resolvePromise!([]));
+platform/host-app/__tests__/components/SocialCommentThread.test.tsx:92:    it("submits comment when clicking Post Comment", async () => {
+platform/host-app/__tests__/components/SocialCommentThread.test.tsx:99:      await waitFor(() => {
+platform/host-app/__tests__/components/SocialCommentThread.test.tsx:104:    it("clears textarea after successful submit", async () => {
+platform/host-app/__tests__/components/SocialCommentThread.test.tsx:111:      await waitFor(() => {
+platform/host-app/__tests__/components/SocialCommentThread.test.tsx:134:    it("calls onLoadMore when clicking Load More", async () => {
+platform/host-app/__tests__/components/SocialCommentThread.test.tsx:139:      await waitFor(() => {
+platform/host-app/__tests__/pages/app.[id].test.tsx:264:  it("fetches app data and notifications successfully", async () => {
+platform/host-app/__tests__/pages/app.[id].test.tsx:277:        json: async () => mockStatsResponse,
+platform/host-app/__tests__/pages/app.[id].test.tsx:281:        json: async () => mockNotifResponse,
+platform/host-app/__tests__/pages/app.[id].test.tsx:289:    const result = await getServerSideProps(context);
+platform/host-app/__tests__/pages/app.[id].test.tsx:318:  it("returns mock data for builtin apps when not found in API", async () => {
+platform/host-app/__tests__/pages/app.[id].test.tsx:325:        json: async () => mockStatsResponse,
+platform/host-app/__tests__/pages/app.[id].test.tsx:329:        json: async () => mockNotifResponse,
+platform/host-app/__tests__/pages/app.[id].test.tsx:337:    const result = await getServerSideProps(context);
+platform/host-app/__tests__/pages/app.[id].test.tsx:348:  it("returns error when app not found and not a builtin app", async () => {
+platform/host-app/__tests__/pages/app.[id].test.tsx:355:        json: async () => mockStatsResponse,
+platform/host-app/__tests__/pages/app.[id].test.tsx:359:        json: async () => mockNotifResponse,
+platform/host-app/__tests__/pages/app.[id].test.tsx:367:    const result = await getServerSideProps(context);
+platform/host-app/__tests__/pages/app.[id].test.tsx:379:  it("handles fetch errors gracefully", async () => {
+platform/host-app/__tests__/pages/app.[id].test.tsx:388:    const result = await getServerSideProps(context);
+platform/host-app/__tests__/pages/app.[id].test.tsx:401:  it("uses custom API URL from environment", async () => {
+platform/host-app/__tests__/pages/app.[id].test.tsx:410:        json: async () => mockStatsResponse,
+platform/host-app/__tests__/pages/app.[id].test.tsx:414:        json: async () => mockNotifResponse,
+platform/host-app/__tests__/pages/app.[id].test.tsx:421:    await getServerSideProps(context);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:38:const flushAsyncUpdates = async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:39:  await act(async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:40:    await Promise.resolve();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:41:    await Promise.resolve();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:45:const renderLaunchPage = async (app: MiniAppInfo = mockApp) => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:47:  await flushAsyncUpdates();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:133:    it("should render LaunchDock with app name", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:134:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:139:    it("should render iframe with correct src and sandbox attributes", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:140:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:148:    it("should render iframe with fullscreen styles", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:149:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:161:    it("should measure network latency on mount", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:162:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:164:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:169:    it("should measure latency every 5 seconds", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:170:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:173:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:180:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:187:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:192:    it("should handle network errors gracefully", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:195:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:197:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:207:    it("should attempt to connect wallet on mount", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:208:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:210:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:215:    it("should handle wallet connection failure silently", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:220:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:223:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:230:    it("should navigate to /app/[id] when exit button is clicked", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:231:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:239:    it("should navigate to /app/[id] when ESC key is pressed", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:240:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:247:    it("should not navigate on other keys", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:248:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:256:    it("should cleanup event listener on unmount", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:258:      const { unmount } = await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:267:    it("should copy share link to clipboard when share button is clicked", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:268:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:273:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:278:    it("should handle clipboard write failure", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:282:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:287:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:309:    const sendMessage = async (
+platform/host-app/__tests__/pages/launch.[id].test.tsx:322:      await waitFor(() => expect(contentWindow.postMessage).toHaveBeenCalled());
+platform/host-app/__tests__/pages/launch.[id].test.tsx:326:    it("responds to MiniApp SDK requests", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:327:      await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:330:      await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
+platform/host-app/__tests__/pages/launch.[id].test.tsx:332:      const response1 = await sendMessage(contentWindow, "wallet.getAddress", []);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:337:      await sendMessage(contentWindow, "wallet.invokeIntent", ["req-1"]);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:340:      const response3 = await sendMessage(contentWindow, "payments.payGAS", ["test-app", "1", "memo"]);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:344:      await sendMessage(contentWindow, "governance.vote", ["test-app", "proposal-1", "10", true]);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:347:      await sendMessage(contentWindow, "rng.requestRandom", ["test-app"]);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:350:      await sendMessage(contentWindow, "datafeed.getPrice", ["NEO-USD"]);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:353:      await sendMessage(contentWindow, "stats.getMyUsage", []);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:356:      await sendMessage(contentWindow, "events.list", [{ limit: 2 }]);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:359:      await sendMessage(contentWindow, "transactions.list", [{ limit: 3 }]);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:362:      const response7 = await sendMessage(contentWindow, "unsupported.method", []);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:366:    it("denies requests without manifest permissions", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:371:      await renderLaunchPage(restrictedApp);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:374:      await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
+platform/host-app/__tests__/pages/launch.[id].test.tsx:376:      const response = await sendMessage(contentWindow, "payments.payGAS", ["test-app", "1"]);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:382:    it("injects MiniAppSDK into same-origin iframes", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:387:      await renderLaunchPage(sameOriginApp);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:390:      await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
+platform/host-app/__tests__/pages/launch.[id].test.tsx:393:      await waitFor(() => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:403:    it("should cleanup network latency interval on unmount", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:404:      const { unmount } = await renderLaunchPage();
+platform/host-app/__tests__/pages/launch.[id].test.tsx:426:  it("should return app props for valid app_id", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:433:      json: async () => ({ stats: [mockApp] }),
+platform/host-app/__tests__/pages/launch.[id].test.tsx:436:    const result = await getServerSideProps(context);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:444:  it("should return 404 for non-existent app_id", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:451:      json: async () => ({ stats: [] }),
+platform/host-app/__tests__/pages/launch.[id].test.tsx:454:    const result = await getServerSideProps(context);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:459:  it("should return props with correct entry_url", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:466:      json: async () => ({ stats: [] }),
+platform/host-app/__tests__/pages/launch.[id].test.tsx:469:    const result = await getServerSideProps(context);
+platform/host-app/__tests__/pages/launch.[id].test.tsx:474:  it("should return app with required fields", async () => {
+platform/host-app/__tests__/pages/launch.[id].test.tsx:481:      json: async () => ({ stats: [] }),
+platform/host-app/__tests__/pages/launch.[id].test.tsx:484:    const result = await getServerSideProps(context);
+platform/host-app/next.config.js:37:  async headers() {
+platform/host-app/components/FederatedMiniApp.tsx:76:    const loadModule = async () => {
+platform/host-app/components/FederatedMiniApp.tsx:82:        const mod = await loadFederatedModule(remoteConfig, "App");
+platform/host-app/components/FederatedMiniApp.tsx:199:async function loadFederatedModule(remote: RemoteConfig, module: string) {
+platform/host-app/components/FederatedMiniApp.tsx:204:  await ensureSharingInitialized();
+platform/host-app/components/FederatedMiniApp.tsx:205:  const container = await loadRemoteContainer(remote);
+platform/host-app/components/FederatedMiniApp.tsx:209:    await container.init(shareScope);
+platform/host-app/components/FederatedMiniApp.tsx:213:  const factory = await container.get(`./${module.replace(/^\.\//, "")}`);
+platform/host-app/components/FederatedMiniApp.tsx:217:async function ensureSharingInitialized() {
+platform/host-app/components/FederatedMiniApp.tsx:224:  await sharingInit;
+platform/host-app/components/FederatedMiniApp.tsx:254:    script.async = true;
+platform/host-app/components/SocialCommentThread.tsx:37:  const handleSubmit = async () => {
+platform/host-app/components/SocialCommentThread.tsx:41:    const success = await onCreateComment(newComment.trim());
+platform/host-app/components/SocialRatingWidget.tsx:38:  const handleSubmit = async () => {
+platform/host-app/components/SocialRatingWidget.tsx:41:    const success = await onSubmit(selectedValue, reviewText || undefined);
+platform/host-app/components/SocialCommentItem.tsx:18:  const handleLoadReplies = async () => {
+platform/host-app/components/SocialCommentItem.tsx:21:    const data = await onLoadReplies(comment.id);
+platform/host-app/components/SocialCommentItem.tsx:26:  const handleSubmitReply = async () => {
+platform/host-app/components/SocialCommentItem.tsx:28:    await onReply(comment.id, replyContent);
+platform/host-app/hooks/useCommunity.ts:33:  const handleApiError = async (res: Response): Promise<CommunityError> => {
+platform/host-app/hooks/useCommunity.ts:35:      const data = await res.json();
+platform/host-app/hooks/useCommunity.ts:44:    async (offset = 0) => {
+platform/host-app/hooks/useCommunity.ts:48:        const res = await fetch(
+platform/host-app/hooks/useCommunity.ts:53:          setError(await handleApiError(res));
+platform/host-app/hooks/useCommunity.ts:56:        const data = await res.json();
+platform/host-app/hooks/useCommunity.ts:73:  const fetchRating = useCallback(async () => {
+platform/host-app/hooks/useCommunity.ts:76:      const res = await fetch(`${API_BASE}/social-ratings?app_id=${appId}`, { headers });
+platform/host-app/hooks/useCommunity.ts:78:        setError(await handleApiError(res));
+platform/host-app/hooks/useCommunity.ts:81:      const data = await res.json();
+platform/host-app/hooks/useCommunity.ts:89:  const verifyProof = useCallback(async () => {
+platform/host-app/hooks/useCommunity.ts:93:      const res = await fetch(`${API_BASE}/social-proof-verify`, {
+platform/host-app/hooks/useCommunity.ts:99:        setError(await handleApiError(res));
+platform/host-app/hooks/useCommunity.ts:102:      const data = await res.json();
+platform/host-app/hooks/useCommunity.ts:111:    async (content: string, parentId?: string): Promise<boolean> => {
+platform/host-app/hooks/useCommunity.ts:119:        const res = await fetch(`${API_BASE}/social-comment-create`, {
+platform/host-app/hooks/useCommunity.ts:125:          setError(await handleApiError(res));
+platform/host-app/hooks/useCommunity.ts:128:        const data = await res.json();
+platform/host-app/hooks/useCommunity.ts:145:    async (commentId: string, voteType: VoteType): Promise<boolean> => {
+platform/host-app/hooks/useCommunity.ts:152:        const res = await fetch(`${API_BASE}/social-comment-vote`, {
+platform/host-app/hooks/useCommunity.ts:158:          setError(await handleApiError(res));
+platform/host-app/hooks/useCommunity.ts:161:        const data = await res.json();
+platform/host-app/hooks/useCommunity.ts:176:    async (value: number, reviewText?: string): Promise<boolean> => {
+platform/host-app/hooks/useCommunity.ts:184:        const res = await fetch(`${API_BASE}/social-rating-submit`, {
+platform/host-app/hooks/useCommunity.ts:190:          setError(await handleApiError(res));
+platform/host-app/hooks/useCommunity.ts:193:        await fetchRating();
+platform/host-app/hooks/useCommunity.ts:207:    async (parentId: string): Promise<SocialComment[]> => {
+platform/host-app/hooks/useCommunity.ts:210:        const res = await fetch(`${API_BASE}/social-comments?app_id=${appId}&parent_id=${parentId}&limit=50`, {
+platform/host-app/hooks/useCommunity.ts:214:          setError(await handleApiError(res));
+platform/host-app/hooks/useCommunity.ts:217:        const data = await res.json();
+platform/host-app/hooks/useCommunity.ts:229:    async (commentId: string): Promise<boolean> => {
+platform/host-app/hooks/useCommunity.ts:236:        const res = await fetch(`${API_BASE}/social-comment-delete`, {
+platform/host-app/hooks/useCommunity.ts:242:          setError(await handleApiError(res));
+platform/host-app/hooks/useRealtimeNotifications.ts:90:        // Invoke callback if provided
+platform/host-app/public/sdk/miniapp-bridge.js:60:    return new Promise((resolve, reject) => {
+platform/builtin-app/src/components/BuiltinApp.tsx:170:  const refreshPrice = useCallback(async () => {
+platform/builtin-app/src/components/BuiltinApp.tsx:182:      const res = await sdk.datafeed.getPrice(symbol.trim());
+platform/builtin-app/src/components/BuiltinApp.tsx:317:  const handlePlay = useCallback(async () => {
+platform/builtin-app/src/components/BuiltinApp.tsx:339:      const intent = await sdk.payments.payGAS(appId, formattedAmount, `${config.memoPrefix}:${selectedChoice}`);
+platform/builtin-app/src/components/BuiltinApp.tsx:344:          const tx = await sdk.wallet.invokeIntent(intent.request_id);
+platform/builtin-app/src/components/BuiltinApp.tsx:352:      const rngResult = await sdk.rng.requestRandom(appId);
+platform/builtin-app/src/components/BuiltinApp.tsx:489:  const buyTickets = useCallback(async () => {
+platform/builtin-app/src/components/BuiltinApp.tsx:503:      const intent = await sdk.payments.payGAS(appId, amountText, `lottery:${ticketCount}`);
+platform/builtin-app/src/components/BuiltinApp.tsx:505:        await sdk.wallet.invokeIntent(intent.request_id);
+platform/builtin-app/src/components/BuiltinApp.tsx:516:  const drawWinner = useCallback(async () => {
+platform/builtin-app/src/components/BuiltinApp.tsx:529:      const result = await sdk.rng.requestRandom(appId);
+platform/builtin-app/src/components/BuiltinApp.tsx:606:  const placePrediction = useCallback(async () => {
+platform/builtin-app/src/components/BuiltinApp.tsx:615:      const intent = await sdk.payments.payGAS(appId, amountText, `prediction:${direction}:${symbol}`);
+platform/builtin-app/src/components/BuiltinApp.tsx:617:        await sdk.wallet.invokeIntent(intent.request_id);
+platform/builtin-app/src/components/BuiltinApp.tsx:621:      const start = await sdk.datafeed.getPrice(symbol);
+platform/builtin-app/src/components/BuiltinApp.tsx:625:      await new Promise((resolve) => setTimeout(resolve, 4000));
+platform/builtin-app/src/components/BuiltinApp.tsx:628:      const end = await sdk.datafeed.getPrice(symbol);
+platform/builtin-app/src/components/BuiltinApp.tsx:713:  const requestFlashloan = useCallback(async () => {
+platform/builtin-app/src/components/BuiltinApp.tsx:721:      const intent = await sdk.payments.payGAS(appId, formatAmountInput(feeAmount), `flashloan:${loanAmount}`);
+platform/builtin-app/src/components/BuiltinApp.tsx:723:        await sdk.wallet.invokeIntent(intent.request_id);
+platform/builtin-app/src/components/BuiltinApp.tsx:725:      const rng = await sdk.rng.requestRandom(appId);
+platform/builtin-app/src/components/BuiltinApp.tsx:897:  const requestAddress = useCallback(async () => {
+platform/builtin-app/src/components/BuiltinApp.tsx:904:      const address = await sdk.wallet.getAddress();
+platform/host-app/pages/federated.tsx:19:    const loadPermissions = async () => {
+platform/host-app/pages/federated.tsx:21:        const res = await fetch(`/api/miniapp-stats?app_id=${encodeURIComponent(appId)}`);
+platform/host-app/pages/federated.tsx:22:        const payload = await res.json();
+platform/host-app/pages/federated.tsx:73:export const getServerSideProps = async () => {
+platform/host-app/lib/miniapp-sdk.ts:52:    return async () => options.authToken;
+platform/host-app/lib/miniapp-sdk.ts:54:  return async () => readStorageValue(AUTH_TOKEN_STORAGE_KEY);
+platform/host-app/lib/miniapp-sdk.ts:60:    return async () => options.apiKey;
+platform/host-app/lib/miniapp-sdk.ts:121:      payGAS: async (requestedAppId: string, amount: string, memo?: string) => {
+platform/host-app/lib/miniapp-sdk.ts:128:        ? async (requestedAppId: string, amount: string, memo?: string) => {
+platform/host-app/lib/miniapp-sdk.ts:138:      vote: async (requestedAppId: string, proposalId: string, neoAmount: string, support?: boolean) => {
+platform/host-app/lib/miniapp-sdk.ts:145:        ? async (requestedAppId: string, proposalId: string, neoAmount: string, support?: boolean) => {
+platform/host-app/lib/miniapp-sdk.ts:155:      requestRandom: async (requestedAppId: string) => {
+platform/host-app/lib/miniapp-sdk.ts:164:      getPrice: async (symbol: string) => {
+platform/host-app/lib/miniapp-sdk.ts:171:      getMyUsage: async (requestedAppId?: string, date?: string) => {
+platform/host-app/lib/miniapp-sdk.ts:178:      list: async (params) => {
+platform/host-app/lib/miniapp-sdk.ts:185:      list: async (params) => {
+platform/host-app/pages/index.tsx:48:  const fetchStats = async () => {
+platform/host-app/pages/index.tsx:50:      const res = await fetch("/api/miniapp-stats");
+platform/host-app/pages/index.tsx:51:      const data = await res.json();
+platform/host-app/pages/index.tsx:85:  const fetchTrending = async () => {
+platform/host-app/pages/index.tsx:88:      const res = await fetch("/api/market/trending?period=1d&limit=6");
+platform/host-app/pages/index.tsx:89:      const data = await res.json();
+platform/host-app/pages/index.tsx:101:  const fetchNews = async () => {
+platform/host-app/pages/index.tsx:103:      const res = await fetch("/api/miniapp-notifications?limit=20");
+platform/host-app/pages/index.tsx:104:      const data = await res.json();
+platform/host-app/pages/index.tsx:114:  const connectWallet = useCallback(async () => {
+platform/host-app/pages/index.tsx:119:        const acc = await inst.getAccount();
+platform/host-app/pages/index.tsx:360:export const getServerSideProps = async () => {
+platform/host-app/lib/edge.ts:16:export async function fetchWithTimeout(
+platform/host-app/lib/edge.ts:25:    return await fetch(url, { ...options, signal: controller.signal });
+platform/sdk/src/client.ts:65:async function getInjectedWalletAddress(): Promise<string> {
+platform/sdk/src/client.ts:77:      const res = await inst.getAccount();
+platform/sdk/src/client.ts:117:async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<unknown> {
+platform/sdk/src/client.ts:130:  const address = await getInjectedWalletAddress();
+platform/sdk/src/client.ts:156:      return await inst.invoke(params);
+platform/sdk/src/client.ts:165:async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: RequestInit): Promise<T> {
+platform/sdk/src/client.ts:172:    const token = await cfg.getAuthToken();
+platform/sdk/src/client.ts:176:    const apiKey = await cfg.getAPIKey();
+platform/sdk/src/client.ts:180:  const resp = await fetch(url, { ...init, headers });
+platform/sdk/src/client.ts:181:  const text = await resp.text();
+platform/sdk/src/client.ts:186:async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: RequestInit): Promise<T> {
+platform/sdk/src/client.ts:193:  const apiKey = cfg.getAPIKey ? await cfg.getAPIKey() : undefined;
+platform/sdk/src/client.ts:199:  const resp = await fetch(url, { ...init, headers });
+platform/sdk/src/client.ts:200:  const text = await resp.text();
+platform/sdk/src/client.ts:209:    async getAddress() {
+platform/sdk/src/client.ts:213:      async getAddress() {
+platform/sdk/src/client.ts:216:      async invokeIntent(requestId: string): Promise<unknown> {
+platform/sdk/src/client.ts:224:      async invokeInvocation(invocation: InvocationIntent): Promise<unknown> {
+platform/sdk/src/client.ts:229:      async payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse> {
+platform/sdk/src/client.ts:230:        const res = await requestJSON<PayGASResponse>(cfg, "/pay-gas", {
+platform/sdk/src/client.ts:241:      async payGASAndInvoke(appId: string, amount: string, memo?: string) {
+platform/sdk/src/client.ts:242:        const intent = await this.payGAS(appId, amount, memo);
+platform/sdk/src/client.ts:243:        const tx = await invokeNeoLineInvocation(intent.invocation);
+platform/sdk/src/client.ts:248:      async vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteNEOResponse> {
+platform/sdk/src/client.ts:249:        const res = await requestJSON<VoteNEOResponse>(cfg, "/vote-neo", {
+platform/sdk/src/client.ts:265:      async voteAndInvoke(appId: string, proposalId: string, neoAmount: string, support?: boolean) {
+platform/sdk/src/client.ts:266:        const intent = await this.vote(appId, proposalId, neoAmount, support);
+platform/sdk/src/client.ts:267:        const tx = await invokeNeoLineInvocation(intent.invocation);
+platform/sdk/src/client.ts:272:      async requestRandom(appId: string): Promise<RNGResponse> {
+platform/sdk/src/client.ts:280:      async getPrice(symbol: string): Promise<PriceResponse> {
+platform/sdk/src/client.ts:287:      async getMyUsage(appId?: string, date?: string) {
+platform/sdk/src/client.ts:293:        const res = await requestJSON<MiniAppUsageResponse>(cfg, path, { method: "GET" });
+platform/sdk/src/client.ts:298:      async list(params: EventsListParams): Promise<EventsListResponse> {
+platform/sdk/src/client.ts:309:      async list(params: TransactionsListParams): Promise<TransactionsListResponse> {
+platform/sdk/src/client.ts:327:      async getBindMessage(): Promise<WalletNonceResponse> {
+platform/sdk/src/client.ts:333:      async bindWallet(params): Promise<WalletBindResponse> {
+platform/sdk/src/client.ts:348:      async register(params): Promise<AppRegisterResponse> {
+platform/sdk/src/client.ts:356:      async updateManifest(params): Promise<AppUpdateManifestResponse> {
+platform/sdk/src/client.ts:366:      async query(params: OracleQueryRequest): Promise<OracleQueryResponse> {
+platform/sdk/src/client.ts:374:      async execute(params: ComputeExecuteRequest): Promise<ComputeJob> {
+platform/sdk/src/client.ts:380:      async listJobs(): Promise<ComputeJob[]> {
+platform/sdk/src/client.ts:383:      async getJob(id: string): Promise<ComputeJob> {
+platform/sdk/src/client.ts:388:      async listTriggers(): Promise<AutomationTrigger[]> {
+platform/sdk/src/client.ts:391:      async createTrigger(params: AutomationTriggerRequest): Promise<AutomationTrigger> {
+platform/sdk/src/client.ts:397:      async getTrigger(id: string): Promise<AutomationTrigger> {
+platform/sdk/src/client.ts:402:      async updateTrigger(id: string, params: AutomationTriggerRequest): Promise<AutomationTrigger> {
+platform/sdk/src/client.ts:408:      async deleteTrigger(id: string): Promise<AutomationDeleteResponse> {
+platform/sdk/src/client.ts:414:      async enableTrigger(id: string): Promise<AutomationStatusResponse> {
+platform/sdk/src/client.ts:420:      async disableTrigger(id: string): Promise<AutomationStatusResponse> {
+platform/sdk/src/client.ts:426:      async resumeTrigger(id: string): Promise<AutomationStatusResponse> {
+platform/sdk/src/client.ts:432:      async listExecutions(id: string, limit?: number): Promise<AutomationExecution[]> {
+platform/sdk/src/client.ts:441:      async list(): Promise<SecretsListResponse> {
+platform/sdk/src/client.ts:444:      async get(name: string): Promise<SecretsGetResponse> {
+platform/sdk/src/client.ts:449:      async upsert(name: string, value: string): Promise<SecretsUpsertResponse> {
+platform/sdk/src/client.ts:455:      async delete(name: string): Promise<SecretsDeleteResponse> {
+platform/sdk/src/client.ts:461:      async setPermissions(name: string, services: string[]): Promise<SecretsPermissionsResponse> {
+platform/sdk/src/client.ts:469:      async list(): Promise<APIKeysListResponse> {
+platform/sdk/src/client.ts:472:      async create(params): Promise<APIKeyCreateResponse> {
+platform/sdk/src/client.ts:483:      async revoke(id: string): Promise<APIKeyRevokeResponse> {
+platform/sdk/src/client.ts:491:      async getAccount(): Promise<GasBankAccountResponse> {
+platform/sdk/src/client.ts:494:      async listDeposits(): Promise<GasBankDepositsResponse> {
+platform/sdk/src/client.ts:497:      async createDeposit(params): Promise<GasBankDepositCreateResponse> {
+platform/sdk/src/client.ts:507:      async listTransactions(): Promise<GasBankTransactionsResponse> {
+platform/host-app/pages/launch/[id].tsx:93:    const measureLatency = async () => {
+platform/host-app/pages/launch/[id].tsx:97:        await fetch("/api/health", { method: "HEAD" });
+platform/host-app/pages/launch/[id].tsx:116:    const tryConnectWallet = async () => {
+platform/host-app/pages/launch/[id].tsx:121:          const acc = await inst.getAccount();
+platform/host-app/pages/launch/[id].tsx:163:    const handleMessage = async (event: MessageEvent) => {
+platform/host-app/pages/launch/[id].tsx:195:        const result = await dispatchBridgeCall(sdk, method, params, app.permissions, app.app_id);
+platform/host-app/pages/launch/[id].tsx:236:      .then(() => {
+platform/host-app/pages/launch/[id].tsx:240:      .catch((e) => {
+platform/host-app/pages/launch/[id].tsx:312:async function dispatchBridgeCall(
+platform/host-app/pages/launch/[id].tsx:383:export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (context) => {
+platform/host-app/pages/launch/[id].tsx:389:    const res = await fetch(`${baseUrl}/api/miniapp-stats?app_id=${encodeURIComponent(id)}`);
+platform/host-app/pages/launch/[id].tsx:390:    const payload = await res.json();
+platform/host-app/pages/app/[id].tsx:283:export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async (context) => {
+platform/host-app/pages/app/[id].tsx:290:    const statsRes = await fetchWithTimeout(`${baseUrl}/api/miniapp-stats?app_id=${encodedId}`);
+platform/host-app/pages/app/[id].tsx:291:    const statsData = statsRes.ok ? await statsRes.json() : {};
+platform/host-app/pages/app/[id].tsx:301:    const notifRes = await fetchWithTimeout(`${baseUrl}/api/app/${encodedId}/news?limit=20`);
+platform/host-app/pages/app/[id].tsx:302:    const notifData = notifRes.ok ? await notifRes.json() : { notifications: [] };
+platform/sdk/src/admin.ts:65:  async getServicesHealth(): Promise<ServiceHealthResponse[]> {
+platform/sdk/src/admin.ts:66:    const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`);
+platform/sdk/src/admin.ts:76:  async getAnalytics(): Promise<AnalyticsResponse> {
+platform/sdk/src/admin.ts:77:    const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`);
+platform/sdk/src/admin.ts:87:  async getMiniApps(): Promise<MiniAppListResponse[]> {
+platform/sdk/src/admin.ts:88:    const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?select=*&order=created_at.desc`, {
+platform/sdk/src/admin.ts:103:  async getUsers(): Promise<UserListResponse[]> {
+platform/sdk/src/admin.ts:104:    const response = await fetch(`${this.config.supabaseUrl}/rest/v1/users?select=*&order=created_at.desc`, {
+platform/sdk/src/admin.ts:119:  async updateMiniAppStatus(appId: string, status: "active" | "disabled"): Promise<void> {
+platform/sdk/src/admin.ts:120:    const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?app_id=eq.${appId}`, {
+platform/edge/dev_server.ts:13:async function discoverFunctions(): Promise<Set<string>> {
+platform/edge/dev_server.ts:16:  for await (const entry of Deno.readDir(dir)) {
+platform/edge/dev_server.ts:22:      const stat = await Deno.stat(indexUrl);
+platform/edge/dev_server.ts:49:async function loadHandler(name: string): Promise<EdgeHandler | null> {
+platform/edge/dev_server.ts:52:  const mod = await import(`./functions/${name}/index.ts`);
+platform/edge/dev_server.ts:61:const available = await discoverFunctions();
+platform/edge/dev_server.ts:64:Deno.serve({ port }, async (req) => {
+platform/edge/dev_server.ts:87:    handler = await loadHandler(name);
+platform/edge/dev_server.ts:93:  return await handler(req);
+platform/host-app/pages/api/miniapp-notifications.ts:5:export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+platform/host-app/pages/api/miniapp-notifications.ts:15:  const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req) });
+platform/host-app/pages/api/miniapp-notifications.ts:18:    payload = await upstream.json();
+platform/host-app/pages/api/miniapp-usage.ts:5:export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+platform/host-app/pages/api/miniapp-usage.ts:15:  const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req) });
+platform/host-app/pages/api/miniapp-usage.ts:18:    payload = await upstream.json();
+platform/host-app/pages/_document.tsx:6:  static async getInitialProps(ctx: DocumentContext): Promise<Props> {
+platform/host-app/pages/_document.tsx:7:    const initialProps = await Document.getInitialProps(ctx);
+platform/host-app/pages/api/app/[id]/news.ts:5:export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+platform/host-app/pages/api/app/[id]/news.ts:24:  const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req) });
+platform/host-app/pages/api/app/[id]/news.ts:27:    payload = await upstream.json();
+platform/host-app/pages/api/miniapp-stats.ts:5:export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+platform/host-app/pages/api/miniapp-stats.ts:15:  const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req) });
+platform/host-app/pages/api/miniapp-stats.ts:18:    payload = await upstream.json();
+platform/host-app/pages/api/rpc/[fn].ts:8:async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+platform/host-app/pages/api/rpc/[fn].ts:13:    const response = await fetch(url, {
+platform/host-app/pages/api/rpc/[fn].ts:23:async function fetchWithRetry(url: string, options: RequestInit, maxRetries: number): Promise<Response> {
+platform/host-app/pages/api/rpc/[fn].ts:28:      return await fetchWithTimeout(url, options, FETCH_TIMEOUT_MS);
+platform/host-app/pages/api/rpc/[fn].ts:35:        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+platform/host-app/pages/api/rpc/[fn].ts:43:async function readRawBody(req: NextApiRequest): Promise<Buffer> {
+platform/host-app/pages/api/rpc/[fn].ts:45:  await new Promise<void>((resolve, reject) => {
+platform/host-app/pages/api/rpc/[fn].ts:53:export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+platform/host-app/pages/api/rpc/[fn].ts:86:  const rawBody = hasBody ? await readRawBody(req) : undefined;
+platform/host-app/pages/api/rpc/[fn].ts:90:    const upstream = await fetchWithRetry(url.toString(), { method, headers, body }, MAX_RETRIES);
+platform/host-app/pages/api/rpc/[fn].ts:98:    const buf = Buffer.from(await upstream.arrayBuffer());
+platform/host-app/pages/api/rpc/relay.ts:4:async function readRawBody(req: NextApiRequest): Promise<Buffer> {
+platform/host-app/pages/api/rpc/relay.ts:6:  await new Promise<void>((resolve, reject) => {
+platform/host-app/pages/api/rpc/relay.ts:33:export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+platform/host-app/pages/api/rpc/relay.ts:43:  const rawBody = hasBody ? await readRawBody(req) : undefined;
+platform/host-app/pages/api/rpc/relay.ts:78:  const upstream = await fetch(url.toString(), {
+platform/host-app/pages/api/rpc/relay.ts:90:  const buf = Buffer.from(await upstream.arrayBuffer());
+platform/admin-console/next.config.js:5:  async headers() {
+platform/host-app/pages/api/market/trending.ts:5:export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+platform/host-app/pages/api/market/trending.ts:15:  const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req) });
+platform/host-app/pages/api/market/trending.ts:18:    payload = await upstream.json();
+platform/edge/functions/gasbank-transactions/index.ts:8:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/gasbank-transactions/index.ts:13:  const auth = await requireAuth(req);
+platform/edge/functions/gasbank-transactions/index.ts:15:  const rl = await requireRateLimit(req, "gasbank-transactions", auth);
+platform/edge/functions/gasbank-transactions/index.ts:19:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/gasbank-transactions/index.ts:22:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/gasbank-transactions/index.ts:26:  const { data: accounts, error: accErr } = await supabase
+platform/edge/functions/gasbank-transactions/index.ts:37:  const { data, error: listErr } = await supabase
+platform/edge/functions/secrets-get/index.ts:9:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/secrets-get/index.ts:14:  const auth = await requireAuth(req);
+platform/edge/functions/secrets-get/index.ts:16:  const rl = await requireRateLimit(req, "secrets-get", auth);
+platform/edge/functions/secrets-get/index.ts:20:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/secrets-get/index.ts:23:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/secrets-get/index.ts:31:  const { data, error: getErr } = await supabase
+platform/edge/functions/secrets-get/index.ts:46:    value = await decryptSecretValue(encryptedBase64);
+platform/edge/functions/social-ratings/index.ts:5:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/social-ratings/index.ts:22:  const { data: ratingData, error: rpcErr } = await supabase.rpc("calculate_app_rating_weighted", { p_app_id: appId });
+platform/edge/functions/social-ratings/index.ts:36:  const user = await tryGetUser(req);
+platform/edge/functions/social-ratings/index.ts:40:    const { data: myRating } = await supabase
+platform/edge/functions/compute-job/index.ts:11:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/compute-job/index.ts:16:  const auth = await requireAuth(req);
+platform/edge/functions/compute-job/index.ts:18:  const rl = await requireRateLimit(req, "compute-job", auth);
+platform/edge/functions/compute-job/index.ts:22:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/compute-job/index.ts:30:  const result = await getJSON(`${neocomputeURL}/jobs/${encodeURIComponent(jobId)}`, {
+platform/edge/functions/app-update-manifest/index.ts:20:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/app-update-manifest/index.ts:25:  const auth = await requireAuth(req);
+platform/edge/functions/app-update-manifest/index.ts:27:  const rl = await requireRateLimit(req, "app-update-manifest", auth);
+platform/edge/functions/app-update-manifest/index.ts:31:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/app-update-manifest/index.ts:36:    body = await req.json();
+platform/edge/functions/app-update-manifest/index.ts:47:    core = await parseMiniAppManifestCore(manifest);
+platform/edge/functions/app-update-manifest/index.ts:53:  const upsertErr = await upsertMiniAppManifest({
+platform/edge/functions/vote-neo/index.ts:21:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/vote-neo/index.ts:26:  const auth = await requireAuth(req);
+platform/edge/functions/vote-neo/index.ts:28:  const rl = await requireRateLimit(req, "vote-neo", auth);
+platform/edge/functions/vote-neo/index.ts:32:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/vote-neo/index.ts:37:    body = await req.json();
+platform/edge/functions/vote-neo/index.ts:45:  const policy = await fetchMiniAppPolicy(appId, req);
+platform/edge/functions/vote-neo/index.ts:64:  const usageErr = await enforceUsageCaps({
+platform/edge/functions/automation-trigger/index.ts:11:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/automation-trigger/index.ts:16:  const auth = await requireAuth(req);
+platform/edge/functions/automation-trigger/index.ts:18:  const rl = await requireRateLimit(req, "automation-trigger", auth);
+platform/edge/functions/automation-trigger/index.ts:22:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/automation-trigger/index.ts:30:  const result = await getJSON(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}`, {
+platform/host-app/pages/api/market-trending.ts:5:export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+platform/host-app/pages/api/market-trending.ts:15:  const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req) });
+platform/host-app/pages/api/market-trending.ts:18:    payload = await upstream.json();
+platform/edge/functions/gasbank-account/index.ts:8:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/gasbank-account/index.ts:13:  const auth = await requireAuth(req);
+platform/edge/functions/gasbank-account/index.ts:15:  const rl = await requireRateLimit(req, "gasbank-account", auth);
+platform/edge/functions/gasbank-account/index.ts:19:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/gasbank-account/index.ts:22:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/gasbank-account/index.ts:27:  const { data: existing, error: getErr } = await supabase
+platform/edge/functions/gasbank-account/index.ts:36:  const { data: created, error: createErr } = await supabase
+platform/edge/functions/social-comments/index.ts:6:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/social-comments/index.ts:54:  const { data, error: err, count } = await query;
+platform/edge/functions/social-comments/index.ts:59:  const voteCounts = await getCommentVoteCounts(supabase, commentIds);
+platform/edge/functions/social-comments/index.ts:62:  const { data: replyCounts } = await supabase
+platform/edge/functions/secrets-list/index.ts:8:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/secrets-list/index.ts:13:  const auth = await requireAuth(req);
+platform/edge/functions/secrets-list/index.ts:15:  const rl = await requireRateLimit(req, "secrets-list", auth);
+platform/edge/functions/secrets-list/index.ts:19:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/secrets-list/index.ts:22:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/secrets-list/index.ts:26:  const { data, error: listErr } = await supabase
+platform/edge/functions/_shared/apikeys.ts:7:export async function sha256Hex(value: string): Promise<string> {
+platform/edge/functions/_shared/apikeys.ts:9:  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+platform/edge/functions/automation-trigger-executions/index.ts:11:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/automation-trigger-executions/index.ts:16:  const auth = await requireAuth(req);
+platform/edge/functions/automation-trigger-executions/index.ts:18:  const rl = await requireRateLimit(req, "automation-trigger-executions", auth);
+platform/edge/functions/automation-trigger-executions/index.ts:22:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/automation-trigger-executions/index.ts:36:  const result = await getJSON(upstream.toString(), { "X-User-ID": auth.userId }, req);
+platform/edge/functions/automation-triggers/index.ts:20:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/automation-triggers/index.ts:28:  const auth = await requireAuth(req);
+platform/edge/functions/automation-triggers/index.ts:30:  const rl = await requireRateLimit(req, "automation-triggers", auth);
+platform/edge/functions/automation-triggers/index.ts:34:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/automation-triggers/index.ts:40:    const result = await getJSON(`${neoflowURL}/triggers`, { "X-User-ID": auth.userId }, req);
+platform/edge/functions/automation-triggers/index.ts:47:    body = await req.json();
+platform/edge/functions/automation-triggers/index.ts:59:  const result = await postJSON(`${neoflowURL}/triggers`, body, { "X-User-ID": auth.userId }, req);
+platform/edge/functions/_shared/supabase.ts:41:export async function requireUser(req: Request): Promise<AuthContext | Response> {
+platform/edge/functions/_shared/supabase.ts:46:  const { data, error: authErr } = await supabase.auth.getUser(token);
+platform/edge/functions/_shared/supabase.ts:57:export async function requireAuth(req: Request): Promise<AuthContext | Response> {
+platform/edge/functions/_shared/supabase.ts:58:  const bearer = await requireUser(req);
+platform/edge/functions/_shared/supabase.ts:65:  const { data, error: verifyErr } = await supabase.rpc("verify_api_key", { input_key: apiKey });
+platform/edge/functions/_shared/supabase.ts:81:export async function requirePrimaryWallet(userId: string, req?: Request): Promise<{ address: string } | Response> {
+platform/edge/functions/_shared/supabase.ts:83:  const { data, error: walletsErr } = await supabase
+platform/edge/functions/_shared/supabase.ts:99:export async function ensureUserRow(
+platform/edge/functions/_shared/supabase.ts:108:  const { data, error: upsertErr } = await supabase
+platform/edge/functions/market-trending/index_test.ts:60:        then: async (resolve: any) => {
+platform/edge/functions/market-trending/index_test.ts:102:Deno.test("market-trending - handles CORS preflight", async () => {
+platform/edge/functions/market-trending/index_test.ts:107:  const res = await handler(req);
+platform/edge/functions/market-trending/index_test.ts:111:Deno.test("market-trending - rejects non-GET methods", async () => {
+platform/edge/functions/market-trending/index_test.ts:116:  const res = await handler(req);
+platform/edge/functions/market-trending/index_test.ts:119:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:123:Deno.test("market-trending - returns empty array when no data for today", async () => {
+platform/edge/functions/market-trending/index_test.ts:128:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:131:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:136:Deno.test("market-trending - calculates growth rate correctly", async () => {
+platform/edge/functions/market-trending/index_test.ts:164:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:167:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:183:Deno.test("market-trending - respects limit parameter", async () => {
+platform/edge/functions/market-trending/index_test.ts:209:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:212:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:216:Deno.test("market-trending - validates limit parameter bounds", async () => {
+platform/edge/functions/market-trending/index_test.ts:227:  const res1 = await handler(req1, factory);
+platform/edge/functions/market-trending/index_test.ts:232:  const res2 = await handler(req2, factory);
+platform/edge/functions/market-trending/index_test.ts:237:  const res3 = await handler(req3, factory);
+platform/edge/functions/market-trending/index_test.ts:241:Deno.test("market-trending - respects period parameter", async () => {
+platform/edge/functions/market-trending/index_test.ts:252:  const res1 = await handler(req1, factory);
+platform/edge/functions/market-trending/index_test.ts:257:  const res2 = await handler(req2, factory);
+platform/edge/functions/market-trending/index_test.ts:262:  const res3 = await handler(req3, factory);
+platform/edge/functions/market-trending/index_test.ts:266:Deno.test("market-trending - handles new apps with no history", async () => {
+platform/edge/functions/market-trending/index_test.ts:275:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:278:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:285:Deno.test("market-trending - handles database errors gracefully", async () => {
+platform/edge/functions/market-trending/index_test.ts:290:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:293:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:297:Deno.test("market-trending - handles historical data error", async () => {
+platform/edge/functions/market-trending/index_test.ts:303:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:306:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:310:Deno.test("market-trending - handles apps metadata error", async () => {
+platform/edge/functions/market-trending/index_test.ts:317:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:320:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:324:Deno.test("market-trending - handles stats error", async () => {
+platform/edge/functions/market-trending/index_test.ts:332:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:335:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:339:Deno.test("market-trending - includes all required response fields", async () => {
+platform/edge/functions/market-trending/index_test.ts:347:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:350:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:365:Deno.test("market-trending - handles zero average gracefully", async () => {
+platform/edge/functions/market-trending/index_test.ts:376:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:379:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:383:Deno.test("market-trending - rounds growth rate to 4 decimals", async () => {
+platform/edge/functions/market-trending/index_test.ts:391:  const res = await handler(req, createMockSupabaseFactory());
+platform/edge/functions/market-trending/index_test.ts:394:  const body = await res.json();
+platform/edge/functions/market-trending/index_test.ts:400:Deno.test("market-trending - handles unexpected errors", async () => {
+platform/edge/functions/market-trending/index_test.ts:410:  const res = await handler(req, errorFactory);
+platform/edge/functions/market-trending/index_test.ts:413:  const body = await res.json();
+platform/edge/functions/api-keys-list/index.ts:7:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/api-keys-list/index.ts:12:  const auth = await requireUser(req);
+platform/edge/functions/api-keys-list/index.ts:14:  const rl = await requireRateLimit(req, "api-keys-list", auth);
+platform/edge/functions/api-keys-list/index.ts:16:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/api-keys-list/index.ts:19:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/api-keys-list/index.ts:23:  const { data, error: listErr } = await supabase
+platform/edge/functions/_shared/tee.ts:53:export async function requestJSON(
+platform/edge/functions/_shared/tee.ts:87:  const resp = await fetch(url, requestInit);
+platform/edge/functions/_shared/tee.ts:89:  const text = await resp.text();
+platform/edge/functions/_shared/tee.ts:102:export async function postJSON(
+platform/edge/functions/_shared/tee.ts:111:export async function getJSON(url: string, headers: Record<string, string> = {}, req?: Request): Promise<unknown | Response> {
+platform/edge/functions/social-comment-vote/index.ts:11:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/social-comment-vote/index.ts:18:  const auth = await requireAuth(req);
+platform/edge/functions/social-comment-vote/index.ts:23:    body = await req.json();
+platform/edge/functions/social-comment-vote/index.ts:41:  const spamCheck = await checkSpamLimit(supabase, userId, "vote", undefined, req);
+platform/edge/functions/social-comment-vote/index.ts:45:  const { data: comment, error: commentErr } = await supabase
+platform/edge/functions/social-comment-vote/index.ts:57:  const { error: voteErr } = await supabase
+platform/edge/functions/social-comment-vote/index.ts:66:  await logSpamAction(supabase, userId, "vote");
+platform/edge/functions/social-comment-vote/index.ts:69:  const { data: votes } = await supabase.from("social_comment_votes").select("vote_type").eq("comment_id", comment_id);
+platform/edge/functions/market-trending/index.ts:75:export async function handler(req: Request, supabaseFactory?: () => any): Promise<Response> {
+platform/edge/functions/market-trending/index.ts:102:    const { data: todayData, error: todayErr } = await supabase
+platform/edge/functions/market-trending/index.ts:130:    const { data: historicalData, error: historicalErr } = await supabase
+platform/edge/functions/market-trending/index.ts:208:    const { data: appsData, error: appsErr } = await appsClient
+platform/edge/functions/market-trending/index.ts:218:    const { data: statsData, error: statsErr } = await supabase
+platform/edge/functions/_shared/manifest.ts:287:export async function computeSHA256Hex(input: string): Promise<string> {
+platform/edge/functions/_shared/manifest.ts:289:  const digest = await crypto.subtle.digest("SHA-256", data);
+platform/edge/functions/_shared/manifest.ts:293:export async function computeManifestHashHex(manifest: unknown): Promise<string> {
+platform/edge/functions/_shared/manifest.ts:336:export async function parseMiniAppManifestCore(manifest: unknown): Promise<MiniAppManifestCore> {
+platform/edge/functions/_shared/manifest.ts:350:  const manifestHashHex = await computeManifestHashHex(canonical);
+platform/edge/functions/pay-gas/index.ts:28:// 3. PaymentHub.OnNEP17Payment callback is triggered
+platform/edge/functions/pay-gas/index.ts:31:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/pay-gas/index.ts:36:  const auth = await requireAuth(req);
+platform/edge/functions/pay-gas/index.ts:38:  const rl = await requireRateLimit(req, "pay-gas", auth);
+platform/edge/functions/pay-gas/index.ts:42:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/pay-gas/index.ts:47:    body = await req.json();
+platform/edge/functions/pay-gas/index.ts:55:  const policy = await fetchMiniAppPolicy(appId, req);
+platform/edge/functions/pay-gas/index.ts:72:  const usageErr = await enforceUsageCaps({
+platform/edge/functions/pay-gas/index.ts:112:          // data: appId for OnNEP17Payment callback
+platform/edge/functions/datafeed-price/index.ts:8:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/datafeed-price/index.ts:19:  const rl = await requireRateLimit(req, "datafeed-price");
+platform/edge/functions/datafeed-price/index.ts:23:  const result = await getJSON(`${neofeedsURL}/price/${encodeURIComponent(symbol)}`, {}, req);
+platform/edge/functions/_shared/secrets.ts:52:async function getAESKey(): Promise<CryptoKey> {
+platform/edge/functions/_shared/secrets.ts:62:  cachedKey = await crypto.subtle.importKey("raw", keyData, "AES-GCM", false, ["encrypt", "decrypt"]);
+platform/edge/functions/_shared/secrets.ts:66:export async function encryptSecretValue(plaintext: string): Promise<string> {
+platform/edge/functions/_shared/secrets.ts:67:  const key = await getAESKey();
+platform/edge/functions/_shared/secrets.ts:72:    await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, data),
+platform/edge/functions/_shared/secrets.ts:81:export async function decryptSecretValue(ciphertextBase64: string): Promise<string> {
+platform/edge/functions/_shared/secrets.ts:82:  const key = await getAESKey();
+platform/edge/functions/_shared/secrets.ts:89:    await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, encrypted),
+platform/edge/functions/social-comment-create/index.ts:18:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/social-comment-create/index.ts:26:  const auth = await requireAuth(req);
+platform/edge/functions/social-comment-create/index.ts:32:    body = await req.json();
+platform/edge/functions/social-comment-create/index.ts:54:  const proof = await verifyProofOfInteraction(supabase, app_id, userId, req);
+platform/edge/functions/social-comment-create/index.ts:61:  const spamCheck = await checkSpamLimit(supabase, userId, "comment", app_id, req);
+platform/edge/functions/social-comment-create/index.ts:65:  const isDev = await isDeveloperOfApp(supabase, userId, app_id);
+platform/edge/functions/social-comment-create/index.ts:69:    const { data: parent, error: parentErr } = await supabase
+platform/edge/functions/social-comment-create/index.ts:84:  const { data: comment, error: insertErr } = await supabase
+platform/edge/functions/social-comment-create/index.ts:101:  await logSpamAction(supabase, userId, "comment", app_id);
+platform/edge/functions/_shared/ratelimit.ts:75:async function bump(identifier: string, identifierType: string, windowSeconds: number): Promise<RateLimitHit> {
+platform/edge/functions/_shared/ratelimit.ts:77:  const { data, error } = await supabase.rpc("rate_limit_bump", {
+platform/edge/functions/_shared/ratelimit.ts:92:export async function requireRateLimit(
+platform/edge/functions/_shared/ratelimit.ts:116:    hit = await bump(identifier, identifierType, windowSeconds);
+platform/edge/functions/secrets-permissions/index.ts:15:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/secrets-permissions/index.ts:20:  const auth = await requireAuth(req);
+platform/edge/functions/secrets-permissions/index.ts:22:  const rl = await requireRateLimit(req, "secrets-permissions", auth);
+platform/edge/functions/secrets-permissions/index.ts:26:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/secrets-permissions/index.ts:29:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/secrets-permissions/index.ts:34:    body = await req.json();
+platform/edge/functions/secrets-permissions/index.ts:49:  const { data: secretRows, error: secretErr } = await supabase
+platform/edge/functions/secrets-permissions/index.ts:59:  const { error: delErr } = await supabase
+platform/edge/functions/secrets-permissions/index.ts:73:    const { error: insErr } = await supabase.from("secret_policies").insert(rows);
+platform/edge/functions/wallet-bind/index.ts:18:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/wallet-bind/index.ts:23:  const auth = await requireUser(req);
+platform/edge/functions/wallet-bind/index.ts:25:  const rl = await requireRateLimit(req, "wallet-bind", auth);
+platform/edge/functions/wallet-bind/index.ts:30:    body = await req.json();
+platform/edge/functions/wallet-bind/index.ts:55:  const userRow = await ensureUserRow(auth, {}, req);
+platform/edge/functions/wallet-bind/index.ts:65:  const { data: existingWallets, error: walletsErr } = await supabase
+platform/edge/functions/wallet-bind/index.ts:75:  const { data: inserted, error: insertErr } = await supabase
+platform/edge/functions/wallet-bind/index.ts:95:    const { error: addrErr } = await supabase.from("users").update({ address }).eq("id", auth.userId);
+platform/edge/functions/wallet-bind/index.ts:103:  await supabase.from("users").update({ nonce: nextNonce }).eq("id", auth.userId);
+platform/edge/functions/_shared/community_test.ts:65:Deno.test("verifyProofOfInteraction returns verified=true when cached proof exists", async () => {
+platform/edge/functions/_shared/community_test.ts:70:  const result = await verifyProofOfInteraction(mockSupabase, "app-1", "user-1");
+platform/edge/functions/_shared/community_test.ts:79:Deno.test("verifyProofOfInteraction returns verified=false when no cached proof", async () => {
+platform/edge/functions/_shared/community_test.ts:84:  const result = await verifyProofOfInteraction(mockSupabase, "app-1", "user-1");
+platform/edge/functions/_shared/community_test.ts:93:Deno.test("verifyProofOfInteraction returns error Response on DB error", async () => {
+platform/edge/functions/_shared/community_test.ts:98:  const result = await verifyProofOfInteraction(mockSupabase, "app-1", "user-1");
+platform/edge/functions/_shared/community_test.ts:109:Deno.test("checkSpamLimit returns true when within limits", async () => {
+platform/edge/functions/_shared/community_test.ts:114:  const result = await checkSpamLimit(mockSupabase, "user-1", "comment");
+platform/edge/functions/_shared/community_test.ts:119:Deno.test("checkSpamLimit returns 429 Response when rate limited", async () => {
+platform/edge/functions/_shared/community_test.ts:124:  const result = await checkSpamLimit(mockSupabase, "user-1", "comment");
+platform/edge/functions/_shared/community_test.ts:131:Deno.test("checkSpamLimit returns 500 Response on RPC error", async () => {
+platform/edge/functions/_shared/community_test.ts:136:  const result = await checkSpamLimit(mockSupabase, "user-1", "comment");
+platform/edge/functions/_shared/community_test.ts:143:Deno.test("checkSpamLimit passes appId to RPC when provided", async () => {
+platform/edge/functions/_shared/community_test.ts:153:  await checkSpamLimit(mockSupabase, "user-1", "comment", "app-1");
+platform/edge/functions/_shared/community_test.ts:163:Deno.test("logSpamAction calls RPC with correct parameters", async () => {
+platform/edge/functions/_shared/community_test.ts:175:  await logSpamAction(mockSupabase, "user-1", "comment", "app-1");
+platform/edge/functions/_shared/community_test.ts:184:Deno.test("logSpamAction passes null appId when not provided", async () => {
+platform/edge/functions/_shared/community_test.ts:194:  await logSpamAction(mockSupabase, "user-1", "vote");
+platform/edge/functions/_shared/community_test.ts:204:Deno.test("getCommentVoteCounts returns empty Map for empty input", async () => {
+platform/edge/functions/_shared/community_test.ts:207:  const result = await getCommentVoteCounts(mockSupabase, []);
+platform/edge/functions/_shared/community_test.ts:212:Deno.test("getCommentVoteCounts counts upvotes and downvotes correctly", async () => {
+platform/edge/functions/_shared/community_test.ts:222:  const result = await getCommentVoteCounts(mockSupabase, ["c1", "c2"]);
+platform/edge/functions/_shared/community_test.ts:231:Deno.test("getCommentVoteCounts returns empty Map on DB error", async () => {
+platform/edge/functions/_shared/community_test.ts:236:  const result = await getCommentVoteCounts(mockSupabase, ["c1"]);
+platform/edge/functions/_shared/community_test.ts:241:Deno.test("getCommentVoteCounts initializes zero counts for comments without votes", async () => {
+platform/edge/functions/_shared/community_test.ts:246:  const result = await getCommentVoteCounts(mockSupabase, ["c1", "c2"]);
+platform/edge/functions/_shared/community_test.ts:257:Deno.test("isDeveloperOfApp returns true when user is developer", async () => {
+platform/edge/functions/_shared/community_test.ts:262:  const result = await isDeveloperOfApp(mockSupabase, "user-1", "app-1");
+platform/edge/functions/_shared/community_test.ts:267:Deno.test("isDeveloperOfApp returns false when user is not developer", async () => {
+platform/edge/functions/_shared/community_test.ts:272:  const result = await isDeveloperOfApp(mockSupabase, "user-1", "app-1");
+platform/edge/functions/_shared/community_test.ts:277:Deno.test("isDeveloperOfApp returns false on DB error", async () => {
+platform/edge/functions/_shared/community_test.ts:282:  const result = await isDeveloperOfApp(mockSupabase, "user-1", "app-1");
+platform/edge/functions/_shared/community_test.ts:287:Deno.test("isDeveloperOfApp returns false when app not found", async () => {
+platform/edge/functions/_shared/community_test.ts:292:  const result = await isDeveloperOfApp(mockSupabase, "user-1", "app-1");
+platform/edge/functions/_shared/apps.ts:89:export async function enforceUsageCaps(input: UsageCapInput): Promise<Response | null> {
+platform/edge/functions/_shared/apps.ts:111:  const { error: bumpErr } = await supabase.rpc(rpcName, {
+platform/edge/functions/_shared/apps.ts:136:export async function upsertMiniAppManifest(input: {
+platform/edge/functions/_shared/apps.ts:145:  const { data: existing, error: loadErr } = await supabase
+platform/edge/functions/_shared/apps.ts:195:  const { error: upsertErr } = await supabase
+platform/edge/functions/_shared/apps.ts:206:export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<MiniAppPolicy | Response | null> {
+platform/edge/functions/_shared/apps.ts:208:  const { data, error: loadErr } = await supabase
+platform/edge/functions/social-rating-submit/index.ts:12:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/social-rating-submit/index.ts:19:  const auth = await requireAuth(req);
+platform/edge/functions/social-rating-submit/index.ts:24:    body = await req.json();
+platform/edge/functions/social-rating-submit/index.ts:45:  const proof = await verifyProofOfInteraction(supabase, app_id, userId, req);
+platform/edge/functions/social-rating-submit/index.ts:52:  const { data, error: upsertErr } = await supabase
+platform/edge/functions/secrets-upsert/index.ts:18:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/secrets-upsert/index.ts:23:  const auth = await requireAuth(req);
+platform/edge/functions/secrets-upsert/index.ts:25:  const rl = await requireRateLimit(req, "secrets-upsert", auth);
+platform/edge/functions/secrets-upsert/index.ts:29:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/secrets-upsert/index.ts:32:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/secrets-upsert/index.ts:37:    body = await req.json();
+platform/edge/functions/secrets-upsert/index.ts:51:  const encryptedBase64 = await encryptSecretValue(value);
+platform/edge/functions/secrets-upsert/index.ts:55:  const { data: existing, error: getErr } = await supabase
+platform/edge/functions/secrets-upsert/index.ts:66:    const { data: inserted, error: insertErr } = await supabase
+platform/edge/functions/secrets-upsert/index.ts:80:    await supabase.from("secret_policies").delete().eq("user_id", auth.userId).eq("secret_name", name);
+platform/edge/functions/secrets-upsert/index.ts:88:  const { data: updated, error: updateErr } = await supabase
+platform/edge/functions/_shared/community.ts:40:export async function verifyProofOfInteraction(
+platform/edge/functions/_shared/community.ts:47:  const { data: cached, error: cacheErr } = await supabase
+platform/edge/functions/_shared/community.ts:84:export async function checkSpamLimit(
+platform/edge/functions/_shared/community.ts:91:  const { data, error: err } = await supabase.rpc("check_spam_limit", {
+platform/edge/functions/_shared/community.ts:113:export async function logSpamAction(
+platform/edge/functions/_shared/community.ts:119:  await supabase.rpc("log_spam_action", {
+platform/edge/functions/_shared/community.ts:133:export async function getCommentVoteCounts(
+platform/edge/functions/_shared/community.ts:141:  const { data, error: err } = await supabase
+platform/edge/functions/_shared/community.ts:176:export async function isDeveloperOfApp(supabase: SupabaseClient, userId: string, appId: string): Promise<boolean> {
+platform/edge/functions/_shared/community.ts:177:  const { data, error: err } = await supabase.from("miniapps").select("developer_user_id").eq("app_id", appId).single();
+platform/edge/functions/miniapp-usage/index.ts:35:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/miniapp-usage/index.ts:40:  const auth = await requireAuth(req);
+platform/edge/functions/miniapp-usage/index.ts:42:  const rl = await requireRateLimit(req, "miniapp-usage", auth);
+platform/edge/functions/miniapp-usage/index.ts:64:    const { data, error: err } = await supabase
+platform/edge/functions/miniapp-usage/index.ts:78:  const { data, error: err } = await supabase
+platform/edge/functions/social-proof-verify/index.ts:9:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/social-proof-verify/index.ts:16:  const auth = await requireAuth(req);
+platform/edge/functions/social-proof-verify/index.ts:21:    body = await req.json();
+platform/edge/functions/social-proof-verify/index.ts:35:  const { data: cached } = await supabase
+platform/edge/functions/social-proof-verify/index.ts:58:  const { data: userData } = await supabase.from("users").select("neo_address").eq("id", userId).single();
+platform/edge/functions/social-proof-verify/index.ts:75:  const { data: txEvents } = await supabase
+platform/edge/functions/social-proof-verify/index.ts:105:  await supabase.from("social_proof_of_interaction").upsert(proofRecords, { onConflict: "app_id,user_id,tx_hash" });
+platform/edge/functions/_shared/events.ts:63:export async function queryEvents(params: EventsQueryParams, req?: Request): Promise<EventsListResponse | Response> {
+platform/edge/functions/_shared/events.ts:107:  const { data, error: queryErr } = await query;
+platform/edge/functions/_shared/events.ts:130:export async function queryTransactions(
+platform/edge/functions/_shared/events.ts:159:  const { data, error: queryErr } = await query;
+platform/edge/functions/rng-request/index.ts:15:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/rng-request/index.ts:20:  const auth = await requireAuth(req);
+platform/edge/functions/rng-request/index.ts:22:  const rl = await requireRateLimit(req, "rng-request", auth);
+platform/edge/functions/rng-request/index.ts:26:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/rng-request/index.ts:31:    body = await req.json();
+platform/edge/functions/rng-request/index.ts:38:  const policy = await fetchMiniAppPolicy(appId, req);
+platform/edge/functions/rng-request/index.ts:50:  const vrfResult = await postJSON(
+platform/edge/functions/rng-request/index.ts:82:    const txRes = await postJSON(
+platform/edge/functions/automation-trigger-update/index.ts:20:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/automation-trigger-update/index.ts:25:  const auth = await requireAuth(req);
+platform/edge/functions/automation-trigger-update/index.ts:27:  const rl = await requireRateLimit(req, "automation-trigger-update", auth);
+platform/edge/functions/automation-trigger-update/index.ts:31:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/automation-trigger-update/index.ts:36:    body = await req.json();
+platform/edge/functions/automation-trigger-update/index.ts:52:  const result = await requestJSON(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}`, {
+platform/edge/functions/secrets-delete/index.ts:12:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/secrets-delete/index.ts:17:  const auth = await requireAuth(req);
+platform/edge/functions/secrets-delete/index.ts:19:  const rl = await requireRateLimit(req, "secrets-delete", auth);
+platform/edge/functions/secrets-delete/index.ts:23:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/secrets-delete/index.ts:26:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/secrets-delete/index.ts:31:    body = await req.json();
+platform/edge/functions/secrets-delete/index.ts:42:  await supabase.from("secret_policies").delete().eq("user_id", auth.userId).eq("secret_name", name);
+platform/edge/functions/secrets-delete/index.ts:44:  const { error: delErr, count } = await supabase
+platform/edge/functions/app-register/index.ts:20:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/app-register/index.ts:25:  const auth = await requireAuth(req);
+platform/edge/functions/app-register/index.ts:27:  const rl = await requireRateLimit(req, "app-register", auth);
+platform/edge/functions/app-register/index.ts:31:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/app-register/index.ts:36:    body = await req.json();
+platform/edge/functions/app-register/index.ts:47:    core = await parseMiniAppManifestCore(manifest);
+platform/edge/functions/app-register/index.ts:53:  const upsertErr = await upsertMiniAppManifest({
+platform/edge/functions/automation-trigger-disable/index.ts:14:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/automation-trigger-disable/index.ts:19:  const auth = await requireAuth(req);
+platform/edge/functions/automation-trigger-disable/index.ts:21:  const rl = await requireRateLimit(req, "automation-trigger-disable", auth);
+platform/edge/functions/automation-trigger-disable/index.ts:25:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/automation-trigger-disable/index.ts:30:    body = await req.json();
+platform/edge/functions/automation-trigger-disable/index.ts:39:  const result = await postJSON(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}/disable`, {}, {
+platform/sdk/examples/basic-usage.ts:42:  getAuthToken: async () => AUTH_TOKEN,
+platform/sdk/examples/basic-usage.ts:49:async function initializeSDK(): Promise<MiniAppSDK> {
+platform/sdk/examples/basic-usage.ts:59:async function initializeHostSDK(): Promise<HostSDK> {
+platform/sdk/examples/basic-usage.ts:62:    getAPIKey: async () => HOST_API_KEY,
+platform/sdk/examples/basic-usage.ts:72:async function getWalletAddress(sdk: MiniAppSDK): Promise<string> {
+platform/sdk/examples/basic-usage.ts:74:    const address = await sdk.wallet.getAddress();
+platform/sdk/examples/basic-usage.ts:87:async function payWithGAS(sdk: MiniAppSDK, appId: string, amount: string, memo?: string): Promise<PayGASResponse> {
+platform/sdk/examples/basic-usage.ts:92:    const response = await sdk.payments.payGAS(appId, amount, memo);
+platform/sdk/examples/basic-usage.ts:115:async function voteWithNEO(
+platform/sdk/examples/basic-usage.ts:125:    const response = await sdk.governance.vote(appId, proposalId, neoAmount, support);
+platform/sdk/examples/basic-usage.ts:144:async function requestRandomNumber(sdk: MiniAppSDK, appId: string): Promise<RNGResponse> {
+platform/sdk/examples/basic-usage.ts:148:    const response = await sdk.rng.requestRandom(appId);
+platform/sdk/examples/basic-usage.ts:169:async function getPriceData(sdk: MiniAppSDK, symbol: string): Promise<PriceResponse> {
+platform/sdk/examples/basic-usage.ts:173:    const response = await sdk.datafeed.getPrice(symbol);
+platform/sdk/examples/basic-usage.ts:195:async function getUsageStats(sdk: MiniAppSDK, appId: string): Promise<void> {
+platform/sdk/examples/basic-usage.ts:197:    const usage = await sdk.stats.getMyUsage(appId);
+platform/sdk/examples/basic-usage.ts:209:async function gasBankOperations(hostSdk: HostSDK): Promise<void> {
+platform/sdk/examples/basic-usage.ts:213:    const accountResponse: GasBankAccountResponse = await hostSdk.gasbank.getAccount();
+platform/sdk/examples/basic-usage.ts:224:    const depositsResponse = await hostSdk.gasbank.listDeposits();
+platform/sdk/examples/basic-usage.ts:229:    const transactionsResponse = await hostSdk.gasbank.listTransactions();
+platform/sdk/examples/basic-usage.ts:241:async function secretsManagement(hostSdk: HostSDK): Promise<void> {
+platform/sdk/examples/basic-usage.ts:245:    const listResponse = await hostSdk.secrets.list();
+platform/sdk/examples/basic-usage.ts:250:    const upsertResponse = await hostSdk.secrets.upsert(SECRET_NAME, SECRET_VALUE);
+platform/sdk/examples/basic-usage.ts:259:    const getResponse = await hostSdk.secrets.get(SECRET_NAME);
+platform/sdk/examples/basic-usage.ts:267:    await hostSdk.secrets.setPermissions(SECRET_NAME, ["neofeeds", "neooracle"]);
+platform/sdk/examples/basic-usage.ts:279:async function automationTriggers(hostSdk: HostSDK): Promise<void> {
+platform/sdk/examples/basic-usage.ts:283:    const trigger = await hostSdk.automation.createTrigger({
+platform/sdk/examples/basic-usage.ts:295:    const triggers = await hostSdk.automation.listTriggers();
+platform/sdk/examples/basic-usage.ts:299:    await hostSdk.automation.enableTrigger(trigger.id);
+platform/sdk/examples/basic-usage.ts:303:    const executions = await hostSdk.automation.listExecutions(trigger.id, 10);
+platform/sdk/examples/basic-usage.ts:315:async function completeMiniAppFlow(): Promise<void> {
+platform/sdk/examples/basic-usage.ts:319:  const sdk = await initializeSDK();
+platform/sdk/examples/basic-usage.ts:322:  const address = await getWalletAddress(sdk);
+platform/sdk/examples/basic-usage.ts:326:  const price = await getPriceData(sdk, "NEO-USD");
+platform/sdk/examples/basic-usage.ts:330:  const rng = await requestRandomNumber(sdk, MINIAPP_APP_ID);
+platform/sdk/examples/basic-usage.ts:334:  const payment = await payWithGAS(sdk, MINIAPP_APP_ID, "1.0", "Game purchase");
+platform/sdk/examples/basic-usage.ts:345:// completeMiniAppFlow().catch(console.error);
+platform/edge/functions/social-comment-delete/index.ts:5:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/social-comment-delete/index.ts:12:  const auth = await requireAuth(req);
+platform/edge/functions/social-comment-delete/index.ts:26:  const { data: comment, error: fetchErr } = await supabase
+platform/edge/functions/social-comment-delete/index.ts:42:  const { error: deleteErr } = await supabase
+platform/edge/functions/automation-trigger-delete/index.ts:15:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/automation-trigger-delete/index.ts:20:  const auth = await requireAuth(req);
+platform/edge/functions/automation-trigger-delete/index.ts:22:  const rl = await requireRateLimit(req, "automation-trigger-delete", auth);
+platform/edge/functions/automation-trigger-delete/index.ts:26:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/automation-trigger-delete/index.ts:31:    body = await req.json();
+platform/edge/functions/automation-trigger-delete/index.ts:40:  const result = await requestJSON(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}`, {
+platform/edge/functions/api-keys-revoke/index.ts:9:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/api-keys-revoke/index.ts:14:  const auth = await requireUser(req);
+platform/edge/functions/api-keys-revoke/index.ts:16:  const rl = await requireRateLimit(req, "api-keys-revoke", auth);
+platform/edge/functions/api-keys-revoke/index.ts:18:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/api-keys-revoke/index.ts:23:    body = await req.json();
+platform/edge/functions/api-keys-revoke/index.ts:31:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/api-keys-revoke/index.ts:35:  const { error: revokeErr } = await supabase
+platform/edge/functions/compute-execute/index.ts:20:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/compute-execute/index.ts:25:  const auth = await requireAuth(req);
+platform/edge/functions/compute-execute/index.ts:27:  const rl = await requireRateLimit(req, "compute-execute", auth);
+platform/edge/functions/compute-execute/index.ts:31:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/compute-execute/index.ts:36:    body = await req.json();
+platform/edge/functions/compute-execute/index.ts:45:  const result = await postJSON(
+platform/edge/functions/gasbank-deposit/index.ts:14:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/gasbank-deposit/index.ts:19:  const auth = await requireAuth(req);
+platform/edge/functions/gasbank-deposit/index.ts:21:  const rl = await requireRateLimit(req, "gasbank-deposit", auth);
+platform/edge/functions/gasbank-deposit/index.ts:25:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/gasbank-deposit/index.ts:30:    body = await req.json();
+platform/edge/functions/gasbank-deposit/index.ts:45:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/gasbank-deposit/index.ts:50:  const { data: account, error: accErr } = await supabase
+platform/edge/functions/gasbank-deposit/index.ts:60:  const { data: inserted, error: depErr } = await supabase
+platform/edge/functions/compute-jobs/index.ts:10:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/compute-jobs/index.ts:15:  const auth = await requireAuth(req);
+platform/edge/functions/compute-jobs/index.ts:17:  const rl = await requireRateLimit(req, "compute-jobs", auth);
+platform/edge/functions/compute-jobs/index.ts:21:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/compute-jobs/index.ts:25:  const result = await getJSON(`${neocomputeURL}/jobs`, { "X-User-ID": auth.userId }, req);
+platform/edge/functions/wallet-nonce/index.ts:7:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/wallet-nonce/index.ts:12:  const auth = await requireUser(req);
+platform/edge/functions/wallet-nonce/index.ts:14:  const rl = await requireRateLimit(req, "wallet-nonce", auth);
+platform/edge/functions/wallet-nonce/index.ts:21:  const ensured = await ensureUserRow(auth, { nonce }, req);
+platform/edge/functions/miniapp-notifications/index.ts:6:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/miniapp-notifications/index.ts:12:  const rateLimited = await requireRateLimit(req, "miniapp-notifications");
+platform/edge/functions/miniapp-notifications/index.ts:40:  const { data, error: err } = await query;
+platform/edge/functions/automation-trigger-enable/index.ts:14:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/automation-trigger-enable/index.ts:19:  const auth = await requireAuth(req);
+platform/edge/functions/automation-trigger-enable/index.ts:21:  const rl = await requireRateLimit(req, "automation-trigger-enable", auth);
+platform/edge/functions/automation-trigger-enable/index.ts:25:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/automation-trigger-enable/index.ts:30:    body = await req.json();
+platform/edge/functions/automation-trigger-enable/index.ts:39:  const result = await postJSON(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}/enable`, {}, {
+platform/edge/functions/events-list/index.ts:10:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/events-list/index.ts:15:  const auth = await requireAuth(req);
+platform/edge/functions/events-list/index.ts:17:  const rl = await requireRateLimit(req, "events-list", auth);
+platform/edge/functions/events-list/index.ts:29:  const result = await queryEvents(
+platform/edge/functions/api-keys-create/index.ts:15:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/api-keys-create/index.ts:20:  const auth = await requireUser(req);
+platform/edge/functions/api-keys-create/index.ts:22:  const rl = await requireRateLimit(req, "api-keys-create", auth);
+platform/edge/functions/api-keys-create/index.ts:24:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/api-keys-create/index.ts:29:    body = await req.json();
+platform/edge/functions/api-keys-create/index.ts:48:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/api-keys-create/index.ts:52:  const keyHash = await sha256Hex(rawKey);
+platform/edge/functions/api-keys-create/index.ts:55:  const { data, error: insertErr } = await supabase
+platform/edge/functions/automation-trigger-resume/index.ts:14:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/automation-trigger-resume/index.ts:19:  const auth = await requireAuth(req);
+platform/edge/functions/automation-trigger-resume/index.ts:21:  const rl = await requireRateLimit(req, "automation-trigger-resume", auth);
+platform/edge/functions/automation-trigger-resume/index.ts:25:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/automation-trigger-resume/index.ts:30:    body = await req.json();
+platform/edge/functions/automation-trigger-resume/index.ts:39:  const result = await postJSON(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}/resume`, {}, {
+platform/edge/functions/oracle-query/index.ts:21:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/oracle-query/index.ts:26:  const auth = await requireAuth(req);
+platform/edge/functions/oracle-query/index.ts:28:  const rl = await requireRateLimit(req, "oracle-query", auth);
+platform/edge/functions/oracle-query/index.ts:35:    body = await req.json();
+platform/edge/functions/oracle-query/index.ts:44:  const result = await postJSON(
+platform/edge/functions/gasbank-deposits/index.ts:8:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/gasbank-deposits/index.ts:13:  const auth = await requireAuth(req);
+platform/edge/functions/gasbank-deposits/index.ts:15:  const rl = await requireRateLimit(req, "gasbank-deposits", auth);
+platform/edge/functions/gasbank-deposits/index.ts:19:  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+platform/edge/functions/gasbank-deposits/index.ts:22:  const ensured = await ensureUserRow(auth, {}, req);
+platform/edge/functions/gasbank-deposits/index.ts:26:  const { data, error: listErr } = await supabase
+platform/edge/functions/transactions-list/index.ts:10:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/transactions-list/index.ts:15:  const auth = await requireAuth(req);
+platform/edge/functions/transactions-list/index.ts:17:  const rl = await requireRateLimit(req, "transactions-list", auth);
+platform/edge/functions/transactions-list/index.ts:27:  const result = await queryTransactions(
+platform/admin-console/src/lib/api-client.ts:14:async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
+platform/admin-console/src/lib/api-client.ts:16:    const response = await fetch(url, {
+platform/admin-console/src/lib/api-client.ts:31:        const errorData = await response.json();
+platform/admin-console/src/lib/api-client.ts:41:    return await response.json();
+platform/admin-console/src/lib/api-client.ts:57:  async query<T>(table: string, params?: Record<string, string>): Promise<T> {
+platform/admin-console/src/lib/api-client.ts:66:  async queryWithServiceRole<T>(table: string, params?: Record<string, string>): Promise<T> {
+platform/admin-console/src/lib/api-client.ts:81:  async get<T>(path: string): Promise<T> {
+platform/admin-console/src/lib/api-client.ts:85:  async post<T>(path: string, body: unknown): Promise<T> {
+platform/admin-console/src/lib/api-client.ts:96:export async function checkServiceHealth(serviceName: string, serviceUrl: string) {
+platform/admin-console/src/lib/api-client.ts:98:    const response = await fetch(`${serviceUrl}/health`, {
+platform/admin-console/src/lib/api-client.ts:110:    const data = await response.json();
+platform/admin-console/src/lib/hooks/useServices.ts:23:async function fetchServicesHealth(): Promise<ServiceHealth[]> {
+platform/admin-console/src/lib/hooks/useServices.ts:25:  const response = await fetch("/api/services/health");
+platform/admin-console/src/lib/hooks/useServices.ts:50:    queryFn: async () => {
+platform/admin-console/src/lib/hooks/useServices.ts:51:      const response = await fetch(`/api/services/health?service=${serviceName}`);
+platform/admin-console/src/lib/hooks/useAnalytics.ts:12:async function fetchAnalytics(): Promise<AnalyticsData> {
+platform/admin-console/src/lib/hooks/useAnalytics.ts:13:  const response = await fetch("/api/analytics");
+platform/admin-console/src/lib/hooks/useAnalytics.ts:23:async function fetchMiniAppUsage(days = 30): Promise<MiniAppUsage[]> {
+platform/admin-console/src/lib/hooks/useAnalytics.ts:62:    queryFn: async () => {
+platform/admin-console/src/lib/hooks/useAnalytics.ts:63:      const response = await fetch("/api/analytics/by-app");
+platform/admin-console/src/lib/__tests__/api-client.test.ts:14:    it("should return healthy status for successful response", async () => {
+platform/admin-console/src/lib/__tests__/api-client.test.ts:17:        json: async () => ({ status: "healthy", version: "1.0.0" }),
+platform/admin-console/src/lib/__tests__/api-client.test.ts:20:      const result = await checkServiceHealth("test-service", "http://test.local");
+platform/admin-console/src/lib/__tests__/api-client.test.ts:26:    it("should return unhealthy status for failed response", async () => {
+platform/admin-console/src/lib/__tests__/api-client.test.ts:32:      const result = await checkServiceHealth("test-service", "http://test.local");
+platform/admin-console/src/lib/__tests__/api-client.test.ts:38:    it("should return unhealthy status for network error", async () => {
+platform/admin-console/src/lib/__tests__/api-client.test.ts:41:      const result = await checkServiceHealth("test-service", "http://test.local");
+platform/admin-console/src/lib/hooks/useUsers.ts:12:async function fetchUsers(): Promise<User[]> {
+platform/admin-console/src/lib/hooks/useUsers.ts:22:async function fetchUser(userId: string): Promise<User> {
+platform/admin-console/src/lib/hooks/useUsers.ts:23:  const result = await supabaseClient.query<User[]>("users", {
+platform/admin-console/src/lib/hooks/useUsers.ts:62:    queryFn: async () => {
+platform/admin-console/src/lib/hooks/useMiniApps.ts:12:async function fetchMiniApps(): Promise<MiniApp[]> {
+platform/admin-console/src/lib/hooks/useMiniApps.ts:22:async function fetchMiniApp(appId: string): Promise<MiniApp> {
+platform/admin-console/src/lib/hooks/useMiniApps.ts:23:  const result = await supabaseClient.query<MiniApp[]>("miniapps", {
+platform/admin-console/src/lib/hooks/useMiniApps.ts:63:    mutationFn: async ({ appId, status }: { appId: string; status: "active" | "disabled" }) => {
+platform/admin-console/src/lib/hooks/useMiniApps.ts:64:      const response = await fetch("/api/miniapps/update-status", {
+platform/admin-console/src/app/api/analytics/route.ts:10:export async function GET() {
+platform/admin-console/src/app/api/analytics/route.ts:13:    const usersResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?select=count`, {
+platform/admin-console/src/app/api/analytics/route.ts:24:    const miniappsResponse = await fetch(`${SUPABASE_URL}/rest/v1/miniapps?select=count`, {
+platform/admin-console/src/app/api/analytics/route.ts:36:    const usageResponse = await fetch(`${SUPABASE_URL}/rest/v1/miniapp_usage?usage_date=eq.${today}&select=gas_used`, {
+platform/admin-console/src/app/api/analytics/route.ts:43:    const usageData: Array<{ gas_used?: number }> = await usageResponse.json();
+platform/admin-console/src/app/api/analytics/route.ts:47:    const usageByAppResponse = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_usage_by_app`, {
+platform/admin-console/src/app/api/analytics/route.ts:59:      usageByApp = await usageByAppResponse.json();
+platform/admin-console/src/lib/__tests__/useMiniApps.test.ts:20:    it("should fetch all miniapps successfully", async () => {
+platform/admin-console/src/lib/__tests__/useMiniApps.test.ts:32:      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+platform/admin-console/src/lib/__tests__/useMiniApps.test.ts:37:    it("should handle fetch error", async () => {
+platform/admin-console/src/lib/__tests__/useMiniApps.test.ts:44:      await waitFor(() => expect(result.current.isError).toBe(true));
+platform/admin-console/src/lib/__tests__/useMiniApps.test.ts:49:    it("should fetch single miniapp successfully", async () => {
+platform/admin-console/src/lib/__tests__/useMiniApps.test.ts:58:      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+platform/admin-console/src/lib/__tests__/useMiniApps.test.ts:63:    it("should handle miniapp not found", async () => {
+platform/admin-console/src/lib/__tests__/useMiniApps.test.ts:70:      await waitFor(() => expect(result.current.isError).toBe(true));
+platform/admin-console/src/lib/__tests__/useServices.test.ts:20:    it("should fetch services health successfully", async () => {
+platform/admin-console/src/lib/__tests__/useServices.test.ts:32:      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+platform/admin-console/src/lib/__tests__/useServices.test.ts:38:    it("should handle fetch error", async () => {
+platform/admin-console/src/lib/__tests__/useServices.test.ts:45:      await waitFor(() => expect(result.current.isError).toBe(true));
+platform/admin-console/src/lib/__tests__/useServices.test.ts:63:    it("should fetch single service health", async () => {
+platform/admin-console/src/lib/__tests__/useServices.test.ts:72:      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+platform/admin-console/src/lib/__tests__/useServices.test.ts:78:    it("should handle service not found", async () => {
+platform/admin-console/src/lib/__tests__/useServices.test.ts:85:      await waitFor(() => expect(result.current.isError).toBe(true));
+platform/admin-console/src/lib/__tests__/useAnalytics.test.ts:20:    it("should fetch analytics data successfully", async () => {
+platform/admin-console/src/lib/__tests__/useAnalytics.test.ts:34:      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+platform/admin-console/src/lib/__tests__/useAnalytics.test.ts:40:    it("should handle analytics fetch error", async () => {
+platform/admin-console/src/lib/__tests__/useAnalytics.test.ts:47:      await waitFor(() => expect(result.current.isError).toBe(true));
+platform/admin-console/src/lib/__tests__/useAnalytics.test.ts:54:    it("should fetch usage by app successfully", async () => {
+platform/admin-console/src/lib/__tests__/useAnalytics.test.ts:66:      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+platform/admin-console/src/lib/__tests__/useAnalytics.test.ts:72:    it("should handle usage by app fetch error", async () => {
+platform/admin-console/src/lib/__tests__/useAnalytics.test.ts:79:      await waitFor(() => expect(result.current.isError).toBe(true));
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:19:    it("should query table without params", async () => {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:23:      const result = await supabaseClient.query("users");
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:29:    it("should query table with params", async () => {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:33:      const result = await supabaseClient.query("users", {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:42:    it("should handle query error", async () => {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:45:      await expect(supabaseClient.query("users")).rejects.toMatchObject({
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:50:    it("should query with service role", async () => {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:54:      const result = await supabaseClient.queryWithServiceRole("users");
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:69:    it("should make GET request", async () => {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:73:      const result = await edgeClient.get("/health");
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:79:    it("should make POST request", async () => {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:83:      const result = await edgeClient.post("/create", { name: "test" });
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:95:    it("should handle network error", async () => {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:99:      await expect(edgeClient.get("/health")).rejects.toThrow("Network error");
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:102:    it("should handle HTTP error with JSON body", async () => {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:112:      await expect(edgeClient.get("/invalid")).rejects.toMatchObject({
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:117:    it("should handle HTTP error without JSON body", async () => {
+platform/admin-console/src/lib/__tests__/api-client-extended.test.ts:127:      await expect(edgeClient.get("/error")).rejects.toMatchObject({
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:20:    it("should fetch all users successfully", async () => {
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:32:      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:37:    it("should handle fetch error", async () => {
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:44:      await waitFor(() => expect(result.current.isError).toBe(true));
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:49:    it("should fetch single user successfully", async () => {
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:58:      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:63:    it("should handle user not found", async () => {
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:70:      await waitFor(() => expect(result.current.isError).toBe(true));
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:86:    it("should search users successfully", async () => {
+platform/admin-console/src/lib/__tests__/useUsers.test.ts:95:      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+platform/admin-console/src/app/api/services/health/route.ts:20:async function checkServiceHealth(name: string, url: string): Promise<ServiceHealth> {
+platform/admin-console/src/app/api/services/health/route.ts:27:    const response = await fetch(`${url}/health`, {
+platform/admin-console/src/app/api/services/health/route.ts:44:    const data = await response.json();
+platform/admin-console/src/app/api/services/health/route.ts:65:export async function GET() {
+platform/admin-console/src/app/api/services/health/route.ts:67:    const healthChecks = await Promise.all(SERVICES.map((service) => checkServiceHealth(service.name, service.url)));
+platform/edge/functions/miniapp-stats/index.ts:113:async function loadMiniAppMeta(appIds: string[]): Promise<Record<string, MiniAppMetaRow>> {
+platform/edge/functions/miniapp-stats/index.ts:123:  const { data, error: err } = await supabase
+platform/edge/functions/miniapp-stats/index.ts:142:export async function handler(req: Request): Promise<Response> {
+platform/edge/functions/miniapp-stats/index.ts:148:  const rateLimited = await requireRateLimit(req, "miniapp-stats");
+platform/edge/functions/miniapp-stats/index.ts:158:    const { data, error: err } = await supabase.from("miniapp_stats").select("*").eq("app_id", appId).single();
+platform/edge/functions/miniapp-stats/index.ts:161:    const metaMap = await loadMiniAppMeta([appId]);
+platform/edge/functions/miniapp-stats/index.ts:167:  const { data, error: err } = await supabase
+platform/edge/functions/miniapp-stats/index.ts:176:  const metaMap = await loadMiniAppMeta(appIds);

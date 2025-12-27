@@ -29,10 +29,14 @@ See `platform/edge/functions/`:
 - `gasbank-deposit`: create a deposit request record.
 - `gasbank-deposits`: list deposit requests.
 - `gasbank-transactions`: list gasbank transactions.
-- `pay-gas`: returns a PaymentHub `pay` invocation (GAS-only).
+- `miniapp-stats`: public MiniApp stats (aggregate).
+- `miniapp-notifications`: public notifications feed.
+- `miniapp-usage`: authenticated per-user daily usage.
+- `market-trending`: trending MiniApps based on rolling stats.
+- `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (GAS-only).
 - `vote-neo`: returns a Governance `vote` invocation (NEO-only).
-- `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `register` invocation (developer wallet-signed).
-- `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateManifest` invocation (developer wallet-signed).
+- `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `registerApp` invocation (developer wallet-signed).
+- `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateApp` invocation (developer wallet-signed).
 - `rng-request`: runs RNG via `neovrf` (signature + attestation hash).
 - `compute-execute`: runs a script via `neocompute` (`/execute`) (host-gated).
 - `compute-jobs`: lists compute jobs via `neocompute` (`/jobs`) (host-gated).
@@ -59,11 +63,14 @@ At minimum, these functions expect:
 - `SUPABASE_SERVICE_ROLE_KEY` (preferred) or `SUPABASE_SERVICE_KEY` (fallback; used by Go services)
 - `SECRETS_MASTER_KEY` (required for `secrets-*` endpoints; AES-GCM envelope key)
 
-`app-register` and `app-update-manifest` also persist canonical manifests into the
-Supabase `miniapps` table. Runtime endpoints (`pay-gas`, `vote-neo`, `rng-request`)
-use that table to enforce manifest permissions and per-tx limits.
+`app-register` and `app-update-manifest` persist canonical manifests into the
+Supabase `miniapps` table for runtime permission/limit enforcement. App metadata
+(name/icon/category/contract_hash/entry_url) is anchored on-chain in AppRegistry
+and mirrored into Supabase as a cache.
 Daily cap enforcement uses the `miniapp_usage` table and the
 `miniapp_usage_bump(...)` RPC (see `migrations/026_miniapp_usage.sql`).
+Set `MINIAPP_USAGE_MODE=check` to use `miniapp_usage_check(...)` for cap-only
+validation (no usage recording; see `migrations/032_miniapp_usage_check.sql`).
 
 TEE routing env vars (required by functions that proxy to internal services):
 
@@ -88,6 +95,9 @@ API key management endpoints (`api-keys-*`) require `Authorization: Bearer <jwt>
 
 - `RNG_ANCHOR`: set to `1` to record RNG results on-chain via `txproxy` (`RandomnessLog.record`).
 - `EDGE_CORS_ORIGINS`: optional origin allowlist for browser clients (comma/space-separated). When unset, responses default to `Access-Control-Allow-Origin: *`.
+- `MINIAPP_USAGE_MODE`: `record` (default) or `check` for cap-only enforcement.
+- `MINIAPP_USAGE_MODE_PAYMENTS`, `MINIAPP_USAGE_MODE_GOVERNANCE`: optional per-intent overrides.
+- `CONTRACT_GAS_HASH`: optional override for the native GAS contract hash.
 
 ## Rate Limiting
 

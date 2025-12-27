@@ -37,7 +37,9 @@ export async function handler(req: Request): Promise<Response> {
   const signature = String(body.signature ?? "").trim();
   const message = String(body.message ?? "");
   const nonce = String(body.nonce ?? "").trim();
-  const label = String(body.label ?? "").trim().slice(0, 64);
+  const label = String(body.label ?? "")
+    .trim()
+    .slice(0, 64);
 
   if (!address) return error(400, "address required", "ADDRESS_REQUIRED", req);
   if (!publicKey) return error(400, "public_key required", "PUBLIC_KEY_REQUIRED", req);
@@ -55,7 +57,7 @@ export async function handler(req: Request): Promise<Response> {
   const userRow = await ensureUserRow(auth, {}, req);
   if (userRow instanceof Response) return userRow;
 
-  const storedNonce = String((userRow as any)?.nonce ?? "").trim();
+  const storedNonce = String(userRow?.nonce ?? "").trim();
   if (!storedNonce) return error(400, "wallet nonce not issued (call wallet-nonce)", "NONCE_NOT_ISSUED", req);
   if (storedNonce !== nonce) return error(401, "nonce mismatch", "NONCE_INVALID", req);
   if (!message.includes(nonce)) return error(401, "nonce not present in signed message", "NONCE_INVALID", req);

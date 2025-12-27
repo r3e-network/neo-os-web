@@ -18,11 +18,18 @@ Supabase deploys Edge functions under:
 
 The architectural blueprint sometimes describes these as `/api/rpc/<name>`. In
 production, Supabase uses `/functions/v1/<name>`. For local development, the
-repo’s Edge dev server supports both prefixes.
+repo’s Edge dev server supports both prefixes. The host app also provides
+`/api/rpc/relay` as a blueprint-friendly alias when a single relay endpoint is
+preferred (pass `fn` via query or JSON body).
 
 The JS SDK (`platform/sdk`) is expected to set `edgeBaseUrl` to:
 
 - `https://<project>.supabase.co/functions/v1`
+
+Host apps can optionally proxy these via Next.js routes:
+
+- `/api/market/trending` → `market-trending`
+- `/api/app/:id/news` → `miniapp-notifications`
 
 Most endpoints require authentication via:
 
@@ -67,9 +74,11 @@ enforces a conservative result size cap (configurable via
 
 - `POST /functions/v1/pay-gas`
   - body: `{ app_id: "...", amount_gas: "1.5", memo?: "..." }`
-  - returns: a PaymentHub `pay` invocation (GAS-only) for the wallet/SDK to sign and submit
+  - returns: a GAS `transfer` invocation to `PaymentHub` (GAS-only) for the wallet/SDK to sign and submit
   - enforces: manifest `permissions.payments` and `limits.max_gas_per_tx` (when present)
   - enforces: `limits.daily_gas_cap_per_user` via `miniapp_usage_bump(...)`
+    (or `miniapp_usage_check(...)` when `MINIAPP_USAGE_MODE=check` or
+    `MINIAPP_USAGE_MODE_PAYMENTS=check`)
 
 ### Governance (NEO only)
 
@@ -78,6 +87,8 @@ enforces a conservative result size cap (configurable via
   - returns: a Governance `vote` invocation (NEO-only) for the wallet/SDK to sign and submit
   - enforces: manifest `permissions.governance` and `limits.governance_cap` (when present)
   - tracks: `limits.governance_cap` via `miniapp_usage_bump(...)` (per-day enforcement)
+    or `miniapp_usage_check(...)` when `MINIAPP_USAGE_MODE=check` or
+    `MINIAPP_USAGE_MODE_GOVERNANCE=check`
 
 ### RNG / VRF
 
@@ -94,17 +105,69 @@ enforces a conservative result size cap (configurable via
   - body: `{ manifest: { ... } }`
   - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
   - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["NEO"]`
+  - enforces: `contract_hash` when news/stats are enabled
   - persists: canonical manifest in Supabase `miniapps` table for runtime enforcement
-  - returns: an AppRegistry `register` invocation for the developer wallet to sign and submit
+  - returns: an AppRegistry `registerApp` invocation for the developer wallet to sign and submit
 - `POST /functions/v1/app-update-manifest`
   - body: `{ manifest: { ... } }`
   - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
   - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["NEO"]`
+  - enforces: `contract_hash` when news/stats are enabled
   - persists: updated canonical manifest in Supabase `miniapps` table
-  - returns: an AppRegistry `updateManifest` invocation for the developer wallet to sign and submit
+  - returns: an AppRegistry `updateApp` invocation for the developer wallet to sign and submit
 
-After `register` / `updateManifest`, an **admin** must approve or disable the
-MiniApp on-chain via `AppRegistry.setStatus`.
+After `registerApp` / `updateApp`, an **admin** must approve or disable the
+MiniApp on-chain via `AppRegistry.setStatus`. AppRegistry events mirror back to
+Supabase so `miniapps.status` reflects `pending`/`active`/`disabled` and
+on-chain metadata (name/icon/category/contract_hash) stays in sync.
+
+### MiniApp Stats & Notifications (Public Read)
+
+- `GET /functions/v1/miniapp-stats?app_id=...`
+  - returns aggregate stats for a single MiniApp
+  - when `app_id` is omitted, returns top apps by `total_transactions` (limit 50)
+  - includes AppRegistry metadata when available (`name`, `description`, `icon`, `banner`, `category`,
+    `contract_hash`, `entry_url`) plus manifest fields (`permissions`, `limits`, `news_integration`, `stats_display`)
+- `GET /functions/v1/miniapp-notifications?app_id=...&limit=20`
+  - returns the most recent notifications (default `limit=20`, max `100`)
+  - optional `app_id` to filter by MiniApp
+  - requires the emitting contract to match `contract_hash` when strict ingestion is enabled
+
+### MiniApp Usage (Authenticated)
+
+- `GET /functions/v1/miniapp-usage?app_id=...&date=YYYY-MM-DD`
+  - returns the caller's daily usage for a single MiniApp
+  - `gas_used` / `governance_used` are returned in base units (1e-8 for GAS)
+  - when `app_id` is omitted, returns all MiniApp usage rows for the date
+  - `date` defaults to today (UTC) when omitted
+
+### Contract Events (Authenticated)
+
+- `GET /functions/v1/events-list?app_id=...&event_name=...&contract_hash=...&limit=...&after_id=...`
+  - returns indexed contract events from `contract_events`
+  - optional filters:
+    - `app_id` (MiniApp identifier)
+    - `event_name` (e.g., `Platform_Notification`)
+    - `contract_hash` (Neo N3 script hash)
+  - pagination via `after_id` (numeric, descending order)
+
+### Chain Transactions (Authenticated)
+
+- `GET /functions/v1/transactions-list?app_id=...&limit=...&after_id=...`
+  - returns platform-tracked chain transactions from `chain_txs`
+  - `app_id` filters by request ID pattern (used for service callbacks)
+
+### Market Trending
+
+- `GET /functions/v1/market-trending?period=7d&limit=20`
+  - `period`: `1d` / `7d` / `30d` (default `7d`)
+  - `limit`: `1-50` (default `20`)
+  - ranks MiniApps by growth vs rolling average using `miniapp_stats_daily`
+
+### Realtime Notifications
+
+- Supabase Realtime subscribes to `miniapp_notifications` inserts for push UX.
+- Clients can filter by `app_id` in memory when needed.
 
 ### Wallet Binding
 
@@ -238,4 +301,4 @@ triggers, and the supported action type is `webhook`.
 
 - `POST /invoke`: build+sign+broadcast allowlisted transactions.
   - hard rule: **payments only GAS**, **governance only NEO**, contract/method allowlists enforced.
-  - optional `intent` field enables stricter gates for `payments` (PaymentHub.pay) and `governance` (Governance stake/unstake/vote) when contract hashes are configured.
+  - optional `intent` field enables stricter gates for `payments` (GAS.transfer to PaymentHub) and `governance` (Governance stake/unstake/vote) when contract hashes are configured.

@@ -22,6 +22,7 @@ export async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const appId = url.searchParams.get("app_id") ?? undefined;
   const eventName = url.searchParams.get("event_name") ?? undefined;
+  const contractHash = url.searchParams.get("contract_hash") ?? undefined;
   const limit = url.searchParams.get("limit") ?? undefined;
   const afterId = url.searchParams.get("after_id") ?? undefined;
 
@@ -29,6 +30,7 @@ export async function handler(req: Request): Promise<Response> {
     {
       app_id: appId,
       event_name: eventName,
+      contract_hash: contractHash,
       limit: limit ? Number.parseInt(limit, 10) : undefined,
       after_id: afterId,
     },

@@ -33,6 +33,7 @@ Service Layer as described in `docs/ARCHITECTURE.md`.
 - `rate_limit_bump(...)` RPC available in Postgres (see `migrations/024_rate_limit_bump.sql`) if you enable gateway rate limiting in production
 - `miniapps` table available (see `migrations/025_miniapps.sql`) for manifest/limit enforcement
 - `miniapp_usage` table + `miniapp_usage_bump(...)` RPC available (see `migrations/026_miniapp_usage.sql`) for daily cap enforcement
+  (`miniapp_usage_check(...)` also available when using `MINIAPP_USAGE_MODE=check`)
 - `TEE_MTLS_CERT_PEM`, `TEE_MTLS_KEY_PEM`, `TEE_MTLS_ROOT_CA_PEM` for Edge → TEE mTLS (required in production; Edge rejects non-HTTPS TEE URLs)
 
 ### Enclave Workloads
@@ -48,7 +49,9 @@ Injected via MarbleRun secrets (values depend on which services you run):
 - NeoRequests limits + enforcement (recommended in production):
   `NEOREQUESTS_MAX_RESULT_BYTES`, `NEOREQUESTS_MAX_ERROR_LEN`,
   `NEOREQUESTS_RNG_RESULT_MODE`, `NEOREQUESTS_TX_WAIT`, `TXPROXY_TIMEOUT`,
-  `NEOREQUESTS_ENFORCE_APPREGISTRY`, `NEOREQUESTS_APPREGISTRY_CACHE_SECONDS`
+  `NEOREQUESTS_ENFORCE_APPREGISTRY`, `NEOREQUESTS_APPREGISTRY_CACHE_SECONDS`,
+  `NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT`, `NEO_EVENT_CONFIRMATIONS`,
+  `NEO_EVENT_BACKFILL_BLOCKS`
 
 ## Chain / Contract Configuration
 

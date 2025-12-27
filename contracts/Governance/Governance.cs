@@ -28,6 +28,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_PROPOSAL = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_VOTE = new byte[] { 0x04 };
 
+        // Maximum votes per proposal (10 billion NEO - total supply cap)
+        private static readonly BigInteger MAX_VOTES_PER_PROPOSAL = 10_000_000_000_00000000;
+
         public struct Proposal
         {
             public string ProposalId;
@@ -206,6 +209,10 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (support) p.Yes += amount;
             else p.No += amount;
+
+            // Overflow protection: ensure total votes don't exceed maximum
+            ExecutionEngine.Assert(p.Yes <= MAX_VOTES_PER_PROPOSAL, "yes votes overflow");
+            ExecutionEngine.Assert(p.No <= MAX_VOTES_PER_PROPOSAL, "no votes overflow");
 
             ProposalMap().Put(ProposalKey(proposalId), StdLib.Serialize(p));
             OnVoted(voter, proposalId, support, amount);

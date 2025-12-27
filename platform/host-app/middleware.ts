@@ -14,7 +14,10 @@ function parseFederatedOrigins(): string[] {
   if (!raw) return [];
 
   const origins = new Set<string>();
-  const entries = raw.split(",").map((entry) => entry.trim()).filter(Boolean);
+  const entries = raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 
   for (const entry of entries) {
     const separator = entry.includes("@") ? "@" : entry.includes("=") ? "=" : null;
@@ -37,11 +40,7 @@ function buildCSP(nonce: string): string {
   const federatedOrigins = parseFederatedOrigins();
 
   const frameOrigins = (process.env.MINIAPP_FRAME_ORIGINS || "").trim();
-  const frameSrc = frameOrigins
-    ? `'self' ${frameOrigins}`
-    : isDev
-      ? "'self' https:"
-      : "'self'";
+  const frameSrc = frameOrigins ? `'self' ${frameOrigins}` : isDev ? "'self' https:" : "'self'";
 
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const connectSources = ["'self'"];
@@ -51,6 +50,10 @@ function buildCSP(nonce: string): string {
   const connectSrc = connectSources.join(" ");
 
   const scriptSources = ["'self'", `'nonce-${nonce}'`, ...federatedOrigins];
+  // Module Federation requires 'unsafe-eval' for dynamic code loading
+  if (isDev) {
+    scriptSources.push("'unsafe-eval'");
+  }
   const scriptSrc = scriptSources.join(" ");
 
   const csp = [

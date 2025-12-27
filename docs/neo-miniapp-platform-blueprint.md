@@ -9,6 +9,7 @@ constraints:
 - **Confidential services:** **MarbleRun + EGo (SGX TEE)** with attested TLS
 - **Gateway/Data:** **Supabase** (Auth + Postgres + RLS + Edge Functions)
 - **Frontend host:** **Vercel + Next.js** + micro‑frontends
+- **Platform engine:** **Indexer + analytics + notifications**
 - **High‑freq data:** **Datafeed** pushes on **≥ 0.1%** deviation
 
 ## Repo Notes (Current Implementation)
@@ -39,8 +40,8 @@ For the expanded Chinese spec, see:
 - **Contracts:** **C#** via `neo-devpack-dotnet`
 - **Local chain:** `neo-express` (Neo Express)
 - **Contract testing:** `Neo.TestingFramework`
-- **Client SDK:** `neon-js` (TS/JS transaction construction)
-- **Wallet integration:** NeoLine / O3 / OneGate via dAPI
+- **Client SDK:** MiniAppSDK (TS) for typed gateway calls + wallet intents
+- **Wallet integration:** NeoLine / O3 / OneGate via dAPI (sign user intents)
 
 ### B. Service Layer (Confidential Computing)
 
@@ -58,7 +59,15 @@ For the expanded Chinese spec, see:
 - **API/Gateway:** Supabase Edge Functions (Deno) as the thin gateway
 - **Storage:** Supabase Storage
 
-### D. Frontend Platform
+### D. Platform Engine (Indexer + Analytics)
+
+- **Chain syncer:** Go or Node.js (`neon-js`)
+- **Event processing:** AppRegistry + MiniApp contract events
+- **Activity capture:** `System.Contract.Call` scanning (event fallback)
+- **Rollups:** `miniapp_tx_events`, `miniapp_stats`, `miniapp_stats_daily`, `miniapp_notifications`
+- **Realtime:** Supabase Realtime (Postgres replication)
+
+### E. Frontend Platform
 
 - **Framework:** Next.js
 - **Hosting:** Vercel
@@ -66,7 +75,7 @@ For the expanded Chinese spec, see:
   - Built‑ins: Module Federation
   - Untrusted 3rd‑party apps: `<iframe sandbox>` + strict `postMessage` protocol
 
-### E. DevOps & CI/CD
+### F. DevOps & CI/CD
 
 - **Repo:** GitHub monorepo
 - **CI:** GitHub Actions
@@ -85,7 +94,7 @@ neo-miniapp-platform/
 │   ├── Governance/             # Voting & staking (NEO ONLY)
 │   ├── PriceFeed/              # On-chain datafeed anchor (0.1% trigger)
 │   ├── RandomnessLog/          # Randomness anchoring (TEE report hash)
-│   ├── AppRegistry/            # App manifest hash + allowlist anchors
+│   ├── AppRegistry/            # On-chain metadata + manifest hash + allowlist anchors
 │   ├── AutomationAnchor/       # Task registry + anti-replay nonce
 │   └── ServiceLayerGateway/    # On-chain service requests + callbacks
 │
@@ -97,6 +106,8 @@ neo-miniapp-platform/
 │   ├── automation-service/     # Triggers + anchored tasks execution
 │   ├── request-dispatcher/     # On-chain request listener + callbacks
 │   ├── tx-proxy/               # Allowlisted sign+broadcast gatekeeper
+│   ├── indexer/                # Chain syncer + event parser (non-TEE)
+│   ├── aggregator/             # Daily rollups + trending (non-TEE)
 │   └── marblerun/              # Manifests/policies (policy.json, manifest.json, CA)
 │
 ├── platform/                   # Host platform layer
@@ -165,7 +176,7 @@ All signing keys and secret material stay **inside the enclave**.
    - Single point for enclave‑origin chain writes
    - Enforces contract+method allowlist and replay protection
    - Optional intent gates:
-     - `payments` → PaymentHub `pay` only
+     - `payments` → GAS `transfer` to `PaymentHub` only
      - `governance` → Governance `stake/unstake/vote` only
 2. **`datafeed-service`**
    - Polls multiple sources frequently (default 1s)
@@ -212,7 +223,16 @@ Canonical endpoints:
 - `GET/POST /functions/v1/automation-triggers` (trigger CRUD/lifecycle via `neoflow`)
 - `secrets-*`, `api-keys-*`, `gasbank-*`
 
-### D. On-Chain Service Request Flow (ServiceLayerGateway)
+### D. Platform Engine (Indexer + Analytics)
+
+- syncs blocks, handles reorgs with confirmation depth
+- parses `Platform_Notification` + `Platform_Metric` events
+- verifies event contract hash against on-chain `contract_hash` (strict mode)
+- scans `System.Contract.Call` to attribute MiniApp tx activity
+- writes `miniapp_tx_events`, `miniapp_stats`, `miniapp_stats_daily`, `miniapp_notifications`
+- feeds realtime UX via Supabase Realtime
+
+### E. On-Chain Service Request Flow (ServiceLayerGateway)
 
 MiniApps that require confidential services use on-chain requests:
 

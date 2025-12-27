@@ -15,6 +15,7 @@ services:
       - EDG_COORDINATOR_DNS_NAMES=localhost,coordinator
       - EDG_COORDINATOR_SEAL_DIR=/coordinator/data
       - OE_SIMULATION=${OE_SIMULATION:-1}
+      - POOL_ENCRYPTION_KEY
     volumes:
       - coordinator-data:/coordinator/data
       - ../manifests:/manifests:ro
@@ -130,6 +131,7 @@ services:
       - TEE_PRIVATE_KEY
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
       - POOL_MASTER_KEY
+      - POOL_ENCRYPTION_KEY
       - COORD_MASTER_SEED
       - NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY
       - NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS

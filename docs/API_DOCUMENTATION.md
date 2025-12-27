@@ -18,7 +18,7 @@ Key gateway endpoints in this repo:
 
 - `wallet-nonce`, `wallet-bind` (bind Neo N3 address to Supabase user)
 - `api-keys-*` (user API keys: create/list/revoke; raw key returned once)
-- `pay-gas` (PaymentHub intent; settlement **GAS only**)
+- `pay-gas` (GAS `transfer` → PaymentHub; settlement **GAS only**)
 - `vote-neo` (Governance intent; governance **NEO only**)
 - `rng-request` (randomness via `neovrf`; optional RandomnessLog anchoring)
 - `compute-execute`, `compute-jobs`, `compute-job` (host-gated `neocompute` script execution + job inspection)
@@ -27,6 +27,10 @@ Key gateway endpoints in this repo:
 - `gasbank-*` (delegated payments: balances, deposits, transactions)
 - `datafeed-price` (read proxy for `neofeeds`)
 - `oracle-query` (allowlisted HTTP fetch proxy for `neooracle`)
+- `miniapp-stats` (public stats + manifest metadata)
+- `miniapp-notifications` (public notification feed)
+- `market-trending` (public trending list)
+- `miniapp-usage` (authenticated per-user daily usage)
 
 ## TEE Services (Internal)
 

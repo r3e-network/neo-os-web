@@ -56,7 +56,8 @@ Example (allow platform contracts):
 ```json
 {
   "contracts": {
-    "<paymenthub_hash>": ["pay"],
+    "<gas_hash>": ["transfer"],
+    "<paymenthub_hash>": ["configureApp", "withdraw"],
     "<governance_hash>": ["stake", "unstake", "vote"],
     "<randomnesslog_hash>": ["record"],
     "<pricefeed_hash>": ["update"],
@@ -69,7 +70,7 @@ Example (allow platform contracts):
 ### Rules
 
 - Contract hashes are normalized to lowercase **without** `0x` prefix (40 hex chars)
-- Method names are canonicalized by lowercasing the first character (to match Neo C# devpack manifest names like `getLatest`, `setUpdater`, `pay`)
+- Method names are canonicalized by lowercasing the first character (to match Neo C# devpack manifest names like `getLatest`, `setUpdater`, `transfer`)
 - `"*"` allows all methods on a contract (not recommended in production)
 - Empty array `[]` blocks all methods
 
@@ -85,13 +86,16 @@ Request field `intent` enables stricter checks for platform user flows:
 
 | Intent       | Asset Constraint | Contract   | Allowed Methods            |
 | ------------ | ---------------- | ---------- | -------------------------- |
-| `payments`   | GAS only         | PaymentHub | `pay`                      |
+| `payments`   | GAS only         | GAS        | `transfer` to `PaymentHub` |
 | `governance` | NEO only         | Governance | `stake`, `unstake`, `vote` |
 
 Requires corresponding contract hash environment variables:
 
 - `CONTRACT_PAYMENTHUB_HASH` for payments intent
+- `CONTRACT_GAS_HASH` (optional override; defaults to native GAS hash)
 - `CONTRACT_GOVERNANCE_HASH` for governance intent
+
+Note: the allowlist must still permit GAS `transfer` when using the `payments` intent.
 
 ## Replay Protection
 
@@ -109,6 +113,7 @@ Requires corresponding contract hash environment variables:
 | `GLOBALSIGNER_SERVICE_URL` | GlobalSigner URL      | Recommended           |
 | `TEE_PRIVATE_KEY`          | Fallback signing key  | If no GlobalSigner    |
 | `CONTRACT_PAYMENTHUB_HASH` | PaymentHub contract   | For payments intent   |
+| `CONTRACT_GAS_HASH`        | GAS contract hash     | Optional override     |
 | `CONTRACT_GOVERNANCE_HASH` | Governance contract   | For governance intent |
 
 ## Security

@@ -68,16 +68,16 @@ export async function handler(req: Request): Promise<Response> {
   if (policy?.limits.maxGasPerTx && amount > policy.limits.maxGasPerTx) {
     return error(403, "amount_gas exceeds manifest limit", "LIMIT_EXCEEDED", req);
   }
-  if (policy?.limits.dailyGasCapPerUser) {
-    const usageErr = await enforceUsageCaps({
-      appId,
-      userId: auth.userId,
-      gasDelta: amount,
-      gasCap: policy.limits.dailyGasCapPerUser,
-      req,
-    });
-    if (usageErr) return usageErr;
-  }
+  const usageMode = getEnv("MINIAPP_USAGE_MODE_PAYMENTS");
+  const usageErr = await enforceUsageCaps({
+    appId,
+    userId: auth.userId,
+    gasDelta: amount,
+    gasCap: policy?.limits.dailyGasCapPerUser,
+    mode: usageMode,
+    req,
+  });
+  if (usageErr) return usageErr;
 
   const paymentHubHash = normalizeUInt160(mustGetEnv("CONTRACT_PAYMENTHUB_HASH"));
   const gasContractHash = normalizeUInt160(getEnv("CONTRACT_GAS_HASH") ?? NEO_TESTNET_GAS_HASH);

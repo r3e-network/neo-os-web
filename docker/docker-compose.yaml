@@ -135,6 +135,7 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
+      - POOL_ENCRYPTION_KEY
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro

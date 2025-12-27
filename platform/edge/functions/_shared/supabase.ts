@@ -66,14 +66,14 @@ export async function requireAuth(req: Request): Promise<AuthContext | Response>
   if (verifyErr) return error(500, `failed to verify api key: ${verifyErr.message}`, "DB_ERROR", req);
 
   const row = Array.isArray(data) ? data[0] : data;
-  const valid = Boolean((row as any)?.valid);
+  const valid = Boolean(row?.valid);
   if (!valid) return error(401, "invalid api key", "AUTH_INVALID", req);
 
-  const userId = String((row as any)?.user_id ?? "").trim();
+  const userId = String(row?.user_id ?? "").trim();
   if (!userId) return error(401, "invalid api key", "AUTH_INVALID", req);
 
-  const scopes = Array.isArray((row as any)?.scopes) ? ((row as any)?.scopes as string[]) : undefined;
-  const apiKeyId = String((row as any)?.key_id ?? "").trim() || undefined;
+  const scopes = Array.isArray(row?.scopes) ? (row?.scopes as string[]) : undefined;
+  const apiKeyId = String(row?.key_id ?? "").trim() || undefined;
 
   return { userId, apiKeyId, scopes, authType: "api_key" };
 }
@@ -91,7 +91,7 @@ export async function requirePrimaryWallet(userId: string, req?: Request): Promi
   if (walletsErr) return error(500, `failed to validate wallet binding: ${walletsErr.message}`, "DB_ERROR", req);
   if (!data || data.length === 0) return error(428, "primary wallet binding required", "WALLET_REQUIRED", req);
 
-  const address = String((data[0] as any)?.address ?? "").trim();
+  const address = String(data[0]?.address ?? "").trim();
   if (!address) return error(428, "primary wallet binding required", "WALLET_REQUIRED", req);
   return { address };
 }
@@ -107,13 +107,10 @@ export async function ensureUserRow(
   const supabase = supabaseServiceClient();
   const { data, error: upsertErr } = await supabase
     .from("users")
-    .upsert(
-      row,
-      { onConflict: "id" },
-    )
+    .upsert(row, { onConflict: "id" })
     .select("id,nonce,address")
     .maybeSingle();
 
   if (upsertErr) return error(500, `failed to ensure user: ${upsertErr.message}`, "DB_ERROR", req);
-  return (data as any) ?? { id: auth.userId };
+  return data ?? { id: auth.userId };
 }

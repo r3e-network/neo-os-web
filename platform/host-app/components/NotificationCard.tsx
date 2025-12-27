@@ -7,18 +7,40 @@ type Props = {
 };
 
 export function NotificationCard({ notification }: Props) {
+  const type = formatType(notification.notification_type);
   const timeAgo = getTimeAgo(notification.created_at);
 
   return (
     <div style={cardStyle}>
       <div style={headerRow}>
-        <span style={typeTag}>{notification.notification_type}</span>
+        <span style={typeTag}>
+          {type.icon} {type.label}
+        </span>
         <span style={timeStyle}>{timeAgo}</span>
       </div>
       <h4 style={titleStyle}>{notification.title}</h4>
       <p style={contentStyle}>{notification.content}</p>
     </div>
   );
+}
+
+function formatType(raw: string): { label: string; icon: string } {
+  const label = String(raw ?? "").trim() || "News";
+  const normalized = label.toLowerCase();
+  const icons: Record<string, string> = {
+    announcement: "📣",
+    alert: "⚠️",
+    milestone: "🏁",
+    promo: "🎁",
+    achievement: "🏆",
+    update: "🔔",
+    warning: "⚠️",
+    info: "ℹ️",
+    success: "✅",
+    event: "📅",
+    news: "📢",
+  };
+  return { label, icon: icons[normalized] ?? "📢" };
 }
 
 function getTimeAgo(dateStr: string): string {

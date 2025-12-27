@@ -28,6 +28,7 @@ type Service struct {
 
 	allowlist *Allowlist
 	// Optional platform contract hashes used for intent-based policy gating.
+	gasHash        string
 	paymentHubHash string
 	governanceHash string
 
@@ -48,6 +49,7 @@ type Config struct {
 
 	// Optional platform contract hashes. If not provided, txproxy attempts to
 	// read them from environment variables via chain.ContractAddressesFromEnv().
+	GasHash        string
 	PaymentHubHash string
 	GovernanceHash string
 
@@ -56,6 +58,8 @@ type Config struct {
 
 	ReplayWindow time.Duration
 }
+
+const defaultGASContractHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 
 func New(cfg Config) (*Service, error) {
 	if cfg.Marble == nil {
@@ -84,6 +88,13 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	contracts := chain.ContractAddressesFromEnv()
+	gasHash := strings.TrimSpace(cfg.GasHash)
+	if gasHash == "" {
+		gasHash = strings.TrimSpace(os.Getenv("CONTRACT_GAS_HASH"))
+	}
+	if gasHash == "" {
+		gasHash = defaultGASContractHash
+	}
 	paymentHubHash := strings.TrimSpace(cfg.PaymentHubHash)
 	if paymentHubHash == "" {
 		paymentHubHash = strings.TrimSpace(contracts.PaymentHub)
@@ -118,6 +129,7 @@ func New(cfg Config) (*Service, error) {
 	s := &Service{
 		BaseService:    base,
 		allowlist:      allowlist,
+		gasHash:        normalizeContractHash(gasHash),
 		paymentHubHash: normalizeContractHash(paymentHubHash),
 		governanceHash: normalizeContractHash(governanceHash),
 		chainClient:    cfg.ChainClient,

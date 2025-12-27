@@ -3,6 +3,7 @@ package neosimulation
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -266,6 +267,12 @@ type mockContractInvoker struct {
 	payoutToUserResp string
 	payoutToUserErr  error
 
+	// MiniApp contract support
+	miniAppContracts       map[string]string // appID -> contract hash
+	invokeMiniAppResp      string
+	invokeMiniAppErr       error
+	invokeMiniAppCalls     []invokeMiniAppCall
+
 	// Call tracking
 	updatePriceFeedCalls  []updatePriceFeedCall
 	recordRandomnessCalls []recordRandomnessCall
@@ -295,12 +302,35 @@ type payoutToUserCall struct {
 	Memo        string
 }
 
+type invokeMiniAppCall struct {
+	AppID  string
+	Method string
+	Params []neoaccountsclient.ContractParam
+}
+
 func newMockContractInvoker() *mockContractInvoker {
 	return &mockContractInvoker{
 		updatePriceFeedResp:  "0xtest-pricefeed-tx",
 		recordRandomnessResp: "0xtest-randomness-tx",
 		payToAppResp:         "0xtest-payment-tx",
 		payoutToUserResp:     "0xtest-payout-tx",
+		invokeMiniAppResp:    "0xtest-miniapp-tx",
+		miniAppContracts: map[string]string{
+			"builtin-lottery":           "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+			"builtin-coin-flip":         "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
+			"builtin-dice-game":         "0xfacff9abd201dca86e6a63acfb5d60da278da8ea",
+			"builtin-scratch-card":      "0x2674ef3b4d8c006201d1e7e473316592f6cde5f2",
+			"builtin-prediction-market": "0x64118096bd004a2bcb010f4371aba45121eca790",
+			"builtin-flashloan":         "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
+			"builtin-price-ticker":      "0x838bd5dd3d257a844fadddb5af2b9dac45e1d320",
+			"builtin-gas-spin":          "0x19bcb0a50ddf5bf7cefbb47044cdb3ce4cb9e4cd",
+			"builtin-price-predict":     "0x6317f97029b39f9211193085fe20dcf6500ec59d",
+			"builtin-secret-vote":       "0x7763ce957515f6acef6d093376977ac6c1cbc47d",
+			"builtin-ai-trader":         "0xc3356f394897e36b3903ea81d87717da8db98809",
+			"builtin-grid-bot":          "0x0d9cfc40ac2ab58de449950725af9637e0884b28",
+			"builtin-nft-evolve":        "0xadd18a719d14d59c064244833cd2c812c79d6015",
+			"builtin-bridge-guardian":   "0x2d03f3e4ff10e14ea94081e0c21e79e79c33f9e3",
+		},
 		stats: map[string]interface{}{
 			"price_feed_updates":  int64(0),
 			"randomness_records":  int64(0),
@@ -382,6 +412,31 @@ func (m *mockContractInvoker) Close() {
 	m.ReleaseAllAccounts(context.Background())
 }
 
+// MiniApp contract methods
+func (m *mockContractInvoker) HasMiniAppContract(appID string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	_, ok := m.miniAppContracts[appID]
+	return ok
+}
+
+func (m *mockContractInvoker) GetMiniAppContractHash(appID string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	hash, ok := m.miniAppContracts[appID]
+	if !ok {
+		return "", fmt.Errorf("miniapp contract not found: %s", appID)
+	}
+	return hash, nil
+}
+
+func (m *mockContractInvoker) InvokeMiniAppContract(ctx context.Context, appID, method string, params []neoaccountsclient.ContractParam) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.invokeMiniAppCalls = append(m.invokeMiniAppCalls, invokeMiniAppCall{AppID: appID, Method: method, Params: params})
+	return m.invokeMiniAppResp, m.invokeMiniAppErr
+}
+
 // Helper methods for test assertions
 func (m *mockContractInvoker) getUpdatePriceFeedCalls() []updatePriceFeedCall {
 	m.mu.Lock()
@@ -401,6 +456,12 @@ func (m *mockContractInvoker) getPayToAppCalls() []payToAppCall {
 	return append([]payToAppCall{}, m.payToAppCalls...)
 }
 
+func (m *mockContractInvoker) getInvokeMiniAppCalls() []invokeMiniAppCall {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]invokeMiniAppCall{}, m.invokeMiniAppCalls...)
+}
+
 func (m *mockContractInvoker) reset() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -408,6 +469,7 @@ func (m *mockContractInvoker) reset() {
 	m.recordRandomnessCalls = nil
 	m.payToAppCalls = nil
 	m.payoutToUserCalls = nil
+	m.invokeMiniAppCalls = nil
 	m.stats = map[string]interface{}{
 		"price_feed_updates":  int64(0),
 		"randomness_records":  int64(0),

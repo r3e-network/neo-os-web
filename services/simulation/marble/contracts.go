@@ -24,10 +24,14 @@ import (
 type ContractInvoker struct {
 	poolClient PoolClientInterface
 
-	// Contract addresses (as strings for InvokeContract API)
-	priceFeedHash     string
-	randomnessLogHash string
-	paymentHubHash    string
+	// Platform contract addresses (as strings for InvokeContract API)
+	priceFeedHash          string
+	randomnessLogHash      string
+	paymentHubHash         string
+	serviceLayerGatewayHash string
+
+	// MiniApp contract addresses (appID -> contract hash)
+	miniAppContracts map[string]string
 
 	// Price feed configuration
 	priceFeeds map[string]int64 // symbol -> base price (8 decimals)
@@ -51,16 +55,19 @@ type ContractInvoker struct {
 
 // ContractInvokerConfig holds configuration for the contract invoker.
 type ContractInvokerConfig struct {
-	PoolClient        PoolClientInterface
-	PriceFeedHash     string
-	RandomnessLogHash string
-	PaymentHubHash    string
+	PoolClient              PoolClientInterface
+	PriceFeedHash           string
+	RandomnessLogHash       string
+	PaymentHubHash          string
+	ServiceLayerGatewayHash string
+	MiniAppContracts        map[string]string // appID -> contract hash
 }
 
 var (
 	ErrPriceFeedNotConfigured     = errors.New("price feed hash not configured")
 	ErrRandomnessLogNotConfigured = errors.New("randomness log hash not configured")
 	ErrPaymentHubNotConfigured    = errors.New("payment hub hash not configured")
+	ErrMiniAppContractNotFound    = errors.New("miniapp contract not found")
 )
 
 // NewContractInvoker creates a new contract invoker using pool accounts.
@@ -73,6 +80,13 @@ func NewContractInvoker(cfg ContractInvokerConfig) (*ContractInvoker, error) {
 	priceFeedHash := strings.TrimPrefix(cfg.PriceFeedHash, "0x")
 	randomnessLogHash := strings.TrimPrefix(cfg.RandomnessLogHash, "0x")
 	paymentHubHash := strings.TrimPrefix(cfg.PaymentHubHash, "0x")
+	serviceLayerGatewayHash := strings.TrimPrefix(cfg.ServiceLayerGatewayHash, "0x")
+
+	// Normalize MiniApp contract hashes
+	miniAppContracts := make(map[string]string)
+	for appID, hash := range cfg.MiniAppContracts {
+		miniAppContracts[appID] = strings.TrimPrefix(hash, "0x")
+	}
 
 	if paymentHubHash == "" {
 		return nil, fmt.Errorf("payment hub hash is required")
@@ -144,10 +158,12 @@ func NewContractInvoker(cfg ContractInvokerConfig) (*ContractInvoker, error) {
 	}
 
 	return &ContractInvoker{
-		poolClient:        cfg.PoolClient,
-		priceFeedHash:     priceFeedHash,
-		randomnessLogHash: randomnessLogHash,
-		paymentHubHash:    paymentHubHash,
+		poolClient:              cfg.PoolClient,
+		priceFeedHash:           priceFeedHash,
+		randomnessLogHash:       randomnessLogHash,
+		paymentHubHash:          paymentHubHash,
+		serviceLayerGatewayHash: serviceLayerGatewayHash,
+		miniAppContracts:        miniAppContracts,
 		// Chainlink Arbitrum price feeds - all major pairs (8 decimals)
 		priceFeeds:       priceFeeds,
 		lockedAccounts:   make(map[string]string),
@@ -167,6 +183,58 @@ func (inv *ContractInvoker) HasRandomnessLog() bool {
 
 func (inv *ContractInvoker) HasPaymentHub() bool {
 	return inv != nil && inv.paymentHubHash != ""
+}
+
+// HasMiniAppContract checks if a MiniApp contract is configured.
+func (inv *ContractInvoker) HasMiniAppContract(appID string) bool {
+	if inv == nil || inv.miniAppContracts == nil {
+		return false
+	}
+	_, ok := inv.miniAppContracts[appID]
+	return ok
+}
+
+// GetMiniAppContractHash returns the contract hash for a MiniApp.
+func (inv *ContractInvoker) GetMiniAppContractHash(appID string) (string, error) {
+	if inv == nil || inv.miniAppContracts == nil {
+		return "", ErrMiniAppContractNotFound
+	}
+	hash, ok := inv.miniAppContracts[appID]
+	if !ok {
+		return "", fmt.Errorf("%w: %s", ErrMiniAppContractNotFound, appID)
+	}
+	return hash, nil
+}
+
+// InvokeMiniAppContract invokes a method on a MiniApp contract.
+func (inv *ContractInvoker) InvokeMiniAppContract(ctx context.Context, appID, method string, params []neoaccountsclient.ContractParam) (string, error) {
+	contractHash, err := inv.GetMiniAppContractHash(appID)
+	if err != nil {
+		return "", err
+	}
+
+	// Get or request a pool account for this MiniApp
+	accountID, err := inv.getOrRequestAccount(ctx, "miniapp-"+appID)
+	if err != nil {
+		atomic.AddInt64(&inv.contractErrors, 1)
+		return "", fmt.Errorf("get pool account: %w", err)
+	}
+
+	// Invoke the MiniApp contract
+	resp, err := inv.poolClient.InvokeContract(ctx, accountID, contractHash, method, params, "")
+	if err != nil {
+		atomic.AddInt64(&inv.contractErrors, 1)
+		return "", fmt.Errorf("invoke miniapp contract: %w", err)
+	}
+
+	if resp.State != "HALT" {
+		atomic.AddInt64(&inv.contractErrors, 1)
+		return "", fmt.Errorf("miniapp contract execution failed: %s", resp.Exception)
+	}
+
+	fmt.Printf("neosimulation: miniapp contract invoked - app=%s, method=%s, tx=%s\n",
+		appID, method, resp.TxHash)
+	return resp.TxHash, nil
 }
 
 // Minimum GAS balance for MiniApp workflows (0.5 GAS = 50000000 in 8 decimals)
@@ -383,8 +451,6 @@ func (inv *ContractInvoker) PayToApp(ctx context.Context, appID string, amount i
 	inv.mu.Unlock()
 
 	atomic.AddInt64(&inv.paymentHubPays, 1)
-	fmt.Printf("neosimulation: payment sent - app=%s, amount=%d, tx=%s, memo=%s\n",
-		appID, amount, resp.TxHash, memo)
 	return resp.TxHash, nil
 }
 
@@ -501,15 +567,66 @@ func NewContractInvokerFromEnv(poolClient *neoaccountsclient.Client) (*ContractI
 	priceFeedHash := strings.TrimSpace(os.Getenv("CONTRACT_PRICEFEED_HASH"))
 	randomnessLogHash := strings.TrimSpace(os.Getenv("CONTRACT_RANDOMNESSLOG_HASH"))
 	paymentHubHash := strings.TrimSpace(os.Getenv("CONTRACT_PAYMENTHUB_HASH"))
+	serviceLayerGatewayHash := strings.TrimSpace(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
 
 	if paymentHubHash == "" {
 		return nil, fmt.Errorf("contract hashes not configured (missing CONTRACT_PAYMENTHUB_HASH)")
 	}
 
+	// Load MiniApp contract hashes from environment variables
+	miniAppContracts := loadMiniAppContractsFromEnv()
+
 	return NewContractInvoker(ContractInvokerConfig{
-		PoolClient:        poolClient,
-		PriceFeedHash:     priceFeedHash,
-		RandomnessLogHash: randomnessLogHash,
-		PaymentHubHash:    paymentHubHash,
+		PoolClient:              poolClient,
+		PriceFeedHash:           priceFeedHash,
+		RandomnessLogHash:       randomnessLogHash,
+		PaymentHubHash:          paymentHubHash,
+		ServiceLayerGatewayHash: serviceLayerGatewayHash,
+		MiniAppContracts:        miniAppContracts,
 	})
+}
+
+// loadMiniAppContractsFromEnv loads MiniApp contract hashes from environment variables.
+// Environment variable format: CONTRACT_MINIAPP_<APPID>_HASH
+// Example: CONTRACT_MINIAPP_LOTTERY_HASH=0x3e330b4c396b40aa08d49912c0179319831b3a6e
+func loadMiniAppContractsFromEnv() map[string]string {
+	contracts := make(map[string]string)
+
+	// Define mapping from env var suffix to app ID
+	miniAppEnvMapping := map[string]string{
+		"LOTTERY":           "builtin-lottery",
+		"COINFLIP":          "builtin-coin-flip",
+		"DICEGAME":          "builtin-dice-game",
+		"SCRATCHCARD":       "builtin-scratch-card",
+		"PREDICTIONMARKET":  "builtin-prediction-market",
+		"FLASHLOAN":         "builtin-flashloan",
+		"PRICETICKER":       "builtin-price-ticker",
+		"GASSPIN":           "builtin-gas-spin",
+		"PRICEPREDICT":      "builtin-price-predict",
+		"SECRETVOTE":        "builtin-secret-vote",
+		"SECRETPOKER":       "builtin-secret-poker",
+		"MICROPREDICT":      "builtin-micro-predict",
+		"REDENVELOPE":       "builtin-red-envelope",
+		"GASCIRCLE":         "builtin-gas-circle",
+		"FOGCHESS":          "builtin-fog-chess",
+		"GOVBOOSTER":        "builtin-gov-booster",
+		"TURBOOPTIONS":      "builtin-turbo-options",
+		"ILGUARD":           "builtin-il-guard",
+		"GUARDIANPOLICY":    "builtin-guardian-policy",
+		"AITRADER":          "builtin-ai-trader",
+		"GRIDBOT":           "builtin-grid-bot",
+		"NFTEVOLVE":         "builtin-nft-evolve",
+		"BRIDGEGUARDIAN":    "builtin-bridge-guardian",
+	}
+
+	for envSuffix, appID := range miniAppEnvMapping {
+		envVar := "CONTRACT_MINIAPP_" + envSuffix + "_HASH"
+		hash := strings.TrimSpace(os.Getenv(envVar))
+		if hash != "" {
+			contracts[appID] = hash
+			fmt.Printf("neosimulation: loaded miniapp contract %s=%s\n", appID, hash)
+		}
+	}
+
+	return contracts
 }

@@ -313,7 +313,7 @@ func (m *Marble) Secret(name string) ([]byte, bool) {
 	}
 
 	decoded := []byte(envValue)
-	if hexDecoded, ok := decodeHexEnvSecret(envValue); ok {
+	if hexDecoded, hexOk := decodeHexEnvSecret(envValue); hexOk {
 		decoded = hexDecoded
 	}
 

@@ -82,7 +82,7 @@ export async function handler(req: Request): Promise<Response> {
     return json({ secret: inserted, created: true }, {}, req);
   }
 
-  const currentVersion = Number((existing[0] as any)?.version ?? 0);
+  const currentVersion = Number(existing[0]?.version ?? 0);
   const nextVersion = Number.isFinite(currentVersion) && currentVersion > 0 ? currentVersion + 1 : 1;
 
   const { data: updated, error: updateErr } = await supabase
