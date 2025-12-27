@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"sync/atomic"
 	"time"
+
+	neoaccountsclient "github.com/R3E-Network/service_layer/infrastructure/accountpool/client"
 )
 
 // MiniAppSimulator simulates all MiniApp workflows.
@@ -47,6 +49,11 @@ type MiniAppSimulator struct {
 	pricePredictPayouts int64
 	secretVoteCasts     int64
 	secretVoteTallies   int64
+	// MegaMillions stats
+	megaMillionsTickets int64
+	megaMillionsDraws   int64
+	megaMillionsWins    int64
+	megaMillionsPayouts int64
 	simulationErrors    int64
 }
 
@@ -94,6 +101,14 @@ func AllMiniApps() []MiniAppConfig {
 			Interval:    6 * time.Second,
 			BetAmount:   2000000, // 0.02 GAS per card
 			Description: "Instant win scratch cards",
+		},
+		{
+			AppID:       "builtin-mega-millions",
+			Name:        "Mega Millions",
+			Category:    "gaming",
+			Interval:    8 * time.Second,
+			BetAmount:   20000000, // 0.2 GAS per ticket
+			Description: "Multi-tier lottery with 9 prize levels",
 		},
 		{
 			AppID:       "builtin-prediction-market",
@@ -322,22 +337,28 @@ func (s *MiniAppSimulator) GetStats() map[string]interface{} {
 			"casts":   atomic.LoadInt64(&s.secretVoteCasts),
 			"tallies": atomic.LoadInt64(&s.secretVoteTallies),
 		},
+		"mega_millions": map[string]int64{
+			"tickets": atomic.LoadInt64(&s.megaMillionsTickets),
+			"draws":   atomic.LoadInt64(&s.megaMillionsDraws),
+			"wins":    atomic.LoadInt64(&s.megaMillionsWins),
+			"payouts": atomic.LoadInt64(&s.megaMillionsPayouts),
+		},
 		"errors": atomic.LoadInt64(&s.simulationErrors),
 	}
 }
 
-// SimulateLottery simulates the lottery workflow:
-// 1. Buy tickets (payment)
-// 2. Request randomness for draw
-// 3. Determine winner
-// 4. Send callback payout to winner
+// SimulateLottery simulates the lottery workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub to buy tickets (simulates SDK payGAS call)
+// 2. Platform processes payment and records tickets in MiniApp contract
+// 3. On draw trigger: Platform requests randomness and draws winner
+// 4. Platform sends payout to winner
 func (s *MiniAppSimulator) SimulateLottery(ctx context.Context) error {
 	appID := "builtin-lottery"
-	ticketCount := randomInt(1, 5)          // Buy 1-5 tickets
+	ticketCount := randomInt(1, 5)
 	amount := int64(ticketCount) * 10000000 // 0.1 GAS per ticket
 
-	// Step 1: Buy tickets (payment to PaymentHub)
-	memo := fmt.Sprintf("lottery:round:%d:tickets:%d", time.Now().Unix(), ticketCount)
+	// Step 1: USER ACTION - Pay GAS to PaymentHub (simulates real user via SDK)
+	memo := fmt.Sprintf("lottery:round:%d:tickets:%d:%d", atomic.LoadInt64(&s.lotteryDraws)+1, ticketCount, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
@@ -345,32 +366,38 @@ func (s *MiniAppSimulator) SimulateLottery(ctx context.Context) error {
 	}
 	atomic.AddInt64(&s.lotteryTickets, int64(ticketCount))
 
-	// Step 2: Request randomness for draw (every 5th ticket triggers a draw)
+	// Step 2: PLATFORM ACTION - Process payment and record in MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "recordTickets", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: ticketCount},
+		})
+	}
+
+	// Step 3: PLATFORM ACTION - Draw winner every 5 tickets
 	if atomic.LoadInt64(&s.lotteryTickets)%5 == 0 {
+		// Request randomness for draw
 		_, err = s.invoker.RecordRandomness(ctx)
-		if err != nil {
-			if errors.Is(err, ErrRandomnessLogNotConfigured) {
-				// Skip on-chain anchoring when randomness contract is not configured.
-				err = nil
-			}
-		}
-		if err != nil {
+		if err != nil && !errors.Is(err, ErrRandomnessLogNotConfigured) {
 			atomic.AddInt64(&s.simulationErrors, 1)
 			return fmt.Errorf("draw randomness: %w", err)
 		}
 		atomic.AddInt64(&s.lotteryDraws, 1)
 
-		// Step 3 & 4: Determine winner and send callback payout
-		// Prize pool is accumulated tickets * 0.1 GAS, winner gets 90% (10% platform fee)
-		prizePool := amount * 5 * 90 / 100 // 5 tickets worth, 90% to winner
-		winnerAddress := s.getRandomUserAddress()
-		payoutMemo := fmt.Sprintf("lottery:payout:round:%d:winner", time.Now().Unix())
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, prizePool, payoutMemo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("lottery payout: %w", err)
+		// Platform invokes MiniApp contract to draw winner
+		if s.invoker.HasMiniAppContract(appID) {
+			randomness := generateRandomBytes(32)
+			_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "drawWinner", []neoaccountsclient.ContractParam{
+				{Type: "ByteArray", Value: hex.EncodeToString(randomness)},
+			})
 		}
-		atomic.AddInt64(&s.lotteryPayouts, 1)
+
+		// Step 4: PLATFORM ACTION - Send payout to winner
+		winnerAddress := s.getRandomUserAddress()
+		prizeAmount := amount * 3 // 3x prize pool
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, prizeAmount, "lottery:win")
+		if err == nil {
+			atomic.AddInt64(&s.lotteryPayouts, 1)
+		}
 	}
 
 	return nil
@@ -384,18 +411,18 @@ func (s *MiniAppSimulator) getRandomUserAddress() string {
 	return s.userAddresses[randomInt(0, len(s.userAddresses)-1)]
 }
 
-// SimulateCoinFlip simulates the coin flip workflow:
-// 1. Place bet (payment)
-// 2. Request randomness
-// 3. Resolve outcome (50% win rate)
-// 4. Send callback payout if winner
+// SimulateCoinFlip simulates the coin flip workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub to place bet (simulates SDK payGAS call)
+// 2. Platform processes bet and records in MiniApp contract
+// 3. Platform requests randomness and determines outcome
+// 4. Platform sends payout if user wins (2x bet)
 func (s *MiniAppSimulator) SimulateCoinFlip(ctx context.Context) error {
 	appID := "builtin-coin-flip"
-	amount := int64(5000000)  // 0.05 GAS bet
-	choice := randomInt(0, 1) // 0 = heads, 1 = tails
+	amount := int64(5000000) // 0.05 GAS per flip
+	choice := randomInt(0, 1) // 0=heads, 1=tails
 
-	// Step 1: Place bet
-	memo := fmt.Sprintf("coinflip:bet:%d:choice:%d", time.Now().UnixNano(), choice)
+	// Step 1: USER ACTION - Pay GAS to PaymentHub (simulates real user via SDK)
+	memo := fmt.Sprintf("coin-flip:%d:%d", choice, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
@@ -403,50 +430,52 @@ func (s *MiniAppSimulator) SimulateCoinFlip(ctx context.Context) error {
 	}
 	atomic.AddInt64(&s.coinFlipBets, 1)
 
-	// Step 2: Request randomness and resolve
-	_, err = s.invoker.RecordRandomness(ctx)
-	if err != nil {
-		if errors.Is(err, ErrRandomnessLogNotConfigured) {
-			err = nil
-		}
-	}
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("flip randomness: %w", err)
+	// Step 2: PLATFORM ACTION - Record bet in MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "recordBet", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: amount},
+			{Type: "Integer", Value: choice},
+		})
 	}
 
-	// Step 3: Simulate outcome (50% win rate)
+	// Step 3: PLATFORM ACTION - Request randomness and determine outcome
+	_, _ = s.invoker.RecordRandomness(ctx)
 	outcome := randomInt(0, 1)
+
+	// Resolve via MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		randomness := generateRandomBytes(32)
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "resolve", []neoaccountsclient.ContractParam{
+			{Type: "ByteArray", Value: hex.EncodeToString(randomness)},
+		})
+	}
+
+	// Step 4: PLATFORM ACTION - Send payout if user wins (50% chance)
 	if outcome == choice {
 		atomic.AddInt64(&s.coinFlipWins, 1)
-
-		// Step 4: Send callback payout (2x bet minus 5% platform fee)
-		payout := amount * 2 * 95 / 100
 		winnerAddress := s.getRandomUserAddress()
-		payoutMemo := fmt.Sprintf("coinflip:payout:%d:win", time.Now().UnixNano())
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payout, payoutMemo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("coinflip payout: %w", err)
+		payoutAmount := amount * 2 // 2x payout
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payoutAmount, "coin-flip:win")
+		if err == nil {
+			atomic.AddInt64(&s.coinFlipPayouts, 1)
 		}
-		atomic.AddInt64(&s.coinFlipPayouts, 1)
 	}
 
 	return nil
 }
 
-// SimulateDiceGame simulates the dice game workflow:
-// 1. Place bet on number (1-6)
-// 2. Request randomness
-// 3. Roll dice and resolve
-// 4. Send callback payout if winner (6x payout)
+// SimulateDiceGame simulates the dice game workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub to place bet (simulates SDK payGAS call)
+// 2. Platform processes bet and records in MiniApp contract
+// 3. Platform requests randomness and determines outcome
+// 4. Platform sends payout if user wins (6x bet)
 func (s *MiniAppSimulator) SimulateDiceGame(ctx context.Context) error {
 	appID := "builtin-dice-game"
-	amount := int64(8000000) // 0.08 GAS bet
+	amount := int64(8000000) // 0.08 GAS per roll
 	chosenNumber := randomInt(1, 6)
 
-	// Step 1: Place bet
-	memo := fmt.Sprintf("dice:bet:%d:number:%d", time.Now().UnixNano(), chosenNumber)
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	memo := fmt.Sprintf("dice:%d:%d", chosenNumber, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
@@ -454,50 +483,52 @@ func (s *MiniAppSimulator) SimulateDiceGame(ctx context.Context) error {
 	}
 	atomic.AddInt64(&s.diceGameBets, 1)
 
-	// Step 2: Request randomness and roll
-	_, err = s.invoker.RecordRandomness(ctx)
-	if err != nil {
-		if errors.Is(err, ErrRandomnessLogNotConfigured) {
-			err = nil
-		}
-	}
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("roll randomness: %w", err)
+	// Step 2: PLATFORM ACTION - Record bet in MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "recordBet", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: amount},
+			{Type: "Integer", Value: chosenNumber},
+		})
 	}
 
-	// Step 3: Simulate outcome (1/6 win rate)
+	// Step 3: PLATFORM ACTION - Request randomness and determine outcome
+	_, _ = s.invoker.RecordRandomness(ctx)
 	rolledNumber := randomInt(1, 6)
+
+	// Resolve via MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		randomness := generateRandomBytes(32)
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "resolve", []neoaccountsclient.ContractParam{
+			{Type: "ByteArray", Value: hex.EncodeToString(randomness)},
+		})
+	}
+
+	// Step 4: PLATFORM ACTION - Send payout if user wins (1/6 chance, 6x payout)
 	if rolledNumber == chosenNumber {
 		atomic.AddInt64(&s.diceGameWins, 1)
-
-		// Step 4: Send callback payout (6x bet minus 5% platform fee)
-		payout := amount * 6 * 95 / 100
 		winnerAddress := s.getRandomUserAddress()
-		payoutMemo := fmt.Sprintf("dice:payout:%d:rolled:%d", time.Now().UnixNano(), rolledNumber)
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payout, payoutMemo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("dice payout: %w", err)
+		payoutAmount := amount * 6 // 6x payout
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payoutAmount, "dice:win")
+		if err == nil {
+			atomic.AddInt64(&s.diceGamePayouts, 1)
 		}
-		atomic.AddInt64(&s.diceGamePayouts, 1)
 	}
 
 	return nil
 }
 
-// SimulateScratchCard simulates the scratch card workflow:
-// 1. Buy scratch card (payment)
-// 2. Request randomness for reveal
-// 3. Reveal and determine prize
-// 4. Send callback payout if winner
+// SimulateScratchCard simulates the scratch card workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub to buy card (simulates SDK payGAS call)
+// 2. Platform processes purchase and records in MiniApp contract
+// 3. Platform requests randomness and reveals card
+// 4. Platform sends payout if user wins (20% chance, 5x payout)
 func (s *MiniAppSimulator) SimulateScratchCard(ctx context.Context) error {
 	appID := "builtin-scratch-card"
-	cardType := randomInt(1, 3)         // 3 card types with different prices
-	amount := int64(cardType) * 2000000 // 0.02-0.06 GAS per card
+	cardType := randomInt(1, 3)
+	amount := int64(2000000) // 0.02 GAS per card
 
-	// Step 1: Buy card
-	memo := fmt.Sprintf("scratch:buy:%d:type:%d", time.Now().UnixNano(), cardType)
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	memo := fmt.Sprintf("scratch:type:%d:%d", cardType, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
@@ -505,276 +536,356 @@ func (s *MiniAppSimulator) SimulateScratchCard(ctx context.Context) error {
 	}
 	atomic.AddInt64(&s.scratchCardBuys, 1)
 
-	// Step 2: Request randomness for reveal
-	_, err = s.invoker.RecordRandomness(ctx)
-	if err != nil {
-		if errors.Is(err, ErrRandomnessLogNotConfigured) {
-			err = nil
-		}
-	}
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("reveal randomness: %w", err)
+	// Step 2: PLATFORM ACTION - Record purchase in MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "recordPurchase", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: cardType},
+		})
 	}
 
-	// Step 3: Simulate outcome (20% win rate)
+	// Step 3: PLATFORM ACTION - Request randomness and reveal
+	_, _ = s.invoker.RecordRandomness(ctx)
+
+	if s.invoker.HasMiniAppContract(appID) {
+		randomness := generateRandomBytes(32)
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "reveal", []neoaccountsclient.ContractParam{
+			{Type: "ByteArray", Value: hex.EncodeToString(randomness)},
+		})
+	}
+
+	// Step 4: PLATFORM ACTION - Send payout if user wins (20% chance, 5x payout)
 	if randomInt(1, 5) == 1 {
 		atomic.AddInt64(&s.scratchCardWins, 1)
-
-		// Step 4: Send callback payout (prize varies by card type: 2x, 5x, 10x)
-		multiplier := int64(cardType * 2)        // Type 1: 2x, Type 2: 4x, Type 3: 6x
-		payout := amount * multiplier * 95 / 100 // 5% platform fee
 		winnerAddress := s.getRandomUserAddress()
-		payoutMemo := fmt.Sprintf("scratch:payout:%d:prize:%dx", time.Now().UnixNano(), multiplier)
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payout, payoutMemo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("scratch payout: %w", err)
+		payoutAmount := amount * 5 // 5x payout
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payoutAmount, "scratch:win")
+		if err == nil {
+			atomic.AddInt64(&s.scratchCardPayouts, 1)
 		}
-		atomic.AddInt64(&s.scratchCardPayouts, 1)
 	}
 
 	return nil
 }
 
-// SimulatePredictionMarket simulates the prediction market workflow:
-// 1. Query current price from PriceFeed
-// 2. Place prediction bet (up/down)
-// 3. Wait and resolve with new price
-// 4. Send callback payout if prediction correct
-func (s *MiniAppSimulator) SimulatePredictionMarket(ctx context.Context) error {
-	appID := "builtin-prediction-market"
-	amount := int64(20000000) // 0.2 GAS bet
-	symbol := []string{"BTCUSD", "ETHUSD", "NEOUSD", "GASUSD"}[randomInt(0, 3)]
-	prediction := randomInt(0, 1) // 0 = down, 1 = up
+// SimulateMegaMillions simulates the Mega Millions lottery workflow:
+// 1. User pays GAS to buy ticket with 5 main numbers + 1 mega ball
+// 2. Platform records ticket in MiniApp contract
+// 3. Platform draws winning numbers periodically
+// 4. Platform calculates tier and sends payout
+func (s *MiniAppSimulator) SimulateMegaMillions(ctx context.Context) error {
+	appID := "builtin-mega-millions"
+	amount := int64(20000000) // 0.2 GAS per ticket
 
-	// Step 1: Query current price (simulated by updating price feed)
-	_, err := s.invoker.UpdatePriceFeed(ctx, symbol)
-	if err != nil {
-		if errors.Is(err, ErrPriceFeedNotConfigured) {
-			err = nil
-		}
+	// Generate random ticket: 5 main (1-70) + 1 mega (1-25)
+	mainNumbers := make([]byte, 5)
+	for i := 0; i < 5; i++ {
+		mainNumbers[i] = byte(randomInt(1, 70))
 	}
+	megaBall := byte(randomInt(1, 25))
+
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	memo := fmt.Sprintf("mega:%d-%d-%d-%d-%d+%d:%d",
+		mainNumbers[0], mainNumbers[1], mainNumbers[2],
+		mainNumbers[3], mainNumbers[4], megaBall, time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("query price: %w", err)
+		return fmt.Errorf("buy ticket: %w", err)
+	}
+	atomic.AddInt64(&s.megaMillionsTickets, 1)
+
+	// Step 2: PLATFORM ACTION - Record ticket (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "BuyTicket", []neoaccountsclient.ContractParam{
+			{Type: "ByteArray", Value: hex.EncodeToString(mainNumbers)},
+			{Type: "Integer", Value: int(megaBall)},
+		})
 	}
 
-	// Step 2: Place prediction bet
-	memo := fmt.Sprintf("predict:%s:%d:dir:%d", symbol, time.Now().UnixNano(), prediction)
-	_, err = s.invoker.PayToApp(ctx, appID, amount, memo)
+	// Step 3: PLATFORM ACTION - Draw every 10 tickets
+	if atomic.LoadInt64(&s.megaMillionsTickets)%10 == 0 {
+		_, _ = s.invoker.RecordRandomness(ctx)
+		atomic.AddInt64(&s.megaMillionsDraws, 1)
+
+		// Generate winning numbers
+		winning := make([]byte, 6)
+		for i := 0; i < 5; i++ {
+			winning[i] = byte(randomInt(1, 70))
+		}
+		winning[5] = byte(randomInt(1, 25))
+
+		// Step 4: Calculate tier and payout
+		tier := s.calculateMegaTier(mainNumbers, megaBall, winning)
+		if tier < 9 {
+			atomic.AddInt64(&s.megaMillionsWins, 1)
+			winnerAddress := s.getRandomUserAddress()
+			payoutAmount := s.getMegaPrize(tier)
+			_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payoutAmount, fmt.Sprintf("mega:tier%d", tier))
+			if err == nil {
+				atomic.AddInt64(&s.megaMillionsPayouts, 1)
+			}
+		}
+	}
+
+	return nil
+}
+
+// calculateMegaTier calculates prize tier (0=jackpot, 1-8=other, 9=no win)
+func (s *MiniAppSimulator) calculateMegaTier(ticket []byte, mega byte, winning []byte) int {
+	matches := 0
+	megaMatch := mega == winning[5]
+	for i := 0; i < 5; i++ {
+		for j := 0; j < 5; j++ {
+			if ticket[i] == winning[j] {
+				matches++
+				break
+			}
+		}
+	}
+	if matches == 5 && megaMatch {
+		return 0
+	}
+	if matches == 5 {
+		return 1
+	}
+	if matches == 4 && megaMatch {
+		return 2
+	}
+	if matches == 4 {
+		return 3
+	}
+	if matches == 3 && megaMatch {
+		return 4
+	}
+	if matches == 3 {
+		return 5
+	}
+	if matches == 2 && megaMatch {
+		return 6
+	}
+	if matches == 1 && megaMatch {
+		return 7
+	}
+	if megaMatch {
+		return 8
+	}
+	return 9
+}
+
+// getMegaPrize returns prize amount for tier
+func (s *MiniAppSimulator) getMegaPrize(tier int) int64 {
+	prizes := []int64{
+		100000000000, // Tier 0: Jackpot 1000 GAS
+		10000000000,  // Tier 1: 100 GAS
+		5000000000,   // Tier 2: 50 GAS
+		500000000,    // Tier 3: 5 GAS
+		200000000,    // Tier 4: 2 GAS
+		50000000,     // Tier 5: 0.5 GAS
+		50000000,     // Tier 6: 0.5 GAS
+		20000000,     // Tier 7: 0.2 GAS
+		10000000,     // Tier 8: 0.1 GAS
+	}
+	if tier >= 0 && tier < len(prizes) {
+		return prizes[tier]
+	}
+	return 0
+}
+
+// SimulatePredictionMarket simulates the prediction market workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub to place prediction (simulates SDK payGAS call)
+// 2. Platform records prediction in MiniApp contract
+// 3. Platform resolves prediction based on price data
+// 4. Platform sends payout if user wins (2x bet)
+func (s *MiniAppSimulator) SimulatePredictionMarket(ctx context.Context) error {
+	appID := "builtin-prediction-market"
+	amount := int64(20000000) // 0.2 GAS per prediction
+	symbol := []string{"BTCUSD", "ETHUSD", "NEOUSD", "GASUSD"}[randomInt(0, 3)]
+	prediction := randomInt(0, 1) // 0=down, 1=up
+
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	memo := fmt.Sprintf("predict:%s:%d:%d", symbol, prediction, time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("place prediction: %w", err)
 	}
 	atomic.AddInt64(&s.predictionBets, 1)
 
-	// Step 3: Wait for price to change (simulated resolution period)
-	// Note: We don't call UpdatePriceFeed again to avoid roundId conflicts
-	// The runPriceFeedUpdater worker handles price updates
-	time.Sleep(500 * time.Millisecond)
+	// Step 2: PLATFORM ACTION - Record prediction in MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "recordPrediction", []neoaccountsclient.ContractParam{
+			{Type: "String", Value: symbol},
+			{Type: "Integer", Value: prediction},
+			{Type: "Integer", Value: amount},
+		})
+	}
+
+	// Step 3: PLATFORM ACTION - Wait and resolve
+	time.Sleep(100 * time.Millisecond)
+	outcome := randomInt(0, 1)
+
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "resolve", []neoaccountsclient.ContractParam{
+			{Type: "String", Value: symbol},
+			{Type: "Integer", Value: outcome},
+		})
+	}
 	atomic.AddInt64(&s.predictionResolves, 1)
 
-	// Step 4: Simulate outcome (50% win rate) and send callback payout
-	outcome := randomInt(0, 1)
+	// Step 4: PLATFORM ACTION - Send payout if user wins (50% chance, 2x payout)
 	if outcome == prediction {
-		// Prediction correct - send payout (1.9x bet, 5% platform fee)
-		payout := amount * 190 / 100 * 95 / 100
 		winnerAddress := s.getRandomUserAddress()
-		payoutMemo := fmt.Sprintf("predict:payout:%s:%d:correct", symbol, time.Now().UnixNano())
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payout, payoutMemo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("prediction payout: %w", err)
+		payoutAmount := amount * 2
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payoutAmount, "predict:win")
+		if err == nil {
+			atomic.AddInt64(&s.predictionPayouts, 1)
 		}
-		atomic.AddInt64(&s.predictionPayouts, 1)
 	}
 
 	return nil
 }
 
-// SimulateFlashLoan simulates the flash loan workflow:
-// 1. Borrow GAS (payment request)
-// 2. Execute arbitrage (simulated)
-// 3. Repay with fee
+// SimulateFlashLoan simulates the flash loan workflow as a real user would experience:
+// 1. User pays fee to PaymentHub (simulates SDK payGAS call)
+// 2. Platform executes flash loan via MiniApp contract
+// Note: Flash loans are atomic - borrow and repay happen in same transaction
 func (s *MiniAppSimulator) SimulateFlashLoan(ctx context.Context) error {
 	appID := "builtin-flashloan"
-	borrowAmount := int64(10000000) // 0.1 GAS loan (reduced to fit account balance)
-	fee := borrowAmount * 9 / 10000 // 0.09% fee
+	feeAmount := int64(1000000) // 0.01 GAS fee
 
-	// Step 1: Request flash loan (borrow)
-	memo := fmt.Sprintf("flashloan:borrow:%d:amount:%d", time.Now().UnixNano(), borrowAmount)
-	_, err := s.invoker.PayToApp(ctx, appID, fee, memo) // Pay fee upfront
+	// Step 1: USER ACTION - Pay fee to PaymentHub
+	memo := fmt.Sprintf("flashloan:fee:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, feeAmount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("borrow: %w", err)
+		return fmt.Errorf("flash loan fee: %w", err)
 	}
+
+	// Step 2: PLATFORM ACTION - Execute flash loan via MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		borrowAmount := int64(100000000) // 1 GAS borrow
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "execute", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: borrowAmount},
+		})
+	}
+
 	atomic.AddInt64(&s.flashloanBorrows, 1)
-
-	// Step 2: Simulate arbitrage execution (just a delay)
-	time.Sleep(100 * time.Millisecond)
-
-	// Step 3: Repay loan (simulated - in real scenario this happens atomically)
-	repayMemo := fmt.Sprintf("flashloan:repay:%d:amount:%d", time.Now().UnixNano(), borrowAmount)
-	_, err = s.invoker.PayToApp(ctx, appID, borrowAmount, repayMemo)
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("repay: %w", err)
-	}
 	atomic.AddInt64(&s.flashloanRepays, 1)
 
 	return nil
 }
 
-// SimulatePriceTicker simulates the price ticker workflow:
-// 1. Query multiple price feeds (simulated - prices are updated by runPriceFeedUpdater)
-// 2. Display prices (simulated)
-// Note: We don't call UpdatePriceFeed here to avoid roundId conflicts with runPriceFeedUpdater
+// SimulatePriceTicker simulates the price ticker workflow as a real user would experience:
+// This is a read-only operation - no payment required
+// User queries price data via MiniApp contract
 func (s *MiniAppSimulator) SimulatePriceTicker(ctx context.Context) error {
-	symbols := []string{"BTCUSD", "ETHUSD", "NEOUSD", "GASUSD"}
+	appID := "builtin-price-ticker"
+	symbol := []string{"NEOUSD", "GASUSD", "BTCUSD", "ETHUSD"}[randomInt(0, 3)]
 
-	// Simulate querying price feeds (actual updates handled by runPriceFeedUpdater)
-	for _, symbol := range symbols {
-		// Just increment the counter - actual price updates are done by runPriceFeedUpdater
-		_ = symbol // Use symbol to avoid unused variable warning
-		atomic.AddInt64(&s.priceQueries, 1)
-		time.Sleep(200 * time.Millisecond) // Small delay between queries
+	// PLATFORM ACTION - Query price via MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "queryPrice", []neoaccountsclient.ContractParam{
+			{Type: "String", Value: symbol},
+		})
 	}
+	atomic.AddInt64(&s.priceQueries, 1)
 
 	return nil
 }
 
-// SimulateGasSpin simulates the Gas Spin wheel workflow:
-// 1. Place bet (payment)
-// 2. Request VRF randomness
-// 3. Determine prize tier (0-7)
-// 4. Send callback payout if winner
+// SimulateGasSpin simulates the Gas Spin wheel workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub to spin (simulates SDK payGAS call)
+// 2. Platform processes spin via MiniApp contract
+// 3. Platform sends payout based on wheel result
 func (s *MiniAppSimulator) SimulateGasSpin(ctx context.Context) error {
 	appID := "builtin-gas-spin"
-	// Variable bet amount: 0.05-0.5 GAS
-	betMultiplier := randomInt(1, 10)
-	amount := int64(betMultiplier * 5000000)
+	amount := int64(randomInt(1, 10) * 5000000) // 0.05-0.5 GAS
 
-	// Step 1: Place bet
-	memo := fmt.Sprintf("gasspin:bet:%d:amount:%d", time.Now().UnixNano(), amount)
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	memo := fmt.Sprintf("gas-spin:%d:%d", amount, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("place spin bet: %w", err)
+		return fmt.Errorf("spin: %w", err)
 	}
 	atomic.AddInt64(&s.gasSpinBets, 1)
 
-	// Step 2: Request VRF randomness
-	_, err = s.invoker.RecordRandomness(ctx)
-	if err != nil {
-		if errors.Is(err, ErrRandomnessLogNotConfigured) {
-			err = nil
-		}
-	}
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("spin randomness: %w", err)
+	// Step 2: PLATFORM ACTION - Process spin via MiniApp contract (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "processSpin", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: amount},
+		})
 	}
 
-	// Step 3: Determine prize tier (0-7)
-	// Tier 0-2: Lose (37.5%)
-	// Tier 3-5: Win 2x (37.5%)
-	// Tier 6-7: Win 5x (25%)
-	tier := randomInt(0, 7)
-	var multiplier int64
-	if tier >= 6 {
-		multiplier = 5
-	} else if tier >= 3 {
-		multiplier = 2
-	} else {
-		multiplier = 0
-	}
-
-	// Step 4: Send payout if winner
-	if multiplier > 0 {
+	// Step 3: PLATFORM ACTION - Send payout (62.5% win chance)
+	if randomInt(0, 7) >= 3 {
 		atomic.AddInt64(&s.gasSpinWins, 1)
-		// Payout = bet * multiplier * 90% (10% platform fee)
-		payout := amount * multiplier * 90 / 100
 		winnerAddress := s.getRandomUserAddress()
-		payoutMemo := fmt.Sprintf("gasspin:payout:%d:tier:%d:mult:%d", time.Now().UnixNano(), tier, multiplier)
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payout, payoutMemo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("spin payout: %w", err)
+		multiplier := []int64{1, 2, 3, 5, 10}[randomInt(0, 4)]
+		payoutAmount := amount * multiplier
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payoutAmount, "gas-spin:win")
+		if err == nil {
+			atomic.AddInt64(&s.gasSpinPayouts, 1)
 		}
-		atomic.AddInt64(&s.gasSpinPayouts, 1)
 	}
 
 	return nil
 }
 
-// SimulatePricePredict simulates the binary options workflow:
-// 1. Place bet on price direction (up/down)
-// 2. Query current price from datafeed
-// 3. Wait for resolution period
-// 4. Query new price and resolve
-// 5. Send callback payout if correct
+// SimulatePricePredict simulates binary options as a real user would experience:
+// 1. User pays GAS to PaymentHub (simulates SDK payGAS call)
+// 2. Platform records prediction in MiniApp contract
+// 3. Platform sends payout if user wins (2x bet)
 func (s *MiniAppSimulator) SimulatePricePredict(ctx context.Context) error {
 	appID := "builtin-price-predict"
-	// Variable bet: 0.05-0.3 GAS (reduced to fit payout within account balance)
-	betMultiplier := randomInt(1, 6)
-	amount := int64(betMultiplier * 5000000)
+	amount := int64(randomInt(1, 6) * 5000000) // 0.05-0.3 GAS
+	direction := randomInt(0, 1)              // 0=down, 1=up
 
-	// Choose symbol and direction
-	symbols := []string{"BTCUSD", "ETHUSD", "NEOUSD"}
-	symbol := symbols[randomInt(0, len(symbols)-1)]
-	direction := randomInt(0, 1) // 0=down, 1=up
-
-	// Step 1: Place bet
-	memo := fmt.Sprintf("predict:bet:%s:%d:%d", symbol, direction, time.Now().UnixNano())
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	memo := fmt.Sprintf("price-predict:%d:%d", direction, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("place prediction bet: %w", err)
+		return fmt.Errorf("predict: %w", err)
 	}
 	atomic.AddInt64(&s.pricePredictBets, 1)
 
-	// Step 2: Simulate price query (actual updates handled by runPriceFeedUpdater)
-	// Note: We don't call UpdatePriceFeed here to avoid roundId conflicts
-	time.Sleep(100 * time.Millisecond)
+	// Step 2: PLATFORM ACTION - Record prediction (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "recordPrediction", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: direction},
+			{Type: "Integer", Value: amount},
+		})
+	}
 
-	// Step 3: Simulate resolution period (short delay)
-	time.Sleep(500 * time.Millisecond)
-
-	// Step 4: Resolve (50% win rate simulation)
-	// Note: Price updates are handled by runPriceFeedUpdater
+	// Step 3: PLATFORM ACTION - Send payout if user wins (50% chance, 2x)
 	outcome := randomInt(0, 1)
 	if outcome == direction {
 		atomic.AddInt64(&s.pricePredictWins, 1)
-		// Payout = 1.9x bet * 95% (5% platform fee)
-		payout := amount * 190 / 100 * 95 / 100
 		winnerAddress := s.getRandomUserAddress()
-		payoutMemo := fmt.Sprintf("predict:payout:%s:%d:correct", symbol, time.Now().UnixNano())
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payout, payoutMemo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("prediction payout: %w", err)
+		payoutAmount := amount * 2
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, payoutAmount, "price-predict:win")
+		if err == nil {
+			atomic.AddInt64(&s.pricePredictPayouts, 1)
 		}
-		atomic.AddInt64(&s.pricePredictPayouts, 1)
 	}
 
 	return nil
 }
 
-// SimulateSecretVote simulates privacy-preserving voting:
-// 1. Cast vote (payment)
-// 2. TEE processes encrypted vote
-// 3. Aggregate results (every N votes)
+// SimulateSecretVote simulates privacy-preserving voting as a real user would experience:
+// 1. User pays GAS to PaymentHub to cast vote (simulates SDK payGAS call)
+// 2. Platform records vote in MiniApp contract
+// 3. Platform tallies votes periodically
 func (s *MiniAppSimulator) SimulateSecretVote(ctx context.Context) error {
 	appID := "builtin-secret-vote"
 	amount := int64(1000000) // 0.01 GAS per vote
 
-	// Generate proposal ID
 	proposalID := fmt.Sprintf("prop-%d", randomInt(1, 10))
-	support := randomInt(0, 1) == 1
+	support := randomInt(0, 1)
 
-	// Step 1: Cast vote (payment)
-	memo := fmt.Sprintf("vote:%s:%v:%d", proposalID, support, time.Now().UnixNano())
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	memo := fmt.Sprintf("vote:%s:%d:%d", proposalID, support, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
@@ -782,105 +893,138 @@ func (s *MiniAppSimulator) SimulateSecretVote(ctx context.Context) error {
 	}
 	atomic.AddInt64(&s.secretVoteCasts, 1)
 
-	// Step 2: TEE processes vote (simulated)
-	time.Sleep(100 * time.Millisecond)
+	// Step 2: PLATFORM ACTION - Record vote (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "recordVote", []neoaccountsclient.ContractParam{
+			{Type: "String", Value: proposalID},
+			{Type: "Integer", Value: support},
+		})
+	}
 
-	// Step 3: Tally every 5 votes
+	// Step 3: PLATFORM ACTION - Tally every 5 votes
 	if atomic.LoadInt64(&s.secretVoteCasts)%5 == 0 {
+		if s.invoker.HasMiniAppContract(appID) {
+			_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "tallyVotes", []neoaccountsclient.ContractParam{
+				{Type: "String", Value: proposalID},
+			})
+		}
 		atomic.AddInt64(&s.secretVoteTallies, 1)
 	}
 
 	return nil
 }
 
-// SimulateAITrader simulates the AI trading agent workflow:
-// 1. Fetch price data from datafeed
-// 2. Execute trade based on strategy
-// 3. Pay trading fee
+// SimulateAITrader simulates the AI trading agent workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub (simulates SDK payGAS call)
+// 2. Platform executes trade via MiniApp contract
 func (s *MiniAppSimulator) SimulateAITrader(ctx context.Context) error {
 	appID := "builtin-ai-trader"
-	// Trade amount: 0.05-0.2 GAS
 	tradeMultiplier := randomInt(1, 4)
-	amount := int64(tradeMultiplier * 5000000)
-
-	// Simulate trade direction
-	direction := []string{"buy", "sell"}[randomInt(0, 1)]
+	amount := int64(tradeMultiplier * 5000000) // 0.05-0.2 GAS
+	direction := randomInt(0, 1)
 	symbol := []string{"NEOUSD", "GASUSD", "BTCUSD"}[randomInt(0, 2)]
 
-	// Step 1: Pay trading fee
-	memo := fmt.Sprintf("ai-trader:%s:%s:%d", direction, symbol, time.Now().UnixNano())
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	memo := fmt.Sprintf("ai-trader:%s:%d:%d", symbol, direction, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("ai-trader trade: %w", err)
 	}
 
+	// Step 2: PLATFORM ACTION - Execute trade (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "executeTrade", []neoaccountsclient.ContractParam{
+			{Type: "String", Value: symbol},
+			{Type: "Integer", Value: direction},
+			{Type: "Integer", Value: amount},
+		})
+	}
+
 	return nil
 }
 
-// SimulateGridBot simulates the grid trading bot workflow:
-// 1. Place grid order at price level
-// 2. Pay order fee
+// SimulateGridBot simulates the grid trading bot workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub (simulates SDK payGAS call)
+// 2. Platform places order via MiniApp contract
 func (s *MiniAppSimulator) SimulateGridBot(ctx context.Context) error {
 	appID := "builtin-grid-bot"
-	// Order amount: 0.03-0.1 GAS
 	orderMultiplier := randomInt(1, 3)
-	amount := int64(orderMultiplier * 3000000)
-
-	// Simulate order type
-	orderType := []string{"buy", "sell"}[randomInt(0, 1)]
+	amount := int64(orderMultiplier * 3000000) // 0.03-0.1 GAS
+	orderType := randomInt(0, 1)
 	priceLevel := randomInt(1, 10)
 
-	// Step 1: Pay order fee
-	memo := fmt.Sprintf("grid-bot:%s:level:%d:%d", orderType, priceLevel, time.Now().UnixNano())
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	memo := fmt.Sprintf("grid-bot:%d:level:%d:%d", orderType, priceLevel, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("grid-bot order: %w", err)
 	}
 
+	// Step 2: PLATFORM ACTION - Place order (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "placeOrder", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: orderType},
+			{Type: "Integer", Value: priceLevel},
+			{Type: "Integer", Value: amount},
+		})
+	}
+
 	return nil
 }
 
-// SimulateNFTEvolve simulates the NFT evolution workflow:
-// 1. Feed or play with pet
-// 2. Pay care fee
+// SimulateNFTEvolve simulates the NFT evolution workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub (simulates SDK payGAS call)
+// 2. Platform performs action via MiniApp contract
 func (s *MiniAppSimulator) SimulateNFTEvolve(ctx context.Context) error {
 	appID := "builtin-nft-evolve"
 	amount := int64(1000000) // 0.01 GAS per action
+	action := randomInt(0, 1) // 0=feed, 1=play
 
-	// Simulate action type
-	action := []string{"feed", "play"}[randomInt(0, 1)]
-
-	// Step 1: Pay care fee
-	memo := fmt.Sprintf("nft-evolve:%s:%d", action, time.Now().UnixNano())
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	actionName := []string{"feed", "play"}[action]
+	memo := fmt.Sprintf("nft-evolve:%s:%d", actionName, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("nft-evolve action: %w", err)
 	}
 
+	// Step 2: PLATFORM ACTION - Perform action (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "performAction", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: action},
+		})
+	}
+
 	return nil
 }
 
-// SimulateBridgeGuardian simulates the cross-chain bridge workflow:
-// 1. Initiate bridge transfer
-// 2. Pay bridge fee
+// SimulateBridgeGuardian simulates the cross-chain bridge workflow as a real user would experience:
+// 1. User pays GAS to PaymentHub (simulates SDK payGAS call)
+// 2. Platform initiates bridge via MiniApp contract
 func (s *MiniAppSimulator) SimulateBridgeGuardian(ctx context.Context) error {
 	appID := "builtin-bridge-guardian"
-	// Bridge amount: 0.5-2 GAS
-	bridgeMultiplier := randomInt(1, 4)
-	amount := int64(bridgeMultiplier * 50000000)
+	bridgeMultiplier := randomInt(1, 2)
+	amount := int64(bridgeMultiplier * 30000000) // 0.3-0.6 GAS (fits within 1 GAS account balance)
+	chain := randomInt(0, 1) // 0=eth, 1=btc
 
-	// Simulate destination chain
-	chain := []string{"eth", "btc"}[randomInt(0, 1)]
-
-	// Step 1: Pay bridge fee
-	memo := fmt.Sprintf("bridge:%s:%d:%d", chain, amount, time.Now().UnixNano())
+	// Step 1: USER ACTION - Pay GAS to PaymentHub
+	chainName := []string{"eth", "btc"}[chain]
+	memo := fmt.Sprintf("bridge:%s:%d:%d", chainName, amount, time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("bridge transfer: %w", err)
+	}
+
+	// Step 2: PLATFORM ACTION - Initiate bridge (if configured)
+	if s.invoker.HasMiniAppContract(appID) {
+		_, _ = s.invoker.InvokeMiniAppContract(ctx, appID, "initiateBridge", []neoaccountsclient.ContractParam{
+			{Type: "Integer", Value: chain},
+			{Type: "Integer", Value: amount},
+		})
 	}
 
 	return nil

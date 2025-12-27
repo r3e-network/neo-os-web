@@ -57,9 +57,7 @@ declare global {
             };
             rng: {
                 // RNG is executed inside TEE (via `neovrf`), optional on-chain anchoring.
-                requestRandom(
-                    appId: string,
-                ): Promise<{
+                requestRandom(appId: string): Promise<{
                     request_id: string;
                     randomness: string;
                     signature?: string;
@@ -81,6 +79,28 @@ declare global {
                 }>;
                 // Planned: stream subscription (SSE/WebSocket) via Edge proxy.
                 subscribe(symbol: string, cb: (p: any) => void): () => void;
+            };
+            stats: {
+                // Per-user daily usage (base units; GAS uses 1e-8).
+                getMyUsage(appId?: string, date?: string): Promise<any>;
+            };
+            events: {
+                // Query indexed on-chain events (auth required).
+                list(params: {
+                    app_id?: string;
+                    event_name?: string;
+                    contract_hash?: string;
+                    limit?: number;
+                    after_id?: string;
+                }): Promise<{ events: any[]; has_more: boolean; last_id?: string }>;
+            };
+            transactions: {
+                // Query platform-tracked chain transactions (auth required).
+                list(params: { app_id?: string; limit?: number; after_id?: string }): Promise<{
+                    transactions: any[];
+                    has_more: boolean;
+                    last_id?: string;
+                }>;
             };
         };
     }
@@ -105,6 +125,35 @@ MiniApp contract (or `ServiceLayerGateway`) via the wallet. The callback target
 is configured in the manifest (`callback_contract`, `callback_method`) and
 executed on-chain by the gateway when the TEE result is ready.
 
+## Contract Events for Platform Feeds
+
+To power **news feeds** and **analytics** without custom backends, MiniApp
+contracts should emit the platform-standard events:
+
+```csharp
+[DisplayName("Platform_Notification")]
+public static event Action<string, string, string> OnNotification;
+// notification_type, title, content (or IPFS hash)
+
+// Optional extended signature also accepted by the platform:
+// Platform_Notification(app_id, title, content, notification_type, priority)
+
+// Recommended notification_type: "Announcement", "Alert", "Milestone", "Promo"
+
+[DisplayName("Platform_Metric")]
+public static event Action<string, BigInteger> OnMetric;
+// metric_name, value
+
+// Optional extended signature also accepted by the platform:
+// Platform_Metric(app_id, metric_name, value)
+```
+
+Ensure `manifest.contract_hash` is set so the indexer can map contract events back to the
+correct MiniApp. The platform can enforce this requirement even when `app_id` is provided,
+especially when news/stats are enabled.
+If you do not want platform news/stats ingestion, set `news_integration=false` and omit
+`stats_display` in the manifest.
+
 ## Example
 
 ```ts
@@ -124,7 +173,57 @@ const { randomness, reportHash } =
     await window.MiniAppSDK.rng.requestRandom("raffle");
 
 const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD"); // or "BTC" (defaults to BTC-USD)
+
+const myUsage = await window.MiniAppSDK.stats.getMyUsage("raffle");
+console.log(`Today usage: ${myUsage.tx_count} txs, ${myUsage.gas_used} (1e-8 GAS units)`);
 ```
+
+## Payment Workflow (Important)
+
+MiniApps follow a specific payment workflow. **Users never directly invoke MiniApp
+contracts** - they only pay via the SDK, and the platform handles the rest.
+
+### Correct Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  1. USER ACTION: Pay via SDK                                    │
+│     SDK.payGAS(appId, amount, memo) → GAS.transfer → PaymentHub │
+├─────────────────────────────────────────────────────────────────┤
+│  2. PLATFORM ACTION: Process game logic                         │
+│     Platform invokes MiniApp contract (recordBet, recordTickets)│
+├─────────────────────────────────────────────────────────────────┤
+│  3. PLATFORM ACTION: Determine outcome                          │
+│     Platform uses VRF for randomness, oracle for prices         │
+├─────────────────────────────────────────────────────────────────┤
+│  4. PLATFORM ACTION: Send payouts                               │
+│     Platform sends GAS to winners                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Example: Lottery MiniApp
+
+```ts
+// User buys 5 lottery tickets
+const payment = await window.MiniAppSDK.payments.payGAS(
+    "builtin-lottery",
+    "0.5", // 0.5 GAS for 5 tickets
+    "lottery:round:42:tickets:5",
+);
+await window.MiniAppSDK.wallet.invokeIntent?.(payment.request_id);
+
+// That's it! The platform handles:
+// - Recording tickets in MiniAppLottery contract
+// - Drawing winners using VRF
+// - Sending payouts to winners
+```
+
+### Why This Architecture?
+
+1. **Security**: Users only sign GAS transfers, not arbitrary contract calls
+2. **Auditability**: All payments flow through PaymentHub
+3. **Simplicity**: MiniApp frontends don't need contract interaction logic
+4. **Flexibility**: Platform can upgrade game logic without changing user flow
 
 ## Security Notes
 

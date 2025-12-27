@@ -32,13 +32,18 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
-  const triggerId = String((body as any)?.id ?? "").trim();
+  const triggerId = String(body?.id ?? "").trim();
   if (!triggerId) return error(400, "id required", "ID_REQUIRED", req);
 
   const neoflowURL = mustGetEnv("NEOFLOW_URL").replace(/\/$/, "");
-  const result = await postJSON(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}/disable`, {}, {
-    "X-User-ID": auth.userId,
-  }, req);
+  const result = await postJSON(
+    `${neoflowURL}/triggers/${encodeURIComponent(triggerId)}/disable`,
+    {},
+    {
+      "X-User-ID": auth.userId,
+    },
+    req,
+  );
   if (result instanceof Response) return result;
   return json(result, {}, req);
 }

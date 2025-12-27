@@ -33,6 +33,7 @@ In production, Supabase Edge Functions use `/functions/v1/*`.
 This host app includes an optional proxy route:
 
 - `platform/host-app/pages/api/rpc/[fn].ts`
+- `platform/host-app/pages/api/rpc/relay.ts` (blueprint alias)
 
 It forwards `GET/POST/...` requests to:
 
@@ -43,6 +44,23 @@ Set `EDGE_BASE_URL` to one of:
 
 - `https://<project>.supabase.co/functions/v1`
 - `http://localhost:8787/functions/v1` (repo Edge dev server)
+
+The `/api/rpc/relay` alias accepts `fn` via query string or JSON body and
+forwards the remaining payload to the named Edge function.
+
+## Public Read Proxies
+
+The host app also exposes read-only proxies for analytics and news:
+
+- `GET /api/miniapp-stats`
+- `GET /api/miniapp-notifications`
+- `GET /api/market-trending`
+- `GET /api/market/trending` (blueprint path)
+- `GET /api/app/:id/news` (blueprint path)
+- `GET /api/miniapp-usage` (authenticated, per-user usage)
+
+These forward requests to the configured Edge base URL and keep response shapes
+consistent for the host UI (same `EDGE_BASE_URL` / `NEXT_PUBLIC_SUPABASE_URL` resolution as `/api/rpc/*`).
 
 ## Local Runs
 
@@ -65,7 +83,7 @@ Then open:
 
 - `http://localhost:3000/?entry_url=mf://builtin?app=builtin-price-ticker`
 
-### iframe Runs
+### iframe Runs (Legacy/Static Fallback)
 
 Static MiniApps are exported to the host public directory:
 
@@ -77,7 +95,7 @@ Refresh them with:
 ./scripts/export_host_miniapps.sh
 ```
 
-Then open:
+Then open (only if you are testing the static iframe build):
 
 - `http://localhost:3000/?entry_url=/miniapps/builtin/coin-flip/index.html`
 
@@ -119,7 +137,7 @@ you must implement a postMessage bridge with strict origin allowlists.
 
 This host includes a minimal postMessage-based bridge:
 
-- Host handler: `platform/host-app/pages/index.tsx`
+- Host handler: `platform/host-app/pages/launch/[id].tsx`
 - MiniApp script: `platform/host-app/public/sdk/miniapp-bridge.js`
 
 Bridge notes:
@@ -136,3 +154,21 @@ MiniApps can include the script from the host origin:
 
 The host only responds to requests from the currently embedded iframe and the
 expected origin derived from `entry_url`.
+
+Bridge methods exposed:
+
+- `wallet.getAddress` / `wallet.invokeIntent`
+- `payments.payGAS`
+- `governance.vote`
+- `rng.requestRandom`
+- `datafeed.getPrice`
+- `stats.getMyUsage`
+- `events.list`
+- `transactions.list`
+
+For authenticated endpoints (for example `stats.getMyUsage`), set a Supabase
+JWT in the host browser storage before loading the MiniApp:
+
+```js
+localStorage.setItem("neo_miniapp_auth_jwt", "<supabase-jwt>");
+```

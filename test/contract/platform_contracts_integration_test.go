@@ -208,19 +208,25 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	manifestHash := "0x" + strings.Repeat("cc", 32)
 	entryURL := "https://example.com/app"
 	developerPubKey := "0x" + strings.Repeat("dd", 33)
+	contractHash := "0x" + strings.Repeat("aa", 20)
+	appName := "MiniApp One"
+	appDescription := "Test miniapp registry entry"
+	appIcon := "https://example.com/icon.png"
+	appBanner := "https://example.com/banner.png"
+	appCategory := "gaming"
 
-	if _, err := nx.InvokeWithAccount(appRegistry.Hash, "register", account,
-		appID, manifestHash, entryURL, developerPubKey,
+	if _, err := nx.InvokeWithAccount(appRegistry.Hash, "registerApp", account,
+		appID, manifestHash, entryURL, developerPubKey, contractHash, appName, appDescription, appIcon, appBanner, appCategory,
 	); err != nil {
-		t.Fatalf("AppRegistry.register: %v", err)
+		t.Fatalf("AppRegistry.registerApp: %v", err)
 	}
 	appInfo, appInfoErr := nx.InvokeWithAccountResults(appRegistry.Hash, "getApp", account, appID)
 	if appInfoErr != nil {
 		t.Fatalf("AppRegistry.getApp: %v", appInfoErr)
 	}
 	appItems := stackArray("AppRegistry.getApp", appInfo)
-	if len(appItems) < 7 {
-		t.Fatalf("AppRegistry.getApp: expected 7 items, got %d", len(appItems))
+	if len(appItems) < 13 {
+		t.Fatalf("AppRegistry.getApp: expected 13 items, got %d", len(appItems))
 	}
 	status, statusErr := chain.ParseInteger(appItems[5])
 	if statusErr != nil {
@@ -244,6 +250,37 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	}
 	if status2.Int64() != 1 {
 		t.Fatalf("AppRegistry.getApp(after setStatus): status = %s, want 1 (Approved)", status2.String())
+	}
+
+	if gotName, err := chain.ParseStringFromItem(appItems[7]); err != nil {
+		t.Fatalf("AppRegistry.getApp: parse name: %v", err)
+	} else if gotName != appName {
+		t.Fatalf("AppRegistry.getApp: name = %s, want %s", gotName, appName)
+	}
+	if gotDescription, err := chain.ParseStringFromItem(appItems[8]); err != nil {
+		t.Fatalf("AppRegistry.getApp: parse description: %v", err)
+	} else if gotDescription != appDescription {
+		t.Fatalf("AppRegistry.getApp: description = %s, want %s", gotDescription, appDescription)
+	}
+	if gotIcon, err := chain.ParseStringFromItem(appItems[9]); err != nil {
+		t.Fatalf("AppRegistry.getApp: parse icon: %v", err)
+	} else if gotIcon != appIcon {
+		t.Fatalf("AppRegistry.getApp: icon = %s, want %s", gotIcon, appIcon)
+	}
+	if gotBanner, err := chain.ParseStringFromItem(appItems[10]); err != nil {
+		t.Fatalf("AppRegistry.getApp: parse banner: %v", err)
+	} else if gotBanner != appBanner {
+		t.Fatalf("AppRegistry.getApp: banner = %s, want %s", gotBanner, appBanner)
+	}
+	if gotCategory, err := chain.ParseStringFromItem(appItems[11]); err != nil {
+		t.Fatalf("AppRegistry.getApp: parse category: %v", err)
+	} else if gotCategory != appCategory {
+		t.Fatalf("AppRegistry.getApp: category = %s, want %s", gotCategory, appCategory)
+	}
+	if gotContractHash, err := chain.ParseByteArray(appItems[12]); err != nil {
+		t.Fatalf("AppRegistry.getApp: parse contract_hash: %v", err)
+	} else if hex.EncodeToString(gotContractHash) != strings.TrimPrefix(strings.ToLower(contractHash), "0x") {
+		t.Fatalf("AppRegistry.getApp: contract_hash mismatch")
 	}
 
 	// AutomationAnchor task registry + anti-replay.
@@ -313,8 +350,14 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	}
 
 	amount := int64(100000000) // 1 GAS (GAS has 8 decimals)
-	if _, err := nx.InvokeWithAccount(paymentHub.Hash, "pay", account, appID, amount, "test payment"); err != nil {
-		t.Fatalf("PaymentHub.pay: %v", err)
+	const gasContractHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+	if _, err := nx.InvokeWithAccount(gasContractHash, "transfer", account,
+		map[string]any{"type": "Hash160", "value": genesisScriptHash},
+		map[string]any{"type": "Hash160", "value": paymentHub.Hash},
+		amount,
+		appID,
+	); err != nil {
+		t.Fatalf("GAS.transfer: %v", err)
 	}
 
 	balBefore, balBeforeErr := nx.InvokeWithAccountResults(paymentHub.Hash, "getAppBalance", account, appID)

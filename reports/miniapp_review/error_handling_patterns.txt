@@ -1,0 +1,1463 @@
+platform/host-app/__tests__/hooks/useRealtimeNotifications.test.ts:264:        throw new Error("Callback error");
+services/gasbank/marble/topup.go:135:		return s.simulatedTopUp(ctx, fmt.Errorf("invalid top-up request"), toAddress, amount)
+services/gasbank/marble/topup.go:139:		return s.simulatedTopUp(ctx, fmt.Errorf("account pool client not configured"), toAddress, amount)
+services/gasbank/marble/topup.go:144:		return s.simulatedTopUp(ctx, err, toAddress, amount)
+services/gasbank/marble/topup.go:147:		return s.simulatedTopUp(ctx, fmt.Errorf("account pool fund returned empty tx hash"), toAddress, amount)
+services/gasbank/marble/topup.go:156:			cause = fmt.Errorf("top-up failed in strict mode")
+infrastructure/logging/logger_test.go:104:	err := errors.New("test error")
+infrastructure/logging/logger_test.go:282:	logger.LogDatabaseQuery(ctx, "SELECT * FROM users", 50*time.Millisecond, errors.New("connection failed"))
+infrastructure/logging/logger_test.go:303:	logger.LogBlockchainTx(ctx, "0x123", "transfer", errors.New("insufficient gas"))
+infrastructure/logging/logger_test.go:361:	err := errors.New("test error")
+infrastructure/logging/logger_test.go:445:	err := errors.New("test error")
+services/gasbank/marble/service.go:45:var errDepositMismatch = errors.New("deposit transaction does not match request")
+services/gasbank/marble/service.go:69:		return nil, fmt.Errorf("neogasbank: marble is required")
+services/gasbank/marble/service.go:76:		return nil, fmt.Errorf("neogasbank: chain client is required in strict/enclave mode")
+services/gasbank/marble/service.go:92:		return nil, fmt.Errorf("neogasbank: GASBANK_DEPOSIT_ADDRESS is required in production")
+services/gasbank/marble/service.go:157:		return nil, fmt.Errorf("user_id is required")
+services/gasbank/marble/service.go:162:		return nil, fmt.Errorf("get account: %w", err)
+services/gasbank/marble/service.go:195:		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("get account: %v", err)}, nil
+services/gasbank/marble/service.go:211:		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("update balance: %v", err)}, nil
+services/gasbank/marble/service.go:232:		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("record transaction: %v", err)}, nil
+services/gasbank/marble/service.go:366:		return false, 0, fmt.Errorf("chain client not configured")
+services/gasbank/marble/service.go:372:		return false, 0, err
+services/gasbank/marble/service.go:381:		return false, 0, fmt.Errorf("%w: transaction failed: %s", errDepositMismatch, exec.Exception)
+services/gasbank/marble/service.go:386:		return false, 0, err
+services/gasbank/marble/service.go:394:		return false, 0, err
+services/gasbank/marble/service.go:451:		return 0, fmt.Errorf("chain client not configured")
+services/gasbank/marble/service.go:456:		return 0, err
+services/gasbank/marble/service.go:464:		return 0, err
+infrastructure/logging/logger_extended_test.go:99:		logger.LogCryptoOperation(ctx, "decrypt", false, errors.New("key error"))
+infrastructure/logging/logger_extended_test.go:125:		logger.LogServiceCall(ctx, "auth-service", "validate", 100*time.Millisecond, errors.New("timeout"))
+infrastructure/logging/logger_extended_test.go:160:	err := errors.New("test error")
+infrastructure/logging/logger_extended_test.go:181:	err := errors.New("test error")
+services/requests/supabase/repository.go:60:		return nil, fmt.Errorf("app_id cannot be empty")
+services/requests/supabase/repository.go:70:		return nil, err
+services/requests/supabase/repository.go:81:		return nil, fmt.Errorf("contract_hash cannot be empty")
+services/requests/supabase/repository.go:91:		return nil, err
+services/requests/supabase/repository.go:101:			return nil, err
+services/requests/supabase/repository.go:113:		return fmt.Errorf("repository not configured")
+services/requests/supabase/repository.go:116:		return fmt.Errorf("miniapp update cannot be nil")
+services/requests/supabase/repository.go:119:		return fmt.Errorf("app_id cannot be empty")
+services/requests/supabase/repository.go:132:		return fmt.Errorf("repository not configured")
+services/requests/supabase/repository.go:135:		return fmt.Errorf("app_id cannot be empty")
+services/requests/supabase/repository.go:138:		return fmt.Errorf("tx_hash cannot be empty")
+services/requests/supabase/repository.go:152:		return fmt.Errorf("log miniapp tx: %w", err)
+services/requests/supabase/repository.go:160:		return fmt.Errorf("repository not configured")
+services/requests/supabase/repository.go:171:		return fmt.Errorf("rollup miniapp stats: %w", err)
+services/requests/supabase/repository.go:179:		return fmt.Errorf("repository not configured")
+services/requests/supabase/repository.go:182:		return fmt.Errorf("user_id cannot be empty")
+services/requests/supabase/repository.go:185:		return fmt.Errorf("app_id cannot be empty")
+services/requests/supabase/repository.go:207:		return fmt.Errorf("bump miniapp usage: %w", err)
+services/requests/supabase/repository.go:215:		return fmt.Errorf("service request cannot be nil")
+services/requests/supabase/repository.go:218:		return fmt.Errorf("user_id cannot be empty")
+services/requests/supabase/repository.go:221:		return fmt.Errorf("service_type cannot be empty")
+services/requests/supabase/repository.go:234:		return fmt.Errorf("service request cannot be nil")
+services/requests/supabase/repository.go:237:		return fmt.Errorf("service request id cannot be empty")
+services/requests/supabase/repository.go:245:		return fmt.Errorf("chain tx cannot be nil")
+services/requests/supabase/repository.go:248:		return fmt.Errorf("request_id cannot be empty")
+services/requests/supabase/repository.go:251:		return fmt.Errorf("from_service cannot be empty")
+services/requests/supabase/repository.go:254:		return fmt.Errorf("contract_address and method_name required")
+services/requests/supabase/repository.go:267:		return fmt.Errorf("chain tx cannot be nil")
+services/requests/supabase/repository.go:270:		return fmt.Errorf("chain tx id cannot be empty")
+services/requests/supabase/repository.go:278:		return fmt.Errorf("contract event cannot be nil")
+services/requests/supabase/repository.go:281:		return fmt.Errorf("contract event missing required fields")
+services/requests/supabase/repository.go:289:		return false, fmt.Errorf("chain_id and tx_hash required")
+services/requests/supabase/repository.go:300:		return false, err
+services/requests/supabase/repository.go:308:		return fmt.Errorf("processed event cannot be nil")
+services/requests/supabase/repository.go:311:		return fmt.Errorf("processed event missing chain_id or tx_hash")
+services/requests/supabase/repository.go:328:		return false, fmt.Errorf("processed event cannot be nil")
+services/requests/supabase/repository.go:333:		return false, err
+services/requests/supabase/repository.go:343:		return false, err
+services/requests/supabase/repository.go:351:		return 0, false, fmt.Errorf("repository not configured")
+services/requests/supabase/repository.go:365:		return 0, false, err
+services/requests/supabase/repository.go:388:		return fmt.Errorf("notification cannot be nil")
+services/requests/supabase/repository.go:391:		return fmt.Errorf("notification app_id cannot be empty")
+infrastructure/middleware/serviceauth.go:202:		return nil, errors.InvalidToken(err)
+infrastructure/middleware/recovery.go:42:				serviceErr := errors.Internal("Internal server error", fmt.Errorf("%v", err))
+infrastructure/middleware/misc_test.go:152:		panic("boom")
+services/requests/marble/dispatcher.go:37:		return err
+services/requests/marble/dispatcher.go:44:		return fmt.Errorf("missing required request fields")
+services/requests/marble/dispatcher.go:120:		execErr = fmt.Errorf("result exceeds max size")
+services/requests/marble/dispatcher.go:146:		return err
+services/requests/marble/dispatcher.go:181:		return serviceResult{}, fmt.Errorf("payload too large: %d bytes (max %d)", len(payload), maxPayloadSize)
+services/requests/marble/dispatcher.go:192:		return serviceResult{}, fmt.Errorf("unsupported service type: %s", serviceType)
+services/requests/marble/dispatcher.go:198:		return serviceResult{}, fmt.Errorf("neovrf URL not configured")
+services/requests/marble/dispatcher.go:204:			return serviceResult{}, fmt.Errorf("invalid rng payload")
+services/requests/marble/dispatcher.go:214:		return serviceResult{}, err
+services/requests/marble/dispatcher.go:219:		return serviceResult{}, fmt.Errorf("invalid rng response")
+services/requests/marble/dispatcher.go:230:		return serviceResult{}, fmt.Errorf("invalid randomness payload")
+services/requests/marble/dispatcher.go:238:		return serviceResult{}, fmt.Errorf("neooracle URL not configured")
+services/requests/marble/dispatcher.go:241:		return serviceResult{}, fmt.Errorf("oracle payload required")
+services/requests/marble/dispatcher.go:246:		return serviceResult{}, fmt.Errorf("invalid oracle payload")
+services/requests/marble/dispatcher.go:249:		return serviceResult{}, fmt.Errorf("oracle url required")
+services/requests/marble/dispatcher.go:254:		return serviceResult{}, err
+services/requests/marble/dispatcher.go:259:		return serviceResult{}, fmt.Errorf("invalid oracle response")
+services/requests/marble/dispatcher.go:266:			return serviceResult{}, fmt.Errorf("json_path not found")
+services/requests/marble/dispatcher.go:285:		return serviceResult{}, fmt.Errorf("failed to marshal oracle result")
+services/requests/marble/dispatcher.go:300:			return serviceResult{}, fmt.Errorf("failed to marshal trimmed oracle result")
+services/requests/marble/dispatcher.go:303:			return serviceResult{}, fmt.Errorf("oracle result exceeds max size")
+services/requests/marble/dispatcher.go:313:		return serviceResult{}, fmt.Errorf("neocompute URL not configured")
+services/requests/marble/dispatcher.go:316:		return serviceResult{}, fmt.Errorf("compute payload required")
+services/requests/marble/dispatcher.go:321:		return serviceResult{}, fmt.Errorf("invalid compute payload")
+services/requests/marble/dispatcher.go:324:		return serviceResult{}, fmt.Errorf("compute script required")
+services/requests/marble/dispatcher.go:332:		return serviceResult{}, err
+services/requests/marble/dispatcher.go:337:		return serviceResult{}, fmt.Errorf("invalid compute response")
+services/requests/marble/dispatcher.go:342:			return serviceResult{}, errors.New(resp.Error)
+services/requests/marble/dispatcher.go:344:		return serviceResult{}, fmt.Errorf("compute failed")
+services/requests/marble/dispatcher.go:364:		return serviceResult{}, fmt.Errorf("failed to marshal compute result")
+services/requests/marble/dispatcher.go:383:			return serviceResult{}, fmt.Errorf("failed to marshal trimmed compute result")
+services/requests/marble/dispatcher.go:386:			return serviceResult{}, fmt.Errorf("compute result exceeds max size")
+services/requests/marble/dispatcher.go:396:		return fmt.Errorf("txproxy not configured")
+services/requests/marble/dispatcher.go:407:		return err
+services/requests/marble/dispatcher.go:444:		return err
+services/requests/marble/dispatcher.go:543:		return nil, fmt.Errorf("repository not configured")
+services/requests/marble/dispatcher.go:547:		return nil, fmt.Errorf("app_id cannot be empty")
+services/requests/marble/dispatcher.go:561:		return nil, err
+services/requests/marble/dispatcher.go:571:		return nil, fmt.Errorf("repository not configured")
+services/requests/marble/dispatcher.go:575:		return nil, fmt.Errorf("contract_hash cannot be empty")
+services/requests/marble/dispatcher.go:589:		return nil, err
+services/requests/marble/dispatcher.go:643:		return nil, nil, fmt.Errorf("invalid request_id")
+services/requests/marble/dispatcher.go:782:		return out, err
+services/requests/marble/dispatcher.go:790:				return out, fmt.Errorf("invalid callback_contract")
+services/requests/marble/dispatcher.go:912:	return s.fulfillRequest(ctx, req, userID, result, err, nil)
+services/requests/marble/dispatcher.go:1005:		return err
+platform/host-app/components/FederatedMiniApp.tsx:80:          throw new Error(`Remote "${remoteName}" not configured`);
+platform/host-app/components/FederatedMiniApp.tsx:201:    throw new Error("Federated modules must be loaded in the browser");
+platform/host-app/components/FederatedMiniApp.tsx:220:      throw new Error("Module Federation runtime not available");
+services/requests/marble/clients.go:18:		return nil, fmt.Errorf("http client not configured")
+services/requests/marble/clients.go:21:		return nil, fmt.Errorf("service URL not configured")
+services/requests/marble/clients.go:26:		return nil, fmt.Errorf("marshal request: %w", err)
+services/requests/marble/clients.go:31:		return nil, fmt.Errorf("create request: %w", err)
+services/requests/marble/clients.go:40:		return nil, fmt.Errorf("request failed: %w", err)
+services/requests/marble/clients.go:47:			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+services/requests/marble/clients.go:56:		return nil, fmt.Errorf("request failed: %s", msg)
+services/requests/marble/clients.go:61:		return nil, fmt.Errorf("read response: %w", err)
+services/requests/marble/appregistry.go:25:		return fmt.Errorf("app registry check requires app_id")
+services/requests/marble/appregistry.go:30:		return err
+services/requests/marble/appregistry.go:33:		return fmt.Errorf("app not registered in AppRegistry")
+services/requests/marble/appregistry.go:36:		return fmt.Errorf("app not approved in AppRegistry (status=%d)", info.Status)
+services/requests/marble/appregistry.go:41:		return fmt.Errorf("miniapp manifest_hash missing")
+services/requests/marble/appregistry.go:45:		return fmt.Errorf("miniapp manifest_hash invalid: %w", err)
+services/requests/marble/appregistry.go:48:		return fmt.Errorf("manifest hash mismatch")
+services/requests/marble/appregistry.go:53:		return fmt.Errorf("entry_url mismatch")
+services/requests/marble/appregistry.go:59:			return fmt.Errorf("contract hash mismatch")
+services/requests/marble/appregistry.go:73:		return nil, fmt.Errorf("app registry lookup requires app_id")
+services/requests/marble/appregistry.go:84:		return nil, err
+services/requests/marble/service.go:107:		return nil, fmt.Errorf("neorequests: marble is required")
+services/requests/marble/service.go:114:			return nil, fmt.Errorf("neorequests: event listener is required in strict/enclave mode")
+services/requests/marble/service.go:117:			return nil, fmt.Errorf("neorequests: txproxy is required in strict/enclave mode")
+services/requests/marble/service.go:162:		return nil, fmt.Errorf("neorequests: ServiceLayerGateway hash required in strict/enclave mode")
+services/requests/marble/service.go:325:				return nil, fmt.Errorf("neorequests: AppRegistry hash required when enforcement enabled")
+services/requests/marble/service.go:332:				return nil, fmt.Errorf("neorequests: chain client required when AppRegistry enforcement enabled")
+services/vrf/marble/service.go:41:		return nil, fmt.Errorf("neovrf: marble is required")
+services/vrf/marble/service.go:68:		return nil, fmt.Errorf("neovrf: NEOVRF_SIGNING_KEY is required and must be at least 32 bytes")
+services/vrf/marble/service.go:74:		return nil, err
+services/vrf/marble/service.go:88:			return fmt.Errorf("neovrf: derive signing key: %w", err)
+services/vrf/marble/service.go:97:		return fmt.Errorf("neovrf: generate signing key: %w", err)
+services/vrf/marble/service.go:107:		return nil, nil, err
+contracts/cmd/update-paymenthub/main.go:26:		log.Fatal("NEO_TESTNET_WIF environment variable not set")
+infrastructure/service/base.go:228:		return err
+infrastructure/service/base.go:239:			return fmt.Errorf("hydrate: %w", err)
+infrastructure/service/signer_adapter.go:24:		return nil, "", fmt.Errorf("globalsigner client not configured")
+infrastructure/service/signer_adapter.go:32:		return nil, "", fmt.Errorf("sign: %w", err)
+infrastructure/service/signer_adapter.go:37:		return nil, "", fmt.Errorf("decode signature: %w", err)
+infrastructure/service/signer_adapter.go:46:		return "", "", fmt.Errorf("globalsigner client not configured")
+infrastructure/service/signer_adapter.go:51:		return "", "", fmt.Errorf("get attestation: %w", err)
+services/simulation/marble/miniapp_simulator.go:365:		return fmt.Errorf("buy tickets: %w", err)
+services/simulation/marble/miniapp_simulator.go:382:			return fmt.Errorf("draw randomness: %w", err)
+services/simulation/marble/miniapp_simulator.go:429:		return fmt.Errorf("place bet: %w", err)
+services/simulation/marble/miniapp_simulator.go:482:		return fmt.Errorf("place bet: %w", err)
+services/simulation/marble/miniapp_simulator.go:535:		return fmt.Errorf("buy card: %w", err)
+services/simulation/marble/miniapp_simulator.go:593:		return fmt.Errorf("buy ticket: %w", err)
+services/simulation/marble/miniapp_simulator.go:710:		return fmt.Errorf("place prediction: %w", err)
+services/simulation/marble/miniapp_simulator.go:761:		return fmt.Errorf("flash loan fee: %w", err)
+services/simulation/marble/miniapp_simulator.go:809:		return fmt.Errorf("spin: %w", err)
+services/simulation/marble/miniapp_simulator.go:849:		return fmt.Errorf("predict: %w", err)
+services/simulation/marble/miniapp_simulator.go:892:		return fmt.Errorf("cast vote: %w", err)
+services/simulation/marble/miniapp_simulator.go:932:		return fmt.Errorf("ai-trader trade: %w", err)
+services/simulation/marble/miniapp_simulator.go:962:		return fmt.Errorf("grid-bot order: %w", err)
+services/simulation/marble/miniapp_simulator.go:991:		return fmt.Errorf("nft-evolve action: %w", err)
+services/simulation/marble/miniapp_simulator.go:1019:		return fmt.Errorf("bridge transfer: %w", err)
+services/simulation/marble/contracts.go:67:	ErrPriceFeedNotConfigured     = errors.New("price feed hash not configured")
+services/simulation/marble/contracts.go:68:	ErrRandomnessLogNotConfigured = errors.New("randomness log hash not configured")
+services/simulation/marble/contracts.go:69:	ErrPaymentHubNotConfigured    = errors.New("payment hub hash not configured")
+services/simulation/marble/contracts.go:70:	ErrMiniAppContractNotFound    = errors.New("miniapp contract not found")
+services/simulation/marble/contracts.go:76:		return nil, fmt.Errorf("pool client is required")
+services/simulation/marble/contracts.go:92:		return nil, fmt.Errorf("payment hub hash is required")
+services/simulation/marble/contracts.go:204:		return "", fmt.Errorf("%w: %s", ErrMiniAppContractNotFound, appID)
+services/simulation/marble/contracts.go:213:		return "", err
+services/simulation/marble/contracts.go:220:		return "", fmt.Errorf("get pool account: %w", err)
+services/simulation/marble/contracts.go:227:		return "", fmt.Errorf("invoke miniapp contract: %w", err)
+services/simulation/marble/contracts.go:232:		return "", fmt.Errorf("miniapp contract execution failed: %s", resp.Exception)
+services/simulation/marble/contracts.go:279:		return "", fmt.Errorf("request account: %w", err)
+services/simulation/marble/contracts.go:283:		return "", fmt.Errorf("no accounts available in pool")
+services/simulation/marble/contracts.go:344:		return "", fmt.Errorf("unknown symbol: %s", symbol)
+services/simulation/marble/contracts.go:368:		return "", fmt.Errorf("invoke contract: %w", err)
+services/simulation/marble/contracts.go:373:		return "", fmt.Errorf("contract execution failed: %s", resp.Exception)
+services/simulation/marble/contracts.go:401:		return "", fmt.Errorf("invoke contract: %w", err)
+services/simulation/marble/contracts.go:406:		return "", fmt.Errorf("contract execution failed: %s", resp.Exception)
+services/simulation/marble/contracts.go:434:		return "", fmt.Errorf("get pool account: %w", err)
+services/simulation/marble/contracts.go:443:		return "", fmt.Errorf("transfer GAS to PaymentHub: %w", err)
+services/simulation/marble/contracts.go:465:		return "", fmt.Errorf("get pool account for payout: %w", err)
+services/simulation/marble/contracts.go:473:		return "", fmt.Errorf("transfer payout: %w", err)
+services/simulation/marble/contracts.go:573:		return nil, fmt.Errorf("contract hashes not configured (missing CONTRACT_PAYMENTHUB_HASH)")
+infrastructure/crypto/crypto.go:44:		return nil, fmt.Errorf("derive key: %w", err)
+infrastructure/crypto/crypto.go:53:		return nil, err
+infrastructure/crypto/crypto.go:79:		return nil, err
+infrastructure/crypto/crypto.go:84:		return nil, err
+infrastructure/crypto/crypto.go:89:		return nil, err
+infrastructure/crypto/crypto.go:101:		return nil, err
+infrastructure/crypto/crypto.go:106:		return nil, err
+infrastructure/crypto/crypto.go:111:		return nil, fmt.Errorf("ciphertext too short")
+infrastructure/crypto/crypto.go:117:		return nil, err
+infrastructure/crypto/crypto.go:137:		return nil, err
+infrastructure/crypto/crypto.go:209:			return nil, fmt.Errorf("invalid compressed public key")
+infrastructure/crypto/crypto.go:215:			return nil, fmt.Errorf("invalid uncompressed public key prefix")
+infrastructure/crypto/crypto.go:222:		return nil, fmt.Errorf("invalid public key length: %d", len(data))
+infrastructure/crypto/envelope.go:18:		return nil, fmt.Errorf("master key must be 32 bytes, got %d", len(masterKey))
+infrastructure/crypto/envelope.go:45:		return nil, err
+infrastructure/crypto/envelope.go:50:		return nil, fmt.Errorf("new cipher: %w", err)
+infrastructure/crypto/envelope.go:54:		return nil, fmt.Errorf("new gcm: %w", err)
+infrastructure/crypto/envelope.go:59:		return nil, fmt.Errorf("read nonce: %w", err)
+infrastructure/crypto/envelope.go:84:		return nil, fmt.Errorf("decode ciphertext: %w", err)
+infrastructure/crypto/envelope.go:89:		return nil, err
+infrastructure/crypto/envelope.go:94:		return nil, fmt.Errorf("new cipher: %w", err)
+infrastructure/crypto/envelope.go:98:		return nil, fmt.Errorf("new gcm: %w", err)
+infrastructure/crypto/envelope.go:102:		return nil, fmt.Errorf("ciphertext too short")
+infrastructure/crypto/envelope.go:111:		return nil, fmt.Errorf("decrypt: %w", err)
+services/simulation/marble/contracts_test.go:185:	mockClient.invokeMasterErr = errors.New("network error")
+services/simulation/marble/contracts_test.go:283:	mockClient.invokeMasterErr = errors.New("network error")
+services/simulation/marble/contracts_test.go:401:	mockClient.requestAccountsErr = errors.New("no accounts available")
+services/simulation/marble/contracts_test.go:446:	mockClient.transferWithDataErr = errors.New("transfer failed")
+services/datafeed/marble/core.go:38:		return nil, fmt.Errorf("pair required")
+services/datafeed/marble/core.go:103:		return nil, fmt.Errorf("no prices available for %s", normalizedPair)
+services/datafeed/marble/core.go:121:			return nil, fmt.Errorf("sign price: %w", err)
+services/datafeed/marble/core.go:202:		return 0, err
+services/datafeed/marble/core.go:211:		return 0, err
+services/datafeed/marble/core.go:224:		return 0, fmt.Errorf("price source returned HTTP %d: %s", resp.StatusCode, msg)
+services/datafeed/marble/core.go:229:		return 0, err
+services/datafeed/marble/core.go:235:		return 0, fmt.Errorf("price not found in response")
+services/datafeed/marble/core.go:249:		return 0, err
+services/datafeed/marble/core.go:254:		return 0, err
+services/datafeed/marble/core.go:267:		return 0, fmt.Errorf("price source returned HTTP %d: %s", resp.StatusCode, msg)
+services/datafeed/marble/core.go:272:		return 0, err
+services/datafeed/marble/core.go:277:		return 0, fmt.Errorf("price not found in response")
+services/datafeed/marble/core.go:300:		return nil, nil, fmt.Errorf("marshal signature payload: %w", err)
+services/datafeed/marble/core.go:305:		return nil, nil, err
+services/datafeed/marble/core.go:319:		return nil, nil, err
+services/simulation/marble/mocks_test.go:428:		return "", fmt.Errorf("miniapp contract not found: %s", appID)
+services/confcompute/marble/core.go:193:		return fmt.Errorf("marshal output: %w", err)
+services/confcompute/marble/core.go:204:			return fmt.Errorf("encrypt output: %w", err)
+services/confcompute/marble/core.go:222:		return nil, fmt.Errorf("script exceeds maximum size of %d bytes", MaxScriptSize)
+services/confcompute/marble/core.go:247:			return nil, fmt.Errorf("failed to set input: %w", err)
+services/confcompute/marble/core.go:251:			return nil, fmt.Errorf("failed to set input: %w", err)
+services/confcompute/marble/core.go:257:		return nil, fmt.Errorf("failed to set secrets: %w", err)
+services/confcompute/marble/core.go:280:		return nil, fmt.Errorf("failed to set console.log: %w", err)
+services/confcompute/marble/core.go:283:		return nil, fmt.Errorf("failed to set console: %w", err)
+services/confcompute/marble/core.go:296:		return nil, fmt.Errorf("failed to set crypto.sha256: %w", err)
+services/confcompute/marble/core.go:312:		return nil, fmt.Errorf("failed to set crypto.randomBytes: %w", err)
+services/confcompute/marble/core.go:315:		return nil, fmt.Errorf("failed to set crypto: %w", err)
+services/confcompute/marble/core.go:321:		return nil, fmt.Errorf("script error: %w", err)
+services/confcompute/marble/core.go:327:		return nil, fmt.Errorf("entry point '%s' is not a function", entryPoint)
+services/confcompute/marble/core.go:332:		return nil, fmt.Errorf("execution error: %w", err)
+services/simulation/marble/service.go:62:		return nil, fmt.Errorf("neosimulation: marble is required")
+services/simulation/marble/service.go:67:		return nil, fmt.Errorf("neosimulation: invalid marble type")
+services/simulation/marble/service.go:73:		return nil, fmt.Errorf("neosimulation: chain client is required in strict/enclave mode")
+services/simulation/marble/service.go:82:			return nil, fmt.Errorf("neosimulation: DB must implement database.RepositoryInterface")
+services/simulation/marble/service.go:169:		return nil, fmt.Errorf("neosimulation: failed to create account pool client: %w", err)
+services/simulation/marble/service.go:278:		return fmt.Errorf("simulation already running")
+services/simulation/marble/service.go:362:		return fmt.Errorf("simulation not running")
+services/simulation/marble/service.go:582:		return fmt.Errorf("database is not *database.Repository")
+services/simulation/marble/service.go:609:		return fmt.Errorf("insert simulation_txs: %w", err)
+services/automation/supabase/repository.go:58:		return nil, fmt.Errorf("id and user_id cannot be empty")
+services/automation/supabase/repository.go:69:		return nil, err
+services/automation/supabase/repository.go:80:		return fmt.Errorf("trigger cannot be nil")
+services/automation/supabase/repository.go:83:		return fmt.Errorf("user_id cannot be empty")
+services/automation/supabase/repository.go:95:		return fmt.Errorf("trigger cannot be nil")
+services/automation/supabase/repository.go:98:		return fmt.Errorf("id and user_id cannot be empty")
+services/automation/supabase/repository.go:108:		return fmt.Errorf("update neoflow trigger: %w", err)
+services/automation/supabase/repository.go:116:		return fmt.Errorf("id and user_id cannot be empty")
+services/automation/supabase/repository.go:126:		return fmt.Errorf("delete neoflow trigger: %w", err)
+services/automation/supabase/repository.go:134:		return fmt.Errorf("id and user_id cannot be empty")
+services/automation/supabase/repository.go:149:		return fmt.Errorf("set neoflow trigger enabled: %w", err)
+services/automation/supabase/repository.go:173:		return fmt.Errorf("execution cannot be nil")
+services/automation/supabase/repository.go:176:		return fmt.Errorf("trigger_id cannot be empty")
+services/automation/supabase/repository.go:188:		return nil, fmt.Errorf("trigger_id cannot be empty")
+services/datafeed/marble/fulfiller.go:32:		return fmt.Errorf("chain push not configured")
+services/datafeed/marble/fulfiller.go:37:		return fmt.Errorf("get price: %w", err)
+services/datafeed/marble/fulfiller.go:40:		return fmt.Errorf("price unavailable for %s", feedID)
+services/datafeed/marble/fulfiller.go:45:		return fmt.Errorf("invalid timestamp for feed %s", feedID)
+services/datafeed/marble/fulfiller.go:63:		return err
+services/datafeed/marble/txproxy_pricefeed.go:23:		return fmt.Errorf("neofeeds: service is nil")
+services/datafeed/marble/txproxy_pricefeed.go:26:		return fmt.Errorf("neofeeds: txproxy not configured")
+services/datafeed/marble/txproxy_pricefeed.go:29:		return fmt.Errorf("neofeeds: pricefeed hash not configured")
+services/datafeed/marble/txproxy_pricefeed.go:32:		return fmt.Errorf("neofeeds: symbol required")
+services/datafeed/marble/txproxy_pricefeed.go:35:		return fmt.Errorf("neofeeds: roundID required")
+services/datafeed/marble/txproxy_pricefeed.go:38:		return fmt.Errorf("neofeeds: price required")
+services/datafeed/marble/txproxy_pricefeed.go:41:		return fmt.Errorf("neofeeds: timestamp required")
+services/datafeed/marble/txproxy_pricefeed.go:44:		return fmt.Errorf("neofeeds: attestation hash missing")
+services/datafeed/marble/txproxy_pricefeed.go:56:	return err
+infrastructure/globalsigner/supabase/repository.go:69:		return fmt.Errorf("globalsigner: database not configured")
+infrastructure/globalsigner/supabase/repository.go:72:		return fmt.Errorf("key version is required")
+infrastructure/globalsigner/supabase/repository.go:75:		return fmt.Errorf("version is required")
+infrastructure/globalsigner/supabase/repository.go:78:		return fmt.Errorf("pubkey_hex is required")
+infrastructure/globalsigner/supabase/repository.go:81:		return fmt.Errorf("pubkey_hash is required")
+infrastructure/globalsigner/supabase/repository.go:98:		return fmt.Errorf("create %s: %w", keyRotationsTable, err)
+infrastructure/globalsigner/supabase/repository.go:105:		return fmt.Errorf("globalsigner: database not configured")
+infrastructure/globalsigner/supabase/repository.go:109:		return fmt.Errorf("version is required")
+infrastructure/globalsigner/supabase/repository.go:124:		return fmt.Errorf("update %s: %w", keyRotationsTable, err)
+infrastructure/globalsigner/supabase/repository.go:131:		return nil, fmt.Errorf("globalsigner: database not configured")
+infrastructure/globalsigner/supabase/repository.go:135:		return nil, fmt.Errorf("version is required")
+infrastructure/globalsigner/supabase/repository.go:141:		return nil, fmt.Errorf("get %s: %w", keyRotationsTable, err)
+infrastructure/globalsigner/supabase/repository.go:146:		return nil, fmt.Errorf("unmarshal %s: %w", keyRotationsTable, err)
+infrastructure/globalsigner/supabase/repository.go:168:		return nil, fmt.Errorf("globalsigner: database not configured")
+infrastructure/globalsigner/supabase/repository.go:182:		return nil, fmt.Errorf("list %s: %w", keyRotationsTable, err)
+infrastructure/globalsigner/supabase/repository.go:187:		return nil, fmt.Errorf("unmarshal %s: %w", keyRotationsTable, err)
+infrastructure/globalsigner/supabase/repository.go:223:		return fmt.Errorf("globalsigner: database not configured")
+infrastructure/globalsigner/supabase/repository.go:227:		return fmt.Errorf("key_version is required")
+infrastructure/globalsigner/supabase/repository.go:230:		return fmt.Errorf("attestation is required")
+infrastructure/globalsigner/supabase/repository.go:235:		return fmt.Errorf("marshal attestation: %w", err)
+infrastructure/globalsigner/supabase/repository.go:256:		return fmt.Errorf("create %s: %w", attestationArtifactsTable, err)
+infrastructure/globalsigner/supabase/repository.go:263:		return nil, fmt.Errorf("globalsigner: database not configured")
+infrastructure/globalsigner/supabase/repository.go:267:		return nil, fmt.Errorf("key_version is required")
+infrastructure/globalsigner/supabase/repository.go:280:		return nil, fmt.Errorf("get %s: %w", attestationArtifactsTable, err)
+infrastructure/globalsigner/supabase/repository.go:285:		return nil, fmt.Errorf("unmarshal %s: %w", attestationArtifactsTable, err)
+infrastructure/globalsigner/supabase/repository.go:293:		return nil, fmt.Errorf("decode attestation: %w", err)
+infrastructure/globalsigner/supabase/repository.go:323:		return fmt.Errorf("key version already exists: %s", v.Version)
+infrastructure/globalsigner/supabase/repository.go:337:		return fmt.Errorf("key version not found: %s", version)
+infrastructure/globalsigner/supabase/repository.go:358:		return nil, fmt.Errorf("key version not found: %s", version)
+infrastructure/globalsigner/supabase/repository.go:400:		return nil, fmt.Errorf("attestation not found for key version: %s", keyVersion)
+services/confcompute/marble/service_test.go:187:		return "", fmt.Errorf("unexpected user_id: %s", userID)
+services/confcompute/marble/service_test.go:191:		return "", fmt.Errorf("secret not found: %s", name)
+services/datafeed/marble/config.go:93:		return nil, fmt.Errorf("read config file: %w", err)
+services/datafeed/marble/config.go:102:			return nil, fmt.Errorf("parse config: %w", err)
+services/datafeed/marble/config.go:108:		return nil, err
+services/datafeed/marble/config.go:117:		return fmt.Errorf("at least one source required")
+services/datafeed/marble/config.go:124:			return fmt.Errorf("source[%d]: id required", i)
+services/datafeed/marble/config.go:127:			return fmt.Errorf("source[%d]: url required", i)
+services/datafeed/marble/config.go:130:			return fmt.Errorf("source[%d]: json_path required", i)
+services/datafeed/marble/config.go:144:			return fmt.Errorf("feed[%d]: id required", i)
+services/datafeed/marble/config.go:148:			return fmt.Errorf("feed[%d]: id required", i)
+services/datafeed/marble/config.go:174:				return fmt.Errorf("feed[%d]: unknown source %q", i, srcID)
+services/automation/marble/anchored_tasks.go:84:		return nil, fmt.Errorf("empty task id")
+services/automation/marble/anchored_tasks.go:119:			return err
+services/automation/marble/anchored_tasks.go:127:		return fmt.Errorf("automation anchor not configured")
+services/automation/marble/anchored_tasks.go:132:		return err
+services/automation/marble/anchored_tasks.go:135:		return fmt.Errorf("task not found")
+services/automation/marble/anchored_tasks.go:147:			return fmt.Errorf("parse trigger json: %w", err)
+services/automation/marble/anchored_tasks.go:151:		return fmt.Errorf("trigger.type required")
+services/automation/marble/anchored_tasks.go:162:			return fmt.Errorf("parse cron schedule: %w", err)
+services/datafeed/marble/service.go:88:		return nil, fmt.Errorf("marble is required")
+services/datafeed/marble/service.go:118:			return nil, fmt.Errorf("load config: %w", err)
+services/datafeed/marble/service.go:127:		return nil, fmt.Errorf("validate config: %w", err)
+services/datafeed/marble/service.go:136:				return nil, fmt.Errorf("neofeeds: source %q url must use https in strict identity mode", src.ID)
+services/datafeed/marble/service.go:140:			return nil, fmt.Errorf("neofeeds: ArbitrumRPC must use https in strict identity mode")
+services/datafeed/marble/service.go:179:		return nil, fmt.Errorf("neofeeds: NEOFEEDS_SIGNING_KEY is required and must be at least 32 bytes")
+services/datafeed/marble/service.go:208:			return nil, fmt.Errorf("neofeeds: EnableChainPush requires PriceFeedHash configured")
+services/datafeed/marble/service.go:216:			return nil, fmt.Errorf("neofeeds: EnableChainPush requires chain client configured")
+services/datafeed/marble/service.go:224:			return nil, fmt.Errorf("neofeeds: EnableChainPush requires TxProxy configured")
+services/confcompute/marble/service.go:97:		return nil, fmt.Errorf("neocompute: marble is required")
+services/confcompute/marble/service.go:144:		return nil, fmt.Errorf("neocompute: COMPUTE_MASTER_KEY is required and must be at least 32 bytes")
+services/confcompute/marble/service.go:149:			return nil, fmt.Errorf("neocompute: generate fallback key: %w", err)
+services/confcompute/marble/service.go:214:		return nil, err
+services/datafeed/marble/chainlink.go:61:		return nil, fmt.Errorf("invalid arbitrum rpc url: %w", err)
+services/datafeed/marble/chainlink.go:113:		return 0, 0, fmt.Errorf("chainlink feed not found: %s", normalizedID)
+services/datafeed/marble/chainlink.go:133:		return 0, 0, fmt.Errorf("marshal request: %w", err)
+services/datafeed/marble/chainlink.go:138:		return 0, 0, fmt.Errorf("create request: %w", err)
+services/datafeed/marble/chainlink.go:144:		return 0, 0, fmt.Errorf("rpc call: %w", err)
+services/datafeed/marble/chainlink.go:151:			return 0, 0, fmt.Errorf("read response: %w", readErr)
+services/datafeed/marble/chainlink.go:157:		return 0, 0, fmt.Errorf("rpc http error %d: %s", resp.StatusCode, msg)
+services/datafeed/marble/chainlink.go:162:		return 0, 0, fmt.Errorf("read response: %w", err)
+services/datafeed/marble/chainlink.go:168:		return 0, 0, fmt.Errorf("unmarshal response: %w", err)
+services/datafeed/marble/chainlink.go:172:		return 0, 0, fmt.Errorf("rpc error: %s", rpcResp.Error.Message)
+services/datafeed/marble/chainlink.go:179:		return 0, 0, fmt.Errorf("invalid response length")
+services/datafeed/marble/chainlink.go:186:		return 0, 0, fmt.Errorf("decode answer: %w", err)
+services/automation/marble/service_test.go:70:			panic(r)
+services/automation/marble/service_test.go:90:	return nil, fmt.Errorf("trigger not found")
+services/simulation/marble/miniapp_simulator_test.go:144:	mockInvoker.payToAppErr = errors.New("payment failed")
+services/simulation/marble/miniapp_simulator_test.go:211:	mockInvoker.payToAppErr = errors.New("payment failed")
+services/simulation/marble/miniapp_simulator_test.go:254:	mockInvoker.payToAppErr = errors.New("payment failed")
+services/simulation/marble/miniapp_simulator_test.go:297:	mockInvoker.payToAppErr = errors.New("payment failed")
+services/simulation/marble/miniapp_simulator_test.go:341:	mockInvoker.payToAppErr = errors.New("payment failed")
+services/simulation/marble/miniapp_simulator_test.go:385:	mockInvoker.payToAppErr = errors.New("payment failed")
+services/simulation/marble/miniapp_simulator_test.go:426:	mockInvoker.invokeMiniAppErr = errors.New("contract invocation failed")
+services/automation/marble/service.go:90:		return nil, fmt.Errorf("marble is required")
+services/automation/marble/service.go:128:			return nil, fmt.Errorf("neoflow: EnableChainExec requires AutomationAnchorHash configured")
+services/automation/marble/service.go:136:			return nil, fmt.Errorf("neoflow: EnableChainExec requires chain client configured")
+services/automation/marble/service.go:144:			return nil, fmt.Errorf("neoflow: EnableChainExec requires TxProxy configured")
+services/automation/marble/triggers.go:97:		return err
+services/automation/marble/triggers.go:107:			return fmt.Errorf("webhook url required")
+services/automation/marble/triggers.go:112:			return fmt.Errorf("invalid webhook url: %w", err)
+services/automation/marble/triggers.go:116:			return fmt.Errorf("unsupported webhook url scheme: %q", parsedURL.Scheme)
+services/automation/marble/triggers.go:119:			return fmt.Errorf("webhook url must include hostname")
+services/automation/marble/triggers.go:122:			return fmt.Errorf("webhook url must not include userinfo")
+services/automation/marble/triggers.go:130:			return fmt.Errorf("external webhook url must use https in strict identity mode")
+services/automation/marble/triggers.go:136:				return fmt.Errorf("mesh webhook requires Marble mTLS in strict identity mode")
+services/automation/marble/triggers.go:157:			return err
+services/automation/marble/triggers.go:174:			return err
+services/automation/marble/triggers.go:178:			return fmt.Errorf("webhook status %d", resp.StatusCode)
+services/automation/marble/triggers.go:197:		return fmt.Errorf("webhook url must include hostname")
+services/automation/marble/triggers.go:200:		return fmt.Errorf("external webhook hostname not allowed in strict identity mode")
+services/automation/marble/triggers.go:205:			return fmt.Errorf("external webhook target IP not allowed in strict identity mode")
+services/automation/marble/triggers.go:215:		return fmt.Errorf("failed to resolve webhook hostname: %w", err)
+services/automation/marble/triggers.go:218:		return fmt.Errorf("failed to resolve webhook hostname: no addresses found")
+services/automation/marble/triggers.go:223:			return fmt.Errorf("external webhook target resolves to a private or local IP which is not allowed in strict identity mode")
+services/automation/marble/triggers.go:284:		return time.Time{}, fmt.Errorf("invalid cron expression: expected 5 fields")
+services/automation/marble/triggers.go:290:		return time.Time{}, fmt.Errorf("invalid minute field: %w", err)
+services/automation/marble/triggers.go:294:		return time.Time{}, fmt.Errorf("invalid hour field: %w", err)
+services/automation/marble/triggers.go:298:		return time.Time{}, fmt.Errorf("invalid day field: %w", err)
+services/automation/marble/triggers.go:302:		return time.Time{}, fmt.Errorf("invalid month field: %w", err)
+services/automation/marble/triggers.go:306:		return time.Time{}, fmt.Errorf("invalid weekday field: %w", err)
+services/automation/marble/triggers.go:326:	return time.Time{}, fmt.Errorf("no matching time found within 1 year")
+services/automation/marble/triggers.go:345:			return nil, fmt.Errorf("invalid step: %s", field)
+services/automation/marble/triggers.go:366:					return nil, fmt.Errorf("invalid step in range: %s", part)
+services/automation/marble/triggers.go:372:				return nil, fmt.Errorf("invalid range: %s", part)
+services/automation/marble/triggers.go:377:				return nil, fmt.Errorf("invalid range values: %s", part)
+services/automation/marble/triggers.go:386:				return nil, fmt.Errorf("invalid value: %s", part)
+infrastructure/globalsigner/marble/service.go:129:			return fmt.Errorf("failed to get master seed: secret not found")
+infrastructure/globalsigner/marble/service.go:135:			return fmt.Errorf("generate master seed: %w", err)
+infrastructure/globalsigner/marble/service.go:149:		return fmt.Errorf("master seed must be 32 bytes, got %d", len(seed))
+infrastructure/globalsigner/marble/service.go:173:			return fmt.Errorf("failed to bootstrap initial key: %w", err)
+infrastructure/globalsigner/marble/service.go:185:		return err
+infrastructure/globalsigner/marble/service.go:209:		return nil, fmt.Errorf("key derivation failed: %w", err)
+infrastructure/globalsigner/marble/service.go:274:		return err
+infrastructure/globalsigner/marble/service.go:306:		return nil, fmt.Errorf("failed to derive new key: %w", err)
+infrastructure/globalsigner/marble/service.go:403:		return nil, fmt.Errorf("domain is required")
+infrastructure/globalsigner/marble/service.go:406:		return nil, fmt.Errorf("data is required")
+infrastructure/globalsigner/marble/service.go:411:		return nil, fmt.Errorf("invalid data hex: %w", err)
+infrastructure/globalsigner/marble/service.go:425:		return nil, fmt.Errorf("key version not found: %s", version)
+infrastructure/globalsigner/marble/service.go:430:		return nil, fmt.Errorf("key version revoked: %s", version)
+infrastructure/globalsigner/marble/service.go:434:			return nil, fmt.Errorf("key version overlap expired: %s", version)
+infrastructure/globalsigner/marble/service.go:449:		return nil, fmt.Errorf("signing failed: %w", err)
+infrastructure/globalsigner/marble/service.go:473:		return nil, fmt.Errorf("data is required")
+infrastructure/globalsigner/marble/service.go:478:		return nil, fmt.Errorf("invalid data hex: %w", err)
+infrastructure/globalsigner/marble/service.go:491:		return nil, fmt.Errorf("key version not found: %s", version)
+infrastructure/globalsigner/marble/service.go:496:		return nil, fmt.Errorf("key version revoked: %s", version)
+infrastructure/globalsigner/marble/service.go:500:			return nil, fmt.Errorf("key version overlap expired: %s", version)
+infrastructure/globalsigner/marble/service.go:506:		return nil, fmt.Errorf("signing failed: %w", err)
+infrastructure/globalsigner/marble/service.go:534:		return nil, fmt.Errorf("domain is required")
+infrastructure/globalsigner/marble/service.go:537:		return nil, fmt.Errorf("path is required")
+infrastructure/globalsigner/marble/service.go:550:		return nil, fmt.Errorf("key version not found: %s", version)
+infrastructure/globalsigner/marble/service.go:557:		return nil, fmt.Errorf("derivation failed: %w", err)
+infrastructure/globalsigner/marble/service.go:628:	return "", nil, fmt.Errorf("not in enclave mode")
+infrastructure/globalsigner/marble/service.go:635:		return nil, fmt.Errorf("no active key version")
+infrastructure/globalsigner/marble/service.go:658:		return nil, fmt.Errorf("key version not found: %s", version)
+services/simulation/contracts/invoker.go:42:		return nil, fmt.Errorf("NEO_TESTNET_WIF environment variable not set")
+services/simulation/contracts/invoker.go:47:		return nil, fmt.Errorf("invalid WIF: %w", err)
+services/simulation/contracts/invoker.go:53:		return nil, fmt.Errorf("create RPC client: %w", err)
+services/simulation/contracts/invoker.go:61:		return nil, fmt.Errorf("create actor: %w", err)
+services/simulation/contracts/invoker.go:98:		return "", fmt.Errorf("parse contract hash: %w", err)
+services/simulation/contracts/invoker.go:119:		return "", fmt.Errorf("send transaction: %w", err)
+services/simulation/contracts/invoker.go:130:		return "", fmt.Errorf("parse contract hash: %w", err)
+services/simulation/contracts/invoker.go:153:		return "", fmt.Errorf("send transaction: %w", err)
+services/simulation/contracts/invoker.go:164:		return "", fmt.Errorf("parse contract hash: %w", err)
+services/simulation/contracts/invoker.go:176:		return "", fmt.Errorf("send transaction: %w", err)
+services/simulation/contracts/invoker.go:186:		return nil, fmt.Errorf("parse contract hash: %w", err)
+services/simulation/contracts/invoker.go:191:		return nil, fmt.Errorf("call getLatest: %w", err)
+services/simulation/contracts/invoker.go:195:		return nil, fmt.Errorf("call failed: %s", result.FaultException)
+platform/host-app/pages/launch/[id].tsx:194:        if (!sdk) throw new Error("MiniAppSDK unavailable");
+platform/host-app/pages/launch/[id].tsx:302:    throw new Error("app_id mismatch");
+platform/host-app/pages/launch/[id].tsx:320:    throw new Error(`permission denied: ${method}`);
+platform/host-app/pages/launch/[id].tsx:328:      throw new Error("wallet.getAddress not available");
+platform/host-app/pages/launch/[id].tsx:331:      if (!sdk.wallet?.invokeIntent) throw new Error("wallet.invokeIntent not available");
+platform/host-app/pages/launch/[id].tsx:336:      if (!sdk.payments?.payGAS) throw new Error("payments.payGAS not available");
+platform/host-app/pages/launch/[id].tsx:343:      if (!sdk.governance?.vote) throw new Error("governance.vote not available");
+platform/host-app/pages/launch/[id].tsx:350:      if (!sdk.rng?.requestRandom) throw new Error("rng.requestRandom not available");
+platform/host-app/pages/launch/[id].tsx:356:      if (!sdk.datafeed?.getPrice) throw new Error("datafeed.getPrice not available");
+platform/host-app/pages/launch/[id].tsx:361:      if (!sdk.stats?.getMyUsage) throw new Error("stats.getMyUsage not available");
+platform/host-app/pages/launch/[id].tsx:368:      if (!sdk.events?.list) throw new Error("events.list not available");
+platform/host-app/pages/launch/[id].tsx:373:      if (!sdk.transactions?.list) throw new Error("transactions.list not available");
+platform/host-app/pages/launch/[id].tsx:378:      throw new Error(`unsupported method: ${method}`);
+infrastructure/globalsigner/client/client.go:56:		return nil, fmt.Errorf("globalsigner: %w", err)
+infrastructure/globalsigner/client/client.go:143:		return nil, fmt.Errorf("globalsigner: client is nil")
+infrastructure/globalsigner/client/client.go:146:		return nil, fmt.Errorf("globalsigner: http client not configured")
+infrastructure/globalsigner/client/client.go:151:		return nil, fmt.Errorf("marshal request: %w", err)
+infrastructure/globalsigner/client/client.go:156:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/globalsigner/client/client.go:166:		return nil, fmt.Errorf("send request: %w", err)
+infrastructure/globalsigner/client/client.go:173:			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+infrastructure/globalsigner/client/client.go:180:			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+infrastructure/globalsigner/client/client.go:182:		return nil, fmt.Errorf("request failed: %s", resp.Status)
+infrastructure/globalsigner/client/client.go:187:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/globalsigner/client/client.go:192:		return nil, fmt.Errorf("unmarshal response: %w", err)
+infrastructure/globalsigner/client/client.go:201:		return nil, fmt.Errorf("globalsigner: client is nil")
+infrastructure/globalsigner/client/client.go:204:		return nil, fmt.Errorf("globalsigner: http client not configured")
+infrastructure/globalsigner/client/client.go:209:		return nil, fmt.Errorf("marshal request: %w", err)
+infrastructure/globalsigner/client/client.go:214:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/globalsigner/client/client.go:224:		return nil, fmt.Errorf("send request: %w", err)
+infrastructure/globalsigner/client/client.go:231:			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+infrastructure/globalsigner/client/client.go:238:			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+infrastructure/globalsigner/client/client.go:240:		return nil, fmt.Errorf("request failed: %s", resp.Status)
+infrastructure/globalsigner/client/client.go:245:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/globalsigner/client/client.go:250:		return nil, fmt.Errorf("unmarshal response: %w", err)
+infrastructure/globalsigner/client/client.go:259:		return nil, fmt.Errorf("globalsigner: client is nil")
+infrastructure/globalsigner/client/client.go:262:		return nil, fmt.Errorf("globalsigner: http client not configured")
+infrastructure/globalsigner/client/client.go:267:		return nil, fmt.Errorf("marshal request: %w", err)
+infrastructure/globalsigner/client/client.go:272:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/globalsigner/client/client.go:282:		return nil, fmt.Errorf("send request: %w", err)
+infrastructure/globalsigner/client/client.go:289:			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+infrastructure/globalsigner/client/client.go:296:			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+infrastructure/globalsigner/client/client.go:298:		return nil, fmt.Errorf("request failed: %s", resp.Status)
+infrastructure/globalsigner/client/client.go:303:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/globalsigner/client/client.go:305:		return nil, fmt.Errorf("decode response: %w", err)
+infrastructure/globalsigner/client/client.go:314:		return nil, fmt.Errorf("globalsigner: client is nil")
+infrastructure/globalsigner/client/client.go:317:		return nil, fmt.Errorf("globalsigner: http client not configured")
+infrastructure/globalsigner/client/client.go:322:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/globalsigner/client/client.go:331:		return nil, fmt.Errorf("send request: %w", err)
+infrastructure/globalsigner/client/client.go:338:			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+infrastructure/globalsigner/client/client.go:345:			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+infrastructure/globalsigner/client/client.go:347:		return nil, fmt.Errorf("request failed: %s", resp.Status)
+infrastructure/globalsigner/client/client.go:352:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/globalsigner/client/client.go:354:		return nil, fmt.Errorf("decode response: %w", err)
+infrastructure/globalsigner/client/client.go:363:		return nil, fmt.Errorf("globalsigner: client is nil")
+infrastructure/globalsigner/client/client.go:366:		return nil, fmt.Errorf("globalsigner: http client not configured")
+infrastructure/globalsigner/client/client.go:371:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/globalsigner/client/client.go:380:		return nil, fmt.Errorf("send request: %w", err)
+infrastructure/globalsigner/client/client.go:387:			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+infrastructure/globalsigner/client/client.go:394:			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+infrastructure/globalsigner/client/client.go:396:		return nil, fmt.Errorf("request failed: %s", resp.Status)
+infrastructure/globalsigner/client/client.go:404:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/globalsigner/client/client.go:406:		return nil, fmt.Errorf("decode response: %w", err)
+infrastructure/globalsigner/client/client.go:415:		return fmt.Errorf("globalsigner: client is nil")
+infrastructure/globalsigner/client/client.go:418:		return fmt.Errorf("globalsigner: http client not configured")
+infrastructure/globalsigner/client/client.go:423:		return err
+infrastructure/globalsigner/client/client.go:428:		return err
+infrastructure/globalsigner/client/client.go:433:		return fmt.Errorf("unhealthy: %s", resp.Status)
+infrastructure/accountpool/supabase/repository.go:113:		return nil, fmt.Errorf("locker_id cannot be empty")
+infrastructure/accountpool/supabase/repository.go:122:		return fmt.Errorf("delete balances: %w", err)
+infrastructure/accountpool/supabase/repository.go:135:		return nil, err
+infrastructure/accountpool/supabase/repository.go:140:		return nil, fmt.Errorf("get balances: %w", err)
+infrastructure/accountpool/supabase/repository.go:156:		return nil, err
+infrastructure/accountpool/supabase/repository.go:172:		return nil, err
+infrastructure/accountpool/supabase/repository.go:178:		return nil, err
+infrastructure/accountpool/supabase/repository.go:208:		return nil, err
+infrastructure/accountpool/supabase/repository.go:224:		return nil, err
+infrastructure/accountpool/supabase/repository.go:230:		return nil, err
+infrastructure/accountpool/supabase/repository.go:307:		return fmt.Errorf("account_id and token_type are required")
+infrastructure/accountpool/supabase/repository.go:347:		return nil, fmt.Errorf("account_id and token_type are required")
+infrastructure/accountpool/supabase/repository.go:357:		return nil, err
+infrastructure/accountpool/supabase/repository.go:370:		return nil, fmt.Errorf("account_id is required")
+infrastructure/accountpool/supabase/repository.go:393:		return fmt.Errorf("account_id is required")
+infrastructure/accountpool/supabase/repository.go:398:		return err
+infrastructure/accountpool/supabase/repository.go:408:			return fmt.Errorf("delete balance %s/%s: %w", bal.AccountID, bal.TokenType, err)
+infrastructure/accountpool/supabase/repository.go:423:		return nil, fmt.Errorf("token_type is required")
+infrastructure/accountpool/supabase/repository.go:429:		return nil, err
+services/conforacle/marble/service.go:58:			return nil, fmt.Errorf("neooracle: URL allowlist is required in strict identity mode (set ORACLE_HTTP_ALLOWLIST)")
+services/txproxy/marble/service.go:66:		return nil, fmt.Errorf("txproxy: marble is required")
+services/txproxy/marble/service.go:85:			return nil, err
+services/txproxy/marble/service.go:109:			return nil, fmt.Errorf("txproxy: chain client is required in strict/enclave mode")
+services/txproxy/marble/service.go:112:			return nil, fmt.Errorf("txproxy: signer is required in strict/enclave mode")
+services/txproxy/marble/allowlist.go:31:		return nil, fmt.Errorf("parse allowlist json: %w", err)
+services/txproxy/marble/allowlist.go:38:			return nil, fmt.Errorf("invalid contract hash: %q", contract)
+infrastructure/datafeed/service.go:35:		return nil, err
+infrastructure/datafeed/service.go:64:		return nil, err
+infrastructure/datafeed/service.go:89:		return nil, err
+platform/builtin-app/src/components/BuiltinApp.tsx:143:  if (modulo <= 0) throw new Error("Invalid randomness modulus");
+platform/builtin-app/src/components/BuiltinApp.tsx:144:  if (!hex) throw new Error("Randomness output missing");
+platform/builtin-app/src/components/BuiltinApp.tsx:146:  if (bytes.length === 0) throw new Error("Randomness output invalid");
+platform/builtin-app/src/components/BuiltinApp.tsx:623:      if (startValue === null) throw new Error("Invalid start price response");
+platform/builtin-app/src/components/BuiltinApp.tsx:630:      if (endValue === null) throw new Error("Invalid end price response");
+infrastructure/txproxy/client/client.go:57:		return nil, fmt.Errorf("txproxy: %w", err)
+infrastructure/txproxy/client/client.go:78:		return nil, fmt.Errorf("txproxy: client is nil")
+infrastructure/txproxy/client/client.go:81:		return nil, fmt.Errorf("txproxy: http client not configured")
+infrastructure/txproxy/client/client.go:86:		return nil, fmt.Errorf("marshal request: %w", err)
+infrastructure/txproxy/client/client.go:91:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/txproxy/client/client.go:101:		return nil, fmt.Errorf("send request: %w", err)
+infrastructure/txproxy/client/client.go:108:			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+infrastructure/txproxy/client/client.go:115:			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+infrastructure/txproxy/client/client.go:117:		return nil, fmt.Errorf("request failed: %s", resp.Status)
+infrastructure/txproxy/client/client.go:122:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/txproxy/client/client.go:127:		return nil, fmt.Errorf("unmarshal response: %w", err)
+infrastructure/errors/errors_test.go:22:			err:  Wrap(ErrCodeInternal, "test message", http.StatusInternalServerError, errors.New("underlying")),
+infrastructure/errors/errors_test.go:37:	underlying := errors.New("underlying error")
+infrastructure/errors/errors_test.go:79:	underlying := errors.New("token parse error")
+infrastructure/errors/errors_test.go:196:	underlying := errors.New("database connection failed")
+infrastructure/errors/errors_test.go:213:	underlying := errors.New("connection timeout")
+infrastructure/errors/errors_test.go:226:	underlying := errors.New("rpc timeout")
+infrastructure/errors/errors_test.go:255:	underlying := errors.New("key derivation failed")
+infrastructure/errors/errors_test.go:268:	underlying := errors.New("invalid ciphertext")
+infrastructure/errors/errors_test.go:277:	underlying := errors.New("private key not found")
+infrastructure/errors/errors_test.go:286:	underlying := errors.New("signature mismatch")
+infrastructure/errors/errors_test.go:299:	underlying := errors.New("quote verification failed")
+infrastructure/errors/errors_test.go:320:			err:  errors.New("standard error"),
+infrastructure/errors/errors_test.go:341:	standardErr := errors.New("standard error")
+infrastructure/errors/errors_test.go:388:			err:  errors.New("standard error"),
+infrastructure/datafeed/client.go:83:		return "", err
+infrastructure/datafeed/client.go:88:		return "", err
+infrastructure/datafeed/client.go:94:		return "", err
+infrastructure/datafeed/client.go:100:		return "", err
+infrastructure/datafeed/client.go:105:		return "", err
+infrastructure/datafeed/client.go:109:		return "", fmt.Errorf("RPC error: %s", rpcResp.Error.Message)
+infrastructure/datafeed/client.go:114:		return "", err
+infrastructure/datafeed/client.go:124:		return nil, fmt.Errorf("fetch %s: %w", feed.Symbol, err)
+infrastructure/datafeed/client.go:130:		return nil, fmt.Errorf("invalid response length for %s", feed.Symbol)
+infrastructure/errors/errors.go:113:	return Wrap(ErrCodeInvalidToken, "Invalid authentication token", http.StatusUnauthorized, err)
+infrastructure/errors/errors.go:121:	return Wrap(ErrCodeInvalidSignature, "Invalid signature", http.StatusUnauthorized, err)
+infrastructure/errors/errors.go:188:	return Wrap(ErrCodeInternal, message, http.StatusInternalServerError, err)
+infrastructure/errors/errors.go:192:	return Wrap(ErrCodeDatabaseError, "Database operation failed", http.StatusInternalServerError, err).
+infrastructure/errors/errors.go:197:	return Wrap(ErrCodeBlockchainError, "Blockchain operation failed", http.StatusServiceUnavailable, err).
+infrastructure/errors/errors.go:202:	return Wrap(ErrCodeExternalAPI, "External API call failed", http.StatusBadGateway, err).
+infrastructure/errors/errors.go:220:	return Wrap(ErrCodeEncryptionFailed, "Encryption failed", http.StatusInternalServerError, err)
+infrastructure/errors/errors.go:224:	return Wrap(ErrCodeDecryptionFailed, "Decryption failed", http.StatusInternalServerError, err)
+infrastructure/errors/errors.go:228:	return Wrap(ErrCodeSigningFailed, "Signing failed", http.StatusInternalServerError, err)
+infrastructure/errors/errors.go:232:	return Wrap(ErrCodeVerificationFailed, "Verification failed", http.StatusUnauthorized, err)
+infrastructure/errors/errors.go:238:	return Wrap(ErrCodeAttestationFailed, "Remote attestation failed", http.StatusInternalServerError, err)
+infrastructure/errors/errors.go:242:	return Wrap(ErrCodeSealingFailed, "Data sealing failed", http.StatusInternalServerError, err)
+infrastructure/errors/errors.go:246:	return Wrap(ErrCodeUnsealingFailed, "Data unsealing failed", http.StatusInternalServerError, err)
+infrastructure/errors/errors.go:254:	return errors.As(err, &serviceErr)
+infrastructure/database/supabase_wallets.go:16:		return fmt.Errorf("%w: wallet cannot be nil", ErrInvalidInput)
+infrastructure/database/supabase_wallets.go:19:		return err
+infrastructure/database/supabase_wallets.go:24:		return fmt.Errorf("%w: create wallet: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_wallets.go:28:		return fmt.Errorf("%w: unmarshal wallets: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_wallets.go:39:		return nil, err
+infrastructure/database/supabase_wallets.go:45:		return nil, fmt.Errorf("%w: get user wallets: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_wallets.go:50:		return nil, fmt.Errorf("%w: unmarshal wallets: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_wallets.go:58:		return nil, err
+infrastructure/database/supabase_wallets.go:64:		return nil, fmt.Errorf("%w: get wallet by address: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_wallets.go:69:		return nil, fmt.Errorf("%w: unmarshal wallets: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_wallets.go:80:		return nil, err
+infrastructure/database/supabase_wallets.go:83:		return nil, err
+infrastructure/database/supabase_wallets.go:89:		return nil, fmt.Errorf("%w: get wallet: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_wallets.go:93:		return nil, fmt.Errorf("%w: unmarshal wallets: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_wallets.go:107:		return err
+infrastructure/database/supabase_wallets.go:114:	return err
+infrastructure/database/supabase_wallets.go:124:	return err
+infrastructure/database/supabase_wallets.go:131:	return err
+infrastructure/accountpool/marble/service_test.go:56:	return nil, fmt.Errorf("account not found: %s", id)
+infrastructure/accountpool/marble/service_test.go:65:	return nil, fmt.Errorf("account not found by address: %s", address)
+infrastructure/accountpool/marble/service_test.go:70:		return nil, fmt.Errorf("simulated database error")
+infrastructure/accountpool/marble/service_test.go:112:		return nil, fmt.Errorf("account not found: %s", id)
+infrastructure/accountpool/marble/service_test.go:164:		return nil, fmt.Errorf("simulated database error")
+infrastructure/accountpool/marble/service_test.go:258:		return nil, fmt.Errorf("simulated error")
+infrastructure/database/supabase_gasbank.go:17:		return nil, err
+infrastructure/database/supabase_gasbank.go:22:		return nil, fmt.Errorf("%w: get gasbank account: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:27:		return nil, fmt.Errorf("%w: unmarshal gasbank accounts: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:38:		return fmt.Errorf("%w: account cannot be nil", ErrInvalidInput)
+infrastructure/database/supabase_gasbank.go:41:		return err
+infrastructure/database/supabase_gasbank.go:46:		return fmt.Errorf("%w: create gasbank account: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:50:		return fmt.Errorf("%w: unmarshal gasbank accounts: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:62:		return nil, err
+infrastructure/database/supabase_gasbank.go:73:		return nil, err
+infrastructure/database/supabase_gasbank.go:94:		return nil, fmt.Errorf("%w: create gasbank account: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:99:		return nil, fmt.Errorf("%w: unmarshal gasbank accounts: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:112:		return err
+infrastructure/database/supabase_gasbank.go:115:		return fmt.Errorf("%w: balance cannot be negative", ErrInvalidInput)
+infrastructure/database/supabase_gasbank.go:118:		return fmt.Errorf("%w: reserved cannot be negative", ErrInvalidInput)
+infrastructure/database/supabase_gasbank.go:128:		return fmt.Errorf("%w: update gasbank balance: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:140:		return fmt.Errorf("%w: transaction cannot be nil", ErrInvalidInput)
+infrastructure/database/supabase_gasbank.go:143:		return fmt.Errorf("%w: transaction id cannot be empty", ErrInvalidInput)
+infrastructure/database/supabase_gasbank.go:148:		return fmt.Errorf("%w: create gasbank transaction: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:156:		return nil, err
+infrastructure/database/supabase_gasbank.go:163:		return nil, fmt.Errorf("%w: get gasbank transactions: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:168:		return nil, fmt.Errorf("%w: unmarshal gasbank transactions: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:180:		return fmt.Errorf("%w: deposit cannot be nil", ErrInvalidInput)
+infrastructure/database/supabase_gasbank.go:183:		return err
+infrastructure/database/supabase_gasbank.go:188:		return fmt.Errorf("%w: create deposit request: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:192:		return fmt.Errorf("%w: unmarshal deposit requests: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:203:		return nil, err
+infrastructure/database/supabase_gasbank.go:210:		return nil, fmt.Errorf("%w: get deposit requests: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:215:		return nil, fmt.Errorf("%w: unmarshal deposit requests: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:223:		return nil, err
+infrastructure/database/supabase_gasbank.go:229:		return nil, fmt.Errorf("%w: get deposit by tx_hash: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:234:		return nil, fmt.Errorf("%w: unmarshal deposit requests: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:245:		return err
+infrastructure/database/supabase_gasbank.go:249:		return err
+infrastructure/database/supabase_gasbank.go:261:		return fmt.Errorf("%w: update deposit status: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:274:		return nil, fmt.Errorf("%w: get pending deposits: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_gasbank.go:279:		return nil, fmt.Errorf("%w: unmarshal deposit requests: %v", ErrDatabaseError, err)
+infrastructure/accountpool/marble/pool.go:19:		return nil, "", fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/pool.go:22:		return nil, "", fmt.Errorf("invalid count: must be 1-100")
+infrastructure/accountpool/marble/pool.go:31:		return nil, "", fmt.Errorf("list accounts: %w", err)
+infrastructure/accountpool/marble/pool.go:49:		return nil, "", fmt.Errorf("no accounts available")
+infrastructure/accountpool/marble/pool.go:95:		return 0, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/pool.go:132:		return 0, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/pool.go:139:		return 0, err
+infrastructure/accountpool/marble/pool.go:165:		return 0, 0, 0, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/pool.go:177:		return 0, 0, 0, fmt.Errorf("account not found: %w", err)
+infrastructure/accountpool/marble/pool.go:182:		return 0, 0, 0, fmt.Errorf("account not locked by service %s", serviceID)
+infrastructure/accountpool/marble/pool.go:188:		return 0, 0, 0, fmt.Errorf("get balance: %w", err)
+infrastructure/accountpool/marble/pool.go:202:		return 0, 0, 0, fmt.Errorf("insufficient balance")
+infrastructure/accountpool/marble/pool.go:210:		return 0, 0, 0, fmt.Errorf("upsert balance: %w", err)
+infrastructure/accountpool/marble/pool.go:218:		return 0, 0, 0, err
+infrastructure/accountpool/marble/pool.go:227:		return nil, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/pool.go:231:		return nil, err
+infrastructure/accountpool/marble/pool.go:267:		return nil, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/pool.go:274:		return nil, err
+infrastructure/accountpool/marble/pool.go:296:		return nil, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/pool.go:303:		return nil, err
+infrastructure/gasbank/client/client.go:34:		return nil, fmt.Errorf("gasbank client: base URL is required")
+infrastructure/gasbank/client/client.go:68:		return nil, fmt.Errorf("request cannot be nil")
+infrastructure/gasbank/client/client.go:73:		return nil, fmt.Errorf("marshal request: %w", err)
+infrastructure/gasbank/client/client.go:78:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/gasbank/client/client.go:84:		return nil, fmt.Errorf("do request: %w", err)
+infrastructure/gasbank/client/client.go:90:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/gasbank/client/client.go:100:			return nil, fmt.Errorf("deduct fee failed (HTTP %d): %s", resp.StatusCode, errResp.Error)
+infrastructure/gasbank/client/client.go:102:		return nil, fmt.Errorf("deduct fee failed with status %d: %s", resp.StatusCode, string(respBody))
+infrastructure/gasbank/client/client.go:107:		return nil, fmt.Errorf("unmarshal response: %w", err)
+infrastructure/gasbank/client/client.go:128:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/gasbank/client/client.go:134:		return nil, fmt.Errorf("do request: %w", err)
+infrastructure/gasbank/client/client.go:139:		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+infrastructure/gasbank/client/client.go:144:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/gasbank/client/client.go:149:		return nil, fmt.Errorf("unmarshal response: %w", err)
+infrastructure/gasbank/client/client.go:159:		return false, 0, err
+infrastructure/database/mock_repository_test.go:130:	expectedErr := errors.New("database connection failed")
+infrastructure/database/mock_repository_test.go:136:		t.Errorf("ErrorOnNextCall should return injected error, got %v", err)
+infrastructure/httputil/httputil_test.go:416:	err := WrapError(errors.New("boom"), "context")
+infrastructure/httputil/baseurl.go:25:		return "", nil, fmt.Errorf("base URL is required")
+infrastructure/httputil/baseurl.go:30:		return "", nil, fmt.Errorf("base URL must be a valid URL")
+infrastructure/httputil/baseurl.go:33:		return "", nil, fmt.Errorf("base URL must not include user info")
+infrastructure/httputil/baseurl.go:36:		return "", nil, fmt.Errorf("base URL scheme must be http or https")
+infrastructure/httputil/baseurl.go:39:		return "", nil, fmt.Errorf("base URL must not include query or fragment")
+infrastructure/httputil/baseurl.go:42:		return "", nil, fmt.Errorf("base URL must use https in strict identity mode")
+infrastructure/accountpool/marble/signing.go:32:		return nil, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/signing.go:39:		return nil, fmt.Errorf("account not found: %w", err)
+infrastructure/accountpool/marble/signing.go:43:		return nil, fmt.Errorf("account not locked by service %s", serviceID)
+infrastructure/accountpool/marble/signing.go:48:		return nil, fmt.Errorf("derive key: %w", err)
+infrastructure/accountpool/marble/signing.go:53:		return nil, fmt.Errorf("sign: %w", err)
+infrastructure/accountpool/marble/signing.go:88:		return nil, err
+infrastructure/accountpool/marble/signing.go:120:		return "", fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/signing.go:123:		return "", fmt.Errorf("chain client not configured")
+infrastructure/accountpool/marble/signing.go:126:		return "", fmt.Errorf("account_id required")
+infrastructure/accountpool/marble/signing.go:129:		return "", fmt.Errorf("to_address required")
+infrastructure/accountpool/marble/signing.go:132:		return "", fmt.Errorf("amount must be positive")
+infrastructure/accountpool/marble/signing.go:140:		return "", fmt.Errorf("account not found: %w", err)
+infrastructure/accountpool/marble/signing.go:145:		return "", fmt.Errorf("account not locked by service %s", serviceID)
+infrastructure/accountpool/marble/signing.go:152:		return "", fmt.Errorf("derive key: %w", err)
+infrastructure/accountpool/marble/signing.go:160:		return "", fmt.Errorf("create signer account: %w", err)
+infrastructure/accountpool/marble/signing.go:166:		return "", fmt.Errorf("invalid to address %q: %w", toAddress, err)
+infrastructure/accountpool/marble/signing.go:172:		return "", fmt.Errorf("transfer GAS: %w", err)
+infrastructure/accountpool/marble/signing.go:204:		return "", fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/signing.go:207:		return "", fmt.Errorf("chain client not configured")
+infrastructure/accountpool/marble/signing.go:210:		return "", fmt.Errorf("account_id required")
+infrastructure/accountpool/marble/signing.go:213:		return "", fmt.Errorf("to_address required")
+infrastructure/accountpool/marble/signing.go:216:		return "", fmt.Errorf("amount must be positive")
+infrastructure/accountpool/marble/signing.go:223:		return "", fmt.Errorf("account not found: %w", err)
+infrastructure/accountpool/marble/signing.go:228:		return "", fmt.Errorf("account not locked by service %s", serviceID)
+infrastructure/accountpool/marble/signing.go:235:		return "", fmt.Errorf("derive key: %w", err)
+infrastructure/accountpool/marble/signing.go:243:		return "", fmt.Errorf("create signer account: %w", err)
+infrastructure/accountpool/marble/signing.go:254:			return "", fmt.Errorf("invalid to address %q: %w", toAddress, err)
+infrastructure/accountpool/marble/signing.go:261:			return "", fmt.Errorf("invalid script hash %q: %w", toAddress, err)
+infrastructure/accountpool/marble/signing.go:277:		return "", fmt.Errorf("transfer GAS: %w", err)
+infrastructure/accountpool/marble/signing.go:309:		return nil, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/signing.go:312:		return nil, fmt.Errorf("chain client not configured")
+infrastructure/accountpool/marble/signing.go:315:		return nil, fmt.Errorf("account_id required")
+infrastructure/accountpool/marble/signing.go:318:		return nil, fmt.Errorf("nef_base64 required")
+infrastructure/accountpool/marble/signing.go:321:		return nil, fmt.Errorf("manifest_json required")
+infrastructure/accountpool/marble/signing.go:328:		return nil, fmt.Errorf("account not found: %w", err)
+infrastructure/accountpool/marble/signing.go:333:		return nil, fmt.Errorf("account not locked by service %s", serviceID)
+infrastructure/accountpool/marble/signing.go:340:		return nil, fmt.Errorf("derive key: %w", err)
+infrastructure/accountpool/marble/signing.go:348:		return nil, fmt.Errorf("create signer account: %w", err)
+infrastructure/accountpool/marble/signing.go:354:		return nil, fmt.Errorf("decode nef base64: %w", err)
+infrastructure/accountpool/marble/signing.go:372:		return nil, fmt.Errorf("deployment simulation failed: %w", err)
+infrastructure/accountpool/marble/signing.go:375:		return nil, fmt.Errorf("deployment simulation faulted: %s", invokeResult.Exception)
+infrastructure/accountpool/marble/signing.go:382:		return nil, fmt.Errorf("build deployment transaction: %w", err)
+infrastructure/accountpool/marble/signing.go:387:		return nil, fmt.Errorf("broadcast deployment: %w", err)
+infrastructure/accountpool/marble/signing.go:398:		return nil, fmt.Errorf("wait for deployment execution: %w", err)
+infrastructure/accountpool/marble/signing.go:406:			return nil, fmt.Errorf("deployment failed with state: %s", exec.VMState)
+infrastructure/accountpool/marble/signing.go:449:		return nil, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/signing.go:452:		return nil, fmt.Errorf("chain client not configured")
+infrastructure/accountpool/marble/signing.go:455:		return nil, fmt.Errorf("account_id required")
+infrastructure/accountpool/marble/signing.go:458:		return nil, fmt.Errorf("contract_hash required")
+infrastructure/accountpool/marble/signing.go:461:		return nil, fmt.Errorf("nef_base64 required")
+infrastructure/accountpool/marble/signing.go:464:		return nil, fmt.Errorf("manifest_json required")
+infrastructure/accountpool/marble/signing.go:471:		return nil, fmt.Errorf("account not found: %w", err)
+infrastructure/accountpool/marble/signing.go:476:		return nil, fmt.Errorf("account not locked by service %s", serviceID)
+infrastructure/accountpool/marble/signing.go:483:		return nil, fmt.Errorf("derive key: %w", err)
+infrastructure/accountpool/marble/signing.go:491:		return nil, fmt.Errorf("create signer account: %w", err)
+infrastructure/accountpool/marble/signing.go:497:		return nil, fmt.Errorf("decode nef base64: %w", err)
+infrastructure/accountpool/marble/signing.go:512:		return nil, fmt.Errorf("update simulation failed: %w", err)
+infrastructure/accountpool/marble/signing.go:515:		return nil, fmt.Errorf("update simulation faulted: %s", invokeResult.Exception)
+infrastructure/accountpool/marble/signing.go:522:		return nil, fmt.Errorf("build update transaction: %w", err)
+infrastructure/accountpool/marble/signing.go:527:		return nil, fmt.Errorf("broadcast update: %w", err)
+infrastructure/accountpool/marble/signing.go:538:		return nil, fmt.Errorf("wait for update execution: %w", err)
+infrastructure/accountpool/marble/signing.go:541:		return nil, fmt.Errorf("update failed with state: %s", appLog.Executions[0].VMState)
+infrastructure/accountpool/marble/signing.go:572:		return nil, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/signing.go:575:		return nil, fmt.Errorf("chain client not configured")
+infrastructure/accountpool/marble/signing.go:578:		return nil, fmt.Errorf("account_id required")
+infrastructure/accountpool/marble/signing.go:581:		return nil, fmt.Errorf("contract_hash required")
+infrastructure/accountpool/marble/signing.go:584:		return nil, fmt.Errorf("method required")
+infrastructure/accountpool/marble/signing.go:591:		return nil, fmt.Errorf("account not found: %w", err)
+infrastructure/accountpool/marble/signing.go:596:		return nil, fmt.Errorf("account not locked by service %s", serviceID)
+infrastructure/accountpool/marble/signing.go:603:		return nil, fmt.Errorf("derive key: %w", err)
+infrastructure/accountpool/marble/signing.go:611:		return nil, fmt.Errorf("create signer account: %w", err)
+infrastructure/accountpool/marble/signing.go:645:		return nil, fmt.Errorf("invocation simulation failed: %w", err)
+infrastructure/accountpool/marble/signing.go:653:		}, fmt.Errorf("invocation simulation faulted: %s", invokeResult.Exception)
+infrastructure/accountpool/marble/signing.go:660:		return nil, fmt.Errorf("build invocation transaction: %w", err)
+infrastructure/accountpool/marble/signing.go:665:		return nil, fmt.Errorf("broadcast invocation: %w", err)
+infrastructure/accountpool/marble/signing.go:676:		return nil, fmt.Errorf("wait for invocation execution: %w", err)
+infrastructure/accountpool/marble/signing.go:716:		return nil, fmt.Errorf("repository not configured")
+infrastructure/accountpool/marble/signing.go:719:		return nil, fmt.Errorf("chain client not configured")
+infrastructure/accountpool/marble/signing.go:722:		return nil, fmt.Errorf("account_id required")
+infrastructure/accountpool/marble/signing.go:725:		return nil, fmt.Errorf("contract_hash required")
+infrastructure/accountpool/marble/signing.go:728:		return nil, fmt.Errorf("method required")
+infrastructure/accountpool/marble/signing.go:735:		return nil, fmt.Errorf("account not found: %w", err)
+infrastructure/accountpool/marble/signing.go:740:		return nil, fmt.Errorf("account not locked by service %s", serviceID)
+infrastructure/accountpool/marble/signing.go:747:		return nil, fmt.Errorf("derive key: %w", err)
+infrastructure/accountpool/marble/signing.go:755:		return nil, fmt.Errorf("create signer account: %w", err)
+infrastructure/accountpool/marble/signing.go:767:		return nil, fmt.Errorf("simulation failed: %w", err)
+infrastructure/accountpool/marble/signing.go:842:		return nil, fmt.Errorf("chain client not configured")
+infrastructure/accountpool/marble/signing.go:845:		return nil, fmt.Errorf("to_address required")
+infrastructure/accountpool/marble/signing.go:848:		return nil, fmt.Errorf("amount must be positive")
+infrastructure/accountpool/marble/signing.go:860:		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
+infrastructure/accountpool/marble/signing.go:876:		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+infrastructure/accountpool/marble/signing.go:884:		return nil, fmt.Errorf("invalid to address %q: %w", toAddress, err)
+infrastructure/accountpool/marble/signing.go:890:		return nil, fmt.Errorf("transfer GAS: %w", err)
+infrastructure/accountpool/marble/signing.go:902:		return nil, fmt.Errorf("wait for funding confirmation (tx: %s): %w", txHashString, err)
+infrastructure/accountpool/marble/signing.go:905:		return nil, fmt.Errorf("funding transaction failed (tx: %s): %s", txHashString, appLog.Executions[0].Exception)
+infrastructure/accountpool/marble/signing.go:958:		return nil, fmt.Errorf("chain client not configured")
+infrastructure/accountpool/marble/signing.go:961:		return nil, fmt.Errorf("contract_hash required")
+infrastructure/accountpool/marble/signing.go:964:		return nil, fmt.Errorf("method required")
+infrastructure/accountpool/marble/signing.go:976:		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
+infrastructure/accountpool/marble/signing.go:992:		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+infrastructure/accountpool/marble/signing.go:1026:		return nil, fmt.Errorf("invocation simulation failed: %w", err)
+infrastructure/accountpool/marble/signing.go:1034:		}, fmt.Errorf("invocation simulation faulted: %s", invokeResult.Exception)
+infrastructure/accountpool/marble/signing.go:1041:		return nil, fmt.Errorf("build invocation transaction: %w", err)
+infrastructure/accountpool/marble/signing.go:1046:		return nil, fmt.Errorf("broadcast invocation: %w", err)
+infrastructure/accountpool/marble/signing.go:1057:		return nil, fmt.Errorf("wait for invocation execution: %w", err)
+infrastructure/accountpool/marble/signing.go:1090:		return nil, fmt.Errorf("chain client not configured")
+infrastructure/accountpool/marble/signing.go:1093:		return nil, fmt.Errorf("nef_base64 required")
+infrastructure/accountpool/marble/signing.go:1096:		return nil, fmt.Errorf("manifest_json required")
+infrastructure/accountpool/marble/signing.go:1108:		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
+infrastructure/accountpool/marble/signing.go:1124:		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+infrastructure/accountpool/marble/signing.go:1130:		return nil, fmt.Errorf("decode nef base64: %w", err)
+infrastructure/accountpool/marble/signing.go:1150:		return nil, fmt.Errorf("deployment simulation failed: %w", err)
+infrastructure/accountpool/marble/signing.go:1153:		return nil, fmt.Errorf("deployment simulation faulted: %s", invokeResult.Exception)
+infrastructure/accountpool/marble/signing.go:1165:		return nil, fmt.Errorf("build deployment transaction: %w", err)
+infrastructure/accountpool/marble/signing.go:1170:		return nil, fmt.Errorf("broadcast deployment: %w", err)
+infrastructure/accountpool/marble/signing.go:1189:		return nil, fmt.Errorf("wait for deployment execution (tx: %s): %w", txHashString, err)
+infrastructure/accountpool/marble/signing.go:1202:			return nil, fmt.Errorf("deployment failed (tx: %s) with state: %s, exception: %s", txHashString, exec.VMState, exec.Exception)
+infrastructure/database/mock_repository_user.go:16:		return nil, err
+infrastructure/database/mock_repository_user.go:28:		return nil, err
+infrastructure/database/mock_repository_user.go:42:		return nil, err
+infrastructure/database/mock_repository_user.go:56:		return err
+infrastructure/database/mock_repository_user.go:73:		return err
+infrastructure/database/mock_repository_user.go:87:		return err
+infrastructure/database/mock_repository_user.go:103:		return nil, err
+infrastructure/database/mock_repository_user.go:121:		return err
+infrastructure/database/mock_repository_user.go:137:		return err
+infrastructure/database/mock_repository_user.go:151:		return nil, err
+infrastructure/database/mock_repository_user.go:171:		return err
+infrastructure/httputil/httputil.go:475:	return fmt.Errorf("%s: %w", message, err)
+infrastructure/accountpool/marble/service_edgecases_test.go:50:			return err
+infrastructure/accountpool/marble/service_edgecases_test.go:93:			return nil, err
+infrastructure/accountpool/marble/service_edgecases_test.go:145:		createErr:           errors.New("create failed"),
+infrastructure/accountpool/marble/service_edgecases_test.go:157:		createErr:           errors.New("create failed"),
+infrastructure/accountpool/marble/service_edgecases_test.go:187:		listAvailableWithBalancesErr: errors.New("db list failed"),
+infrastructure/accountpool/marble/service_edgecases_test.go:200:		createErr:           errors.New("create failed"),
+infrastructure/accountpool/marble/service_edgecases_test.go:229:		updateErrForID:            map[string]error{"acc-1": errors.New("update failed")},
+infrastructure/accountpool/marble/service_edgecases_test.go:267:		updateErrForID:      map[string]error{"acc-1": errors.New("update failed")},
+infrastructure/accountpool/marble/service_edgecases_test.go:288:		listByLockerErr:     errors.New("list by locker failed"),
+infrastructure/accountpool/marble/service_edgecases_test.go:306:		updateErrForID:      map[string]error{"acc-1": errors.New("update failed")},
+infrastructure/accountpool/marble/service_edgecases_test.go:334:		getBalanceErr:       errors.New("get balance failed"),
+infrastructure/accountpool/marble/service_edgecases_test.go:349:		upsertBalanceErr:    errors.New("upsert failed"),
+infrastructure/accountpool/marble/service_edgecases_test.go:364:		updateErrForID:      map[string]error{"acc-1": errors.New("update failed")},
+infrastructure/accountpool/marble/service_edgecases_test.go:379:		aggregateErrByToken: map[string]error{TokenTypeNEO: errors.New("stats failed")},
+infrastructure/accountpool/marble/service_edgecases_test.go:396:func (failingReader) Read([]byte) (int, error) { return 0, errors.New("rng failed") }
+infrastructure/accountpool/marble/service.go:78:		return nil, fmt.Errorf("neoaccounts: marble is required")
+infrastructure/accountpool/marble/service.go:100:			return nil, err
+infrastructure/accountpool/marble/service.go:107:			return nil, fmt.Errorf("neoaccounts: generate fallback master key: %w", keyErr)
+infrastructure/accountpool/marble/service.go:112:			return nil, fmt.Errorf("neoaccounts: derive fallback master pubkey: %w", pubErr)
+infrastructure/accountpool/marble/service.go:166:		return fmt.Errorf("missing %s secret", secretPoolEncryptionKey)
+infrastructure/accountpool/marble/service.go:172:		return fmt.Errorf("%s is not valid hex: %w", secretPoolEncryptionKey, err)
+infrastructure/accountpool/marble/service.go:175:		return fmt.Errorf("%s must be 32 bytes, got %d bytes", secretPoolEncryptionKey, len(decoded))
+infrastructure/accountpool/marble/service.go:189:			return err
+infrastructure/accountpool/marble/service.go:195:		return err
+infrastructure/accountpool/marble/service.go:212:			return err
+infrastructure/accountpool/marble/service.go:240:		return nil, err
+infrastructure/accountpool/marble/service.go:246:		return nil, fmt.Errorf("create neo private key: %w", err)
+infrastructure/accountpool/marble/service.go:263:		return nil, err
+infrastructure/accountpool/marble/service.go:307:		return nil, err
+infrastructure/accountpool/marble/service.go:312:		return nil, fmt.Errorf("create neo private key: %w", err)
+infrastructure/accountpool/marble/service.go:323:		return "", err
+infrastructure/accountpool/marble/service.go:331:		return nil, fmt.Errorf("encryption key not configured")
+infrastructure/accountpool/marble/service.go:336:		return nil, fmt.Errorf("decrypt WIF: %w", err)
+infrastructure/accountpool/marble/service.go:341:		return nil, fmt.Errorf("parse WIF: %w", err)
+infrastructure/accountpool/marble/service.go:351:		return "", fmt.Errorf("decode base64: %w", err)
+infrastructure/accountpool/marble/service.go:356:		return "", fmt.Errorf("create cipher: %w", err)
+infrastructure/accountpool/marble/service.go:361:		return "", fmt.Errorf("create GCM: %w", err)
+infrastructure/accountpool/marble/service.go:366:		return "", fmt.Errorf("ciphertext too short")
+infrastructure/accountpool/marble/service.go:372:		return "", fmt.Errorf("decrypt: %w", err)
+infrastructure/accountpool/client/client.go:57:		return nil, fmt.Errorf("neoaccounts: %w", err)
+infrastructure/accountpool/client/client.go:77:		return fmt.Errorf("neoaccounts: client is nil")
+infrastructure/accountpool/client/client.go:80:		return fmt.Errorf("neoaccounts: http client not configured")
+infrastructure/accountpool/client/client.go:87:			return fmt.Errorf("neoaccounts: marshal request: %w", err)
+infrastructure/accountpool/client/client.go:97:		return fmt.Errorf("neoaccounts: create request: %w", err)
+infrastructure/accountpool/client/client.go:109:		return fmt.Errorf("neoaccounts: send request: %w", err)
+infrastructure/accountpool/client/client.go:116:			return fmt.Errorf("neoaccounts: request failed: %s (failed to read body: %v)", resp.Status, readErr)
+infrastructure/accountpool/client/client.go:123:			return fmt.Errorf("neoaccounts: request failed: %s - %s", resp.Status, msg)
+infrastructure/accountpool/client/client.go:125:		return fmt.Errorf("neoaccounts: request failed: %s", resp.Status)
+infrastructure/accountpool/client/client.go:134:		return fmt.Errorf("neoaccounts: read response: %w", err)
+infrastructure/accountpool/client/client.go:137:		return fmt.Errorf("neoaccounts: unmarshal response: %w", err)
+infrastructure/accountpool/client/client.go:147:		return nil, err
+infrastructure/accountpool/client/client.go:164:		return nil, err
+infrastructure/accountpool/client/client.go:176:		return nil, err
+infrastructure/accountpool/client/client.go:191:		return nil, err
+infrastructure/accountpool/client/client.go:216:		return nil, err
+infrastructure/accountpool/client/client.go:229:		return nil, err
+infrastructure/accountpool/client/client.go:241:		return nil, err
+infrastructure/accountpool/client/client.go:256:		return nil, err
+infrastructure/accountpool/client/client.go:273:		return nil, err
+infrastructure/accountpool/client/client.go:286:		return nil, err
+infrastructure/accountpool/client/client.go:295:		return nil, err
+infrastructure/accountpool/client/client.go:311:		return nil, err
+infrastructure/accountpool/client/client.go:328:		return nil, err
+infrastructure/accountpool/client/client.go:346:		return nil, err
+infrastructure/accountpool/client/client.go:361:		return nil, err
+infrastructure/accountpool/client/client.go:385:		return nil, err
+infrastructure/accountpool/client/client.go:401:		return nil, err
+infrastructure/accountpool/client/client.go:416:		return nil, err
+infrastructure/chain/listener_events_metric.go:19:		return nil, fmt.Errorf("not a Platform_Metric event")
+infrastructure/chain/listener_events_metric.go:22:		return nil, fmt.Errorf("invalid event state: expected at least 2 items, got %d", len(event.State))
+infrastructure/chain/listener_events_metric.go:28:			return nil, fmt.Errorf("parse metricName: %w", err)
+infrastructure/chain/listener_events_metric.go:33:			return nil, fmt.Errorf("parse value: %w", err)
+infrastructure/chain/listener_events_metric.go:45:		return nil, fmt.Errorf("parse appId: %w", err)
+infrastructure/chain/listener_events_metric.go:50:		return nil, fmt.Errorf("parse metricName: %w", err)
+infrastructure/chain/listener_events_metric.go:55:		return nil, fmt.Errorf("parse value: %w", err)
+infrastructure/accountpool/marble/attestation.go:58:		return nil, nil, err
+infrastructure/accountpool/marble/attestation.go:62:		return nil, nil, err
+infrastructure/database/mock_repository_gasbank.go:16:		return nil, err
+infrastructure/database/mock_repository_gasbank.go:30:		return err
+infrastructure/database/mock_repository_gasbank.go:56:		return nil, err
+infrastructure/database/mock_repository_gasbank.go:63:		return err
+infrastructure/database/mock_repository_gasbank.go:80:		return err
+infrastructure/database/mock_repository_gasbank.go:96:		return nil, err
+infrastructure/database/mock_repository_gasbank.go:118:		return err
+infrastructure/database/mock_repository_gasbank.go:134:		return nil, err
+infrastructure/database/mock_repository_gasbank.go:152:		return nil, err
+infrastructure/database/mock_repository_gasbank.go:166:		return err
+infrastructure/database/mock_repository_gasbank.go:183:		return nil, err
+infrastructure/httputil/body.go:23:		return nil, false, fmt.Errorf("limit must be positive")
+infrastructure/httputil/body.go:26:		return nil, false, fmt.Errorf("reader is nil")
+infrastructure/httputil/body.go:31:		return nil, false, err
+infrastructure/httputil/body.go:44:		return nil, err
+infrastructure/accountpool/marble/masterkey.go:33:			return fmt.Errorf("missing %s or %s secret", secretPoolMasterKey, secretCoordinatorMasterSeed)
+infrastructure/accountpool/marble/masterkey.go:37:			return err
+infrastructure/accountpool/marble/masterkey.go:42:		return fmt.Errorf("%s must be at least 32 bytes", secretPoolMasterKey)
+infrastructure/accountpool/marble/masterkey.go:47:		return err
+infrastructure/accountpool/marble/masterkey.go:54:			return fmt.Errorf("parse %s: %w", secretPoolMasterKeyHash, err)
+infrastructure/accountpool/marble/masterkey.go:57:			return fmt.Errorf("%s mismatch: expected %s got %s", secretPoolMasterKeyHash, hex.EncodeToString(expHash), hex.EncodeToString(computedHash[:]))
+infrastructure/accountpool/marble/masterkey.go:60:		return fmt.Errorf("missing %s secret in enclave mode", secretPoolMasterKeyHash)
+infrastructure/accountpool/marble/masterkey.go:74:		return nil, fmt.Errorf("%s must be at least 16 bytes", secretCoordinatorMasterSeed)
+infrastructure/accountpool/marble/masterkey.go:83:		return nil, fmt.Errorf("%s must be at least 32 bytes", secretPoolMasterKey)
+infrastructure/accountpool/marble/masterkey.go:88:		return nil, err
+infrastructure/accountpool/marble/masterkey.go:107:		return nil, fmt.Errorf("expected raw 32 bytes or hex: %w", err)
+infrastructure/accountpool/marble/masterkey.go:110:		return nil, fmt.Errorf("hash length must be %d bytes", sha256.Size)
+infrastructure/chain/contracts_common.go:69:		return fmt.Errorf("%s: nil invoke result", method)
+infrastructure/chain/contracts_common.go:76:		return fmt.Errorf("%s: execution failed (%s): %s", method, result.State, msg)
+infrastructure/chain/contracts_common.go:78:	return fmt.Errorf("%s: execution failed (%s)", method, result.State)
+infrastructure/chain/contracts_common.go:83:		return fmt.Errorf("%s: nil invoke result", method)
+infrastructure/chain/contracts_common.go:86:		return fmt.Errorf("%s: no result", method)
+infrastructure/chain/contracts_common.go:93:		return StackItem{}, err
+infrastructure/database/supabase_apikeys_test.go:343:		expectedErr := errors.New("database unavailable")
+infrastructure/database/supabase_apikeys_test.go:389:		expectedErr := errors.New("database error")
+infrastructure/database/mock_repository.go:42:		return err
+infrastructure/database/mock_repository.go:63:		return err
+infrastructure/testutil/httptest.go:21:			panic(r)
+infrastructure/chain/stack_parsers.go:34:		return nil, fmt.Errorf("invalid byte string")
+infrastructure/chain/stack_parsers.go:42:		return nil, fmt.Errorf("invalid byte string")
+infrastructure/chain/stack_parsers.go:50:		return nil, fmt.Errorf("expected Array or Struct, got %s", item.Type)
+infrastructure/chain/stack_parsers.go:55:		return nil, fmt.Errorf("unmarshal array: %w", err)
+infrastructure/chain/stack_parsers.go:70:			return "", err
+infrastructure/chain/stack_parsers.go:74:			return "", err
+infrastructure/chain/stack_parsers.go:77:			return "", fmt.Errorf("unexpected Hash160 length: %d", len(bytes))
+infrastructure/chain/stack_parsers.go:86:	return "", fmt.Errorf("unexpected type: %s", item.Type)
+infrastructure/chain/stack_parsers.go:93:			return nil, err
+infrastructure/chain/stack_parsers.go:100:	return nil, fmt.Errorf("unexpected type: %s", item.Type)
+infrastructure/chain/stack_parsers.go:107:			return nil, err
+infrastructure/chain/stack_parsers.go:113:	return nil, fmt.Errorf("unexpected type: %s", item.Type)
+infrastructure/chain/stack_parsers.go:120:			return false, err
+infrastructure/chain/stack_parsers.go:124:	return false, fmt.Errorf("unexpected type: %s", item.Type)
+infrastructure/chain/stack_parsers.go:131:			return "", err
+infrastructure/chain/stack_parsers.go:135:			return "", err
+infrastructure/chain/stack_parsers.go:142:	return "", fmt.Errorf("unexpected type for string: %s", item.Type)
+infrastructure/database/errors.go:17:	ErrNotFound = errors.New("record not found")
+infrastructure/database/errors.go:20:	ErrAlreadyExists = errors.New("record already exists")
+infrastructure/database/errors.go:23:	ErrUnauthorized = errors.New("unauthorized")
+infrastructure/database/errors.go:26:	ErrInvalidInput = errors.New("invalid input")
+infrastructure/database/errors.go:29:	ErrConflict = errors.New("conflict")
+infrastructure/database/errors.go:32:	ErrDatabaseError = errors.New("database error")
+infrastructure/database/errors.go:59:	return errors.Is(err, ErrNotFound)
+infrastructure/database/errors.go:64:	return errors.Is(err, ErrAlreadyExists)
+infrastructure/database/errors.go:69:	return errors.Is(err, ErrUnauthorized)
+infrastructure/database/errors.go:74:	return errors.Is(err, ErrInvalidInput)
+infrastructure/database/errors.go:101:		return fmt.Errorf("%w: id cannot be empty", ErrInvalidInput)
+infrastructure/database/errors.go:104:		return fmt.Errorf("%w: id too long", ErrInvalidInput)
+infrastructure/database/errors.go:107:		return fmt.Errorf("%w: invalid id format", ErrInvalidInput)
+infrastructure/database/errors.go:115:		return fmt.Errorf("%w: user_id cannot be empty", ErrInvalidInput)
+infrastructure/database/errors.go:123:		return fmt.Errorf("%w: address cannot be empty", ErrInvalidInput)
+infrastructure/database/errors.go:126:		return fmt.Errorf("%w: invalid Neo address format", ErrInvalidInput)
+infrastructure/database/errors.go:137:		return fmt.Errorf("%w: invalid email format", ErrInvalidInput)
+infrastructure/database/errors.go:177:		return fmt.Errorf("%w: tx_hash cannot be empty", ErrInvalidInput)
+infrastructure/database/errors.go:180:		return fmt.Errorf("%w: invalid tx_hash format", ErrInvalidInput)
+infrastructure/database/errors.go:188:		return fmt.Errorf("%w: status cannot be empty", ErrInvalidInput)
+infrastructure/database/errors.go:195:	return fmt.Errorf("%w: invalid status '%s'", ErrInvalidInput, status)
+infrastructure/database/generic_repository.go:34:		return fmt.Errorf("%s: model cannot be nil", table)
+infrastructure/database/generic_repository.go:39:		return fmt.Errorf("create %s: %w", table, err)
+infrastructure/database/generic_repository.go:54:		return fmt.Errorf("%s: model cannot be nil", table)
+infrastructure/database/generic_repository.go:57:		return fmt.Errorf("%s: %s cannot be empty", table, keyField)
+infrastructure/database/generic_repository.go:63:		return fmt.Errorf("update %s: %w", table, err)
+infrastructure/database/generic_repository.go:72:		return nil, fmt.Errorf("%s: %s cannot be empty", table, field)
+infrastructure/database/generic_repository.go:78:		return nil, fmt.Errorf("get %s by %s: %w", table, field, err)
+infrastructure/database/generic_repository.go:83:		return nil, fmt.Errorf("unmarshal %s: %w", table, err)
+infrastructure/database/generic_repository.go:95:		return nil, fmt.Errorf("list %s: %w", table, err)
+infrastructure/database/generic_repository.go:100:		return nil, fmt.Errorf("unmarshal %s: %w", table, err)
+infrastructure/database/generic_repository.go:108:		return nil, fmt.Errorf("%s: %s cannot be empty", table, field)
+infrastructure/database/generic_repository.go:114:		return nil, fmt.Errorf("list %s by %s: %w", table, field, err)
+infrastructure/database/generic_repository.go:119:		return nil, fmt.Errorf("unmarshal %s: %w", table, err)
+infrastructure/database/generic_repository.go:128:		return nil, fmt.Errorf("list %s: %w", table, err)
+infrastructure/database/generic_repository.go:133:		return nil, fmt.Errorf("unmarshal %s: %w", table, err)
+infrastructure/database/generic_repository.go:141:		return fmt.Errorf("%s: %s cannot be empty", table, keyField)
+infrastructure/database/generic_repository.go:147:		return fmt.Errorf("delete %s: %w", table, err)
+infrastructure/database/generic_repository.go:156:		return fmt.Errorf("%s: model cannot be nil", table)
+infrastructure/database/generic_repository.go:159:		return fmt.Errorf("%s: query cannot be empty", table)
+infrastructure/database/generic_repository.go:164:		return fmt.Errorf("update %s: %w", table, err)
+infrastructure/database/generic_repository.go:173:		return fmt.Errorf("%s: query cannot be empty", table)
+infrastructure/database/generic_repository.go:178:		return fmt.Errorf("delete %s: %w", table, err)
+infrastructure/chain/contracts_appregistry.go:46:		return nil, fmt.Errorf("appregistry: client not configured")
+infrastructure/chain/contracts_appregistry.go:49:		return nil, fmt.Errorf("appregistry: contract hash not configured")
+infrastructure/chain/contracts_appregistry.go:52:		return nil, fmt.Errorf("appregistry: appID required")
+infrastructure/chain/contracts_appregistry.go:61:		return nil, fmt.Errorf("appregistry: parse result: %w", err)
+infrastructure/chain/contracts_appregistry.go:64:		return nil, fmt.Errorf("appregistry: expected at least 7 fields, got %d", len(items))
+infrastructure/chain/contracts_appregistry.go:69:		return nil, fmt.Errorf("appregistry: app_id: %w", err)
+infrastructure/chain/contracts_appregistry.go:77:		return nil, fmt.Errorf("appregistry: developer: %w", err)
+infrastructure/chain/contracts_appregistry.go:81:		return nil, fmt.Errorf("appregistry: developer_pubkey: %w", err)
+infrastructure/chain/contracts_appregistry.go:85:		return nil, fmt.Errorf("appregistry: entry_url: %w", err)
+infrastructure/chain/contracts_appregistry.go:89:		return nil, fmt.Errorf("appregistry: manifest_hash: %w", err)
+infrastructure/chain/contracts_appregistry.go:93:		return nil, fmt.Errorf("appregistry: status: %w", err)
+infrastructure/chain/contracts_appregistry.go:97:		return nil, fmt.Errorf("appregistry: allowlist_hash: %w", err)
+infrastructure/chain/contracts_appregistry.go:103:			return nil, fmt.Errorf("appregistry: name: %w", err)
+infrastructure/chain/contracts_appregistry.go:111:			return nil, fmt.Errorf("appregistry: description: %w", err)
+infrastructure/chain/contracts_appregistry.go:119:			return nil, fmt.Errorf("appregistry: icon: %w", err)
+infrastructure/chain/contracts_appregistry.go:127:			return nil, fmt.Errorf("appregistry: banner: %w", err)
+infrastructure/chain/contracts_appregistry.go:135:			return nil, fmt.Errorf("appregistry: category: %w", err)
+infrastructure/chain/contracts_appregistry.go:144:			return nil, fmt.Errorf("appregistry: contract_hash: %w", err)
+infrastructure/marble/service.go:91:		return fmt.Errorf("service already running")
+infrastructure/database/supabase_repository.go:39:		return nil, err
+infrastructure/database/supabase_repository.go:44:		return nil, fmt.Errorf("%w: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:49:		return nil, fmt.Errorf("%w: unmarshal users: %v", ErrDatabaseError, unmarshalErr)
+infrastructure/database/supabase_repository.go:60:		return nil, err
+infrastructure/database/supabase_repository.go:69:		return nil, fmt.Errorf("%w: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:74:		return nil, fmt.Errorf("%w: unmarshal wallets: %v", ErrDatabaseError, unmarshalErr)
+infrastructure/database/supabase_repository.go:77:		return nil, fmt.Errorf("%w: wallet address %q is bound to multiple users", ErrDatabaseError, address)
+infrastructure/database/supabase_repository.go:87:		return nil, fmt.Errorf("%w: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:92:		return nil, fmt.Errorf("%w: unmarshal users: %v", ErrDatabaseError, unmarshalErr)
+infrastructure/database/supabase_repository.go:103:		return nil, err
+infrastructure/database/supabase_repository.go:106:		return nil, fmt.Errorf("%w: email cannot be empty", ErrInvalidInput)
+infrastructure/database/supabase_repository.go:111:		return nil, fmt.Errorf("%w: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:116:		return nil, fmt.Errorf("%w: unmarshal users: %v", ErrDatabaseError, unmarshalErr)
+infrastructure/database/supabase_repository.go:127:		return fmt.Errorf("%w: user cannot be nil", ErrInvalidInput)
+infrastructure/database/supabase_repository.go:130:		return fmt.Errorf("%w: user id cannot be empty", ErrInvalidInput)
+infrastructure/database/supabase_repository.go:139:			return err
+infrastructure/database/supabase_repository.go:146:			return err
+infrastructure/database/supabase_repository.go:157:		return fmt.Errorf("%w: create user: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:165:		return err
+infrastructure/database/supabase_repository.go:168:		return err
+infrastructure/database/supabase_repository.go:177:		return fmt.Errorf("%w: update user email: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:185:		return err
+infrastructure/database/supabase_repository.go:193:		return fmt.Errorf("%w: update user nonce: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:201:		return fmt.Errorf("repository not initialized")
+infrastructure/database/supabase_repository.go:208:		return fmt.Errorf("health check failed: %w", err)
+infrastructure/database/supabase_repository.go:220:		return nil, err
+infrastructure/database/supabase_repository.go:227:		return nil, fmt.Errorf("%w: get service requests: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:232:		return nil, fmt.Errorf("%w: unmarshal service requests: %v", ErrDatabaseError, unmarshalErr)
+infrastructure/database/supabase_repository.go:240:		return fmt.Errorf("%w: service request cannot be nil", ErrInvalidInput)
+infrastructure/database/supabase_repository.go:243:		return fmt.Errorf("%w: service request id cannot be empty", ErrInvalidInput)
+infrastructure/database/supabase_repository.go:248:		return fmt.Errorf("%w: create service request: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:256:		return fmt.Errorf("%w: service request cannot be nil", ErrInvalidInput)
+infrastructure/database/supabase_repository.go:259:		return err
+infrastructure/database/supabase_repository.go:264:		return fmt.Errorf("%w: update service request: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:276:		return nil, fmt.Errorf("%w: feed_id cannot be empty", ErrInvalidInput)
+infrastructure/database/supabase_repository.go:283:		return nil, fmt.Errorf("%w: get latest price: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_repository.go:288:		return nil, fmt.Errorf("%w: unmarshal price feeds: %v", ErrDatabaseError, unmarshalErr)
+infrastructure/database/supabase_repository.go:299:		return fmt.Errorf("%w: price feed cannot be nil", ErrInvalidInput)
+infrastructure/database/supabase_repository.go:302:		return fmt.Errorf("%w: feed_id cannot be empty", ErrInvalidInput)
+infrastructure/database/supabase_repository.go:307:		return fmt.Errorf("%w: create price feed: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_apikeys.go:18:		return fmt.Errorf("%w: api key cannot be nil", ErrInvalidInput)
+infrastructure/database/supabase_apikeys.go:21:		return err
+infrastructure/database/supabase_apikeys.go:26:		return fmt.Errorf("%w: create api key: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_apikeys.go:30:		return fmt.Errorf("%w: unmarshal api keys: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_apikeys.go:42:		return nil, err
+infrastructure/database/supabase_apikeys.go:48:		return nil, fmt.Errorf("%w: get api keys: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_apikeys.go:53:		return nil, fmt.Errorf("%w: unmarshal api keys: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_apikeys.go:61:		return nil, fmt.Errorf("%w: key_hash cannot be empty", ErrInvalidInput)
+infrastructure/database/supabase_apikeys.go:68:		return nil, fmt.Errorf("%w: get api key by hash: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_apikeys.go:73:		return nil, fmt.Errorf("%w: unmarshal api keys: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_apikeys.go:84:		return err
+infrastructure/database/supabase_apikeys.go:87:		return err
+infrastructure/database/supabase_apikeys.go:96:		return fmt.Errorf("%w: revoke api key: %v", ErrDatabaseError, err)
+infrastructure/database/supabase_apikeys.go:104:		return err
+infrastructure/database/supabase_apikeys.go:112:		return fmt.Errorf("%w: update api key last used: %v", ErrDatabaseError, err)
+infrastructure/database/errors_test.go:255:			t.Errorf("ValidateEmail() should return nil for empty email, got %v", err)
+infrastructure/database/supabase_client.go:51:		return nil, fmt.Errorf("SUPABASE_ALLOW_INSECURE is only supported in development/testing")
+infrastructure/database/supabase_client.go:57:			return nil, fmt.Errorf("SUPABASE_URL is required")
+infrastructure/database/supabase_client.go:64:			return nil, fmt.Errorf("SUPABASE_URL is required")
+infrastructure/database/supabase_client.go:70:			return nil, fmt.Errorf("SUPABASE_SERVICE_KEY is required")
+infrastructure/database/supabase_client.go:75:			return nil, fmt.Errorf("SUPABASE_SERVICE_KEY is required")
+infrastructure/database/supabase_client.go:120:				return nil, fmt.Errorf("SUPABASE_URL must be a valid URL: %w", err)
+infrastructure/database/supabase_client.go:122:			return nil, fmt.Errorf("SUPABASE_URL must be a valid https URL (set SUPABASE_ALLOW_INSECURE=true for dev/test): %w", err)
+infrastructure/database/supabase_client.go:161:			return nil, fmt.Errorf("marshal body: %w", err)
+infrastructure/database/supabase_client.go:168:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/database/supabase_client.go:178:		return nil, fmt.Errorf("execute request: %w", err)
+infrastructure/database/supabase_client.go:185:			return nil, fmt.Errorf("read error response: %w", readErr)
+infrastructure/database/supabase_client.go:191:		return nil, fmt.Errorf("supabase API error %d: %s", resp.StatusCode, msg)
+infrastructure/database/supabase_client.go:196:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/chain/contracts_randomnesslog.go:43:		return nil, fmt.Errorf("randomnesslog: client not configured")
+infrastructure/chain/contracts_randomnesslog.go:46:		return nil, fmt.Errorf("randomnesslog: contract hash not configured")
+infrastructure/chain/contracts_randomnesslog.go:49:		return nil, fmt.Errorf("randomnesslog: signer not configured")
+infrastructure/chain/contracts_randomnesslog.go:52:		return nil, fmt.Errorf("randomnesslog: requestID required")
+infrastructure/chain/contracts_randomnesslog.go:55:		return nil, fmt.Errorf("randomnesslog: randomness required")
+infrastructure/chain/contracts_randomnesslog.go:58:		return nil, fmt.Errorf("randomnesslog: attestationHash required")
+infrastructure/chain/contracts_randomnesslog.go:61:		return nil, fmt.Errorf("randomnesslog: timestamp required")
+infrastructure/chain/contracts_randomnesslog.go:85:		return nil, fmt.Errorf("randomnesslog: client not configured")
+infrastructure/chain/contracts_randomnesslog.go:88:		return nil, fmt.Errorf("randomnesslog: contract hash not configured")
+infrastructure/chain/contracts_randomnesslog.go:91:		return nil, fmt.Errorf("randomnesslog: signer not configured")
+infrastructure/chain/contracts_randomnesslog.go:94:		return nil, fmt.Errorf("randomnesslog: updater required")
+infrastructure/chain/listener_events_paymenthub.go:21:		return nil, fmt.Errorf("not a PaymentReceived event")
+infrastructure/chain/listener_events_paymenthub.go:24:		return nil, fmt.Errorf("invalid event state: expected at least 5 items, got %d", len(event.State))
+infrastructure/chain/listener_events_paymenthub.go:29:		return nil, fmt.Errorf("parse paymentId: %w", err)
+infrastructure/chain/listener_events_paymenthub.go:34:		return nil, fmt.Errorf("parse appId: %w", err)
+infrastructure/chain/listener_events_paymenthub.go:39:		return nil, fmt.Errorf("parse sender: %w", err)
+infrastructure/chain/listener_events_paymenthub.go:42:		return nil, fmt.Errorf("invalid sender length: %d", len(senderBytes))
+infrastructure/chain/listener_events_paymenthub.go:48:		return nil, fmt.Errorf("parse amount: %w", err)
+infrastructure/marble/marble.go:104:		return fmt.Errorf("MARBLE_ROOT_CA is required when MARBLE_CERT and MARBLE_KEY are set")
+infrastructure/marble/marble.go:110:			return fmt.Errorf("parse TLS certificate: %w", err)
+infrastructure/marble/marble.go:118:			return fmt.Errorf("parse root CA certificate")
+infrastructure/marble/marble.go:127:			return fmt.Errorf("failed to initialize MarbleRun mTLS: missing root CA pool")
+infrastructure/marble/marble.go:138:				return fmt.Errorf("parse root CA certificate")
+infrastructure/marble/marble.go:141:				return fmt.Errorf("parse extra client CA certificate")
+infrastructure/marble/marble.go:159:			return fmt.Errorf("parse secrets: %w", err)
+infrastructure/marble/marble.go:335:		return fmt.Errorf("secret not found: %s", name)
+infrastructure/chain/client.go:48:		return nil, fmt.Errorf("RPC URL required")
+infrastructure/chain/client.go:53:		return nil, fmt.Errorf("invalid RPC URL: %w", err)
+infrastructure/chain/client.go:93:		return nil, fmt.Errorf("chain client is nil")
+infrastructure/chain/client.go:124:		return nil, fmt.Errorf("marshal request: %w", err)
+infrastructure/chain/client.go:129:		return nil, fmt.Errorf("create request: %w", err)
+infrastructure/chain/client.go:135:		return nil, fmt.Errorf("execute request: %w", err)
+infrastructure/chain/client.go:142:			return nil, fmt.Errorf("read error response: %w", readErr)
+infrastructure/chain/client.go:148:		return nil, fmt.Errorf("rpc http error %d: %s", resp.StatusCode, msg)
+infrastructure/chain/client.go:153:		return nil, fmt.Errorf("read response: %w", err)
+infrastructure/chain/client.go:158:		return nil, fmt.Errorf("unmarshal response: %w", err)
+infrastructure/chain/client.go:172:		return 0, err
+infrastructure/chain/client.go:177:		return 0, err
+infrastructure/chain/client.go:186:		return nil, err
+infrastructure/chain/client.go:191:		return nil, err
+infrastructure/chain/client.go:200:		return nil, err
+infrastructure/chain/client.go:205:		return nil, err
+infrastructure/chain/client.go:214:		return nil, err
+infrastructure/chain/client.go:219:		return nil, err
+infrastructure/chain/client.go:237:		return util.Uint256{}, err
+infrastructure/chain/client.go:248:		return util.Uint256{}, fmt.Errorf("transfer: %w", err)
+infrastructure/chain/client.go:275:			return nil, fmt.Errorf("create rpc client: %w", err)
+infrastructure/chain/client.go:282:			return nil, fmt.Errorf("create actor: %w", err)
+infrastructure/chain/signer_globalsigner.go:33:		return nil, fmt.Errorf("globalsigner client required")
+infrastructure/chain/signer_globalsigner.go:38:		return nil, fmt.Errorf("get attestation: %w", err)
+infrastructure/chain/signer_globalsigner.go:43:		return nil, fmt.Errorf("decode pubkey: %w", err)
+infrastructure/chain/signer_globalsigner.go:46:		return nil, fmt.Errorf("invalid pubkey length: %d", len(pubKeyBytes))
+infrastructure/chain/signer_globalsigner.go:51:		return nil, fmt.Errorf("parse pubkey: %w", err)
+infrastructure/chain/signer_globalsigner.go:80:		return fmt.Errorf("globalsigner signer not configured")
+infrastructure/chain/signer_globalsigner.go:83:		return fmt.Errorf("transaction required")
+infrastructure/chain/signer_globalsigner.go:94:		return fmt.Errorf("transaction is not signed by this account")
+infrastructure/chain/signer_globalsigner.go:97:		return fmt.Errorf("transaction is not yet signed by the previous signer")
+infrastructure/chain/signer_globalsigner.go:112:		return fmt.Errorf("globalsigner sign tx: %w", err)
+infrastructure/chain/signer_globalsigner.go:117:		return fmt.Errorf("decode tx signature: %w", err)
+infrastructure/chain/signer_globalsigner.go:120:		return fmt.Errorf("invalid signature length: %d", len(signature))
+infrastructure/chain/signer_globalsigner.go:133:		return nil, fmt.Errorf("globalsigner signer not configured")
+infrastructure/chain/signer_globalsigner.go:136:		return nil, fmt.Errorf("data required")
+infrastructure/chain/signer_globalsigner.go:143:		return nil, fmt.Errorf("globalsigner sign: %w", err)
+infrastructure/chain/signer_globalsigner.go:148:		return nil, fmt.Errorf("decode signature: %w", err)
+platform/host-app/lib/miniapp-sdk.ts:97:    throw new Error("app_id mismatch");
+platform/host-app/lib/miniapp-sdk.ts:105:    throw new Error(`permission denied: ${key}`);
+platform/host-app/lib/miniapp-sdk.ts:124:        if (!resolved) throw new Error("app_id required");
+platform/host-app/lib/miniapp-sdk.ts:131:            if (!resolved) throw new Error("app_id required");
+platform/host-app/lib/miniapp-sdk.ts:141:        if (!resolved) throw new Error("app_id required");
+platform/host-app/lib/miniapp-sdk.ts:148:            if (!resolved) throw new Error("app_id required");
+platform/host-app/lib/miniapp-sdk.ts:158:        if (!resolved) throw new Error("app_id required");
+infrastructure/chain/invoke.go:23:		return nil, err
+infrastructure/chain/invoke.go:28:		return nil, err
+infrastructure/chain/invoke.go:42:		return nil, err
+infrastructure/chain/invoke.go:47:		return nil, err
+infrastructure/chain/invoke.go:56:		return "", err
+infrastructure/chain/invoke.go:63:		return "", err
+infrastructure/chain/invoke.go:87:				return nil, err
+infrastructure/chain/invoke.go:105:		return nil, err
+infrastructure/chain/invoke.go:127:		return nil, fmt.Errorf("invoke %s: %w", method, err)
+infrastructure/chain/invoke.go:131:		return nil, fmt.Errorf("%s failed: %s", method, invokeResult.Exception)
+infrastructure/chain/invoke.go:149:		return result, fmt.Errorf("wait for %s execution: %w", method, err)
+infrastructure/chain/invoke.go:189:		return nil, fmt.Errorf("simulate %s: %w", method, err)
+infrastructure/chain/invoke.go:193:		return nil, fmt.Errorf("%s simulation failed: %s", method, invokeResult.Exception)
+infrastructure/chain/invoke.go:200:		return nil, fmt.Errorf("build transaction for %s: %w", method, err)
+infrastructure/chain/invoke.go:206:		return nil, fmt.Errorf("broadcast %s: %w", method, err)
+infrastructure/chain/invoke.go:224:		return result, fmt.Errorf("wait for %s execution: %w", method, err)
+infrastructure/chain/invoke.go:266:		return nil, err
+infrastructure/chain/invoke.go:271:		return nil, err
+infrastructure/chain/invoke.go:283:		return StackItem{}, fmt.Errorf("%s: invoke failed: %w", method, err)
+infrastructure/chain/invoke.go:286:		return StackItem{}, err
+infrastructure/chain/invoke.go:295:		return false, err
+infrastructure/chain/invoke.go:299:		return false, fmt.Errorf("%s: parse result: %w", method, err)
+infrastructure/chain/invoke.go:308:		return nil, err
+infrastructure/chain/invoke.go:312:		return nil, fmt.Errorf("%s: parse result: %w", method, err)
+infrastructure/chain/invoke.go:322:		return zero, err
+infrastructure/chain/invoke.go:326:		return zero, fmt.Errorf("%s: parse result: %w", method, err)
+infrastructure/chain/listener_events_notification.go:18:		return nil, fmt.Errorf("not a Platform_Notification event")
+infrastructure/chain/listener_events_notification.go:21:		return nil, fmt.Errorf("invalid event state: expected at least 3 items, got %d", len(event.State))
+infrastructure/chain/listener_events_notification.go:27:			return nil, fmt.Errorf("parse notificationType: %w", err)
+infrastructure/chain/listener_events_notification.go:32:			return nil, fmt.Errorf("parse title: %w", err)
+infrastructure/chain/listener_events_notification.go:37:			return nil, fmt.Errorf("parse content: %w", err)
+infrastructure/chain/listener_events_notification.go:51:		return nil, fmt.Errorf("parse appId: %w", err)
+infrastructure/chain/listener_events_notification.go:56:		return nil, fmt.Errorf("parse title: %w", err)
+infrastructure/chain/listener_events_notification.go:61:		return nil, fmt.Errorf("parse content: %w", err)
+infrastructure/chain/rpcpool.go:78:		return nil, fmt.Errorf("rpcpool: at least one endpoint required")
+infrastructure/chain/rpcpool.go:149:			return p.endpoints[0], fmt.Errorf("no healthy endpoints, using fallback")
+infrastructure/chain/rpcpool.go:151:		return nil, fmt.Errorf("no endpoints available")
+infrastructure/chain/rpcpool.go:343:			return fmt.Errorf("no endpoints available")
+infrastructure/chain/rpcpool.go:366:	return fmt.Errorf("all retries exhausted: %w", lastErr)
+platform/host-app/lib/edge.ts:76:  throw new Error("Unable to resolve base URL: no NEXT_PUBLIC_API_URL env and no host header");
+infrastructure/chain/signer_local.go:24:		return nil, fmt.Errorf("create account: %w", err)
+infrastructure/chain/signer_local.go:29:		return nil, fmt.Errorf("create legacy wallet: %w", err)
+infrastructure/chain/signer_local.go:54:		return fmt.Errorf("local signer account not configured")
+infrastructure/chain/signer_local.go:61:		return nil, fmt.Errorf("local signer legacy wallet not configured")
+infrastructure/chain/wallet.go:28:		return nil, fmt.Errorf("decode private key: %w", err)
+infrastructure/chain/wallet.go:33:		return nil, err
+infrastructure/chain/base_contract_test.go:278:				return 0, err
+infrastructure/chain/base_contract_test.go:325:				return 0, err
+infrastructure/chain/base_contract_test.go:372:				return 0, err
+infrastructure/chain/script_parser.go:27:		return nil, err
+infrastructure/chain/script_parser.go:41:			return nil, err
+infrastructure/chain/script_parser.go:93:		return nil, fmt.Errorf("decode script: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:23:		return nil, fmt.Errorf("not a ServiceRequested event")
+infrastructure/chain/listener_events_servicelayergateway.go:26:		return nil, fmt.Errorf("invalid event state: expected 7 items, got %d", len(event.State))
+infrastructure/chain/listener_events_servicelayergateway.go:31:		return nil, fmt.Errorf("parse requestId: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:36:		return nil, fmt.Errorf("parse appId: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:41:		return nil, fmt.Errorf("parse serviceType: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:46:		return nil, fmt.Errorf("parse requester: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:51:		return nil, fmt.Errorf("parse callbackContract: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:56:		return nil, fmt.Errorf("parse callbackMethod: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:61:		return nil, fmt.Errorf("parse payload: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:86:		return nil, fmt.Errorf("not a ServiceFulfilled event")
+infrastructure/chain/listener_events_servicelayergateway.go:89:		return nil, fmt.Errorf("invalid event state: expected 4 items, got %d", len(event.State))
+infrastructure/chain/listener_events_servicelayergateway.go:94:		return nil, fmt.Errorf("parse requestId: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:99:		return nil, fmt.Errorf("parse success: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:104:		return nil, fmt.Errorf("parse result: %w", err)
+infrastructure/chain/listener_events_servicelayergateway.go:109:		return nil, fmt.Errorf("parse error: %w", err)
+infrastructure/chain/listener_events_automationanchor.go:22:		return nil, fmt.Errorf("not a TaskRegistered event")
+infrastructure/chain/listener_events_automationanchor.go:25:		return nil, fmt.Errorf("invalid event state: expected 3 items, got %d", len(event.State))
+infrastructure/chain/listener_events_automationanchor.go:30:		return nil, fmt.Errorf("parse taskId: %w", err)
+infrastructure/chain/listener_events_automationanchor.go:35:		return nil, fmt.Errorf("parse target: %w", err)
+infrastructure/chain/listener_events_automationanchor.go:40:		return nil, fmt.Errorf("parse method: %w", err)
+infrastructure/chain/listener_events_automationanchor.go:60:		return nil, fmt.Errorf("not an Executed event")
+infrastructure/chain/listener_events_automationanchor.go:63:		return nil, fmt.Errorf("invalid event state: expected 3 items, got %d", len(event.State))
+infrastructure/chain/listener_events_automationanchor.go:68:		return nil, fmt.Errorf("parse taskId: %w", err)
+infrastructure/chain/listener_events_automationanchor.go:73:		return nil, fmt.Errorf("parse nonce: %w", err)
+infrastructure/chain/listener_events_automationanchor.go:78:		return nil, fmt.Errorf("parse txHash: %w", err)
+infrastructure/chain/listener_events_appregistry.go:19:		return nil, fmt.Errorf("nil event")
+infrastructure/chain/listener_events_appregistry.go:24:			return nil, fmt.Errorf("invalid AppRegistered state: expected 2 items, got %d", len(event.State))
+infrastructure/chain/listener_events_appregistry.go:28:			return nil, fmt.Errorf("parse appId: %w", err)
+infrastructure/chain/listener_events_appregistry.go:32:			return nil, fmt.Errorf("parse developer: %w", err)
+infrastructure/chain/listener_events_appregistry.go:40:			return nil, fmt.Errorf("invalid AppUpdated state: expected 2 items, got %d", len(event.State))
+infrastructure/chain/listener_events_appregistry.go:44:			return nil, fmt.Errorf("parse appId: %w", err)
+infrastructure/chain/listener_events_appregistry.go:48:			return nil, fmt.Errorf("parse manifestHash: %w", err)
+infrastructure/chain/listener_events_appregistry.go:56:			return nil, fmt.Errorf("invalid StatusChanged state: expected 2 items, got %d", len(event.State))
+infrastructure/chain/listener_events_appregistry.go:60:			return nil, fmt.Errorf("parse appId: %w", err)
+infrastructure/chain/listener_events_appregistry.go:64:			return nil, fmt.Errorf("parse status: %w", err)
+infrastructure/chain/listener_events_appregistry.go:71:		return nil, fmt.Errorf("not an AppRegistry event")
+infrastructure/chain/contracts_servicelayergateway.go:43:		return nil, fmt.Errorf("servicegateway: client not configured")
+infrastructure/chain/contracts_servicelayergateway.go:46:		return nil, fmt.Errorf("servicegateway: contract hash not configured")
+infrastructure/chain/contracts_servicelayergateway.go:49:		return nil, fmt.Errorf("servicegateway: signer not configured")
+infrastructure/chain/contracts_servicelayergateway.go:52:		return nil, fmt.Errorf("servicegateway: appID required")
+infrastructure/chain/contracts_servicelayergateway.go:55:		return nil, fmt.Errorf("servicegateway: serviceType required")
+infrastructure/chain/contracts_servicelayergateway.go:58:		return nil, fmt.Errorf("servicegateway: callback contract required")
+infrastructure/chain/contracts_servicelayergateway.go:61:		return nil, fmt.Errorf("servicegateway: callback method required")
+infrastructure/chain/contracts_servicelayergateway.go:94:		return nil, fmt.Errorf("servicegateway: client not configured")
+infrastructure/chain/contracts_servicelayergateway.go:97:		return nil, fmt.Errorf("servicegateway: contract hash not configured")
+infrastructure/chain/contracts_servicelayergateway.go:100:		return nil, fmt.Errorf("servicegateway: signer not configured")
+infrastructure/chain/contracts_servicelayergateway.go:103:		return nil, fmt.Errorf("servicegateway: requestID required")
+infrastructure/chain/contracts_servicelayergateway.go:127:		return nil, fmt.Errorf("servicegateway: client not configured")
+infrastructure/chain/contracts_servicelayergateway.go:130:		return nil, fmt.Errorf("servicegateway: contract hash not configured")
+infrastructure/chain/contracts_servicelayergateway.go:133:		return nil, fmt.Errorf("servicegateway: signer not configured")
+infrastructure/chain/contracts_servicelayergateway.go:136:		return nil, fmt.Errorf("servicegateway: updater required")
+infrastructure/chain/base_contract.go:71:		return nil, fmt.Errorf("%s: invoke failed: %w", method, err)
+infrastructure/chain/base_contract.go:74:		return nil, fmt.Errorf("%s: execution failed: %s", method, result.Exception)
+infrastructure/chain/base_contract.go:83:		return nil, err
+infrastructure/chain/base_contract.go:86:		return nil, fmt.Errorf("%s: no result", method)
+infrastructure/chain/base_contract.go:95:		return false, err
+infrastructure/chain/base_contract.go:98:		return false, fmt.Errorf("%s: no result", method)
+infrastructure/chain/base_contract.go:107:		return "", err
+infrastructure/chain/base_contract.go:110:		return "", fmt.Errorf("%s: no result", method)
+infrastructure/chain/base_contract.go:119:		return nil, err
+infrastructure/chain/base_contract.go:122:		return nil, fmt.Errorf("%s: no result", method)
+infrastructure/chain/base_contract.go:131:		return 0, err
+infrastructure/chain/base_contract.go:140:	return err
+infrastructure/chain/base_contract.go:163:		return zero, err
+infrastructure/chain/base_contract.go:166:		return zero, fmt.Errorf("%s: no result", method)
+infrastructure/chain/base_contract.go:180:		return nil, err
+infrastructure/chain/base_contract.go:183:		return nil, fmt.Errorf("%s: no result", method)
+infrastructure/chain/base_contract.go:188:		return nil, fmt.Errorf("%s: %w", method, err)
+infrastructure/chain/base_contract.go:195:			return nil, fmt.Errorf("%s: parse item %d: %w", method, i, err)
+infrastructure/chain/contracts_pricefeed.go:46:		return nil, fmt.Errorf("pricefeed: client not configured")
+infrastructure/chain/contracts_pricefeed.go:49:		return nil, fmt.Errorf("pricefeed: contract hash not configured")
+infrastructure/chain/contracts_pricefeed.go:52:		return nil, fmt.Errorf("pricefeed: symbol required")
+infrastructure/chain/contracts_pricefeed.go:57:		return nil, err
+infrastructure/chain/contracts_pricefeed.go:60:		return nil, fmt.Errorf("pricefeed: empty stack")
+infrastructure/chain/contracts_pricefeed.go:65:		return nil, err
+infrastructure/chain/contracts_pricefeed.go:68:		return nil, fmt.Errorf("pricefeed: expected 5 fields, got %d", len(items))
+infrastructure/chain/contracts_pricefeed.go:73:		return nil, fmt.Errorf("pricefeed: parse round_id: %w", err)
+infrastructure/chain/contracts_pricefeed.go:77:		return nil, fmt.Errorf("pricefeed: parse price: %w", err)
+infrastructure/chain/contracts_pricefeed.go:81:		return nil, fmt.Errorf("pricefeed: parse timestamp: %w", err)
+infrastructure/chain/contracts_pricefeed.go:85:		return nil, fmt.Errorf("pricefeed: parse attestation_hash: %w", err)
+infrastructure/chain/contracts_pricefeed.go:89:		return nil, fmt.Errorf("pricefeed: parse sourceset_id: %w", err)
+infrastructure/chain/contracts_pricefeed.go:113:		return nil, fmt.Errorf("pricefeed: client not configured")
+infrastructure/chain/contracts_pricefeed.go:116:		return nil, fmt.Errorf("pricefeed: contract hash not configured")
+infrastructure/chain/contracts_pricefeed.go:119:		return nil, fmt.Errorf("pricefeed: signer not configured")
+infrastructure/chain/contracts_pricefeed.go:122:		return nil, fmt.Errorf("pricefeed: symbol required")
+infrastructure/chain/contracts_pricefeed.go:125:		return nil, fmt.Errorf("pricefeed: roundID required")
+infrastructure/chain/contracts_pricefeed.go:128:		return nil, fmt.Errorf("pricefeed: price required")
+infrastructure/chain/contracts_pricefeed.go:131:		return nil, fmt.Errorf("pricefeed: timestamp required")
+infrastructure/chain/contracts_pricefeed.go:134:		return nil, fmt.Errorf("pricefeed: attestationHash required")
+infrastructure/config/services.go:20:		return nil, fmt.Errorf("failed to read services config: %w", err)
+infrastructure/config/services.go:25:		return nil, fmt.Errorf("failed to parse services config: %w", err)
+infrastructure/config/services.go:31:			return nil, fmt.Errorf("service %s: port is required", id)
+infrastructure/chain/contracts_automationanchor.go:47:		return nil, fmt.Errorf("automationanchor: client not configured")
+infrastructure/chain/contracts_automationanchor.go:50:		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+infrastructure/chain/contracts_automationanchor.go:53:		return nil, fmt.Errorf("automationanchor: taskID required")
+infrastructure/chain/contracts_automationanchor.go:58:		return nil, err
+infrastructure/chain/contracts_automationanchor.go:61:		return nil, fmt.Errorf("automationanchor: empty stack")
+infrastructure/chain/contracts_automationanchor.go:66:		return nil, err
+infrastructure/chain/contracts_automationanchor.go:69:		return nil, fmt.Errorf("automationanchor: expected 6 fields, got %d", len(items))
+infrastructure/chain/contracts_automationanchor.go:74:		return nil, fmt.Errorf("automationanchor: parse taskId: %w", err)
+infrastructure/chain/contracts_automationanchor.go:84:			return nil, fmt.Errorf("automationanchor: parse target: %w", parseErr)
+infrastructure/chain/contracts_automationanchor.go:91:		return nil, fmt.Errorf("automationanchor: parse method: %w", err)
+infrastructure/chain/contracts_automationanchor.go:96:		return nil, fmt.Errorf("automationanchor: parse trigger: %w", err)
+infrastructure/chain/contracts_automationanchor.go:101:		return nil, fmt.Errorf("automationanchor: parse gasLimit: %w", err)
+infrastructure/chain/contracts_automationanchor.go:106:		return nil, fmt.Errorf("automationanchor: parse enabled: %w", err)
+infrastructure/chain/contracts_automationanchor.go:122:		return false, fmt.Errorf("automationanchor: client not configured")
+infrastructure/chain/contracts_automationanchor.go:125:		return false, fmt.Errorf("automationanchor: contract hash not configured")
+infrastructure/chain/contracts_automationanchor.go:128:		return false, fmt.Errorf("automationanchor: taskID required")
+infrastructure/chain/contracts_automationanchor.go:131:		return false, fmt.Errorf("automationanchor: invalid nonce")
+infrastructure/chain/contracts_automationanchor.go:139:		return false, err
+infrastructure/chain/contracts_automationanchor.go:142:		return false, fmt.Errorf("automationanchor: empty stack")
+infrastructure/chain/contracts_automationanchor.go:158:		return nil, fmt.Errorf("automationanchor: client not configured")
+infrastructure/chain/contracts_automationanchor.go:161:		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+infrastructure/chain/contracts_automationanchor.go:164:		return nil, fmt.Errorf("automationanchor: signer not configured")
+infrastructure/chain/contracts_automationanchor.go:167:		return nil, fmt.Errorf("automationanchor: taskID required")
+infrastructure/chain/contracts_automationanchor.go:170:		return nil, fmt.Errorf("automationanchor: invalid nonce")
+infrastructure/chain/contracts_automationanchor.go:173:		return nil, fmt.Errorf("automationanchor: txHash required")
+infrastructure/chain/contracts_automationanchor.go:196:		return nil, fmt.Errorf("automationanchor: client not configured")
+infrastructure/chain/contracts_automationanchor.go:199:		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+infrastructure/chain/contracts_automationanchor.go:202:		return nil, fmt.Errorf("automationanchor: signer not configured")
+infrastructure/chain/contracts_automationanchor.go:205:		return nil, fmt.Errorf("automationanchor: updater required")
+infrastructure/chain/transaction.go:74:			return nil, fmt.Errorf("decode script: %w", err)
+infrastructure/chain/transaction.go:81:		return nil, fmt.Errorf("parse system fee: %w", err)
+infrastructure/chain/transaction.go:87:		return nil, fmt.Errorf("get block count: %w", err)
+infrastructure/chain/transaction.go:91:		return nil, fmt.Errorf("block height %d overflows uint32", blockCount)
+infrastructure/chain/transaction.go:121:		return nil, fmt.Errorf("sign transaction: %w", err)
+infrastructure/chain/transaction.go:169:		return 0, fmt.Errorf("empty gas value")
+infrastructure/chain/transaction.go:177:		return 0, fmt.Errorf("invalid gas value: %s", gasStr)
+infrastructure/chain/transaction.go:184:		return 0, fmt.Errorf("gas value has too many decimals: %s", gasStr)
+infrastructure/chain/transaction.go:189:		return 0, fmt.Errorf("gas value out of range: %s", gasStr)
+infrastructure/chain/transaction.go:202:		return nil, fmt.Errorf("decode private key: %w", err)
+infrastructure/chain/transaction.go:207:		return nil, fmt.Errorf("create private key: %w", err)
+infrastructure/chain/transaction.go:244:		return util.Uint256{}, fmt.Errorf("broadcast transaction: %w", err)
+infrastructure/chain/transaction.go:257:		return util.Uint256{}, fmt.Errorf("parse broadcast response: %w", err)
+infrastructure/chain/transaction.go:276:		return nil, err
+infrastructure/chain/listener_core.go:136:		return fmt.Errorf("listener already running")
+infrastructure/chain/contract_registry.go:106:		return fmt.Errorf("read file: %w", err)
+infrastructure/chain/contract_registry.go:114:		return fmt.Errorf("unmarshal: %w", err)
+infrastructure/chain/contract_registry.go:147:		return fmt.Errorf("marshal: %w", err)
+infrastructure/chain/contract_registry.go:151:		return fmt.Errorf("create dir: %w", err)
+infrastructure/chain/contract_registry.go:155:		return fmt.Errorf("write file: %w", err)
+infrastructure/chain/contract_registry.go:221:		return fmt.Errorf("contract %s not found", name)
+infrastructure/chain/rpcpool_test.go:224:			return errors.New("first call fails")
+infrastructure/chain/rpcpool_test.go:247:		return errors.New("always fails")
+infrastructure/serviceauth/serviceauth.go:152:		return nil, err
+infrastructure/serviceauth/serviceauth.go:180:			return nil, fmt.Errorf("no PEM public key found")
+infrastructure/serviceauth/serviceauth.go:187:				return nil, fmt.Errorf("parse PKIX public key: %w", err)
+infrastructure/serviceauth/serviceauth.go:191:				return nil, fmt.Errorf("public key is not RSA")
+infrastructure/serviceauth/serviceauth.go:197:				return nil, fmt.Errorf("parse PKCS#1 public key: %w", err)
+infrastructure/serviceauth/serviceauth.go:203:				return nil, fmt.Errorf("parse certificate: %w", err)
+infrastructure/serviceauth/serviceauth.go:207:				return nil, fmt.Errorf("certificate public key is not RSA")
+infrastructure/serviceauth/serviceauth.go:213:			return nil, fmt.Errorf("no supported PEM public key found")
+infrastructure/serviceauth/serviceauth.go:226:			return nil, fmt.Errorf("no PEM private key found")
+infrastructure/serviceauth/serviceauth.go:233:				return nil, fmt.Errorf("parse PKCS#1 private key: %w", err)
+infrastructure/serviceauth/serviceauth.go:239:				return nil, fmt.Errorf("parse PKCS#8 private key: %w", err)
+infrastructure/serviceauth/serviceauth.go:243:				return nil, fmt.Errorf("private key is not RSA")
+infrastructure/serviceauth/serviceauth.go:249:			return nil, fmt.Errorf("no supported PEM private key found")
+platform/edge/functions/_shared/amount.ts:3:  if (trimmed === "") throw new Error("amount is required");
+platform/edge/functions/_shared/amount.ts:4:  if (trimmed.startsWith("-")) throw new Error("amount must be >= 0");
+platform/edge/functions/_shared/amount.ts:7:  if (!match) throw new Error("invalid amount format");
+platform/edge/functions/_shared/amount.ts:11:  if (frac.length > decimals) throw new Error(`too many decimals (max ${decimals})`);
+platform/edge/functions/miniapp-notifications/index.ts:41:  if (err) return error(500, err.message, "DB_ERROR", req);
+platform/edge/functions/_shared/env.ts:9:  if (!value) throw new Error(`missing required env var: ${name}`);
+platform/edge/functions/miniapp-stats/index.ts:173:  if (err) return error(500, err.message, "DB_ERROR", req);
+platform/sdk/src/client.ts:67:    throw new Error("wallet.getAddress must be called in a browser context");
+platform/sdk/src/client.ts:83:  throw new Error("neo wallet not detected (install NeoLine N3) or host must bridge wallet.getAddress");
+platform/sdk/src/client.ts:88:    throw new Error("wallet invocation must be called in a browser context");
+platform/sdk/src/client.ts:94:    throw new Error("NeoLine N3 not detected (install the NeoLine extension)");
+platform/sdk/src/client.ts:120:    throw new Error("wallet does not support invoke (NeoLine N3 required)");
+platform/sdk/src/client.ts:126:  if (!scriptHash) throw new Error("invocation missing contract_hash");
+platform/sdk/src/client.ts:127:  if (!operation) throw new Error("invocation missing method");
+platform/sdk/src/client.ts:182:  if (!resp.ok) throw new Error(text || `request failed (${resp.status})`);
+platform/sdk/src/client.ts:195:    throw new Error("API key required for host-only endpoint");
+platform/sdk/src/client.ts:201:  if (!resp.ok) throw new Error(text || `request failed (${resp.status})`);
+platform/sdk/src/client.ts:218:        if (!id) throw new Error("request_id required");
+platform/sdk/src/client.ts:220:        if (!invocation) throw new Error("unknown request_id (no pending invocation)");
+platform/edge/functions/miniapp-usage/index.ts:60:    return error(500, String(err), "SUPABASE_CONFIG_ERROR", req);
+platform/edge/functions/miniapp-usage/index.ts:72:    if (err) return error(500, err.message, "DB_ERROR", req);
+platform/edge/functions/miniapp-usage/index.ts:86:  if (err) return error(500, err.message, "DB_ERROR", req);
+platform/sdk/src/admin.ts:68:      throw new Error(`Failed to fetch services health: ${response.statusText}`);
+platform/sdk/src/admin.ts:79:      throw new Error(`Failed to fetch analytics: ${response.statusText}`);
+platform/sdk/src/admin.ts:95:      throw new Error(`Failed to fetch MiniApps: ${response.statusText}`);
+platform/sdk/src/admin.ts:111:      throw new Error(`Failed to fetch users: ${response.statusText}`);
+platform/sdk/src/admin.ts:130:      throw new Error(`Failed to update MiniApp status: ${response.statusText}`);
+platform/edge/functions/_shared/supabase.ts:27:    throw new Error("missing required env var: SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)");
+platform/sdk/examples/basic-usage.ts:26:    throw new Error(`${name} is required`);
+platform/edge/functions/_shared/neo.ts:29:  if (trimmed.length % 2 !== 0) throw new Error("invalid hex length");
+platform/edge/functions/_shared/neo.ts:33:    if (Number.isNaN(byte)) throw new Error("invalid hex");
+platform/edge/functions/_shared/neo.ts:52:  if (!s) throw new Error("empty value");
+platform/edge/functions/_shared/neo.ts:64:    if (prefix !== 0x02 && prefix !== 0x03) throw new Error("invalid compressed public key");
+platform/edge/functions/_shared/neo.ts:79:  throw new Error(`unsupported public key length: ${publicKey.length}`);
+platform/edge/functions/_shared/hex.ts:4:  if (!s) throw new Error(`${label} required`);
+platform/edge/functions/_shared/hex.ts:5:  if (!/^[0-9a-fA-F]+$/.test(s)) throw new Error(`${label} must be hex`);
+platform/edge/functions/_shared/hex.ts:6:  if (s.length % 2 !== 0) throw new Error(`${label} must have an even hex length`);
+platform/edge/functions/_shared/hex.ts:12:  if (s.length !== expectedBytes * 2) throw new Error(`${label} must be ${expectedBytes} bytes`);
+platform/edge/functions/_shared/apps.ts:45:    throw new Error(`${label} must be > 0`);
+platform/edge/functions/_shared/apps.ts:54:    throw new Error(`${label} must be an integer string`);
+platform/edge/functions/_shared/apps.ts:58:    throw new Error(`${label} must be > 0`);
+platform/edge/functions/_shared/ratelimit.ts:83:    throw new Error(error.message);
+platform/edge/functions/market-trending/index_test.ts:405:      throw new Error("Unexpected database error");
+platform/edge/functions/_shared/contracts.ts:5:    throw new Error("invalid UInt160 (expected 40 hex chars)");
+platform/edge/functions/_shared/manifest.ts:73:  if (!Array.isArray(value)) throw new Error(`${label} must be an array`);
+platform/edge/functions/_shared/manifest.ts:83:    throw new Error("manifest.permissions must be an object or array");
+platform/edge/functions/_shared/manifest.ts:92:        throw new Error(`manifest.permissions contains unsupported permission: ${key}`);
+platform/edge/functions/_shared/manifest.ts:105:    throw new Error("manifest.permissions must be an object or array");
+platform/edge/functions/_shared/manifest.ts:114:      throw new Error(`manifest.permissions contains unsupported permission: ${key}`);
+platform/edge/functions/_shared/manifest.ts:132:            throw new Error(`manifest.permissions.wallet contains unsupported entry: ${entry}`);
+platform/edge/functions/_shared/manifest.ts:146:    throw new Error(`manifest.permissions.${key} must be a boolean or array`);
+platform/edge/functions/_shared/manifest.ts:154:    throw new Error("manifest.limits must be an object");
+platform/edge/functions/_shared/manifest.ts:157:    throw new Error("manifest.limits must be an object");
+platform/edge/functions/_shared/manifest.ts:175:    throw new Error("manifest.stats_display must be an array");
+platform/edge/functions/_shared/manifest.ts:182:      throw new Error(`manifest.stats_display contains unsupported key: ${key}`);
+platform/edge/functions/_shared/manifest.ts:191:    throw new Error("manifest.category must be a non-empty string");
+platform/edge/functions/_shared/manifest.ts:194:    throw new Error(`manifest.category must be one of: ${Array.from(SUPPORTED_CATEGORIES).join(", ")}`);
+platform/edge/functions/_shared/manifest.ts:201:    throw new Error("manifest must be an object");
+platform/edge/functions/_shared/manifest.ts:209:  if (!appId) throw new Error("manifest.app_id required");
+platform/edge/functions/_shared/manifest.ts:210:  if (!entryUrl) throw new Error("manifest.entry_url required");
+platform/edge/functions/_shared/manifest.ts:211:  if (!developerPubKey) throw new Error("manifest.developer_pubkey required");
+platform/edge/functions/_shared/manifest.ts:256:      throw new Error("manifest.news_integration must be a boolean");
+platform/edge/functions/_shared/manifest.ts:268:    throw new Error("manifest.contract_hash required when news/stats are enabled");
+platform/edge/functions/_shared/manifest.ts:275:      throw new Error("manifest.callback_contract required when callback_method is set");
+platform/edge/functions/_shared/manifest.ts:278:      throw new Error("manifest.callback_method required when callback_contract is set");
+platform/edge/functions/_shared/manifest.ts:318:    throw new Error("manifest.assets_allowed must be exactly [\"GAS\"]");
+platform/edge/functions/_shared/manifest.ts:327:    throw new Error("manifest.governance_assets_allowed must be exactly [\"NEO\"]");
+platform/edge/functions/_shared/manifest.ts:332:    throw new Error("manifest.entry_url must use https:// or mf:// in production");
+platform/edge/functions/_shared/secrets.ts:10:  if (trimmed.length % 2 !== 0) throw new Error("invalid hex length");
+platform/edge/functions/_shared/secrets.ts:14:    if (Number.isNaN(byte)) throw new Error("invalid hex");
+platform/edge/functions/_shared/secrets.ts:38:  if (!trimmed) throw new Error("SECRETS_MASTER_KEY is required");
+platform/edge/functions/_shared/secrets.ts:49:  throw new Error("SECRETS_MASTER_KEY must be 32 bytes (or 64 hex chars)");
+platform/edge/functions/_shared/secrets.ts:54:    if (cachedKey === null) throw new Error("SECRETS_MASTER_KEY not configured");
+platform/edge/functions/_shared/secrets.ts:84:  if (raw.length < 13) throw new Error("ciphertext too short");
+platform/admin-console/src/lib/hooks/useServices.ts:27:    throw new Error("Failed to fetch services health");
+platform/admin-console/src/lib/hooks/useServices.ts:53:        throw new Error(`Failed to fetch ${serviceName} health`);
+platform/admin-console/src/lib/hooks/useAnalytics.ts:15:    throw new Error("Failed to fetch analytics");
+platform/admin-console/src/lib/hooks/useAnalytics.ts:65:        throw new Error("Failed to fetch usage by app");
+platform/admin-console/src/lib/hooks/useMiniApps.ts:28:    throw new Error(`MiniApp ${appId} not found`);
+platform/admin-console/src/lib/hooks/useMiniApps.ts:71:        throw new Error("Failed to update MiniApp status");
+platform/admin-console/src/lib/hooks/useUsers.ts:28:    throw new Error(`User ${userId} not found`);

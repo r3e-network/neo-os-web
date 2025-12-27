@@ -98,5 +98,20 @@
     datafeed: {
       getPrice: (symbol) => rpc("datafeed.getPrice", [symbol]),
     },
+    stats: {
+      getMyUsage: (appId, date) => rpc("stats.getMyUsage", [appId, date]),
+    },
+    events: {
+      list: (params) => rpc("events.list", [params]),
+    },
+    transactions: {
+      list: (params) => rpc("transactions.list", [params]),
+    },
   };
+
+  try {
+    window.dispatchEvent(new Event("miniapp-sdk-ready"));
+  } catch {
+    // Ignore dispatch failures in older environments.
+  }
 })();

@@ -26,6 +26,11 @@ type ContractInvokerInterface interface {
 	RecordRandomness(ctx context.Context) (string, error)
 	PayToApp(ctx context.Context, appID string, amount int64, memo string) (string, error)
 	PayoutToUser(ctx context.Context, appID string, userAddress string, amount int64, memo string) (string, error)
+	// MiniApp contract methods
+	HasMiniAppContract(appID string) bool
+	GetMiniAppContractHash(appID string) (string, error)
+	InvokeMiniAppContract(ctx context.Context, appID, method string, params []neoaccountsclient.ContractParam) (string, error)
+	// Stats and management
 	GetStats() map[string]interface{}
 	GetPriceSymbols() []string
 	GetLockedAccountCount() int

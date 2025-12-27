@@ -1,5 +1,5 @@
 import { parseDecimalToInt } from "./amount.ts";
-import { isProductionEnv } from "./env.ts";
+import { getEnv, isProductionEnv } from "./env.ts";
 import { canonicalizeMiniAppManifest, enforceMiniAppAssetPolicy, type MiniAppManifestCore } from "./manifest.ts";
 import { error } from "./response.ts";
 import { supabaseServiceClient } from "./supabase.ts";
@@ -16,6 +16,8 @@ export type MiniAppPolicy = {
   };
 };
 
+type UsageMode = "record" | "check";
+
 type UsageCapInput = {
   appId: string;
   userId: string;
@@ -23,6 +25,7 @@ type UsageCapInput = {
   governanceDelta?: bigint;
   gasCap?: bigint;
   governanceCap?: bigint;
+  mode?: string;
   req?: Request;
 };
 
@@ -65,17 +68,51 @@ export function permissionEnabled(permissions: Record<string, unknown> | undefin
   return false;
 }
 
+function parseUsageMode(raw: string | undefined): UsageMode | null {
+  const value = String(raw ?? "").trim().toLowerCase();
+  if (!value) return null;
+  if (value === "record") return "record";
+  if (value === "check" || value === "cap-only" || value === "caps-only" || value === "cap_only" || value === "caps_only") {
+    return "check";
+  }
+  return null;
+}
+
+function resolveUsageMode(override?: string): UsageMode {
+  const explicit = parseUsageMode(override);
+  if (explicit) return explicit;
+  const envMode = parseUsageMode(getEnv("MINIAPP_USAGE_MODE"));
+  if (envMode) return envMode;
+  return "record";
+}
+
 export async function enforceUsageCaps(input: UsageCapInput): Promise<Response | null> {
   const hasGas = typeof input.gasCap === "bigint" && input.gasCap > 0n;
   const hasGovernance = typeof input.governanceCap === "bigint" && input.governanceCap > 0n;
-  if (!hasGas && !hasGovernance) return null;
+  const gasDelta = typeof input.gasDelta === "bigint" ? input.gasDelta : 0n;
+  const governanceDelta = typeof input.governanceDelta === "bigint" ? input.governanceDelta : 0n;
+  const hasUsage = gasDelta > 0n || governanceDelta > 0n;
+  const enforceCaps = hasGas || hasGovernance;
+  const usageMode = resolveUsageMode(input.mode);
+  const recordUsage = usageMode === "record";
+  if (!enforceCaps && (!hasUsage || !recordUsage)) return null;
 
-  const supabase = supabaseServiceClient();
-  const { error: bumpErr } = await supabase.rpc("miniapp_usage_bump", {
+  let supabase;
+  try {
+    supabase = supabaseServiceClient();
+  } catch (err) {
+    if (!enforceCaps) {
+      console.warn("usage tracking unavailable", err);
+      return null;
+    }
+    return error(500, "usage tracking unavailable", "USAGE_UNAVAILABLE", input.req);
+  }
+  const rpcName = recordUsage ? "miniapp_usage_bump" : "miniapp_usage_check";
+  const { error: bumpErr } = await supabase.rpc(rpcName, {
     p_user_id: input.userId,
     p_app_id: input.appId,
-    p_gas_delta: input.gasDelta ? input.gasDelta.toString() : "0",
-    p_governance_delta: input.governanceDelta ? input.governanceDelta.toString() : "0",
+    p_gas_delta: gasDelta.toString(),
+    p_governance_delta: governanceDelta.toString(),
     p_gas_cap: hasGas ? input.gasCap?.toString() : null,
     p_governance_cap: hasGovernance ? input.governanceCap?.toString() : null,
   });
@@ -84,6 +121,10 @@ export async function enforceUsageCaps(input: UsageCapInput): Promise<Response |
     const message = bumpErr.message ?? "usage cap enforcement failed";
     if (message.toLowerCase().includes("cap_exceeded")) {
       return error(403, "usage cap exceeded", "LIMIT_EXCEEDED", input.req);
+    }
+    if (!enforceCaps) {
+      console.warn("usage tracking failed", message);
+      return null;
     }
     if (!isProductionEnv()) return null;
     return error(503, `usage tracking unavailable: ${message}`, "USAGE_UNAVAILABLE", input.req);
@@ -147,8 +188,8 @@ export async function upsertMiniAppManifest(input: {
     governance_assets_allowed: governanceAssetsAllowed,
     updated_at: new Date().toISOString(),
   };
-  if (!existing) {
-    payload.status = "active";
+  if (!existing || input.mode === "update") {
+    payload.status = "pending";
   }
 
   const { error: upsertErr } = await supabase

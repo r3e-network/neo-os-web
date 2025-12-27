@@ -16,7 +16,7 @@ type InvokeRequest struct {
 	// Intent optionally enables additional policy gates.
 	//
 	// Supported values:
-	// - "payments": enforce PaymentHub-only methods (GAS settlement)
+	// - "payments": enforce GAS transfer to PaymentHub (GAS settlement)
 	// - "governance": enforce Governance-only methods (NEO governance)
 	Intent       string                `json:"intent,omitempty"`
 	ContractHash string                `json:"contract_hash"`

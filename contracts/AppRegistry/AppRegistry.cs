@@ -40,6 +40,12 @@ namespace NeoMiniAppPlatform.Contracts
             public ByteString ManifestHash;
             public AppStatus Status;
             public ByteString AllowlistHash;
+            public string Name;
+            public string Description;
+            public string Icon;
+            public string Banner;
+            public string Category;
+            public ByteString ContractHash;
         }
 
         [DisplayName("AppRegistered")]
@@ -78,6 +84,13 @@ namespace NeoMiniAppPlatform.Contracts
             return (ByteString)appId;
         }
 
+        private static ByteString NormalizeContractHash(ByteString contractHash)
+        {
+            if (contractHash == null || contractHash.Length == 0) return (ByteString)"";
+            ExecutionEngine.Assert(contractHash.Length == 20, "invalid contract hash");
+            return contractHash;
+        }
+
         public static AppInfo GetApp(string appId)
         {
             ByteString raw = AppMap().Get(AppKey(appId));
@@ -92,13 +105,29 @@ namespace NeoMiniAppPlatform.Contracts
                     EntryUrl = "",
                     ManifestHash = (ByteString)"",
                     Status = AppStatus.Pending,
-                    AllowlistHash = (ByteString)""
+                    AllowlistHash = (ByteString)"",
+                    Name = "",
+                    Description = "",
+                    Icon = "",
+                    Banner = "",
+                    Category = "",
+                    ContractHash = (ByteString)""
                 };
             }
             return (AppInfo)StdLib.Deserialize(raw);
         }
 
-        public static void Register(string appId, ByteString manifestHash, string entryUrl, ByteString developerPubKey)
+        private static void RegisterInternal(
+            string appId,
+            ByteString manifestHash,
+            string entryUrl,
+            ByteString developerPubKey,
+            ByteString contractHash,
+            string name,
+            string description,
+            string icon,
+            string banner,
+            string category)
         {
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
             ExecutionEngine.Assert(manifestHash != null && manifestHash.Length > 0, "manifest hash required");
@@ -119,11 +148,37 @@ namespace NeoMiniAppPlatform.Contracts
                 EntryUrl = entryUrl,
                 ManifestHash = manifestHash,
                 Status = AppStatus.Pending,
-                AllowlistHash = (ByteString)""
+                AllowlistHash = (ByteString)"",
+                Name = name ?? "",
+                Description = description ?? "",
+                Icon = icon ?? "",
+                Banner = banner ?? "",
+                Category = category ?? "",
+                ContractHash = NormalizeContractHash(contractHash)
             };
 
             AppMap().Put(key, StdLib.Serialize(info));
             OnAppRegistered(appId, info.Developer);
+        }
+
+        public static void Register(string appId, ByteString manifestHash, string entryUrl, ByteString developerPubKey)
+        {
+            RegisterInternal(appId, manifestHash, entryUrl, developerPubKey, (ByteString)"", "", "", "", "", "");
+        }
+
+        public static void RegisterApp(
+            string appId,
+            ByteString manifestHash,
+            string entryUrl,
+            ByteString developerPubKey,
+            ByteString contractHash,
+            string name,
+            string description,
+            string icon,
+            string banner,
+            string category)
+        {
+            RegisterInternal(appId, manifestHash, entryUrl, developerPubKey, contractHash, name, description, icon, banner, category);
         }
 
         public static void UpdateManifest(string appId, ByteString manifestHash, string entryUrl)
@@ -137,6 +192,40 @@ namespace NeoMiniAppPlatform.Contracts
 
             info.ManifestHash = manifestHash;
             info.EntryUrl = entryUrl;
+            info.Status = AppStatus.Pending; // require re-approval
+            AppMap().Put(AppKey(appId), StdLib.Serialize(info));
+            OnAppUpdated(appId, manifestHash);
+        }
+
+        public static void UpdateApp(
+            string appId,
+            ByteString manifestHash,
+            string entryUrl,
+            ByteString contractHash,
+            string name,
+            string description,
+            string icon,
+            string banner,
+            string category)
+        {
+            AppInfo info = GetApp(appId);
+            ExecutionEngine.Assert(info.AppId != null && info.AppId.Length > 0, "app not found");
+            ExecutionEngine.Assert(Runtime.CheckWitness(info.Developer), "unauthorized");
+
+            ExecutionEngine.Assert(manifestHash != null && manifestHash.Length > 0, "manifest hash required");
+            ExecutionEngine.Assert(entryUrl != null && entryUrl.Length > 0, "entry url required");
+
+            info.ManifestHash = manifestHash;
+            info.EntryUrl = entryUrl;
+            info.Name = name ?? "";
+            info.Description = description ?? "";
+            info.Icon = icon ?? "";
+            info.Banner = banner ?? "";
+            info.Category = category ?? "";
+            if (contractHash != null && contractHash.Length > 0)
+            {
+                info.ContractHash = NormalizeContractHash(contractHash);
+            }
             info.Status = AppStatus.Pending; // require re-approval
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
             OnAppUpdated(appId, manifestHash);

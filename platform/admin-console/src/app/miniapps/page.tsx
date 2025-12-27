@@ -53,7 +53,13 @@ export default function MiniAppsPage() {
                     <TableCell className="font-medium">{app.app_id}</TableCell>
                     <TableCell className="text-sm text-gray-500">{truncate(app.entry_url, 40)}</TableCell>
                     <TableCell>
-                      <Badge variant={app.status === "active" ? "success" : "default"}>{app.status}</Badge>
+                      <Badge
+                        variant={
+                          app.status === "active" ? "success" : app.status === "pending" ? "warning" : "danger"
+                        }
+                      >
+                        {app.status}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">{truncate(app.developer_pubkey, 12)}</TableCell>
                     <TableCell className="text-sm text-gray-500">{formatDate(app.created_at)}</TableCell>

@@ -1,11 +1,43 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { getEdgeFunctionsBaseUrl } from "../../../lib/edge";
 
-function getEdgeFunctionsBaseUrl(): string {
-  const raw = String(process.env.EDGE_BASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
-  if (!raw) return "";
-  const base = raw.replace(/\/$/, "");
-  if (base.endsWith("/functions/v1")) return base;
-  return `${base}/functions/v1`;
+const FETCH_TIMEOUT_MS = 30000; // 30 seconds
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
+
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries: number): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fetchWithTimeout(url, options, FETCH_TIMEOUT_MS);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (lastError.name === "AbortError") {
+        lastError = new Error("Request timeout");
+      }
+      if (attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
@@ -52,23 +84,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const method = String(req.method || "GET").toUpperCase();
   const hasBody = !(method === "GET" || method === "HEAD");
   const rawBody = hasBody ? await readRawBody(req) : undefined;
-  // Buffer is a Uint8Array at runtime, but DOM fetch typings don't accept Buffer.
   const body = rawBody ? new Uint8Array(rawBody) : undefined;
 
-  const upstream = await fetch(url.toString(), {
-    method,
-    headers,
-    body,
-  });
+  try {
+    const upstream = await fetchWithRetry(url.toString(), { method, headers, body }, MAX_RETRIES);
 
-  res.status(upstream.status);
-  upstream.headers.forEach((value, key) => {
-    if (key === "transfer-encoding" || key === "connection") return;
-    res.setHeader(key, value);
-  });
+    res.status(upstream.status);
+    upstream.headers.forEach((value, key) => {
+      if (key === "transfer-encoding" || key === "connection") return;
+      res.setHeader(key, value);
+    });
 
-  const buf = Buffer.from(await upstream.arrayBuffer());
-  res.send(buf);
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.send(buf);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Upstream request failed";
+    res.status(504).json({ error: message, code: "GATEWAY_TIMEOUT" });
+  }
 }
 
 export const config = {

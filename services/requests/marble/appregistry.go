@@ -53,6 +53,13 @@ func (s *Service) validateAppRegistry(ctx context.Context, app *neorequestsupaba
 		return fmt.Errorf("entry_url mismatch")
 	}
 
+	if len(info.ContractHash) > 0 {
+		contractHash := appContractHash(app)
+		if contractHash != "" && hex.EncodeToString(info.ContractHash) != contractHash {
+			return fmt.Errorf("contract hash mismatch")
+		}
+	}
+
 	return nil
 }
 

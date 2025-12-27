@@ -13,6 +13,12 @@ strictly enforced.
 > - **Frontend:** **Vercel** + **Next.js** + **Micro-frontends**.
 > - **High-Freq Data:** **Datafeed** (Push on ≥0.1% deviation).
 
+## 0. Platform as Backend (PaaB)
+
+- **Host = micro-kernel**: the platform host is the kernel, MiniApps are plugins.
+- **Developers ship only contracts + frontend**: indexing, analytics, and push are handled by the platform engine.
+- **Event-driven UX**: standardized on-chain events feed news, metrics, and realtime notifications.
+
 ## 1. Complete Tech Stack & Tooling Selection
 
 ### A. Blockchain Layer (Neo N3)
@@ -21,7 +27,7 @@ strictly enforced.
 - **Compiler/Framework:** `neo-devpack-dotnet`.
 - **Local Development:** `neo-express`.
 - **Testing:** `Neo.TestingFramework`.
-- **Client SDK:** `neon-js`.
+- **Client SDK:** MiniAppSDK (TS) for Edge calls + wallet intents.
 - **Wallet Integration:** NeoLine, O3, or OneGate (via dAPI).
 
 ### B. Service Layer (Confidential Computing)
@@ -38,7 +44,14 @@ strictly enforced.
 - **API/Gateway:** Supabase Edge Functions (Deno).
 - **Storage:** Supabase Storage.
 
-### D. Frontend Platform
+### D. Platform Engine (Indexer + Analytics)
+- **Chain syncer:** Go (preferred reuse) or Node.js (`neon-js`).
+- **Event processing:** AppRegistry + MiniApp contract events.
+- **Aggregation:** daily rollups, trending, and derived KPIs.
+- **Realtime:** Supabase Realtime (Postgres replication) or WS relay.
+- **Ops:** replay/backfill tooling, reorg handling, and metrics.
+
+### E. Frontend Platform
 - **Framework:** **Next.js**.
 - **Hosting:** **Vercel**.
 - **Micro-frontend Strategy:**
@@ -46,7 +59,7 @@ strictly enforced.
   - 3rd Party Apps: `iframe sandbox` + `postMessage`.
 - **State Management:** Zustand (SDK-side state, optional).
 
-### E. DevOps & CI/CD
+### F. DevOps & CI/CD
 - **Repo:** GitHub (Monorepo).
 - **CI Runner:** GitHub Actions.
 - **Security Scanning:** `npm audit`, CSP checks, and enclave measurement builds.
@@ -56,11 +69,11 @@ strictly enforced.
 ```text
 neo-miniapp-platform/
 ├── contracts/                  # [C#] Neo N3 Contracts
-│   ├── PaymentHub/             # Logic: Pay/Split/Refund (GAS ONLY)
+│   ├── PaymentHub/             # Logic: GAS transfer + split/withdraw (GAS ONLY)
 │   ├── Governance/             # Logic: Vote/Stake (NEO ONLY)
 │   ├── PriceFeed/              # Logic: Datafeed storage (0.1% trigger)
 │   ├── RandomnessLog/          # Logic: VRF verification storage
-│   ├── AppRegistry/            # Logic: Manifest hash & Dev Allowlist
+│   ├── AppRegistry/            # Logic: On-chain metadata + manifest hash + Dev Allowlist
 │   ├── AutomationAnchor/       # Logic: Task registry
 │   └── ServiceLayerGateway/    # Logic: Service request + callback router
 │
@@ -72,6 +85,8 @@ neo-miniapp-platform/
 │   ├── requests/               # On-chain request listener + callbacks
 │   ├── automation/             # Scheduler + anchoring
 │   ├── txproxy/                # The "Key Holder". Signs transactions.
+│   ├── indexer/                # Chain syncer + event parser (non-TEE)
+│   ├── aggregator/             # Daily rollups + trending (non-TEE)
 │   └── marblerun/              # Manifests & policies
 │
 ├── platform/                   # [TS] Host Platform
@@ -140,8 +155,36 @@ All services run inside EGo enclaves. Keys **never** leave the enclave.
 - Validates Supabase Auth JWT / API keys.
 - Enforces **GAS-only** (payments) and **NEO-only** (governance).
 - Uses mTLS when calling TEE services.
+- Read-only market APIs: `miniapp-stats`, `miniapp-notifications`, `market-trending`.
 
-### D. On-Chain Service Request Flow
+### D. Platform Engine (Indexer + Analytics)
+- **Chain syncer:** listens to every block, handles reorgs via confirmation depth and backfill.
+- **Idempotency:** `processed_events` table prevents double-processing.
+- **Event standard:** parses `Platform_Notification` and `Platform_Metric` events.
+- **Activity:** scans `System.Contract.Call` to attribute tx activity per MiniApp (event fallback).
+- **Rollups:** maintains `miniapp_tx_events`, `miniapp_stats`, `miniapp_stats_daily`, `miniapp_notifications`.
+- **Realtime:** inserts trigger Supabase Realtime for client notifications.
+
+**MiniApp Event Standard (recommended)**
+
+```csharp
+// 1) News/Notifications for platform feeds
+[DisplayName("Platform_Notification")]
+public static event Action<string, string, string> OnNotification;
+// notification_type, title, content (or IPFS hash)
+// Optional extension: Platform_Notification(app_id, title, content, notification_type, priority)
+
+// 2) Custom metrics for analytics
+[DisplayName("Platform_Metric")]
+public static event Action<string, BigInteger> OnMetric;
+// metric_name, value
+// Optional extension: Platform_Metric(app_id, metric_name, value)
+```
+
+The manifest should include `contract_hash` so AppRegistry can anchor it; the indexer verifies the emitting
+contract against the on-chain `contract_hash` cache (strict mode can require it even when `app_id` is provided).
+
+### E. On-Chain Service Request Flow
 
 1. MiniApp contract calls `ServiceLayerGateway.RequestService(...)`.
 2. Gateway emits `ServiceRequested`.
@@ -165,6 +208,7 @@ interface MiniAppSDK {
   governance: { vote(appId: string, proposalId: string, amount: string): Promise<unknown> };
   rng: { requestRandom(appId: string): Promise<unknown> };
   datafeed: { getPrice(symbol: string): Promise<unknown> };
+  stats: { getMyUsage(appId?: string, date?: string): Promise<unknown> };
 }
 ```
 

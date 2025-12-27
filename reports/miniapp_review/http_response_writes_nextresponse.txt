@@ -1,0 +1,6 @@
+platform/admin-console/src/app/api/analytics/route.ts:43:    const usageData: Array<{ gas_used?: number }> = await usageResponse.json();
+platform/admin-console/src/app/api/analytics/route.ts:59:      usageByApp = await usageByAppResponse.json();
+platform/admin-console/src/app/api/analytics/route.ts:62:    return NextResponse.json({
+platform/admin-console/src/app/api/analytics/route.ts:72:    return NextResponse.json({ error: "Failed to fetch analytics" }, { status: 500 });
+platform/admin-console/src/app/api/services/health/route.ts:69:    return NextResponse.json(healthChecks);
+platform/admin-console/src/app/api/services/health/route.ts:71:    return NextResponse.json({ error: "Failed to check services health" }, { status: 500 });

@@ -1,6 +1,6 @@
 //go:build ignore
 
-// Script to configure PaymentHub for all 7 MiniApps
+// Script to configure PaymentHub for all 14 MiniApps
 
 package main
 
@@ -26,20 +26,30 @@ var contracts = map[string]string{
 	"PaymentHub": "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193",
 }
 
-// All 7 MiniApps to configure
+// All 14 MiniApps to configure
 var miniApps = []struct {
 	AppID       string
 	Name        string
 	Category    string
 	Description string
 }{
+	// Phase 1 - Gaming
 	{"builtin-lottery", "Neo Lottery", "gaming", "Decentralized lottery with provably fair randomness"},
 	{"builtin-coin-flip", "Neo Coin Flip", "gaming", "50/50 coin flip game"},
 	{"builtin-dice-game", "Neo Dice", "gaming", "Roll dice and win up to 6x"},
 	{"builtin-scratch-card", "Neo Scratch Cards", "gaming", "Instant win scratch cards"},
+	// Phase 2 - DeFi & Social
 	{"builtin-prediction-market", "Neo Predictions", "defi", "Bet on price movements"},
 	{"builtin-flashloan", "Neo FlashLoan", "defi", "Instant borrow and repay"},
 	{"builtin-price-ticker", "Neo Price Ticker", "defi", "Real-time price feeds"},
+	{"builtin-gas-spin", "Neo Gas Spin", "gaming", "Spin wheel to win GAS prizes"},
+	{"builtin-price-predict", "Neo Price Predict", "defi", "Predict price direction"},
+	{"builtin-secret-vote", "Neo Secret Vote", "social", "Anonymous voting with TEE privacy"},
+	// Phase 4 - Long-Running
+	{"builtin-ai-trader", "Neo AI Trader", "defi", "AI-powered trading strategies"},
+	{"builtin-grid-bot", "Neo Grid Bot", "defi", "Automated grid trading"},
+	{"builtin-nft-evolve", "Neo NFT Evolve", "nft", "Evolving NFT collectibles"},
+	{"builtin-bridge-guardian", "Neo Bridge Guardian", "defi", "Cross-chain bridge monitoring"},
 }
 
 func main() {
@@ -78,7 +88,7 @@ func main() {
 
 	paymentHubHash, _ := parseContractHash(contracts["PaymentHub"])
 
-	fmt.Println("\n=== Configuring PaymentHub for All 7 MiniApps ===")
+	fmt.Println("\n=== Configuring PaymentHub for All 14 MiniApps ===")
 
 	for _, app := range miniApps {
 		fmt.Printf("\n--- Configuring %s (%s) ---\n", app.Name, app.AppID)

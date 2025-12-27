@@ -31,7 +31,7 @@ export async function handler(req: Request): Promise<Response> {
   if (accErr) return error(500, `failed to load gasbank account: ${accErr.message}`, "DB_ERROR", req);
   if (!accounts || accounts.length === 0) return json({ transactions: [] }, {}, req);
 
-  const accountId = String((accounts[0] as any)?.id ?? "").trim();
+  const accountId = String(accounts[0]?.id ?? "").trim();
   if (!accountId) return json({ transactions: [] }, {}, req);
 
   const { data, error: listErr } = await supabase

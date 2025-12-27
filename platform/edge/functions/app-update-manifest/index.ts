@@ -38,7 +38,7 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
-  const manifest = (body as any)?.manifest;
+  const manifest = body?.manifest;
   if (!manifest) return error(400, "manifest required", "MANIFEST_REQUIRED", req);
 
   let core;
@@ -62,21 +62,31 @@ export async function handler(req: Request): Promise<Response> {
   const appRegistryHash = normalizeUInt160(mustGetEnv("CONTRACT_APPREGISTRY_HASH"));
   const requestId = crypto.randomUUID();
 
-  return json({
-    request_id: requestId,
-    user_id: auth.userId,
-    intent: "apps",
-    manifest_hash: core.manifestHashHex,
-    invocation: {
-      contract_hash: appRegistryHash,
-      method: "updateManifest",
-      params: [
-        { type: "String", value: core.appId },
-        { type: "ByteArray", value: core.manifestHashHex },
-        { type: "String", value: core.entryUrl },
-      ],
+  return json(
+    {
+      request_id: requestId,
+      user_id: auth.userId,
+      intent: "apps",
+      manifest_hash: core.manifestHashHex,
+      invocation: {
+        contract_hash: appRegistryHash,
+        method: "updateApp",
+        params: [
+          { type: "String", value: core.appId },
+          { type: "ByteArray", value: core.manifestHashHex },
+          { type: "String", value: core.entryUrl },
+          { type: "ByteArray", value: core.contractHashHex },
+          { type: "String", value: core.name },
+          { type: "String", value: core.description },
+          { type: "String", value: core.icon },
+          { type: "String", value: core.banner },
+          { type: "String", value: core.category },
+        ],
+      },
     },
-  }, {}, req);
+    {},
+    req,
+  );
 }
 
 if (import.meta.main) {

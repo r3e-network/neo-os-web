@@ -17,12 +17,14 @@ import { createHostSDK, createMiniAppSDK } from "@neo-miniapp/sdk";
 const sdk = createMiniAppSDK({
   edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
   getAuthToken: async () => "<supabase-jwt>",
+  appId: "my-app", // optional default for stats.getMyUsage
 });
 
 await sdk.payments.payGAS("my-app", "1.5", "entry fee");
 await sdk.governance.vote("my-app", "proposal-1", "10", true);
 await sdk.rng.requestRandom("my-app");
 await sdk.datafeed.getPrice("BTC-USD"); // or "BTC" (defaults to BTC-USD)
+await sdk.stats.getMyUsage(); // uses appId from config when provided
 ```
 
 Notes:
@@ -32,6 +34,7 @@ Notes:
   - `sdk.wallet.invokeInvocation(invocation)` (NeoLine N3 integration)
   - `sdk.wallet.invokeIntent(request_id)` for intents created during this session
   - `sdk.payments.payGASAndInvoke(...)` / `sdk.governance.voteAndInvoke(...)` convenience helpers
+  - `sdk.stats.getMyUsage(appId?, date?)` for per-user daily usage (base units)
 
 ## Oracle (Host-only)
 

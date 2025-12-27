@@ -158,9 +158,11 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	// Initialize account pool client with MarbleRun mTLS client for secure mesh communication
+	// NOTE: Don't send ServiceID when using MarbleRun mTLS - let the neoaccounts service
+	// use the MarbleRun authenticated identity instead. This avoids service_id mismatch errors.
 	poolClient, err := neoaccountsclient.New(neoaccountsclient.Config{
 		BaseURL:    accountPoolURL,
-		ServiceID:  ServiceID,
+		ServiceID:  "", // Empty to use MarbleRun authenticated identity
 		HTTPClient: marble.HTTPClient(),
 	})
 	if err != nil {
@@ -281,13 +283,16 @@ func (s *Service) Start(ctx context.Context) error {
 	now := time.Now()
 	s.startedAt = &now
 
-	// Start multiple workers for each MiniApp to achieve target transaction rate
-	// With N workers per app, each targeting interval I, effective rate is I/N per app
+	// NOTE: Simple GAS transfer workers disabled - using MiniApp workflow simulators instead
+	// These workers just send GAS to random addresses, not following the correct MiniApp workflow
+	// The correct workflow is: User → PayToApp → Platform → MiniApp Contract → Payout
+	/*
 	for _, appID := range s.miniApps {
 		for workerID := 0; workerID < s.workersPerApp; workerID++ {
 			go s.simulateApp(appID, workerID)
 		}
 	}
+	*/
 
 	// Start contract invocation workers if contract invoker is available
 	if s.contractInvoker != nil {
@@ -309,29 +314,32 @@ func (s *Service) Start(ctx context.Context) error {
 
 	// Start MiniApp workflow simulators if MiniApp simulator is available
 	if s.miniAppSimulator != nil {
+		// All MiniApps run at 15 second intervals for consistent simulation
+		interval := 15 * time.Second
+
 		// Gaming MiniApps
-		go s.runMiniAppWorkflow("lottery", 5*time.Second, s.miniAppSimulator.SimulateLottery)
-		go s.runMiniAppWorkflow("coin-flip", 3*time.Second, s.miniAppSimulator.SimulateCoinFlip)
-		go s.runMiniAppWorkflow("dice-game", 4*time.Second, s.miniAppSimulator.SimulateDiceGame)
-		go s.runMiniAppWorkflow("scratch-card", 6*time.Second, s.miniAppSimulator.SimulateScratchCard)
+		go s.runMiniAppWorkflow("lottery", interval, s.miniAppSimulator.SimulateLottery)
+		go s.runMiniAppWorkflow("coin-flip", interval, s.miniAppSimulator.SimulateCoinFlip)
+		go s.runMiniAppWorkflow("dice-game", interval, s.miniAppSimulator.SimulateDiceGame)
+		go s.runMiniAppWorkflow("scratch-card", interval, s.miniAppSimulator.SimulateScratchCard)
 
 		// DeFi MiniApps
-		go s.runMiniAppWorkflow("prediction-market", 10*time.Second, s.miniAppSimulator.SimulatePredictionMarket)
-		go s.runMiniAppWorkflow("flashloan", 15*time.Second, s.miniAppSimulator.SimulateFlashLoan)
-		go s.runMiniAppWorkflow("price-ticker", 8*time.Second, s.miniAppSimulator.SimulatePriceTicker)
+		go s.runMiniAppWorkflow("prediction-market", interval, s.miniAppSimulator.SimulatePredictionMarket)
+		go s.runMiniAppWorkflow("flashloan", interval, s.miniAppSimulator.SimulateFlashLoan)
+		go s.runMiniAppWorkflow("price-ticker", interval, s.miniAppSimulator.SimulatePriceTicker)
 
 		// New MiniApps
-		go s.runMiniAppWorkflow("gas-spin", 5*time.Second, s.miniAppSimulator.SimulateGasSpin)
-		go s.runMiniAppWorkflow("price-predict", 8*time.Second, s.miniAppSimulator.SimulatePricePredict)
-		go s.runMiniAppWorkflow("secret-vote", 10*time.Second, s.miniAppSimulator.SimulateSecretVote)
+		go s.runMiniAppWorkflow("gas-spin", interval, s.miniAppSimulator.SimulateGasSpin)
+		go s.runMiniAppWorkflow("price-predict", interval, s.miniAppSimulator.SimulatePricePredict)
+		go s.runMiniAppWorkflow("secret-vote", interval, s.miniAppSimulator.SimulateSecretVote)
 
 		// Phase 4 MiniApps - Long-Running Processes
-		go s.runMiniAppWorkflow("ai-trader", 5*time.Second, s.miniAppSimulator.SimulateAITrader)
-		go s.runMiniAppWorkflow("grid-bot", 4*time.Second, s.miniAppSimulator.SimulateGridBot)
-		go s.runMiniAppWorkflow("nft-evolve", 6*time.Second, s.miniAppSimulator.SimulateNFTEvolve)
-		go s.runMiniAppWorkflow("bridge-guardian", 10*time.Second, s.miniAppSimulator.SimulateBridgeGuardian)
+		go s.runMiniAppWorkflow("ai-trader", interval, s.miniAppSimulator.SimulateAITrader)
+		go s.runMiniAppWorkflow("grid-bot", interval, s.miniAppSimulator.SimulateGridBot)
+		go s.runMiniAppWorkflow("nft-evolve", interval, s.miniAppSimulator.SimulateNFTEvolve)
+		go s.runMiniAppWorkflow("bridge-guardian", interval, s.miniAppSimulator.SimulateBridgeGuardian)
 
-		s.Logger().WithContext(ctx).Info("MiniApp workflow simulators started for all 14 apps")
+		s.Logger().WithContext(ctx).Info("MiniApp workflow simulators started for all 14 apps at 15s intervals")
 	}
 
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
@@ -684,7 +692,7 @@ func (s *Service) runPaymentHubPayer(appID string) {
 
 			txHash, err := s.contractInvoker.PayToApp(ctx, appID, amount, memo)
 			if err != nil {
-				logger.WithError(err).Warn("PaymentHub pay failed")
+				logger.WithError(err).Warn("PaymentHub payment failed")
 			} else {
 				logger.WithFields(map[string]interface{}{
 					"amount":  amount,

@@ -43,6 +43,7 @@ type Config struct {
 
 	ServiceGatewayHash string
 	AppRegistryHash    string
+	PaymentHubHash     string
 	NeoVRFURL          string
 	NeoOracleURL       string
 	NeoComputeURL      string
@@ -55,24 +56,33 @@ type Config struct {
 	TxWait         bool
 
 	EnforceAppRegistry      bool
+	RequireManifestContract bool
 	AppRegistryCacheSeconds int
+	StatsRollupInterval     time.Duration
+	OnchainUsage            bool
+	OnchainTxUsage          bool
 }
 
 // Service implements the NeoRequests service.
 type Service struct {
 	*commonservice.BaseService
 
-	repo               neorequestsupabase.RepositoryInterface
-	eventListener      *chain.EventListener
-	txProxy            txproxytypes.Invoker
-	serviceGatewayHash string
-	appRegistryHash    string
-	appRegistry        *chain.AppRegistryContract
-	chainClient        *chain.Client
-	enforceAppRegistry bool
-	appRegistryCache   map[string]appRegistryCacheEntry
-	appRegistryMu      sync.RWMutex
-	appRegistryTTL     time.Duration
+	repo                    neorequestsupabase.RepositoryInterface
+	eventListener           *chain.EventListener
+	txProxy                 txproxytypes.Invoker
+	serviceGatewayHash      string
+	appRegistryHash         string
+	appRegistry             *chain.AppRegistryContract
+	chainClient             *chain.Client
+	enforceAppRegistry      bool
+	paymentHubHash          string
+	appRegistryCache        map[string]appRegistryCacheEntry
+	appRegistryMu           sync.RWMutex
+	appRegistryTTL          time.Duration
+	miniAppCache            map[string]miniAppCacheEntry
+	miniAppCacheMu          sync.RWMutex
+	miniAppCacheTTL         time.Duration
+	requireManifestContract bool
 
 	httpClient  *http.Client
 	vrfURL      string
@@ -83,6 +93,10 @@ type Service struct {
 	maxResult   int
 	maxErrorLen int
 	rngMode     string
+
+	statsRollupInterval time.Duration
+	onchainUsage        bool
+	onchainTxUsage      bool
 
 	requestIndex sync.Map
 }
@@ -166,6 +180,32 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		}
 	}
 
+	paymentHubHash := normalizeContractHash(cfg.PaymentHubHash)
+	if paymentHubHash == "" {
+		paymentHubHash = normalizeContractHash(os.Getenv("CONTRACT_PAYMENTHUB_HASH"))
+	}
+	if paymentHubHash == "" {
+		paymentHubHash = normalizeContractHash(os.Getenv("CONTRACT_PAYMENT_HUB_HASH"))
+	}
+	if paymentHubHash == "" {
+		paymentHubHash = normalizeContractHash(os.Getenv("CONTRACT_GATEWAY_HASH"))
+	}
+	if paymentHubHash == "" {
+		if secret, ok := cfg.Marble.Secret("CONTRACT_PAYMENTHUB_HASH"); ok && len(secret) > 0 {
+			paymentHubHash = normalizeContractHash(string(secret))
+		}
+	}
+	if paymentHubHash == "" {
+		if secret, ok := cfg.Marble.Secret("CONTRACT_PAYMENT_HUB_HASH"); ok && len(secret) > 0 {
+			paymentHubHash = normalizeContractHash(string(secret))
+		}
+	}
+	if paymentHubHash == "" {
+		if secret, ok := cfg.Marble.Secret("CONTRACT_GATEWAY_HASH"); ok && len(secret) > 0 {
+			paymentHubHash = normalizeContractHash(string(secret))
+		}
+	}
+
 	maxResult := cfg.MaxResultBytes
 	if maxResult <= 0 {
 		if parsed, ok := parseEnvInt("NEOREQUESTS_MAX_RESULT_BYTES"); ok && parsed > 0 {
@@ -205,12 +245,39 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		txWait = strings.EqualFold(raw, "true") || raw == "1"
 	}
 
+	statsRollupInterval := cfg.StatsRollupInterval
+	if statsRollupInterval <= 0 {
+		if parsed, ok := parseEnvDuration("NEOREQUESTS_STATS_ROLLUP_INTERVAL"); ok {
+			statsRollupInterval = parsed
+		} else {
+			statsRollupInterval = 30 * time.Minute
+		}
+	}
+
+	onchainUsage := cfg.OnchainUsage
+	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ONCHAIN_USAGE")); raw != "" {
+		onchainUsage = parseEnvBool(raw)
+	}
+	onchainTxUsage := cfg.OnchainTxUsage
+	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_USAGE")); raw != "" {
+		onchainTxUsage = parseEnvBool(raw)
+	} else if !onchainTxUsage {
+		onchainTxUsage = true
+	}
+
 	enforceAppRegistry := cfg.EnforceAppRegistry
 	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ENFORCE_APPREGISTRY")); raw != "" {
 		enforceAppRegistry = parseEnvBool(raw)
 	}
 	if !enforceAppRegistry && appRegistryHash != "" && cfg.ChainClient != nil {
 		enforceAppRegistry = true
+	}
+
+	requireManifestContract := cfg.RequireManifestContract
+	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT")); raw != "" {
+		requireManifestContract = parseEnvBool(raw)
+	} else if !requireManifestContract {
+		requireManifestContract = true
 	}
 
 	cacheSeconds := cfg.AppRegistryCacheSeconds
@@ -224,25 +291,32 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	}
 
 	s := &Service{
-		BaseService:        base,
-		repo:               repo,
-		eventListener:      cfg.EventListener,
-		txProxy:            cfg.TxProxy,
-		serviceGatewayHash: serviceGatewayHash,
-		appRegistryHash:    appRegistryHash,
-		chainClient:        cfg.ChainClient,
-		enforceAppRegistry: enforceAppRegistry,
-		appRegistryCache:   map[string]appRegistryCacheEntry{},
-		appRegistryTTL:     time.Duration(cacheSeconds) * time.Second,
-		httpClient:         httpClient,
-		vrfURL:             strings.TrimSpace(cfg.NeoVRFURL),
-		oracleURL:          strings.TrimSpace(cfg.NeoOracleURL),
-		computeURL:         strings.TrimSpace(cfg.NeoComputeURL),
-		chainID:            chainID,
-		txWait:             txWait,
-		maxResult:          maxResult,
-		maxErrorLen:        maxErrorLen,
-		rngMode:            rngMode,
+		BaseService:             base,
+		repo:                    repo,
+		eventListener:           cfg.EventListener,
+		txProxy:                 cfg.TxProxy,
+		serviceGatewayHash:      serviceGatewayHash,
+		appRegistryHash:         appRegistryHash,
+		chainClient:             cfg.ChainClient,
+		enforceAppRegistry:      enforceAppRegistry,
+		appRegistryCache:        map[string]appRegistryCacheEntry{},
+		appRegistryTTL:          time.Duration(cacheSeconds) * time.Second,
+		miniAppCache:            map[string]miniAppCacheEntry{},
+		miniAppCacheTTL:         time.Duration(cacheSeconds) * time.Second,
+		requireManifestContract: requireManifestContract,
+		paymentHubHash:          paymentHubHash,
+		httpClient:              httpClient,
+		vrfURL:                  strings.TrimSpace(cfg.NeoVRFURL),
+		oracleURL:               strings.TrimSpace(cfg.NeoOracleURL),
+		computeURL:              strings.TrimSpace(cfg.NeoComputeURL),
+		chainID:                 chainID,
+		txWait:                  txWait,
+		maxResult:               maxResult,
+		maxErrorLen:             maxErrorLen,
+		rngMode:                 rngMode,
+		statsRollupInterval:     statsRollupInterval,
+		onchainUsage:            onchainUsage,
+		onchainTxUsage:          onchainTxUsage,
 	}
 
 	if s.enforceAppRegistry {
@@ -277,6 +351,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 
 	base.RegisterStandardRoutes()
 	s.registerHandlers()
+	s.registerStatsRollup()
 
 	return s, nil
 }
@@ -292,11 +367,52 @@ func (s *Service) registerHandlers() {
 	s.eventListener.On("ServiceFulfilled", func(event *chain.ContractEvent) error {
 		return s.handleServiceFulfilled(context.Background(), event)
 	})
+	s.eventListener.On("Platform_Notification", func(event *chain.ContractEvent) error {
+		return s.handleNotificationEvent(context.Background(), event)
+	})
 	s.eventListener.On("Notification", func(event *chain.ContractEvent) error {
 		return s.handleNotificationEvent(context.Background(), event)
 	})
+	s.eventListener.On("Platform_Metric", func(event *chain.ContractEvent) error {
+		return s.handleMetricEvent(context.Background(), event)
+	})
+	s.eventListener.On("Metric", func(event *chain.ContractEvent) error {
+		return s.handleMetricEvent(context.Background(), event)
+	})
+	s.eventListener.On("AppRegistered", func(event *chain.ContractEvent) error {
+		return s.handleAppRegistryEvent(context.Background(), event)
+	})
+	s.eventListener.On("AppUpdated", func(event *chain.ContractEvent) error {
+		return s.handleAppRegistryEvent(context.Background(), event)
+	})
+	s.eventListener.On("StatusChanged", func(event *chain.ContractEvent) error {
+		return s.handleAppRegistryEvent(context.Background(), event)
+	})
+	s.eventListener.On("PaymentReceived", func(event *chain.ContractEvent) error {
+		return s.handlePaymentReceivedEvent(context.Background(), event)
+	})
+	if s.onchainTxUsage {
+		s.eventListener.OnTransaction(func(event *chain.TransactionEvent) error {
+			return s.handleMiniAppTxEvent(context.Background(), event)
+		})
+	}
 
 	s.BaseService.AddWorker(s.runEventListener)
+}
+
+func (s *Service) registerStatsRollup() {
+	if s.repo == nil || s.BaseService == nil {
+		return
+	}
+	if s.statsRollupInterval <= 0 {
+		return
+	}
+	s.BaseService.AddTickerWorker(
+		s.statsRollupInterval,
+		s.rollupMiniAppStats,
+		commonservice.WithTickerWorkerName("miniapp_stats_rollup"),
+		commonservice.WithTickerWorkerImmediate(),
+	)
 }
 
 func (s *Service) runEventListener(ctx context.Context) {
@@ -319,6 +435,18 @@ func parseEnvInt(key string) (int, bool) {
 		return 0, false
 	}
 	return value, true
+}
+
+func parseEnvDuration(key string) (time.Duration, bool) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return 0, false
+	}
+	parsed, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, false
+	}
+	return parsed, true
 }
 
 func parseEnvBool(raw string) bool {

@@ -14,6 +14,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	"github.com/R3E-Network/service_layer/infrastructure/database"
 	txproxytypes "github.com/R3E-Network/service_layer/infrastructure/txproxy/types"
 	neorequestsupabase "github.com/R3E-Network/service_layer/services/requests/supabase"
 )
@@ -81,6 +82,8 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 		return nil
 	}
 
+	s.trackMiniAppTx(ctx, appID, "", event)
+
 	manifestInfo, err := parseManifestInfo(app.Manifest)
 	if err != nil {
 		logger.WithError(err).Warn("invalid manifest")
@@ -143,6 +146,18 @@ func (s *Service) handleServiceFulfilled(ctx context.Context, event *chain.Contr
 		return err
 	}
 
+	if s.repo != nil {
+		processed, err := s.markGenericProcessed(ctx, event, map[string]interface{}{
+			"request_id": parsed.RequestID,
+		})
+		if err != nil {
+			s.Logger().WithContext(ctx).WithError(err).Warn("failed to mark service fulfilled event processed")
+		}
+		if !processed {
+			return nil
+		}
+	}
+
 	appID := ""
 	if cached, ok := s.requestIndex.Load(strings.TrimSpace(parsed.RequestID)); ok {
 		if value, ok := cached.(string); ok {
@@ -160,6 +175,12 @@ func (s *Service) handleServiceFulfilled(ctx context.Context, event *chain.Contr
 }
 
 func (s *Service) executeService(ctx context.Context, userID, appID, requestID, serviceType string, payload []byte) (serviceResult, error) {
+	// SECURITY: Validate payload size to prevent OOM attacks
+	const maxPayloadSize = 1 << 20 // 1MB
+	if len(payload) > maxPayloadSize {
+		return serviceResult{}, fmt.Errorf("payload too large: %d bytes (max %d)", len(payload), maxPayloadSize)
+	}
+
 	switch serviceType {
 	case "rng":
 		return s.executeRNG(ctx, userID, appID, requestID, payload)
@@ -521,7 +542,55 @@ func (s *Service) loadMiniApp(ctx context.Context, appID string) (*neorequestsup
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
-	return s.repo.GetMiniApp(ctx, appID)
+	appID = strings.TrimSpace(appID)
+	if appID == "" {
+		return nil, fmt.Errorf("app_id cannot be empty")
+	}
+	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("app:", appID)); ok {
+		if notFound {
+			return nil, miniAppNotFoundError(appID)
+		}
+		return app, nil
+	}
+
+	app, err := s.repo.GetMiniApp(ctx, appID)
+	if err != nil {
+		if database.IsNotFound(err) {
+			s.cacheMiniAppNotFound(appID, "")
+		}
+		return nil, err
+	}
+
+	contractHash := appContractHash(app)
+	s.cacheMiniApp(app, contractHash)
+	return app, nil
+}
+
+func (s *Service) loadMiniAppByContractHash(ctx context.Context, contractHash string) (*neorequestsupabase.MiniApp, error) {
+	if s.repo == nil {
+		return nil, fmt.Errorf("repository not configured")
+	}
+	normalized := normalizeContractHash(contractHash)
+	if normalized == "" {
+		return nil, fmt.Errorf("contract_hash cannot be empty")
+	}
+	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("contract:", normalized)); ok {
+		if notFound {
+			return nil, miniAppNotFoundError(normalized)
+		}
+		return app, nil
+	}
+
+	app, err := s.repo.GetMiniAppByContractHash(ctx, normalized)
+	if err != nil {
+		if database.IsNotFound(err) {
+			s.cacheMiniAppNotFound("", normalized)
+		}
+		return nil, err
+	}
+
+	s.cacheMiniApp(app, normalized)
+	return app, nil
 }
 
 func (s *Service) markEventProcessed(ctx context.Context, event *chain.ContractEvent, parsed *chain.ServiceRequestedEvent) (bool, error) {
@@ -617,6 +686,36 @@ func buildServiceFulfilledState(event *chain.ServiceFulfilledEvent) json.RawMess
 	return neorequestsupabase.MarshalParams(state)
 }
 
+func buildNotificationState(event *chain.MiniAppNotificationEvent) json.RawMessage {
+	if event == nil {
+		return nil
+	}
+	state := map[string]interface{}{
+		"app_id":            event.AppID,
+		"title":             event.Title,
+		"content":           event.Content,
+		"notification_type": event.NotificationType,
+		"priority":          event.Priority,
+	}
+	return neorequestsupabase.MarshalParams(state)
+}
+
+func buildMetricState(event *chain.MiniAppMetricEvent) json.RawMessage {
+	if event == nil {
+		return nil
+	}
+	value := ""
+	if event.Value != nil {
+		value = event.Value.String()
+	}
+	state := map[string]interface{}{
+		"app_id":      event.AppID,
+		"metric_name": event.MetricName,
+		"value":       value,
+	}
+	return neorequestsupabase.MarshalParams(state)
+}
+
 func decodePayload(payload []byte) interface{} {
 	if len(payload) == 0 {
 		return nil
@@ -669,6 +768,7 @@ type manifestInfo struct {
 	CallbackContract string
 	CallbackMethod   string
 	Permissions      map[string]interface{}
+	NewsIntegration  *bool
 }
 
 func parseManifestInfo(raw json.RawMessage) (manifestInfo, error) {
@@ -710,7 +810,44 @@ func parseManifestInfo(raw json.RawMessage) (manifestInfo, error) {
 		}
 	}
 
+	if val, ok := m["news_integration"]; ok {
+		if enabled, ok := val.(bool); ok {
+			out.NewsIntegration = &enabled
+		}
+	}
+
 	return out, nil
+}
+
+func manifestContractHash(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return ""
+	}
+
+	if val, ok := m["contract_hash"]; ok {
+		contract := strings.TrimSpace(fmt.Sprintf("%v", val))
+		if contract == "" {
+			return ""
+		}
+		return normalizeContractHash(contract)
+	}
+
+	return ""
+}
+
+func appContractHash(app *neorequestsupabase.MiniApp) string {
+	if app == nil {
+		return ""
+	}
+	if normalized := normalizeContractHash(app.ContractHash); normalized != "" {
+		return normalized
+	}
+	return manifestContractHash(app.Manifest)
 }
 
 func permissionEnabled(perms map[string]interface{}, key string) bool {
@@ -790,6 +927,67 @@ func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.Cont
 		"title":  parsed.Title,
 	})
 
+	if s.repo != nil {
+		processed, err := s.markNotificationProcessed(ctx, event, parsed)
+		if err != nil {
+			logger.WithContext(ctx).WithError(err).Warn("failed to mark notification event processed")
+		}
+		if !processed {
+			return nil
+		}
+	}
+
+	if s.repo != nil {
+		var app *neorequestsupabase.MiniApp
+		var err error
+		if strings.TrimSpace(parsed.AppID) != "" {
+			app, err = s.loadMiniApp(ctx, parsed.AppID)
+		} else if strings.TrimSpace(event.Contract) != "" {
+			app, err = s.loadMiniAppByContractHash(ctx, event.Contract)
+			if err == nil && app != nil {
+				parsed.AppID = app.AppID
+				logger = s.Logger().WithFields(map[string]interface{}{
+					"app_id": parsed.AppID,
+					"title":  parsed.Title,
+				})
+			}
+		}
+		if err != nil {
+			if database.IsNotFound(err) {
+				return nil
+			}
+			logger.WithContext(ctx).WithError(err).Warn("failed to load miniapp manifest")
+		} else if app != nil {
+			if !isAppActive(app.Status) {
+				return nil
+			}
+			if s.enforceAppRegistry {
+				if err := s.validateAppRegistry(ctx, app); err != nil {
+					logger.WithContext(ctx).WithError(err).Warn("app registry validation failed")
+					return nil
+				}
+			}
+			info, err := parseManifestInfo(app.Manifest)
+			if err == nil && info.NewsIntegration != nil && !*info.NewsIntegration {
+				return nil
+			}
+			if contractHash := appContractHash(app); contractHash != "" {
+				if normalizeContractHash(event.Contract) != contractHash {
+					logger.WithContext(ctx).Warn("miniapp contract hash mismatch")
+					return nil
+				}
+			} else if s.requireManifestContract {
+				logger.WithContext(ctx).Warn("contract_hash missing; notification rejected")
+				return nil
+			}
+		} else {
+			return nil
+		}
+	}
+
+	s.trackMiniAppTx(ctx, parsed.AppID, "", event)
+	_ = s.storeContractEvent(ctx, event, &parsed.AppID, buildNotificationState(parsed))
+
 	// Store notification in database via repository
 	err = s.repo.CreateNotification(ctx, &neorequestsupabase.Notification{
 		AppID:            parsed.AppID,
@@ -809,4 +1007,154 @@ func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.Cont
 
 	logger.Info("notification stored from contract event")
 	return nil
+}
+
+func (s *Service) handleMetricEvent(ctx context.Context, event *chain.ContractEvent) error {
+	if event == nil {
+		return nil
+	}
+
+	parsed, err := chain.ParseMiniAppMetricEvent(event)
+	if err != nil {
+		return nil
+	}
+
+	logger := s.Logger().WithFields(map[string]interface{}{
+		"app_id":      parsed.AppID,
+		"metric_name": parsed.MetricName,
+	})
+
+	if s.repo != nil {
+		processed, err := s.markMetricProcessed(ctx, event, parsed)
+		if err != nil {
+			logger.WithContext(ctx).WithError(err).Warn("failed to mark metric event processed")
+		}
+		if !processed {
+			return nil
+		}
+	}
+
+	if s.repo != nil {
+		var app *neorequestsupabase.MiniApp
+		var err error
+		if strings.TrimSpace(parsed.AppID) != "" {
+			app, err = s.loadMiniApp(ctx, parsed.AppID)
+		} else if strings.TrimSpace(event.Contract) != "" {
+			app, err = s.loadMiniAppByContractHash(ctx, event.Contract)
+			if err == nil && app != nil {
+				parsed.AppID = app.AppID
+				logger = s.Logger().WithFields(map[string]interface{}{
+					"app_id":      parsed.AppID,
+					"metric_name": parsed.MetricName,
+				})
+			}
+		}
+		if err != nil {
+			if database.IsNotFound(err) {
+				return nil
+			}
+			logger.WithContext(ctx).WithError(err).Warn("failed to load miniapp manifest")
+		} else if app != nil {
+			if !isAppActive(app.Status) {
+				return nil
+			}
+			if s.enforceAppRegistry {
+				if err := s.validateAppRegistry(ctx, app); err != nil {
+					logger.WithContext(ctx).WithError(err).Warn("app registry validation failed")
+					return nil
+				}
+			}
+			if contractHash := appContractHash(app); contractHash != "" {
+				if normalizeContractHash(event.Contract) != contractHash {
+					logger.WithContext(ctx).Warn("miniapp contract hash mismatch")
+					return nil
+				}
+			} else if s.requireManifestContract {
+				logger.WithContext(ctx).Warn("contract_hash missing; metric rejected")
+				return nil
+			}
+		} else {
+			return nil
+		}
+		s.trackMiniAppTx(ctx, parsed.AppID, "", event)
+		_ = s.storeContractEvent(ctx, event, &parsed.AppID, buildMetricState(parsed))
+	}
+
+	return nil
+}
+
+func (s *Service) markNotificationProcessed(ctx context.Context, event *chain.ContractEvent, parsed *chain.MiniAppNotificationEvent) (bool, error) {
+	if s.repo == nil || event == nil || parsed == nil {
+		return true, nil
+	}
+
+	payload := map[string]interface{}{
+		"app_id":            parsed.AppID,
+		"title":             parsed.Title,
+		"content":           parsed.Content,
+		"notification_type": parsed.NotificationType,
+		"priority":          parsed.Priority,
+	}
+
+	processed := &neorequestsupabase.ProcessedEvent{
+		ChainID:         s.chainID,
+		TxHash:          event.TxHash,
+		LogIndex:        event.LogIndex,
+		BlockHeight:     event.BlockIndex,
+		BlockHash:       event.BlockHash,
+		ContractAddress: event.Contract,
+		EventName:       event.EventName,
+		Payload:         neorequestsupabase.MarshalParams(payload),
+	}
+
+	return s.repo.MarkProcessedEvent(ctx, processed)
+}
+
+func (s *Service) markGenericProcessed(ctx context.Context, event *chain.ContractEvent, payload map[string]interface{}) (bool, error) {
+	if s.repo == nil || event == nil {
+		return true, nil
+	}
+
+	processed := &neorequestsupabase.ProcessedEvent{
+		ChainID:         s.chainID,
+		TxHash:          event.TxHash,
+		LogIndex:        event.LogIndex,
+		BlockHeight:     event.BlockIndex,
+		BlockHash:       event.BlockHash,
+		ContractAddress: event.Contract,
+		EventName:       event.EventName,
+		Payload:         neorequestsupabase.MarshalParams(payload),
+	}
+
+	return s.repo.MarkProcessedEvent(ctx, processed)
+}
+
+func (s *Service) markMetricProcessed(ctx context.Context, event *chain.ContractEvent, parsed *chain.MiniAppMetricEvent) (bool, error) {
+	if s.repo == nil || event == nil || parsed == nil {
+		return true, nil
+	}
+
+	value := ""
+	if parsed.Value != nil {
+		value = parsed.Value.String()
+	}
+
+	payload := map[string]interface{}{
+		"app_id":      parsed.AppID,
+		"metric_name": parsed.MetricName,
+		"value":       value,
+	}
+
+	processed := &neorequestsupabase.ProcessedEvent{
+		ChainID:         s.chainID,
+		TxHash:          event.TxHash,
+		LogIndex:        event.LogIndex,
+		BlockHeight:     event.BlockIndex,
+		BlockHash:       event.BlockHash,
+		ContractAddress: event.Contract,
+		EventName:       event.EventName,
+		Payload:         neorequestsupabase.MarshalParams(payload),
+	}
+
+	return s.repo.MarkProcessedEvent(ctx, processed)
 }

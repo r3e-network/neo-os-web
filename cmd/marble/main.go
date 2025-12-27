@@ -173,6 +173,9 @@ func main() {
 	if networkMagic != 0 {
 		chainID = fmt.Sprintf("neo-n3:%d", networkMagic)
 	}
+	if chainID == "" {
+		chainID = "neo-n3"
+	}
 
 	var chainClient *chain.Client
 	if neoRPCURL == "" {
@@ -184,6 +187,15 @@ func main() {
 	}
 
 	contracts := chain.ContractAddressesFromEnv()
+
+	paymentHubHash := trimHexPrefix(contracts.PaymentHub)
+	if paymentHubHash == "" {
+		if secret, ok := m.Secret("CONTRACT_PAYMENTHUB_HASH"); ok && len(secret) > 0 {
+			paymentHubHash = trimHexPrefix(string(secret))
+		} else if secret, ok := m.Secret("CONTRACT_PAYMENT_HUB_HASH"); ok && len(secret) > 0 {
+			paymentHubHash = trimHexPrefix(string(secret))
+		}
+	}
 
 	priceFeedHash := trimHexPrefix(contracts.PriceFeed)
 	if priceFeedHash == "" {
@@ -261,25 +273,86 @@ func main() {
 	var eventListener *chain.EventListener
 	if chainClient != nil {
 		startBlock := uint64(0)
+		startBlockSet := false
 		if raw := strings.TrimSpace(os.Getenv("NEO_EVENT_START_BLOCK")); raw != "" {
 			if parsed, parseErr := strconv.ParseUint(raw, 10, 64); parseErr == nil {
 				startBlock = parsed
+				startBlockSet = true
 			} else {
 				log.Printf("Warning: invalid NEO_EVENT_START_BLOCK %q: %v", raw, parseErr)
 			}
-		} else if height, heightErr := chainClient.GetBlockCount(ctx); heightErr == nil && height > 0 {
-			startBlock = height - 1
+		} else if serviceType == "neorequests" && neorequestsRepo != nil && chainID != "" {
+			latest, ok, err := neorequestsRepo.LatestProcessedBlock(ctx, chainID)
+			if err != nil {
+				log.Printf("Warning: failed to read processed event cursor: %v", err)
+			} else if ok {
+				startBlock = latest
+				startBlockSet = true
+			}
+		}
+		if !startBlockSet {
+			if height, heightErr := chainClient.GetBlockCount(ctx); heightErr == nil && height > 0 {
+				startBlock = height - 1
+				startBlockSet = true
+			}
+		}
+
+		backfill := uint64(0)
+		if raw := strings.TrimSpace(os.Getenv("NEO_EVENT_BACKFILL_BLOCKS")); raw != "" {
+			if parsed, parseErr := strconv.ParseUint(raw, 10, 64); parseErr == nil {
+				backfill = parsed
+			} else {
+				log.Printf("Warning: invalid NEO_EVENT_BACKFILL_BLOCKS %q: %v", raw, parseErr)
+			}
+		}
+		if backfill > 0 {
+			if startBlock > backfill {
+				startBlock -= backfill
+			} else {
+				startBlock = 0
+			}
+		}
+
+		confirmations := uint64(0)
+		if raw := strings.TrimSpace(os.Getenv("NEO_EVENT_CONFIRMATIONS")); raw != "" {
+			if parsed, parseErr := strconv.ParseUint(raw, 10, 64); parseErr == nil {
+				confirmations = parsed
+			} else {
+				log.Printf("Warning: invalid NEO_EVENT_CONFIRMATIONS %q: %v", raw, parseErr)
+			}
+		}
+
+		listenAll := false
+		if raw := strings.TrimSpace(os.Getenv("NEO_EVENT_LISTEN_ALL")); raw != "" {
+			switch strings.ToLower(raw) {
+			case "1", "true", "yes", "y", "on":
+				listenAll = true
+			}
+		} else if serviceType == "neorequests" {
+			// NeoRequests needs to ingest MiniApp events for notifications/metrics.
+			listenAll = true
+		}
+		if serviceType == "neorequests" && !listenAll {
+			log.Printf("Warning: NEO_EVENT_LISTEN_ALL is false; MiniApp notifications/metrics may not be indexed")
+		}
+
+		contracts := chain.ContractAddresses{
+			PaymentHub:          paymentHubHash,
+			PriceFeed:           priceFeedHash,
+			AutomationAnchor:    automationAnchorHash,
+			AppRegistry:         appRegistryHash,
+			ServiceLayerGateway: serviceGatewayHash,
+		}
+		if listenAll {
+			contracts = chain.ContractAddresses{}
 		}
 
 		eventListener = chain.NewEventListener(&chain.ListenerConfig{
-			Client: chainClient,
-			Contracts: chain.ContractAddresses{
-				PriceFeed:           priceFeedHash,
-				AutomationAnchor:    automationAnchorHash,
-				ServiceLayerGateway: serviceGatewayHash,
-			},
-			StartBlock:   startBlock,
-			PollInterval: 5 * time.Second,
+			Client:        chainClient,
+			Contracts:     contracts,
+			StartBlock:    startBlock,
+			PollInterval:  5 * time.Second,
+			Confirmations: confirmations,
 		})
 	}
 
@@ -469,6 +542,7 @@ func main() {
 			ChainClient:        chainClient,
 			ServiceGatewayHash: serviceGatewayHash,
 			AppRegistryHash:    appRegistryHash,
+			PaymentHubHash:     paymentHubHash,
 			NeoVRFURL:          neovrfURL,
 			NeoOracleURL:       neooracleURL,
 			NeoComputeURL:      neocomputeURL,

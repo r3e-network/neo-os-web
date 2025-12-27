@@ -1,0 +1,64 @@
+platform/host-app/lib/miniapp-sdk.ts:219:  (window as any).MiniAppSDK = sdk;
+platform/host-app/pages/index.tsx:116:      const g = window as any;
+platform/host-app/pages/launch/[id].tsx:118:        const g = window as any;
+platform/host-app/pages/launch/[id].tsx:209:          (iframe.contentWindow as any).MiniAppSDK = sdk;
+platform/host-app/pages/launch/[id].tsx:398:    const raw = statsList.find((item: any) => item?.app_id === id) ?? statsList[0];
+platform/builtin-app/src/components/BuiltinApp.tsx:71:    const update = () => setSdk((window as any).MiniAppSDK ?? null);
+platform/builtin-app/src/components/BuiltinApp.tsx:186:      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+platform/builtin-app/src/components/BuiltinApp.tsx:347:          setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+platform/builtin-app/src/components/BuiltinApp.tsx:384:      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+platform/builtin-app/src/components/BuiltinApp.tsx:510:      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+platform/builtin-app/src/components/BuiltinApp.tsx:539:      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+platform/builtin-app/src/components/BuiltinApp.tsx:638:      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+platform/builtin-app/src/components/BuiltinApp.tsx:731:      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+platform/builtin-app/src/components/BuiltinApp.tsx:908:      setWalletStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+platform/host-app/pages/api/rpc/relay.ts:19:    const fn = String((parsed as any).fn ?? (parsed as any).function ?? (parsed as any).name ?? "").trim();
+platform/host-app/pages/api/rpc/relay.ts:22:      delete (parsed as any).fn;
+platform/host-app/pages/api/rpc/relay.ts:23:      delete (parsed as any).function;
+platform/host-app/pages/api/rpc/relay.ts:24:      delete (parsed as any).name;
+platform/edge/dev_server.ts:53:  const candidate: unknown = (mod as any)?.handler ?? (mod as any)?.default;
+platform/edge/functions/app-register/index.ts:41:  const manifest = (body as any)?.manifest;
+platform/edge/functions/automation-trigger-enable/index.ts:35:  const triggerId = String((body as any)?.id ?? "").trim();
+platform/edge/functions/gasbank-transactions/index.ts:34:  const accountId = String((accounts[0] as any)?.id ?? "").trim();
+platform/edge/functions/automation-trigger-disable/index.ts:35:  const triggerId = String((body as any)?.id ?? "").trim();
+platform/edge/functions/app-update-manifest/index.ts:41:  const manifest = (body as any)?.manifest;
+platform/edge/functions/rng-request/index.ts:58:  const responseId = String((vrfResult as any)?.request_id ?? "").trim();
+platform/edge/functions/rng-request/index.ts:63:  const randomnessHex = String((vrfResult as any)?.randomness ?? "").trim();
+platform/edge/functions/rng-request/index.ts:64:  const signatureHex = String((vrfResult as any)?.signature ?? "").trim();
+platform/edge/functions/rng-request/index.ts:65:  const publicKeyHex = String((vrfResult as any)?.public_key ?? "").trim();
+platform/edge/functions/rng-request/index.ts:66:  const attestationHex = String((vrfResult as any)?.attestation_hash ?? "").trim();
+platform/edge/functions/_shared/supabase.ts:69:  const valid = Boolean((row as any)?.valid);
+platform/edge/functions/_shared/supabase.ts:72:  const userId = String((row as any)?.user_id ?? "").trim();
+platform/edge/functions/_shared/supabase.ts:75:  const scopes = Array.isArray((row as any)?.scopes) ? ((row as any)?.scopes as string[]) : undefined;
+platform/edge/functions/_shared/supabase.ts:76:  const apiKeyId = String((row as any)?.key_id ?? "").trim() || undefined;
+platform/edge/functions/_shared/supabase.ts:94:  const address = String((data[0] as any)?.address ?? "").trim();
+platform/edge/functions/_shared/supabase.ts:118:  return (data as any) ?? { id: auth.userId };
+platform/edge/functions/_shared/events.ts:112:  const lastId = events.length > 0 ? String((events[events.length - 1] as any)?.id ?? "") : null;
+platform/edge/functions/_shared/events.ts:115:    events: events.map((row: any) => ({
+platform/edge/functions/_shared/events.ts:164:  const lastId = transactions.length > 0 ? String((transactions[transactions.length - 1] as any)?.id ?? "") : null;
+platform/edge/functions/_shared/events.ts:167:    transactions: transactions.map((row: any) => ({
+platform/edge/functions/_shared/ratelimit.ts:87:    window_start: String((row as any)?.window_start ?? ""),
+platform/edge/functions/_shared/ratelimit.ts:88:    request_count: Number((row as any)?.request_count ?? 0),
+platform/edge/functions/secrets-get/index.ts:41:  const encryptedBase64 = String((data[0] as any)?.encrypted_value ?? "").trim();
+platform/edge/functions/secrets-get/index.ts:52:    name: String((data[0] as any)?.name ?? name),
+platform/edge/functions/secrets-get/index.ts:54:    version: (data[0] as any)?.version ?? 0,
+platform/edge/functions/_shared/apps.ts:154:    if (String((existing as any)?.developer_user_id ?? "") !== input.developerUserId) {
+platform/edge/functions/market-trending/index.ts:91:  let adminSupabase: any | null = null;
+platform/edge/functions/market-trending/index.ts:232:        const manifest = app.manifest as any;
+platform/edge/functions/automation-trigger-delete/index.ts:36:  const triggerId = String((body as any)?.id ?? "").trim();
+platform/edge/functions/secrets-upsert/index.ts:85:  const currentVersion = Number((existing[0] as any)?.version ?? 0);
+platform/edge/functions/automation-trigger-resume/index.ts:35:  const triggerId = String((body as any)?.id ?? "").trim();
+platform/edge/functions/automation-triggers/index.ts:52:  const name = String((body as any)?.name ?? "").trim();
+platform/edge/functions/automation-triggers/index.ts:53:  const triggerType = String((body as any)?.trigger_type ?? "").trim();
+platform/edge/functions/automation-triggers/index.ts:55:  if ((body as any)?.action === undefined || (body as any)?.action === null) {
+platform/edge/functions/automation-trigger-update/index.ts:41:  const triggerId = String((body as any)?.id ?? "").trim();
+platform/edge/functions/automation-trigger-update/index.ts:44:  const name = String((body as any)?.name ?? "").trim();
+platform/edge/functions/automation-trigger-update/index.ts:45:  const triggerType = String((body as any)?.trigger_type ?? "").trim();
+platform/edge/functions/automation-trigger-update/index.ts:47:  if ((body as any)?.action === undefined || (body as any)?.action === null) {
+platform/edge/functions/automation-trigger-update/index.ts:58:      schedule: (body as any)?.schedule,
+platform/edge/functions/automation-trigger-update/index.ts:59:      condition: (body as any)?.condition,
+platform/edge/functions/automation-trigger-update/index.ts:60:      action: (body as any)?.action,
+platform/edge/functions/wallet-bind/index.ts:58:  const storedNonce = String((userRow as any)?.nonce ?? "").trim();
+platform/edge/functions/api-keys-create/index.ts:74:      ...(data as any),
+platform/edge/functions/gasbank-deposit/index.ts:55:  if (accErr || !(account as any)?.id) {
+platform/edge/functions/gasbank-deposit/index.ts:64:      account_id: (account as any).id,

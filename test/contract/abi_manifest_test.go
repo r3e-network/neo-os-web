@@ -79,7 +79,13 @@ func TestContractABIAlignsWithEdgePayloads(t *testing.T) {
 	expectParams("RandomnessLog", "record", []string{"String", "ByteArray", "ByteArray", "Integer"})
 	expectParams("RandomnessLog", "get", []string{"String"})
 	expectParams("AppRegistry", "register", []string{"String", "ByteArray", "String", "ByteArray"})
+	expectParams("AppRegistry", "registerApp", []string{
+		"String", "ByteArray", "String", "ByteArray", "ByteArray", "String", "String", "String", "String", "String",
+	})
 	expectParams("AppRegistry", "updateManifest", []string{"String", "ByteArray", "String"})
+	expectParams("AppRegistry", "updateApp", []string{
+		"String", "ByteArray", "String", "ByteArray", "String", "String", "String", "String", "String",
+	})
 	expectParams("AppRegistry", "getApp", []string{"String"})
 	expectParams("AppRegistry", "setStatus", []string{"String", "Integer"})
 }

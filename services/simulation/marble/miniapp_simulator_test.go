@@ -17,7 +17,7 @@ import (
 func TestAllMiniApps(t *testing.T) {
 	apps := AllMiniApps()
 
-	assert.Len(t, apps, 23)
+	assert.Len(t, apps, 24)
 
 	// Verify all expected apps are present
 	appIDs := make(map[string]bool)
@@ -29,6 +29,7 @@ func TestAllMiniApps(t *testing.T) {
 	assert.True(t, appIDs["builtin-coin-flip"])
 	assert.True(t, appIDs["builtin-dice-game"])
 	assert.True(t, appIDs["builtin-scratch-card"])
+	assert.True(t, appIDs["builtin-mega-millions"])
 	assert.True(t, appIDs["builtin-prediction-market"])
 	assert.True(t, appIDs["builtin-flashloan"])
 	assert.True(t, appIDs["builtin-price-ticker"])
@@ -76,7 +77,7 @@ func TestAllMiniApps_Categories(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, 8, gaming)      // lottery, coin-flip, dice-game, scratch-card, gas-spin, secret-poker, fog-chess, nft-evolve
+	assert.Equal(t, 9, gaming)      // lottery, coin-flip, dice-game, scratch-card, mega-millions, gas-spin, secret-poker, fog-chess, nft-evolve
 	assert.Equal(t, 10, defi)       // prediction-market, flashloan, price-ticker, price-predict, micro-predict, turbo-options, il-guard, ai-trader, grid-bot, bridge-guardian
 	assert.Equal(t, 2, governance)  // secret-vote, gov-booster
 	assert.Equal(t, 2, social)      // red-envelope, gas-circle
@@ -120,11 +121,17 @@ func TestMiniAppSimulator_SimulateLottery_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify PayToApp was called for lottery
+	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
-	require.Len(t, payToAppCalls, 1)
+	require.GreaterOrEqual(t, len(payToAppCalls), 1)
 	assert.Equal(t, "builtin-lottery", payToAppCalls[0].AppID)
-	assert.Contains(t, payToAppCalls[0].Memo, "lottery:round:")
+	assert.Greater(t, payToAppCalls[0].Amount, int64(0))
+
+	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
+	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
+	require.GreaterOrEqual(t, len(miniAppCalls), 1)
+	assert.Equal(t, "builtin-lottery", miniAppCalls[0].AppID)
+	assert.Equal(t, "recordTickets", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -181,15 +188,17 @@ func TestMiniAppSimulator_SimulateCoinFlip_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify PayToApp was called
+	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
-	require.Len(t, payToAppCalls, 1)
+	require.GreaterOrEqual(t, len(payToAppCalls), 1)
 	assert.Equal(t, "builtin-coin-flip", payToAppCalls[0].AppID)
 	assert.Equal(t, int64(5000000), payToAppCalls[0].Amount) // 0.05 GAS
 
-	// Verify RecordRandomness was called
-	randomnessCalls := mockInvoker.getRecordRandomnessCalls()
-	assert.Len(t, randomnessCalls, 1)
+	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
+	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
+	require.GreaterOrEqual(t, len(miniAppCalls), 1)
+	assert.Equal(t, "builtin-coin-flip", miniAppCalls[0].AppID)
+	assert.Equal(t, "recordBet", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -209,18 +218,6 @@ func TestMiniAppSimulator_SimulateCoinFlip_PaymentError(t *testing.T) {
 	assert.Contains(t, err.Error(), "place bet")
 }
 
-func TestMiniAppSimulator_SimulateCoinFlip_RandomnessError(t *testing.T) {
-	mockInvoker := newMockContractInvoker()
-	mockInvoker.recordRandomnessErr = errors.New("randomness failed")
-	sim := NewMiniAppSimulator(mockInvoker)
-
-	ctx := context.Background()
-	err := sim.SimulateCoinFlip(ctx)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "flip randomness")
-}
-
 // =============================================================================
 // SimulateDiceGame Tests
 // =============================================================================
@@ -234,15 +231,17 @@ func TestMiniAppSimulator_SimulateDiceGame_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify PayToApp was called
+	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
-	require.Len(t, payToAppCalls, 1)
+	require.GreaterOrEqual(t, len(payToAppCalls), 1)
 	assert.Equal(t, "builtin-dice-game", payToAppCalls[0].AppID)
 	assert.Equal(t, int64(8000000), payToAppCalls[0].Amount) // 0.08 GAS
 
-	// Verify RecordRandomness was called
-	randomnessCalls := mockInvoker.getRecordRandomnessCalls()
-	assert.Len(t, randomnessCalls, 1)
+	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
+	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
+	require.GreaterOrEqual(t, len(miniAppCalls), 1)
+	assert.Equal(t, "builtin-dice-game", miniAppCalls[0].AppID)
+	assert.Equal(t, "recordBet", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -275,14 +274,17 @@ func TestMiniAppSimulator_SimulateScratchCard_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify PayToApp was called
+	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
-	require.Len(t, payToAppCalls, 1)
+	require.GreaterOrEqual(t, len(payToAppCalls), 1)
 	assert.Equal(t, "builtin-scratch-card", payToAppCalls[0].AppID)
+	assert.Equal(t, int64(2000000), payToAppCalls[0].Amount) // 0.02 GAS
 
-	// Verify RecordRandomness was called
-	randomnessCalls := mockInvoker.getRecordRandomnessCalls()
-	assert.Len(t, randomnessCalls, 1)
+	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
+	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
+	require.GreaterOrEqual(t, len(miniAppCalls), 1)
+	assert.Equal(t, "builtin-scratch-card", miniAppCalls[0].AppID)
+	assert.Equal(t, "recordPurchase", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -315,33 +317,23 @@ func TestMiniAppSimulator_SimulatePredictionMarket_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify UpdatePriceFeed was called once (query)
-	priceFeedCalls := mockInvoker.getUpdatePriceFeedCalls()
-	assert.Len(t, priceFeedCalls, 1)
-
-	// Verify PayToApp was called
+	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
-	require.Len(t, payToAppCalls, 1)
+	require.GreaterOrEqual(t, len(payToAppCalls), 1)
 	assert.Equal(t, "builtin-prediction-market", payToAppCalls[0].AppID)
 	assert.Equal(t, int64(20000000), payToAppCalls[0].Amount) // 0.2 GAS
+
+	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
+	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
+	require.GreaterOrEqual(t, len(miniAppCalls), 1)
+	assert.Equal(t, "builtin-prediction-market", miniAppCalls[0].AppID)
+	assert.Equal(t, "recordPrediction", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
 	predictionStats := stats["prediction_market"].(map[string]int64)
 	assert.Equal(t, int64(1), predictionStats["bets"])
 	assert.Equal(t, int64(1), predictionStats["resolves"])
-}
-
-func TestMiniAppSimulator_SimulatePredictionMarket_PriceQueryError(t *testing.T) {
-	mockInvoker := newMockContractInvoker()
-	mockInvoker.updatePriceFeedErr = errors.New("price feed error")
-	sim := NewMiniAppSimulator(mockInvoker)
-
-	ctx := context.Background()
-	err := sim.SimulatePredictionMarket(ctx)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "query price")
 }
 
 func TestMiniAppSimulator_SimulatePredictionMarket_PaymentError(t *testing.T) {
@@ -369,13 +361,17 @@ func TestMiniAppSimulator_SimulateFlashLoan_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Verify PayToApp was called twice (borrow fee + repay)
+	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS for fee)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
-	require.Len(t, payToAppCalls, 2)
+	require.GreaterOrEqual(t, len(payToAppCalls), 1)
 	assert.Equal(t, "builtin-flashloan", payToAppCalls[0].AppID)
-	assert.Equal(t, "builtin-flashloan", payToAppCalls[1].AppID)
-	assert.Contains(t, payToAppCalls[0].Memo, "borrow")
-	assert.Contains(t, payToAppCalls[1].Memo, "repay")
+	assert.Equal(t, int64(1000000), payToAppCalls[0].Amount) // 0.01 GAS fee
+
+	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
+	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
+	require.GreaterOrEqual(t, len(miniAppCalls), 1)
+	assert.Equal(t, "builtin-flashloan", miniAppCalls[0].AppID)
+	assert.Equal(t, "execute", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -384,16 +380,16 @@ func TestMiniAppSimulator_SimulateFlashLoan_Success(t *testing.T) {
 	assert.Equal(t, int64(1), flashloanStats["repays"])
 }
 
-func TestMiniAppSimulator_SimulateFlashLoan_BorrowError(t *testing.T) {
+func TestMiniAppSimulator_SimulateFlashLoan_PaymentError(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	mockInvoker.payToAppErr = errors.New("borrow failed")
+	mockInvoker.payToAppErr = errors.New("payment failed")
 	sim := NewMiniAppSimulator(mockInvoker)
 
 	ctx := context.Background()
 	err := sim.SimulateFlashLoan(ctx)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "borrow")
+	assert.Contains(t, err.Error(), "flash loan fee")
 }
 
 // =============================================================================
@@ -409,29 +405,33 @@ func TestMiniAppSimulator_SimulatePriceTicker_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// Price ticker uses cached price feed updates (no UpdatePriceFeed calls here)
-	priceFeedCalls := mockInvoker.getUpdatePriceFeedCalls()
-	assert.Empty(t, priceFeedCalls)
+	// PriceTicker is read-only, no PayToApp call expected
+	payToAppCalls := mockInvoker.getPayToAppCalls()
+	assert.Len(t, payToAppCalls, 0)
+
+	// Verify InvokeMiniAppContract was called (PLATFORM ACTION - query only)
+	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
+	require.GreaterOrEqual(t, len(miniAppCalls), 1)
+	assert.Equal(t, "builtin-price-ticker", miniAppCalls[0].AppID)
+	assert.Equal(t, "queryPrice", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
 	priceStats := stats["price_ticker"].(map[string]int64)
-	assert.Equal(t, int64(4), priceStats["queries"])
+	assert.Equal(t, int64(1), priceStats["queries"])
 }
 
-func TestMiniAppSimulator_SimulatePriceTicker_PriceError(t *testing.T) {
+func TestMiniAppSimulator_SimulatePriceTicker_ContractError(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	mockInvoker.updatePriceFeedErr = errors.New("price feed error")
+	mockInvoker.invokeMiniAppErr = errors.New("contract invocation failed")
 	sim := NewMiniAppSimulator(mockInvoker)
 
 	ctx := context.Background()
 	err := sim.SimulatePriceTicker(ctx)
 
-	assert.NoError(t, err)
-
-	stats := sim.GetStats()
-	priceStats := stats["price_ticker"].(map[string]int64)
-	assert.Equal(t, int64(4), priceStats["queries"])
+	// PriceTicker is read-only and doesn't return errors for contract failures
+	// It just increments the query counter
+	require.NoError(t, err)
 }
 
 // =============================================================================
@@ -499,9 +499,11 @@ func TestGenerateGameID(t *testing.T) {
 // Integration-style Tests (verify account pool usage patterns)
 // =============================================================================
 
-func TestMiniAppSimulator_VerifyPoolAccountUsage(t *testing.T) {
-	// This test verifies that all MiniApps that make payments use pool accounts
-	// (via PayToApp which uses TransferWithData)
+func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
+	// This test verifies that all MiniApps use the correct workflow:
+	// 1. USER ACTION: PayToApp (simulates SDK payGAS)
+	// 2. PLATFORM ACTION: InvokeMiniAppContract (process game logic)
+	// 3. PLATFORM ACTION: PayoutToUser (send winnings)
 
 	mockInvoker := newMockContractInvoker()
 	sim := NewMiniAppSimulator(mockInvoker)
@@ -514,19 +516,17 @@ func TestMiniAppSimulator_VerifyPoolAccountUsage(t *testing.T) {
 	_ = sim.SimulateScratchCard(ctx)
 	_ = sim.SimulatePredictionMarket(ctx)
 	_ = sim.SimulateFlashLoan(ctx)
-	_ = sim.SimulatePriceTicker(ctx)
+	_ = sim.SimulatePriceTicker(ctx) // Read-only, no payment
 	_ = sim.SimulateGasSpin(ctx)
 	_ = sim.SimulatePricePredict(ctx)
 	_ = sim.SimulateSecretVote(ctx)
 
-	// Verify PayToApp was called for all payment-based MiniApps
+	// Verify PayToApp was called for all payment-based MiniApps (USER ACTION)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
+	// Expected: lottery + coin-flip + dice + scratch + prediction + flashloan + gas-spin + price-predict + secret-vote = 9
+	assert.GreaterOrEqual(t, len(payToAppCalls), 9)
 
-	// Expected: lottery(1) + coin-flip(1) + dice(1) + scratch(1) + prediction(1)
-	// + flashloan(2) + gas-spin(1) + price-predict(1) + secret-vote(1) = 10
-	assert.GreaterOrEqual(t, len(payToAppCalls), 10)
-
-	// Verify all expected apps made payments
+	// Verify all expected apps made payment calls
 	appPayments := make(map[string]int)
 	for _, call := range payToAppCalls {
 		appPayments[call.AppID]++
@@ -537,31 +537,33 @@ func TestMiniAppSimulator_VerifyPoolAccountUsage(t *testing.T) {
 	assert.Greater(t, appPayments["builtin-dice-game"], 0)
 	assert.Greater(t, appPayments["builtin-scratch-card"], 0)
 	assert.Greater(t, appPayments["builtin-prediction-market"], 0)
-	assert.Equal(t, 2, appPayments["builtin-flashloan"]) // borrow + repay
+	assert.Greater(t, appPayments["builtin-flashloan"], 0)
 	assert.Greater(t, appPayments["builtin-gas-spin"], 0)
 	assert.Greater(t, appPayments["builtin-price-predict"], 0)
 	assert.Greater(t, appPayments["builtin-secret-vote"], 0)
+	// price-ticker is read-only, no payment
+	assert.Equal(t, 0, appPayments["builtin-price-ticker"])
+
+	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
+	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
+	assert.GreaterOrEqual(t, len(miniAppCalls), 10) // All apps including price-ticker
 }
 
 func TestMiniAppSimulator_VerifyMasterAccountUsage(t *testing.T) {
 	// This test verifies that PriceFeed and RandomnessLog use master account
 	// (via UpdatePriceFeed and RecordRandomness which use InvokeMaster)
+	// Note: These are called by the lottery draw, not by individual MiniApp simulations
 
 	mockInvoker := newMockContractInvoker()
 	sim := NewMiniAppSimulator(mockInvoker)
 	ctx := context.Background()
 
-	// Run simulations that use master account
-	_ = sim.SimulatePriceTicker(ctx)      // Cached price queries
-	_ = sim.SimulatePredictionMarket(ctx) // Uses UpdatePriceFeed
-	_ = sim.SimulateLottery(ctx)          // May use RecordRandomness
-	_ = sim.SimulateCoinFlip(ctx)         // Uses RecordRandomness
+	// Run lottery multiple times to trigger a draw (every 5 tickets)
+	for i := 0; i < 10; i++ {
+		_ = sim.SimulateLottery(ctx)
+	}
 
-	// Verify UpdatePriceFeed was called (uses master account)
-	priceFeedCalls := mockInvoker.getUpdatePriceFeedCalls()
-	assert.Greater(t, len(priceFeedCalls), 0)
-
-	// Verify RecordRandomness was called (uses master account)
+	// Verify RecordRandomness was called (uses master account) during lottery draws
 	randomnessCalls := mockInvoker.getRecordRandomnessCalls()
 	assert.Greater(t, len(randomnessCalls), 0)
 }

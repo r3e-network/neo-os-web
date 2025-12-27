@@ -6,6 +6,12 @@ export type MiniAppManifestCore = {
   entryUrl: string;
   developerPubKeyHex: string; // hex (no 0x)
   manifestHashHex: string; // sha256, hex (no 0x)
+  name: string;
+  description: string;
+  icon: string;
+  banner: string;
+  category: string;
+  contractHashHex: string;
 };
 
 const SUPPORTED_PERMISSION_KEYS = new Set([
@@ -21,6 +27,24 @@ const SUPPORTED_PERMISSION_KEYS = new Set([
   "apps",
   "secrets",
 ]);
+
+const SUPPORTED_STATS_KEYS = new Set([
+  "total_transactions",
+  "total_users",
+  "total_gas_used",
+  "total_gas_earned",
+  "daily_active_users",
+  "weekly_active_users",
+  "last_activity_at",
+]);
+
+const STATS_KEY_ALIASES = new Map<string, string>([
+  ["tx_count", "total_transactions"],
+  ["gas_burned", "total_gas_used"],
+  ["gas_consumed", "total_gas_used"],
+]);
+
+const SUPPORTED_CATEGORIES = new Set(["gaming", "defi", "governance", "utility", "social"]);
 
 function stableSort(value: unknown): unknown {
   if (value === null) return null;
@@ -146,6 +170,32 @@ function normalizeLimits(value: unknown): Record<string, unknown> {
   return out;
 }
 
+function normalizeStatsDisplay(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error("manifest.stats_display must be an array");
+  }
+  const list = normalizeStringList(value, "manifest.stats_display", "lower");
+  const mapped = list.map((key) => STATS_KEY_ALIASES.get(key) ?? key);
+  const deduped = Array.from(new Set(mapped)).sort();
+  for (const key of deduped) {
+    if (!SUPPORTED_STATS_KEYS.has(key)) {
+      throw new Error(`manifest.stats_display contains unsupported key: ${key}`);
+    }
+  }
+  return deduped;
+}
+
+function normalizeCategory(value: unknown): string {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw) {
+    throw new Error("manifest.category must be a non-empty string");
+  }
+  if (!SUPPORTED_CATEGORIES.has(raw)) {
+    throw new Error(`manifest.category must be one of: ${Array.from(SUPPORTED_CATEGORIES).join(", ")}`);
+  }
+  return raw;
+}
+
 export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, unknown> {
   if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
     throw new Error("manifest must be an object");
@@ -167,6 +217,16 @@ export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, u
 
   if ("name" in m) out.name = String(m.name ?? "").trim();
   if ("version" in m) out.version = String(m.version ?? "").trim();
+  if ("description" in m) out.description = String(m.description ?? "").trim();
+  if ("icon" in m) out.icon = String(m.icon ?? "").trim();
+  if ("banner" in m) out.banner = String(m.banner ?? "").trim();
+  if ("category" in m) {
+    out.category = normalizeCategory(m.category);
+  }
+  const contractHashRaw = String(m.contract_hash ?? "").trim();
+  if (contractHashRaw) {
+    out.contract_hash = normalizeHexBytes(contractHashRaw, 20, "manifest.contract_hash");
+  }
 
   if ("assets_allowed" in m) {
     out.assets_allowed = normalizeStringList(m.assets_allowed, "manifest.assets_allowed", "upper");
@@ -189,6 +249,23 @@ export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, u
   }
   if ("limits" in m) {
     out.limits = normalizeLimits(m.limits);
+  }
+  const newsIntegrationRaw = m.news_integration;
+  if ("news_integration" in m) {
+    if (typeof newsIntegrationRaw !== "boolean") {
+      throw new Error("manifest.news_integration must be a boolean");
+    }
+    out.news_integration = newsIntegrationRaw;
+  }
+  let statsDisplay: string[] | undefined;
+  if ("stats_display" in m) {
+    statsDisplay = normalizeStatsDisplay(m.stats_display);
+    out.stats_display = statsDisplay;
+  }
+  const requiresContractHash =
+    newsIntegrationRaw !== false || (Array.isArray(statsDisplay) && statsDisplay.length > 0);
+  if (requiresContractHash && !contractHashRaw) {
+    throw new Error("manifest.contract_hash required when news/stats are enabled");
   }
 
   const callbackContractRaw = String(m.callback_contract ?? "").trim();
@@ -263,6 +340,12 @@ export async function parseMiniAppManifestCore(manifest: unknown): Promise<MiniA
   const appId = String(canonical.app_id ?? "").trim();
   const entryUrl = String(canonical.entry_url ?? "").trim();
   const developerPubKeyHex = normalizeHex(String(canonical.developer_pubkey ?? ""), "manifest.developer_pubkey");
+  const name = String(canonical.name ?? "").trim();
+  const description = String(canonical.description ?? "").trim();
+  const icon = String(canonical.icon ?? "").trim();
+  const banner = String(canonical.banner ?? "").trim();
+  const category = String(canonical.category ?? "").trim();
+  const contractHashHex = String(canonical.contract_hash ?? "").trim();
 
   const manifestHashHex = await computeManifestHashHex(canonical);
 
@@ -271,5 +354,11 @@ export async function parseMiniAppManifestCore(manifest: unknown): Promise<MiniA
     entryUrl,
     developerPubKeyHex,
     manifestHashHex,
+    name,
+    description,
+    icon,
+    banner,
+    category,
+    contractHashHex,
   };
 }

@@ -17,6 +17,12 @@ Required env vars:
 - `SUPABASE_SERVICE_ROLE_KEY` (preferred) or `SUPABASE_SERVICE_KEY` (fallback)
 - `SECRETS_MASTER_KEY` (required for `secrets-*`)
 
+Usage tracking:
+
+- `MINIAPP_USAGE_MODE`: `record` (default) or `check` to enforce caps without recording usage.
+- `MINIAPP_USAGE_MODE_PAYMENTS`, `MINIAPP_USAGE_MODE_GOVERNANCE`: optional per-intent overrides.
+- `CONTRACT_GAS_HASH`: optional override for the native GAS contract hash.
+
 TEE routing env vars (required by functions that proxy to internal services):
 
 - `NEOFEEDS_URL`
@@ -30,6 +36,8 @@ Notes:
 
 - These functions are intended to be deployed under `supabase/functions/*`
   (or symlinked/copied from here).
+- MiniApp manifests must include `contract_hash` unless `news_integration=false`
+  and no stats are requested; the indexer relies on it for event ingestion.
 - This repo includes a helper to export a Supabase-compatible layout:
   `./scripts/export_supabase_functions.sh` (populates `supabase/functions/`).
 - In strict identity / production mode, the TEE services will only trust
@@ -67,10 +75,17 @@ Gas bank (delegated payments):
 
 On-chain invocations (wallet-signed):
 
-- `pay-gas`: returns a `PaymentHub.pay` invocation (**GAS only**).
+- `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (**GAS only**).
 - `vote-neo`: returns a `Governance.vote` invocation (**NEO only**).
-- `app-register`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.register` invocation (developer wallet-signed).
-- `app-update-manifest`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.updateManifest` invocation (developer wallet-signed).
+- `app-register`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.registerApp` invocation (developer wallet-signed).
+- `app-update-manifest`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.updateApp` invocation (developer wallet-signed).
+
+Catalog + stats:
+
+- `miniapp-stats`: aggregate stats (public read).
+- `miniapp-notifications`: notifications feed (public read).
+- `market-trending`: trending MiniApps (public read).
+- `miniapp-usage`: per-user daily usage (auth required).
 
 TEE-routed:
 

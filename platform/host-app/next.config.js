@@ -5,7 +5,10 @@ function buildFederatedRemotes(isServer) {
   if (!raw) return {};
 
   const remotes = {};
-  const entries = raw.split(",").map((entry) => entry.trim()).filter(Boolean);
+  const entries = raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 
   for (const entry of entries) {
     const separator = entry.includes("@") ? "@" : entry.includes("=") ? "=" : null;
@@ -27,6 +30,10 @@ function buildFederatedRemotes(isServer) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  pageExtensions: ["page.tsx", "page.ts", "tsx", "ts"].filter((ext) => !ext.includes("test")),
+  experimental: {
+    externalDir: true,
+  },
   async headers() {
     return [
       {
@@ -48,8 +55,8 @@ const nextConfig = {
         remotes,
         exposes: {},
         shared: {
-          react: { singleton: true, requiredVersion: false },
-          "react-dom": { singleton: true, requiredVersion: false },
+          react: { singleton: true, requiredVersion: false, eager: !options.isServer },
+          "react-dom": { singleton: true, requiredVersion: false, eager: !options.isServer },
         },
       }),
     );

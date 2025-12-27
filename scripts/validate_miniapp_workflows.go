@@ -4,7 +4,7 @@
 // Usage: go run -tags=scripts scripts/validate_miniapp_workflows.go
 //
 // This script validates:
-// 1. PaymentHub workflow (pay → event → balance update)
+// 1. PaymentHub workflow (GAS transfer → event → balance update)
 // 2. RNG/VRF workflow (request → fulfill → callback)
 // 3. PriceFeed/DataFeed workflow (update → event → query)
 // 4. Automation workflow (register → trigger → execute)

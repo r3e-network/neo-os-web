@@ -1,0 +1,24 @@
+platform/host-app/lib/edge.ts:75:  // Throw error instead of silently using localhost
+infrastructure/database/supabase_client.go:61:			baseURL = "http://localhost:54321" // Mock URL for development
+infrastructure/database/supabase_client.go:83:		if host == "localhost" || host == "127.0.0.1" ||
+services/automation/marble/triggers.go:199:	if hostLower == "localhost" || strings.HasSuffix(hostLower, ".localhost") {
+platform/edge/k8s.dockerfile:30:  CMD deno eval "fetch('http://localhost:8787/health').then(r => r.ok ? Deno.exit(0) : Deno.exit(1))"
+platform/admin-console/Dockerfile:50:ENV HOSTNAME "0.0.0.0"
+platform/admin-console/.env.example:1:NEXT_PUBLIC_SUPABASE_URL=https://supabase.localhost
+platform/admin-console/.env.example:2:NEXT_PUBLIC_EDGE_URL=https://edge.localhost
+platform/edge/dev_server.ts:74:        preferred_base_url: `http://localhost:${port}${FUNCTIONS_PREFIX.replace(/\/$/, "")}`,
+platform/edge/dev_server.ts:75:        rpc_compat_base_url: `http://localhost:${port}${RPC_PREFIX.replace(/\/$/, "")}`,
+platform/edge/dev_server.ts:76:        also_supported: `http://localhost:${port}`,
+platform/admin-console/src/app/api/analytics/route.ts:7:const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://supabase.localhost";
+platform/admin-console/src/lib/api-client.ts:8:const API_BASE_URL = process.env.NEXT_PUBLIC_EDGE_URL || "https://edge.localhost";
+platform/admin-console/src/lib/api-client.ts:9:const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://supabase.localhost";
+platform/edge/functions/_shared/k8s-config.ts:5: * Falls back to localhost URLs for local development outside k8s.
+platform/edge/functions/_shared/k8s-config.ts:60:    // Use localhost URLs for local development
+platform/edge/functions/_shared/k8s-config.ts:62:      supabaseUrl: getEnv("SUPABASE_URL") || "http://localhost:54321",
+platform/edge/functions/_shared/k8s-config.ts:64:      neoFeedsUrl: getEnv("NEOFEEDS_SERVICE_URL") || "http://localhost:8083",
+platform/edge/functions/_shared/k8s-config.ts:65:      neoFlowUrl: getEnv("NEOFLOW_SERVICE_URL") || "http://localhost:8084",
+platform/edge/functions/_shared/k8s-config.ts:66:      neoComputeUrl: getEnv("NEOCOMPUTE_SERVICE_URL") || "http://localhost:8086",
+platform/edge/functions/_shared/k8s-config.ts:67:      neoVrfUrl: getEnv("NEOVRF_SERVICE_URL") || "http://localhost:8087",
+platform/edge/functions/_shared/k8s-config.ts:68:      neoOracleUrl: getEnv("NEOORACLE_SERVICE_URL") || "http://localhost:8088",
+platform/edge/functions/_shared/k8s-config.ts:69:      txProxyUrl: getEnv("TXPROXY_SERVICE_URL") || "http://localhost:8090",
+platform/edge/functions/_shared/k8s-config.ts:70:      globalSignerUrl: getEnv("GLOBALSIGNER_SERVICE_URL") || "http://localhost:8092",

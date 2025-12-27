@@ -151,15 +151,31 @@ func allowEphemeralMasterKey() bool {
 const secretPoolEncryptionKey = "POOL_ENCRYPTION_KEY"
 
 // loadEncryptionKey loads the encryption key for decrypting stored WIFs.
+// First tries marble.Secret(), then falls back to direct env var lookup.
 func (s *Service) loadEncryptionKey(m *marble.Marble) error {
+	// Try marble.Secret() first (for production MarbleRun deployments)
 	key, ok := m.Secret(secretPoolEncryptionKey)
-	if !ok || len(key) == 0 {
+	if ok && len(key) == 32 {
+		s.encryptionKey = key
+		return nil
+	}
+
+	// Fallback: direct env var lookup (for simulation/development)
+	envValue := strings.TrimSpace(os.Getenv(secretPoolEncryptionKey))
+	if envValue == "" {
 		return fmt.Errorf("missing %s secret", secretPoolEncryptionKey)
 	}
-	if len(key) != 32 {
-		return fmt.Errorf("%s must be 32 bytes", secretPoolEncryptionKey)
+
+	// Try hex decoding
+	decoded, err := hex.DecodeString(envValue)
+	if err != nil {
+		return fmt.Errorf("%s is not valid hex: %w", secretPoolEncryptionKey, err)
 	}
-	s.encryptionKey = key
+	if len(decoded) != 32 {
+		return fmt.Errorf("%s must be 32 bytes, got %d bytes", secretPoolEncryptionKey, len(decoded))
+	}
+
+	s.encryptionKey = decoded
 	return nil
 }
 

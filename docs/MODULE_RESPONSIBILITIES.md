@@ -23,7 +23,7 @@ Platform contracts only:
 - `Governance` (**NEO-only** staking/voting)
 - `PriceFeed` (datafeed anchoring)
 - `RandomnessLog` (randomness anchoring; randomness is provided via NeoVRF)
-- `AppRegistry` (manifest hash + allowlist anchors)
+- `AppRegistry` (on-chain metadata + manifest hash + allowlist anchors)
 - `AutomationAnchor` (task registry + nonce anti-replay)
 - `ServiceLayerGateway` (on-chain service requests + callbacks)
 

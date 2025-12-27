@@ -1,9 +1,11 @@
 import { supabaseServiceClient } from "./supabase.ts";
 import { error } from "./response.ts";
+import { normalizeHexBytes } from "./hex.ts";
 
 export type EventsQueryParams = {
   app_id?: string;
   event_name?: string;
+  contract_hash?: string;
   limit?: number;
   after_id?: string;
 };
@@ -79,6 +81,19 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
     const eventName = String(params.event_name).trim();
     if (!eventName) return error(400, "event_name cannot be empty", "INVALID_PARAM", req);
     query = query.eq("event_name", eventName);
+  }
+
+  if (params.contract_hash) {
+    const contractHash = String(params.contract_hash).trim();
+    if (!contractHash) return error(400, "contract_hash cannot be empty", "INVALID_PARAM", req);
+    let normalized: string;
+    try {
+      normalized = normalizeHexBytes(contractHash, 20, "contract_hash");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "invalid contract_hash";
+      return error(400, msg, "INVALID_PARAM", req);
+    }
+    query = query.eq("contract_hash", normalized);
   }
 
   if (afterId) {

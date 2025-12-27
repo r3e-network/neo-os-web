@@ -144,17 +144,31 @@ TxProxy clients use a configurable request timeout (`TXPROXY_TIMEOUT`) to
 accommodate on-chain confirmation waits (e.g., NeoRequests callbacks or
 anchored automation tasks).
 
+## Platform Indexer & Analytics (Non-TEE)
+
+The platform engine maintains the **news + stats** layer for MiniApps:
+
+- **Ingestion:** consumes AppRegistry + MiniApp events and scans `System.Contract.Call`
+  activity using `infrastructure/chain`.
+- **Validation:** rejects MiniApp events that do not match the on-chain `contract_hash` when strict ingestion is enabled.
+- **Idempotency:** uses `processed_events` to avoid double-processing.
+- **Rollups:** writes `miniapp_tx_events`, `miniapp_stats`, `miniapp_stats_daily`, `miniapp_notifications`.
+- **Consistency:** handles confirmation depth, reorg backfill, and replay tooling.
+- **Realtime:** `miniapp_notifications` inserts trigger Supabase Realtime updates.
+
 ## App Registry (On-Chain Anchor + Supabase Mirror)
 
-The AppRegistry contract is the on-chain anchor for MiniApp manifests and
-approval status:
+The AppRegistry contract is the on-chain anchor for MiniApp manifests,
+metadata, and approval status:
 
-- Developers register a `manifest_hash` + `entry_url` on-chain (typically via
-  the Edge `app-register` intent).
-- An admin sets status to `Approved` or `Disabled` on-chain.
+- Developers register `manifest_hash`, `entry_url`, and display metadata
+  (`name`, `description`, `icon`, `banner`, `category`, `contract_hash`) on-chain
+  (typically via the Edge `app-register` intent).
+- An admin sets status to `Approved` or `Disabled` on-chain (default is `Pending`).
 - Supabase `miniapps` stores the canonical manifest for fast runtime checks and
-  auditing. NeoRequests currently uses Supabase for enforcement; AppRegistry is
-  the immutable on-chain reference for governance and third‑party verification.
+  auditing. NeoRequests syncs AppRegistry metadata/status back into Supabase so
+  the cache reflects on-chain state; AppRegistry remains the immutable reference
+  for governance and third‑party verification.
   When enabled, NeoRequests verifies AppRegistry status + manifest hash before
   executing callbacks.
 

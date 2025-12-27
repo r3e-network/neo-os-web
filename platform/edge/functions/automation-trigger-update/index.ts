@@ -38,28 +38,32 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
-  const triggerId = String((body as any)?.id ?? "").trim();
+  const triggerId = String(body?.id ?? "").trim();
   if (!triggerId) return error(400, "id required", "ID_REQUIRED", req);
 
-  const name = String((body as any)?.name ?? "").trim();
-  const triggerType = String((body as any)?.trigger_type ?? "").trim();
+  const name = String(body?.name ?? "").trim();
+  const triggerType = String(body?.trigger_type ?? "").trim();
   if (!name || !triggerType) return error(400, "name and trigger_type required", "BAD_INPUT", req);
-  if ((body as any)?.action === undefined || (body as any)?.action === null) {
+  if (body?.action === undefined || body?.action === null) {
     return error(400, "action required", "BAD_INPUT", req);
   }
 
   const neoflowURL = mustGetEnv("NEOFLOW_URL").replace(/\/$/, "");
-  const result = await requestJSON(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}`, {
-    method: "PUT",
-    headers: { "X-User-ID": auth.userId },
-    body: {
-      name,
-      trigger_type: triggerType,
-      schedule: (body as any)?.schedule,
-      condition: (body as any)?.condition,
-      action: (body as any)?.action,
+  const result = await requestJSON(
+    `${neoflowURL}/triggers/${encodeURIComponent(triggerId)}`,
+    {
+      method: "PUT",
+      headers: { "X-User-ID": auth.userId },
+      body: {
+        name,
+        trigger_type: triggerType,
+        schedule: body?.schedule,
+        condition: body?.condition,
+        action: body?.action,
+      },
     },
-  }, req);
+    req,
+  );
   if (result instanceof Response) return result;
   return json(result, {}, req);
 }

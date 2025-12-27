@@ -1,9 +1,10 @@
 import Head from "next/head";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 
 import BuiltinApp from "../src/components/BuiltinApp";
 
-export default function BuiltinHostPage() {
+function BuiltinHostPage() {
   const router = useRouter();
   const appId = typeof router.query.app === "string" ? router.query.app : undefined;
   const view = typeof router.query.view === "string" ? router.query.view : undefined;
@@ -18,3 +19,6 @@ export default function BuiltinHostPage() {
     </>
   );
 }
+
+// Disable SSR to avoid useRouter issues
+export default dynamic(() => Promise.resolve(BuiltinHostPage), { ssr: false });

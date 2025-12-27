@@ -189,7 +189,21 @@ async function getPriceData(sdk: MiniAppSDK, symbol: string): Promise<PriceRespo
 }
 
 // =============================================================================
-// Workflow 8: Host SDK - GasBank Operations
+// Workflow 8: Get Daily Usage Stats
+// =============================================================================
+
+async function getUsageStats(sdk: MiniAppSDK, appId: string): Promise<void> {
+  try {
+    const usage = await sdk.stats.getMyUsage(appId);
+    console.log("Daily usage (base units):", usage);
+  } catch (error) {
+    console.error("Usage fetch failed:", error);
+    throw error;
+  }
+}
+
+// =============================================================================
+// Workflow 9: Host SDK - GasBank Operations
 // =============================================================================
 
 async function gasBankOperations(hostSdk: HostSDK): Promise<void> {

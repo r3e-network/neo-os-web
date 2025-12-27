@@ -38,7 +38,7 @@ export async function handler(req: Request): Promise<Response> {
   if (getErr) return error(500, `failed to load secret: ${getErr.message}`, "DB_ERROR", req);
   if (!data || data.length === 0) return error(404, "secret not found", "NOT_FOUND", req);
 
-  const encryptedBase64 = String((data[0] as any)?.encrypted_value ?? "").trim();
+  const encryptedBase64 = String(data[0]?.encrypted_value ?? "").trim();
   if (!encryptedBase64) return error(500, "secret stored without ciphertext", "DB_ERROR", req);
 
   let value: string;
@@ -48,11 +48,15 @@ export async function handler(req: Request): Promise<Response> {
     return error(500, `failed to decrypt secret: ${(e as Error).message}`, "DECRYPT_FAILED", req);
   }
 
-  return json({
-    name: String((data[0] as any)?.name ?? name),
-    value,
-    version: (data[0] as any)?.version ?? 0,
-  }, {}, req);
+  return json(
+    {
+      name: String(data[0]?.name ?? name),
+      value,
+      version: data[0]?.version ?? 0,
+    },
+    {},
+    req,
+  );
 }
 
 if (import.meta.main) {

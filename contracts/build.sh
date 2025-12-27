@@ -112,6 +112,46 @@ sample_contracts=(
     "MiniAppServiceConsumer:MiniAppServiceConsumer"
 )
 
+# MiniApp contracts - Phase 1 (Gaming)
+miniapp_contracts_phase1=(
+    "MiniAppLottery:MiniAppLottery"
+    "MiniAppCoinFlip:MiniAppCoinFlip"
+    "MiniAppDiceGame:MiniAppDiceGame"
+    "MiniAppScratchCard:MiniAppScratchCard"
+    "MiniAppMegaMillions:MiniAppMegaMillions"
+)
+
+# MiniApp contracts - Phase 2 (DeFi/Social)
+miniapp_contracts_phase2=(
+    "MiniAppPredictionMarket:MiniAppPredictionMarket"
+    "MiniAppFlashLoan:MiniAppFlashLoan"
+    "MiniAppPriceTicker:MiniAppPriceTicker"
+    "MiniAppGasSpin:MiniAppGasSpin"
+    "MiniAppPricePredict:MiniAppPricePredict"
+    "MiniAppSecretVote:MiniAppSecretVote"
+    "MiniAppSecretPoker:MiniAppSecretPoker"
+    "MiniAppMicroPredict:MiniAppMicroPredict"
+    "MiniAppRedEnvelope:MiniAppRedEnvelope"
+    "MiniAppGasCircle:MiniAppGasCircle"
+)
+
+# MiniApp contracts - Phase 3 (Advanced)
+miniapp_contracts_phase3=(
+    "MiniAppFogChess:MiniAppFogChess"
+    "MiniAppGovBooster:MiniAppGovBooster"
+    "MiniAppTurboOptions:MiniAppTurboOptions"
+    "MiniAppILGuard:MiniAppILGuard"
+    "MiniAppGuardianPolicy:MiniAppGuardianPolicy"
+)
+
+# MiniApp contracts - Phase 4 (Long-Running)
+miniapp_contracts_phase4=(
+    "MiniAppAITrader:MiniAppAITrader"
+    "MiniAppGridBot:MiniAppGridBot"
+    "MiniAppNFTEvolve:MiniAppNFTEvolve"
+    "MiniAppBridgeGuardian:MiniAppBridgeGuardian"
+)
+
 echo "=== Building Platform Contracts ==="
 for entry in "${platform_contracts[@]}"; do
     dir="${entry%%:*}"
@@ -129,6 +169,66 @@ done
 echo ""
 echo "=== Building Sample MiniApp Contracts ==="
 for entry in "${sample_contracts[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_sources "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building MiniApp Contracts - Phase 1 (Gaming) ==="
+for entry in "${miniapp_contracts_phase1[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_sources "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building MiniApp Contracts - Phase 2 (DeFi/Social) ==="
+for entry in "${miniapp_contracts_phase2[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_sources "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building MiniApp Contracts - Phase 3 (Advanced) ==="
+for entry in "${miniapp_contracts_phase3[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_sources "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building MiniApp Contracts - Phase 4 (Long-Running) ==="
+for entry in "${miniapp_contracts_phase4[@]}"; do
     dir="${entry%%:*}"
     name="${entry##*:}"
 
