@@ -438,7 +438,10 @@ services:
       - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
       - SIMULATION_ENABLED=${SIMULATION_ENABLED:-true}
-      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-builtin-lottery,builtin-coin-flip,builtin-dice-game}
+      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-builtin-lottery,builtin-coin-flip,builtin-dice-game,builtin-scratch-card,builtin-mega-millions,builtin-gas-spin,builtin-prediction-market,builtin-flashloan,builtin-price-ticker,builtin-price-predict,builtin-turbo-options,builtin-il-guard,builtin-secret-vote,builtin-secret-poker,builtin-micro-predict,builtin-red-envelope,builtin-gas-circle,builtin-gov-booster,builtin-ai-trader,builtin-grid-bot,builtin-nft-evolve,builtin-bridge-guardian,builtin-fog-chess}
+      - SIMULATION_TX_INTERVAL_MIN_MS=${SIMULATION_TX_INTERVAL_MIN_MS:-15000}
+      - SIMULATION_TX_INTERVAL_MAX_MS=${SIMULATION_TX_INTERVAL_MAX_MS:-15000}
+      - SIMULATION_WORKERS_PER_APP=${SIMULATION_WORKERS_PER_APP:-1}
       # Contract hashes for MiniApp workflow simulation
       - CONTRACT_PRICEFEED_HASH=0xc5d9117d255054489d1cf59b2c1d188c01bc9954
       - CONTRACT_RANDOMNESSLOG_HASH=0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39

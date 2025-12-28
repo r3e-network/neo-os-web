@@ -6,15 +6,14 @@ const (
 	ServiceName = "Neo Simulation Service"
 	Version     = "1.0.0"
 
-	// Default simulation interval range (1-3 seconds target per miniapp)
-	// With 2 concurrent workers per miniapp, each worker targets 2-6 seconds
-	// This achieves ~1-3 seconds effective rate per miniapp
-	DefaultMinIntervalMS = 2000 // 2 seconds minimum per worker
-	DefaultMaxIntervalMS = 6000 // 6 seconds maximum per worker
+	// Default simulation interval range (15 seconds per miniapp)
+	// Single worker per miniapp with fixed 15-second interval
+	DefaultMinIntervalMS = 15000 // 15 seconds minimum per worker
+	DefaultMaxIntervalMS = 15000 // 15 seconds maximum per worker
 
 	// Default number of concurrent workers per miniapp
-	// With 2 workers and 2-6s interval, effective rate is 1-3s per miniapp
-	DefaultWorkersPerApp = 2
+	// Single worker for consistent 15-second interval
+	DefaultWorkersPerApp = 1
 
 	// Default simulation transaction amounts (in GAS smallest unit, 8 decimals)
 	DefaultMinAmount = 1000000   // 0.01 GAS

@@ -17,7 +17,7 @@ import (
 func TestAllMiniApps(t *testing.T) {
 	apps := AllMiniApps()
 
-	assert.Len(t, apps, 24)
+	assert.Len(t, apps, 23)
 
 	// Verify all expected apps are present
 	appIDs := make(map[string]bool)
@@ -46,7 +46,6 @@ func TestAllMiniApps(t *testing.T) {
 	// Phase 3 MiniApps
 	assert.True(t, appIDs["builtin-turbo-options"])
 	assert.True(t, appIDs["builtin-il-guard"])
-	assert.True(t, appIDs["builtin-guardian-policy"])
 	// Phase 4 MiniApps - Long-Running Processes
 	assert.True(t, appIDs["builtin-ai-trader"])
 	assert.True(t, appIDs["builtin-grid-bot"])
@@ -61,7 +60,7 @@ func TestAllMiniApps_Categories(t *testing.T) {
 	defi := 0
 	governance := 0
 	social := 0
-	security := 0
+	advanced := 0
 	for _, app := range apps {
 		switch app.Category {
 		case "gaming":
@@ -72,16 +71,16 @@ func TestAllMiniApps_Categories(t *testing.T) {
 			governance++
 		case "social":
 			social++
-		case "security":
-			security++
+		case "advanced":
+			advanced++
 		}
 	}
 
-	assert.Equal(t, 9, gaming)      // lottery, coin-flip, dice-game, scratch-card, mega-millions, gas-spin, secret-poker, fog-chess, nft-evolve
-	assert.Equal(t, 10, defi)       // prediction-market, flashloan, price-ticker, price-predict, micro-predict, turbo-options, il-guard, ai-trader, grid-bot, bridge-guardian
-	assert.Equal(t, 2, governance)  // secret-vote, gov-booster
-	assert.Equal(t, 2, social)      // red-envelope, gas-circle
-	assert.Equal(t, 1, security)    // guardian-policy
+	assert.Equal(t, 6, gaming)      // lottery, coin-flip, dice-game, scratch-card, mega-millions, gas-spin
+	assert.Equal(t, 6, defi)        // prediction-market, flashloan, price-ticker, price-predict, turbo-options, il-guard
+	assert.Equal(t, 1, governance)  // gov-booster
+	assert.Equal(t, 5, social)      // secret-vote, secret-poker, micro-predict, red-envelope, gas-circle
+	assert.Equal(t, 5, advanced)    // ai-trader, grid-bot, nft-evolve, bridge-guardian, fog-chess
 }
 
 func TestAllMiniApps_BetAmounts(t *testing.T) {
@@ -102,7 +101,7 @@ func TestAllMiniApps_BetAmounts(t *testing.T) {
 
 func TestNewMiniAppSimulator(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	require.NotNil(t, sim)
 	assert.NotNil(t, sim.invoker)
@@ -114,7 +113,7 @@ func TestNewMiniAppSimulator(t *testing.T) {
 
 func TestMiniAppSimulator_SimulateLottery_Success(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateLottery(ctx)
@@ -135,14 +134,14 @@ func TestMiniAppSimulator_SimulateLottery_Success(t *testing.T) {
 
 	// Verify stats updated
 	stats := sim.GetStats()
-	lotteryStats := stats["lottery"].(map[string]int64)
-	assert.Greater(t, lotteryStats["tickets_bought"], int64(0))
+	lotteryStats := stats["gaming"].(map[string]interface{})["lottery"].(map[string]int64)
+	assert.Greater(t, lotteryStats["tickets"], int64(0))
 }
 
 func TestMiniAppSimulator_SimulateLottery_PaymentError(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
 	mockInvoker.payToAppErr = errors.New("payment failed")
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateLottery(ctx)
@@ -157,7 +156,7 @@ func TestMiniAppSimulator_SimulateLottery_PaymentError(t *testing.T) {
 
 func TestMiniAppSimulator_SimulateLottery_DrawTriggered(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 
@@ -171,7 +170,7 @@ func TestMiniAppSimulator_SimulateLottery_DrawTriggered(t *testing.T) {
 	assert.Greater(t, len(randomnessCalls), 0)
 
 	stats := sim.GetStats()
-	lotteryStats := stats["lottery"].(map[string]int64)
+	lotteryStats := stats["gaming"].(map[string]interface{})["lottery"].(map[string]int64)
 	assert.Greater(t, lotteryStats["draws"], int64(0))
 }
 
@@ -181,7 +180,7 @@ func TestMiniAppSimulator_SimulateLottery_DrawTriggered(t *testing.T) {
 
 func TestMiniAppSimulator_SimulateCoinFlip_Success(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateCoinFlip(ctx)
@@ -202,14 +201,14 @@ func TestMiniAppSimulator_SimulateCoinFlip_Success(t *testing.T) {
 
 	// Verify stats updated
 	stats := sim.GetStats()
-	coinFlipStats := stats["coin_flip"].(map[string]int64)
+	coinFlipStats := stats["gaming"].(map[string]interface{})["coin_flip"].(map[string]int64)
 	assert.Equal(t, int64(1), coinFlipStats["bets"])
 }
 
 func TestMiniAppSimulator_SimulateCoinFlip_PaymentError(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
 	mockInvoker.payToAppErr = errors.New("payment failed")
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateCoinFlip(ctx)
@@ -224,7 +223,7 @@ func TestMiniAppSimulator_SimulateCoinFlip_PaymentError(t *testing.T) {
 
 func TestMiniAppSimulator_SimulateDiceGame_Success(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateDiceGame(ctx)
@@ -245,14 +244,14 @@ func TestMiniAppSimulator_SimulateDiceGame_Success(t *testing.T) {
 
 	// Verify stats updated
 	stats := sim.GetStats()
-	diceStats := stats["dice_game"].(map[string]int64)
+	diceStats := stats["gaming"].(map[string]interface{})["dice_game"].(map[string]int64)
 	assert.Equal(t, int64(1), diceStats["bets"])
 }
 
 func TestMiniAppSimulator_SimulateDiceGame_PaymentError(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
 	mockInvoker.payToAppErr = errors.New("payment failed")
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateDiceGame(ctx)
@@ -267,7 +266,7 @@ func TestMiniAppSimulator_SimulateDiceGame_PaymentError(t *testing.T) {
 
 func TestMiniAppSimulator_SimulateScratchCard_Success(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateScratchCard(ctx)
@@ -288,14 +287,14 @@ func TestMiniAppSimulator_SimulateScratchCard_Success(t *testing.T) {
 
 	// Verify stats updated
 	stats := sim.GetStats()
-	scratchStats := stats["scratch_card"].(map[string]int64)
+	scratchStats := stats["gaming"].(map[string]interface{})["scratch_card"].(map[string]int64)
 	assert.Equal(t, int64(1), scratchStats["cards_bought"])
 }
 
 func TestMiniAppSimulator_SimulateScratchCard_PaymentError(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
 	mockInvoker.payToAppErr = errors.New("payment failed")
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateScratchCard(ctx)
@@ -310,7 +309,7 @@ func TestMiniAppSimulator_SimulateScratchCard_PaymentError(t *testing.T) {
 
 func TestMiniAppSimulator_SimulatePredictionMarket_Success(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulatePredictionMarket(ctx)
@@ -339,7 +338,7 @@ func TestMiniAppSimulator_SimulatePredictionMarket_Success(t *testing.T) {
 func TestMiniAppSimulator_SimulatePredictionMarket_PaymentError(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
 	mockInvoker.payToAppErr = errors.New("payment failed")
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulatePredictionMarket(ctx)
@@ -354,7 +353,7 @@ func TestMiniAppSimulator_SimulatePredictionMarket_PaymentError(t *testing.T) {
 
 func TestMiniAppSimulator_SimulateFlashLoan_Success(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateFlashLoan(ctx)
@@ -375,7 +374,7 @@ func TestMiniAppSimulator_SimulateFlashLoan_Success(t *testing.T) {
 
 	// Verify stats updated
 	stats := sim.GetStats()
-	flashloanStats := stats["flashloan"].(map[string]int64)
+	flashloanStats := stats["defi"].(map[string]interface{})["flashloan"].(map[string]int64)
 	assert.Equal(t, int64(1), flashloanStats["borrows"])
 	assert.Equal(t, int64(1), flashloanStats["repays"])
 }
@@ -383,7 +382,7 @@ func TestMiniAppSimulator_SimulateFlashLoan_Success(t *testing.T) {
 func TestMiniAppSimulator_SimulateFlashLoan_PaymentError(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
 	mockInvoker.payToAppErr = errors.New("payment failed")
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulateFlashLoan(ctx)
@@ -398,7 +397,7 @@ func TestMiniAppSimulator_SimulateFlashLoan_PaymentError(t *testing.T) {
 
 func TestMiniAppSimulator_SimulatePriceTicker_Success(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulatePriceTicker(ctx)
@@ -424,7 +423,7 @@ func TestMiniAppSimulator_SimulatePriceTicker_Success(t *testing.T) {
 func TestMiniAppSimulator_SimulatePriceTicker_ContractError(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
 	mockInvoker.invokeMiniAppErr = errors.New("contract invocation failed")
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	ctx := context.Background()
 	err := sim.SimulatePriceTicker(ctx)
@@ -440,7 +439,7 @@ func TestMiniAppSimulator_SimulatePriceTicker_ContractError(t *testing.T) {
 
 func TestMiniAppSimulator_GetStats(t *testing.T) {
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 
 	stats := sim.GetStats()
 
@@ -506,7 +505,7 @@ func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
 	// 3. PLATFORM ACTION: PayoutToUser (send winnings)
 
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 	ctx := context.Background()
 
 	// Run all MiniApp simulations
@@ -555,7 +554,7 @@ func TestMiniAppSimulator_VerifyMasterAccountUsage(t *testing.T) {
 	// Note: These are called by the lottery draw, not by individual MiniApp simulations
 
 	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker)
+	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
 	ctx := context.Background()
 
 	// Run lottery multiple times to trigger a draw (every 5 tickets)

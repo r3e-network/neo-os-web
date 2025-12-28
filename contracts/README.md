@@ -13,21 +13,34 @@ gateway + TEE services, with final enforcement at the contract layer.
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│                       Gateway + SDK                            │
-│         (Supabase Edge + Host SDK intent flow)                  │
+│                       User / Frontend                          │
+│            (Invoke MiniApp contract methods)                   │
+└────────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────┐
+│                    MiniApp Contracts (C#)                      │
+│   CoinFlip · DiceGame · Lottery · PredictionMarket · etc.      │
+│   (Store state, request services, handle callbacks)            │
+└────────────────────────────────────────────────────────────────┘
+                             │ requestService()
+                             ▼
+┌────────────────────────────────────────────────────────────────┐
+│                  ServiceLayerGateway Contract                  │
+│   (Route requests to TEE, deliver callbacks to MiniApps)       │
 └────────────────────────────────────────────────────────────────┘
                              │
                              ▼
 ┌────────────────────────────────────────────────────────────────┐
 │                    TEE Service Layer (EGo)                     │
-│   datafeed / compute / automation / tx-proxy (attested TLS)     │
+│   rng / pricefeed / bridge-oracle / compute (attested TLS)     │
 └────────────────────────────────────────────────────────────────┘
-                             │
+                             │ onServiceCallback()
                              ▼
 ┌────────────────────────────────────────────────────────────────┐
 │                    Platform Contracts (C#)                     │
 │   PaymentHub · Governance · PriceFeed · RandomnessLog          │
-│   AppRegistry · AutomationAnchor · ServiceLayerGateway         │
+│   AppRegistry · AutomationAnchor                               │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -43,65 +56,115 @@ gateway + TEE services, with final enforcement at the contract layer.
 | **AutomationAnchor**    | `AutomationAnchor/AutomationAnchor.cs`       | Task scheduling with nonce-based anti-replay       |
 | **ServiceLayerGateway** | `ServiceLayerGateway/ServiceLayerGateway.cs` | On-chain service request routing + callbacks       |
 
-## MiniApp Contracts (23 Deployed)
+## MiniApp Contracts (27 Deployed)
 
-Each MiniApp has its own smart contract that handles app-specific logic and communicates with platform service contracts for service requests.
+Each MiniApp has its own smart contract that handles app-specific logic using the **Chainlink-style oracle pattern**. Contracts actively request services from ServiceLayerGateway and receive callbacks with results. All MiniApp contracts use the shared `MiniAppContract` partial class pattern for common functionality.
 
 ### Contract Pattern
 
-All MiniApp contracts follow a common pattern:
+All MiniApp contracts use the `MiniAppContract` partial class pattern with service request capability:
 
 ```csharp
-// Admin and Gateway management
+// Base configuration (from MiniAppBase)
 private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
 private static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
 
-public static void SetAdmin(UInt160 a) { ... }
-public static void SetGateway(UInt160 g) { ... }
+// App-specific storage prefixes (start from 0x10)
+private static readonly byte[] PREFIX_BET_ID = new byte[] { 0x10 };
+private static readonly byte[] PREFIX_BETS = new byte[] { 0x11 };
+private static readonly byte[] PREFIX_REQUEST_TO_BET = new byte[] { 0x12 };
 
-// Service callback handler
-public static void OnServiceCallback(BigInteger r, string a, string s, bool ok, ByteString res, string e) { }
+// Request service from Gateway
+private static BigInteger RequestRng(BigInteger betId)
+{
+    return Contract.Call(Gateway(), "requestService", CallFlags.All,
+        APP_ID, "rng", payload, Runtime.ExecutingScriptHash, "onServiceCallback");
+}
 
-// Contract upgrade
-public static void Update(ByteString nef, string m) { ... }
+// Receive callback from Gateway
+public static void OnServiceCallback(BigInteger requestId, string appId,
+    string serviceType, bool success, ByteString result, string error)
+{
+    ValidateGateway();
+    // Resolve business logic using result
+}
 ```
 
-### MiniApp Payment Workflow
+### MiniApp Service Request Workflow (Chainlink-style)
 
-**Important**: Users never directly invoke MiniApp contracts. The correct workflow is:
+MiniApp contracts follow a **Chainlink-style oracle pattern** where contracts actively request services and receive callbacks:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  1. USER ACTION: Pay via SDK                                    │
-│     User calls SDK.payGAS(appId, amount, memo)                  │
-│     → GAS transferred to PaymentHub                             │
+│  1. USER ACTION: Invoke MiniApp Contract                        │
+│     User calls MiniApp method (e.g., PlaceBet, CreateGrid)      │
+│     → Contract stores bet/position data                         │
+│     → Contract calls Gateway.requestService(appId, serviceType) │
 ├─────────────────────────────────────────────────────────────────┤
-│  2. PLATFORM ACTION: Process game logic                         │
-│     Platform invokes MiniApp contract methods:                  │
-│     - MiniAppLottery.recordTickets(round, user, count)          │
-│     - MiniAppCoinFlip.recordBet(user, choice, amount)           │
-│     - MiniAppDiceGame.recordBet(user, target, amount)           │
+│  2. GATEWAY ACTION: Route to TEE Service                        │
+│     ServiceLayerGateway routes request to off-chain service     │
+│     → TEE executes service (RNG, PriceFeed, etc.)               │
+│     → Returns result via callback                               │
 ├─────────────────────────────────────────────────────────────────┤
-│  3. PLATFORM ACTION: Determine outcome                          │
-│     Platform uses VRF for randomness, oracle for prices         │
+│  3. GATEWAY ACTION: Fulfill Callback                            │
+│     Gateway calls MiniApp.OnServiceCallback(requestId, result)  │
+│     → Contract resolves bet/position using service result       │
+│     → Emits result event                                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  4. PLATFORM ACTION: Send payouts                               │
-│     Platform sends GAS to winners via PayoutToUser              │
+│  4. SETTLEMENT: Process payouts                                 │
+│     Platform processes payout based on emitted events           │
+│     → Winners receive GAS via PaymentHub                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+**Service Types:**
+
+- `rng` - Random number generation (gaming, NFT evolution)
+- `pricefeed` - Price oracle data (prediction markets, trading)
+- `bridge-oracle` - Cross-chain verification (bridges)
+
 ### MiniApp Contract Responsibilities
 
-MiniApp contracts store **app-specific state only**:
+MiniApp contracts handle **complete business logic with async service requests**:
 
-| Contract Type                      | State Stored                         |
-| ---------------------------------- | ------------------------------------ |
-| Gaming (Lottery, CoinFlip, Dice)   | Bets, tickets, rounds, winners       |
-| DeFi (PredictionMarket, FlashLoan) | Positions, predictions, loan records |
-| Social (RedEnvelope, GasCircle)    | Envelopes, circles, participants     |
-| Governance (SecretVote)            | Proposals, encrypted votes           |
+| Contract Category         | Service Used    | Business Logic                                |
+| ------------------------- | --------------- | --------------------------------------------- |
+| Gaming (CoinFlip, Dice)   | `rng`           | PlaceBet → RequestRng → OnCallback → Settle   |
+| Lottery (Mega, Scratch)   | `rng`           | BuyTicket → InitiateDraw → OnCallback         |
+| Trading (AI, Grid)        | `pricefeed`     | CreateStrategy → RequestPrice → OnCallback    |
+| Prediction (Turbo, Micro) | `pricefeed`     | PlacePrediction → RequestResolve → OnCallback |
+| NFT (Evolve)              | `rng`           | InitiateEvolution → RequestRng → OnCallback   |
+| Bridge (Guardian)         | `bridge-oracle` | InitiateBridge → RequestVerify → OnCallback   |
+| Price (Ticker)            | `pricefeed`     | RequestUpdate → OnCallback → StorePrice       |
 
-Payment logic is handled by **PaymentHub**, not MiniApp contracts.
+**Key Pattern:**
+
+```csharp
+// Step 1: User initiates action, contract stores state
+public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice)
+{
+    BetData bet = new BetData { Player = player, Amount = amount, Choice = choice };
+    StoreBet(betId, bet);
+
+    // Request service via Gateway
+    BigInteger requestId = Contract.Call(gateway, "requestService", ...);
+    Storage.Put(PREFIX_REQUEST_TO_BET + requestId, betId);
+    return betId;
+}
+
+// Step 2: Gateway calls back with result
+public static void OnServiceCallback(BigInteger requestId, bool success, ByteString result)
+{
+    ValidateGateway();
+    BigInteger betId = Storage.Get(PREFIX_REQUEST_TO_BET + requestId);
+    BetData bet = GetBet(betId);
+
+    // Process result and emit settlement event
+    BigInteger randomValue = StdLib.Deserialize(result);
+    bool won = (randomValue % 2 == 0) == bet.Choice;
+    OnBetResult(bet.Player, won, payout, betId);
+}
+```
 
 ### Batch Deployment
 
@@ -261,6 +324,7 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | MiniAppMicroPredict     | `0x73264e59d8215e28485420bb33ba841ff6fb45f8` | ✅ Active |
 | MiniAppRedEnvelope      | `0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e` | ✅ Active |
 | MiniAppGasCircle        | `0x7736c8d1ff918f94d26adc688dac4d4bc084bd39` | ✅ Active |
+| MiniAppCanvas           | `TBD`                                        | 🆕 New    |
 
 **Phase 3 - Advanced:**
 
@@ -286,6 +350,74 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | Contract               | Hash                                         | Status    |
 | ---------------------- | -------------------------------------------- | --------- |
 | MiniAppServiceConsumer | `0x8894b8d122cbc49c19439f680a4b5dbb2093b426` | ✅ Active |
+
+## MiniApp Automation Support
+
+All 25 MiniApp contracts support periodic automation via AutomationAnchor integration. This enables scheduled task execution for time-sensitive operations.
+
+### Automation Feature Matrix
+
+| MiniApp                 | Category | Automation Logic                | Trigger Type |
+| ----------------------- | -------- | ------------------------------- | ------------ |
+| MiniAppCoinFlip         | Gaming   | Auto-settle expired bets        | interval     |
+| MiniAppDiceGame         | Gaming   | Auto-settle expired games       | interval     |
+| MiniAppGasSpin          | Gaming   | Auto-process spin results       | interval     |
+| MiniAppScratchCard      | Gaming   | Auto-manage prize pool          | interval     |
+| MiniAppMegaMillions     | Gaming   | Auto-draw when conditions met   | cron         |
+| MiniAppLottery          | Gaming   | Auto-trigger lottery draws      | cron         |
+| MiniAppFlashLoan        | DeFi     | Auto-liquidate defaulted loans  | interval     |
+| MiniAppPredictionMarket | DeFi     | Auto-resolve expired markets    | interval     |
+| MiniAppPricePredict     | DeFi     | Auto-settle predictions         | interval     |
+| MiniAppPriceTicker      | DeFi     | Auto-update price feeds         | interval     |
+| MiniAppTurboOptions     | DeFi     | Auto-settle expired options     | interval     |
+| MiniAppILGuard          | DeFi     | Auto-check IL protection        | interval     |
+| MiniAppRedEnvelope      | Social   | Auto-refund expired envelopes   | interval     |
+| MiniAppSecretVote       | Social   | Auto-tally votes after deadline | cron         |
+| MiniAppMicroPredict     | Social   | Auto-settle micro predictions   | interval     |
+| MiniAppSecretPoker      | Social   | Auto-timeout inactive games     | interval     |
+| MiniAppAITrader         | Advanced | Auto-execute trading signals    | interval     |
+| MiniAppGridBot          | Advanced | Auto-execute grid orders        | interval     |
+| MiniAppBridgeGuardian   | Advanced | Auto-verify cross-chain txs     | interval     |
+| MiniAppGuardianPolicy   | Advanced | Auto-execute policy rules       | interval     |
+| MiniAppFogChess         | Other    | Auto-timeout inactive games     | interval     |
+| MiniAppNFTEvolve        | Other    | Auto-trigger evolution          | interval     |
+| MiniAppGovBooster       | Other    | Auto-unlock expired stakes      | interval     |
+| MiniAppGasCircle        | Other    | Auto-process circle payments    | cron         |
+| MiniAppCanvas           | Other    | Auto-create daily NFT           | cron         |
+
+### Standard Automation Interface
+
+All MiniApp contracts implement these automation methods:
+
+```csharp
+// Query automation anchor address
+public static UInt160 AutomationAnchor()
+
+// Set automation anchor (admin only)
+public static void SetAutomationAnchor(UInt160 anchor)
+
+// Register periodic task with AutomationAnchor
+public static void RegisterAutomation(string triggerType, string schedule)
+
+// Cancel periodic task
+public static void CancelAutomation()
+
+// Callback from AutomationAnchor (anchor only)
+public static void OnPeriodicExecution(BigInteger taskId, ByteString payload)
+```
+
+### Automation Events
+
+- `AutomationRegistered(taskId, triggerType, schedule)` - Task registered
+- `AutomationCancelled(taskId)` - Task cancelled
+- `PeriodicExecutionTriggered(taskId)` - Periodic execution triggered
+
+### Storage Prefixes
+
+Automation uses dedicated storage prefixes to avoid conflicts:
+
+- `PREFIX_AUTOMATION_TASK (0x20)` - Stores registered task ID
+- `PREFIX_AUTOMATION_ANCHOR (0x21)` - Stores anchor contract address
 
 ## Security Considerations
 

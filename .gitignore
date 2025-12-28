@@ -74,9 +74,6 @@ coverage.out
 # Snapshot files
 snapshots/
 
-# Contract build artifacts
-contracts/build/
-
 # Supabase local dev artifacts
 supabase/.temp/
 

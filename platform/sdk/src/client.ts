@@ -34,7 +34,7 @@ import type {
   SecretsUpsertResponse,
   TransactionsListParams,
   TransactionsListResponse,
-  VoteNEOResponse,
+  VoteBNEOResponse,
   WalletBindResponse,
   WalletNonceResponse,
 } from "./types.js";
@@ -245,13 +245,13 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       },
     },
     governance: {
-      async vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteNEOResponse> {
-        const res = await requestJSON<VoteNEOResponse>(cfg, "/vote-neo", {
+      async vote(appId: string, proposalId: string, bneoAmount: string, support?: boolean): Promise<VoteBNEOResponse> {
+        const res = await requestJSON<VoteBNEOResponse>(cfg, "/vote-bneo", {
           method: "POST",
           body: JSON.stringify({
             app_id: appId,
             proposal_id: proposalId,
-            neo_amount: neoAmount,
+            bneo_amount: bneoAmount,
             support,
           }),
         });
@@ -262,8 +262,8 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         }
         return res;
       },
-      async voteAndInvoke(appId: string, proposalId: string, neoAmount: string, support?: boolean) {
-        const intent = await this.vote(appId, proposalId, neoAmount, support);
+      async voteAndInvoke(appId: string, proposalId: string, bneoAmount: string, support?: boolean) {
+        const intent = await this.vote(appId, proposalId, bneoAmount, support);
         const tx = await invokeNeoLineInvocation(intent.invocation);
         return { intent, tx };
       },

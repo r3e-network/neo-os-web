@@ -1,0 +1,22 @@
+{
+  "id": "builtin-canvas",
+  "name": "Pixel Canvas",
+  "version": "1.0.0",
+  "description": "Collaborative 1920x1080 pixel canvas with daily NFT snapshots",
+  "author": "R3E Network",
+  "category": "social",
+  "icon": "canvas-icon.png",
+  "permissions": ["payment", "storage"],
+  "contract": {
+    "scriptHash": "",
+    "methods": ["SetPixel", "SetPixelBatch", "GetPixel", "GetPixelBatch", "CreateDailyNFT"]
+  },
+  "pricing": {
+    "pixelPrice": 1000,
+    "nftPrice": 100000000
+  },
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  }
+}

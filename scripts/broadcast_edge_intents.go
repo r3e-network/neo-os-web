@@ -1,6 +1,6 @@
 //go:build ignore
 
-// Broadcast Edge intents (pay-gas + vote-neo) to Neo N3 testnet.
+// Broadcast Edge intents (pay-gas + vote-bneo) to Neo N3 testnet.
 // Uses Edge to fetch invocation payloads and then signs/broadcasts them.
 package main
 
@@ -45,7 +45,7 @@ func main() {
 
 	appID := getEnv("APP_ID", "local-test-app")
 	payAmount := getEnv("PAY_AMOUNT_GAS", "0.001")
-	voteAmount := getEnv("VOTE_AMOUNT_NEO", "1")
+	voteAmount := getEnv("VOTE_AMOUNT_BNEO", "1")
 	proposalID := strings.TrimSpace(os.Getenv("VOTE_PROPOSAL_ID"))
 
 	rpcURL := getEnv("NEO_RPC_URL", "https://testnet1.neo.coz.io:443")
@@ -102,7 +102,7 @@ func main() {
 	}
 	fmt.Printf("pay-gas tx: %s (%s)\n", payTx.TxHash, payTx.VMState)
 
-	fmt.Println("\n=== Edge vote-neo ===")
+	fmt.Println("\n=== Edge vote-bneo ===")
 	if proposalID == "" {
 		proposalID = fmt.Sprintf("edge-proposal-%d", time.Now().Unix())
 		if err := ensureProposal(ctx, client, account, proposalID); err != nil {
@@ -115,22 +115,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	voteIntent, err := fetchIntent(edgeURL+"/vote-neo", edgeKey, edgeToken, map[string]any{
+	voteIntent, err := fetchIntent(edgeURL+"/vote-bneo", edgeKey, edgeToken, map[string]any{
 		"app_id":      appID,
 		"proposal_id": proposalID,
-		"neo_amount":  voteAmount,
+		"bneo_amount": voteAmount,
 		"support":     true,
 	})
 	if err != nil {
-		fmt.Printf("vote-neo failed: %v\n", err)
+		fmt.Printf("vote-bneo failed: %v\n", err)
 		os.Exit(1)
 	}
 	voteTx, err := invokeAndBroadcast(ctx, client, account, voteIntent.Invocation, transaction.CalledByEntry, chain.ScopeCalledByEntry)
 	if err != nil {
-		fmt.Printf("vote-neo broadcast failed: %v\n", err)
+		fmt.Printf("vote-bneo broadcast failed: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("vote-neo tx: %s (%s)\n", voteTx.TxHash, voteTx.VMState)
+	fmt.Printf("vote-bneo tx: %s (%s)\n", voteTx.TxHash, voteTx.VMState)
 }
 
 func getEnv(key, fallback string) string {
@@ -251,7 +251,7 @@ func ensureStake(ctx context.Context, client *chain.Client, account chain.TxSign
 	}
 	amt, err := strconv.ParseInt(amount, 10, 64)
 	if err != nil || amt <= 0 {
-		return fmt.Errorf("invalid VOTE_AMOUNT_NEO: %s", amount)
+		return fmt.Errorf("invalid VOTE_AMOUNT_BNEO: %s", amount)
 	}
 	if stake != nil && stake.Int64() >= amt {
 		return nil

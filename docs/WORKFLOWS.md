@@ -11,7 +11,7 @@ off-chain gateway flows.
     - Author `manifest.json` following `docs/manifest-spec.md`.
 2. **Register or Update Manifest**
     - Call `app-register` or `app-update-manifest` (Supabase Edge).
-    - Edge canonicalizes the manifest, enforces **GAS-only / NEO-only**, and
+    - Edge canonicalizes the manifest, enforces **GAS-only / bNEO-only**, and
       returns an `AppRegistry` invocation for the developer wallet to sign.
 3. **On-Chain Registry Approval**
     - Developer wallet signs and submits the `AppRegistry.registerApp` (or
@@ -207,12 +207,12 @@ Platform calls PayoutToUser("builtin-lottery", winnerAddr, prizeAmount, "lottery
 3. Edge returns a GAS `transfer` invocation to `PaymentHub`.
 4. Wallet signs and broadcasts the network.
 
-### Governance (NEO only)
+### Governance (bNEO only)
 
-1. SDK calls `vote-neo`.
+1. SDK calls `vote-bneo`.
 2. Edge validates:
     - manifest permissions (`governance`)
-    - `governance_assets_allowed == ["NEO"]`
+    - `governance_assets_allowed == ["bNEO"]`
 3. Edge returns a `Governance.vote` invocation.
 4. Wallet signs and broadcasts to the network.
 
@@ -228,7 +228,7 @@ Platform calls PayoutToUser("builtin-lottery", winnerAddr, prizeAmount, "lottery
 
 ## Testnet Payment + Governance Validation (Runbook)
 
-Use these scripts to validate GAS payments and NEO governance flows on testnet.
+Use these scripts to validate GAS payments and bNEO governance flows on testnet.
 
 ### GAS Payment (PaymentHub)
 
@@ -244,7 +244,7 @@ go run scripts/send_paymenthub_gas.go
 ### Governance (Stake + Vote)
 
 ```bash
-# Stake + vote with a small NEO amount
+# Stake + vote with a small bNEO amount
 go run scripts/test_governance_flow.go
 
 # Optional overrides
@@ -375,3 +375,384 @@ Required environment variables:
 
 You can also set `CONTRACT_MINIAPP_CONSUMER_HASH` or `MINIAPP_CONTRACT_HASH`
 in `.env` instead of passing `--miniapp-hash`.
+
+## Automation Workflow (Periodic Tasks with GAS Deposit Pool)
+
+The platform provides a comprehensive automation system for executing periodic tasks
+on-chain. The system supports two modes:
+
+1. **Off-Chain Triggers** (Supabase-based): User-managed triggers via NeoFlow API
+2. **On-Chain Anchored Tasks** (AutomationAnchor V2): Periodic tasks with GAS deposit pools
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Automation Architecture                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────────┐  │
+│  │   NeoFlow    │───▶│ AutomationAnchor │───▶│  Target Contract         │  │
+│  │   Service    │    │   (On-Chain)     │    │  (MiniApp/Platform)      │  │
+│  │   (TEE)      │    │                  │    │                          │  │
+│  └──────────────┘    └──────────────────┘    └──────────────────────────┘  │
+│         │                     │                                             │
+│         │                     │                                             │
+│         ▼                     ▼                                             │
+│  ┌──────────────┐    ┌──────────────┐                                      │
+│  │  Supabase    │    │  GAS Deposit │                                      │
+│  │  Triggers    │    │     Pool     │                                      │
+│  └──────────────┘    └──────────────┘                                      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Periodic Task Registration Flow
+
+#### Step 1: Register Periodic Task
+
+Users register periodic tasks via the AutomationAnchor V2 contract:
+
+```
+User Wallet
+    │
+    ▼
+AutomationAnchor.RegisterPeriodicTask(
+    target: UInt160,           // Target contract to invoke
+    method: string,            // Method name to call
+    triggerType: string,       // "cron" or "interval"
+    schedule: string,          // Cron expression or interval ("hourly", "daily", "weekly", "monthly")
+    gasLimit: BigInteger       // Gas limit per execution
+)
+    │
+    ▼
+Returns: taskId (BigInteger)
+```
+
+**Trigger Types:**
+
+- **interval**: Fixed time intervals
+    - Supported schedules: `"hourly"`, `"daily"`, `"weekly"`, `"monthly"`
+    - Interval seconds: 3600, 86400, 604800, 2592000 respectively
+- **cron**: Cron expressions (parsed off-chain by NeoFlow)
+    - Example: `"0 0 * * *"` (daily at midnight)
+    - Example: `"*/15 * * * *"` (every 15 minutes)
+
+#### Step 2: Deposit GAS to Task Pool
+
+After registration, users must deposit GAS to fund task executions:
+
+```
+User Wallet
+    │
+    ▼
+GAS.transfer(
+    to: AutomationAnchor,
+    amount: BigInteger,        // GAS amount in satoshis (1 GAS = 100000000)
+    data: taskId               // Task ID as BigInteger
+)
+    │
+    ▼
+AutomationAnchor.OnNEP17Payment(from, amount, taskId)
+    │
+    ▼
+Task balance updated
+    │
+    ▼
+Event: TaskDeposited(taskId, from, amount)
+```
+
+**Fee Model:**
+
+- Fixed fee: **1 GAS per execution**
+- Execution fails if balance < 1 GAS
+- Users can deposit any amount to fund multiple executions
+
+#### Step 3: Task Execution by NeoFlow
+
+The NeoFlow service monitors registered tasks and executes them at scheduled intervals:
+
+```
+NeoFlow Scheduler (runs every 10 seconds)
+    │
+    ▼
+Check all registered periodic tasks
+    │
+    ├─▶ Interval tasks: Check if (now - lastExecution) >= intervalSeconds
+    ├─▶ Cron tasks: Parse cron expression and check if execution time reached
+    └─▶ Price tasks: Check if price condition met (via PriceFeed contract)
+    │
+    ▼
+For each task ready to execute:
+    │
+    ├─▶ Check task balance >= 1 GAS
+    │
+    ├─▶ Call AutomationAnchor.ExecutePeriodicTask(taskId, payload)
+    │       │
+    │       ├─▶ Deduct 1 GAS from task balance
+    │       ├─▶ Update lastExecution and nextExecution timestamps
+    │       └─▶ Emit: PeriodicTaskExecuted(taskId, fee, remainingBalance)
+    │
+    └─▶ Target contract method is invoked by platform (off-chain orchestration)
+```
+
+### Task Management Operations
+
+#### Pause Task
+
+Temporarily stop task execution without losing balance:
+
+```
+AutomationAnchor.PauseTask(taskId)
+    │
+    ▼
+Task marked as paused
+    │
+    ▼
+Event: TaskPaused(taskId)
+```
+
+#### Resume Task
+
+Resume a paused task:
+
+```
+AutomationAnchor.ResumeTask(taskId)
+    │
+    ▼
+Task marked as active
+    │
+    ▼
+NextExecution recalculated from current time
+    │
+    ▼
+Event: TaskResumed(taskId)
+```
+
+#### Withdraw GAS
+
+Withdraw unused GAS from task balance:
+
+```
+AutomationAnchor.Withdraw(taskId, amount)
+    │
+    ▼
+Verify: caller is task owner
+    │
+    ▼
+Verify: balance >= amount
+    │
+    ▼
+Transfer GAS to owner
+    │
+    ▼
+Event: TaskWithdrawn(taskId, owner, amount)
+```
+
+#### Cancel Task
+
+Cancel task and refund all remaining GAS:
+
+```
+AutomationAnchor.CancelPeriodicTask(taskId)
+    │
+    ▼
+Verify: caller is task owner
+    │
+    ▼
+Get remaining balance
+    │
+    ▼
+Delete all task data (schedule, balance, ownership)
+    │
+    ▼
+Refund balance to owner (if > 0)
+    │
+    ▼
+Event: TaskCancelled(taskId, refundAmount)
+```
+
+### Error Handling and Edge Cases
+
+#### Insufficient Balance
+
+If task balance < 1 GAS when execution is due:
+
+- NeoFlow logs warning with balance details
+- Task execution is skipped
+- Task remains registered and will retry on next schedule
+- User must deposit more GAS to resume executions
+
+#### Task Execution Failure
+
+If target contract invocation fails:
+
+- NeoFlow logs error with VM state and exception
+- GAS fee is still deducted (execution was attempted)
+- Task remains active and will retry on next schedule
+- User should check target contract logic or cancel task
+
+#### Schedule Drift
+
+For interval tasks:
+
+- Next execution calculated from last successful execution
+- If service is down, tasks execute immediately when service resumes
+- Cron tasks resync to next valid cron time if drift > 1 minute
+
+### Off-Chain Triggers (NeoFlow API)
+
+For non-anchored automation, users can create triggers via the NeoFlow API:
+
+#### Create Trigger
+
+```
+POST /functions/v1/automation-triggers
+Authorization: Bearer <supabase-jwt>
+
+{
+  "name": "Daily Price Alert",
+  "trigger_type": "cron",
+  "schedule": "0 0 * * *",
+  "action": {
+    "type": "webhook",
+    "url": "https://example.com/webhook",
+    "method": "POST",
+    "body": {"message": "Daily alert"}
+  }
+}
+```
+
+**Trigger Types:**
+
+- `cron`: Time-based with cron expression
+- `interval`: Fixed interval (not anchored on-chain)
+- `price`: Price threshold condition
+- `threshold`: Balance threshold condition
+
+#### List Triggers
+
+```
+GET /functions/v1/automation-triggers
+Authorization: Bearer <supabase-jwt>
+
+Response:
+[
+  {
+    "id": "uuid",
+    "name": "Daily Price Alert",
+    "trigger_type": "cron",
+    "schedule": "0 0 * * *",
+    "enabled": true,
+    "last_execution": "2025-12-28T00:00:00Z",
+    "next_execution": "2025-12-29T00:00:00Z",
+    "created_at": "2025-12-01T00:00:00Z"
+  }
+]
+```
+
+#### Update Trigger
+
+```
+PUT /functions/v1/automation-trigger-update
+Authorization: Bearer <supabase-jwt>
+
+{
+  "id": "uuid",
+  "name": "Updated Name",
+  "schedule": "0 12 * * *"
+}
+```
+
+#### Enable/Disable Trigger
+
+```
+POST /functions/v1/automation-trigger-enable
+POST /functions/v1/automation-trigger-disable
+Authorization: Bearer <supabase-jwt>
+
+{
+  "id": "uuid"
+}
+```
+
+#### Delete Trigger
+
+```
+DELETE /functions/v1/automation-trigger-delete
+Authorization: Bearer <supabase-jwt>
+
+{
+  "id": "uuid"
+}
+```
+
+#### View Execution History
+
+```
+GET /functions/v1/automation-trigger-executions?trigger_id=uuid
+Authorization: Bearer <supabase-jwt>
+
+Response:
+[
+  {
+    "id": "uuid",
+    "trigger_id": "uuid",
+    "executed_at": "2025-12-28T00:00:00Z",
+    "success": true,
+    "action_type": "webhook",
+    "action_payload": {...}
+  }
+]
+```
+
+### Configuration and Environment Variables
+
+#### NeoFlow Service
+
+- `NEOFLOW_TASK_IDS`: Comma-separated list of anchored task IDs to monitor
+- `CONTRACT_AUTOMATIONANCHOR_HASH`: AutomationAnchor contract hash
+- `NEOFLOW_ENABLE_CHAIN_EXEC`: Enable on-chain task execution (default: true)
+
+#### AutomationAnchor Contract
+
+- Admin: Can register V1 tasks and set updater
+- Updater: NeoFlow service address (can execute periodic tasks)
+- Task Owner: User who registered the task (can pause/resume/cancel/withdraw)
+
+### Best Practices
+
+1. **Fund Tasks Adequately**: Deposit enough GAS for multiple executions (e.g., 30 GAS for 30 days of daily tasks)
+2. **Monitor Balance**: Check task balance regularly via `BalanceOf(taskId)`
+3. **Test Target Contract**: Ensure target contract method works correctly before registering task
+4. **Use Appropriate Intervals**: Choose intervals that match your use case (avoid too frequent executions)
+5. **Handle Failures Gracefully**: Target contracts should not revert on expected conditions
+6. **Pause Instead of Cancel**: Use pause for temporary stops to avoid re-registration costs
+
+### Example: Daily Reward Distribution
+
+```
+1. Register task:
+   RegisterPeriodicTask(
+     target: 0x...RewardContract,
+     method: "distributeDaily",
+     triggerType: "interval",
+     schedule: "daily",
+     gasLimit: 10000000
+   )
+   → Returns taskId: 1
+
+2. Deposit GAS for 30 days:
+   GAS.transfer(AutomationAnchor, 30_00000000, taskId: 1)
+
+3. NeoFlow executes daily:
+   - Checks balance (30 GAS available)
+   - Calls ExecutePeriodicTask(1, payload)
+   - Deducts 1 GAS (29 GAS remaining)
+   - Platform invokes RewardContract.distributeDaily()
+
+4. After 30 days:
+   - Balance reaches 0
+   - Executions stop
+   - User deposits more GAS to continue
+```

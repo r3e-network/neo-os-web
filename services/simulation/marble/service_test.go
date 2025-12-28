@@ -571,8 +571,8 @@ func TestSimulationStatusStruct(t *testing.T) {
 
 // TestConfigDefaults tests default configuration values.
 func TestConfigDefaults(t *testing.T) {
-	assert.Equal(t, 2000, DefaultMinIntervalMS)
-	assert.Equal(t, 6000, DefaultMaxIntervalMS)
+	assert.Equal(t, 15000, DefaultMinIntervalMS)
+	assert.Equal(t, 15000, DefaultMaxIntervalMS)
 	assert.Equal(t, int64(1000000), int64(DefaultMinAmount))
 	assert.Equal(t, int64(100000000), int64(DefaultMaxAmount))
 }

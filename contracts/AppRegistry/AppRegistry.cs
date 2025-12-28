@@ -17,9 +17,12 @@ namespace NeoMiniAppPlatform.Contracts
     }
 
     // Custom delegates for events with named parameters
-    public delegate void AppRegisteredHandler(string appId, UInt160 developer);
-    public delegate void AppUpdatedHandler(string appId, ByteString manifestHash);
-    public delegate void StatusChangedHandler(string appId, AppStatus status);
+    public delegate void AppRegisteredHandler(string appId, UInt160 developer, string name, string category);
+    public delegate void AppUpdatedHandler(string appId, ByteString manifestHash, string entryUrl);
+    public delegate void StatusChangedHandler(string appId, AppStatus oldStatus, AppStatus newStatus);
+    public delegate void AllowlistUpdatedHandler(string appId, ByteString allowlistHash);
+    public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
+    public delegate void ContractHashUpdatedHandler(string appId, ByteString contractHash);
 
     [DisplayName("AppRegistry")]
     [ManifestExtra("Author", "R3E Network")]
@@ -56,6 +59,15 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("StatusChanged")]
         public static event StatusChangedHandler OnStatusChanged;
+
+        [DisplayName("AllowlistUpdated")]
+        public static event AllowlistUpdatedHandler OnAllowlistUpdated;
+
+        [DisplayName("AdminChanged")]
+        public static event AdminChangedHandler OnAdminChanged;
+
+        [DisplayName("ContractHashUpdated")]
+        public static event ContractHashUpdatedHandler OnContractHashUpdated;
 
         public static void _deploy(object data, bool update)
         {
@@ -158,7 +170,11 @@ namespace NeoMiniAppPlatform.Contracts
             };
 
             AppMap().Put(key, StdLib.Serialize(info));
-            OnAppRegistered(appId, info.Developer);
+            OnAppRegistered(appId, info.Developer, name ?? "", category ?? "");
+            if (contractHash != null && contractHash.Length > 0)
+            {
+                OnContractHashUpdated(appId, info.ContractHash);
+            }
         }
 
         public static void Register(string appId, ByteString manifestHash, string entryUrl, ByteString developerPubKey)
@@ -190,11 +206,16 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(manifestHash != null && manifestHash.Length > 0, "manifest hash required");
             ExecutionEngine.Assert(entryUrl != null && entryUrl.Length > 0, "entry url required");
 
+            AppStatus oldStatus = info.Status;
             info.ManifestHash = manifestHash;
             info.EntryUrl = entryUrl;
             info.Status = AppStatus.Pending; // require re-approval
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
-            OnAppUpdated(appId, manifestHash);
+            OnAppUpdated(appId, manifestHash, entryUrl);
+            if (oldStatus != AppStatus.Pending)
+            {
+                OnStatusChanged(appId, oldStatus, AppStatus.Pending);
+            }
         }
 
         public static void UpdateApp(
@@ -215,6 +236,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(manifestHash != null && manifestHash.Length > 0, "manifest hash required");
             ExecutionEngine.Assert(entryUrl != null && entryUrl.Length > 0, "entry url required");
 
+            AppStatus oldStatus = info.Status;
+            ByteString oldContractHash = info.ContractHash;
             info.ManifestHash = manifestHash;
             info.EntryUrl = entryUrl;
             info.Name = name ?? "";
@@ -228,7 +251,15 @@ namespace NeoMiniAppPlatform.Contracts
             }
             info.Status = AppStatus.Pending; // require re-approval
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
-            OnAppUpdated(appId, manifestHash);
+            OnAppUpdated(appId, manifestHash, entryUrl);
+            if (contractHash != null && contractHash.Length > 0 && contractHash != oldContractHash)
+            {
+                OnContractHashUpdated(appId, info.ContractHash);
+            }
+            if (oldStatus != AppStatus.Pending)
+            {
+                OnStatusChanged(appId, oldStatus, AppStatus.Pending);
+            }
         }
 
         public static void SetAllowlistHash(string appId, ByteString allowlistHash)
@@ -240,6 +271,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             info.AllowlistHash = allowlistHash;
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
+            OnAllowlistUpdated(appId, allowlistHash);
         }
 
         public static void SetStatus(string appId, AppStatus status)
@@ -247,16 +279,19 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAdmin();
             AppInfo info = GetApp(appId);
             ExecutionEngine.Assert(info.AppId != null && info.AppId.Length > 0, "app not found");
+            AppStatus oldStatus = info.Status;
             info.Status = status;
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
-            OnStatusChanged(appId, status);
+            OnStatusChanged(appId, oldStatus, status);
         }
 
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
             ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
+            UInt160 oldAdmin = Admin();
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            OnAdminChanged(oldAdmin, newAdmin);
         }
 
         public static void Update(ByteString nefFile, string manifest)

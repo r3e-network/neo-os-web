@@ -1,120 +1,178 @@
-# MiniAppBase Partial Class Library
+# MiniAppContract - Shared Code Library
 
-This directory contains reusable event definitions for MiniApp contracts as partial classes.
+This directory contains reusable code for all MiniApp contracts using C# partial classes.
+
+## Architecture
+
+Neo smart contracts don't support abstract class inheritance, so we use **partial classes** to share common code across all MiniApp contracts.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MiniAppContract.Core.cs                       │
+│  (Shared partial class with common functionality)            │
+├─────────────────────────────────────────────────────────────┤
+│  • Standard Storage Prefixes (0x01-0x05)                    │
+│  • Standard Getters (Admin, Gateway, PaymentHub, etc.)      │
+│  • Validation Methods (ValidateAdmin, ValidateGateway)      │
+│  • Admin Management (SetAdmin, SetGateway, SetPaused, etc.) │
+│  • Global Pause Check (ValidateNotGloballyPaused)           │
+│  • Contract Update                                           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ partial class
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│              MiniApp Contract (e.g., CoinFlip)               │
+│  (App-specific partial class)                                │
+├─────────────────────────────────────────────────────────────┤
+│  • App Constants (APP_ID, fees, etc.)                       │
+│  • App Prefixes (0x10+)                                     │
+│  • App Events                                                │
+│  • App Getters                                               │
+│  • _deploy (lifecycle)                                       │
+│  • Business Logic                                            │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Files
 
-### MetricEvent.cs
+### MiniAppContract.Core.cs
 
-Platform_Metric event for emitting custom business metrics that the platform indexer can capture.
+Core shared functionality for all MiniApp contracts. Includes:
 
-### MetricEventCompact.cs
+- **Standard Storage Prefixes** (0x01-0x05 reserved):
+  - `PREFIX_ADMIN` (0x01)
+  - `PREFIX_GATEWAY` (0x02)
+  - `PREFIX_PAYMENTHUB` (0x03)
+  - `PREFIX_PAUSED` (0x04)
+  - `PREFIX_PAUSE_REGISTRY` (0x05)
 
-Compact Platform_Metric event signature without `appId` (use only with `manifest.contract_hash`).
+- **Standard Getters**:
+  - `Admin()` - Get admin address
+  - `Gateway()` - Get gateway address
+  - `PaymentHub()` - Get payment hub address
+  - `PauseRegistry()` - Get pause registry address
+  - `IsPaused()` - Check local pause state
 
-**Event Signature:**
+- **Validation Methods**:
+  - `ValidateAdmin()` - Require admin witness
+  - `ValidateGateway()` - Require gateway caller
+  - `ValidateAddress(addr)` - Validate address
+  - `ValidateNotPaused()` - Check local pause
+  - `ValidateNotGloballyPaused(appId)` - Check global + local pause
 
-```csharp
-[DisplayName("Platform_Metric")]
-public static event MetricHandler OnMetric;
-// Parameters: appId (string), metricName (string), value (BigInteger)
-```
+- **Admin Management**:
+  - `SetAdmin(newAdmin)`
+  - `SetGateway(gw)`
+  - `SetPaymentHub(hub)`
+  - `SetPauseRegistry(registry)`
+  - `SetPaused(paused)`
+  - `Update(nef, manifest)`
 
-The platform also accepts the compact signature
-`Platform_Metric(metricName, value)` if `manifest.contract_hash` is set so the indexer
-can map the emitting contract back to `app_id`.
+### MetricEventCompact.cs / MetricEvent.cs
 
-To emit the compact signature from C# without an `appId` parameter, include
-`MetricEventCompact.cs` instead of `MetricEvent.cs` (do not include both files).
+Platform_Metric event for emitting custom business metrics.
 
-**Helper Method:**
+### NotificationEventCompact.cs / NotificationEvent.cs
 
-```csharp
-protected static void EmitMetric(string appId, string metricName, BigInteger value)
-```
+Platform_Notification event for user-facing notifications.
 
-**Standard Metric Names:**
+## Creating a New MiniApp Contract
 
-- `UserJoined` - New user joined the app (value = 1)
-- `VolumeTraded` - Trading volume in smallest unit (value = amount)
-- `ItemMinted` - NFT or token minted (value = count)
-- `GamePlayed` - Game round completed (value = 1)
-- `VoteCast` - Governance vote submitted (value = 1)
-
-Custom metric names are allowed but should follow CamelCase convention.
-
-### NotificationEvent.cs
-
-Platform_Notification event for emitting user-facing notifications.
-
-### NotificationEventCompact.cs
-
-Compact Platform_Notification event signature without `appId` (use only with `manifest.contract_hash`).
-
-**Event Signature:**
+1. Create your contract file with `partial class MiniAppContract`:
 
 ```csharp
-[DisplayName("Platform_Notification")]
-public static event NotificationHandler OnNotification;
-// Parameters: appId, title, content, notificationType, priority
-```
+using System.ComponentModel;
+using System.Numerics;
+using Neo;
+using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Attributes;
+using Neo.SmartContract.Framework.Services;
 
-The platform also accepts the compact signature
-`Platform_Notification(notificationType, title, content)` if `manifest.contract_hash`
-is set so the indexer can map the emitting contract back to `app_id`.
-
-To emit the compact signature from C# without an `appId` parameter, include
-`NotificationEventCompact.cs` instead of `NotificationEvent.cs` (do not include both files).
-
-Recommended `notificationType` values:
-
-- `Announcement`
-- `Alert`
-- `Milestone`
-- `Promo`
-
-## Usage in MiniApp Contracts
-
-To use these events, include the corresponding .cs files when compiling your MiniApp contract:
-
-```bash
-nccs MiniAppBase/MetricEvent.cs MiniAppBase/NotificationEvent.cs YourMiniApp/YourContract.cs -o build/
-```
-
-For compact events (no appId), use:
-
-```bash
-nccs MiniAppBase/MetricEventCompact.cs MiniAppBase/NotificationEventCompact.cs YourMiniApp/YourContract.cs -o build/
-```
-
-Then in your contract code:
-
-```csharp
 namespace NeoMiniAppPlatform.Contracts
 {
-    public delegate void MetricHandler(string appId, string metricName, BigInteger value);
-
-    [DisplayName("MyMiniApp")]
-    public partial class MiniAppBase : SmartContract
+    [DisplayName("MiniAppYourApp")]
+    [ManifestExtra("Author", "R3E Network")]
+    [ManifestExtra("Version", "1.0.0")]
+    [ManifestExtra("Description", "Your app description")]
+    [ContractPermission("*", "*")]
+    public partial class MiniAppContract : SmartContract
     {
-        [DisplayName("Platform_Metric")]
-        public static event MetricHandler OnMetric;
+        #region App Constants
+        private const string APP_ID = "builtin-yourapp";
+        #endregion
 
-        protected static void EmitMetric(string appId, string metricName, BigInteger value)
+        #region App Prefixes (start from 0x10)
+        private static readonly byte[] PREFIX_YOUR_DATA = new byte[] { 0x10 };
+        #endregion
+
+        #region App Events
+        // Define your events here
+        #endregion
+
+        #region Lifecycle
+        public static void _deploy(object data, bool update)
         {
-            OnMetric(appId, metricName, value);
+            if (update) return;
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
+            // Initialize app-specific state
         }
+        #endregion
 
-        public static void MyBusinessLogic()
+        #region App Logic
+        public static void YourMethod()
         {
-            // ... your logic ...
-
-            EmitMetric("my-app-id", "UserJoined", 1);
+            ValidateNotGloballyPaused(APP_ID);
+            // Your business logic
         }
+        #endregion
     }
 }
 ```
 
-## Note
+2. The build script automatically includes `MiniAppContract.Core.cs` when compiling.
 
-These are partial class definitions only. They cannot be compiled independently and must be included with a main contract implementation that has proper manifest attributes. The platform continues to accept legacy `Notification`/`Metric` event names, but new apps should emit `Platform_Notification` and `Platform_Metric`.
+## Build Process
+
+The `build.sh` script uses `build_miniapp()` function which automatically includes:
+
+- `MiniAppContract/MiniAppContract.Core.cs`
+- Your app's `.cs` files
+
+```bash
+# Automatic compilation with shared files
+./build.sh
+
+# Manual compilation
+nccs MiniAppContract/MiniAppContract.Core.cs YourMiniApp/YourContract.cs -o build/
+```
+
+## Storage Prefix Convention
+
+| Range     | Usage                            |
+| --------- | -------------------------------- |
+| 0x01-0x05 | Reserved for MiniAppContract.Core.cs |
+| 0x10-0xFF | App-specific storage             |
+
+## Benefits
+
+1. **DRY Principle**: Common code defined once
+2. **Consistency**: All MiniApps have identical admin/gateway management
+3. **Maintainability**: Fix bugs in one place
+4. **Smaller Contracts**: Less code duplication
+5. **Global Pause**: Built-in support for PauseRegistry
+
+## Migration from Old Pattern
+
+If you have an existing MiniApp contract:
+
+1. Change `public class MiniAppXxx : SmartContract` to `public partial class MiniAppContract : SmartContract`
+2. Remove these sections (now in Core.cs):
+   - Standard Prefixes (PREFIX_ADMIN, PREFIX_GATEWAY, etc.)
+   - Standard Getters (Admin(), Gateway(), etc.)
+   - Standard Validation (ValidateAdmin, ValidateGateway)
+   - Admin Management (SetAdmin, SetGateway, etc.)
+   - Update method
+3. Add `APP_ID` constant
+4. Update `_deploy` to use `PREFIX_ADMIN` from Core.cs
+5. Use `ValidateNotGloballyPaused(APP_ID)` for pause checks

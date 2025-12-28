@@ -2,12 +2,13 @@
 
 This document is the **reviewed, polished, and fully expanded** design blueprint.
 It explicitly lists the technology stack, open-source tools, and platforms to use
-for every layer, ensuring the **Payment = GAS / Governance = NEO** constraint is
+for every layer, ensuring the **Payment = GAS / Governance = bNEO** constraint is
 strictly enforced.
 
 > **Core Constraints:**
+>
 > - **Settlement:** **GAS Only** (PaymentHub rejects all other assets).
-> - **Governance:** **NEO Only** (Voting/Staking).
+> - **Governance:** **bNEO Only** (Voting/Staking).
 > - **Confidentiality:** Service layer via **MarbleRun + EGo (SGX TEE)**.
 > - **Gateway:** **Supabase** (Auth, DB, Edge).
 > - **Frontend:** **Vercel** + **Next.js** + **Micro-frontends**.
@@ -22,6 +23,7 @@ strictly enforced.
 ## 1. Complete Tech Stack & Tooling Selection
 
 ### A. Blockchain Layer (Neo N3)
+
 - **Network:** Neo N3 Mainnet (Prod) / Testnet (Stage).
 - **Contract Language:** **C#**.
 - **Compiler/Framework:** `neo-devpack-dotnet`.
@@ -31,6 +33,7 @@ strictly enforced.
 - **Wallet Integration:** NeoLine, O3, or OneGate (via dAPI).
 
 ### B. Service Layer (Confidential Computing)
+
 - **Hardware Requirement:** Intel SGX-enabled servers (Azure Confidential Computing or bare metal).
 - **Enclave Runtime:** **EGo** (Go).
 - **Orchestration:** **MarbleRun**.
@@ -38,6 +41,7 @@ strictly enforced.
 - **Networking:** gRPC or REST (attested TLS).
 
 ### C. Backend & Gateway
+
 - **Platform:** **Supabase**.
 - **Authentication:** Supabase Auth (GoTrue).
 - **Database:** PostgreSQL (Supabase-managed).
@@ -45,6 +49,7 @@ strictly enforced.
 - **Storage:** Supabase Storage.
 
 ### D. Platform Engine (Indexer + Analytics)
+
 - **Chain syncer:** Go (preferred reuse) or Node.js (`neon-js`).
 - **Event processing:** AppRegistry + MiniApp contract events.
 - **Aggregation:** daily rollups, trending, and derived KPIs.
@@ -52,14 +57,16 @@ strictly enforced.
 - **Ops:** replay/backfill tooling, reorg handling, and metrics.
 
 ### E. Frontend Platform
+
 - **Framework:** **Next.js**.
 - **Hosting:** **Vercel**.
 - **Micro-frontend Strategy:**
-  - Built-ins: Module Federation (`@module-federation/nextjs-mf`).
-  - 3rd Party Apps: `iframe sandbox` + `postMessage`.
+    - Built-ins: Module Federation (`@module-federation/nextjs-mf`).
+    - 3rd Party Apps: `iframe sandbox` + `postMessage`.
 - **State Management:** Zustand (SDK-side state, optional).
 
 ### F. DevOps & CI/CD
+
 - **Repo:** GitHub (Monorepo).
 - **CI Runner:** GitHub Actions.
 - **Security Scanning:** `npm audit`, CSP checks, and enclave measurement builds.
@@ -108,56 +115,60 @@ neo-miniapp-platform/
 ## 3. Core Component Design
 
 ### A. Contracts (Asset & Logic Constraints)
+
 1. **PaymentHub.cs**
-   - Hardcoded check: reject any non-GAS asset.
-   - Manages developer revenue splits.
+    - Hardcoded check: reject any non-GAS asset.
+    - Manages developer revenue splits.
 2. **Governance.cs**
-   - Hardcoded check: reject any non-NEO asset.
-   - No bNEO support.
+    - Hardcoded check: reject any non-bNEO asset.
+    - Uses bNEO (wrapped NEO) for governance staking and voting.
 3. **PriceFeed.cs**
-   - Stores `(Symbol, Price, Timestamp, RoundID, AttestationHash)`.
-   - Enforces `RoundID` monotonicity.
-   - Validates authorized updater (TEE node allowlist).
+    - Stores `(Symbol, Price, Timestamp, RoundID, AttestationHash)`.
+    - Enforces `RoundID` monotonicity.
+    - Validates authorized updater (TEE node allowlist).
 4. **RandomnessLog.cs**
-   - Anchors `(RequestId, Randomness, AttestationHash, Timestamp)`.
+    - Anchors `(RequestId, Randomness, AttestationHash, Timestamp)`.
 5. **AppRegistry.cs**
-   - Stores manifest hash + status + allowlist anchor hash.
+    - Stores manifest hash + status + allowlist anchor hash.
 6. **AutomationAnchor.cs**
-   - Task registry + nonce-based anti-replay for automation tasks.
+    - Task registry + nonce-based anti-replay for automation tasks.
 7. **ServiceLayerGateway.cs**
-   - Accepts `RequestService(...)` from MiniApps.
-   - Emits `ServiceRequested` events and routes callbacks via `FulfillRequest(...)`.
+    - Accepts `RequestService(...)` from MiniApps.
+    - Emits `ServiceRequested` events and routes callbacks via `FulfillRequest(...)`.
 
 ### B. TEE Services (The "Black Box")
+
 All services run inside EGo enclaves. Keys **never** leave the enclave.
 
 1. **txproxy**
-   - Holds platform signing key(s).
-   - Enforces contract+method allowlist and intent gates.
+    - Holds platform signing key(s).
+    - Enforces contract+method allowlist and intent gates.
 2. **datafeed**
-   - Polls multiple sources, computes median.
-   - Pushes updates when deviation ≥0.1% with hysteresis + throttling.
+    - Polls multiple sources, computes median.
+    - Pushes updates when deviation ≥0.1% with hysteresis + throttling.
 3. **vrf**
-   - Signs `request_id` inside TEE and derives randomness from the signature.
-   - Optionally anchors randomness in `RandomnessLog` via `txproxy`.
+    - Signs `request_id` inside TEE and derives randomness from the signature.
+    - Optionally anchors randomness in `RandomnessLog` via `txproxy`.
 4. **confcompute**
-   - Runs restricted scripts inside TEE (confidential jobs).
+    - Runs restricted scripts inside TEE (confidential jobs).
 5. **conforacle**
-   - Allowlisted HTTP fetch with optional secret injection.
+    - Allowlisted HTTP fetch with optional secret injection.
 6. **automation**
-   - Scheduler + triggers (cron/price).
+    - Scheduler + triggers (cron/price).
 7. **requests (NeoRequests)**
-   - Listens for `ServiceRequested` events.
-   - Routes to VRF/Oracle/Compute and submits `FulfillRequest` callbacks via `txproxy`.
+    - Listens for `ServiceRequested` events.
+    - Routes to VRF/Oracle/Compute and submits `FulfillRequest` callbacks via `txproxy`.
 
 ### C. Gateway (Supabase Edge)
+
 - Stateless router + rate limiter.
 - Validates Supabase Auth JWT / API keys.
-- Enforces **GAS-only** (payments) and **NEO-only** (governance).
+- Enforces **GAS-only** (payments) and **bNEO-only** (governance).
 - Uses mTLS when calling TEE services.
 - Read-only market APIs: `miniapp-stats`, `miniapp-notifications`, `market-trending`.
 
 ### D. Platform Engine (Indexer + Analytics)
+
 - **Chain syncer:** listens to every block, handles reorgs via confirmation depth and backfill.
 - **Idempotency:** `processed_events` table prevents double-processing.
 - **Event standard:** parses `Platform_Notification` and `Platform_Metric` events.
@@ -195,6 +206,7 @@ contract against the on-chain `contract_hash` cache (strict mode can require it 
 ## 4. Frontend & Security Sandbox
 
 ### The Host (Vercel)
+
 - Loads mini-apps.
 - Untrusted apps run in `iframe` with `sandbox` attributes.
 - Uses strict CSP and a postMessage allowlist.
@@ -203,12 +215,20 @@ contract against the on-chain `contract_hash` cache (strict mode can require it 
 
 ```ts
 interface MiniAppSDK {
-  getAddress(): Promise<string>;
-  payments: { payGAS(appId: string, amount: string, memo?: string): Promise<unknown> };
-  governance: { vote(appId: string, proposalId: string, amount: string): Promise<unknown> };
-  rng: { requestRandom(appId: string): Promise<unknown> };
-  datafeed: { getPrice(symbol: string): Promise<unknown> };
-  stats: { getMyUsage(appId?: string, date?: string): Promise<unknown> };
+    getAddress(): Promise<string>;
+    payments: {
+        payGAS(appId: string, amount: string, memo?: string): Promise<unknown>;
+    };
+    governance: {
+        vote(
+            appId: string,
+            proposalId: string,
+            amount: string,
+        ): Promise<unknown>;
+    };
+    rng: { requestRandom(appId: string): Promise<unknown> };
+    datafeed: { getPrice(symbol: string): Promise<unknown> };
+    stats: { getMyUsage(appId?: string, date?: string): Promise<unknown> };
 }
 ```
 
