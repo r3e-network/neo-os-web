@@ -19,11 +19,15 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Sample MiniApp contract using ServiceLayerGateway callbacks")]
     [ContractPermission("*", "*")]
-    public class MiniAppServiceConsumer : SmartContract
+    public partial class MiniAppContract : SmartContract
     {
-        private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
-        private static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
-        private static readonly byte[] PREFIX_LAST = new byte[] { 0x03 };
+        #region App Constants
+        private const string APP_ID = "builtin-serviceconsumer";
+        #endregion
+
+        #region App Prefixes (start from 0x10)
+        private static readonly byte[] PREFIX_LAST = new byte[] { 0x10 };
+        #endregion
 
         public struct CallbackRecord
         {
@@ -36,45 +40,20 @@ namespace NeoMiniAppPlatform.Contracts
             public BigInteger Timestamp;
         }
 
+        #region App Events
         [DisplayName("ServiceCallback")]
         public static event ServiceCallbackHandler OnServiceCallbackEvent;
+        #endregion
 
+        #region Lifecycle
         public static void _deploy(object data, bool update)
         {
             if (update) return;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
         }
+        #endregion
 
-        public static UInt160 Admin()
-        {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
-        }
-
-        private static void ValidateAdmin()
-        {
-            UInt160 admin = Admin();
-            ExecutionEngine.Assert(admin != null, "admin not set");
-            ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
-        }
-
-        public static UInt160 Gateway()
-        {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_GATEWAY);
-        }
-
-        public static void SetGateway(UInt160 gateway)
-        {
-            ValidateAdmin();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "invalid gateway");
-            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, gateway);
-        }
-
-        public static void SetAdmin(UInt160 newAdmin)
-        {
-            ValidateAdmin();
-            ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
-        }
+        #region App Logic
 
         public static CallbackRecord GetLastCallback()
         {
@@ -124,9 +103,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void OnServiceCallback(BigInteger requestId, string appId, string serviceType, bool success, ByteString result, string error)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
-            ExecutionEngine.Assert(Runtime.CallingScriptHash == gateway, "unauthorized caller");
+            ValidateGateway();
 
             CallbackRecord record = new CallbackRecord
             {
@@ -142,11 +119,6 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_LAST, StdLib.Serialize(record));
             OnServiceCallbackEvent(requestId, record.AppId, record.ServiceType, record.Success);
         }
-
-        public static void Update(ByteString nefFile, string manifest)
-        {
-            ValidateAdmin();
-            ContractManagement.Update(nefFile, manifest, null);
-        }
+        #endregion
     }
 }

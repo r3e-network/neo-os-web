@@ -117,9 +117,9 @@ See `.env.example` for a full list.
 | AutomationAnchor    | `0x1c888d699ce76b0824028af310d90c3c18adeab5` | Automation triggers       |
 | ServiceLayerGateway | `0x27b79cf631eff4b520dd9d95cd1425ec33025a53` | Service request routing   |
 
-### MiniApp Contracts (23 Deployed)
+### MiniApp Contracts (24 Deployed)
 
-Each MiniApp has its own smart contract that handles app-specific logic and communicates with platform service contracts (PaymentHub, ServiceLayerGateway, etc.) for service requests.
+Each MiniApp has its own smart contract that handles app-specific logic and communicates with platform service contracts (PaymentHub, ServiceLayerGateway, etc.) for service requests. All MiniApp contracts use the shared `MiniAppContract` partial class pattern.
 
 **Phase 1 - Gaming:**
 
@@ -144,6 +144,7 @@ Each MiniApp has its own smart contract that handles app-specific logic and comm
 | MiniAppMicroPredict     | `0x73264e59d8215e28485420bb33ba841ff6fb45f8` | 60-second predictions      |
 | MiniAppRedEnvelope      | `0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e` | Social GAS red packets     |
 | MiniAppGasCircle        | `0x7736c8d1ff918f94d26adc688dac4d4bc084bd39` | Daily savings circle       |
+| MiniAppCanvas           | `TBD`                                        | Collaborative pixel canvas |
 
 **Phase 3 - Advanced:**
 
@@ -199,6 +200,7 @@ Each MiniApp consists of:
 - `builtin-micro-predict` - 60-second predictions
 - `builtin-red-envelope` - Social GAS red packets
 - `builtin-gas-circle` - Daily savings circle
+- `builtin-canvas` - Collaborative pixel art canvas
 
 **Phase 3 - Advanced:**
 

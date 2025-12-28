@@ -31,11 +31,11 @@ export type PayGASResponse = {
   invocation: InvocationIntent;
 };
 
-export type VoteNEOResponse = {
+export type VoteBNEOResponse = {
   request_id: string;
   user_id: string;
   intent: "governance";
-  constraints: { governance: "NEO_ONLY" };
+  constraints: { governance: "BNEO_ONLY" };
   invocation: InvocationIntent;
 };
 
@@ -318,14 +318,14 @@ export interface MiniAppSDK {
     payGASAndInvoke?: (appId: string, amount: string, memo?: string) => Promise<IntentWithTx<PayGASResponse>>;
   };
   governance: {
-    vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteNEOResponse>;
+    vote(appId: string, proposalId: string, bneoAmount: string, support?: boolean): Promise<VoteBNEOResponse>;
     // Convenience: create the intent via the gateway, then submit via the wallet.
     voteAndInvoke?: (
       appId: string,
       proposalId: string,
-      neoAmount: string,
+      bneoAmount: string,
       support?: boolean,
-    ) => Promise<IntentWithTx<VoteNEOResponse>>;
+    ) => Promise<IntentWithTx<VoteBNEOResponse>>;
   };
   rng: {
     requestRandom(appId: string): Promise<RNGResponse>;

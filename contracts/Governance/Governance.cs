@@ -11,9 +11,12 @@ using Neo.SmartContract.Framework.Services;
 namespace NeoMiniAppPlatform.Contracts
 {
     // Custom delegates for events with named parameters
-    public delegate void StakedHandler(UInt160 account, BigInteger amount);
-    public delegate void UnstakedHandler(UInt160 account, BigInteger amount);
+    public delegate void StakedHandler(UInt160 account, BigInteger amount, BigInteger newTotalStake);
+    public delegate void UnstakedHandler(UInt160 account, BigInteger amount, BigInteger remainingStake);
     public delegate void VotedHandler(UInt160 voter, string proposalId, bool support, BigInteger weight);
+    public delegate void ProposalCreatedHandler(string proposalId, string description, ulong startTime, ulong endTime);
+    public delegate void ProposalFinalizedHandler(string proposalId, BigInteger yesVotes, BigInteger noVotes, bool passed);
+    public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
 
     [DisplayName("Governance")]
     [ManifestExtra("Author", "R3E Network")]
@@ -50,6 +53,15 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("Voted")]
         public static event VotedHandler OnVoted;
+
+        [DisplayName("ProposalCreated")]
+        public static event ProposalCreatedHandler OnProposalCreated;
+
+        [DisplayName("ProposalFinalized")]
+        public static event ProposalFinalizedHandler OnProposalFinalized;
+
+        [DisplayName("AdminChanged")]
+        public static event AdminChangedHandler OnAdminChanged;
 
         public static void _deploy(object data, bool update)
         {
@@ -118,8 +130,9 @@ namespace NeoMiniAppPlatform.Contracts
             if ((ByteString)data != (ByteString)"stake") throw new Exception("Invalid stake data");
 
             BigInteger current = GetStake(from);
-            StakeMap().Put(from, current + amount);
-            OnStaked(from, amount);
+            BigInteger newTotal = current + amount;
+            StakeMap().Put(from, newTotal);
+            OnStaked(from, amount, newTotal);
         }
 
         public static void Unstake(BigInteger amount)
@@ -133,12 +146,13 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger current = GetStake(from);
             ExecutionEngine.Assert(current >= amount, "insufficient stake");
 
-            StakeMap().Put(from, current - amount);
+            BigInteger remaining = current - amount;
+            StakeMap().Put(from, remaining);
 
             bool ok = NEO.Transfer(Runtime.ExecutingScriptHash, from, amount, null);
             ExecutionEngine.Assert(ok, "NEO transfer failed");
 
-            OnUnstaked(from, amount);
+            OnUnstaked(from, amount, remaining);
         }
 
         // ============================================================================
@@ -162,6 +176,7 @@ namespace NeoMiniAppPlatform.Contracts
                 Finalized = false
             };
             ProposalMap().Put(ProposalKey(proposalId), StdLib.Serialize(p));
+            OnProposalCreated(proposalId, description ?? "", startTime, endTime);
         }
 
         public static Proposal GetProposal(string proposalId)
@@ -228,13 +243,16 @@ namespace NeoMiniAppPlatform.Contracts
 
             p.Finalized = true;
             ProposalMap().Put(ProposalKey(proposalId), StdLib.Serialize(p));
+            OnProposalFinalized(proposalId, p.Yes, p.No, p.Yes > p.No);
         }
 
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
             ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
+            UInt160 oldAdmin = Admin();
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            OnAdminChanged(oldAdmin, newAdmin);
         }
 
         public static void Update(ByteString nefFile, string manifest)

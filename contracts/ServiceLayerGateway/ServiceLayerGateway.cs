@@ -19,7 +19,11 @@ namespace NeoMiniAppPlatform.Contracts
 
     // Custom delegates for events with named parameters
     public delegate void ServiceRequestedHandler(BigInteger requestId, string appId, string serviceType, UInt160 requester, UInt160 callbackContract, string callbackMethod, ByteString payload);
-    public delegate void ServiceFulfilledHandler(BigInteger requestId, bool success, ByteString result, string error);
+    public delegate void ServiceFulfilledHandler(BigInteger requestId, string appId, string serviceType, bool success, ByteString result, string error);
+    public delegate void CallbackAddedHandler(UInt160 contractHash);
+    public delegate void CallbackRemovedHandler(UInt160 contractHash);
+    public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
+    public delegate void UpdaterChangedHandler(UInt160 oldUpdater, UInt160 newUpdater);
 
     [DisplayName("ServiceLayerGateway")]
     [ManifestExtra("Author", "R3E Network")]
@@ -58,6 +62,18 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("ServiceFulfilled")]
         public static event ServiceFulfilledHandler OnServiceFulfilled;
 
+        [DisplayName("CallbackAdded")]
+        public static event CallbackAddedHandler OnCallbackAdded;
+
+        [DisplayName("CallbackRemoved")]
+        public static event CallbackRemovedHandler OnCallbackRemoved;
+
+        [DisplayName("AdminChanged")]
+        public static event AdminChangedHandler OnAdminChanged;
+
+        [DisplayName("UpdaterChanged")]
+        public static event UpdaterChangedHandler OnUpdaterChanged;
+
         public static void _deploy(object data, bool update)
         {
             if (update) return;
@@ -83,7 +99,9 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
+            UInt160 oldAdmin = Admin();
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            OnAdminChanged(oldAdmin, newAdmin);
         }
 
         public static UInt160 Updater()
@@ -102,7 +120,9 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ExecutionEngine.Assert(updater != null && updater.IsValid, "invalid updater");
+            UInt160 oldUpdater = Updater();
             Storage.Put(Storage.CurrentContext, PREFIX_UPDATER, updater);
+            OnUpdaterChanged(oldUpdater, updater);
         }
 
         private static StorageMap AllowedCallbackMap() => new StorageMap(Storage.CurrentContext, PREFIX_ALLOWED_CALLBACK);
@@ -112,12 +132,14 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAdmin();
             ExecutionEngine.Assert(contractHash != null && contractHash.IsValid, "invalid contract");
             AllowedCallbackMap().Put((byte[])contractHash, 1);
+            OnCallbackAdded(contractHash);
         }
 
         public static void RemoveAllowedCallback(UInt160 contractHash)
         {
             ValidateAdmin();
             AllowedCallbackMap().Delete((byte[])contractHash);
+            OnCallbackRemoved(contractHash);
         }
 
         public static bool IsAllowedCallback(UInt160 contractHash)
@@ -207,7 +229,7 @@ namespace NeoMiniAppPlatform.Contracts
             req.Error = error ?? "";
             RequestMap().Put(requestId.ToByteArray(), StdLib.Serialize(req));
 
-            OnServiceFulfilled(requestId, success, req.Result, req.Error);
+            OnServiceFulfilled(requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
 
             Contract.Call(req.CallbackContract, req.CallbackMethod, CallFlags.ReadStates,
                 requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);

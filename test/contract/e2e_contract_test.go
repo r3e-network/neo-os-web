@@ -89,7 +89,7 @@ func TestE2EContractDeploymentFlow(t *testing.T) {
 
 		steps := []DeploymentStep{
 			{1, "PaymentHub", "Deploy GAS-only settlement contract", false},
-			{2, "Governance", "Deploy NEO-only governance contract", false},
+			{2, "Governance", "Deploy bNEO-only governance contract", false},
 			{3, "PriceFeed", "Deploy datafeed anchoring contract", false},
 			{4, "RandomnessLog", "Deploy randomness anchoring contract (optional)", false},
 			{5, "AppRegistry", "Deploy app registry + allowlist contract", false},

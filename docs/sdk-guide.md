@@ -92,11 +92,19 @@ declare global {
                     contract_hash?: string;
                     limit?: number;
                     after_id?: string;
-                }): Promise<{ events: any[]; has_more: boolean; last_id?: string }>;
+                }): Promise<{
+                    events: any[];
+                    has_more: boolean;
+                    last_id?: string;
+                }>;
             };
             transactions: {
                 // Query platform-tracked chain transactions (auth required).
-                list(params: { app_id?: string; limit?: number; after_id?: string }): Promise<{
+                list(params: {
+                    app_id?: string;
+                    limit?: number;
+                    after_id?: string;
+                }): Promise<{
                     transactions: any[];
                     has_more: boolean;
                     last_id?: string;
@@ -175,7 +183,9 @@ const { randomness, reportHash } =
 const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD"); // or "BTC" (defaults to BTC-USD)
 
 const myUsage = await window.MiniAppSDK.stats.getMyUsage("raffle");
-console.log(`Today usage: ${myUsage.tx_count} txs, ${myUsage.gas_used} (1e-8 GAS units)`);
+console.log(
+    `Today usage: ${myUsage.tx_count} txs, ${myUsage.gas_used} (1e-8 GAS units)`,
+);
 ```
 
 ## Payment Workflow (Important)
@@ -233,7 +243,7 @@ await window.MiniAppSDK.wallet.invokeIntent?.(payment.request_id);
 
 ## Builtin MiniApps
 
-The platform includes 23 builtin MiniApps demonstrating SDK usage patterns:
+The platform includes 24 builtin MiniApps demonstrating SDK usage patterns:
 
 | Category   | App ID                      | Description                          |
 | ---------- | --------------------------- | ------------------------------------ |
@@ -256,7 +266,8 @@ The platform includes 23 builtin MiniApps demonstrating SDK usage patterns:
 | DeFi       | `builtin-bridge-guardian`   | Cross-chain asset bridge             |
 | Social     | `builtin-red-envelope`      | Social GAS red packets               |
 | Social     | `builtin-gas-circle`        | Daily savings circle                 |
+| Social     | `builtin-canvas`            | Collaborative pixel art canvas       |
 | Governance | `builtin-secret-vote`       | Privacy-preserving voting            |
-| Governance | `builtin-gov-booster`       | NEO governance tools                 |
+| Governance | `builtin-gov-booster`       | bNEO governance tools                |
 | Security   | `builtin-guardian-policy`   | TEE transaction security             |
 | Gaming     | `builtin-nft-evolve`        | Dynamic NFT evolution                |

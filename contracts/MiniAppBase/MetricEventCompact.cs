@@ -10,7 +10,7 @@ namespace NeoMiniAppPlatform.Contracts
         BigInteger value
     );
 
-    public partial class MiniAppBase : SmartContract
+    public partial class MiniAppContract : SmartContract
     {
         // Compact event signature (no appId). Use only if manifest.contract_hash is set.
         [DisplayName("Platform_Metric")]

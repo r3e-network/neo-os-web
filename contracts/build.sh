@@ -95,6 +95,50 @@ build_sources() {
     return 0
 }
 
+# MiniApp base files (shared partial classes)
+MINIAPP_BASE_FILES=(
+    "MiniAppBase/MiniAppBase.Core.cs"
+)
+
+build_miniapp() {
+    local label=$1
+    local outdir=$2
+    shift 2
+
+    local sources=("$@")
+    if [ "${#sources[@]}" -eq 0 ]; then
+        echo "  ⚠ No sources found for $label, skipping"
+        return 0
+    fi
+
+    # Add MiniAppBase shared files
+    local all_sources=()
+    for base_file in "${MINIAPP_BASE_FILES[@]}"; do
+        if [ -f "$base_file" ]; then
+            all_sources+=("$base_file")
+        fi
+    done
+    all_sources+=("${sources[@]}")
+
+    mkdir -p "$outdir"
+    echo "Building $label (with MiniAppBase)..."
+
+    if ! "$NCCS_BIN" "${all_sources[@]}" -o "$outdir"; then
+        echo "  ✗ Compilation failed for $label"
+        failures=$((failures + 1))
+        rm -rf "$outdir"
+        return 0
+    fi
+
+    if ! collect_artifacts "$outdir"; then
+        echo "  ✗ Missing artifacts for $label"
+        failures=$((failures + 1))
+    fi
+
+    rm -rf "$outdir"
+    return 0
+}
+
 # Platform contracts (single-file)
 # Format: "directory:ContractName"
 platform_contracts=(
@@ -105,6 +149,7 @@ platform_contracts=(
     "AppRegistry:AppRegistry"
     "AutomationAnchor:AutomationAnchor"
     "ServiceLayerGateway:ServiceLayerGateway"
+    "PauseRegistry:PauseRegistry"
 )
 
 # Sample MiniApp contracts (optional)
@@ -133,6 +178,7 @@ miniapp_contracts_phase2=(
     "MiniAppMicroPredict:MiniAppMicroPredict"
     "MiniAppRedEnvelope:MiniAppRedEnvelope"
     "MiniAppGasCircle:MiniAppGasCircle"
+    "MiniAppCanvas:MiniAppCanvas"
 )
 
 # MiniApp contracts - Phase 3 (Advanced)
@@ -175,7 +221,7 @@ for entry in "${sample_contracts[@]}"; do
     if [ -d "$dir" ]; then
         cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
         # shellcheck disable=SC2086
-        build_sources "$name" "build/${name}" $cs_files
+        build_miniapp "$name" "build/${name}" $cs_files
     else
         echo "  ⚠ Directory $dir not found, skipping"
     fi
@@ -190,7 +236,7 @@ for entry in "${miniapp_contracts_phase1[@]}"; do
     if [ -d "$dir" ]; then
         cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
         # shellcheck disable=SC2086
-        build_sources "$name" "build/${name}" $cs_files
+        build_miniapp "$name" "build/${name}" $cs_files
     else
         echo "  ⚠ Directory $dir not found, skipping"
     fi
@@ -205,7 +251,7 @@ for entry in "${miniapp_contracts_phase2[@]}"; do
     if [ -d "$dir" ]; then
         cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
         # shellcheck disable=SC2086
-        build_sources "$name" "build/${name}" $cs_files
+        build_miniapp "$name" "build/${name}" $cs_files
     else
         echo "  ⚠ Directory $dir not found, skipping"
     fi
@@ -220,7 +266,7 @@ for entry in "${miniapp_contracts_phase3[@]}"; do
     if [ -d "$dir" ]; then
         cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
         # shellcheck disable=SC2086
-        build_sources "$name" "build/${name}" $cs_files
+        build_miniapp "$name" "build/${name}" $cs_files
     else
         echo "  ⚠ Directory $dir not found, skipping"
     fi
@@ -235,7 +281,7 @@ for entry in "${miniapp_contracts_phase4[@]}"; do
     if [ -d "$dir" ]; then
         cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
         # shellcheck disable=SC2086
-        build_sources "$name" "build/${name}" $cs_files
+        build_miniapp "$name" "build/${name}" $cs_files
     else
         echo "  ⚠ Directory $dir not found, skipping"
     fi

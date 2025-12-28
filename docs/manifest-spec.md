@@ -31,72 +31,73 @@ inconsistency. The canonical algorithm is implemented in:
 High level:
 
 1. **Canonicalize** known fields:
-   - trim `app_id`, `entry_url`, `name`, `version`
-   - trim `description`, `icon`, `banner`
-   - normalize `category` to lowercase
-   - normalize `contract_hash` as lowercase hash160 (strip leading `0x`)
-   - normalize `developer_pubkey` as lowercase hex (strip leading `0x`)
-   - normalize lists as sets:
-     - `assets_allowed`: uppercase + sort + unique
-     - `governance_assets_allowed`: uppercase + sort + unique
-     - `permissions`: validated + canonicalized deterministically
-     - `sandbox_flags`: lowercase + sort + unique
-     - `contracts_needed`: trim + sort + unique
-     - `stats_display`: lowercase + sort + unique
-   - normalize objects:
-     - `limits`: normalize values to trimmed strings (for hashing stability)
-   - normalize flags:
-     - `news_integration`: boolean
-   - normalize callback targets:
-     - `callback_contract`: lowercase hex hash160 (strip leading `0x`)
-     - `callback_method`: trim and preserve case
+    - trim `app_id`, `entry_url`, `name`, `version`
+    - trim `description`, `icon`, `banner`
+    - normalize `category` to lowercase
+    - normalize `contract_hash` as lowercase hash160 (strip leading `0x`)
+    - normalize `developer_pubkey` as lowercase hex (strip leading `0x`)
+    - normalize lists as sets:
+        - `assets_allowed`: uppercase + sort + unique
+        - `governance_assets_allowed`: uppercase + sort + unique
+        - `permissions`: validated + canonicalized deterministically
+        - `sandbox_flags`: lowercase + sort + unique
+        - `contracts_needed`: trim + sort + unique
+        - `stats_display`: lowercase + sort + unique
+    - normalize objects:
+        - `limits`: normalize values to trimmed strings (for hashing stability)
+    - normalize flags:
+        - `news_integration`: boolean
+    - normalize callback targets:
+        - `callback_contract`: lowercase hex hash160 (strip leading `0x`)
+        - `callback_method`: trim and preserve case
 2. **Stable JSON** encode:
-   - recursively sort all object keys lexicographically
-   - omit `undefined` values
+    - recursively sort all object keys lexicographically
+    - omit `undefined` values
 3. **Hash**:
-   - `sha256(utf8(stable_json))`
-   - represented as lowercase hex (no `0x`) for `ByteArray` parameters.
+    - `sha256(utf8(stable_json))`
+    - represented as lowercase hex (no `0x`) for `ByteArray` parameters.
 
 ### Example
 
 ```json
 {
-  "app_id": "your-app-id",
-  "entry_url": "https://cdn.miniapps.com/apps/neo-game/index.html",
-  "name": "Neo MiniApp",
-  "description": "Short summary shown in the host catalog",
-  "icon": "https://cdn.miniapps.com/apps/neo-game/icon.png",
-  "banner": "https://cdn.miniapps.com/apps/neo-game/banner.png",
-  "category": "gaming",
-  "contract_hash": "0x1234567890abcdef1234567890abcdef12345678",
-  "version": "1.0.0",
-  "developer_pubkey": "0x...",
-  "permissions": {
-    "wallet": ["read-address"],
-    "payments": true,
-    "governance": false,
-    "rng": true,
-    "datafeed": true,
-    "storage": ["kv"]
-  },
-  "assets_allowed": ["GAS"],
-  "governance_assets_allowed": ["NEO"],
-  "limits": {
-    "max_gas_per_tx": "5",
-    "daily_gas_cap_per_user": "20",
-    "governance_cap": "100"
-  },
-  "callback_contract": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "callback_method": "OnServiceCallback",
-  "contracts_needed": [
-    "PaymentHub",
-    "RandomnessLog",
-    "PriceFeed"
-  ],
-  "news_integration": true,
-  "stats_display": ["total_transactions","daily_active_users","total_gas_used","weekly_active_users"],
-  "sandbox_flags": ["no-eval", "strict-csp"],
-  "attestation_required": true
+    "app_id": "your-app-id",
+    "entry_url": "https://cdn.miniapps.com/apps/neo-game/index.html",
+    "name": "Neo MiniApp",
+    "description": "Short summary shown in the host catalog",
+    "icon": "https://cdn.miniapps.com/apps/neo-game/icon.png",
+    "banner": "https://cdn.miniapps.com/apps/neo-game/banner.png",
+    "category": "gaming",
+    "contract_hash": "0x1234567890abcdef1234567890abcdef12345678",
+    "version": "1.0.0",
+    "developer_pubkey": "0x...",
+    "permissions": {
+        "wallet": ["read-address"],
+        "payments": true,
+        "governance": false,
+        "rng": true,
+        "datafeed": true,
+        "storage": ["kv"]
+    },
+    "assets_allowed": ["GAS"],
+    "governance_assets_allowed": ["bNEO"],
+    "limits": {
+        "max_gas_per_tx": "5",
+        "daily_gas_cap_per_user": "20",
+        "governance_cap": "100"
+    },
+    "callback_contract": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "callback_method": "OnServiceCallback",
+    "contracts_needed": ["PaymentHub", "RandomnessLog", "PriceFeed"],
+    "news_integration": true,
+    "stats_display": [
+        "total_transactions",
+        "daily_active_users",
+        "total_gas_used",
+        "weekly_active_users"
+    ],
+    "sandbox_flags": ["no-eval", "strict-csp"],
+    "attestation_required": true
 }
 ```
 
@@ -138,7 +139,7 @@ High level:
 
 - `permissions.wallet`: allowed wallet reads (only `read-address`; no signing permissions here).
 - `permissions.payments`: enables GAS payments via `PaymentHub`.
-- `permissions.governance`: enables NEO governance calls via `Governance`.
+- `permissions.governance`: enables bNEO governance calls via `Governance`.
 - `permissions.rng`: enables VRF/RNG requests via the TEE services.
 - `permissions.datafeed`: enables reading/subscribing to price feeds.
 - `permissions.storage`: storage scopes (e.g. `kv`).

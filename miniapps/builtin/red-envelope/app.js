@@ -1,12 +1,12 @@
 /**
- * Gas Red Envelope - Web3 Lucky Packets
- * Uses TEE VRF for random distribution
+ * Gas Red Envelope - WeChat-style Lucky Packets
+ * Uses TEE VRF for random distribution with best luck winner
  */
 const APP_ID = "builtin-red-envelope";
 
 let state = {
   currentTab: "grab",
-  envelopes: {},
+  envelopes: {}, // envelope data: { code: { totalAmount, packets, remaining, creator, type, createdAt, grabbers: [{address, amount, timestamp}], bestLuck: {address, amount} } }
   history: [],
   lastCreated: null,
 };
@@ -127,6 +127,8 @@ async function createEnvelope() {
       creator: userAddress,
       type,
       createdAt: Date.now(),
+      grabbers: [], // Track who grabbed what: [{address, amount, timestamp}]
+      bestLuck: null, // Best luck winner: {address, amount}
     };
 
     state.envelopes[code] = envelope;
@@ -203,12 +205,32 @@ async function grabEnvelope() {
     return;
   }
 
+  // WeChat-style: Check if user already grabbed this envelope
+  if (envelope.grabbers && envelope.grabbers.some((g) => g.address === userAddress)) {
+    setStatus("You already grabbed this envelope!", "error");
+    return;
+  }
+
   elements.btnGrab.disabled = true;
   setStatus("Grabbing...", "info");
 
   try {
     const amount = envelope.packets.pop();
     envelope.remaining--;
+
+    // Track grabber (WeChat-style)
+    if (!envelope.grabbers) envelope.grabbers = [];
+    envelope.grabbers.push({
+      address: userAddress,
+      amount,
+      timestamp: Date.now(),
+    });
+
+    // Update best luck winner
+    if (!envelope.bestLuck || amount > envelope.bestLuck.amount) {
+      envelope.bestLuck = { address: userAddress, amount };
+    }
+
     saveEnvelopes();
 
     // Request payout
@@ -224,6 +246,11 @@ async function grabEnvelope() {
       timestamp: Date.now(),
     });
     saveHistory();
+
+    // Check if all packets claimed - show best luck winner
+    if (envelope.remaining === 0 && envelope.bestLuck) {
+      await showBestLuckNotification(code, envelope);
+    }
 
     setStatus(`Lucky! You got ${(amount / 1e8).toFixed(4)} GAS`, "success");
   } catch (err) {
@@ -245,6 +272,73 @@ function shareEnvelope() {
   }
 }
 window.shareEnvelope = shareEnvelope;
+
+/**
+ * Show best luck winner notification (WeChat-style 手气最佳)
+ */
+async function showBestLuckNotification(code, envelope) {
+  const sdk = getSDK();
+  if (!sdk || !envelope.bestLuck) return;
+
+  const bestLuckAmount = (envelope.bestLuck.amount / 1e8).toFixed(4);
+  const shortAddr = envelope.bestLuck.address.slice(0, 8) + "..." + envelope.bestLuck.address.slice(-4);
+
+  // Send platform notification for best luck winner
+  try {
+    await sdk.notifications?.send?.({
+      type: "best_luck",
+      title: "🎉 Best Luck Winner!",
+      message: `${shortAddr} got the best luck with ${bestLuckAmount} GAS!`,
+      data: {
+        envelopeCode: code,
+        winner: envelope.bestLuck.address,
+        amount: envelope.bestLuck.amount,
+      },
+    });
+  } catch (e) {
+    console.log("Notification not available:", e);
+  }
+
+  // Show in-app alert
+  showBestLuckModal(envelope);
+}
+
+/**
+ * Display best luck modal (WeChat-style)
+ */
+function showBestLuckModal(envelope) {
+  const modal = document.createElement("div");
+  modal.className = "best-luck-modal";
+  modal.innerHTML = `
+    <div class="best-luck-content">
+      <div class="best-luck-title">🎊 All Packets Claimed!</div>
+      <div class="best-luck-winner">
+        <span class="crown">👑</span>
+        <span class="label">Best Luck</span>
+      </div>
+      <div class="best-luck-address">${envelope.bestLuck.address.slice(0, 10)}...${envelope.bestLuck.address.slice(-6)}</div>
+      <div class="best-luck-amount">${(envelope.bestLuck.amount / 1e8).toFixed(4)} GAS</div>
+      <div class="grabbers-list">
+        <div class="grabbers-title">All Grabbers:</div>
+        ${envelope.grabbers
+          .sort((a, b) => b.amount - a.amount)
+          .map(
+            (g, i) => `
+          <div class="grabber-item ${g.address === envelope.bestLuck.address ? "best" : ""}">
+            <span class="rank">${i + 1}</span>
+            <span class="addr">${g.address.slice(0, 6)}...${g.address.slice(-4)}</span>
+            <span class="amt">${(g.amount / 1e8).toFixed(4)} GAS</span>
+            ${g.address === envelope.bestLuck.address ? '<span class="badge">👑</span>' : ""}
+          </div>
+        `,
+          )
+          .join("")}
+      </div>
+      <button class="close-btn" onclick="this.parentElement.parentElement.remove()">Close</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
 
 function renderHistory() {
   elements.historyList.innerHTML =

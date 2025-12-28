@@ -9,6 +9,7 @@ package neosimulation
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"os"
 	"strings"
@@ -189,8 +190,9 @@ func New(cfg Config) (*Service, error) {
 	// Initialize MiniApp simulator if contract invoker is available
 	var miniAppSimulator *MiniAppSimulator
 	if contractInvoker != nil {
-		miniAppSimulator = NewMiniAppSimulator(contractInvoker)
-		fmt.Println("neosimulation: MiniApp simulator initialized for all 7 apps")
+		// Use empty user addresses - will be populated from pool accounts
+		miniAppSimulator = NewMiniAppSimulator(contractInvoker, []string{})
+		fmt.Println("neosimulation: MiniApp simulator initialized for all 23 apps")
 	}
 
 	s := &Service{
@@ -322,6 +324,7 @@ func (s *Service) Start(ctx context.Context) error {
 		go s.runMiniAppWorkflow("coin-flip", interval, s.miniAppSimulator.SimulateCoinFlip)
 		go s.runMiniAppWorkflow("dice-game", interval, s.miniAppSimulator.SimulateDiceGame)
 		go s.runMiniAppWorkflow("scratch-card", interval, s.miniAppSimulator.SimulateScratchCard)
+		go s.runMiniAppWorkflow("mega-millions", interval, s.miniAppSimulator.SimulateMegaMillions)
 
 		// DeFi MiniApps
 		go s.runMiniAppWorkflow("prediction-market", interval, s.miniAppSimulator.SimulatePredictionMarket)
@@ -339,7 +342,22 @@ func (s *Service) Start(ctx context.Context) error {
 		go s.runMiniAppWorkflow("nft-evolve", interval, s.miniAppSimulator.SimulateNFTEvolve)
 		go s.runMiniAppWorkflow("bridge-guardian", interval, s.miniAppSimulator.SimulateBridgeGuardian)
 
-		s.Logger().WithContext(ctx).Info("MiniApp workflow simulators started for all 14 apps at 15s intervals")
+		// Phase 5 MiniApps - Additional Business Models
+		go s.runMiniAppWorkflow("turbo-options", interval, s.miniAppSimulator.SimulateTurboOptions)
+		go s.runMiniAppWorkflow("il-guard", interval, s.miniAppSimulator.SimulateILGuard)
+		go s.runMiniAppWorkflow("secret-poker", interval, s.miniAppSimulator.SimulateSecretPoker)
+		go s.runMiniAppWorkflow("micro-predict", interval, s.miniAppSimulator.SimulateMicroPredict)
+		go s.runMiniAppWorkflow("red-envelope", interval, s.miniAppSimulator.SimulateRedEnvelope)
+		go s.runMiniAppWorkflow("gas-circle", interval, s.miniAppSimulator.SimulateGasCircle)
+		go s.runMiniAppWorkflow("gov-booster", interval, s.miniAppSimulator.SimulateGovBooster)
+		go s.runMiniAppWorkflow("fog-chess", interval, s.miniAppSimulator.SimulateFogChess)
+
+		s.Logger().WithContext(ctx).Info("MiniApp workflow simulators started for all 23 apps at 15s intervals")
+	}
+
+	// Start automation task auto top-up worker if chain client is available
+	if s.chainClient != nil && s.poolClient != nil {
+		go s.runAutomationTaskTopUp()
 	}
 
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
@@ -793,4 +811,181 @@ func (s *Service) runAutoTopUp() {
 			}
 		}
 	}
+}
+
+// runAutomationTaskTopUp periodically checks AutomationAnchor periodic tasks with low GAS balance and funds them.
+// This ensures periodic automation tasks have enough GAS to pay for execution fees.
+// Task IDs are configured via SIMULATION_AUTOMATION_TASK_IDS environment variable (comma-separated list of task IDs).
+func (s *Service) runAutomationTaskTopUp() {
+	ctx := context.Background()
+	logger := s.Logger().WithFields(map[string]interface{}{"worker": "automation-topup"})
+
+	// Get AutomationAnchor contract hash from environment
+	automationAnchorHash := strings.TrimSpace(os.Getenv("CONTRACT_AUTOMATIONANCHOR_HASH"))
+	if automationAnchorHash == "" {
+		logger.WithContext(ctx).Warn("automation task top-up disabled: CONTRACT_AUTOMATIONANCHOR_HASH not set")
+		return
+	}
+
+	// Get task IDs to monitor from environment
+	taskIDsEnv := strings.TrimSpace(os.Getenv("SIMULATION_AUTOMATION_TASK_IDS"))
+	if taskIDsEnv == "" {
+		logger.WithContext(ctx).Debug("automation task top-up disabled: no task IDs configured in SIMULATION_AUTOMATION_TASK_IDS")
+		return
+	}
+
+	// Parse task IDs (comma-separated list of integers)
+	var taskIDs []int64
+	for _, idStr := range strings.Split(taskIDsEnv, ",") {
+		idStr = strings.TrimSpace(idStr)
+		if idStr == "" {
+			continue
+		}
+		var taskID int64
+		if _, err := fmt.Sscanf(idStr, "%d", &taskID); err != nil {
+			logger.WithContext(ctx).WithError(err).WithField("task_id_str", idStr).Warn("invalid task ID in SIMULATION_AUTOMATION_TASK_IDS")
+			continue
+		}
+		taskIDs = append(taskIDs, taskID)
+	}
+
+	if len(taskIDs) == 0 {
+		logger.WithContext(ctx).Debug("automation task top-up disabled: no valid task IDs found")
+		return
+	}
+
+	// Initialize AutomationAnchor contract client
+	automationAnchor := chain.NewAutomationAnchorContract(s.chainClient, automationAnchorHash)
+	if automationAnchor == nil {
+		logger.WithContext(ctx).Warn("automation task top-up disabled: failed to initialize AutomationAnchor contract")
+		return
+	}
+
+	logger.WithContext(ctx).WithFields(map[string]interface{}{
+		"task_ids":       taskIDs,
+		"task_count":     len(taskIDs),
+		"check_interval": "60s",
+	}).Info("starting automation task auto top-up worker")
+
+	// Minimum GAS balance threshold (1 GAS = 100000000 in 8 decimals)
+	const minTaskBalance int64 = 100000000
+	// Amount to fund when balance is low (10 GAS = 1000000000 in 8 decimals)
+	const topUpAmount int64 = 1000000000
+
+	// Wait for initial setup
+	time.Sleep(10 * time.Second)
+
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.stopCh:
+			logger.WithContext(ctx).Info("stopping automation task top-up worker")
+			return
+		case <-ticker.C:
+			// Check each task's balance
+			for _, taskID := range taskIDs {
+				taskIDBigInt := big.NewInt(taskID)
+
+				// Query task balance from AutomationAnchor contract
+				// Note: AutomationAnchor.BalanceOf(taskId) returns BigInteger
+				balance, err := automationAnchor.BalanceOf(ctx, taskIDBigInt)
+				if err != nil {
+					logger.WithError(err).WithField("task_id", taskID).Warn("failed to get task balance")
+					continue
+				}
+
+				logger.WithFields(map[string]interface{}{
+					"task_id": taskID,
+					"balance": balance.Int64(),
+				}).Debug("checked automation task balance")
+
+				// Check if balance is below threshold
+				if balance.Int64() < minTaskBalance {
+					logger.WithFields(map[string]interface{}{
+						"task_id":   taskID,
+						"balance":   balance,
+						"threshold": minTaskBalance,
+						"top_up":    topUpAmount,
+					}).Info("automation task balance low, funding task")
+
+					// Fund the task by transferring GAS to AutomationAnchor contract with taskId as data
+					// This calls AutomationAnchor.OnNEP17Payment which credits the task balance
+					err := s.fundAutomationTask(ctx, automationAnchorHash, taskID, topUpAmount)
+					if err != nil {
+						logger.WithError(err).WithFields(map[string]interface{}{
+							"task_id": taskID,
+							"amount":  topUpAmount,
+						}).Warn("failed to fund automation task")
+						continue
+					}
+
+					logger.WithFields(map[string]interface{}{
+						"task_id": taskID,
+						"amount":  topUpAmount,
+					}).Info("funded automation task")
+
+					// Small delay between funding operations
+					time.Sleep(5 * time.Second)
+				}
+			}
+		}
+	}
+}
+
+// fundAutomationTask funds an automation task by transferring GAS to AutomationAnchor with taskId as data.
+func (s *Service) fundAutomationTask(ctx context.Context, contractHash string, taskID int64, amount int64) error {
+	// Use poolClient.TransferWithData to send GAS to AutomationAnchor contract
+	// The taskId is passed as data, which triggers OnNEP17Payment callback
+
+	// Get or request a pool account for funding tasks
+	resp, err := s.poolClient.RequestAccounts(ctx, 1, "automation-funding")
+	if err != nil {
+		return fmt.Errorf("request account: %w", err)
+	}
+
+	if len(resp.Accounts) == 0 {
+		return fmt.Errorf("no accounts available in pool")
+	}
+
+	account := resp.Accounts[0]
+	defer func() {
+		// Release account back to pool
+		_, _ = s.poolClient.ReleaseAccounts(ctx, []string{account.ID})
+	}()
+
+	// Check if account has sufficient balance
+	gasBalance := int64(0)
+	if gb, ok := account.Balances["GAS"]; ok {
+		gasBalance = gb.Amount
+	}
+
+	// Fund account if needed (need amount + tx fee)
+	const minBalanceNeeded = int64(1100000000) // 11 GAS (10 for transfer + 1 for fee)
+	if gasBalance < minBalanceNeeded {
+		_, err := s.poolClient.FundAccount(ctx, account.Address, minBalanceNeeded)
+		if err != nil {
+			return fmt.Errorf("fund account: %w", err)
+		}
+		// Wait for funding to confirm
+		time.Sleep(5 * time.Second)
+	}
+
+	// Transfer GAS to AutomationAnchor with taskId as data
+	// This will trigger AutomationAnchor.OnNEP17Payment(from, amount, taskId)
+	// The data parameter should be the taskID as a string (will be converted to BigInteger by the contract)
+	taskIDStr := fmt.Sprintf("%d", taskID)
+	transferResp, err := s.poolClient.TransferWithData(ctx, account.ID, "0x"+contractHash, amount, taskIDStr)
+	if err != nil {
+		return fmt.Errorf("transfer to automation anchor: %w", err)
+	}
+
+	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
+		"task_id": taskID,
+		"amount":  amount,
+		"tx_hash": transferResp.TxHash,
+	}).Debug("automation task funding transaction submitted")
+
+	return nil
 }

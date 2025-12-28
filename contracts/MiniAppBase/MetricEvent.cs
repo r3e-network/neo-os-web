@@ -18,7 +18,7 @@ namespace NeoMiniAppPlatform.Contracts
         BigInteger value
     );
 
-    public partial class MiniAppBase : SmartContract
+    public partial class MiniAppContract : SmartContract
     {
         /// <summary>
         /// Platform_Metric event for emitting custom business metrics.

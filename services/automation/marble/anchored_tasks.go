@@ -197,6 +197,8 @@ func (s *Service) checkAndExecuteAnchoredTasks(ctx context.Context) {
 			s.checkAndExecuteAnchoredCronTask(ctx, now, state)
 		case "price":
 			s.checkAndExecuteAnchoredPriceTask(ctx, state)
+		case "interval":
+			s.checkAndExecuteAnchoredIntervalTask(ctx, now, state)
 		default:
 			continue
 		}
@@ -323,6 +325,57 @@ func (s *Service) checkAndExecuteAnchoredPriceTask(ctx context.Context, task *an
 	go s.executeAnchoredTask(ctx, task, executionData)
 }
 
+func (s *Service) checkAndExecuteAnchoredIntervalTask(ctx context.Context, now time.Time, task *anchoredTaskState) {
+	if task == nil || task.task == nil {
+		return
+	}
+
+	schedule := strings.TrimSpace(task.trigger.Schedule)
+	if schedule == "" {
+		return
+	}
+
+	// Parse interval from schedule string
+	var intervalSeconds int64
+	switch schedule {
+	case "hourly":
+		intervalSeconds = 3600
+	case "daily":
+		intervalSeconds = 86400
+	case "weekly":
+		intervalSeconds = 604800
+	case "monthly":
+		intervalSeconds = 2592000 // 30 days
+	default:
+		// Unknown interval format
+		return
+	}
+
+	// Check if it's time to execute based on last execution
+	task.mu.Lock()
+	lastExecutedAt := task.lastExecutedAt
+	task.mu.Unlock()
+
+	if !lastExecutedAt.IsZero() {
+		nextExecution := lastExecutedAt.Add(time.Duration(intervalSeconds) * time.Second)
+		if !now.After(nextExecution) {
+			return
+		}
+	}
+
+	executionData, err := json.Marshal(map[string]any{
+		"type":        "interval",
+		"schedule":    schedule,
+		"interval":    intervalSeconds,
+		"executed_at": now.Unix(),
+	})
+	if err != nil {
+		return
+	}
+
+	go s.executeAnchoredTask(ctx, task, executionData)
+}
+
 func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskState, executionData []byte) {
 	if s == nil || task == nil || task.task == nil {
 		return
@@ -334,6 +387,81 @@ func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskSta
 		return
 	}
 
+	taskKey := anchoredTaskKey(task.task.TaskID)
+
+	// For interval-based triggers, check balance and use ExecutePeriodicTask
+	if strings.ToLower(task.trigger.Type) == "interval" {
+		// Try to parse TaskID as BigInteger for periodic tasks
+		taskIDInt := new(big.Int).SetBytes(task.task.TaskID)
+
+		// Check balance before attempting execution
+		balance, err := s.automationAnchor.BalanceOf(ctx, taskIDInt)
+		if err != nil {
+			s.Logger().WithContext(ctx).WithError(err).WithField("task_id", taskKey).Debug("failed to check task balance")
+			// Continue with legacy execution method on error
+		} else {
+			// Fixed fee of 1 GAS per execution (matches contract logic)
+			fee := big.NewInt(1_00000000) // 1 GAS in satoshis
+			if balance.Cmp(fee) < 0 {
+				s.Logger().WithContext(ctx).
+					WithField("task_id", taskKey).
+					WithField("balance", balance.String()).
+					WithField("required_fee", fee.String()).
+					Warn("insufficient balance for periodic task execution, skipping")
+				return
+			}
+
+			// Execute via ExecutePeriodicTask which handles balance deduction
+			payload, err := buildAnchoredTaskPayload(task.task.Trigger, executionData)
+			if err != nil {
+				s.Logger().WithContext(ctx).WithError(err).WithField("task_id", taskKey).Warn("failed to build task payload")
+				return
+			}
+
+			txResult, err := s.txProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
+				RequestID:    "neoflow:periodic:" + uuid.NewString(),
+				ContractHash: s.automationAnchorHash,
+				Method:       "executePeriodicTask",
+				Params: []chain.ContractParam{
+					chain.NewIntegerParam(taskIDInt),
+					chain.NewByteArrayParam(payload),
+				},
+				Wait: true,
+			})
+			if err != nil {
+				s.Logger().WithContext(ctx).WithError(err).WithField("task_id", taskKey).Warn("periodic task execution failed")
+				return
+			}
+			if txResult == nil || strings.TrimSpace(txResult.TxHash) == "" {
+				s.Logger().WithContext(ctx).WithField("task_id", taskKey).Warn("periodic task execution returned empty tx hash")
+				return
+			}
+			if state := strings.TrimSpace(txResult.VMState); state != "" && !strings.HasPrefix(state, "HALT") {
+				entry := s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
+					"task_id": taskKey,
+					"vmstate": state,
+				})
+				if msg := strings.TrimSpace(txResult.Exception); msg != "" {
+					entry = entry.WithField("exception", msg)
+				}
+				entry.Warn("periodic task execution faulted")
+				return
+			}
+
+			task.mu.Lock()
+			task.executionCount++
+			task.lastExecutedAt = time.Now()
+			task.mu.Unlock()
+
+			s.Logger().WithContext(ctx).
+				WithField("task_id", taskKey).
+				WithField("tx_hash", txResult.TxHash).
+				Info("periodic task executed successfully")
+			return
+		}
+	}
+
+	// Legacy execution path for cron and price triggers
 	nonce := big.NewInt(time.Now().UnixNano())
 	if nonce.Sign() < 0 {
 		nonce.Abs(nonce)
@@ -341,7 +469,7 @@ func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskSta
 
 	payload, err := buildAnchoredTaskPayload(task.task.Trigger, executionData)
 	if err != nil {
-		s.Logger().WithContext(ctx).WithError(err).WithField("task_id", anchoredTaskKey(task.task.TaskID)).Warn("failed to build task payload")
+		s.Logger().WithContext(ctx).WithError(err).WithField("task_id", taskKey).Warn("failed to build task payload")
 		return
 	}
 
@@ -358,16 +486,16 @@ func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskSta
 		Wait:         true,
 	})
 	if err != nil {
-		s.Logger().WithContext(ctx).WithError(err).WithField("task_id", anchoredTaskKey(task.task.TaskID)).Warn("automation task invocation failed")
+		s.Logger().WithContext(ctx).WithError(err).WithField("task_id", taskKey).Warn("automation task invocation failed")
 		return
 	}
 	if txResult == nil || strings.TrimSpace(txResult.TxHash) == "" {
-		s.Logger().WithContext(ctx).WithField("task_id", anchoredTaskKey(task.task.TaskID)).Warn("automation task invocation returned empty tx hash")
+		s.Logger().WithContext(ctx).WithField("task_id", taskKey).Warn("automation task invocation returned empty tx hash")
 		return
 	}
 	if state := strings.TrimSpace(txResult.VMState); state != "" && !strings.HasPrefix(state, "HALT") {
 		entry := s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
-			"task_id": anchoredTaskKey(task.task.TaskID),
+			"task_id": taskKey,
 			"vmstate": state,
 		})
 		if msg := strings.TrimSpace(txResult.Exception); msg != "" {
@@ -394,11 +522,11 @@ func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskSta
 		Wait: true,
 	})
 	if err != nil {
-		s.Logger().WithContext(ctx).WithError(err).WithField("task_id", anchoredTaskKey(task.task.TaskID)).Warn("failed to mark task executed")
+		s.Logger().WithContext(ctx).WithError(err).WithField("task_id", taskKey).Warn("failed to mark task executed")
 	} else if markResult != nil {
 		if state := strings.TrimSpace(markResult.VMState); state != "" && !strings.HasPrefix(state, "HALT") {
 			entry := s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
-				"task_id": anchoredTaskKey(task.task.TaskID),
+				"task_id": taskKey,
 				"vmstate": state,
 			})
 			if msg := strings.TrimSpace(markResult.Exception); msg != "" {

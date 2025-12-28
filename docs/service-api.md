@@ -73,48 +73,48 @@ enforces a conservative result size cap (configurable via
 ### Payments (GAS only)
 
 - `POST /functions/v1/pay-gas`
-  - body: `{ app_id: "...", amount_gas: "1.5", memo?: "..." }`
-  - returns: a GAS `transfer` invocation to `PaymentHub` (GAS-only) for the wallet/SDK to sign and submit
-  - enforces: manifest `permissions.payments` and `limits.max_gas_per_tx` (when present)
-  - enforces: `limits.daily_gas_cap_per_user` via `miniapp_usage_bump(...)`
-    (or `miniapp_usage_check(...)` when `MINIAPP_USAGE_MODE=check` or
-    `MINIAPP_USAGE_MODE_PAYMENTS=check`)
+    - body: `{ app_id: "...", amount_gas: "1.5", memo?: "..." }`
+    - returns: a GAS `transfer` invocation to `PaymentHub` (GAS-only) for the wallet/SDK to sign and submit
+    - enforces: manifest `permissions.payments` and `limits.max_gas_per_tx` (when present)
+    - enforces: `limits.daily_gas_cap_per_user` via `miniapp_usage_bump(...)`
+      (or `miniapp_usage_check(...)` when `MINIAPP_USAGE_MODE=check` or
+      `MINIAPP_USAGE_MODE_PAYMENTS=check`)
 
-### Governance (NEO only)
+### Governance (bNEO only)
 
-- `POST /functions/v1/vote-neo`
-  - body: `{ app_id: "...", proposal_id: "...", neo_amount: "10", support?: true }`
-  - returns: a Governance `vote` invocation (NEO-only) for the wallet/SDK to sign and submit
-  - enforces: manifest `permissions.governance` and `limits.governance_cap` (when present)
-  - tracks: `limits.governance_cap` via `miniapp_usage_bump(...)` (per-day enforcement)
-    or `miniapp_usage_check(...)` when `MINIAPP_USAGE_MODE=check` or
-    `MINIAPP_USAGE_MODE_GOVERNANCE=check`
+- `POST /functions/v1/vote-bneo`
+    - body: `{ app_id: "...", proposal_id: "...", bneo_amount: "10", support?: true }`
+    - returns: a Governance `vote` invocation (bNEO-only) for the wallet/SDK to sign and submit
+    - enforces: manifest `permissions.governance` and `limits.governance_cap` (when present)
+    - tracks: `limits.governance_cap` via `miniapp_usage_bump(...)` (per-day enforcement)
+      or `miniapp_usage_check(...)` when `MINIAPP_USAGE_MODE=check` or
+      `MINIAPP_USAGE_MODE_GOVERNANCE=check`
 
 ### RNG / VRF
 
 - `POST /functions/v1/rng-request`
-  - body: `{ app_id: "..." }`
-  - requests randomness from `neovrf` (`/random`) with signature + attestation hash
-  - returns: `{ randomness, signature, public_key, attestation_hash }`
-  - enforces: manifest `permissions.rng`
-  - optional: anchors to `RandomnessLog` via `txproxy` when enabled
+    - body: `{ app_id: "..." }`
+    - requests randomness from `neovrf` (`/random`) with signature + attestation hash
+    - returns: `{ randomness, signature, public_key, attestation_hash }`
+    - enforces: manifest `permissions.rng`
+    - optional: anchors to `RandomnessLog` via `txproxy` when enabled
 
 ### Apps (App Registry)
 
 - `POST /functions/v1/app-register`
-  - body: `{ manifest: { ... } }`
-  - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
-  - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["NEO"]`
-  - enforces: `contract_hash` when news/stats are enabled
-  - persists: canonical manifest in Supabase `miniapps` table for runtime enforcement
-  - returns: an AppRegistry `registerApp` invocation for the developer wallet to sign and submit
+    - body: `{ manifest: { ... } }`
+    - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
+    - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["bNEO"]`
+    - enforces: `contract_hash` when news/stats are enabled
+    - persists: canonical manifest in Supabase `miniapps` table for runtime enforcement
+    - returns: an AppRegistry `registerApp` invocation for the developer wallet to sign and submit
 - `POST /functions/v1/app-update-manifest`
-  - body: `{ manifest: { ... } }`
-  - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
-  - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["NEO"]`
-  - enforces: `contract_hash` when news/stats are enabled
-  - persists: updated canonical manifest in Supabase `miniapps` table
-  - returns: an AppRegistry `updateApp` invocation for the developer wallet to sign and submit
+    - body: `{ manifest: { ... } }`
+    - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
+    - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["bNEO"]`
+    - enforces: `contract_hash` when news/stats are enabled
+    - persists: updated canonical manifest in Supabase `miniapps` table
+    - returns: an AppRegistry `updateApp` invocation for the developer wallet to sign and submit
 
 After `registerApp` / `updateApp`, an **admin** must approve or disable the
 MiniApp on-chain via `AppRegistry.setStatus`. AppRegistry events mirror back to
@@ -124,45 +124,45 @@ on-chain metadata (name/icon/category/contract_hash) stays in sync.
 ### MiniApp Stats & Notifications (Public Read)
 
 - `GET /functions/v1/miniapp-stats?app_id=...`
-  - returns aggregate stats for a single MiniApp
-  - when `app_id` is omitted, returns top apps by `total_transactions` (limit 50)
-  - includes AppRegistry metadata when available (`name`, `description`, `icon`, `banner`, `category`,
-    `contract_hash`, `entry_url`) plus manifest fields (`permissions`, `limits`, `news_integration`, `stats_display`)
+    - returns aggregate stats for a single MiniApp
+    - when `app_id` is omitted, returns top apps by `total_transactions` (limit 50)
+    - includes AppRegistry metadata when available (`name`, `description`, `icon`, `banner`, `category`,
+      `contract_hash`, `entry_url`) plus manifest fields (`permissions`, `limits`, `news_integration`, `stats_display`)
 - `GET /functions/v1/miniapp-notifications?app_id=...&limit=20`
-  - returns the most recent notifications (default `limit=20`, max `100`)
-  - optional `app_id` to filter by MiniApp
-  - requires the emitting contract to match `contract_hash` when strict ingestion is enabled
+    - returns the most recent notifications (default `limit=20`, max `100`)
+    - optional `app_id` to filter by MiniApp
+    - requires the emitting contract to match `contract_hash` when strict ingestion is enabled
 
 ### MiniApp Usage (Authenticated)
 
 - `GET /functions/v1/miniapp-usage?app_id=...&date=YYYY-MM-DD`
-  - returns the caller's daily usage for a single MiniApp
-  - `gas_used` / `governance_used` are returned in base units (1e-8 for GAS)
-  - when `app_id` is omitted, returns all MiniApp usage rows for the date
-  - `date` defaults to today (UTC) when omitted
+    - returns the caller's daily usage for a single MiniApp
+    - `gas_used` / `governance_used` are returned in base units (1e-8 for GAS)
+    - when `app_id` is omitted, returns all MiniApp usage rows for the date
+    - `date` defaults to today (UTC) when omitted
 
 ### Contract Events (Authenticated)
 
 - `GET /functions/v1/events-list?app_id=...&event_name=...&contract_hash=...&limit=...&after_id=...`
-  - returns indexed contract events from `contract_events`
-  - optional filters:
-    - `app_id` (MiniApp identifier)
-    - `event_name` (e.g., `Platform_Notification`)
-    - `contract_hash` (Neo N3 script hash)
-  - pagination via `after_id` (numeric, descending order)
+    - returns indexed contract events from `contract_events`
+    - optional filters:
+        - `app_id` (MiniApp identifier)
+        - `event_name` (e.g., `Platform_Notification`)
+        - `contract_hash` (Neo N3 script hash)
+    - pagination via `after_id` (numeric, descending order)
 
 ### Chain Transactions (Authenticated)
 
 - `GET /functions/v1/transactions-list?app_id=...&limit=...&after_id=...`
-  - returns platform-tracked chain transactions from `chain_txs`
-  - `app_id` filters by request ID pattern (used for service callbacks)
+    - returns platform-tracked chain transactions from `chain_txs`
+    - `app_id` filters by request ID pattern (used for service callbacks)
 
 ### Market Trending
 
 - `GET /functions/v1/market-trending?period=7d&limit=20`
-  - `period`: `1d` / `7d` / `30d` (default `7d`)
-  - `limit`: `1-50` (default `20`)
-  - ranks MiniApps by growth vs rolling average using `miniapp_stats_daily`
+    - `period`: `1d` / `7d` / `30d` (default `7d`)
+    - `limit`: `1-50` (default `20`)
+    - ranks MiniApps by growth vs rolling average using `miniapp_stats_daily`
 
 ### Realtime Notifications
 
@@ -172,22 +172,22 @@ on-chain metadata (name/icon/category/contract_hash) stays in sync.
 ### Wallet Binding
 
 - `POST /functions/v1/wallet-nonce`
-  - issues `{ nonce, message }` to be signed by a Neo N3 wallet
+    - issues `{ nonce, message }` to be signed by a Neo N3 wallet
 - `POST /functions/v1/wallet-bind`
-  - body: `{ address, public_key, signature, message, nonce, label? }`
-  - verifies wallet ownership and binds the address to the authenticated user
+    - body: `{ address, public_key, signature, message, nonce, label? }`
+    - verifies wallet ownership and binds the address to the authenticated user
 
 ### API Keys
 
 API key management endpoints require `Authorization: Bearer <jwt>` (cannot be called using an API key).
 
 - `POST /functions/v1/api-keys-create`
-  - body: `{ name, scopes?: string[], description?: string, expires_at?: string }`
-  - returns: the raw key once (never stored in plaintext)
+    - body: `{ name, scopes?: string[], description?: string, expires_at?: string }`
+    - returns: the raw key once (never stored in plaintext)
 - `GET /functions/v1/api-keys-list`
-  - returns: metadata only (no raw key)
+    - returns: metadata only (no raw key)
 - `POST /functions/v1/api-keys-revoke`
-  - body: `{ id }`
+    - body: `{ id }`
 
 Scope notes:
 
@@ -201,65 +201,65 @@ Scope notes:
 These endpoints manage user secrets stored in Supabase:
 
 - `GET /functions/v1/secrets-list`
-  - returns secret metadata (no values)
+    - returns secret metadata (no values)
 - `GET /functions/v1/secrets-get?name=...`
-  - returns `{ name, value, version }` (decrypted in Edge using `SECRETS_MASTER_KEY`)
+    - returns `{ name, value, version }` (decrypted in Edge using `SECRETS_MASTER_KEY`)
 - `POST /functions/v1/secrets-upsert`
-  - body: `{ name, value }`
+    - body: `{ name, value }`
 - `POST /functions/v1/secrets-delete`
-  - body: `{ name }`
+    - body: `{ name }`
 - `POST /functions/v1/secrets-permissions`
-  - body: `{ name, services: ["neocompute","neooracle"] }`
+    - body: `{ name, services: ["neocompute","neooracle"] }`
 
 ### GasBank (Delegated Payments)
 
 - `GET /functions/v1/gasbank-account`
-  - returns: `{ account }` (creates account row if missing)
+    - returns: `{ account }` (creates account row if missing)
 - `POST /functions/v1/gasbank-deposit`
-  - body: `{ amount, from_address, tx_hash? }`
-  - returns: `{ deposit }` (records a deposit request; settlement runs elsewhere)
+    - body: `{ amount, from_address, tx_hash? }`
+    - returns: `{ deposit }` (records a deposit request; settlement runs elsewhere)
 - `GET /functions/v1/gasbank-deposits`
-  - returns: `{ deposits }`
+    - returns: `{ deposits }`
 - `GET /functions/v1/gasbank-transactions`
-  - returns: `{ transactions }`
+    - returns: `{ transactions }`
 
 ### Datafeed
 
 - `GET /functions/v1/datafeed-price?symbol=BTC-USD`
-  - read proxy to `neofeeds` (or a future cache)
-  - symbols without a quote default to `-USD` (e.g., `BTC` → `BTC-USD`)
+    - read proxy to `neofeeds` (or a future cache)
+    - symbols without a quote default to `-USD` (e.g., `BTC` → `BTC-USD`)
 - `GET /functions/v1/datafeed-stream?symbol=BTC-USD` (future: SSE/WebSocket proxy)
 
 ### Oracle
 
 - `POST /functions/v1/oracle-query`
-  - allowlisted HTTP fetch via `neooracle` (`/query`) with optional `secret_name` injection
+    - allowlisted HTTP fetch via `neooracle` (`/query`) with optional `secret_name` injection
 
 ### Compute
 
 - `POST /functions/v1/compute-execute`
-  - host-gated compute via `neocompute` (`/execute`) with optional `secret_refs` injection
+    - host-gated compute via `neocompute` (`/execute`) with optional `secret_refs` injection
 - `GET /functions/v1/compute-jobs`
-  - lists the authenticated user's recent compute jobs (proxy for `neocompute` `/jobs`)
+    - lists the authenticated user's recent compute jobs (proxy for `neocompute` `/jobs`)
 - `GET /functions/v1/compute-job?id=<job_id>`
-  - returns a compute job by id (proxy for `neocompute` `/jobs/{id}`)
+    - returns a compute job by id (proxy for `neocompute` `/jobs/{id}`)
 
 ### Automation
 
 - `GET /functions/v1/automation-triggers`
-  - lists the authenticated user's triggers (proxy for `neoflow` `/triggers`)
+    - lists the authenticated user's triggers (proxy for `neoflow` `/triggers`)
 - `POST /functions/v1/automation-triggers`
-  - creates a trigger (proxy for `neoflow` `/triggers`)
+    - creates a trigger (proxy for `neoflow` `/triggers`)
 - `GET /functions/v1/automation-trigger?id=<trigger_id>`
-  - gets a trigger by id (proxy for `neoflow` `/triggers/{id}`)
+    - gets a trigger by id (proxy for `neoflow` `/triggers/{id}`)
 - `POST /functions/v1/automation-trigger-update`
-  - updates a trigger (proxy for `neoflow` `PUT /triggers/{id}`)
+    - updates a trigger (proxy for `neoflow` `PUT /triggers/{id}`)
 - `POST /functions/v1/automation-trigger-delete`
-  - deletes a trigger (proxy for `neoflow` `DELETE /triggers/{id}`)
+    - deletes a trigger (proxy for `neoflow` `DELETE /triggers/{id}`)
 - `POST /functions/v1/automation-trigger-enable|automation-trigger-disable|automation-trigger-resume`
-  - lifecycle controls (proxy for `neoflow` `/triggers/{id}/...`)
+    - lifecycle controls (proxy for `neoflow` `/triggers/{id}/...`)
 - `GET /functions/v1/automation-trigger-executions?id=<trigger_id>&limit=50`
-  - lists executions for a trigger (proxy for `neoflow` `/triggers/{id}/executions`)
+    - lists executions for a trigger (proxy for `neoflow` `/triggers/{id}/executions`)
 
 ## TEE Service Endpoints
 
@@ -300,5 +300,5 @@ triggers, and the supported action type is `webhook`.
 ### `txproxy` (tx-proxy)
 
 - `POST /invoke`: build+sign+broadcast allowlisted transactions.
-  - hard rule: **payments only GAS**, **governance only NEO**, contract/method allowlists enforced.
-  - optional `intent` field enables stricter gates for `payments` (GAS.transfer to PaymentHub) and `governance` (Governance stake/unstake/vote) when contract hashes are configured.
+    - hard rule: **payments only GAS**, **governance only bNEO**, contract/method allowlists enforced.
+    - optional `intent` field enables stricter gates for `payments` (GAS.transfer to PaymentHub) and `governance` (Governance stake/unstake/vote) when contract hashes are configured.

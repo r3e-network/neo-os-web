@@ -215,3 +215,104 @@ func (c *AutomationAnchorContract) SetUpdater(ctx context.Context, signer TxSign
 		wait,
 	)
 }
+
+// ScheduleData mirrors the contract's ScheduleData struct.
+type ScheduleData struct {
+	TriggerType      string
+	Schedule         string
+	IntervalSeconds  *big.Int
+	LastExecution    *big.Int
+	NextExecution    *big.Int
+	Paused           bool
+}
+
+// BalanceOf returns the GAS balance for a periodic task.
+func (c *AutomationAnchorContract) BalanceOf(ctx context.Context, taskID *big.Int) (*big.Int, error) {
+	if c == nil || c.client == nil {
+		return nil, fmt.Errorf("automationanchor: client not configured")
+	}
+	if c.hash == "" {
+		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+	}
+	if taskID == nil {
+		return nil, fmt.Errorf("automationanchor: taskID required")
+	}
+
+	res, err := c.client.InvokeFunction(ctx, c.hash, "balanceOf", []ContractParam{NewIntegerParam(taskID)})
+	if err != nil {
+		return nil, err
+	}
+	if res == nil || len(res.Stack) == 0 {
+		return nil, fmt.Errorf("automationanchor: empty stack")
+	}
+
+	return ParseInteger(res.Stack[0])
+}
+
+// GetSchedule returns the schedule data for a periodic task.
+func (c *AutomationAnchorContract) GetSchedule(ctx context.Context, taskID *big.Int) (*ScheduleData, error) {
+	if c == nil || c.client == nil {
+		return nil, fmt.Errorf("automationanchor: client not configured")
+	}
+	if c.hash == "" {
+		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+	}
+	if taskID == nil {
+		return nil, fmt.Errorf("automationanchor: taskID required")
+	}
+
+	res, err := c.client.InvokeFunction(ctx, c.hash, "getSchedule", []ContractParam{NewIntegerParam(taskID)})
+	if err != nil {
+		return nil, err
+	}
+	if res == nil || len(res.Stack) == 0 {
+		return nil, fmt.Errorf("automationanchor: empty stack")
+	}
+
+	items, err := ParseArray(res.Stack[0])
+	if err != nil {
+		return nil, err
+	}
+	if len(items) < 6 {
+		return nil, fmt.Errorf("automationanchor: expected 6 fields for ScheduleData, got %d", len(items))
+	}
+
+	triggerType, err := ParseStringFromItem(items[0])
+	if err != nil {
+		return nil, fmt.Errorf("automationanchor: parse triggerType: %w", err)
+	}
+
+	schedule, err := ParseStringFromItem(items[1])
+	if err != nil {
+		return nil, fmt.Errorf("automationanchor: parse schedule: %w", err)
+	}
+
+	intervalSeconds, err := ParseInteger(items[2])
+	if err != nil {
+		return nil, fmt.Errorf("automationanchor: parse intervalSeconds: %w", err)
+	}
+
+	lastExecution, err := ParseInteger(items[3])
+	if err != nil {
+		return nil, fmt.Errorf("automationanchor: parse lastExecution: %w", err)
+	}
+
+	nextExecution, err := ParseInteger(items[4])
+	if err != nil {
+		return nil, fmt.Errorf("automationanchor: parse nextExecution: %w", err)
+	}
+
+	paused, err := ParseBoolean(items[5])
+	if err != nil {
+		return nil, fmt.Errorf("automationanchor: parse paused: %w", err)
+	}
+
+	return &ScheduleData{
+		TriggerType:     triggerType,
+		Schedule:        schedule,
+		IntervalSeconds: intervalSeconds,
+		LastExecution:   lastExecution,
+		NextExecution:   nextExecution,
+		Paused:          paused,
+	}, nil
+}

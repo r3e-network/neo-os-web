@@ -106,8 +106,8 @@ User (Wallet)
 ## Dataflow: Edge-Gated Payments / Governance
 
 ```
-SDK ──▶ Edge Function (pay-gas / vote-neo)
-  ├─ validate permissions + limits + assets (GAS/NEO only)
+SDK ──▶ Edge Function (pay-gas / vote-bneo)
+  ├─ validate permissions + limits + assets (GAS/bNEO only)
   └─ return contract invocation for wallet signing
 Wallet ──▶ Neo N3 chain (PaymentHub / Governance)
 ```
@@ -144,7 +144,7 @@ User ──▶ Edge gasbank-* functions
 - `miniapp_stats_daily`: daily snapshots for trending.
 - `miniapp_usage`: per-user daily usage (source for rollups and cap enforcement).
 - `miniapp_notifications`: news/alerts emitted by MiniApps.
-  - Mapping note: design docs may use `apps`, `app_stats`, `app_news` for these.
+    - Mapping note: design docs may use `apps`, `app_stats`, `app_news` for these.
 
 ## Supabase Tables (Account Pool Persistence)
 

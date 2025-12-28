@@ -7,16 +7,16 @@ import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { enforceUsageCaps, fetchMiniAppPolicy, permissionEnabled } from "../_shared/apps.ts";
 
-type VoteNeoRequest = {
+type VoteBneoRequest = {
   app_id: string;
   proposal_id: string;
-  neo_amount: string;
+  bneo_amount: string;
   support?: boolean;
 };
 
 // Thin gateway:
 // - validates auth + basic shape
-// - enforces NEO-only governance
+// - enforces bNEO-only governance
 // - returns an invocation "intent" for the SDK/wallet to sign and submit
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
@@ -25,14 +25,14 @@ export async function handler(req: Request): Promise<Response> {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
-  const rl = await requireRateLimit(req, "vote-neo", auth);
+  const rl = await requireRateLimit(req, "vote-bneo", auth);
   if (rl) return rl;
-  const scopeCheck = requireScope(req, auth, "vote-neo");
+  const scopeCheck = requireScope(req, auth, "vote-bneo");
   if (scopeCheck) return scopeCheck;
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  let body: VoteNeoRequest;
+  let body: VoteBneoRequest;
   try {
     body = await req.json();
   } catch {
@@ -53,12 +53,12 @@ export async function handler(req: Request): Promise<Response> {
 
   const support = body.support ?? true;
 
-  const amountStr = String(body.neo_amount ?? "").trim();
-  if (!/^\d+$/.test(amountStr)) return error(400, "neo_amount must be an integer string", "AMOUNT_INVALID", req);
+  const amountStr = String(body.bneo_amount ?? "").trim();
+  if (!/^\d+$/.test(amountStr)) return error(400, "bneo_amount must be an integer string", "AMOUNT_INVALID", req);
   const amount = BigInt(amountStr);
-  if (amount <= 0n) return error(400, "neo_amount must be > 0", "AMOUNT_INVALID", req);
+  if (amount <= 0n) return error(400, "bneo_amount must be > 0", "AMOUNT_INVALID", req);
   if (policy?.limits.governanceCap && amount > policy.limits.governanceCap) {
-    return error(403, "neo_amount exceeds manifest limit", "LIMIT_EXCEEDED", req);
+    return error(403, "bneo_amount exceeds manifest limit", "LIMIT_EXCEEDED", req);
   }
   const usageMode = getEnv("MINIAPP_USAGE_MODE_GOVERNANCE");
   const usageErr = await enforceUsageCaps({
@@ -75,21 +75,25 @@ export async function handler(req: Request): Promise<Response> {
 
   const requestId = crypto.randomUUID();
 
-  return json({
-    request_id: requestId,
-    user_id: auth.userId,
-    intent: "governance",
-    constraints: { governance: "NEO_ONLY" },
-    invocation: {
-      contract_hash: governanceHash,
-      method: "vote",
-      params: [
-        { type: "String", value: proposalId },
-        { type: "Boolean", value: support },
-        { type: "Integer", value: amount.toString() },
-      ],
+  return json(
+    {
+      request_id: requestId,
+      user_id: auth.userId,
+      intent: "governance",
+      constraints: { governance: "BNEO_ONLY" },
+      invocation: {
+        contract_hash: governanceHash,
+        method: "vote",
+        params: [
+          { type: "String", value: proposalId },
+          { type: "Boolean", value: support },
+          { type: "Integer", value: amount.toString() },
+        ],
+      },
     },
-  }, {}, req);
+    {},
+    req,
+  );
 }
 
 if (import.meta.main) {

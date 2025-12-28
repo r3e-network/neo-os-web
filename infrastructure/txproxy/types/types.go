@@ -17,7 +17,7 @@ type InvokeRequest struct {
 	//
 	// Supported values:
 	// - "payments": enforce GAS transfer to PaymentHub (GAS settlement)
-	// - "governance": enforce Governance-only methods (NEO governance)
+	// - "governance": enforce Governance-only methods (bNEO governance)
 	Intent       string                `json:"intent,omitempty"`
 	ContractHash string                `json:"contract_hash"`
 	Method       string                `json:"method"`

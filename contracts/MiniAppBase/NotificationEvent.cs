@@ -13,7 +13,7 @@ namespace NeoMiniAppPlatform.Contracts
         BigInteger priority
     );
 
-    public partial class MiniAppBase : SmartContract
+    public partial class MiniAppContract : SmartContract
     {
         [DisplayName("Platform_Notification")]
         public static event NotificationHandler OnNotification;

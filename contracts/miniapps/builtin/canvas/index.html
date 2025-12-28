@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixel Canvas - Neo MiniApp</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <header class="app-header">
+        <h1>🎨 Pixel Canvas</h1>
+        <div class="stats">
+          <span id="pixel-count">0 pixels painted</span>
+          <span id="nft-count">NFT #0</span>
+        </div>
+      </header>
+
+      <main class="canvas-area">
+        <div class="toolbar">
+          <div class="color-picker">
+            <label>Color:</label>
+            <input type="color" id="color-input" value="#000000" />
+            <span id="rgb-display">RGB(0, 0, 0)</span>
+          </div>
+          <div class="brush-size">
+            <label>Brush:</label>
+            <select id="brush-size">
+              <option value="1">1px</option>
+              <option value="3">3px</option>
+              <option value="5">5px</option>
+              <option value="10">10px</option>
+            </select>
+          </div>
+          <div class="tools">
+            <button id="btn-draw" class="active">✏️ Draw</button>
+            <button id="btn-upload">📷 Upload</button>
+            <button id="btn-clear">🗑️ Clear Selection</button>
+          </div>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="main-canvas" width="1920" height="1080"></canvas>
+          <canvas id="preview-canvas" width="1920" height="1080"></canvas>
+        </div>
+
+        <div class="zoom-controls">
+          <button id="zoom-out">−</button>
+          <span id="zoom-level">100%</span>
+          <button id="zoom-in">+</button>
+          <button id="zoom-fit">Fit</button>
+        </div>
+      </main>
+
+      <aside class="sidebar">
+        <div class="upload-panel" id="upload-panel" style="display: none">
+          <h3>Upload Image</h3>
+          <input type="file" id="image-upload" accept="image/*" />
+          <div class="image-controls">
+            <label
+              >Scale: <input type="range" id="img-scale" min="10" max="200" value="100" />
+              <span id="scale-value">100%</span></label
+            >
+            <label
+              >Rotate: <input type="range" id="img-rotate" min="0" max="360" value="0" />
+              <span id="rotate-value">0°</span></label
+            >
+            <label>X: <input type="number" id="img-x" value="0" min="0" max="1920" /></label>
+            <label>Y: <input type="number" id="img-y" value="0" min="0" max="1080" /></label>
+          </div>
+          <button id="btn-apply-image">Apply to Canvas</button>
+        </div>
+
+        <div class="price-panel">
+          <h3>💰 Transaction</h3>
+          <div class="price-info">
+            <p>Pixels to paint: <span id="pending-pixels">0</span></p>
+            <p>Price per pixel: <span>1000 datoshi</span></p>
+            <p class="total">Total: <span id="total-price">0</span> GAS</p>
+          </div>
+          <button id="btn-submit" class="submit-btn" disabled>Submit Transaction</button>
+        </div>
+
+        <div class="nft-panel">
+          <h3>🖼️ Daily NFT</h3>
+          <p>Next NFT mint: <span id="next-nft-time">--:--:--</span></p>
+          <p>NFT Price: 1 GAS</p>
+        </div>
+      </aside>
+    </div>
+
+    <div id="image-modal" class="modal" style="display: none">
+      <div class="modal-content">
+        <h3>Position Your Image</h3>
+        <p>Drag to position, scroll to zoom</p>
+        <canvas id="modal-canvas"></canvas>
+        <div class="modal-actions">
+          <button id="modal-cancel">Cancel</button>
+          <button id="modal-confirm">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

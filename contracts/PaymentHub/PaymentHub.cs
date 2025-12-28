@@ -12,8 +12,13 @@ namespace NeoMiniAppPlatform.Contracts
 {
     // Custom delegates for events with named parameters
     public delegate void PaymentReceivedHandler(BigInteger paymentId, string appId, UInt160 sender, BigInteger amount, string memo);
-    public delegate void AppConfiguredHandler(string appId, UInt160 owner);
-    public delegate void WithdrawnHandler(string appId, BigInteger amount);
+    public delegate void AppConfiguredHandler(string appId, UInt160 owner, bool enabled);
+    public delegate void WithdrawnHandler(string appId, BigInteger totalAmount, int recipientCount);
+    public delegate void ShareDistributedHandler(string appId, UInt160 recipient, BigInteger amount, BigInteger shareBps);
+    public delegate void BalanceUpdatedHandler(string appId, BigInteger oldBalance, BigInteger newBalance);
+    public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
+    public delegate void AppEnabledHandler(string appId, bool enabled);
+    public delegate void SplitConfiguredHandler(string appId, int recipientCount, BigInteger totalBps);
 
     [DisplayName("PaymentHubV2")]
     [ManifestExtra("Author", "R3E Network")]
@@ -65,6 +70,21 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("Withdrawn")]
         public static event WithdrawnHandler OnWithdrawn;
+
+        [DisplayName("ShareDistributed")]
+        public static event ShareDistributedHandler OnShareDistributed;
+
+        [DisplayName("BalanceUpdated")]
+        public static event BalanceUpdatedHandler OnBalanceUpdated;
+
+        [DisplayName("AdminChanged")]
+        public static event AdminChangedHandler OnAdminChanged;
+
+        [DisplayName("AppEnabled")]
+        public static event AppEnabledHandler OnAppEnabled;
+
+        [DisplayName("SplitConfigured")]
+        public static event SplitConfiguredHandler OnSplitConfigured;
 
         public static void _deploy(object data, bool update)
         {
@@ -163,7 +183,9 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
+            UInt160 oldAdmin = Admin();
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            OnAdminChanged(oldAdmin, newAdmin);
         }
 
         public static void Update(ByteString nefFile, string manifest)
@@ -188,7 +210,8 @@ namespace NeoMiniAppPlatform.Contracts
             };
 
             AppMap().Put(AppKey(appId), StdLib.Serialize(cfg));
-            OnAppConfigured(appId, owner);
+            OnAppConfigured(appId, owner, enabled);
+            OnSplitConfigured(appId, recipients.Length, 10000);
         }
 
         public static void ConfigureSplit(string appId, UInt160[] recipients, BigInteger[] sharesBps)
@@ -202,6 +225,7 @@ namespace NeoMiniAppPlatform.Contracts
             cfg.Recipients = recipients;
             cfg.SharesBps = sharesBps;
             AppMap().Put(AppKey(appId), StdLib.Serialize(cfg));
+            OnSplitConfigured(appId, recipients.Length, 10000);
         }
 
         private static void ValidateSplit(UInt160[] recipients, BigInteger[] sharesBps)
@@ -295,7 +319,9 @@ namespace NeoMiniAppPlatform.Contracts
 
             // Update app balance.
             BigInteger bal = GetAppBalance(appId);
-            SetAppBalance(appId, bal + amount);
+            BigInteger newBal = bal + amount;
+            SetAppBalance(appId, newBal);
+            OnBalanceUpdated(appId, bal, newBal);
 
             // Store receipt.
             // Note: memo is not passed through GAS.Transfer to keep the data simple
@@ -335,6 +361,7 @@ namespace NeoMiniAppPlatform.Contracts
             for (int i = 0; i < cfg.SharesBps.Length; i++) total += cfg.SharesBps[i];
             ExecutionEngine.Assert(total > 0, "invalid split");
 
+            int distributedCount = 0;
             for (int i = 0; i < cfg.Recipients.Length; i++)
             {
                 BigInteger share = cfg.SharesBps[i];
@@ -345,7 +372,9 @@ namespace NeoMiniAppPlatform.Contracts
 
                 bool ok = GAS.Transfer(Runtime.ExecutingScriptHash, cfg.Recipients[i], part, null);
                 ExecutionEngine.Assert(ok, "withdraw transfer failed");
+                OnShareDistributed(appId, cfg.Recipients[i], part, share);
                 remaining -= part;
+                distributedCount++;
             }
 
             // Remainder to owner for determinism.
@@ -353,10 +382,12 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 bool ok = GAS.Transfer(Runtime.ExecutingScriptHash, cfg.Owner, remaining, null);
                 ExecutionEngine.Assert(ok, "remainder transfer failed");
+                OnShareDistributed(appId, cfg.Owner, remaining, 0);
             }
 
             SetAppBalance(appId, 0);
-            OnWithdrawn(appId, bal);
+            OnBalanceUpdated(appId, bal, 0);
+            OnWithdrawn(appId, bal, distributedCount);
         }
     }
 }

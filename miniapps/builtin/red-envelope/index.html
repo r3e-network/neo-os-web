@@ -200,6 +200,131 @@
         cursor: pointer;
         margin-top: 10px;
       }
+      /* Best Luck Modal (WeChat-style 手气最佳) */
+      .best-luck-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .best-luck-content {
+        background: linear-gradient(135deg, #ffd700 0%, #ffb300 100%);
+        border-radius: 20px;
+        padding: 25px;
+        max-width: 350px;
+        width: 90%;
+        text-align: center;
+        color: #b71c1c;
+        animation: slideUp 0.3s ease;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .best-luck-title {
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 15px;
+      }
+      .best-luck-winner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .best-luck-winner .crown {
+        font-size: 28px;
+      }
+      .best-luck-winner .label {
+        font-size: 16px;
+        font-weight: bold;
+        color: #c62828;
+      }
+      .best-luck-address {
+        font-family: monospace;
+        font-size: 12px;
+        background: rgba(183, 28, 28, 0.1);
+        padding: 5px 10px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+      }
+      .best-luck-amount {
+        font-size: 28px;
+        font-weight: bold;
+        color: #c62828;
+        margin-bottom: 15px;
+      }
+      .grabbers-list {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 15px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .grabbers-title {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #880e0e;
+      }
+      .grabber-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 8px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+        font-size: 12px;
+      }
+      .grabber-item.best {
+        background: rgba(255, 215, 0, 0.5);
+      }
+      .grabber-item .rank {
+        width: 20px;
+        font-weight: bold;
+      }
+      .grabber-item .addr {
+        flex: 1;
+        font-family: monospace;
+      }
+      .grabber-item .amt {
+        font-weight: bold;
+      }
+      .grabber-item .badge {
+        margin-left: 5px;
+      }
+      .close-btn {
+        background: #b71c1c;
+        color: #fff;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
