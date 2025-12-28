@@ -54,6 +54,17 @@ export async function requireUser(req: Request): Promise<AuthContext | Response>
   };
 }
 
+export async function tryGetUser(req: Request): Promise<{ id: string; email?: string } | null> {
+  const token = parseBearerToken(req);
+  if (!token) return null;
+
+  const supabase = supabaseClient();
+  const { data, error: authErr } = await supabase.auth.getUser(token);
+  if (authErr || !data?.user?.id) return null;
+
+  return { id: data.user.id, email: data.user.email ?? undefined };
+}
+
 export async function requireAuth(req: Request): Promise<AuthContext | Response> {
   const bearer = await requireUser(req);
   if (!(bearer instanceof Response)) return bearer;

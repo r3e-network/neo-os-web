@@ -28,6 +28,7 @@ type repoWithFailures struct {
 	listAvailableWithBalances    []neoaccountssupabase.AccountWithBalances
 
 	updateErrForID map[string]error
+	lockErrForID   map[string]error
 
 	getBalanceErr    error
 	upsertBalanceErr error
@@ -51,6 +52,15 @@ func (r *repoWithFailures) Update(ctx context.Context, acc *neoaccountssupabase.
 		}
 	}
 	return r.RepositoryInterface.Update(ctx, acc)
+}
+
+func (r *repoWithFailures) TryLockAccount(ctx context.Context, accountID, serviceID string, lockedAt time.Time) (bool, error) {
+	if r.lockErrForID != nil {
+		if err := r.lockErrForID[accountID]; err != nil {
+			return false, err
+		}
+	}
+	return r.RepositoryInterface.TryLockAccount(ctx, accountID, serviceID, lockedAt)
 }
 
 func (r *repoWithFailures) ListAvailableWithBalances(ctx context.Context, tokenType string, minBalance *int64, limit int) ([]neoaccountssupabase.AccountWithBalances, error) {
@@ -226,7 +236,7 @@ func TestRequestAccounts_SkipsLockFailuresAndReturnsOtherAccounts(t *testing.T) 
 	svc.repo = &repoWithFailures{
 		RepositoryInterface:       baseRepo,
 		listAvailableWithBalances: ordered,
-		updateErrForID:            map[string]error{"acc-1": errors.New("update failed")},
+		lockErrForID:              map[string]error{"acc-1": errors.New("lock failed")},
 	}
 
 	accounts, lockID, err := svc.RequestAccounts(context.Background(), "neocompute", 2, "test")
@@ -403,7 +413,7 @@ func TestSignTransaction_ReturnsErrorWhenSigningFails(t *testing.T) {
 	rand.Reader = failingReader{}
 	defer func() { rand.Reader = origRand }()
 
-	_, err := svc.SignTransaction(context.Background(), "neocompute", "acc-1", []byte("hash"))
+	_, err := svc.SignTransaction(context.Background(), "neocompute", "acc-1", make([]byte, 32))
 	if err == nil || !strings.Contains(err.Error(), "sign") {
 		t.Fatalf("SignTransaction() error = %v, want signing error", err)
 	}

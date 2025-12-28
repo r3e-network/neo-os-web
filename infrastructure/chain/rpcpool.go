@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/R3E-Network/service_layer/infrastructure/httputil"
 )
 
 // =============================================================================
@@ -79,9 +81,17 @@ func NewRPCPool(cfg *RPCPoolConfig) (*RPCPool, error) {
 	}
 
 	endpoints := make([]*RPCEndpoint, len(cfg.Endpoints))
-	for i, url := range cfg.Endpoints {
+	for i, rawURL := range cfg.Endpoints {
+		trimmed := strings.TrimSpace(rawURL)
+		if trimmed == "" {
+			return nil, fmt.Errorf("rpcpool: endpoint URL is required")
+		}
+		normalized, _, err := httputil.NormalizeBaseURL(trimmed, httputil.BaseURLOptions{RequireHTTPSInStrictMode: true})
+		if err != nil {
+			return nil, fmt.Errorf("rpcpool: invalid endpoint %q: %w", trimmed, err)
+		}
 		endpoints[i] = &RPCEndpoint{
-			URL:      strings.TrimSpace(url),
+			URL:      normalized,
 			Priority: i,
 			Healthy:  true, // Assume healthy until proven otherwise
 		}
@@ -89,9 +99,13 @@ func NewRPCPool(cfg *RPCPoolConfig) (*RPCPool, error) {
 
 	client := cfg.HTTPClient
 	if client == nil {
+		transport := httputil.DefaultTransportWithMinTLS12()
 		client = &http.Client{
-			Timeout: cfg.HealthCheckTimeout,
+			Timeout:   cfg.HealthCheckTimeout,
+			Transport: transport,
 		}
+	} else {
+		client = httputil.CopyHTTPClientWithTimeout(client, cfg.HealthCheckTimeout, false)
 	}
 
 	return &RPCPool{

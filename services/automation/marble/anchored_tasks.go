@@ -246,7 +246,7 @@ func (s *Service) checkAndExecuteAnchoredCronTask(ctx context.Context, now time.
 		return
 	}
 
-	go s.executeAnchoredTask(ctx, task, executionData)
+	s.spawnAnchoredTask(ctx, task, executionData)
 
 	next, err := s.parseNextCronExecution(task.trigger.Schedule)
 	if err == nil {
@@ -322,7 +322,7 @@ func (s *Service) checkAndExecuteAnchoredPriceTask(ctx context.Context, task *an
 		return
 	}
 
-	go s.executeAnchoredTask(ctx, task, executionData)
+	s.spawnAnchoredTask(ctx, task, executionData)
 }
 
 func (s *Service) checkAndExecuteAnchoredIntervalTask(ctx context.Context, now time.Time, task *anchoredTaskState) {
@@ -373,7 +373,21 @@ func (s *Service) checkAndExecuteAnchoredIntervalTask(ctx context.Context, now t
 		return
 	}
 
-	go s.executeAnchoredTask(ctx, task, executionData)
+	s.spawnAnchoredTask(ctx, task, executionData)
+}
+
+func (s *Service) spawnAnchoredTask(ctx context.Context, task *anchoredTaskState, executionData []byte) {
+	if s == nil || task == nil || task.task == nil {
+		return
+	}
+	if !s.tryAcquireAnchoredTaskSlot() {
+		s.Logger().WithContext(ctx).WithField("task_id", anchoredTaskKey(task.task.TaskID)).Warn("anchored task skipped due to concurrency limit")
+		return
+	}
+	go func() {
+		defer s.releaseAnchoredTaskSlot()
+		s.executeAnchoredTask(ctx, task, executionData)
+	}()
 }
 
 func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskState, executionData []byte) {

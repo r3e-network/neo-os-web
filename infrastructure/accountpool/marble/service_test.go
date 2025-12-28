@@ -19,6 +19,7 @@ import (
 	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
 	"github.com/R3E-Network/service_layer/infrastructure/crypto"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
 )
 
 // =============================================================================
@@ -37,6 +38,10 @@ func newMockNeoAccountsRepo() *mockNeoAccountsRepo {
 		accounts: make(map[string]*neoaccountssupabase.Account),
 		balances: make(map[string]map[string]*neoaccountssupabase.AccountBalance),
 	}
+}
+
+func addServiceAuth(req *http.Request, serviceID string) {
+	req.Header.Set(serviceauth.ServiceIDHeader, serviceID)
 }
 
 func (m *mockNeoAccountsRepo) Create(_ context.Context, acc *neoaccountssupabase.Account) error {
@@ -97,6 +102,20 @@ func (m *mockNeoAccountsRepo) ListByLocker(_ context.Context, lockerID string) (
 		}
 	}
 	return result, nil
+}
+
+func (m *mockNeoAccountsRepo) TryLockAccount(_ context.Context, accountID, serviceID string, lockedAt time.Time) (bool, error) {
+	acc, ok := m.accounts[accountID]
+	if !ok {
+		return false, fmt.Errorf("account not found: %s", accountID)
+	}
+	if acc.LockedBy != "" || acc.IsRetiring {
+		return false, nil
+	}
+	acc.LockedBy = serviceID
+	acc.LockedAt = lockedAt
+	m.accounts[accountID] = acc
+	return true, nil
 }
 
 func (m *mockNeoAccountsRepo) Delete(_ context.Context, id string) error {
@@ -1260,6 +1279,7 @@ func TestHandleInfoEndpoint(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("GET", "/pool-info", nil)
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1294,6 +1314,7 @@ func TestHandleListAccountsEndpoint(t *testing.T) {
 	svc, _ := New(Config{Marble: m, NeoAccountsRepo: mockRepo})
 
 	req := httptest.NewRequest("GET", "/accounts?service_id=neocompute", nil)
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1320,8 +1341,8 @@ func TestHandleListAccountsMissingServiceID(t *testing.T) {
 
 	svc.Router().ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -1340,6 +1361,7 @@ func TestHandleListAccountsWithTokenFilter(t *testing.T) {
 
 	// Filter by min_balance
 	req := httptest.NewRequest("GET", "/accounts?service_id=neocompute&token=GAS&min_balance=500000", nil)
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1368,6 +1390,7 @@ func TestHandleRequestAccountsEndpoint(t *testing.T) {
 	body := `{"service_id": "neocompute", "count": 1, "purpose": "test"}`
 	req := httptest.NewRequest("POST", "/request", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1389,8 +1412,8 @@ func TestHandleRequestAccountsMissingServiceID(t *testing.T) {
 
 	svc.Router().ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -1406,6 +1429,7 @@ func TestHandleReleaseAccountsEndpoint(t *testing.T) {
 	body := `{"service_id": "neocompute", "account_ids": ["acc-1"]}`
 	req := httptest.NewRequest("POST", "/release", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1436,6 +1460,7 @@ func TestHandleReleaseAccountsAll(t *testing.T) {
 	body := `{"service_id": "neocompute"}`
 	req := httptest.NewRequest("POST", "/release", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1465,6 +1490,7 @@ func TestHandleSignTransactionEndpoint(t *testing.T) {
 	body := fmt.Sprintf(`{"service_id": "neocompute", "account_id": "acc-1", "tx_hash": %s}`, mustMarshalJSON(txHash))
 	req := httptest.NewRequest("POST", "/sign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1482,6 +1508,7 @@ func TestHandleSignTransactionMissingFields(t *testing.T) {
 	body := `{"service_id": "neocompute"}`
 	req := httptest.NewRequest("POST", "/sign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1504,6 +1531,7 @@ func TestHandleBatchSignEndpoint(t *testing.T) {
 	body := fmt.Sprintf(`{"service_id": "neocompute", "requests": [{"account_id": "acc-1", "tx_hash": %s}]}`, mustMarshalJSON(txHash))
 	req := httptest.NewRequest("POST", "/batch-sign", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1525,6 +1553,7 @@ func TestHandleUpdateBalanceEndpoint(t *testing.T) {
 	body := `{"service_id": "neocompute", "account_id": "acc-1", "token": "GAS", "delta": 1000000}`
 	req := httptest.NewRequest("POST", "/balance", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1557,6 +1586,7 @@ func TestHandleUpdateBalanceDefaultToken(t *testing.T) {
 	body := `{"service_id": "neocompute", "account_id": "acc-1", "delta": 500}`
 	req := httptest.NewRequest("POST", "/balance", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1832,8 +1862,8 @@ func TestHandleReleaseAccountsMissingServiceID(t *testing.T) {
 
 	svc.Router().ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -1849,8 +1879,8 @@ func TestHandleBatchSignMissingServiceID(t *testing.T) {
 
 	svc.Router().ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -1862,6 +1892,7 @@ func TestHandleUpdateBalanceMissingFields(t *testing.T) {
 	body := `{"service_id": "neocompute"}`
 	req := httptest.NewRequest("POST", "/balance", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)
@@ -1884,6 +1915,7 @@ func TestHandleRequestAccountsDefaultCount(t *testing.T) {
 	body := `{"service_id": "neocompute", "count": 0}`
 	req := httptest.NewRequest("POST", "/request", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addServiceAuth(req, "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.Router().ServeHTTP(rr, req)

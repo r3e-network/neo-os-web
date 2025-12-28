@@ -27,8 +27,9 @@ const (
 
 	// Neo notifications are capped at 1024 bytes. Keep a safe default
 	// to avoid callback failures when ServiceLayerGateway emits events.
-	defaultMaxResultBytes = 800
-	defaultMaxErrorLen    = 256
+	defaultMaxResultBytes  = 800
+	defaultMaxErrorLen     = 256
+	defaultRequestIndexTTL = time.Hour
 )
 
 // Config holds NeoRequests service configuration.
@@ -61,6 +62,7 @@ type Config struct {
 	StatsRollupInterval     time.Duration
 	OnchainUsage            bool
 	OnchainTxUsage          bool
+	RequestIndexTTL         time.Duration
 }
 
 // Service implements the NeoRequests service.
@@ -98,7 +100,8 @@ type Service struct {
 	onchainUsage        bool
 	onchainTxUsage      bool
 
-	requestIndex sync.Map
+	requestIndex    sync.Map
+	requestIndexTTL time.Duration
 }
 
 // New creates a new NeoRequests service.
@@ -280,6 +283,16 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		requireManifestContract = true
 	}
 
+	requestIndexTTL := cfg.RequestIndexTTL
+	if requestIndexTTL <= 0 {
+		if parsed, ok := parseEnvDuration("NEOREQUESTS_REQUEST_INDEX_TTL"); ok {
+			requestIndexTTL = parsed
+		}
+	}
+	if requestIndexTTL <= 0 {
+		requestIndexTTL = defaultRequestIndexTTL
+	}
+
 	cacheSeconds := cfg.AppRegistryCacheSeconds
 	if cacheSeconds <= 0 {
 		if parsed, ok := parseEnvInt("NEOREQUESTS_APPREGISTRY_CACHE_SECONDS"); ok && parsed >= 0 {
@@ -317,6 +330,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		statsRollupInterval:     statsRollupInterval,
 		onchainUsage:            onchainUsage,
 		onchainTxUsage:          onchainTxUsage,
+		requestIndexTTL:         requestIndexTTL,
 	}
 
 	if s.enforceAppRegistry {
@@ -352,6 +366,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	base.RegisterStandardRoutes()
 	s.registerHandlers()
 	s.registerStatsRollup()
+	s.registerRequestIndexCleanup()
 
 	return s, nil
 }

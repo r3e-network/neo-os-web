@@ -2,10 +2,15 @@
 package neovrf
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
 	"math/big"
+	"os"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/R3E-Network/service_layer/infrastructure/crypto"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
@@ -27,12 +32,16 @@ type Service struct {
 	privateKey      *ecdsa.PrivateKey
 	publicKey       []byte
 	attestationHash []byte
+	replayWindow    time.Duration
+	replayMu        sync.Mutex
+	seenRequests    map[string]time.Time
 }
 
 // Config holds VRF service configuration.
 type Config struct {
-	Marble *marble.Marble
-	DB     database.RepositoryInterface
+	Marble       *marble.Marble
+	DB           database.RepositoryInterface
+	ReplayWindow time.Duration
 }
 
 // New creates a new NeoVRF service.
@@ -74,11 +83,70 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 
+	replayWindow := cfg.ReplayWindow
+	if replayWindow <= 0 {
+		if parsed, ok := parseEnvDuration("NEOVRF_REPLAY_WINDOW"); ok {
+			replayWindow = parsed
+		}
+	}
+	if replayWindow <= 0 {
+		replayWindow = 10 * time.Minute
+	}
+	s.replayWindow = replayWindow
+	s.seenRequests = make(map[string]time.Time)
+
 	base.WithStats(s.statistics)
 	base.RegisterStandardRoutes()
 	s.registerRoutes()
 
+	base.AddTickerWorker(1*time.Minute, func(ctx context.Context) error {
+		s.cleanupReplay()
+		return nil
+	}, commonservice.WithTickerWorkerName("replay-cleanup"))
+
 	return s, nil
+}
+
+func (s *Service) markSeen(requestID string) bool {
+	requestID = strings.TrimSpace(requestID)
+	if requestID == "" {
+		return false
+	}
+
+	now := time.Now()
+	s.replayMu.Lock()
+	defer s.replayMu.Unlock()
+
+	if until, ok := s.seenRequests[requestID]; ok && now.Before(until) {
+		return false
+	}
+
+	s.seenRequests[requestID] = now.Add(s.replayWindow)
+	return true
+}
+
+func (s *Service) cleanupReplay() {
+	now := time.Now()
+	s.replayMu.Lock()
+	defer s.replayMu.Unlock()
+
+	for key, until := range s.seenRequests {
+		if now.After(until) {
+			delete(s.seenRequests, key)
+		}
+	}
+}
+
+func parseEnvDuration(key string) (time.Duration, bool) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return 0, false
+	}
+	parsed, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, false
+	}
+	return parsed, true
 }
 
 func (s *Service) initSigningKey() error {

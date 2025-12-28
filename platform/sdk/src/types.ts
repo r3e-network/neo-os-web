@@ -39,6 +39,9 @@ export type VoteBNEOResponse = {
   invocation: InvocationIntent;
 };
 
+// Backwards-compatible alias for older docs/examples.
+export type VoteNEOResponse = VoteBNEOResponse;
+
 export type RNGResponse = {
   request_id: string;
   app_id: string;

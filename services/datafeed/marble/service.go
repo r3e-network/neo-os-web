@@ -13,6 +13,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -42,10 +44,12 @@ type Service struct {
 	httpClient      *http.Client
 	signingKey      []byte
 	chainlinkClient *ChainlinkClient
+	strictMode      bool
 
 	// Configuration
-	config  *NeoFeedsConfig
-	sources map[string]*SourceConfig
+	config    *NeoFeedsConfig
+	sources   map[string]*SourceConfig
+	sourceSem chan struct{}
 
 	// Chain interaction for push pattern
 	chainClient     *chain.Client
@@ -80,6 +84,8 @@ type Config struct {
 
 	// GasBank client for service fee deduction (optional)
 	GasBank *gasbankclient.Client
+
+	SourceConcurrency int
 }
 
 // New creates a new NeoFeeds service.
@@ -154,6 +160,7 @@ func New(cfg Config) (*Service, error) {
 	s := &Service{
 		BaseService:     base,
 		httpClient:      httpClient,
+		strictMode:      strict,
 		config:          feedsConfig,
 		sources:         make(map[string]*SourceConfig),
 		chainClient:     cfg.ChainClient,
@@ -199,6 +206,16 @@ func New(cfg Config) (*Service, error) {
 		src := &feedsConfig.Sources[i]
 		s.sources[src.ID] = src
 	}
+
+	sourceConcurrency := cfg.SourceConcurrency
+	if sourceConcurrency <= 0 {
+		if parsed, ok := parseEnvInt("NEOFEEDS_SOURCE_CONCURRENCY"); ok && parsed > 0 {
+			sourceConcurrency = parsed
+		} else {
+			sourceConcurrency = 8
+		}
+	}
+	s.sourceSem = make(chan struct{}, sourceConcurrency)
 
 	// Register chain push worker if enabled.
 	// The MiniApp platform uses PriceFeed as the on-chain anchor; legacy on-chain
@@ -246,6 +263,18 @@ func New(cfg Config) (*Service, error) {
 	s.registerRoutes()
 
 	return s, nil
+}
+
+func parseEnvInt(key string) (int, bool) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return 0, false
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
 }
 
 // statistics returns runtime statistics for the /info endpoint.

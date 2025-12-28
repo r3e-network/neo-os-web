@@ -21,7 +21,7 @@ func (s *Service) handleStart(w http.ResponseWriter, r *http.Request) {
 	// Override configuration if provided
 	if len(req.MiniApps) > 0 {
 		s.mu.Lock()
-		s.miniApps = req.MiniApps
+		s.miniApps = normalizeMiniAppIDs(req.MiniApps)
 		s.mu.Unlock()
 	}
 

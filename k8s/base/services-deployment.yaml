@@ -31,12 +31,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: neofeeds
         image: service-layer/neofeeds:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -182,6 +187,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -250,12 +257,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: neoflow
         image: service-layer/neoflow:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -381,6 +393,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -449,12 +463,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: neoaccounts
         image: service-layer/neoaccounts:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -548,6 +567,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -616,12 +637,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: neocompute
         image: service-layer/neocompute:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -715,6 +741,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -783,12 +811,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: neovrf
         image: service-layer/neovrf:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -882,6 +915,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -950,12 +985,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: neooracle
         image: service-layer/neooracle:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -1054,6 +1094,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -1122,12 +1164,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: neorequests
         image: service-layer/neorequests:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -1282,6 +1329,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -1350,12 +1399,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: txproxy
         image: service-layer/txproxy:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -1465,6 +1519,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -1533,12 +1589,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: globalsigner
         image: service-layer/globalsigner:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -1623,6 +1684,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -1691,12 +1754,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: neogasbank
         image: service-layer/neogasbank:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -1833,6 +1901,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"
@@ -1901,12 +1971,17 @@ spec:
       - name: qcnl-config
         configMap:
           name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
       containers:
       - name: neosimulation
         image: service-layer/neosimulation:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
           capabilities:
             drop:
               - ALL
@@ -2018,6 +2093,8 @@ spec:
           mountPath: /etc/sgx_default_qcnl.conf
           subPath: sgx_default_qcnl.conf
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "256Mi"

@@ -31,6 +31,9 @@ func (s *Service) SignTransaction(ctx context.Context, serviceID, accountID stri
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
+	if len(txHash) != 32 {
+		return nil, fmt.Errorf("tx_hash must be 32 bytes")
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

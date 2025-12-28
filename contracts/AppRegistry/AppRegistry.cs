@@ -146,6 +146,10 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(entryUrl != null && entryUrl.Length > 0, "entry url required");
             ExecutionEngine.Assert(developerPubKey != null && developerPubKey.Length > 0, "developer pubkey required");
 
+            ECPoint pubKey = (ECPoint)(byte[])developerPubKey;
+            ExecutionEngine.Assert(pubKey.IsValid, "invalid developer pubkey");
+            ExecutionEngine.Assert(Runtime.CheckWitness(pubKey), "unauthorized");
+
             ByteString key = AppKey(appId);
             ByteString existing = AppMap().Get(key);
             ExecutionEngine.Assert(existing == null, "already registered");

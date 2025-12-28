@@ -103,15 +103,20 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region User-Facing Methods
 
-        public static void BuyTickets(UInt160 player, BigInteger ticketCount)
+        public static void BuyTickets(UInt160 player, BigInteger ticketCount, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
             ExecutionEngine.Assert(ticketCount > 0 && ticketCount <= 100, "1-100 tickets");
             ExecutionEngine.Assert(!IsDrawPending(), "draw in progress");
 
+            UInt160 gateway = Gateway();
+            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
+            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+
             BigInteger totalCost = ticketCount * TICKET_PRICE;
             BigInteger roundId = CurrentRound();
+
+            ValidatePaymentReceipt(APP_ID, player, totalCost, receiptId);
 
             // Update player tickets
             byte[] ticketKey = Helper.Concat(PREFIX_TICKETS, player);

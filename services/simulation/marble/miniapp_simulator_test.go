@@ -76,11 +76,11 @@ func TestAllMiniApps_Categories(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, 6, gaming)      // lottery, coin-flip, dice-game, scratch-card, mega-millions, gas-spin
-	assert.Equal(t, 6, defi)        // prediction-market, flashloan, price-ticker, price-predict, turbo-options, il-guard
-	assert.Equal(t, 1, governance)  // gov-booster
-	assert.Equal(t, 5, social)      // secret-vote, secret-poker, micro-predict, red-envelope, gas-circle
-	assert.Equal(t, 5, advanced)    // ai-trader, grid-bot, nft-evolve, bridge-guardian, fog-chess
+	assert.Equal(t, 6, gaming)     // lottery, coin-flip, dice-game, scratch-card, mega-millions, gas-spin
+	assert.Equal(t, 6, defi)       // prediction-market, flashloan, price-ticker, price-predict, turbo-options, il-guard
+	assert.Equal(t, 1, governance) // gov-booster
+	assert.Equal(t, 5, social)     // secret-vote, secret-poker, micro-predict, red-envelope, gas-circle
+	assert.Equal(t, 5, advanced)   // ai-trader, grid-bot, nft-evolve, bridge-guardian, fog-chess
 }
 
 func TestAllMiniApps_BetAmounts(t *testing.T) {
@@ -130,7 +130,7 @@ func TestMiniAppSimulator_SimulateLottery_Success(t *testing.T) {
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
 	assert.Equal(t, "builtin-lottery", miniAppCalls[0].AppID)
-	assert.Equal(t, "recordTickets", miniAppCalls[0].Method)
+	assert.Equal(t, "BuyTickets", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -161,7 +161,7 @@ func TestMiniAppSimulator_SimulateLottery_DrawTriggered(t *testing.T) {
 	ctx := context.Background()
 
 	// Run multiple times to trigger a draw (every 5 tickets)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 50; i++ {
 		_ = sim.SimulateLottery(ctx)
 	}
 
@@ -197,7 +197,7 @@ func TestMiniAppSimulator_SimulateCoinFlip_Success(t *testing.T) {
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
 	assert.Equal(t, "builtin-coin-flip", miniAppCalls[0].AppID)
-	assert.Equal(t, "recordBet", miniAppCalls[0].Method)
+	assert.Equal(t, "PlaceBet", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -240,7 +240,7 @@ func TestMiniAppSimulator_SimulateDiceGame_Success(t *testing.T) {
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
 	assert.Equal(t, "builtin-dice-game", miniAppCalls[0].AppID)
-	assert.Equal(t, "recordBet", miniAppCalls[0].Method)
+	assert.Equal(t, "PlaceBet", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -257,7 +257,7 @@ func TestMiniAppSimulator_SimulateDiceGame_PaymentError(t *testing.T) {
 	err := sim.SimulateDiceGame(ctx)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "place bet")
+	assert.Contains(t, err.Error(), "place dice bet")
 }
 
 // =============================================================================
@@ -277,18 +277,20 @@ func TestMiniAppSimulator_SimulateScratchCard_Success(t *testing.T) {
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 	require.GreaterOrEqual(t, len(payToAppCalls), 1)
 	assert.Equal(t, "builtin-scratch-card", payToAppCalls[0].AppID)
-	assert.Equal(t, int64(2000000), payToAppCalls[0].Amount) // 0.02 GAS
+	assert.GreaterOrEqual(t, payToAppCalls[0].Amount, int64(2000000))
+	assert.LessOrEqual(t, payToAppCalls[0].Amount, int64(6000000))
+	assert.Equal(t, int64(0), payToAppCalls[0].Amount%2000000)
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
 	assert.Equal(t, "builtin-scratch-card", miniAppCalls[0].AppID)
-	assert.Equal(t, "recordPurchase", miniAppCalls[0].Method)
+	assert.Equal(t, "BuyCard", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
 	scratchStats := stats["gaming"].(map[string]interface{})["scratch_card"].(map[string]int64)
-	assert.Equal(t, int64(1), scratchStats["cards_bought"])
+	assert.Equal(t, int64(1), scratchStats["buys"])
 }
 
 func TestMiniAppSimulator_SimulateScratchCard_PaymentError(t *testing.T) {
@@ -300,7 +302,7 @@ func TestMiniAppSimulator_SimulateScratchCard_PaymentError(t *testing.T) {
 	err := sim.SimulateScratchCard(ctx)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "buy card")
+	assert.Contains(t, err.Error(), "buy scratch card")
 }
 
 // =============================================================================
@@ -326,13 +328,14 @@ func TestMiniAppSimulator_SimulatePredictionMarket_Success(t *testing.T) {
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
 	assert.Equal(t, "builtin-prediction-market", miniAppCalls[0].AppID)
-	assert.Equal(t, "recordPrediction", miniAppCalls[0].Method)
+	assert.Equal(t, "PlacePrediction", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
-	predictionStats := stats["prediction_market"].(map[string]int64)
+	predictionStats := stats["defi"].(map[string]interface{})["prediction"].(map[string]int64)
 	assert.Equal(t, int64(1), predictionStats["bets"])
-	assert.Equal(t, int64(1), predictionStats["resolves"])
+	assert.LessOrEqual(t, predictionStats["resolves"], predictionStats["bets"])
+	assert.LessOrEqual(t, predictionStats["payouts"], predictionStats["resolves"])
 }
 
 func TestMiniAppSimulator_SimulatePredictionMarket_PaymentError(t *testing.T) {
@@ -370,7 +373,7 @@ func TestMiniAppSimulator_SimulateFlashLoan_Success(t *testing.T) {
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
 	assert.Equal(t, "builtin-flashloan", miniAppCalls[0].AppID)
-	assert.Equal(t, "execute", miniAppCalls[0].Method)
+	assert.Equal(t, "RequestLoan", miniAppCalls[0].Method)
 
 	// Verify stats updated
 	stats := sim.GetStats()
@@ -388,7 +391,7 @@ func TestMiniAppSimulator_SimulateFlashLoan_PaymentError(t *testing.T) {
 	err := sim.SimulateFlashLoan(ctx)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "flash loan fee")
+	assert.Contains(t, err.Error(), "flash loan")
 }
 
 // =============================================================================
@@ -408,15 +411,13 @@ func TestMiniAppSimulator_SimulatePriceTicker_Success(t *testing.T) {
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 	assert.Len(t, payToAppCalls, 0)
 
-	// Verify InvokeMiniAppContract was called (PLATFORM ACTION - query only)
+	// PriceTicker is read-only; no contract invocation expected
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
-	require.GreaterOrEqual(t, len(miniAppCalls), 1)
-	assert.Equal(t, "builtin-price-ticker", miniAppCalls[0].AppID)
-	assert.Equal(t, "queryPrice", miniAppCalls[0].Method)
+	assert.Len(t, miniAppCalls, 0)
 
 	// Verify stats updated
 	stats := sim.GetStats()
-	priceStats := stats["price_ticker"].(map[string]int64)
+	priceStats := stats["defi"].(map[string]interface{})["price_ticker"].(map[string]int64)
 	assert.Equal(t, int64(1), priceStats["queries"])
 }
 
@@ -444,17 +445,33 @@ func TestMiniAppSimulator_GetStats(t *testing.T) {
 	stats := sim.GetStats()
 
 	// Verify all stat categories exist
-	assert.Contains(t, stats, "lottery")
-	assert.Contains(t, stats, "coin_flip")
-	assert.Contains(t, stats, "dice_game")
-	assert.Contains(t, stats, "scratch_card")
-	assert.Contains(t, stats, "prediction_market")
-	assert.Contains(t, stats, "flashloan")
-	assert.Contains(t, stats, "price_ticker")
-	assert.Contains(t, stats, "gas_spin")
-	assert.Contains(t, stats, "price_predict")
-	assert.Contains(t, stats, "secret_vote")
+	assert.Contains(t, stats, "gaming")
+	assert.Contains(t, stats, "defi")
+	assert.Contains(t, stats, "social")
+	assert.Contains(t, stats, "other")
 	assert.Contains(t, stats, "errors")
+
+	gaming := stats["gaming"].(map[string]interface{})
+	defi := stats["defi"].(map[string]interface{})
+	social := stats["social"].(map[string]interface{})
+	other := stats["other"].(map[string]interface{})
+
+	assert.Contains(t, gaming, "lottery")
+	assert.Contains(t, gaming, "coin_flip")
+	assert.Contains(t, gaming, "dice_game")
+	assert.Contains(t, gaming, "scratch_card")
+	assert.Contains(t, gaming, "gas_spin")
+
+	assert.Contains(t, defi, "prediction")
+	assert.Contains(t, defi, "flashloan")
+	assert.Contains(t, defi, "price_ticker")
+	assert.Contains(t, defi, "price_predict")
+
+	assert.Contains(t, social, "secret_vote")
+	assert.Contains(t, social, "secret_poker")
+
+	assert.Contains(t, other, "gov_booster")
+	assert.Contains(t, other, "fog_chess")
 }
 
 // =============================================================================
@@ -545,7 +562,23 @@ func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
-	assert.GreaterOrEqual(t, len(miniAppCalls), 10) // All apps including price-ticker
+	assert.GreaterOrEqual(t, len(miniAppCalls), 9)
+
+	invokeCounts := make(map[string]int)
+	for _, call := range miniAppCalls {
+		invokeCounts[call.AppID]++
+	}
+
+	assert.Greater(t, invokeCounts["builtin-lottery"], 0)
+	assert.Greater(t, invokeCounts["builtin-coin-flip"], 0)
+	assert.Greater(t, invokeCounts["builtin-dice-game"], 0)
+	assert.Greater(t, invokeCounts["builtin-scratch-card"], 0)
+	assert.Greater(t, invokeCounts["builtin-prediction-market"], 0)
+	assert.Greater(t, invokeCounts["builtin-flashloan"], 0)
+	assert.Greater(t, invokeCounts["builtin-gas-spin"], 0)
+	assert.Greater(t, invokeCounts["builtin-price-predict"], 0)
+	assert.Greater(t, invokeCounts["builtin-secret-vote"], 0)
+	assert.Equal(t, 0, invokeCounts["builtin-price-ticker"])
 }
 
 func TestMiniAppSimulator_VerifyMasterAccountUsage(t *testing.T) {
@@ -558,7 +591,7 @@ func TestMiniAppSimulator_VerifyMasterAccountUsage(t *testing.T) {
 	ctx := context.Background()
 
 	// Run lottery multiple times to trigger a draw (every 5 tickets)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 50; i++ {
 		_ = sim.SimulateLottery(ctx)
 	}
 

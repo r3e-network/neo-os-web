@@ -17,12 +17,14 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 	// Standard endpoints (from BaseService)
 	s.BaseService.RegisterStandardRoutesOnServeMux(mux)
 
+	bodyLimit := middleware.NewBodyLimitMiddleware(s.maxBodyBytes)
+
 	// SECURITY: Sensitive endpoints require service authentication
 	// These endpoints can sign data, rotate keys, or derive keys - must be protected
-	mux.Handle("/rotate", middleware.RequireServiceAuth(http.HandlerFunc(s.handleRotate)))
-	mux.Handle("/sign", middleware.RequireServiceAuth(http.HandlerFunc(s.handleSign)))
-	mux.Handle("/sign-raw", middleware.RequireServiceAuth(http.HandlerFunc(s.handleSignRaw)))
-	mux.Handle("/derive", middleware.RequireServiceAuth(http.HandlerFunc(s.handleDerive)))
+	mux.Handle("/rotate", bodyLimit.Handler(middleware.RequireServiceAuth(http.HandlerFunc(s.handleRotate))))
+	mux.Handle("/sign", bodyLimit.Handler(middleware.RequireServiceAuth(http.HandlerFunc(s.handleSign))))
+	mux.Handle("/sign-raw", bodyLimit.Handler(middleware.RequireServiceAuth(http.HandlerFunc(s.handleSignRaw))))
+	mux.Handle("/derive", bodyLimit.Handler(middleware.RequireServiceAuth(http.HandlerFunc(s.handleDerive))))
 
 	// Public endpoints (read-only, safe to expose)
 	mux.HandleFunc("/attestation", s.handleAttestation)

@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/api-client";
+import { getAdminAuthHeaders } from "@/lib/admin-client";
 import type { MiniApp } from "@/types";
 
 /**
@@ -63,7 +64,7 @@ export function useUpdateMiniAppStatus() {
     mutationFn: async ({ appId, status }: { appId: string; status: "active" | "disabled" }) => {
       const response = await fetch("/api/miniapps/update-status", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
         body: JSON.stringify({ appId, status }),
       });
 

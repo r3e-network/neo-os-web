@@ -6,13 +6,19 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/edgelesssys/ego/enclave"
 
 	"github.com/R3E-Network/service_layer/infrastructure/crypto"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
@@ -21,6 +27,7 @@ import (
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
 	"github.com/R3E-Network/service_layer/infrastructure/runtime"
 	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
+	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
 )
 
 // =============================================================================
@@ -31,6 +38,12 @@ import (
 type Service struct {
 	*commonservice.BaseService
 	mu sync.RWMutex
+
+	// Request policy
+	maxBodyBytes     int64
+	domainAllowlist  map[string][]string
+	signRawAllowlist map[string]bool
+	requireQuote     bool
 
 	// Configuration
 	rotationConfig *RotationConfig
@@ -63,7 +76,21 @@ type Config struct {
 	DB             database.RepositoryInterface
 	Repository     supabase.Repository
 	RotationConfig *RotationConfig
+	MaxBodyBytes   int64
+	// DomainAllowlist optionally limits signing/derivation domains per service ID.
+	DomainAllowlist map[string][]string
+	// SignRawAllowlist optionally limits which services may call SignRaw.
+	SignRawAllowlist []string
 }
+
+const (
+	defaultMaxBodyBytes = 1 << 20 // 1MiB
+
+	envDomainAllowlist  = "GLOBALSIGNER_DOMAIN_ALLOWLIST"
+	envSignRawAllowlist = "GLOBALSIGNER_SIGN_RAW_ALLOWLIST"
+	envMaxBodyBytes     = "GLOBALSIGNER_MAX_BODY_BYTES"
+	envRequireQuote     = "GLOBALSIGNER_REQUIRE_QUOTE"
+)
 
 // =============================================================================
 // Constructor
@@ -86,12 +113,59 @@ func New(cfg Config) (*Service, error) {
 		},
 	})
 
+	maxBodyBytes := cfg.MaxBodyBytes
+	if maxBodyBytes <= 0 {
+		maxBodyBytes = defaultMaxBodyBytes
+	}
+	if raw := strings.TrimSpace(os.Getenv(envMaxBodyBytes)); raw != "" {
+		if parsed, err := strconv.ParseInt(raw, 10, 64); err == nil && parsed > 0 {
+			maxBodyBytes = parsed
+		} else {
+			base.Logger().Warn(context.Background(), "Invalid GLOBALSIGNER_MAX_BODY_BYTES; using default", map[string]interface{}{
+				"value": raw,
+			})
+		}
+	}
+
+	domainAllowlist := cfg.DomainAllowlist
+	if domainAllowlist == nil {
+		domainAllowlist = parseServiceDomainAllowlist(strings.TrimSpace(os.Getenv(envDomainAllowlist)))
+	}
+
+	signRawAllowlist := parseServiceIDAllowlist(cfg.SignRawAllowlist)
+	if len(cfg.SignRawAllowlist) == 0 {
+		signRawAllowlist = parseServiceIDAllowlist(splitAndTrimCSV(strings.TrimSpace(os.Getenv(envSignRawAllowlist))))
+	}
+
+	requireQuote := cfg.Marble != nil && cfg.Marble.IsEnclave()
+	if raw := strings.TrimSpace(os.Getenv(envRequireQuote)); raw != "" {
+		if parsed, err := strconv.ParseBool(raw); err == nil {
+			requireQuote = parsed
+		} else {
+			base.Logger().Warn(context.Background(), "Invalid GLOBALSIGNER_REQUIRE_QUOTE; using default", map[string]interface{}{
+				"value": raw,
+			})
+		}
+	}
+
 	s := &Service{
-		BaseService:    base,
-		rotationConfig: cfg.RotationConfig,
-		keys:           make(map[string]*keyEntry),
-		repo:           cfg.Repository,
-		startTime:      time.Now(),
+		BaseService:      base,
+		maxBodyBytes:     maxBodyBytes,
+		domainAllowlist:  domainAllowlist,
+		signRawAllowlist: signRawAllowlist,
+		requireQuote:     requireQuote,
+		rotationConfig:   cfg.RotationConfig,
+		keys:             make(map[string]*keyEntry),
+		repo:             cfg.Repository,
+		startTime:        time.Now(),
+	}
+
+	strict := runtime.StrictIdentityMode() || (cfg.Marble != nil && cfg.Marble.IsEnclave())
+	if strict && len(s.domainAllowlist) == 0 {
+		s.Logger().Warn(context.Background(), "GLOBALSIGNER_DOMAIN_ALLOWLIST not set; allowing all domains (development/testing only)", nil)
+	}
+	if strict && len(s.signRawAllowlist) == 0 {
+		s.Logger().Warn(context.Background(), "GLOBALSIGNER_SIGN_RAW_ALLOWLIST not set; allowing raw signing for all services (development/testing only)", nil)
 	}
 
 	// Set up hydration to load keys on startup
@@ -329,6 +403,11 @@ func (s *Service) rotate(ctx context.Context, force bool) (*RotateResponse, erro
 		overlapEndsAt = &overlapEnd
 	}
 
+	attestation, err := s.buildAttestation(ctx, newVersion, pubKeyHex, pubKeyHashHex)
+	if err != nil {
+		return nil, err
+	}
+
 	// Update old key to overlapping status
 	s.mu.Lock()
 	if oldVersion != "" {
@@ -362,8 +441,6 @@ func (s *Service) rotate(ctx context.Context, force bool) (*RotateResponse, erro
 		}
 	}
 
-	// Generate attestation
-	attestation := s.buildAttestation(newVersion)
 	if s.repo != nil {
 		if err := s.repo.StoreAttestation(ctx, newVersion, attestation); err != nil {
 			s.Logger().Warn(ctx, "Failed to persist attestation", map[string]interface{}{
@@ -399,40 +476,51 @@ func keyVersionFromTime(t time.Time) string {
 
 // Sign performs domain-separated signing.
 func (s *Service) Sign(ctx context.Context, req *SignRequest) (*SignResponse, error) {
-	if req.Domain == "" {
-		return nil, fmt.Errorf("domain is required")
+	if err := validateDomain(req.Domain); err != nil {
+		return nil, err
 	}
 	if req.Data == "" {
 		return nil, fmt.Errorf("data is required")
+	}
+	if err := s.authorizeDomain(ctx, req.Domain); err != nil {
+		return nil, err
 	}
 
 	data, err := decodeHexString(req.Data)
 	if err != nil {
 		return nil, fmt.Errorf("invalid data hex: %w", err)
 	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("data is required")
+	}
 
 	// Get signing key
-	version := req.KeyVersion
+	version := strings.TrimSpace(req.KeyVersion)
 	if version == "" {
 		version = s.ActiveVersion()
 	}
 
 	s.mu.RLock()
 	entry, ok := s.keys[version]
-	s.mu.RUnlock()
-
 	if !ok {
+		s.mu.RUnlock()
 		return nil, fmt.Errorf("key version not found: %s", version)
 	}
-
-	// Validate key status
-	if entry.version.Status == KeyStatusRevoked {
-		return nil, fmt.Errorf("key version revoked: %s", version)
+	privateKey := entry.privateKey
+	pubKeyHex := entry.version.PubKeyHex
+	status := entry.version.Status
+	var overlapEndsAt *time.Time
+	if entry.version.OverlapEndsAt != nil {
+		overlapCopy := *entry.version.OverlapEndsAt
+		overlapEndsAt = &overlapCopy
 	}
-	if entry.version.Status == KeyStatusOverlapping {
-		if entry.version.OverlapEndsAt != nil && time.Now().After(*entry.version.OverlapEndsAt) {
-			return nil, fmt.Errorf("key version overlap expired: %s", version)
-		}
+	s.mu.RUnlock()
+
+	if pubKeyHex == "" {
+		return nil, fmt.Errorf("key version missing public key: %s", version)
+	}
+	if err := validateKeyStatus(version, status, overlapEndsAt); err != nil {
+		return nil, err
 	}
 
 	// Domain-separated signing: sign over sha256(domain || 0x00 || data).
@@ -444,7 +532,7 @@ func (s *Service) Sign(ctx context.Context, req *SignRequest) (*SignResponse, er
 	signingMessage = append(signingMessage, 0x00) // separator
 	signingMessage = append(signingMessage, data...)
 
-	sig, err := crypto.Sign(entry.privateKey, signingMessage)
+	sig, err := crypto.Sign(privateKey, signingMessage)
 	if err != nil {
 		return nil, fmt.Errorf("signing failed: %w", err)
 	}
@@ -453,10 +541,17 @@ func (s *Service) Sign(ctx context.Context, req *SignRequest) (*SignResponse, er
 	s.signaturesIssued++
 	s.mu.Unlock()
 
+	s.logAudit(ctx, "sign", map[string]interface{}{
+		"service_id":  normalizeServiceID(serviceauth.GetServiceID(ctx)),
+		"domain":      req.Domain,
+		"key_version": version,
+		"data_len":    len(data),
+	})
+
 	return &SignResponse{
 		Signature:  hex.EncodeToString(sig),
 		KeyVersion: version,
-		PubKeyHex:  entry.version.PubKeyHex,
+		PubKeyHex:  pubKeyHex,
 	}, nil
 }
 
@@ -472,36 +567,47 @@ func (s *Service) SignRaw(ctx context.Context, req *SignRawRequest) (*SignRespon
 	if req.Data == "" {
 		return nil, fmt.Errorf("data is required")
 	}
+	if err := s.authorizeSignRaw(ctx); err != nil {
+		return nil, err
+	}
 
 	data, err := decodeHexString(req.Data)
 	if err != nil {
 		return nil, fmt.Errorf("invalid data hex: %w", err)
 	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("data is required")
+	}
 
-	version := req.KeyVersion
+	version := strings.TrimSpace(req.KeyVersion)
 	if version == "" {
 		version = s.ActiveVersion()
 	}
 
 	s.mu.RLock()
 	entry, ok := s.keys[version]
-	s.mu.RUnlock()
-
 	if !ok {
+		s.mu.RUnlock()
 		return nil, fmt.Errorf("key version not found: %s", version)
 	}
-
-	// Validate key status
-	if entry.version.Status == KeyStatusRevoked {
-		return nil, fmt.Errorf("key version revoked: %s", version)
+	privateKey := entry.privateKey
+	pubKeyHex := entry.version.PubKeyHex
+	status := entry.version.Status
+	var overlapEndsAt *time.Time
+	if entry.version.OverlapEndsAt != nil {
+		overlapCopy := *entry.version.OverlapEndsAt
+		overlapEndsAt = &overlapCopy
 	}
-	if entry.version.Status == KeyStatusOverlapping {
-		if entry.version.OverlapEndsAt != nil && time.Now().After(*entry.version.OverlapEndsAt) {
-			return nil, fmt.Errorf("key version overlap expired: %s", version)
-		}
+	s.mu.RUnlock()
+
+	if pubKeyHex == "" {
+		return nil, fmt.Errorf("key version missing public key: %s", version)
+	}
+	if err := validateKeyStatus(version, status, overlapEndsAt); err != nil {
+		return nil, err
 	}
 
-	sig, err := crypto.Sign(entry.privateKey, data)
+	sig, err := crypto.Sign(privateKey, data)
 	if err != nil {
 		return nil, fmt.Errorf("signing failed: %w", err)
 	}
@@ -510,10 +616,16 @@ func (s *Service) SignRaw(ctx context.Context, req *SignRawRequest) (*SignRespon
 	s.signaturesIssued++
 	s.mu.Unlock()
 
+	s.logAudit(ctx, "sign_raw", map[string]interface{}{
+		"service_id":  normalizeServiceID(serviceauth.GetServiceID(ctx)),
+		"key_version": version,
+		"data_len":    len(data),
+	})
+
 	return &SignResponse{
 		Signature:  hex.EncodeToString(sig),
 		KeyVersion: version,
-		PubKeyHex:  entry.version.PubKeyHex,
+		PubKeyHex:  pubKeyHex,
 	}, nil
 }
 
@@ -524,30 +636,257 @@ func decodeHexString(raw string) ([]byte, error) {
 	return hex.DecodeString(trimmed)
 }
 
+const (
+	maxDomainLength = 256
+	maxPathLength   = 512
+)
+
+func validateDomain(domain string) error {
+	trimmed := strings.TrimSpace(domain)
+	if trimmed == "" {
+		return fmt.Errorf("domain is required")
+	}
+	if len(domain) > maxDomainLength {
+		return fmt.Errorf("domain too long")
+	}
+	if strings.ContainsRune(domain, '\x00') {
+		return fmt.Errorf("domain contains invalid characters")
+	}
+	return nil
+}
+
+func validateDeriveDomain(domain string) error {
+	if err := validateDomain(domain); err != nil {
+		return err
+	}
+	if strings.Contains(domain, ":") {
+		return fmt.Errorf("domain must not contain ':'")
+	}
+	return nil
+}
+
+func validateDerivePath(path string) error {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return fmt.Errorf("path is required")
+	}
+	if len(path) > maxPathLength {
+		return fmt.Errorf("path too long")
+	}
+	if strings.ContainsRune(path, '\x00') {
+		return fmt.Errorf("path contains invalid characters")
+	}
+	return nil
+}
+
+func validateKeyStatus(version string, status KeyStatus, overlapEndsAt *time.Time) error {
+	switch status {
+	case KeyStatusActive:
+		return nil
+	case KeyStatusOverlapping:
+		if overlapEndsAt != nil && time.Now().After(*overlapEndsAt) {
+			return fmt.Errorf("key version overlap expired: %s", version)
+		}
+		return nil
+	case KeyStatusPending:
+		return fmt.Errorf("key version not active: %s", version)
+	case KeyStatusRevoked:
+		return fmt.Errorf("key version revoked: %s", version)
+	default:
+		return fmt.Errorf("key version not usable: %s", version)
+	}
+}
+
+func (s *Service) authorizeDomain(ctx context.Context, domain string) error {
+	if len(s.domainAllowlist) == 0 {
+		return nil
+	}
+
+	serviceID := normalizeServiceID(serviceauth.GetServiceID(ctx))
+	if serviceID == "" {
+		return fmt.Errorf("service authentication required")
+	}
+
+	allowed := s.domainAllowlist[serviceID]
+	if len(allowed) == 0 {
+		return fmt.Errorf("service not authorized for domain")
+	}
+
+	domainLower := strings.ToLower(domain)
+	for _, prefix := range allowed {
+		if matchesDomainPrefix(domainLower, prefix) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("service not authorized for domain")
+}
+
+func (s *Service) authorizeSignRaw(ctx context.Context) error {
+	if len(s.signRawAllowlist) == 0 {
+		return nil
+	}
+
+	serviceID := normalizeServiceID(serviceauth.GetServiceID(ctx))
+	if serviceID == "" {
+		return fmt.Errorf("service authentication required")
+	}
+	if !s.signRawAllowlist[serviceID] {
+		return fmt.Errorf("service not authorized for raw signing")
+	}
+	return nil
+}
+
+func matchesDomainPrefix(domain, prefix string) bool {
+	if prefix == "" {
+		return false
+	}
+	if prefix == "*" {
+		return true
+	}
+	if strings.HasSuffix(prefix, "*") {
+		prefix = strings.TrimSuffix(prefix, "*")
+	}
+	return strings.HasPrefix(domain, prefix)
+}
+
+func (s *Service) logAudit(ctx context.Context, action string, fields map[string]interface{}) {
+	if fields == nil {
+		fields = map[string]interface{}{}
+	}
+	s.Logger().Info(ctx, "globalsigner."+action, fields)
+}
+
+func normalizeServiceID(raw string) string {
+	return strings.ToLower(strings.TrimSpace(raw))
+}
+
+func parseServiceDomainAllowlist(raw string) map[string][]string {
+	entries := splitAndTrimCSV(raw)
+	if len(entries) == 0 {
+		return nil
+	}
+
+	allowlist := make(map[string][]string)
+	for _, entry := range entries {
+		parts := strings.SplitN(entry, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		serviceID := normalizeServiceID(parts[0])
+		if serviceID == "" {
+			continue
+		}
+
+		domains := splitAndTrimList(parts[1])
+		if len(domains) == 0 {
+			continue
+		}
+		for _, domain := range domains {
+			if domain == "" {
+				continue
+			}
+			normalized := strings.ToLower(domain)
+			allowlist[serviceID] = append(allowlist[serviceID], normalized)
+		}
+	}
+
+	if len(allowlist) == 0 {
+		return nil
+	}
+	return allowlist
+}
+
+func parseServiceIDAllowlist(ids []string) map[string]bool {
+	if len(ids) == 0 {
+		return nil
+	}
+	allowlist := make(map[string]bool)
+	for _, raw := range ids {
+		serviceID := normalizeServiceID(raw)
+		if serviceID == "" {
+			continue
+		}
+		if serviceID == "*" {
+			return nil
+		}
+		allowlist[serviceID] = true
+	}
+	if len(allowlist) == 0 {
+		return nil
+	}
+	return allowlist
+}
+
+func splitAndTrimCSV(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
+func splitAndTrimList(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.FieldsFunc(raw, func(r rune) bool {
+		return r == '|' || r == ';'
+	})
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
 // =============================================================================
 // Key Derivation
 // =============================================================================
 
 // Derive performs deterministic child key derivation.
 func (s *Service) Derive(ctx context.Context, req *DeriveRequest) (*DeriveResponse, error) {
-	if req.Domain == "" {
-		return nil, fmt.Errorf("domain is required")
+	if err := validateDeriveDomain(req.Domain); err != nil {
+		return nil, err
 	}
-	if req.Path == "" {
-		return nil, fmt.Errorf("path is required")
+	if err := validateDerivePath(req.Path); err != nil {
+		return nil, err
+	}
+	if err := s.authorizeDomain(ctx, req.Domain); err != nil {
+		return nil, err
 	}
 
-	version := req.KeyVersion
+	version := strings.TrimSpace(req.KeyVersion)
 	if version == "" {
 		version = s.ActiveVersion()
 	}
 
 	s.mu.RLock()
 	entry, ok := s.keys[version]
+	if !ok {
+		s.mu.RUnlock()
+		return nil, fmt.Errorf("key version not found: %s", version)
+	}
+	status := entry.version.Status
+	var overlapEndsAt *time.Time
+	if entry.version.OverlapEndsAt != nil {
+		overlapCopy := *entry.version.OverlapEndsAt
+		overlapEndsAt = &overlapCopy
+	}
 	s.mu.RUnlock()
 
-	if !ok {
-		return nil, fmt.Errorf("key version not found: %s", version)
+	if err := validateKeyStatus(version, status, overlapEndsAt); err != nil {
+		return nil, err
 	}
 
 	// Derive child key: HKDF(master_key, domain || path)
@@ -569,7 +908,12 @@ func (s *Service) Derive(ctx context.Context, req *DeriveRequest) (*DeriveRespon
 	childPriv.PublicKey.X, childPriv.PublicKey.Y = curve.ScalarBaseMult(d.Bytes())
 
 	pubKeyBytes := elliptic.MarshalCompressed(childPriv.Curve, childPriv.PublicKey.X, childPriv.PublicKey.Y)
-	_ = entry // entry validated above for key version lookup
+
+	s.logAudit(ctx, "derive", map[string]interface{}{
+		"service_id":  normalizeServiceID(serviceauth.GetServiceID(ctx)),
+		"domain":      req.Domain,
+		"key_version": version,
+	})
 
 	return &DeriveResponse{
 		PubKeyHex:  hex.EncodeToString(pubKeyBytes),
@@ -582,27 +926,34 @@ func (s *Service) Derive(ctx context.Context, req *DeriveRequest) (*DeriveRespon
 // =============================================================================
 
 // buildAttestation generates an attestation for a key version.
-func (s *Service) buildAttestation(version string) *MasterKeyAttestation {
-	s.mu.RLock()
-	entry, ok := s.keys[version]
-	s.mu.RUnlock()
-
-	if !ok {
-		return nil
+func (s *Service) buildAttestation(ctx context.Context, version, pubKeyHex, pubKeyHash string) (*MasterKeyAttestation, error) {
+	if strings.TrimSpace(version) == "" {
+		return nil, fmt.Errorf("key version is required")
+	}
+	if strings.TrimSpace(pubKeyHex) == "" || strings.TrimSpace(pubKeyHash) == "" {
+		return nil, fmt.Errorf("key version %s missing attestation metadata", version)
 	}
 
 	att := &MasterKeyAttestation{
 		KeyVersion: version,
-		PubKeyHex:  entry.version.PubKeyHex,
-		PubKeyHash: entry.version.PubKeyHash,
+		PubKeyHex:  pubKeyHex,
+		PubKeyHash: pubKeyHash,
 		Timestamp:  time.Now().UTC().Format(time.RFC3339),
 		Simulated:  !s.Marble().IsEnclave(),
 	}
 
 	// Generate SGX quote if in enclave mode
 	if s.Marble().IsEnclave() {
-		quote, report, err := s.generateQuote(entry.version.PubKeyHash)
-		if err == nil {
+		quote, report, err := s.generateQuote(pubKeyHash)
+		if err != nil {
+			if s.requireQuote {
+				return nil, fmt.Errorf("generate SGX quote: %w", err)
+			}
+			s.Logger().Warn(ctx, "Failed to generate SGX quote", map[string]interface{}{
+				"error":       err.Error(),
+				"key_version": version,
+			})
+		} else {
 			att.Quote = quote
 			att.MRENCLAVE = report.MRENCLAVE
 			att.MRSIGNER = report.MRSIGNER
@@ -611,7 +962,7 @@ func (s *Service) buildAttestation(version string) *MasterKeyAttestation {
 		}
 	}
 
-	return att
+	return att, nil
 }
 
 // SGXReport holds parsed SGX report fields.
@@ -625,7 +976,45 @@ type SGXReport struct {
 // generateQuote generates an SGX quote with the given report data.
 // Returns error in simulation mode; uses EGo's enclave.GetRemoteReport in SGX hardware mode.
 func (s *Service) generateQuote(reportData string) (string, *SGXReport, error) {
-	return "", nil, fmt.Errorf("not in enclave mode")
+	payload := strings.TrimSpace(reportData)
+	payload = strings.TrimPrefix(payload, "0x")
+	payload = strings.TrimPrefix(payload, "0X")
+
+	userData := []byte(payload)
+	if decoded, err := hex.DecodeString(payload); err == nil && len(decoded) > 0 {
+		userData = decoded
+	}
+
+	if len(userData) > 64 {
+		userData = userData[:64]
+	}
+	if len(userData) < 64 {
+		padded := make([]byte, 64)
+		copy(padded, userData)
+		userData = padded
+	}
+
+	quote, err := enclave.GetRemoteReport(userData)
+	if err != nil {
+		return "", nil, err
+	}
+	report, err := enclave.VerifyRemoteReport(quote)
+	if err != nil {
+		return "", nil, err
+	}
+
+	out := &SGXReport{
+		MRENCLAVE: base64.StdEncoding.EncodeToString(report.UniqueID),
+		MRSIGNER:  base64.StdEncoding.EncodeToString(report.SignerID),
+	}
+	if len(report.ProductID) >= 2 {
+		out.ProdID = uint16(report.ProductID[1])<<8 | uint16(report.ProductID[0])
+	}
+	if report.SecurityVersion <= math.MaxUint16 {
+		out.ISVSVN = uint16(report.SecurityVersion)
+	}
+
+	return base64.StdEncoding.EncodeToString(quote), out, nil
 }
 
 // GetAttestation returns the attestation for the active key.
@@ -634,7 +1023,17 @@ func (s *Service) GetAttestation(ctx context.Context) (*MasterKeyAttestation, er
 	if version == "" {
 		return nil, fmt.Errorf("no active key version")
 	}
-	return s.buildAttestation(version), nil
+	s.mu.RLock()
+	entry, ok := s.keys[version]
+	if !ok {
+		s.mu.RUnlock()
+		return nil, fmt.Errorf("key version not found: %s", version)
+	}
+	pubKeyHex := entry.version.PubKeyHex
+	pubKeyHash := entry.version.PubKeyHash
+	s.mu.RUnlock()
+
+	return s.buildAttestation(ctx, version, pubKeyHex, pubKeyHash)
 }
 
 // =============================================================================

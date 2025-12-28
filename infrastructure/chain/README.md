@@ -53,6 +53,7 @@ listener := chain.NewEventListener(&chain.ListenerConfig{
     Client:     client,
     Contracts:  contracts,
     StartBlock: 0, // or a saved cursor
+    // MaxHandlerConcurrency defaults to 32; set <0 for unlimited.
 })
 go listener.Start(ctx)
 ```

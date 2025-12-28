@@ -6,6 +6,7 @@ export interface AdminSDKConfig {
   adminBaseUrl: string;
   supabaseUrl: string;
   serviceRoleKey?: string;
+  adminApiKey?: string;
 }
 
 export interface ServiceHealthResponse {
@@ -49,6 +50,12 @@ export interface AnalyticsResponse {
   }>;
 }
 
+function assertServerOnly() {
+  if (typeof window !== "undefined") {
+    throw new Error("AdminSDK is server-only. Do not bundle it into client-side code.");
+  }
+}
+
 /**
  * Admin SDK for platform management operations
  */
@@ -56,6 +63,7 @@ export class AdminSDK {
   private config: AdminSDKConfig;
 
   constructor(config: AdminSDKConfig) {
+    assertServerOnly();
     this.config = config;
   }
 
@@ -63,7 +71,8 @@ export class AdminSDK {
    * Fetch all services health status
    */
   async getServicesHealth(): Promise<ServiceHealthResponse[]> {
-    const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`);
+    const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
+    const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`, { headers });
     if (!response.ok) {
       throw new Error(`Failed to fetch services health: ${response.statusText}`);
     }
@@ -74,7 +83,8 @@ export class AdminSDK {
    * Fetch analytics overview
    */
   async getAnalytics(): Promise<AnalyticsResponse> {
-    const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`);
+    const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
+    const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, { headers });
     if (!response.ok) {
       throw new Error(`Failed to fetch analytics: ${response.statusText}`);
     }
@@ -136,5 +146,6 @@ export class AdminSDK {
  * Create an Admin SDK instance
  */
 export function createAdminSDK(config: AdminSDKConfig): AdminSDK {
+  assertServerOnly();
   return new AdminSDK(config);
 }

@@ -237,8 +237,9 @@ func (inv *ContractInvoker) InvokeMiniAppContract(ctx context.Context, appID, me
 	return resp.TxHash, nil
 }
 
-// Minimum GAS balance for MiniApp workflows (0.5 GAS = 50000000 in 8 decimals)
-const minGASBalanceForWorkflow int64 = 50000000
+// Minimum GAS balance for MiniApp workflows (0.6 GAS = 60000000 in 8 decimals)
+// This includes buffer for transaction fees (~0.01 GAS per tx)
+const minGASBalanceForWorkflow int64 = 60000000
 
 // Amount to fund when balance is low (1 GAS = 100000000 in 8 decimals)
 const fundAmountForWorkflow int64 = 100000000
@@ -624,7 +625,14 @@ func loadMiniAppContractsFromEnv() map[string]string {
 		hash := strings.TrimSpace(os.Getenv(envVar))
 		if hash != "" {
 			contracts[appID] = hash
-			fmt.Printf("neosimulation: loaded miniapp contract %s=%s\n", appID, hash)
+		}
+	}
+
+	// Log summary of loaded contracts
+	if len(contracts) > 0 {
+		fmt.Printf("neosimulation: loaded %d MiniApp contract hashes from environment\n", len(contracts))
+		for appID, hash := range contracts {
+			fmt.Printf("  - %s: %s\n", appID, hash[:min(20, len(hash))]+"...")
 		}
 	}
 

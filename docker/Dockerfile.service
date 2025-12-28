@@ -6,7 +6,7 @@
 
 ARG EGO_VERSION=1.8.0
 ARG SERVICE=oracle
-ARG EGO_STRICT_SIGNING=0
+ARG EGO_STRICT_SIGNING=1
 
 FROM ghcr.io/edgelesssys/ego-deploy:v${EGO_VERSION} AS runtime
 

@@ -8,7 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -61,9 +63,11 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 	sourcesToUse := s.getSourcesForFeed(feed)
 
 	for _, srcConfig := range sourcesToUse {
+		s.acquireSourceSlot()
 		wg.Add(1)
 		go func(src *SourceConfig) {
 			defer wg.Done()
+			defer s.releaseSourceSlot()
 
 			price, err := s.fetchPriceFromSource(ctx, normalizedPair, feed, src)
 			if err != nil {
@@ -81,9 +85,11 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 
 	// Optional Chainlink source (if enabled by configuration).
 	if s.chainlinkClient != nil && s.chainlinkClient.HasFeed(feedID) {
+		s.acquireSourceSlot()
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer s.releaseSourceSlot()
 
 			price, _, err := s.chainlinkClient.GetPrice(ctx, feedID)
 			if err != nil || price <= 0 {
@@ -196,6 +202,12 @@ func (s *Service) fetchPriceFromSource(ctx context.Context, pair string, feed *F
 
 	requestCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
+	if s.strictMode && !allowPrivateSourceTargets() {
+		if err := validateSourceURL(requestCtx, url); err != nil {
+			return 0, err
+		}
+	}
 
 	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, url, http.NoBody)
 	if err != nil {
@@ -415,6 +427,89 @@ func formatJSONPath(tmpl string, feed *FeedConfig, src *SourceConfig) string {
 		path = strings.ReplaceAll(path, "{quote}", quote)
 	}
 	return path
+}
+
+func (s *Service) acquireSourceSlot() {
+	if s == nil || s.sourceSem == nil {
+		return
+	}
+	s.sourceSem <- struct{}{}
+}
+
+func (s *Service) releaseSourceSlot() {
+	if s == nil || s.sourceSem == nil {
+		return
+	}
+	<-s.sourceSem
+}
+
+func allowPrivateSourceTargets() bool {
+	raw := strings.ToLower(strings.TrimSpace(os.Getenv("NEOFEEDS_ALLOW_PRIVATE_NETWORKS")))
+	return raw == "1" || raw == "true" || raw == "yes"
+}
+
+func validateSourceURL(ctx context.Context, rawURL string) error {
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("invalid source url")
+	}
+	if parsed.User != nil {
+		return fmt.Errorf("source url must not include userinfo")
+	}
+
+	host := strings.ToLower(strings.TrimSuffix(parsed.Hostname(), "."))
+	if host == "" {
+		return fmt.Errorf("source url must include hostname")
+	}
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return fmt.Errorf("source hostname not allowed in strict identity mode")
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		if isDisallowedSourceIP(ip) {
+			return fmt.Errorf("source target IP not allowed in strict identity mode")
+		}
+		return nil
+	}
+
+	lookupCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	addrs, err := net.DefaultResolver.LookupIPAddr(lookupCtx, host)
+	if err != nil {
+		return fmt.Errorf("failed to resolve source hostname: %w", err)
+	}
+	if len(addrs) == 0 {
+		return fmt.Errorf("failed to resolve source hostname: no addresses found")
+	}
+
+	for _, addr := range addrs {
+		if isDisallowedSourceIP(addr.IP) {
+			return fmt.Errorf("source hostname resolves to a private or local IP which is not allowed in strict identity mode")
+		}
+	}
+	return nil
+}
+
+func isDisallowedSourceIP(ip net.IP) bool {
+	if ip == nil {
+		return true
+	}
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified() {
+		return true
+	}
+	if ip.IsPrivate() {
+		return true
+	}
+
+	// Carrier-grade NAT (RFC 6598): 100.64.0.0/10
+	if ip.To4() != nil {
+		if ip[0] == 100 && ip[1] >= 64 && ip[1] <= 127 {
+			return true
+		}
+	}
+
+	return false
 }
 
 // pow10 returns 10^n.

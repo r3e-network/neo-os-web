@@ -1,6 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { error, json } from "../_shared/response.ts";
-import { supabaseClient, supabaseServiceClient } from "../_shared/supabase.ts";
+import { supabaseClient } from "../_shared/supabase.ts";
 
 /**
  * Market Trending API Endpoint
@@ -82,20 +83,15 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
     return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
   }
 
+  const rateLimited = await requireRateLimit(req, "market-trending");
+  if (rateLimited) return rateLimited;
+
   // Parse and validate query parameters
   const url = new URL(req.url);
   const { limit, period } = parseQueryParams(url);
   const days = periodToDays(period);
 
   const supabase = supabaseFactory ? supabaseFactory() : supabaseClient();
-  let adminSupabase: any | null = null;
-  if (!supabaseFactory) {
-    try {
-      adminSupabase = supabaseServiceClient();
-    } catch (err) {
-      console.warn("market-trending: service client unavailable, metadata will be limited", err);
-    }
-  }
 
   try {
     // Step 1: Get today's transaction counts per app
@@ -204,10 +200,9 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
     }
 
     // Fetch app details (name, icon)
-    const appsClient = adminSupabase ?? supabase;
-    const { data: appsData, error: appsErr } = await appsClient
+    const { data: appsData, error: appsErr } = await supabase
       .from("miniapps")
-      .select("app_id, name, icon, manifest, status")
+      .select("app_id, name, icon, status")
       .in("app_id", topAppIds);
 
     if (appsErr) {
@@ -229,9 +224,8 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
     const appStatusMap: Record<string, string> = {};
     if (appsData && !appsErr) {
       for (const app of appsData) {
-        const manifest = app.manifest as any;
-        const name = String(app.name ?? manifest?.name ?? app.app_id ?? "").trim();
-        const icon = String(app.icon ?? manifest?.icon ?? "").trim();
+        const name = String(app.name ?? app.app_id ?? "").trim();
+        const icon = String(app.icon ?? "").trim();
         appMetaMap[app.app_id] = {
           name: name || app.app_id,
           icon,

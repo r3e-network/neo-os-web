@@ -50,6 +50,15 @@ NEXT_PUBLIC_SUPABASE_URL=https://supabase.localhost
 NEXT_PUBLIC_EDGE_URL=https://edge.localhost
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 NEXTAUTH_SECRET=your-nextauth-secret
+ADMIN_CONSOLE_API_KEY=your-admin-api-key
+```
+
+The admin API routes require a matching key in `X-Admin-Key` (or `Authorization: Bearer`).
+For browser calls, either set `NEXT_PUBLIC_ADMIN_CONSOLE_API_KEY` at build time or store
+the key locally:
+
+```js
+localStorage.setItem("admin_api_key", "your-admin-api-key");
 ```
 
 ## Deployment
@@ -64,6 +73,7 @@ docker build -t admin-console:latest .
 docker run -p 3002:3002 \
   -e NEXT_PUBLIC_SUPABASE_URL=https://supabase.localhost \
   -e NEXT_PUBLIC_EDGE_URL=https://edge.localhost \
+  -e ADMIN_CONSOLE_API_KEY=your-admin-api-key \
   admin-console:latest
 ```
 
@@ -116,6 +126,7 @@ src/
 
 - `GET /api/services/health` - Check all services health
 - `GET /api/analytics` - Fetch analytics overview
+- `GET /api/analytics/by-app` - Fetch usage by app
 - `POST /api/miniapps/update-status` - Update MiniApp status
 
 ## License

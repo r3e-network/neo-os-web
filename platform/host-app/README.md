@@ -24,6 +24,7 @@ Current capabilities:
 - `MINIAPP_FRAME_ORIGINS`: space-separated `frame-src` allowlist for embedded iframes.
 - `NEXT_PUBLIC_MF_REMOTES`: comma-separated Module Federation remotes (e.g. `builtin@https://cdn.miniapps.com/miniapps/builtin-mf`).
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL for `connect-src` allowlist.
+- `EDGE_RPC_ALLOWLIST`: comma-separated Edge function names that `/api/rpc/*` may call (`*` to allow all).
 
 ## `/api/rpc/*` Proxy (Blueprint Path)
 
@@ -47,6 +48,10 @@ Set `EDGE_BASE_URL` to one of:
 
 The `/api/rpc/relay` alias accepts `fn` via query string or JSON body and
 forwards the remaining payload to the named Edge function.
+
+In production, `/api/rpc/*` requires `EDGE_RPC_ALLOWLIST` to be set. Use `*` to
+preserve the previous open-proxy behavior or list the exact functions you want
+to expose.
 
 ## Public Read Proxies
 

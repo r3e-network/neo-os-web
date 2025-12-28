@@ -3,6 +3,7 @@
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
+import { getAdminAuthHeaders } from "@/lib/admin-client";
 import type { ServiceHealth } from "@/types";
 
 const SERVICES = [
@@ -22,7 +23,7 @@ const SERVICES = [
  */
 async function fetchServicesHealth(): Promise<ServiceHealth[]> {
   // Call Next.js API route that checks internal services
-  const response = await fetch("/api/services/health");
+  const response = await fetch("/api/services/health", { headers: getAdminAuthHeaders() });
   if (!response.ok) {
     throw new Error("Failed to fetch services health");
   }
@@ -48,7 +49,9 @@ export function useServiceHealth(serviceName: string) {
   return useQuery({
     queryKey: ["services", "health", serviceName],
     queryFn: async () => {
-      const response = await fetch(`/api/services/health?service=${serviceName}`);
+      const response = await fetch(`/api/services/health?service=${serviceName}`, {
+        headers: getAdminAuthHeaders(),
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch ${serviceName} health`);
       }

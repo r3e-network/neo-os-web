@@ -3,11 +3,15 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://supabase.localhost";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const authError = requireAdminAuth(req);
+  if (authError) return authError;
+
   try {
     // Fetch total users
     const usersResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?select=count`, {

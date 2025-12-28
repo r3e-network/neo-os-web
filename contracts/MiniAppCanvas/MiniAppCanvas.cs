@@ -241,6 +241,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void SetPixel(UInt160 painter, int x, int y, byte r, byte g, byte b)
         {
             ValidateGateway();
+            ValidateNotGloballyPaused(APP_ID);
             ValidateCoordinates(x, y);
 
             byte[] key = GetPixelKey(x, y);
@@ -254,6 +255,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void SetPixelBatch(UInt160 painter, byte[] pixels)
         {
             ValidateGateway();
+            ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(pixels.Length % 7 == 0, "invalid pixel data");
 
             int count = pixels.Length / 7;
