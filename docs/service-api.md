@@ -302,3 +302,44 @@ triggers, and the supported action type is `webhook`.
 - `POST /invoke`: build+sign+broadcast allowlisted transactions.
     - hard rule: **payments only GAS**, **governance only bNEO**, contract/method allowlists enforced.
     - optional `intent` field enables stricter gates for `payments` (GAS.transfer to PaymentHub) and `governance` (Governance stake/unstake/vote) when contract hashes are configured.
+
+### `neovrf` (vrf-service)
+
+- `POST /random`: generate verifiable random bytes
+    - body: `{ seed?: string, count?: number, range?: { min, max } }`
+    - returns: `{ randomness, proof, signature, public_key }`
+- `GET /pubkey`: returns the VRF public key for verification
+
+### `neogasbank` (gasbank-service)
+
+- `GET /account`: get user's GAS balance
+- `GET /transactions`: list balance transactions
+- `GET /deposits`: list deposit history
+- `POST /deduct`: deduct fee from balance (internal mTLS)
+- `POST /reserve`: reserve balance for pending operation
+- `POST /release`: release reserved balance
+
+### `neosimulation` (simulation-service)
+
+Internal service for transaction simulation and load testing. Not exposed via Edge.
+
+- `POST /start`: start simulation run
+- `POST /stop`: stop simulation run
+- `GET /status`: get simulation status
+- `GET /metrics`: get performance metrics
+
+## Service Lifecycle Reference
+
+All TEE services follow a common lifecycle:
+
+1. **Startup**: Load configuration, initialize connections
+2. **Health Check**: Respond to `/health` endpoint
+3. **Request Processing**: Handle incoming requests
+4. **Graceful Shutdown**: Complete pending requests, close connections
+
+### Health Endpoints
+
+All services expose:
+
+- `GET /health`: returns `{ status: "ok" }` when healthy
+- `GET /ready`: returns `{ ready: true }` when ready to serve

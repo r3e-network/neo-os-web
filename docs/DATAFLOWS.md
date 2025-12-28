@@ -112,24 +112,287 @@ SDK ──▶ Edge Function (pay-gas / vote-bneo)
 Wallet ──▶ Neo N3 chain (PaymentHub / Governance)
 ```
 
-## Dataflow: Datafeed Updates
+## Dataflow: Datafeed Updates (NeoFeeds)
 
 ```
-External exchanges ──▶ neofeeds
-  └─ median + threshold
-  └─ txproxy submit PriceFeed update
-  └─ PriceFeed emits events (on-chain audit)
+External Data Sources (Binance, Coinbase, OKX, Chainlink)
+  │
+  ▼
+NeoFeeds Service
+  ├─ Fetch prices from multiple sources (HTTP)
+  ├─ Apply aggregation algorithm (median/TWAP)
+  ├─ Check deviation threshold (e.g., 0.5%)
+  │
+  ├─ If threshold exceeded:
+  │   └─ TxProxy.invoke(PriceFeed.updatePrice)
+  │       └─ PriceFeed contract stores new price
+  │       └─ PriceUpdated event emitted
+  │       └─ chain_txs (Supabase audit)
+  │
+  └─ Cache current prices in memory
+      └─ Serve via GET /price/{pair}, GET /prices
 ```
 
-## Dataflow: GasBank Deposits (Optional)
+### NeoFeeds Lifecycle
+
+1. **Startup**: Load feed configurations, initialize source clients
+2. **Polling Loop**: Fetch prices every N seconds (configurable)
+3. **Aggregation**: Compute median across sources, filter outliers
+4. **Publishing**: Submit on-chain update if deviation > threshold
+5. **Caching**: Store latest prices for API queries
+
+## Dataflow: GasBank Deposits (NeoGasBank)
 
 ```
-User ──▶ Edge gasbank-* functions
-  └─ deposit_requests (Supabase)
-      └─ neogasbank verifies on-chain deposits
-          └─ gasbank_accounts / gasbank_transactions (Supabase)
-          └─ optional fee deductions for services
+User ──▶ Edge gasbank-deposit (request deposit address)
+  └─ deposit_requests (Supabase, status=pending)
+
+User ──▶ GAS.transfer to deposit address (on-chain)
+
+NeoGasBank Service (polling loop)
+  ├─ Query Neo N3 for incoming GAS transfers
+  ├─ Match against deposit_requests
+  ├─ Verify amount and confirmations
+  │
+  └─ If verified:
+      ├─ gasbank_accounts (credit balance)
+      ├─ gasbank_transactions (audit record)
+      └─ deposit_requests (status=completed)
 ```
+
+### NeoGasBank Lifecycle
+
+1. **Deposit Request**: User requests deposit address via Edge function
+2. **On-Chain Transfer**: User sends GAS to assigned address
+3. **Verification**: Service polls chain for incoming transfers
+4. **Credit**: Balance credited after sufficient confirmations
+5. **Deduction**: Services call `/deduct` to charge fees
+6. **Withdrawal**: User can withdraw remaining balance
+
+## Dataflow: VRF Randomness (NeoVRF)
+
+```
+MiniApp Contract
+  └─ RequestService("rng", payload) ──▶ ServiceLayerGateway
+      └─ ServiceRequested event
+
+NeoRequests (event listener)
+  └─ Dispatch to NeoVRF service
+      │
+      ▼
+NeoVRF Service
+  ├─ Parse request (seed, range, count)
+  ├─ Generate VRF proof using TEE private key
+  ├─ Sign output with attestation
+  │
+  └─ Return: { randomness, proof, signature }
+
+NeoRequests
+  └─ TxProxy.FulfillRequest(requestId, result)
+      └─ ServiceLayerGateway.fulfillRequest
+          └─ MiniApp.OnServiceCallback(requestId, result)
+          └─ RandomnessLog.recordRandomness (optional)
+```
+
+### NeoVRF Lifecycle
+
+1. **Request**: MiniApp requests randomness via Gateway
+2. **Dispatch**: NeoRequests routes to VRF service
+3. **Generation**: TEE generates verifiable random bytes
+4. **Signing**: Output signed with TEE attestation key
+5. **Callback**: Result delivered to MiniApp contract
+6. **Logging**: Optionally recorded in RandomnessLog for audit
+
+## Dataflow: Oracle Queries (NeoOracle)
+
+```
+MiniApp Contract
+  └─ RequestService("oracle", payload) ──▶ ServiceLayerGateway
+      └─ ServiceRequested event
+
+NeoRequests (event listener)
+  └─ Dispatch to NeoOracle service
+      │
+      ▼
+NeoOracle Service
+  ├─ Validate URL against whitelist
+  ├─ Inject secrets into headers (if configured)
+  ├─ Execute HTTP request to external API
+  ├─ Parse and transform response
+  │
+  └─ Return: { data, status, timestamp }
+
+NeoRequests
+  └─ TxProxy.FulfillRequest(requestId, result)
+      └─ MiniApp.OnServiceCallback(requestId, result)
+```
+
+### NeoOracle Lifecycle
+
+1. **Request**: MiniApp requests external data via Gateway
+2. **Validation**: URL checked against domain whitelist
+3. **Secret Injection**: API keys injected from TEE secrets
+4. **Fetch**: HTTP GET/POST to external endpoint
+5. **Transform**: Response parsed and formatted
+6. **Callback**: Result delivered to MiniApp contract
+
+## Dataflow: Confidential Compute (NeoCompute)
+
+```
+MiniApp Contract
+  └─ RequestService("compute", payload) ──▶ ServiceLayerGateway
+      └─ ServiceRequested event
+
+NeoRequests (event listener)
+  └─ Dispatch to NeoCompute service
+      │
+      ▼
+NeoCompute Service
+  ├─ Load JavaScript code from payload
+  ├─ Inject secrets into execution context
+  ├─ Execute in sandboxed V8 isolate
+  ├─ Capture output and logs
+  │
+  └─ Return: { result, logs, gasUsed }
+
+NeoRequests
+  └─ TxProxy.FulfillRequest(requestId, result)
+      └─ MiniApp.OnServiceCallback(requestId, result)
+```
+
+### NeoCompute Lifecycle
+
+1. **Request**: MiniApp submits compute job via Gateway
+2. **Loading**: JavaScript code loaded into TEE
+3. **Secret Injection**: Secrets available as environment vars
+4. **Execution**: Code runs in isolated V8 sandbox
+5. **Output**: Result captured with execution metrics
+6. **Callback**: Result delivered to MiniApp contract
+
+## Dataflow: Transaction Proxy (TxProxy)
+
+```
+TEE Service (NeoRequests, NeoFlow, NeoFeeds)
+  └─ POST /invoke (mTLS authenticated)
+      │
+      ▼
+TxProxy Service
+  ├─ Validate caller identity (mTLS cert)
+  ├─ Check method against allowlist
+  ├─ Apply intent policy (if applicable)
+  ├─ Sign transaction with TEE signer key
+  ├─ Broadcast to Neo N3 network
+  │
+  └─ Return: { txHash, status }
+      └─ chain_txs (Supabase audit)
+```
+
+### TxProxy Lifecycle
+
+1. **Request**: Service submits invoke request via mTLS
+2. **Validation**: Method checked against allowlist
+3. **Policy**: Intent policies applied (rate limits, etc.)
+4. **Signing**: Transaction signed with TEE key
+5. **Broadcast**: Submitted to Neo N3 RPC
+6. **Confirmation**: Wait for block inclusion
+7. **Audit**: Record in chain_txs table
+
+## Dataflow: Automation Triggers (NeoFlow)
+
+```
+User ──▶ Edge automation-triggers (CRUD)
+  └─ automation_triggers (Supabase)
+
+NeoFlow Service (scheduler loop)
+  ├─ Load active triggers from database
+  ├─ Evaluate trigger conditions:
+  │   ├─ Cron: Check schedule expression
+  │   ├─ Interval: Check elapsed time
+  │   └─ Price: Check price threshold
+  │
+  └─ If condition met:
+      ├─ Execute action:
+      │   ├─ Webhook: POST to external URL
+      │   └─ Contract: TxProxy.invoke(target, method)
+      ├─ automation_executions (Supabase)
+      └─ Update nextExecution timestamp
+```
+
+### NeoFlow Lifecycle
+
+1. **Create**: User creates trigger via Edge API
+2. **Store**: Trigger saved to Supabase
+3. **Schedule**: Scheduler evaluates triggers periodically
+4. **Evaluate**: Check if trigger condition is met
+5. **Execute**: Run webhook or contract invocation
+6. **Record**: Log execution result
+7. **Reschedule**: Calculate next execution time
+
+## Dataflow: Anchored Periodic Tasks (AutomationAnchor)
+
+```
+Admin ──▶ AutomationAnchor.RegisterPeriodicTask(...)
+  └─ Task stored on-chain with schedule
+
+User ──▶ GAS.transfer(AutomationAnchor, amount, taskId)
+  └─ OnNEP17Payment credits task balance
+
+NeoFlow Service (anchored task loop)
+  ├─ Query AutomationAnchor for active tasks
+  ├─ Check schedule and balance
+  │
+  └─ If ready to execute:
+      ├─ TxProxy.invoke(AutomationAnchor.ExecutePeriodicTask)
+      │   └─ Deduct fee from task balance
+      │   └─ Call target contract method
+      │   └─ PeriodicTaskExecuted event
+      └─ chain_txs (Supabase audit)
+```
+
+### AutomationAnchor Lifecycle
+
+1. **Register**: Admin registers periodic task on-chain
+2. **Fund**: User deposits GAS to task balance
+3. **Monitor**: NeoFlow polls for ready tasks
+4. **Execute**: Task executed via TxProxy
+5. **Deduct**: Fee deducted from balance
+6. **Callback**: Target contract receives call
+7. **Repeat**: Reschedule for next interval
+
+## Dataflow: Transaction Simulation (NeoSimulation)
+
+```
+Test Framework / CI Pipeline
+  └─ Start simulation service
+
+NeoSimulation Service
+  ├─ Initialize account pool (1000+ accounts)
+  ├─ Load MiniApp contract configurations
+  │
+  └─ Simulation loop:
+      ├─ Select random MiniApp and action
+      ├─ Acquire account from pool
+      ├─ Build transaction (bet, vote, trade, etc.)
+      ├─ Submit via Neo N3 RPC
+      ├─ Wait for confirmation
+      ├─ Release account to pool
+      └─ Record metrics (latency, gas, success)
+
+Results
+  └─ simulation_results (Supabase)
+  └─ Performance reports
+```
+
+### NeoSimulation Lifecycle
+
+1. **Initialize**: Load configs, prepare account pool
+2. **Select**: Choose MiniApp and action type
+3. **Acquire**: Get available account from pool
+4. **Build**: Construct transaction payload
+5. **Submit**: Send to Neo N3 network
+6. **Confirm**: Wait for block inclusion
+7. **Release**: Return account to pool
+8. **Record**: Log metrics for analysis
 
 ## Supabase Tables (Audit + Idempotency)
 
