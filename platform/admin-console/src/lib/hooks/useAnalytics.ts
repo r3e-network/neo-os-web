@@ -4,13 +4,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/api-client";
+import { getAdminAuthHeaders } from "@/lib/admin-client";
 import type { AnalyticsData, MiniAppUsage } from "@/types";
 
 /**
  * Fetch analytics overview data
  */
 async function fetchAnalytics(): Promise<AnalyticsData> {
-  const response = await fetch("/api/analytics");
+  const response = await fetch("/api/analytics", { headers: getAdminAuthHeaders() });
   if (!response.ok) {
     throw new Error("Failed to fetch analytics");
   }
@@ -60,7 +61,7 @@ export function useUsageByApp() {
   return useQuery({
     queryKey: ["analytics", "by-app"],
     queryFn: async () => {
-      const response = await fetch("/api/analytics/by-app");
+      const response = await fetch("/api/analytics/by-app", { headers: getAdminAuthHeaders() });
       if (!response.ok) {
         throw new Error("Failed to fetch usage by app");
       }

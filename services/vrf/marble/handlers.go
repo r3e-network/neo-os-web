@@ -35,6 +35,10 @@ func (s *Service) handleRandom(w http.ResponseWriter, r *http.Request) {
 	if requestID == "" {
 		requestID = uuid.New().String()
 	}
+	if !s.markSeen(requestID) {
+		httputil.WriteError(w, http.StatusConflict, "request_id already used")
+		return
+	}
 
 	if s.privateKey == nil {
 		httputil.ServiceUnavailable(w, "signing key not configured")

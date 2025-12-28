@@ -60,7 +60,7 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 		}
 	}
 
-	s.requestIndex.Store(requestID, appID)
+	s.storeRequestIndex(requestID, appID)
 	_ = s.storeContractEvent(ctx, event, &appID, buildServiceRequestedState(parsed))
 
 	app, err := s.loadMiniApp(ctx, appID)
@@ -158,12 +158,8 @@ func (s *Service) handleServiceFulfilled(ctx context.Context, event *chain.Contr
 		}
 	}
 
-	appID := ""
-	if cached, ok := s.requestIndex.Load(strings.TrimSpace(parsed.RequestID)); ok {
-		if value, ok := cached.(string); ok {
-			appID = value
-		}
-	}
+	appID := s.lookupRequestIndex(parsed.RequestID)
+	s.deleteRequestIndex(parsed.RequestID)
 
 	var appPtr *string
 	if appID != "" {

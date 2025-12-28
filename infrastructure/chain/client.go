@@ -269,8 +269,16 @@ func (c *Client) getOrCreateActor(ctx context.Context, account *wallet.Account) 
 			c.persistentActor = nil
 		}
 
+		timeout := 30 * time.Second
+		if c.httpClient != nil && c.httpClient.Timeout > 0 {
+			timeout = c.httpClient.Timeout
+		}
+
 		// Create a new rpcclient connection
-		rpcClient, err := rpcclient.New(ctx, c.rpcURL, rpcclient.Options{})
+		rpcClient, err := rpcclient.New(ctx, c.rpcURL, rpcclient.Options{
+			RequestTimeout: timeout,
+			DialTimeout:    timeout,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("create rpc client: %w", err)
 		}

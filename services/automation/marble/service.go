@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -57,6 +58,9 @@ type Service struct {
 
 	// Service fee deduction
 	gasbank *gasbankclient.Client
+
+	triggerSem      chan struct{}
+	anchoredTaskSem chan struct{}
 }
 
 // Scheduler manages trigger execution.
@@ -82,6 +86,9 @@ type Config struct {
 
 	// GasBank client for service fee deduction (optional)
 	GasBank *gasbankclient.Client
+
+	TriggerConcurrency      int
+	AnchoredTaskConcurrency int
 }
 
 // New creates a new NeoFlow service.
@@ -100,6 +107,23 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		DB:      cfg.DB,
 	})
 
+	triggerConcurrency := cfg.TriggerConcurrency
+	if triggerConcurrency <= 0 {
+		if parsed, ok := parseEnvInt("NEOFLOW_TRIGGER_CONCURRENCY"); ok && parsed > 0 {
+			triggerConcurrency = parsed
+		} else {
+			triggerConcurrency = 10
+		}
+	}
+	anchoredTaskConcurrency := cfg.AnchoredTaskConcurrency
+	if anchoredTaskConcurrency <= 0 {
+		if parsed, ok := parseEnvInt("NEOFLOW_ANCHORED_TASK_CONCURRENCY"); ok && parsed > 0 {
+			anchoredTaskConcurrency = parsed
+		} else {
+			anchoredTaskConcurrency = 10
+		}
+	}
+
 	s := &Service{
 		BaseService: base,
 		repo:        cfg.NeoFlowRepo,
@@ -114,6 +138,8 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		eventListener:        cfg.EventListener,
 		enableChainExec:      cfg.EnableChainExec,
 		gasbank:              cfg.GasBank,
+		triggerSem:           make(chan struct{}, triggerConcurrency),
+		anchoredTaskSem:      make(chan struct{}, anchoredTaskConcurrency),
 	}
 
 	if s.chainClient != nil && s.priceFeedHash != "" {
@@ -172,6 +198,18 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	s.registerRoutes()
 
 	return s, nil
+}
+
+func parseEnvInt(key string) (int, bool) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return 0, false
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
 }
 
 func (s *Service) runEventListener(ctx context.Context) {

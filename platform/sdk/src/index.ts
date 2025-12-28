@@ -13,8 +13,8 @@ export type {
   AnalyticsResponse,
 } from "./admin.js";
 
-// Payment & Governance responses (GAS/NEO constraints)
-export type { PayGASResponse, VoteNEOResponse } from "./types.js";
+// Payment & Governance responses (GAS/BNEO constraints)
+export type { PayGASResponse, VoteBNEOResponse, VoteNEOResponse } from "./types.js";
 
 // RNG & Datafeed responses
 export type { RNGResponse, PriceResponse } from "./types.js";

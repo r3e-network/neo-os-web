@@ -32,7 +32,7 @@ describe("useServices Hooks", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith("/api/services/health");
+      expect(global.fetch).toHaveBeenCalledWith("/api/services/health", { headers: {} });
     });
 
     it("should handle fetch error", async () => {
@@ -72,7 +72,7 @@ describe("useServices Hooks", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith("/api/services/health?service=neoaccounts");
+      expect(global.fetch).toHaveBeenCalledWith("/api/services/health?service=neoaccounts", { headers: {} });
     });
 
     it("should handle service not found", async () => {

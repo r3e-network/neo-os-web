@@ -306,7 +306,8 @@ namespace NeoMiniAppPlatform.Contracts
             if (balance > 0)
             {
                 // Transfer GAS back to owner
-                GAS.Transfer(Runtime.ExecutingScriptHash, owner, balance, null);
+                bool ok = GAS.Transfer(Runtime.ExecutingScriptHash, owner, balance, null);
+                ExecutionEngine.Assert(ok, "refund transfer failed");
             }
 
             OnTaskCancelled(taskId, balance);
@@ -376,7 +377,8 @@ namespace NeoMiniAppPlatform.Contracts
             BalanceMap().Put(taskId.ToByteArray(), newBalance);
 
             UInt160 owner = GetTaskOwner(taskId);
-            GAS.Transfer(Runtime.ExecutingScriptHash, owner, amount, null);
+            bool ok = GAS.Transfer(Runtime.ExecutingScriptHash, owner, amount, null);
+            ExecutionEngine.Assert(ok, "withdraw transfer failed");
 
             OnTaskWithdrawn(taskId, owner, amount);
         }

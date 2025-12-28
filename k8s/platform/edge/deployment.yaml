@@ -42,7 +42,6 @@ spec:
             - --allow-env
             - --allow-read
             - --unstable
-            - --unsafely-ignore-certificate-errors
             - dev_server.ts
           ports:
             - name: http

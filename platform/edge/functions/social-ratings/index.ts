@@ -1,5 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { supabaseClient, tryGetUser } from "../_shared/supabase.ts";
 
 export async function handler(req: Request): Promise<Response> {
@@ -8,6 +9,9 @@ export async function handler(req: Request): Promise<Response> {
   if (req.method !== "GET") {
     return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
   }
+
+  const rateLimited = await requireRateLimit(req, "social-ratings");
+  if (rateLimited) return rateLimited;
 
   const url = new URL(req.url);
   const appId = url.searchParams.get("app_id")?.trim();

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getEdgeFunctionsBaseUrl } from "../../../lib/edge";
+import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl, isEdgeRpcAllowed } from "../../../lib/edge";
 
 /** Parsed JSON body with optional function name fields */
 interface RPCJsonBody {
@@ -64,6 +64,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(400).json({ error: "function name required" });
     return;
   }
+  if (!isEdgeRpcAllowed(fn)) {
+    res.status(403).json({ error: "function not allowed" });
+    return;
+  }
 
   const url = new URL(`${base}/${encodeURIComponent(fn)}`);
   for (const [key, value] of Object.entries(req.query)) {
@@ -75,13 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  const headers = new Headers();
-  for (const [k, v] of Object.entries(req.headers)) {
-    if (!v) continue;
-    if (k === "host" || k === "connection" || k === "content-length") continue;
-    if (Array.isArray(v)) headers.set(k, v.join(","));
-    else headers.set(k, v);
-  }
+  const headers = forwardEdgeRpcHeaders(req);
 
   const upstream = await fetch(url.toString(), {
     method,

@@ -2,6 +2,7 @@
 package neosimulation
 
 import (
+	"fmt"
 	"sync/atomic"
 )
 
@@ -11,18 +12,18 @@ type MiniAppSimulator struct {
 	userAddresses []string
 
 	// Gaming stats
-	lotteryTickets     int64
-	lotteryDraws       int64
-	lotteryPayouts     int64
-	coinFlipBets       int64
-	coinFlipWins       int64
-	coinFlipPayouts    int64
-	diceGameBets       int64
-	diceGameWins       int64
-	diceGamePayouts    int64
-	scratchCardBuys    int64
-	scratchCardWins    int64
-	scratchCardPayouts int64
+	lotteryTickets      int64
+	lotteryDraws        int64
+	lotteryPayouts      int64
+	coinFlipBets        int64
+	coinFlipWins        int64
+	coinFlipPayouts     int64
+	diceGameBets        int64
+	diceGameWins        int64
+	diceGamePayouts     int64
+	scratchCardBuys     int64
+	scratchCardWins     int64
+	scratchCardPayouts  int64
 	megaMillionsTickets int64
 	megaMillionsDraws   int64
 	megaMillionsWins    int64
@@ -48,22 +49,24 @@ type MiniAppSimulator struct {
 	ilGuardClaims       int64
 
 	// Social stats
-	secretVoteCasts    int64
-	secretVoteTallies  int64
-	secretPokerGames   int64
-	secretPokerWins    int64
-	microPredictBets   int64
-	microPredictWins   int64
-	redEnvelopeSends   int64
-	redEnvelopeClaims  int64
-	gasCircleDeposits  int64
-	gasCircleWins      int64
+	secretVoteCasts   int64
+	secretVoteTallies int64
+	secretPokerGames  int64
+	secretPokerWins   int64
+	microPredictBets  int64
+	microPredictWins  int64
+	redEnvelopeSends  int64
+	redEnvelopeClaims int64
+	gasCircleDeposits int64
+	gasCircleWins     int64
 
 	// Governance & Advanced stats
 	govBoosterVotes  int64
 	fogChessGames    int64
 	fogChessWins     int64
 	simulationErrors int64
+
+	missingUserAddressesLogged uint32
 }
 
 // NewMiniAppSimulator creates a new MiniApp simulator.
@@ -80,6 +83,18 @@ func (s *MiniAppSimulator) getRandomUserAddress() string {
 		return ""
 	}
 	return s.userAddresses[randomInt(0, len(s.userAddresses)-1)]
+}
+
+func (s *MiniAppSimulator) getRandomUserAddressOrWarn(appID, action string) (string, bool) {
+	address := s.getRandomUserAddress()
+	if address == "" {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		if atomic.CompareAndSwapUint32(&s.missingUserAddressesLogged, 0, 1) {
+			fmt.Printf("neosimulation: skipping %s for %s: no user addresses configured\n", action, appID)
+		}
+		return "", false
+	}
+	return address, true
 }
 
 // GetStats returns current simulation statistics.

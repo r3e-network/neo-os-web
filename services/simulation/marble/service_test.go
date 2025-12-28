@@ -482,7 +482,7 @@ func TestHTTPHandlersWithConfig(t *testing.T) {
 		s.Router().ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.True(t, s.running)
-		assert.Equal(t, []string{"custom-app1", "custom-app2"}, s.miniApps)
+		assert.Equal(t, []string{"builtin-custom-app1", "builtin-custom-app2"}, s.miniApps)
 		s.Stop()
 	})
 
@@ -507,7 +507,7 @@ func TestHTTPHandlersWithConfig(t *testing.T) {
 		s.Router().ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.True(t, s.running)
-		assert.Equal(t, []string{"full-config-app"}, s.miniApps)
+		assert.Equal(t, []string{"builtin-full-config-app"}, s.miniApps)
 		assert.Equal(t, 200*time.Millisecond, s.minInterval)
 		assert.Equal(t, 800*time.Millisecond, s.maxInterval)
 		s.Stop()

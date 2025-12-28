@@ -113,14 +113,19 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Create a new red envelope with RNG-generated amounts.
         /// </summary>
-        public static BigInteger CreateEnvelope(UInt160 creator, BigInteger totalAmount, BigInteger packetCount, BigInteger expiryDurationMs)
+        public static BigInteger CreateEnvelope(UInt160 creator, BigInteger totalAmount, BigInteger packetCount, BigInteger expiryDurationMs, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(creator), "unauthorized");
             ExecutionEngine.Assert(totalAmount >= MIN_AMOUNT, "min amount 0.1 GAS");
             ExecutionEngine.Assert(packetCount > 0 && packetCount <= MAX_PACKETS, "1-100 packets");
             ExecutionEngine.Assert(totalAmount >= packetCount * 1000000, "min 0.01 GAS per packet");
             ExecutionEngine.Assert(expiryDurationMs > 0, "expiry duration required");
+
+            UInt160 gateway = Gateway();
+            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
+            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
+
+            ValidatePaymentReceipt(APP_ID, creator, totalAmount, receiptId);
 
             BigInteger envelopeId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_ENVELOPE_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_ENVELOPE_ID, envelopeId);

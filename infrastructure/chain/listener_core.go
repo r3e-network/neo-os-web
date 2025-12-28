@@ -25,6 +25,7 @@ type EventListener struct {
 	running        bool
 	stopCh         chan struct{}
 	logger         *logging.Logger
+	handlerSem     chan struct{}
 }
 
 // EventHandler is a callback for contract events.
@@ -65,7 +66,11 @@ type ListenerConfig struct {
 	StartBlock    uint64
 	Confirmations uint64
 	Logger        *logging.Logger
+	// MaxHandlerConcurrency limits concurrent handler goroutines. Use <0 for unlimited.
+	MaxHandlerConcurrency int
 }
+
+const defaultHandlerConcurrency = 32
 
 // NewEventListener creates a new event listener.
 func NewEventListener(cfg *ListenerConfig) *EventListener {
@@ -99,6 +104,15 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 		logger = logging.NewFromEnv("chain")
 	}
 
+	maxConc := cfg.MaxHandlerConcurrency
+	if maxConc == 0 {
+		maxConc = defaultHandlerConcurrency
+	}
+	var handlerSem chan struct{}
+	if maxConc > 0 {
+		handlerSem = make(chan struct{}, maxConc)
+	}
+
 	return &EventListener{
 		client:         cfg.Client,
 		contractHashes: contractHashes,
@@ -108,6 +122,7 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 		confirmations:  cfg.Confirmations,
 		stopCh:         make(chan struct{}),
 		logger:         logger,
+		handlerSem:     handlerSem,
 	}
 }
 
@@ -252,13 +267,12 @@ func (l *EventListener) processTransaction(
 				Contracts:  contracts,
 			}
 			for _, handler := range txHandlers {
-				go func(h TxHandler, e *TransactionEvent) {
-					if err := h(e); err != nil {
-						l.logger.WithFields(map[string]interface{}{
-							"tx_hash": e.TxHash,
-						}).WithError(err).Warn("transaction handler failed")
-					}
-				}(handler, txEvent)
+				h := handler
+				l.runHandler(ctx, map[string]interface{}{
+					"tx_hash": txEvent.TxHash,
+				}, "transaction handler failed", func() error {
+					return h(txEvent)
+				})
 			}
 		}
 	}
@@ -303,19 +317,42 @@ func (l *EventListener) processTransaction(
 			l.mu.RUnlock()
 
 			for _, handler := range handlers {
-				go func(h EventHandler, e *ContractEvent) {
-					if err := h(e); err != nil {
-						l.logger.WithFields(map[string]interface{}{
-							"event":     e.EventName,
-							"contract":  e.Contract,
-							"tx_hash":   e.TxHash,
-							"block_idx": e.BlockIndex,
-						}).WithError(err).Warn("event handler failed")
-					}
-				}(handler, event)
+				h := handler
+				l.runHandler(ctx, map[string]interface{}{
+					"event":     event.EventName,
+					"contract":  event.Contract,
+					"tx_hash":   event.TxHash,
+					"block_idx": event.BlockIndex,
+				}, "event handler failed", func() error {
+					return h(event)
+				})
 			}
 		}
 	}
+}
+
+func (l *EventListener) runHandler(ctx context.Context, fields map[string]interface{}, message string, fn func() error) {
+	if l == nil || fn == nil {
+		return
+	}
+	if l.handlerSem != nil {
+		select {
+		case l.handlerSem <- struct{}{}:
+		case <-ctx.Done():
+			return
+		case <-l.stopCh:
+			return
+		}
+	}
+
+	go func() {
+		if l.handlerSem != nil {
+			defer func() { <-l.handlerSem }()
+		}
+		if err := fn(); err != nil {
+			l.logger.WithFields(fields).WithError(err).Warn(message)
+		}
+	}()
 }
 
 func normalizeContractHash(value string) string {

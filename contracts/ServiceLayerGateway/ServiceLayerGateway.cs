@@ -231,7 +231,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             OnServiceFulfilled(requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
 
-            Contract.Call(req.CallbackContract, req.CallbackMethod, CallFlags.ReadStates,
+            Contract.Call(req.CallbackContract, req.CallbackMethod, CallFlags.All,
                 requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
         }
 

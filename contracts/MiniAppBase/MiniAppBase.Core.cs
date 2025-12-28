@@ -25,13 +25,14 @@ namespace NeoMiniAppPlatform.Contracts
     /// </summary>
     public partial class MiniAppContract : SmartContract
     {
-        #region Standard Storage Prefixes (0x01-0x05 reserved)
+        #region Standard Storage Prefixes (0x01-0x06 reserved)
 
         protected static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         protected static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
         protected static readonly byte[] PREFIX_PAYMENTHUB = new byte[] { 0x03 };
         protected static readonly byte[] PREFIX_PAUSED = new byte[] { 0x04 };
         protected static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
+        protected static readonly byte[] PREFIX_RECEIPT_USED = new byte[] { 0x06 };
 
         #endregion
 
@@ -188,6 +189,40 @@ namespace NeoMiniAppPlatform.Contracts
                     new object[] { appId });
                 ExecutionEngine.Assert(!globalPaused, "globally paused");
             }
+        }
+
+        #endregion
+
+        #region Payment Receipt Validation
+
+        protected static void ValidatePaymentReceipt(string appId, UInt160 payer, BigInteger minAmount, BigInteger receiptId)
+        {
+            ValidateAddress(payer);
+            ExecutionEngine.Assert(minAmount > 0, "amount must be > 0");
+            ExecutionEngine.Assert(receiptId > 0, "receiptId required");
+
+            UInt160 hub = PaymentHub();
+            ExecutionEngine.Assert(hub != null && hub.IsValid, "payment hub not set");
+
+            StorageMap used = new StorageMap(Storage.CurrentContext, PREFIX_RECEIPT_USED);
+            ByteString receiptKey = (ByteString)receiptId.ToByteArray();
+            ExecutionEngine.Assert(used.Get(receiptKey) == null, "receipt already used");
+
+            object receiptObj = Contract.Call(hub, "getReceipt", CallFlags.ReadOnly, receiptId);
+            ExecutionEngine.Assert(receiptObj != null, "receipt not found");
+
+            object[] receipt = (object[])receiptObj;
+            ExecutionEngine.Assert(receipt.Length >= 6, "receipt not found");
+
+            string receiptAppId = (string)receipt[1];
+            UInt160 receiptPayer = (UInt160)receipt[2];
+            BigInteger receiptAmount = (BigInteger)receipt[3];
+
+            ExecutionEngine.Assert(receiptAppId == appId, "receipt app mismatch");
+            ExecutionEngine.Assert(receiptPayer == payer, "receipt payer mismatch");
+            ExecutionEngine.Assert(receiptAmount >= minAmount, "insufficient payment");
+
+            used.Put(receiptKey, 1);
         }
 
         #endregion

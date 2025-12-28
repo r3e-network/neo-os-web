@@ -55,6 +55,7 @@ type Service struct {
 	txCounts    map[string]int64
 	lastTxTimes map[string]time.Time
 	rng         *rand.Rand
+	rngMu       sync.Mutex
 }
 
 // New creates a new simulation service.
@@ -102,25 +103,28 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	// Get MiniApps list
-	miniApps := cfg.MiniApps
+	miniApps := normalizeMiniAppIDs(cfg.MiniApps)
 	if len(miniApps) == 0 {
 		miniAppsEnv := strings.TrimSpace(os.Getenv("SIMULATION_MINIAPPS"))
 		if miniAppsEnv != "" {
-			miniApps = strings.Split(miniAppsEnv, ",")
-			for i := range miniApps {
-				miniApps[i] = strings.TrimSpace(miniApps[i])
-			}
+			miniApps = normalizeMiniAppIDs(strings.Split(miniAppsEnv, ","))
 		}
 	}
 	if len(miniApps) == 0 {
-		miniApps = []string{"builtin-lottery", "builtin-coin-flip", "builtin-dice-game"}
+		allApps := AllMiniApps()
+		miniApps = make([]string, 0, len(allApps))
+		for _, app := range allApps {
+			miniApps = append(miniApps, app.AppID)
+		}
 	}
 
 	// Get interval configuration
 	minIntervalMS := cfg.MinIntervalMS
 	if minIntervalMS == 0 {
 		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MIN_MS"); envVal != "" {
-			fmt.Sscanf(envVal, "%d", &minIntervalMS)
+			if _, err := fmt.Sscanf(envVal, "%d", &minIntervalMS); err != nil {
+				fmt.Printf("neosimulation: invalid SIMULATION_TX_INTERVAL_MIN_MS %q: %v\n", envVal, err)
+			}
 		}
 	}
 	if minIntervalMS == 0 {
@@ -130,7 +134,9 @@ func New(cfg Config) (*Service, error) {
 	maxIntervalMS := cfg.MaxIntervalMS
 	if maxIntervalMS == 0 {
 		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MAX_MS"); envVal != "" {
-			fmt.Sscanf(envVal, "%d", &maxIntervalMS)
+			if _, err := fmt.Sscanf(envVal, "%d", &maxIntervalMS); err != nil {
+				fmt.Printf("neosimulation: invalid SIMULATION_TX_INTERVAL_MAX_MS %q: %v\n", envVal, err)
+			}
 		}
 	}
 	if maxIntervalMS == 0 {
@@ -151,7 +157,9 @@ func New(cfg Config) (*Service, error) {
 	workersPerApp := cfg.WorkersPerApp
 	if workersPerApp == 0 {
 		if envVal := os.Getenv("SIMULATION_WORKERS_PER_APP"); envVal != "" {
-			fmt.Sscanf(envVal, "%d", &workersPerApp)
+			if _, err := fmt.Sscanf(envVal, "%d", &workersPerApp); err != nil {
+				fmt.Printf("neosimulation: invalid SIMULATION_WORKERS_PER_APP %q: %v\n", envVal, err)
+			}
 		}
 	}
 	if workersPerApp <= 0 {
@@ -240,15 +248,21 @@ func (s *Service) statistics() map[string]any {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	miniApps := append([]string(nil), s.miniApps...)
+	txCounts := make(map[string]int64, len(s.txCounts))
+	for appID, count := range s.txCounts {
+		txCounts[appID] = count
+	}
+
 	stats := map[string]any{
 		"running":           s.running,
-		"mini_apps":         s.miniApps,
+		"mini_apps":         miniApps,
 		"workers_per_app":   s.workersPerApp,
 		"min_interval_ms":   s.minInterval.Milliseconds(),
 		"max_interval_ms":   s.maxInterval.Milliseconds(),
 		"min_amount":        s.minAmount,
 		"max_amount":        s.maxAmount,
-		"tx_counts":         s.txCounts,
+		"tx_counts":         txCounts,
 		"contract_invoker":  s.contractInvoker != nil,
 		"miniapp_simulator": s.miniAppSimulator != nil,
 	}
@@ -289,11 +303,11 @@ func (s *Service) Start(ctx context.Context) error {
 	// These workers just send GAS to random addresses, not following the correct MiniApp workflow
 	// The correct workflow is: User → PayToApp → Platform → MiniApp Contract → Payout
 	/*
-	for _, appID := range s.miniApps {
-		for workerID := 0; workerID < s.workersPerApp; workerID++ {
-			go s.simulateApp(appID, workerID)
+		for _, appID := range s.miniApps {
+			for workerID := 0; workerID < s.workersPerApp; workerID++ {
+				go s.simulateApp(appID, workerID)
+			}
 		}
-	}
 	*/
 
 	// Start contract invocation workers if contract invoker is available
@@ -315,44 +329,9 @@ func (s *Service) Start(ctx context.Context) error {
 	}
 
 	// Start MiniApp workflow simulators if MiniApp simulator is available
+	miniAppWorkers := 0
 	if s.miniAppSimulator != nil {
-		// All MiniApps run at 15 second intervals for consistent simulation
-		interval := 15 * time.Second
-
-		// Gaming MiniApps
-		go s.runMiniAppWorkflow("lottery", interval, s.miniAppSimulator.SimulateLottery)
-		go s.runMiniAppWorkflow("coin-flip", interval, s.miniAppSimulator.SimulateCoinFlip)
-		go s.runMiniAppWorkflow("dice-game", interval, s.miniAppSimulator.SimulateDiceGame)
-		go s.runMiniAppWorkflow("scratch-card", interval, s.miniAppSimulator.SimulateScratchCard)
-		go s.runMiniAppWorkflow("mega-millions", interval, s.miniAppSimulator.SimulateMegaMillions)
-
-		// DeFi MiniApps
-		go s.runMiniAppWorkflow("prediction-market", interval, s.miniAppSimulator.SimulatePredictionMarket)
-		go s.runMiniAppWorkflow("flashloan", interval, s.miniAppSimulator.SimulateFlashLoan)
-		go s.runMiniAppWorkflow("price-ticker", interval, s.miniAppSimulator.SimulatePriceTicker)
-
-		// New MiniApps
-		go s.runMiniAppWorkflow("gas-spin", interval, s.miniAppSimulator.SimulateGasSpin)
-		go s.runMiniAppWorkflow("price-predict", interval, s.miniAppSimulator.SimulatePricePredict)
-		go s.runMiniAppWorkflow("secret-vote", interval, s.miniAppSimulator.SimulateSecretVote)
-
-		// Phase 4 MiniApps - Long-Running Processes
-		go s.runMiniAppWorkflow("ai-trader", interval, s.miniAppSimulator.SimulateAITrader)
-		go s.runMiniAppWorkflow("grid-bot", interval, s.miniAppSimulator.SimulateGridBot)
-		go s.runMiniAppWorkflow("nft-evolve", interval, s.miniAppSimulator.SimulateNFTEvolve)
-		go s.runMiniAppWorkflow("bridge-guardian", interval, s.miniAppSimulator.SimulateBridgeGuardian)
-
-		// Phase 5 MiniApps - Additional Business Models
-		go s.runMiniAppWorkflow("turbo-options", interval, s.miniAppSimulator.SimulateTurboOptions)
-		go s.runMiniAppWorkflow("il-guard", interval, s.miniAppSimulator.SimulateILGuard)
-		go s.runMiniAppWorkflow("secret-poker", interval, s.miniAppSimulator.SimulateSecretPoker)
-		go s.runMiniAppWorkflow("micro-predict", interval, s.miniAppSimulator.SimulateMicroPredict)
-		go s.runMiniAppWorkflow("red-envelope", interval, s.miniAppSimulator.SimulateRedEnvelope)
-		go s.runMiniAppWorkflow("gas-circle", interval, s.miniAppSimulator.SimulateGasCircle)
-		go s.runMiniAppWorkflow("gov-booster", interval, s.miniAppSimulator.SimulateGovBooster)
-		go s.runMiniAppWorkflow("fog-chess", interval, s.miniAppSimulator.SimulateFogChess)
-
-		s.Logger().WithContext(ctx).Info("MiniApp workflow simulators started for all 23 apps at 15s intervals")
+		miniAppWorkers = s.startMiniAppWorkflows(ctx)
 	}
 
 	// Start automation task auto top-up worker if chain client is available
@@ -363,7 +342,7 @@ func (s *Service) Start(ctx context.Context) error {
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 		"mini_apps":         s.miniApps,
 		"workers_per_app":   s.workersPerApp,
-		"total_workers":     len(s.miniApps) * s.workersPerApp,
+		"miniapp_workers":   miniAppWorkers,
 		"contract_invoker":  s.contractInvoker != nil,
 		"miniapp_simulator": s.miniAppSimulator != nil,
 	}).Info("simulation started")
@@ -374,15 +353,20 @@ func (s *Service) Start(ctx context.Context) error {
 // Stop stops the simulation.
 func (s *Service) Stop() error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if !s.running {
+		s.mu.Unlock()
 		return fmt.Errorf("simulation not running")
 	}
 
 	s.running = false
 	close(s.stopCh)
 	s.startedAt = nil
+	contractInvoker := s.contractInvoker
+	s.mu.Unlock()
+
+	if contractInvoker != nil {
+		contractInvoker.Close()
+	}
 
 	s.Logger().WithContext(context.Background()).Info("simulation stopped")
 
@@ -394,9 +378,11 @@ func (s *Service) GetStatus() *SimulationStatus {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	miniApps := append([]string(nil), s.miniApps...)
+
 	status := &SimulationStatus{
 		Running:       s.running,
-		MiniApps:      s.miniApps,
+		MiniApps:      miniApps,
 		MinIntervalMS: int(s.minInterval.Milliseconds()),
 		MaxIntervalMS: int(s.maxInterval.Milliseconds()),
 		TxCounts:      make(map[string]int64),
@@ -556,29 +542,38 @@ func (s *Service) simulateApp(appID string, workerID int) {
 // randomInterval returns a random interval between minInterval and maxInterval.
 func (s *Service) randomInterval() time.Duration {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
+	minInterval := s.minInterval
+	maxInterval := s.maxInterval
+	s.mu.RUnlock()
 
-	minMS := s.minInterval.Milliseconds()
-	maxMS := s.maxInterval.Milliseconds()
+	minMS := minInterval.Milliseconds()
+	maxMS := maxInterval.Milliseconds()
 
 	if minMS >= maxMS {
-		return s.minInterval
+		return minInterval
 	}
 
+	s.rngMu.Lock()
 	randomMS := minMS + s.rng.Int63n(maxMS-minMS+1)
+	s.rngMu.Unlock()
 	return time.Duration(randomMS) * time.Millisecond
 }
 
 // randomAmount returns a random amount between minAmount and maxAmount.
 func (s *Service) randomAmount() int64 {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
+	minAmount := s.minAmount
+	maxAmount := s.maxAmount
+	s.mu.RUnlock()
 
-	if s.minAmount >= s.maxAmount {
-		return s.minAmount
+	if minAmount >= maxAmount {
+		return minAmount
 	}
 
-	return s.minAmount + s.rng.Int63n(s.maxAmount-s.minAmount+1)
+	s.rngMu.Lock()
+	randomAmount := minAmount + s.rng.Int63n(maxAmount-minAmount+1)
+	s.rngMu.Unlock()
+	return randomAmount
 }
 
 // recordTransaction records a simulated transaction to the database.
@@ -651,7 +646,7 @@ func (s *Service) runPriceFeedUpdater() {
 				} else {
 					logger.WithFields(map[string]interface{}{
 						"symbol":  symbol,
-						"tx_hash": txHash[:16] + "...",
+						"tx_hash": shortHash(txHash),
 					}).Debug("PriceFeed updated")
 				}
 				time.Sleep(500 * time.Millisecond) // Small delay between updates
@@ -679,7 +674,7 @@ func (s *Service) runRandomnessRecorder() {
 				logger.WithError(err).Warn("RandomnessLog record failed")
 			} else {
 				logger.WithFields(map[string]interface{}{
-					"tx_hash": txHash[:16] + "...",
+					"tx_hash": shortHash(txHash),
 				}).Debug("RandomnessLog recorded")
 			}
 		}
@@ -714,7 +709,7 @@ func (s *Service) runPaymentHubPayer(appID string) {
 			} else {
 				logger.WithFields(map[string]interface{}{
 					"amount":  amount,
-					"tx_hash": txHash[:16] + "...",
+					"tx_hash": shortHash(txHash),
 				}).Debug("PaymentHub payment sent")
 			}
 		}
@@ -722,24 +717,37 @@ func (s *Service) runPaymentHubPayer(appID string) {
 }
 
 // runMiniAppWorkflow runs a MiniApp workflow simulation loop.
-func (s *Service) runMiniAppWorkflow(appName string, interval time.Duration, workflowFn func(context.Context) error) {
+func (s *Service) runMiniAppWorkflow(appID string, workerID int, workflowFn func(context.Context) error) {
 	ctx := context.Background()
-	logger := s.Logger().WithFields(map[string]interface{}{"worker": "miniapp", "app": appName})
+	logger := s.Logger().WithFields(map[string]interface{}{
+		"worker":    "miniapp",
+		"app_id":    appID,
+		"worker_id": workerID,
+	})
 
 	// Stagger start times based on app name
-	time.Sleep(time.Duration(len(appName)%5) * time.Second)
+	time.Sleep(time.Duration(len(appID)%5) * time.Second)
 
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	logger.WithContext(ctx).WithField("interval", interval.String()).Info("starting MiniApp workflow simulator")
+	s.mu.RLock()
+	minInterval := s.minInterval
+	maxInterval := s.maxInterval
+	s.mu.RUnlock()
+	logger.WithContext(ctx).WithFields(map[string]interface{}{
+		"min_interval": minInterval.String(),
+		"max_interval": maxInterval.String(),
+	}).Info("starting MiniApp workflow simulator")
 
 	for {
+		interval := s.randomInterval()
+		timer := time.NewTimer(interval)
 		select {
 		case <-s.stopCh:
+			if !timer.Stop() {
+				<-timer.C
+			}
 			logger.WithContext(ctx).Info("stopping MiniApp workflow simulator")
 			return
-		case <-ticker.C:
+		case <-timer.C:
 			err := workflowFn(ctx)
 			if err != nil {
 				logger.WithError(err).Warn("MiniApp workflow failed")
@@ -748,6 +756,106 @@ func (s *Service) runMiniAppWorkflow(appName string, interval time.Duration, wor
 			}
 		}
 	}
+}
+
+func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
+	workflowByAppID := map[string]func(context.Context) error{
+		"builtin-lottery":           s.miniAppSimulator.SimulateLottery,
+		"builtin-coin-flip":         s.miniAppSimulator.SimulateCoinFlip,
+		"builtin-dice-game":         s.miniAppSimulator.SimulateDiceGame,
+		"builtin-scratch-card":      s.miniAppSimulator.SimulateScratchCard,
+		"builtin-mega-millions":     s.miniAppSimulator.SimulateMegaMillions,
+		"builtin-gas-spin":          s.miniAppSimulator.SimulateGasSpin,
+		"builtin-prediction-market": s.miniAppSimulator.SimulatePredictionMarket,
+		"builtin-flashloan":         s.miniAppSimulator.SimulateFlashLoan,
+		"builtin-price-ticker":      s.miniAppSimulator.SimulatePriceTicker,
+		"builtin-price-predict":     s.miniAppSimulator.SimulatePricePredict,
+		"builtin-turbo-options":     s.miniAppSimulator.SimulateTurboOptions,
+		"builtin-il-guard":          s.miniAppSimulator.SimulateILGuard,
+		"builtin-secret-vote":       s.miniAppSimulator.SimulateSecretVote,
+		"builtin-secret-poker":      s.miniAppSimulator.SimulateSecretPoker,
+		"builtin-micro-predict":     s.miniAppSimulator.SimulateMicroPredict,
+		"builtin-red-envelope":      s.miniAppSimulator.SimulateRedEnvelope,
+		"builtin-gas-circle":        s.miniAppSimulator.SimulateGasCircle,
+		"builtin-gov-booster":       s.miniAppSimulator.SimulateGovBooster,
+		"builtin-ai-trader":         s.miniAppSimulator.SimulateAITrader,
+		"builtin-grid-bot":          s.miniAppSimulator.SimulateGridBot,
+		"builtin-nft-evolve":        s.miniAppSimulator.SimulateNFTEvolve,
+		"builtin-bridge-guardian":   s.miniAppSimulator.SimulateBridgeGuardian,
+		"builtin-fog-chess":         s.miniAppSimulator.SimulateFogChess,
+	}
+
+	apps := normalizeMiniAppIDs(s.miniApps)
+	if len(apps) == 0 {
+		allApps := AllMiniApps()
+		apps = make([]string, 0, len(allApps))
+		for _, app := range allApps {
+			apps = append(apps, app.AppID)
+		}
+	}
+
+	started := 0
+	for _, appID := range apps {
+		normalizedID := normalizeMiniAppID(appID)
+		if normalizedID == "" {
+			continue
+		}
+		workflow, ok := workflowByAppID[normalizedID]
+		if !ok {
+			s.Logger().WithContext(ctx).WithField("app_id", appID).Warn("unknown miniapp id; skipping")
+			continue
+		}
+		for workerID := 0; workerID < s.workersPerApp; workerID++ {
+			go s.runMiniAppWorkflow(normalizedID, workerID, workflow)
+			started++
+		}
+	}
+
+	if started > 0 {
+		s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
+			"mini_apps":       apps,
+			"workers_per_app": s.workersPerApp,
+			"total_workers":   started,
+			"min_interval":    s.minInterval.String(),
+			"max_interval":    s.maxInterval.String(),
+		}).Info("MiniApp workflow simulators started")
+	} else {
+		s.Logger().WithContext(ctx).Warn("MiniApp workflow simulators not started (no valid apps configured)")
+	}
+
+	return started
+}
+
+func normalizeMiniAppIDs(appIDs []string) []string {
+	if len(appIDs) == 0 {
+		return nil
+	}
+	normalized := make([]string, 0, len(appIDs))
+	for _, appID := range appIDs {
+		normalizedID := normalizeMiniAppID(appID)
+		if normalizedID != "" {
+			normalized = append(normalized, normalizedID)
+		}
+	}
+	return normalized
+}
+
+func normalizeMiniAppID(appID string) string {
+	trimmed := strings.TrimSpace(appID)
+	if trimmed == "" {
+		return ""
+	}
+	if strings.HasPrefix(trimmed, "builtin-") {
+		return trimmed
+	}
+	return "builtin-" + trimmed
+}
+
+func shortHash(hash string) string {
+	if len(hash) <= 16 {
+		return hash
+	}
+	return hash[:16] + "..."
 }
 
 // runAutoTopUp periodically checks for pool accounts with low GAS balance and funds them.

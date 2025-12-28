@@ -10,10 +10,10 @@ resources:
 
 # Patch all deployments for SGX hardware mode - only add SGX resources
 patches:
-  # Mount the AESM socket required by Open Enclave / DCAP on many SGX platforms.
-  # This is a hostPath to `/var/run/aesmd` provided by the Intel SGX runtime on the node.
+  # NeoFeeds SGX patch
   - target:
       kind: Deployment
+      name: neofeeds
     patch: |-
       - op: add
         path: /spec/template/spec/volumes/-
@@ -27,12 +27,6 @@ patches:
         value:
           name: aesmd-socket
           mountPath: /var/run/aesmd
-
-  # NeoFeeds SGX patch
-  - target:
-      kind: Deployment
-      name: neofeeds
-    patch: |-
       - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
         value: "1"
@@ -45,6 +39,18 @@ patches:
       kind: Deployment
       name: neoflow
     patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
       - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
         value: "1"
@@ -61,6 +67,18 @@ patches:
       name: neoaccounts
     patch: |-
       - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
+      - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
         value: "1"
       - op: add
@@ -72,6 +90,18 @@ patches:
       kind: Deployment
       name: neocompute
     patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
       - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
         value: "1"
@@ -85,6 +115,18 @@ patches:
       name: neovrf
     patch: |-
       - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
+      - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
         value: "1"
       - op: add
@@ -96,6 +138,18 @@ patches:
       kind: Deployment
       name: neooracle
     patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
       - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
         value: "1"
@@ -109,6 +163,18 @@ patches:
       name: neorequests
     patch: |-
       - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
+      - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
         value: "1"
       - op: add
@@ -120,6 +186,18 @@ patches:
       kind: Deployment
       name: globalsigner
     patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
       - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
         value: "1"

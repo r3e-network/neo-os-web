@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
 )
 
 func TestMasterKeyEndpoint_ReturnsAttestation(t *testing.T) {
 	svc, _ := newTestServiceWithMock(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/master-key", nil)
+	req.Header.Set(serviceauth.ServiceIDHeader, "neocompute")
 	w := httptest.NewRecorder()
 	svc.Router().ServeHTTP(w, req)
 

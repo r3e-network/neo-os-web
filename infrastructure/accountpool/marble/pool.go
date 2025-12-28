@@ -56,28 +56,20 @@ func (s *Service) RequestAccounts(ctx context.Context, serviceID string, count i
 	result := make([]AccountInfo, 0, len(accountsWithBalances))
 	for i := range accountsWithBalances {
 		acc := &accountsWithBalances[i]
-		acc.LockedBy = serviceID
-		acc.LockedAt = time.Now()
-
-		// Update account in DB
-		dbAcc := &neoaccountssupabase.Account{
-			ID:         acc.ID,
-			Address:    acc.Address,
-			CreatedAt:  acc.CreatedAt,
-			LastUsedAt: acc.LastUsedAt,
-			TxCount:    acc.TxCount,
-			IsRetiring: acc.IsRetiring,
-			LockedBy:   acc.LockedBy,
-			LockedAt:   acc.LockedAt,
-		}
-
-		if err := s.repo.Update(ctx, dbAcc); err != nil {
+		lockedAt := time.Now()
+		locked, err := s.repo.TryLockAccount(ctx, acc.ID, serviceID, lockedAt)
+		if err != nil {
 			s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
 				"account_id": acc.ID,
 				"service_id": serviceID,
 			}).Warn("failed to lock account")
 			continue
 		}
+		if !locked {
+			continue
+		}
+		acc.LockedBy = serviceID
+		acc.LockedAt = lockedAt
 
 		result = append(result, AccountInfoFromWithBalances(acc))
 

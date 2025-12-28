@@ -496,16 +496,16 @@ func (s *Service) confirmDeposit(ctx context.Context, deposit *database.DepositR
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Update deposit status
-	if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {
-		s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
-		return
-	}
-
 	// Credit user's balance
 	account, err := s.db.GetOrCreateGasBankAccount(ctx, deposit.UserID)
 	if err != nil {
 		s.Logger().WithContext(ctx).WithError(err).WithField("user_id", deposit.UserID).Warn("failed to get account for deposit credit")
+		return
+	}
+	if s.depositTransactionExists(ctx, account.ID, deposit.ID) {
+		if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {
+			s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
+		}
 		return
 	}
 
@@ -529,10 +529,41 @@ func (s *Service) confirmDeposit(ctx context.Context, deposit *database.DepositR
 		CreatedAt:    time.Now(),
 	}
 	if err := s.db.CreateGasBankTransaction(ctx, tx); err != nil {
-		s.Logger().WithContext(ctx).WithError(err).Warn("failed to record deposit transaction")
+		s.Logger().WithContext(ctx).WithError(err).Warn("failed to record deposit transaction, rolling back balance")
+		if rollbackErr := s.db.UpdateGasBankBalance(ctx, deposit.UserID, account.Balance, account.Reserved); rollbackErr != nil {
+			s.Logger().WithContext(ctx).WithError(rollbackErr).Error("CRITICAL: rollback failed, balance inconsistent")
+		}
+		return
+	}
+
+	if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {
+		s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
 	}
 
 	s.Logger().WithContext(ctx).WithField("user_id", deposit.UserID).WithField("amount", deposit.Amount).Info("deposit confirmed and credited")
+}
+
+func (s *Service) depositTransactionExists(ctx context.Context, accountID, depositID string) bool {
+	if s.db == nil || strings.TrimSpace(accountID) == "" || strings.TrimSpace(depositID) == "" {
+		return false
+	}
+
+	txs, err := s.db.GetGasBankTransactions(ctx, accountID, 1000)
+	if err != nil {
+		s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
+			"account_id": accountID,
+			"deposit_id": depositID,
+		}).Warn("failed to query deposit transactions for idempotency")
+		return false
+	}
+
+	for _, tx := range txs {
+		if tx.ReferenceID == depositID && tx.TxType == string(TxTypeDeposit) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // cleanupExpiredDeposits marks expired pending deposits as expired.

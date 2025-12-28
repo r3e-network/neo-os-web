@@ -1,6 +1,17 @@
 import type { NextApiRequest } from "next";
 
 const DEFAULT_FETCH_TIMEOUT_MS = 5000; // 5 seconds for SSR
+const EDGE_RPC_ALLOWLIST = String(process.env.EDGE_RPC_ALLOWLIST || "").trim();
+
+function parseAllowlist(raw: string): { allowAll: boolean; entries: Set<string> } {
+  if (!raw) return { allowAll: false, entries: new Set() };
+  const tokens = raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const allowAll = tokens.includes("*");
+  return { allowAll, entries: new Set(tokens) };
+}
 
 export function getEdgeFunctionsBaseUrl(): string {
   const raw = String(process.env.EDGE_BASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
@@ -50,6 +61,24 @@ export function forwardAuthHeaders(req: NextApiRequest): Headers {
   const apiKey = req.headers["x-api-key"];
   if (apiKey) headers.set("X-API-Key", Array.isArray(apiKey) ? apiKey.join(",") : apiKey);
   return headers;
+}
+
+export function forwardEdgeRpcHeaders(req: NextApiRequest): Headers {
+  const headers = forwardAuthHeaders(req);
+  const contentType = req.headers["content-type"];
+  if (contentType) headers.set("Content-Type", Array.isArray(contentType) ? contentType.join(",") : contentType);
+  const accept = req.headers["accept"];
+  if (accept) headers.set("Accept", Array.isArray(accept) ? accept.join(",") : accept);
+  return headers;
+}
+
+export function isEdgeRpcAllowed(fn: string): boolean {
+  const { allowAll, entries } = parseAllowlist(EDGE_RPC_ALLOWLIST);
+  if (allowAll) return true;
+  if (entries.size === 0) {
+    return process.env.NODE_ENV !== "production";
+  }
+  return entries.has(fn);
 }
 
 type RequestLike = {

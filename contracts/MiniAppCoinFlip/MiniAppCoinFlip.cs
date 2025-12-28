@@ -129,11 +129,16 @@ namespace NeoMiniAppPlatform.Contracts
         ///
         /// RETURNS: betId for tracking
         /// </summary>
-        public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice)
+        public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
             ExecutionEngine.Assert(amount >= MIN_BET, "min bet 0.05 GAS");
+
+            UInt160 gateway = Gateway();
+            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
+            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+
+            ValidatePaymentReceipt(APP_ID, player, amount, receiptId);
 
             // Generate bet ID
             BigInteger betId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_BET_ID) + 1;

@@ -131,10 +131,9 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// User buys a ticket with their chosen numbers.
         /// </summary>
-        public static BigInteger BuyTicket(UInt160 player, byte[] mainNumbers, byte megaBall)
+        public static BigInteger BuyTicket(UInt160 player, byte[] mainNumbers, byte megaBall, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
             ExecutionEngine.Assert(player.IsValid, "invalid player");
             ExecutionEngine.Assert(!IsDrawPending(), "draw in progress");
             ExecutionEngine.Assert(mainNumbers.Length == MAIN_NUMBERS_COUNT, "need 5 numbers");
@@ -142,6 +141,12 @@ namespace NeoMiniAppPlatform.Contracts
 
             for (int i = 0; i < MAIN_NUMBERS_COUNT; i++)
                 ExecutionEngine.Assert(mainNumbers[i] >= 1 && mainNumbers[i] <= MAIN_NUMBERS_MAX, "main 1-70");
+
+            UInt160 gateway = Gateway();
+            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
+            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+
+            ValidatePaymentReceipt(APP_ID, player, TICKET_PRICE, receiptId);
 
             BigInteger ticketId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TICKET_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_TICKET_ID, ticketId);

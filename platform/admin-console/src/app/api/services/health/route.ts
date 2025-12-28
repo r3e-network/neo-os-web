@@ -3,6 +3,7 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
+import { requireAdminAuth } from "@/lib/admin-auth";
 import type { ServiceHealth } from "@/types";
 
 const SERVICES = [
@@ -62,7 +63,10 @@ async function checkServiceHealth(name: string, url: string): Promise<ServiceHea
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const authError = requireAdminAuth(req);
+  if (authError) return authError;
+
   try {
     const healthChecks = await Promise.all(SERVICES.map((service) => checkServiceHealth(service.name, service.url)));
 

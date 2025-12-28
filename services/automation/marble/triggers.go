@@ -36,7 +36,14 @@ func (s *Service) checkAndExecuteTriggers(ctx context.Context) {
 		}
 		if trigger.TriggerType == "cron" && !trigger.NextExecution.IsZero() {
 			if now.After(trigger.NextExecution) {
-				go s.executeTrigger(ctx, trigger)
+				if !s.tryAcquireTriggerSlot() {
+					s.Logger().WithContext(ctx).WithField("trigger_id", trigger.ID).Warn("trigger execution skipped due to concurrency limit")
+					continue
+				}
+				go func(t *neoflowsupabase.Trigger) {
+					defer s.releaseTriggerSlot()
+					s.executeTrigger(ctx, t)
+				}(trigger)
 			}
 		}
 	}

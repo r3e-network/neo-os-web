@@ -3,6 +3,7 @@ package supabase
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -25,6 +26,7 @@ type RepositoryInterface interface {
 	List(ctx context.Context) ([]Account, error)
 	ListAvailable(ctx context.Context, limit int) ([]Account, error)
 	ListByLocker(ctx context.Context, lockerID string) ([]Account, error)
+	TryLockAccount(ctx context.Context, accountID, serviceID string, lockedAt time.Time) (bool, error)
 	Delete(ctx context.Context, id string) error
 
 	// Balance-aware account operations
@@ -113,6 +115,37 @@ func (r *Repository) ListByLocker(ctx context.Context, lockerID string) ([]Accou
 		return nil, fmt.Errorf("locker_id cannot be empty")
 	}
 	return database.GenericListByField[Account](r.base, ctx, tableName, "locked_by", lockerID)
+}
+
+// TryLockAccount attempts to lock an account if it is currently unlocked and active.
+// Returns true when the account was locked by this call.
+func (r *Repository) TryLockAccount(ctx context.Context, accountID, serviceID string, lockedAt time.Time) (bool, error) {
+	if accountID == "" || serviceID == "" {
+		return false, fmt.Errorf("account_id and service_id are required")
+	}
+
+	update := map[string]interface{}{
+		"locked_by": serviceID,
+		"locked_at": lockedAt,
+	}
+
+	query := database.NewQuery().
+		Eq("id", accountID).
+		IsNull("locked_by").
+		IsFalse("is_retiring").
+		Build()
+
+	data, err := r.base.Request(ctx, "PATCH", tableName, update, query)
+	if err != nil {
+		return false, err
+	}
+
+	var rows []Account
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return false, fmt.Errorf("unmarshal lock response: %w", err)
+	}
+
+	return len(rows) > 0, nil
 }
 
 // Delete deletes a pool account by ID.

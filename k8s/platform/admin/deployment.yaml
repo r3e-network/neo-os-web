@@ -48,6 +48,11 @@ spec:
                 secretKeyRef:
                   name: admin-console-secrets
                   key: NEXTAUTH_SECRET
+            - name: ADMIN_CONSOLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: admin-console-secrets
+                  key: ADMIN_CONSOLE_API_KEY
           resources:
             requests:
               memory: "256Mi"

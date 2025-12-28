@@ -2,12 +2,13 @@ package chain
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -95,7 +96,11 @@ func (b *TxBuilder) BuildAndSignTx(
 	// 4. Create transaction
 	tx := transaction.New(script, systemFee)
 	tx.ValidUntilBlock = validUntilBlock
-	tx.Nonce = rand.Uint32()
+	nonce, err := randomNonce()
+	if err != nil {
+		return nil, fmt.Errorf("generate nonce: %w", err)
+	}
+	tx.Nonce = nonce
 
 	// 5. Set signer
 	tx.Signers = []transaction.Signer{
@@ -189,6 +194,14 @@ func parseGasValue(gasStr string) (int64, error) {
 		return 0, fmt.Errorf("gas value out of range: %s", gasStr)
 	}
 	return value.Int64(), nil
+}
+
+func randomNonce() (uint32, error) {
+	var buf [4]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint32(buf[:]), nil
 }
 
 // =============================================================================
