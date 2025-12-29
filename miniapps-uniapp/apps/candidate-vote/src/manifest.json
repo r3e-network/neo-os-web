@@ -1,0 +1,13 @@
+{
+  "app_id": "miniapp-candidate-vote",
+  "name": "Candidate Vote",
+  "name_zh": "候选人投票",
+  "description": "Vote for platform candidate and earn GAS rewards",
+  "description_zh": "为平台候选人投票并获得 GAS 奖励",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-candidate-vote",
+  "permissions": ["wallet", "payments"],
+  "assets_allowed": ["NEO", "GAS"],
+  "category": "governance",
+  "tags": ["voting", "governance", "rewards", "staking"]
+}

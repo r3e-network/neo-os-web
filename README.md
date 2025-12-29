@@ -148,13 +148,14 @@ Each MiniApp has its own smart contract that handles app-specific logic and comm
 
 **Phase 3 - Advanced:**
 
-| Contract              | Hash                                         | Description                 |
-| --------------------- | -------------------------------------------- | --------------------------- |
-| MiniAppFogChess       | `0x23a44ca6643c104fbaa97daab65d5e53b3662b4a` | Chess with fog of war       |
-| MiniAppGovBooster     | `0xebabd9712f985afc0e5a4e24ed2fc4acb874796f` | NEO governance tools        |
-| MiniAppTurboOptions   | `0xbbe5a4d4272618b23b983c40e22d4b072e20f4bc` | Ultra-fast binary options   |
-| MiniAppILGuard        | `0xd3557ccbb2ced2254f5862fbc784cd97cf746872` | Impermanent loss protection |
-| MiniAppGuardianPolicy | `0x893a774957244b83a0efed1d42771fe1e424cfec` | TEE transaction security    |
+| Contract              | Hash                                         | Description                   |
+| --------------------- | -------------------------------------------- | ----------------------------- |
+| MiniAppFogChess       | `0x23a44ca6643c104fbaa97daab65d5e53b3662b4a` | Chess with fog of war         |
+| MiniAppGovBooster     | `0xebabd9712f985afc0e5a4e24ed2fc4acb874796f` | NEO governance tools          |
+| MiniAppTurboOptions   | `0xbbe5a4d4272618b23b983c40e22d4b072e20f4bc` | Ultra-fast binary options     |
+| MiniAppILGuard        | `0xd3557ccbb2ced2254f5862fbc784cd97cf746872` | Impermanent loss protection   |
+| MiniAppGuardianPolicy | `0x893a774957244b83a0efed1d42771fe1e424cfec` | TEE transaction security      |
+| MiniAppCandidateVote  | `TBD`                                        | Vote for candidate & earn GAS |
 
 **Phase 4 - Long-Running:**
 
@@ -209,6 +210,8 @@ Each MiniApp consists of:
 - `builtin-turbo-options` - Ultra-fast binary options
 - `builtin-il-guard` - Impermanent loss protection
 - `builtin-guardian-policy` - TEE transaction security
+- `builtin-candidate-vote` - Vote for platform candidate & earn GAS
+- `builtin-neoburger` - NeoBurger liquid staking integration
 
 **Phase 4 - Long-Running Processes:**
 
