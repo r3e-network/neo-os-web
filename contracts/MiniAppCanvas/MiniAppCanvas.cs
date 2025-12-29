@@ -51,7 +51,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-canvas";
+        private const string APP_ID = "miniapp-canvas";
         private const int CANVAS_WIDTH = 1920;
         private const int CANVAS_HEIGHT = 1080;
         private const long PIXEL_PRICE = 100;

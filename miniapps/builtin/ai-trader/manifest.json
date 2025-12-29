@@ -1,26 +1,13 @@
 {
-  "app_id": "builtin-ai-trader",
+  "app_id": "miniapp-aitrader",
   "name": "AI Trader",
-  "description": "Autonomous AI trading agent with TEE-secured strategy execution - 24/7 market monitoring and automated trading",
+  "name_zh": "AI 交易员",
+  "description": "AI-powered automated trading bot",
+  "description_zh": "AI 驱动的自动交易机器人",
   "version": "1.0.0",
-  "entry_url": "mf://builtin?app=ai-trader",
-  "developer_pubkey": "",
-  "permissions": {
-    "wallet": ["read-address"],
-    "payments": true,
-    "datafeed": true,
-    "automation": true,
-    "compute": true
-  },
+  "entry_url": "mf://builtin?app=miniapp-aitrader",
+  "permissions": { "payments": true, "datafeed": true },
   "assets_allowed": ["GAS"],
-  "limits": {
-    "max_per_tx": 100,
-    "max_per_user_per_day": 1000
-  },
   "category": "defi",
-  "tags": ["ai", "trading", "automation", "tee"],
-  "security": {
-    "attestation_required": true
-  },
-  "sandbox_flags": ["no-eval", "strict-csp"]
+  "tags": ["ai", "trading", "automation"]
 }

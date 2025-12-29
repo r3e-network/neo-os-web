@@ -41,7 +41,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-fogchess";
+        private const string APP_ID = "miniapp-fogchess";
         private const long MIN_STAKE = 50000000; // 0.5 GAS
         #endregion
 

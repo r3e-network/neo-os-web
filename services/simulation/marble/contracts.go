@@ -618,6 +618,19 @@ func loadMiniAppContractsFromEnv() map[string]string {
 		"GRIDBOT":           "builtin-grid-bot",
 		"NFTEVOLVE":         "builtin-nft-evolve",
 		"BRIDGEGUARDIAN":    "builtin-bridge-guardian",
+		"NEOCRASH":          "builtin-neo-crash",
+		"CANDLEWARS":        "builtin-candle-wars",
+		"DUTCHAUCTION":      "builtin-dutch-auction",
+		"PARASITE":          "builtin-the-parasite",
+		"THRONEOFGAS":       "builtin-throne-of-gas",
+		"NOLOSSLOTTERY":     "builtin-no-loss-lottery",
+		"DOOMSDAYCLOCK":     "builtin-doomsday-clock",
+		"PAYTOVIEW":         "builtin-pay-to-view",
+		"SCHRODINGERNFT":    "builtin-schrodinger-nft",
+		"ALGOBATTLE":        "builtin-algo-battle",
+		"TIMECAPSULE":       "builtin-time-capsule",
+		"GARDENOFNEO":       "builtin-garden-of-neo",
+		"DEVTIPPING":        "builtin-dev-tipping",
 	}
 
 	for envSuffix, appID := range miniAppEnvMapping {

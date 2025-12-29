@@ -37,9 +37,11 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-scratchcard";
+        private const string APP_ID = "miniapp-scratchcard";
         private const int PLATFORM_FEE_PERCENT = 5;
         private const int WIN_THRESHOLD = 20; // 20% win chance
+        private const long MIN_BET = 5000000;    // 0.05 GAS
+        private const long MAX_BET = 5000000000; // 50 GAS (anti-Martingale)
         #endregion
 
         #region App Prefixes (start from 0x10)
@@ -99,7 +101,11 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
             ExecutionEngine.Assert(cardType >= 1 && cardType <= 5, "invalid card type");
-            ExecutionEngine.Assert(cost > 0, "cost required");
+            ExecutionEngine.Assert(cost >= MIN_BET, "min cost 0.05 GAS");
+            ExecutionEngine.Assert(cost <= MAX_BET, "max cost 50 GAS (anti-Martingale)");
+
+            // Anti-Martingale protection
+            ValidateBetLimits(player, cost);
 
             BigInteger cardId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_CARD_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_CARD_ID, cardId);

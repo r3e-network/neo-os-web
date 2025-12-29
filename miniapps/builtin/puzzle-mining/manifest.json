@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-puzzlemining",
+  "name": "Puzzle Mining",
+  "name_zh": "拼图挖矿",
+  "description": "Mine puzzle pieces, complete puzzles to win",
+  "description_zh": "挖掘拼图碎片，完成拼图赢奖励",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-puzzlemining",
+  "permissions": { "wallet": ["read-address"], "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "gaming",
+  "tags": ["puzzle", "mining", "collaborative"]
+}

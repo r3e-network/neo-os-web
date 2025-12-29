@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-compound-capsule",
+  "name": "Compound Capsule",
+  "name_zh": "时间胶囊复利机",
+  "description": "Forced lock + auto-compound savings with penalty for early withdrawal",
+  "description_zh": "强制锁仓 + 自动复利，提前取款只能取回本金",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-compound-capsule",
+  "permissions": { "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "defi",
+  "tags": ["savings", "compound", "time-lock"]
+}

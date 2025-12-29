@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-canvas",
+  "name": "Neo Canvas",
+  "name_zh": "Neo 画布",
+  "description": "Collaborative pixel art canvas",
+  "description_zh": "协作像素艺术画布",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-canvas",
+  "permissions": { "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "creative",
+  "tags": ["art", "collaborative", "pixels"]
+}

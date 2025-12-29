@@ -38,7 +38,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-guardianpolicy";
+        private const string APP_ID = "miniapp-guardianpolicy";
         private const long MIN_COVERAGE = 100000000; // 1 GAS
         private const int PREMIUM_RATE_PERCENT = 5; // 5% of coverage
         private const ulong POLICY_DURATION = 2592000000; // 30 days in ms

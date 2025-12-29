@@ -200,7 +200,7 @@ func New(cfg Config) (*Service, error) {
 	if contractInvoker != nil {
 		// Use empty user addresses - will be populated from pool accounts
 		miniAppSimulator = NewMiniAppSimulator(contractInvoker, []string{})
-		fmt.Println("neosimulation: MiniApp simulator initialized for all 23 apps")
+		fmt.Println("neosimulation: MiniApp simulator initialized for all 35 apps")
 	}
 
 	s := &Service{
@@ -760,29 +760,49 @@ func (s *Service) runMiniAppWorkflow(appID string, workerID int, workflowFn func
 
 func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 	workflowByAppID := map[string]func(context.Context) error{
-		"builtin-lottery":           s.miniAppSimulator.SimulateLottery,
-		"builtin-coin-flip":         s.miniAppSimulator.SimulateCoinFlip,
-		"builtin-dice-game":         s.miniAppSimulator.SimulateDiceGame,
-		"builtin-scratch-card":      s.miniAppSimulator.SimulateScratchCard,
-		"builtin-mega-millions":     s.miniAppSimulator.SimulateMegaMillions,
-		"builtin-gas-spin":          s.miniAppSimulator.SimulateGasSpin,
+		// Gaming MiniApps
+		"builtin-lottery":        s.miniAppSimulator.SimulateLottery,
+		"builtin-coin-flip":      s.miniAppSimulator.SimulateCoinFlip,
+		"builtin-dice-game":      s.miniAppSimulator.SimulateDiceGame,
+		"builtin-scratch-card":   s.miniAppSimulator.SimulateScratchCard,
+		"builtin-mega-millions":  s.miniAppSimulator.SimulateMegaMillions,
+		"builtin-gas-spin":       s.miniAppSimulator.SimulateGasSpin,
+		"builtin-neo-crash":      s.miniAppSimulator.SimulateNeoCrash,
+		"builtin-throne-of-gas":  s.miniAppSimulator.SimulateThroneOfGas,
+		"builtin-doomsday-clock": s.miniAppSimulator.SimulateDoomsdayClock,
+		"builtin-schrodinger-nft": s.miniAppSimulator.SimulateSchrodingerNFT,
+		"builtin-algo-battle":    s.miniAppSimulator.SimulateAlgoBattle,
+
+		// DeFi MiniApps
 		"builtin-prediction-market": s.miniAppSimulator.SimulatePredictionMarket,
 		"builtin-flashloan":         s.miniAppSimulator.SimulateFlashLoan,
 		"builtin-price-ticker":      s.miniAppSimulator.SimulatePriceTicker,
 		"builtin-price-predict":     s.miniAppSimulator.SimulatePricePredict,
 		"builtin-turbo-options":     s.miniAppSimulator.SimulateTurboOptions,
 		"builtin-il-guard":          s.miniAppSimulator.SimulateILGuard,
-		"builtin-secret-vote":       s.miniAppSimulator.SimulateSecretVote,
-		"builtin-secret-poker":      s.miniAppSimulator.SimulateSecretPoker,
-		"builtin-micro-predict":     s.miniAppSimulator.SimulateMicroPredict,
-		"builtin-red-envelope":      s.miniAppSimulator.SimulateRedEnvelope,
-		"builtin-gas-circle":        s.miniAppSimulator.SimulateGasCircle,
-		"builtin-gov-booster":       s.miniAppSimulator.SimulateGovBooster,
-		"builtin-ai-trader":         s.miniAppSimulator.SimulateAITrader,
-		"builtin-grid-bot":          s.miniAppSimulator.SimulateGridBot,
-		"builtin-nft-evolve":        s.miniAppSimulator.SimulateNFTEvolve,
-		"builtin-bridge-guardian":   s.miniAppSimulator.SimulateBridgeGuardian,
-		"builtin-fog-chess":         s.miniAppSimulator.SimulateFogChess,
+		"builtin-candle-wars":       s.miniAppSimulator.SimulateCandleWars,
+		"builtin-dutch-auction":     s.miniAppSimulator.SimulateDutchAuction,
+		"builtin-the-parasite":      s.miniAppSimulator.SimulateParasite,
+		"builtin-no-loss-lottery":   s.miniAppSimulator.SimulateNoLossLottery,
+
+		// Social MiniApps
+		"builtin-secret-vote":   s.miniAppSimulator.SimulateSecretVote,
+		"builtin-secret-poker":  s.miniAppSimulator.SimulateSecretPoker,
+		"builtin-micro-predict": s.miniAppSimulator.SimulateMicroPredict,
+		"builtin-red-envelope":  s.miniAppSimulator.SimulateRedEnvelope,
+		"builtin-gas-circle":    s.miniAppSimulator.SimulateGasCircle,
+		"builtin-pay-to-view":   s.miniAppSimulator.SimulatePayToView,
+		"builtin-time-capsule":  s.miniAppSimulator.SimulateTimeCapsule,
+
+		// Other MiniApps
+		"builtin-gov-booster":     s.miniAppSimulator.SimulateGovBooster,
+		"builtin-ai-trader":       s.miniAppSimulator.SimulateAITrader,
+		"builtin-grid-bot":        s.miniAppSimulator.SimulateGridBot,
+		"builtin-nft-evolve":      s.miniAppSimulator.SimulateNFTEvolve,
+		"builtin-bridge-guardian": s.miniAppSimulator.SimulateBridgeGuardian,
+		"builtin-fog-chess":       s.miniAppSimulator.SimulateFogChess,
+		"builtin-garden-of-neo":   s.miniAppSimulator.SimulateGardenOfNeo,
+		"builtin-dev-tipping":     s.miniAppSimulator.SimulateDevTipping,
 	}
 
 	apps := normalizeMiniAppIDs(s.miniApps)

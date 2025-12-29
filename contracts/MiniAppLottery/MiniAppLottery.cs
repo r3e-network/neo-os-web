@@ -38,9 +38,11 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-lottery";
+        private const string APP_ID = "miniapp-lottery";
         private const long TICKET_PRICE = 10000000; // 0.1 GAS
         private const int PLATFORM_FEE_PERCENT = 10;
+        private const int MAX_TICKETS_PER_TX = 100;  // Max 100 tickets per transaction (anti-Martingale)
+        private const int MAX_TICKETS_PER_ROUND = 500; // Max 500 tickets per player per round
         #endregion
 
         #region App Prefixes (start from 0x10)
@@ -106,7 +108,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void BuyTickets(UInt160 player, BigInteger ticketCount, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(ticketCount > 0 && ticketCount <= 100, "1-100 tickets");
+            ExecutionEngine.Assert(ticketCount > 0 && ticketCount <= MAX_TICKETS_PER_TX, "1-100 tickets max");
             ExecutionEngine.Assert(!IsDrawPending(), "draw in progress");
 
             UInt160 gateway = Gateway();
@@ -115,6 +117,9 @@ namespace NeoMiniAppPlatform.Contracts
 
             BigInteger totalCost = ticketCount * TICKET_PRICE;
             BigInteger roundId = CurrentRound();
+
+            // Anti-Martingale: Validate bet limits
+            ValidateBetLimits(player, totalCost);
 
             ValidatePaymentReceipt(APP_ID, player, totalCost, receiptId);
 

@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-cryptoriddle",
+  "name": "Crypto Riddle",
+  "name_zh": "口令红包猎人",
+  "description": "Password-protected red envelopes with riddles",
+  "description_zh": "口令红包 - 猜谜领取奖励",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-cryptoriddle",
+  "permissions": { "wallet": ["read-address"], "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "gaming",
+  "tags": ["riddle", "password", "reward"]
+}

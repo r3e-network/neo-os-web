@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-nftchimera",
+  "name": "NFT Chimera",
+  "name_zh": "NFT 融合进化论",
+  "description": "Fuse two NFTs to create hybrid offspring",
+  "description_zh": "融合两个 NFT 创造混血后代",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-nftchimera",
+  "permissions": { "wallet": ["read-address"], "payments": true, "rng": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub", "RandomnessLog"],
+  "category": "creative",
+  "tags": ["nft", "fusion", "evolution"]
+}

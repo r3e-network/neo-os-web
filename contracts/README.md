@@ -56,7 +56,7 @@ gateway + TEE services, with final enforcement at the contract layer.
 | **AutomationAnchor**    | `AutomationAnchor/AutomationAnchor.cs`       | Task scheduling with nonce-based anti-replay       |
 | **ServiceLayerGateway** | `ServiceLayerGateway/ServiceLayerGateway.cs` | On-chain service request routing + callbacks       |
 
-## MiniApp Contracts (27 Deployed)
+## MiniApp Contracts (67 Deployed)
 
 Each MiniApp has its own smart contract that handles app-specific logic using the **Chainlink-style oracle pattern**. Contracts actively request services from ServiceLayerGateway and receive callbacks with results. All MiniApp contracts use the shared `MiniAppContract` partial class pattern for common functionality.
 
@@ -324,7 +324,7 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | MiniAppMicroPredict     | `0x73264e59d8215e28485420bb33ba841ff6fb45f8` | ✅ Active |
 | MiniAppRedEnvelope      | `0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e` | ✅ Active |
 | MiniAppGasCircle        | `0x7736c8d1ff918f94d26adc688dac4d4bc084bd39` | ✅ Active |
-| MiniAppCanvas           | `TBD`                                        | 🆕 New    |
+| MiniAppCanvas           | `0x285e2dc88e15fee4684588f34985155ac95d8d98` | ✅ Active |
 
 **Phase 3 - Advanced:**
 
@@ -345,6 +345,67 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | MiniAppNFTEvolve      | `0xadd18a719d14d59c064244833cd2c812c79d6015` | ✅ Active |
 | MiniAppBridgeGuardian | `0x2d03f3e4ff10e14ea94081e0c21e79e79c33f9e3` | ✅ Active |
 
+**Phase 5 - New Gaming/DeFi/Social:**
+
+| Contract             | Hash                                         | Status    |
+| -------------------- | -------------------------------------------- | --------- |
+| MiniAppNeoCrash      | `0x2e594e12b2896c135c3c8c80dbf2317fa56ceead` | ✅ Active |
+| MiniAppCandleWars    | `0x9dddba9357b93e75c29aaeaf37e7851aaaed6dbe` | ✅ Active |
+| MiniAppDutchAuction  | `0xb4394ee9eee040a9cce5450fceaaeabe83946410` | ✅ Active |
+| MiniAppParasite      | `0xe1726fbc4b6a5862eb2336ff32494be9f117563b` | ✅ Active |
+| MiniAppThroneOfGas   | `0xa89c3f6d82ad2803e1e576a2b441660c93316678` | ✅ Active |
+| MiniAppNoLossLottery | `0x18cecd52efb529ac4e2827e9c9956c1bc450f154` | ✅ Active |
+| MiniAppDoomsdayClock | `0xe4f386057d6308b83a5fd2e84bc3eb9149adc719` | ✅ Active |
+| MiniAppPayToView     | `0xfa920907126e63b5360a68fbf607294a82ef6266` | ✅ Active |
+
+**Phase 6 - TEE-Powered Creative Apps:**
+
+| Contract              | Hash                                         | Status    |
+| --------------------- | -------------------------------------------- | --------- |
+| MiniAppSchrodingerNFT | `0x06fcf2d556322637e1b97ec1e0137c77c6a7b27e` | ✅ Active |
+| MiniAppAlgoBattle     | `0xb75677584c3f3b168129767534c1478d42144913` | ✅ Active |
+| MiniAppTimeCapsule    | `0x0108b2d8d020f921d9bdc82ffda5e55f9b749823` | ✅ Active |
+| MiniAppGardenOfNeo    | `0x192e2a0a1e050440b97d449b7905f37516042faa` | ✅ Active |
+| MiniAppDevTipping     | `0x93d2406a73e060d43cbe28fb26d863e5ac4744a2` | ✅ Active |
+
+**Phase 7 - Advanced DeFi & Social:**
+
+| Contract               | Hash                                         | Status    |
+| ---------------------- | -------------------------------------------- | --------- |
+| MiniAppAISoulmate      | `0x941d3f3662b5e4a744a06356ca4e91362d5c4556` | ✅ Active |
+| MiniAppDeadSwitch      | `0xb77119b93b305e75e5becb8c23a2962c4940e6e5` | ✅ Active |
+| MiniAppHeritageTrust   | `0x6d910186e2eee3fc38fd027e5e77d50d6f8c429b` | ✅ Active |
+| MiniAppDarkRadio       | `0xf4e6fc1a86281df7527eec74b809403822e973d8` | ✅ Active |
+| MiniAppZKBadge         | `0x34a71f8c85830789d82a6a6e966aef74a4f9292c` | ✅ Active |
+| MiniAppGraveyard       | `0x8cf45cdc1d879710c2b88fd8705696fe6f5aacb5` | ✅ Active |
+| MiniAppCompoundCapsule | `0x20397862ba24b84103a745ec2ed1f581126674dc` | ✅ Active |
+| MiniAppSelfLoan        | `0xb7522afccd80ad5b3cbc112033c22b3d8f2d120c` | ✅ Active |
+| MiniAppDarkPool        | `0x7c49a0c0184e2da82130de1e2c5fef283bd0a1a0` | ✅ Active |
+| MiniAppBurnLeague      | `0x8db1b8c67b52e02592d2ee7ceb47dea908ab0e46` | ✅ Active |
+| MiniAppGovMerc         | `0x69a013c8fde3e835d642717ef1af71f7e02ade00` | ✅ Active |
+
+**Phase 8 - Creative & Social:**
+
+| Contract                | Hash                                         | Status    |
+| ----------------------- | -------------------------------------------- | --------- |
+| MiniAppQuantumSwap      | `0x21f0b8f1fd5c65e239bda0bc8a04a367b821b79c` | ✅ Active |
+| MiniAppOnChainTarot     | `0xfff9616dd3d9e863bc72bf26ff0a0da2d698e767` | ✅ Active |
+| MiniAppExFiles          | `0x6057934459f1ddc6c63a63bc816afed971514b43` | ✅ Active |
+| MiniAppScreamToEarn     | `0xd726b3d241bef1ee299fa469f7cfbd03b7123e0f` | ✅ Active |
+| MiniAppBreakupContract  | `0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f` | ✅ Active |
+| MiniAppGeoSpotlight     | `0x2f74728dd5f3d143d2a2d2dbb99aa2f8feeb8353` | ✅ Active |
+| MiniAppPuzzleMining     | `0xefda59e287f0bf46d6c3ec5db565a339cb2c0e89` | ✅ Active |
+| MiniAppNFTChimera       | `0x3d75708a45c2e3850608b65d4588dc683672004a` | ✅ Active |
+| MiniAppWorldPiano       | `0x0920ef4ca5eca4836e2514af0c080d3741ba7c73` | ✅ Active |
+| MiniAppBountyHunter     | `0xa2a83c007d091ee65cda36c1b4c120c3c09304f9` | ✅ Active |
+| MiniAppMasqueradeDAO    | `0x07ff6bac7e2824d1cec0e71a1383d131cdf86c65` | ✅ Active |
+| MiniAppMeltingAsset     | `0x31662a42f65e394c2e038030e410b75251eb0705` | ✅ Active |
+| MiniAppUnbreakableVault | `0xcf4c6eb16baad22292fb3ced6e570c31fadddd4e` | ✅ Active |
+| MiniAppWhisperChain     | `0x28d346d23fe5cad44e12dafdbda4422764fa544a` | ✅ Active |
+| MiniAppMillionPieceMap  | `0xf4ab0fa6f245427482cb5c693a5f40baf6d58c71` | ✅ Active |
+| MiniAppFogPuzzle        | `0x1eafd1f7fc27607bd51ef4524c650c39ba2a7d55` | ✅ Active |
+| MiniAppCryptoRiddle     | `0x088b4974a83cd6afa4c52c041d75637317b54ad3` | ✅ Active |
+
 **Sample Contract:**
 
 | Contract               | Hash                                         | Status    |
@@ -353,7 +414,7 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 
 ## MiniApp Automation Support
 
-All 25 MiniApp contracts support periodic automation via AutomationAnchor integration. This enables scheduled task execution for time-sensitive operations.
+All 67 MiniApp contracts support periodic automation via AutomationAnchor integration. This enables scheduled task execution for time-sensitive operations.
 
 ### Automation Feature Matrix
 
@@ -384,6 +445,47 @@ All 25 MiniApp contracts support periodic automation via AutomationAnchor integr
 | MiniAppGovBooster       | Other    | Auto-unlock expired stakes      | interval     |
 | MiniAppGasCircle        | Other    | Auto-process circle payments    | cron         |
 | MiniAppCanvas           | Other    | Auto-create daily NFT           | cron         |
+| MiniAppNeoCrash         | Gaming   | Auto-settle crash rounds        | interval     |
+| MiniAppCandleWars       | Gaming   | Auto-resolve candle battles     | interval     |
+| MiniAppNoLossLottery    | Gaming   | Auto-distribute yield prizes    | cron         |
+| MiniAppDutchAuction     | DeFi     | Auto-settle expired auctions    | interval     |
+| MiniAppDoomsdayClock    | DeFi     | Auto-trigger doomsday events    | cron         |
+| MiniAppThroneOfGas      | Gaming   | Auto-crown new kings            | interval     |
+| MiniAppParasite         | Gaming   | Auto-spread parasite effects    | interval     |
+| MiniAppPayToView        | Social   | Auto-unlock expired content     | interval     |
+| MiniAppSchrodingerNFT   | Creative | Auto-collapse quantum states    | interval     |
+| MiniAppAlgoBattle       | Gaming   | Auto-run algorithm battles      | cron         |
+| MiniAppTimeCapsule      | Social   | Auto-unlock time capsules       | cron         |
+| MiniAppGardenOfNeo      | Creative | Auto-grow garden plants         | interval     |
+| MiniAppDevTipping       | Social   | Auto-distribute tips            | interval     |
+| MiniAppAISoulmate       | Social   | Auto-match soulmates            | cron         |
+| MiniAppDeadSwitch       | DeFi     | Auto-trigger dead switches      | interval     |
+| MiniAppHeritageTrust    | DeFi     | Auto-execute inheritance        | cron         |
+| MiniAppDarkRadio        | Social   | Auto-broadcast messages         | interval     |
+| MiniAppZKBadge          | Social   | Auto-verify badge proofs        | interval     |
+| MiniAppGraveyard        | Creative | Auto-process NFT burials        | interval     |
+| MiniAppCompoundCapsule  | DeFi     | Auto-compound yields            | interval     |
+| MiniAppSelfLoan         | DeFi     | Auto-liquidate self-loans       | interval     |
+| MiniAppDarkPool         | DeFi     | Auto-match dark pool orders     | interval     |
+| MiniAppBurnLeague       | Gaming   | Auto-settle burn competitions   | cron         |
+| MiniAppGovMerc          | Social   | Auto-execute governance votes   | cron         |
+| MiniAppQuantumSwap      | Gaming   | Auto-reveal quantum boxes       | interval     |
+| MiniAppOnChainTarot     | Creative | Auto-draw daily cards           | cron         |
+| MiniAppExFiles          | Social   | Auto-expire secret files        | interval     |
+| MiniAppScreamToEarn     | Gaming   | Auto-verify scream submissions  | interval     |
+| MiniAppBreakupContract  | Social   | Auto-execute breakup terms      | interval     |
+| MiniAppGeoSpotlight     | Social   | Auto-rotate geo spotlights      | cron         |
+| MiniAppPuzzleMining     | Gaming   | Auto-generate new puzzles       | cron         |
+| MiniAppNFTChimera       | Creative | Auto-merge NFT chimeras         | interval     |
+| MiniAppWorldPiano       | Creative | Auto-compose daily melodies     | cron         |
+| MiniAppBountyHunter     | Social   | Auto-expire bounties            | interval     |
+| MiniAppMasqueradeDAO    | Social   | Auto-reveal masked votes        | cron         |
+| MiniAppMeltingAsset     | DeFi     | Auto-melt depreciating assets   | interval     |
+| MiniAppUnbreakableVault | DeFi     | Auto-check vault conditions     | interval     |
+| MiniAppWhisperChain     | Social   | Auto-propagate whispers         | interval     |
+| MiniAppMillionPieceMap  | Creative | Auto-auction map pieces         | cron         |
+| MiniAppFogPuzzle        | Gaming   | Auto-reveal fog tiles           | interval     |
+| MiniAppCryptoRiddle     | Gaming   | Auto-expire unsolved riddles    | interval     |
 
 ### Standard Automation Interface
 

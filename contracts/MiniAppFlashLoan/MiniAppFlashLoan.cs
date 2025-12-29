@@ -39,10 +39,12 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-flashloan";
+        private const string APP_ID = "miniapp-flashloan";
         private const long MIN_LOAN = 100000000; // 1 GAS
         private const long MAX_LOAN = 10000000000000; // 100,000 GAS
         private const int FEE_BASIS_POINTS = 9; // 0.09%
+        private const ulong LOAN_COOLDOWN = 300000; // 5 minutes between loans (anti-abuse)
+        private const int MAX_DAILY_LOANS = 10; // Max 10 loans per day per borrower
         #endregion
 
         #region App Prefixes (start from 0x10)
@@ -50,6 +52,8 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_LOANS = new byte[] { 0x11 };
         private static readonly byte[] PREFIX_REQUEST_TO_LOAN = new byte[] { 0x12 };
         private static readonly byte[] PREFIX_POOL_BALANCE = new byte[] { 0x13 };
+        private static readonly byte[] PREFIX_BORROWER_LAST_LOAN = new byte[] { 0x14 };
+        private static readonly byte[] PREFIX_BORROWER_DAILY_COUNT = new byte[] { 0x15 };
         private static readonly byte[] PREFIX_AUTOMATION_TASK = new byte[] { 0x20 };
         private static readonly byte[] PREFIX_AUTOMATION_ANCHOR = new byte[] { 0x21 };
         #endregion
@@ -112,8 +116,14 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(callbackContract != null && callbackContract.IsValid, "callback contract required");
             ExecutionEngine.Assert(callbackMethod != null && callbackMethod.Length > 0, "callback method required");
 
+            // Anti-abuse: Check loan cooldown
+            ValidateLoanCooldown(borrower);
+
             BigInteger poolBalance = GetPoolBalance();
             ExecutionEngine.Assert(amount <= poolBalance, "insufficient pool balance");
+
+            // Record loan for rate limiting
+            RecordLoanRequest(borrower);
 
             BigInteger loanId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_LOAN_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_LOAN_ID, loanId);
@@ -240,6 +250,72 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext,
                 Helper.Concat(PREFIX_LOANS, (ByteString)loanId.ToByteArray()),
                 StdLib.Serialize(loan));
+        }
+
+        /// <summary>
+        /// Validates borrower hasn't exceeded loan frequency limits.
+        /// Anti-abuse: 5 min cooldown + max 10 loans/day.
+        /// </summary>
+        private static void ValidateLoanCooldown(UInt160 borrower)
+        {
+            // Check cooldown
+            byte[] lastLoanKey = Helper.Concat(PREFIX_BORROWER_LAST_LOAN, (ByteString)borrower);
+            ByteString lastLoanData = Storage.Get(Storage.CurrentContext, lastLoanKey);
+            if (lastLoanData != null)
+            {
+                BigInteger lastLoan = (BigInteger)lastLoanData;
+                BigInteger elapsed = Runtime.Time - lastLoan;
+                ExecutionEngine.Assert(elapsed >= LOAN_COOLDOWN, "wait 5 min between loans");
+            }
+
+            // Check daily limit
+            BigInteger dailyCount = GetBorrowerDailyCount(borrower);
+            ExecutionEngine.Assert(dailyCount < MAX_DAILY_LOANS, "max 10 loans per day");
+        }
+
+        /// <summary>
+        /// Records loan request for rate limiting.
+        /// </summary>
+        private static void RecordLoanRequest(UInt160 borrower)
+        {
+            // Update last loan time
+            byte[] lastLoanKey = Helper.Concat(PREFIX_BORROWER_LAST_LOAN, (ByteString)borrower);
+            Storage.Put(Storage.CurrentContext, lastLoanKey, Runtime.Time);
+
+            // Update daily count
+            BigInteger currentDay = Runtime.Time / 86400000;
+            byte[] countKey = Helper.Concat(PREFIX_BORROWER_DAILY_COUNT, (ByteString)borrower);
+            ByteString countData = Storage.Get(Storage.CurrentContext, countKey);
+
+            BigInteger count = 1;
+            if (countData != null)
+            {
+                object[] stored = (object[])StdLib.Deserialize(countData);
+                BigInteger storedDay = (BigInteger)stored[0];
+                if (storedDay == currentDay)
+                {
+                    count = (BigInteger)stored[1] + 1;
+                }
+            }
+            Storage.Put(Storage.CurrentContext, countKey,
+                StdLib.Serialize(new object[] { currentDay, count }));
+        }
+
+        /// <summary>
+        /// Gets borrower's loan count for current day.
+        /// </summary>
+        private static BigInteger GetBorrowerDailyCount(UInt160 borrower)
+        {
+            byte[] countKey = Helper.Concat(PREFIX_BORROWER_DAILY_COUNT, (ByteString)borrower);
+            ByteString countData = Storage.Get(Storage.CurrentContext, countKey);
+            if (countData == null) return 0;
+
+            object[] stored = (object[])StdLib.Deserialize(countData);
+            BigInteger storedDay = (BigInteger)stored[0];
+            BigInteger currentDay = Runtime.Time / 86400000;
+
+            if (storedDay != currentDay) return 0;
+            return (BigInteger)stored[1];
         }
 
         #endregion

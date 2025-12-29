@@ -5,99 +5,77 @@
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "neoflow": {
       "SignerID": "39e6afcff3bcf16f96e269eded072ad0c308ba9c05635a4c1d1c7cf95354bff4",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "neocompute": {
       "SignerID": "a0df9ca5ac309135056bda2cba925c5fdf86ebba29b4f57c2b051063b3b69b41",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "neovrf": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "neoaccounts": {
       "SignerID": "ca015eb0538d3d0232ca24299d4cd8df49d163f436860841b2f1442458484b13",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "neooracle": {
       "SignerID": "5f99b3647a376d0e8703db54340796f8476f3ab978aa7fd9b6945699e5f4b925",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "neorequests": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "globalsigner": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "txproxy": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "neogasbank": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     },
     "neosimulation": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": [
-        "UpToDate"
-      ]
+      "AcceptedTCBStatuses": ["UpToDate"]
     }
   },
   "Secrets": {
@@ -336,7 +314,15 @@
           "CONTRACT_MINIAPP_NFTEVOLVE_HASH": "0xadd18a719d14d59c064244833cd2c812c79d6015",
           "CONTRACT_MINIAPP_GOVBOOSTER_HASH": "0xebabd9712f985afc0e5a4e24ed2fc4acb874796f",
           "CONTRACT_MINIAPP_BRIDGEGUARDIAN_HASH": "0x2d03f3e4ff10e14ea94081e0c21e79e79c33f9e3",
-          "CONTRACT_MINIAPP_GUARDIANPOLICY_HASH": "0x893a774957244b83a0efed1d42771fe1e424cfec"
+          "CONTRACT_MINIAPP_GUARDIANPOLICY_HASH": "0x893a774957244b83a0efed1d42771fe1e424cfec",
+          "CONTRACT_MINIAPP_NEOCRASH_HASH": "0x2e594e12b2896c135c3c8c80dbf2317fa56ceead",
+          "CONTRACT_MINIAPP_CANDLEWARS_HASH": "0x9dddba9357b93e75c29aaeaf37e7851aaaed6dbe",
+          "CONTRACT_MINIAPP_DUTCHAUCTION_HASH": "0xb4394ee9eee040a9cce5450fceaaeabe83946410",
+          "CONTRACT_MINIAPP_PARASITE_HASH": "0xe1726fbc4b6a5862eb2336ff32494be9f117563b",
+          "CONTRACT_MINIAPP_THRONEOFGAS_HASH": "0xa89c3f6d82ad2803e1e576a2b441660c93316678",
+          "CONTRACT_MINIAPP_NOLOSSLOTTERY_HASH": "0x18cecd52efb529ac4e2827e9c9956c1bc450f154",
+          "CONTRACT_MINIAPP_DOOMSDAYCLOCK_HASH": "0xe4f386057d6308b83a5fd2e84bc3eb9149adc719",
+          "CONTRACT_MINIAPP_PAYTOVIEW_HASH": "0xfa920907126e63b5360a68fbf607294a82ef6266"
         }
       }
     }

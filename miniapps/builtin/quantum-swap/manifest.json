@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-quantumswap",
+  "name": "Quantum Swap",
+  "name_zh": "量子盲盒交换机",
+  "description": "Blind box exchange - swap without knowing what you'll get",
+  "description_zh": "盲盒交换 - 不知道会换到什么",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-quantumswap",
+  "permissions": { "wallet": ["read-address"], "payments": true, "rng": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub", "RandomnessLog"],
+  "category": "gaming",
+  "tags": ["blind-box", "swap", "mystery"]
+}

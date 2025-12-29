@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-neo-crash",
+  "name": "Neo Crash",
+  "name_zh": "Neo 崩盘游戏",
+  "description": "Crash game - cash out before it crashes",
+  "description_zh": "崩盘游戏 - 在崩盘前及时提现",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-neo-crash",
+  "permissions": { "payments": true, "rng": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub", "RandomnessLog"],
+  "category": "gaming",
+  "tags": ["crash", "multiplier", "timing"]
+}

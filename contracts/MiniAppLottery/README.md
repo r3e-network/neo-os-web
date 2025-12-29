@@ -267,3 +267,68 @@ This contract supports periodic automation via AutomationAnchor integration.
 - Frontend should listen to `TicketPurchased` and `WinnerDrawn` events
 - Admin must trigger draws through gateway with VRF service
 - Round tracking allows for historical lottery data
+
+## 中文说明
+
+### 概述
+
+MiniAppLottery 是一个基于 VRF 的彩票系统,玩家购买彩票以赢取累积奖池。彩票以轮次运行,每轮从彩票销售中累积奖池。使用可证明公平的 VRF 随机性选择获胜者,90% 的奖池作为奖金分配,10% 作为平台费用保留。
+
+### 核心功能
+
+1. **购买彩票**: 玩家以每张 0.1 GAS 的价格购买彩票(每次交易最多 100 张)
+2. **奖池累积**: 彩票收入累积到当前轮次的奖池中
+3. **VRF 开奖**: 管理员通过网关使用 VRF 随机性触发开奖
+4. **选择获胜者**: 合约使用随机性从彩票持有者中选择获胜者
+5. **奖金分配**: 获胜者获得奖池的 90%,10% 归平台所有
+6. **新轮次**: 合约重置奖池并递增轮次编号
+
+### 使用方法
+
+**购买彩票流程:**
+
+```
+1. 玩家通过 BuyTickets() 购买彩票
+2. 合约记录彩票并添加到奖池
+3. 合约发出 TicketPurchased 事件
+```
+
+**开奖流程:**
+
+```
+1. 管理员通过网关触发开奖
+2. 网关请求 VRF 随机性
+3. 网关使用随机性调用 OnServiceCallback()
+4. 合约内部调用 DrawWinner()
+5. 选择获胜者,计算奖金(奖池的 90%)
+6. 合约发出 WinnerDrawn 事件
+7. 新轮次开始,奖池重置
+```
+
+### 参数说明
+
+**BuyTickets 方法:**
+
+- `player`: 玩家地址
+- `ticketCount`: 购买彩票数量(1-100)
+
+**DrawWinner 方法:**
+
+- `randomness`: 来自网关的 VRF 随机性
+
+**游戏经济:**
+
+- 彩票价格: 0.1 GAS (10000000)
+- 每次购买最多彩票数: 100 张
+- 奖金分配: 90% 给获胜者,10% 平台费用
+- 基于轮次: 每次开奖开始新轮次,奖池清零
+
+**安全特性:**
+
+- 仅网关可触发开奖
+- 购买彩票需要玩家签名
+- 管理员控制功能需要见证验证
+- 紧急暂停机制
+- 使用 VRF 保证公平的随机性
+- 每次购买最多 100 张彩票防止操纵
+- 开奖前验证奖池存在

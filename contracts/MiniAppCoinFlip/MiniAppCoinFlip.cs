@@ -55,9 +55,10 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-coinflip";
+        private const string APP_ID = "miniapp-coinflip";
         private const int PLATFORM_FEE_PERCENT = 5;
-        private const long MIN_BET = 5000000; // 0.05 GAS
+        private const long MIN_BET = 5000000;    // 0.05 GAS
+        private const long MAX_BET = 5000000000; // 50 GAS (anti-Martingale)
         #endregion
 
         #region App Prefixes (start from 0x10)
@@ -133,6 +134,10 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount >= MIN_BET, "min bet 0.05 GAS");
+            ExecutionEngine.Assert(amount <= MAX_BET, "max bet 50 GAS (anti-Martingale)");
+
+            // Anti-Martingale: Validate bet limits (daily cap, cooldown, consecutive)
+            ValidateBetLimits(player, amount);
 
             UInt160 gateway = Gateway();
             bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
@@ -154,6 +159,9 @@ namespace NeoMiniAppPlatform.Contracts
                 Resolved = false
             };
             StoreBet(betId, bet);
+
+            // Record bet for anti-Martingale tracking
+            RecordBet(player, amount);
 
             // Request RNG from gateway
             BigInteger requestId = RequestRng(betId);

@@ -212,3 +212,59 @@ This contract supports periodic automation via AutomationAnchor integration.
 - Frontend should listen to `CardRevealed` events for real-time updates
 - Card type system allows for different prize tiers
 - Randomness must be at least 1 byte in length
+
+## 中文说明
+
+### 概述
+
+MiniAppScratchCard 是一个即开型刮刮卡游戏,玩家购买不同类型的卡片并使用 VRF 随机性揭开它们。玩家有 20% 的机会赢得双倍卡片成本(扣除 5% 平台费用)。游戏提供即时满足感,立即确定输赢。
+
+### 核心功能
+
+1. **购买卡片**: 玩家选择卡片类型(决定成本倍数)
+2. **揭开卡片**: 网关提供 VRF 随机性进行揭示
+3. **计算获胜**: 合约从随机性生成 0-99 的随机数
+4. **奖金确定**: 如果随机数 < 20(20% 机会),玩家赢得 `cost * cardType * 2 * 0.95`
+5. **即时支付**: 获胜者立即通过 PaymentHub 获得奖金
+
+### 使用方法
+
+**标准游戏流程:**
+
+```
+1. 玩家通过前端购买卡片
+2. 前端调用 Gateway 传入卡片类型和成本
+3. Gateway 请求 VRF 随机性
+4. Gateway 使用随机性调用 Reveal()
+5. 合约生成随机数(0-99)
+6. 合约计算奖金(20% 获胜机会)
+7. 合约发出 CardRevealed 事件
+8. PaymentHub 处理支付(如果获胜)
+9. 前端向玩家显示结果
+```
+
+### 参数说明
+
+**Reveal 方法:**
+
+- `player`: 玩家地址
+- `cardType`: 卡片类型(影响奖金倍数)
+- `cost`: 卡片支付的成本
+- `randomness`: 来自网关的 VRF 随机性
+
+**游戏经济:**
+
+- 获胜概率: 20%(1/5 机会)
+- 获胜倍数: 2x \* cardType
+- 平台费用: 5%
+- 有效支付: 1.9x _ cardType (2 _ 0.95)
+- 庄家优势: 5%
+- 预期回报: 38%(20% 获胜率 \* 1.9x 支付)
+
+**安全特性:**
+
+- 仅网关可访问游戏逻辑
+- 管理员控制功能需要见证验证
+- 紧急暂停机制
+- 使用 VRF 保证确定性随机性
+- 即时结算减少攻击面

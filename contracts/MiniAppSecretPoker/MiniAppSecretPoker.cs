@@ -41,7 +41,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-secretpoker";
+        private const string APP_ID = "miniapp-secretpoker";
         private const long MIN_BUY_IN = 100000000; // 1 GAS
         private const int MAX_PLAYERS = 9;
         #endregion
@@ -264,6 +264,13 @@ namespace NeoMiniAppPlatform.Contracts
                 object[] handResult = (object[])StdLib.Deserialize(result);
                 hand.Winner = (UInt160)handResult[0];
                 hand.Pot = (BigInteger)handResult[1];
+
+                // SECURITY FIX: Actually transfer GAS pot to winner
+                if (hand.Winner != UInt160.Zero && hand.Pot > 0)
+                {
+                    bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, hand.Winner, hand.Pot);
+                    ExecutionEngine.Assert(transferred, "pot transfer failed");
+                }
             }
 
             StoreHand(handId, hand);

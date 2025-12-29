@@ -276,3 +276,87 @@ Bridge validators integrate via:
 **Version**: 1.0.0
 **Author**: R3E Network
 **License**: See project root
+
+---
+
+## 中文说明
+
+### 概述
+
+MiniAppBridgeGuardian 是一个跨链桥接守护智能合约,在 Neo 区块链上监控和记录跨链资产转移。该合约作为桥接安全和验证的链上组件,记录转移事件并通过 ServiceLayerGateway 与外部桥接服务集成。
+
+### 核心功能
+
+该合约提供了一个安全的、由网关控制的跨链桥接操作接口。它可以:
+
+- 在链上记录跨链转移事件
+- 跟踪到不同目标链的转移
+- 发出事件用于桥接监控和分析
+- 通过回调与外部桥接验证器集成
+- 通过 ServiceLayerGateway 强制执行访问控制
+- 支持暂停/恢复功能以应对紧急情况
+
+桥接守护者是关键的安全组件,用于验证跨链转移,防止未经授权或欺诈性的桥接操作。
+
+### 使用方法
+
+#### 发起跨链桥接
+
+用户通过 `InitiateBridge()` 方法发起跨链转移:
+
+```csharp
+InitiateBridge(user, targetChain, amount, targetAddress)
+```
+
+- 指定目标区块链(如 "Ethereum", "BSC", "Polygon")
+- 设置转移金额(最低 1 GAS)
+- 提供目标链上的接收地址
+- 合约向预言机请求桥接验证
+
+#### 桥接验证流程
+
+1. 用户在前端发起桥接转移请求
+2. Gateway 验证用户余额和桥接参数
+3. Gateway 锁定用户资产(如果从 Neo 桥接)
+4. 合约调用 `InitiateBridge()` 记录转移详情
+5. 合约发出 `BridgeInitiated` 和 `VerificationRequested` 事件
+6. 链下桥接验证器监听事件
+7. 验证器验证转移并签署多签批准
+8. 资产在目标链上释放
+9. 确认通过 `OnServiceCallback()` 返回
+
+### 参数说明
+
+#### 合约常量
+
+- **APP_ID**: `"miniapp-bridgeguardian"`
+- **MIN_BRIDGE_AMOUNT**: `100000000` (1 GAS) - 最低桥接金额
+
+#### InitiateBridge 参数
+
+- `user`: 用户地址
+- `targetChain`: 目标区块链名称(如 "Ethereum", "BSC", "Polygon")
+- `amount`: 桥接金额(最低 1 GAS)
+- `targetAddress`: 目标链上的接收地址
+
+### 事件
+
+- **BridgeInitiated**: 发起桥接时触发
+- **VerificationRequested**: 请求验证时触发
+- **BridgeCompleted**: 桥接完成时触发(包含成功状态)
+
+### 自动化配置
+
+- 确认要求: 源链 12 个区块确认
+- 检查间隔: 每 30 秒
+- 验证器阈值: 2/3 多签
+- 批处理: 每批最多 20 个转移
+
+### 安全考虑
+
+1. **Gateway 专属访问**: 只有 Gateway 可以处理桥接转移
+2. **管理员控制**: 关键配置需要管理员签名
+3. **暂停机制**: 管理员可以在紧急情况下暂停所有桥接操作
+4. **多签验证**: 独立验证器进行多签验证
+5. **交易哈希跟踪**: 防止双花攻击
+6. **事件监控**: 基于事件的异常检测

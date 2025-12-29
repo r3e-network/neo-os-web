@@ -39,7 +39,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-secretvote";
+        private const string APP_ID = "miniapp-secretvote";
         #endregion
 
         #region App Prefixes (start from 0x10)

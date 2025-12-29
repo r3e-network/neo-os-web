@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-candle-wars",
+  "name": "Candle Wars",
+  "name_zh": "K线大战",
+  "description": "Binary options on price direction",
+  "description_zh": "价格方向二元期权",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-candle-wars",
+  "permissions": { "payments": true, "datafeed": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub", "PriceFeed"],
+  "category": "gaming",
+  "tags": ["trading", "prediction", "binary-options"]
+}

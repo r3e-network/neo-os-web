@@ -40,7 +40,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-megamillions";
+        private const string APP_ID = "miniapp-megamillions";
         private const int MAIN_NUMBERS_COUNT = 5;
         private const int MAIN_NUMBERS_MAX = 70;
         private const int MEGA_BALL_MAX = 25;

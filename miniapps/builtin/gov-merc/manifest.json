@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-gov-merc",
+  "name": "Gov Merc",
+  "name_zh": "众筹算力",
+  "description": "Governance mercenary - vote rental marketplace like Curve War",
+  "description_zh": "出租投票权，NEO 版 Curve War，投票权明码标价",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-gov-merc",
+  "permissions": { "payments": true, "governance": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub", "Governance"],
+  "category": "social",
+  "tags": ["governance", "voting", "marketplace"]
+}

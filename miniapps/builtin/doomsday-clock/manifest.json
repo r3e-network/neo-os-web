@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-doomsday-clock",
+  "name": "Doomsday Clock",
+  "name_zh": "末日时钟",
+  "description": "FOMO3D style - last buyer wins the pot",
+  "description_zh": "FOMO3D 风格 - 最后买家赢得奖池",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-doomsday-clock",
+  "permissions": { "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "gaming",
+  "tags": ["fomo", "timer", "jackpot"]
+}

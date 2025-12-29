@@ -1,26 +1,13 @@
 {
-  "app_id": "builtin-grid-bot",
-  "name": "Grid Trading Bot",
-  "description": "Automated grid trading market maker with price-triggered order management and TEE strategy protection",
+  "app_id": "miniapp-gridbot",
+  "name": "Grid Bot",
+  "name_zh": "网格机器人",
+  "description": "Automated grid trading strategy",
+  "description_zh": "自动化网格交易策略",
   "version": "1.0.0",
-  "entry_url": "mf://builtin?app=grid-bot",
-  "developer_pubkey": "",
-  "permissions": {
-    "wallet": ["read-address"],
-    "payments": true,
-    "datafeed": true,
-    "automation": true,
-    "compute": true
-  },
+  "entry_url": "mf://builtin?app=miniapp-gridbot",
+  "permissions": { "payments": true, "datafeed": true },
   "assets_allowed": ["GAS"],
-  "limits": {
-    "max_per_tx": 50,
-    "max_per_user_per_day": 500
-  },
   "category": "defi",
-  "tags": ["trading", "grid", "market-maker", "automation"],
-  "security": {
-    "attestation_required": true
-  },
-  "sandbox_flags": ["no-eval", "strict-csp"]
+  "tags": ["trading", "grid", "automation"]
 }

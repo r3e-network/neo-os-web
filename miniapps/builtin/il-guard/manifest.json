@@ -1,27 +1,14 @@
 {
-  "app_id": "builtin-il-guard",
+  "app_id": "miniapp-ilguard",
   "name": "IL Guard",
-  "description": "Impermanent loss protection - auto-withdraw LP when price deviates",
+  "name_zh": "无常损失保护",
+  "description": "Impermanent loss protection for LPs",
+  "description_zh": "流动性提供者无常损失保护",
   "version": "1.0.0",
-  "entry_url": "https://cdn.miniapps.com/miniapps/builtin/il-guard/index.html",
-  "developer_pubkey": "0x03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5",
-  "permissions": {
-    "wallet": ["read-address"],
-    "payments": true,
-    "governance": false,
-    "rng": false,
-    "datafeed": true,
-    "automation": true
-  },
+  "entry_url": "mf://builtin?app=miniapp-ilguard",
+  "permissions": { "payments": true, "datafeed": true },
   "assets_allowed": ["GAS"],
-  "governance_assets_allowed": [],
-  "limits": {
-    "max_gas_per_tx": "10",
-    "daily_gas_cap_per_user": "100"
-  },
   "contracts_needed": ["PaymentHub", "PriceFeed"],
-  "sandbox_flags": ["no-eval", "strict-csp"],
-  "attestation_required": true,
   "category": "defi",
-  "tags": ["impermanent-loss", "lp", "protection", "defi", "automation"]
+  "tags": ["impermanent-loss", "lp", "protection"]
 }

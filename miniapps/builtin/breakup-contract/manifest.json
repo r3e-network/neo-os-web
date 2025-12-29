@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-breakupcontract",
+  "name": "Breakup Contract",
+  "name_zh": "分手合约",
+  "description": "Relationship commitment with GAS stakes",
+  "description_zh": "恋爱承诺合约，质押 GAS",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-breakupcontract",
+  "permissions": { "wallet": ["read-address"], "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "social",
+  "tags": ["relationship", "commitment", "stake"]
+}

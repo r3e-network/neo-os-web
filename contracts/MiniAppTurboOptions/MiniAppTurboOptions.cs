@@ -36,9 +36,10 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-turbooptions";
+        private const string APP_ID = "miniapp-turbooptions";
         private const int PLATFORM_FEE_PERCENT = 15;
-        private const long MIN_STAKE = 5000000; // 0.05 GAS
+        private const long MIN_STAKE = 5000000;    // 0.05 GAS
+        private const long MAX_STAKE = 5000000000; // 50 GAS (anti-Martingale)
         private const ulong OPTION_DURATION = 30000; // 30 seconds
         #endregion
 
@@ -100,7 +101,11 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(trader), "unauthorized");
             ExecutionEngine.Assert(symbol != null && symbol.Length > 0, "symbol required");
             ExecutionEngine.Assert(stake >= MIN_STAKE, "min stake 0.05 GAS");
+            ExecutionEngine.Assert(stake <= MAX_STAKE, "max stake 50 GAS (anti-Martingale)");
             ExecutionEngine.Assert(startPrice > 0, "start price required");
+
+            // Anti-Martingale protection
+            ValidateBetLimits(trader, stake);
 
             BigInteger optionId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_OPTION_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_OPTION_ID, optionId);
@@ -200,6 +205,13 @@ namespace NeoMiniAppPlatform.Contracts
             StoreOption(optionId, option);
             Storage.Delete(Storage.CurrentContext,
                 Helper.Concat(PREFIX_REQUEST_TO_OPTION, (ByteString)requestId.ToByteArray()));
+
+            // SECURITY FIX: Actually transfer GAS payout to winner
+            if (won && payout > 0)
+            {
+                bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, option.Trader, payout);
+                ExecutionEngine.Assert(transferred, "payout transfer failed");
+            }
 
             OnTurboResult(option.Trader, won, payout, optionId);
         }

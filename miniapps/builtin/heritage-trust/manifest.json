@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-heritage-trust",
+  "name": "Heritage Trust",
+  "name_zh": "遗产信托 DAO",
+  "description": "Living trust DAO - enjoy while alive, auto-inherit after death",
+  "description_zh": "生前享用，死后传承，替代昂贵的律师和信托机构",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-heritage-trust",
+  "permissions": { "payments": true, "governance": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub", "Governance"],
+  "category": "social",
+  "tags": ["trust", "inheritance", "dao"]
+}
