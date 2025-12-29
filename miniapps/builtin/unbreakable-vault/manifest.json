@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-unbreakablevault",
+  "name": "Unbreakable Vault",
+  "name_zh": "黑客悬赏箱",
+  "description": "Hacker bounty challenge - break the vault to win",
+  "description_zh": "黑客悬赏挑战 - 破解保险箱赢奖励",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-unbreakablevault",
+  "permissions": { "wallet": ["read-address"], "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "gaming",
+  "tags": ["security", "bounty", "challenge"]
+}

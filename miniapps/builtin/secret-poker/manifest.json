@@ -1,27 +1,14 @@
 {
-  "app_id": "builtin-secret-poker",
-  "name": "Secret Hand Poker",
-  "description": "Privacy-preserving Texas Hold'em with TEE shuffling - no one can see your cards",
+  "app_id": "miniapp-secretpoker",
+  "name": "Secret Poker",
+  "name_zh": "秘密扑克",
+  "description": "Provably fair poker with hidden cards",
+  "description_zh": "可验证公平的隐藏牌扑克游戏",
   "version": "1.0.0",
-  "entry_url": "https://cdn.miniapps.com/miniapps/builtin/secret-poker/index.html",
-  "developer_pubkey": "0x03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5",
-  "permissions": {
-    "wallet": ["read-address"],
-    "payments": true,
-    "governance": false,
-    "rng": true,
-    "datafeed": false,
-    "compute": true
-  },
+  "entry_url": "mf://builtin?app=miniapp-secretpoker",
+  "permissions": { "payments": true, "rng": true },
   "assets_allowed": ["GAS"],
-  "governance_assets_allowed": [],
-  "limits": {
-    "max_gas_per_tx": "50",
-    "daily_gas_cap_per_user": "500"
-  },
   "contracts_needed": ["PaymentHub", "RandomnessLog"],
-  "sandbox_flags": ["no-eval", "strict-csp"],
-  "attestation_required": true,
   "category": "gaming",
-  "tags": ["poker", "texas-holdem", "tee", "privacy", "cards"]
+  "tags": ["poker", "privacy", "cards"]
 }

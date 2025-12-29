@@ -38,7 +38,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-predictionmarket";
+        private const string APP_ID = "miniapp-predictionmarket";
         private const int PLATFORM_FEE_PERCENT = 10;
         private const long MIN_BET = 10000000; // 0.1 GAS
         private const ulong MIN_DURATION = 60000; // 1 minute in milliseconds

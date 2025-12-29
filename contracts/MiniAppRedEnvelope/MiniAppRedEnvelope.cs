@@ -43,7 +43,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-redenvelope";
+        private const string APP_ID = "miniapp-redenvelope";
         private const long MIN_AMOUNT = 10000000; // 0.1 GAS
         private const int MAX_PACKETS = 100;
         #endregion

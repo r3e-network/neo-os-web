@@ -152,3 +152,74 @@ Before using this contract:
 - **Version**: 1.0.0
 - **Description**: Price Ticker - Real-time price feeds
 - **Permissions**: Full contract permissions (`*`, `*`)
+
+## 中文说明
+
+### 概述
+
+MiniAppPriceTicker 是一个实时价格信息展示合约,为用户提供加密货币和资产的价格数据。它作为价格预言机和市场数据源的数据可视化层,服务于Neo MiniApp平台。
+
+### 核心功能
+
+- **实时价格更新**: 通过预言机服务获取并存储最新市场价格
+- **多币种支持**: 支持任意交易对的价格查询
+- **链上价格存储**: 其他合约可直接读取价格数据
+- **自动化更新**: 支持周期性自动更新价格数据
+- **速率限制**: 防止价格更新过于频繁(最小60秒间隔)
+
+### 使用方法
+
+#### 请求价格更新
+
+```csharp
+RequestPriceUpdate(symbol)
+```
+
+**参数:**
+
+- `symbol`: 交易对符号(例如 "BTC", "ETH", "NEO")
+
+**流程:**
+
+1. 任何人都可以请求价格更新
+2. 合约检查速率限制(距上次更新至少60秒)
+3. 向ServiceLayerGateway请求价格数据
+4. 预言机服务返回最新价格
+5. 合约存储价格和时间戳
+6. 触发 `PriceUpdated` 事件
+
+#### 查询价格
+
+```csharp
+GetPrice(symbol)  // 返回价格
+GetPriceTimestamp(symbol)  // 返回更新时间
+```
+
+### 参数说明
+
+**合约常量:**
+
+- `MIN_UPDATE_INTERVAL`: 60000 (60秒) - 最小更新间隔
+
+**数据存储:**
+
+- 价格数据按交易对符号存储
+- 每个价格都有对应的时间戳
+- 支持历史价格追踪
+
+### 自动化支持
+
+合约支持通过AutomationAnchor进行周期性自动化:
+
+- **触发类型**: `interval` 或 `cron`
+- **调度配置**: 例如 `hourly`、`daily` 或 cron表达式
+- **业务逻辑**: 自动更新配置的交易对价格数据
+
+### 集成要求
+
+使用此合约前:
+
+1. 管理员必须调用 `SetGateway()` 配置ServiceLayerGateway
+2. 管理员必须调用 `SetAutomationAnchor()` 配置自动化锚点
+3. 外部价格预言机服务必须配置好数据推送
+4. 前端应用需配置好价格数据查询接口

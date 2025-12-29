@@ -230,3 +230,67 @@ This contract supports periodic automation via AutomationAnchor integration.
 - Frontend should listen to both `BetPlaced` and `BetResolved` events
 - Bet ID tracking allows for asynchronous bet resolution
 - Randomness must be at least 1 byte in length
+
+## 中文说明
+
+### 概述
+
+MiniAppCoinFlip 是一个可证明公平的 50/50 硬币翻转游戏,玩家押注正面或反面,如果猜对则赢得双倍赌注(扣除 5% 平台费用)。游戏使用 VRF(可验证随机函数)随机性确保公平性和透明度。
+
+### 核心功能
+
+1. **玩家选择**: 玩家选择正面(true)或反面(false)
+2. **下注**: 玩家下注,最低 0.05 GAS
+3. **随机性生成**: 网关提供 VRF 随机性
+4. **硬币翻转**: 合约从随机性中提取第一个字节: `outcome = (randomness[0] % 2 == 0)`
+5. **支付**: 如果结果匹配选择,玩家赢得 `betAmount * 2 * 0.95`(5% 平台费用)
+
+### 使用方法
+
+**下注流程:**
+
+```
+1. 玩家通过前端发起游戏
+2. 前端调用 PlaceBet() 传入金额和选择
+3. 合约发出 BetPlaced 事件并返回 betId
+4. 网关请求 VRF 随机性
+5. 网关使用随机性调用 ResolveBet()
+6. 合约计算结果并发出 BetResolved 事件
+7. PaymentHub 处理支付(如果玩家获胜)
+8. 前端向玩家显示结果
+```
+
+### 参数说明
+
+**PlaceBet 方法:**
+
+- `player`: 玩家地址
+- `amount`: 下注金额(最低 0.05 GAS = 5000000)
+- `choice`: 玩家选择(true = 正面, false = 反面)
+- 返回: `betId` - 此次下注的唯一标识符
+
+**ResolveBet 方法:**
+
+- `betId`: 唯一下注标识符
+- `player`: 玩家地址
+- `amount`: 原始下注金额
+- `choice`: 玩家的原始选择
+- `randomness`: 来自网关的 VRF 随机性
+
+**游戏经济:**
+
+- 获胜概率: 50%(真正的 50/50 游戏)
+- 获胜倍数: 2x
+- 平台费用: 5%
+- 有效支付: 1.9x (2 \* 0.95)
+- 庄家优势: 5%
+- 预期回报: 95%(带庄家优势的公平游戏)
+
+**安全特性:**
+
+- 仅网关可以解决下注
+- PlaceBet 需要玩家签名
+- 管理员控制功能需要见证验证
+- 紧急暂停机制
+- 使用 VRF 保证确定性随机性
+- 最低下注防止粉尘攻击(0.05 GAS 最低)

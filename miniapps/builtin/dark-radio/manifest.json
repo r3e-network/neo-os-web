@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-dark-radio",
+  "name": "Dark Radio",
+  "name_zh": "黑暗森林电台",
+  "description": "Anonymous censorship-resistant broadcast with attention market",
+  "description_zh": "匿名抗审查广播，绝对的言论自由市场",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-dark-radio",
+  "permissions": { "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "social",
+  "tags": ["broadcast", "privacy", "censorship-resistant"]
+}

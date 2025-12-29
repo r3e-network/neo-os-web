@@ -260,3 +260,257 @@ func (s *MiniAppSimulator) SimulateILGuard(ctx context.Context) error {
 	}
 	return nil
 }
+
+// SimulateCandleWars simulates binary options on price direction.
+// Business flow: PlaceBet (green/red) -> ResolveRound
+func (s *MiniAppSimulator) SimulateCandleWars(ctx context.Context) error {
+	appID := "builtin-candle-wars"
+	amount := int64(randomInt(5, 50)) * 1000000 // 0.05-0.5 GAS
+	isGreen := randomInt(0, 1) == 1
+
+	direction := "red"
+	if isGreen {
+		direction = "green"
+	}
+	memo := fmt.Sprintf("candle:%s:%d:%d", direction, amount, time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("candle bet: %w", err)
+	}
+	atomic.AddInt64(&s.candleWarsBets, 1)
+
+	if s.invoker.HasMiniAppContract(appID) {
+		playerAddress, ok := s.getRandomUserAddressOrWarn(appID, "place bet")
+		if !ok {
+			return nil
+		}
+		_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "PlaceBet", []neoaccountsclient.ContractParam{
+			{Type: "Hash160", Value: playerAddress},
+			{Type: "Integer", Value: amount},
+			{Type: "Boolean", Value: isGreen},
+		})
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("candle place bet: %w", err)
+		}
+	}
+
+	// 50% win rate
+	if randomInt(0, 1) == 1 {
+		atomic.AddInt64(&s.candleWarsWins, 1)
+	}
+	return nil
+}
+
+// SimulateDutchAuction simulates reverse auction.
+// Business flow: Purchase at current price (price drops over time)
+func (s *MiniAppSimulator) SimulateDutchAuction(ctx context.Context) error {
+	appID := "builtin-dutch-auction"
+	// Price between 50-100% of start price
+	price := int64(randomInt(50, 100)) * 10000000
+
+	memo := fmt.Sprintf("auction:bid:%d:%d", price, time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, price, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("auction bid: %w", err)
+	}
+	atomic.AddInt64(&s.dutchAuctionBids, 1)
+
+	if s.invoker.HasMiniAppContract(appID) {
+		buyerAddress, ok := s.getRandomUserAddressOrWarn(appID, "purchase")
+		if !ok {
+			return nil
+		}
+		auctionID := int64(randomInt(1, 10))
+		_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "Purchase", []neoaccountsclient.ContractParam{
+			{Type: "Hash160", Value: buyerAddress},
+			{Type: "Integer", Value: auctionID},
+		})
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("auction purchase: %w", err)
+		}
+	}
+
+	atomic.AddInt64(&s.dutchAuctionSales, 1)
+	return nil
+}
+
+// SimulateParasite simulates DeFi staking with PvP attacks.
+// Business flow: Stake -> Attack others -> Steal rewards
+func (s *MiniAppSimulator) SimulateParasite(ctx context.Context) error {
+	appID := "builtin-the-parasite"
+	amount := int64(randomInt(10, 100)) * 10000000 // 1-10 GAS
+
+	memo := fmt.Sprintf("parasite:stake:%d:%d", amount, time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("parasite stake: %w", err)
+	}
+	atomic.AddInt64(&s.parasiteStakes, 1)
+
+	if s.invoker.HasMiniAppContract(appID) {
+		playerAddress, ok := s.getRandomUserAddressOrWarn(appID, "stake")
+		if !ok {
+			return nil
+		}
+		_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "Stake", []neoaccountsclient.ContractParam{
+			{Type: "Hash160", Value: playerAddress},
+			{Type: "Integer", Value: amount},
+		})
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("parasite stake contract: %w", err)
+		}
+	}
+
+	// 30% chance to attack
+	if randomInt(1, 10) <= 3 {
+		atomic.AddInt64(&s.parasiteAttacks, 1)
+	}
+	return nil
+}
+
+// SimulateNoLossLottery simulates stake-to-win lottery.
+// Business flow: Stake -> Enter draw -> Win yields (keep principal)
+func (s *MiniAppSimulator) SimulateNoLossLottery(ctx context.Context) error {
+	appID := "builtin-no-loss-lottery"
+	amount := int64(randomInt(10, 50)) * 10000000 // 1-5 GAS
+
+	memo := fmt.Sprintf("noloss:stake:%d:%d", amount, time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("no loss stake: %w", err)
+	}
+	atomic.AddInt64(&s.noLossLotteryStakes, 1)
+
+	if s.invoker.HasMiniAppContract(appID) {
+		playerAddress, ok := s.getRandomUserAddressOrWarn(appID, "stake")
+		if !ok {
+			return nil
+		}
+		_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "Stake", []neoaccountsclient.ContractParam{
+			{Type: "Hash160", Value: playerAddress},
+			{Type: "Integer", Value: amount},
+		})
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("no loss stake contract: %w", err)
+		}
+	}
+
+	// 10% win rate (yield only)
+	if randomInt(1, 10) == 1 {
+		atomic.AddInt64(&s.noLossLotteryWins, 1)
+	}
+	return nil
+}
+
+// SimulateDeadSwitch simulates dead man's switch.
+func (s *MiniAppSimulator) SimulateDeadSwitch(ctx context.Context) error {
+	appID := "miniapp-dead-switch"
+	amount := int64(100000000)
+
+	memo := fmt.Sprintf("switch:setup:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("dead switch: %w", err)
+	}
+	atomic.AddInt64(&s.deadSwitchSetups, 1)
+	return nil
+}
+
+// SimulateHeritageTrust simulates living trust DAO.
+func (s *MiniAppSimulator) SimulateHeritageTrust(ctx context.Context) error {
+	appID := "miniapp-heritage-trust"
+	amount := int64(100000000)
+
+	memo := fmt.Sprintf("trust:create:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("heritage trust: %w", err)
+	}
+	atomic.AddInt64(&s.heritageTrustCreates, 1)
+	return nil
+}
+
+// SimulateCompoundCapsule simulates auto-compounding savings.
+func (s *MiniAppSimulator) SimulateCompoundCapsule(ctx context.Context) error {
+	appID := "miniapp-compound-capsule"
+	amount := int64(50000000)
+
+	memo := fmt.Sprintf("capsule:deposit:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("compound capsule: %w", err)
+	}
+	atomic.AddInt64(&s.compoundDeposits, 1)
+	return nil
+}
+
+// SimulateSelfLoan simulates self-repaying loans.
+func (s *MiniAppSimulator) SimulateSelfLoan(ctx context.Context) error {
+	appID := "miniapp-self-loan"
+	amount := int64(100000000)
+
+	memo := fmt.Sprintf("loan:borrow:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("self loan: %w", err)
+	}
+	atomic.AddInt64(&s.selfLoanBorrows, 1)
+	return nil
+}
+
+// SimulateDarkPool simulates anonymous voting pool.
+func (s *MiniAppSimulator) SimulateDarkPool(ctx context.Context) error {
+	appID := "miniapp-dark-pool"
+	amount := int64(50000000)
+
+	memo := fmt.Sprintf("pool:swap:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("dark pool: %w", err)
+	}
+	atomic.AddInt64(&s.darkPoolSwaps, 1)
+	return nil
+}
+
+// SimulateMeltingAsset simulates depreciating assets.
+func (s *MiniAppSimulator) SimulateMeltingAsset(ctx context.Context) error {
+	appID := "miniapp-melting-asset"
+	amount := int64(20000000)
+
+	memo := fmt.Sprintf("melt:deposit:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("melting asset: %w", err)
+	}
+	atomic.AddInt64(&s.meltingDeposits, 1)
+	return nil
+}
+
+// SimulateUnbreakableVault simulates time-locked vault.
+func (s *MiniAppSimulator) SimulateUnbreakableVault(ctx context.Context) error {
+	appID := "miniapp-unbreakable-vault"
+	amount := int64(50000000)
+
+	memo := fmt.Sprintf("vault:lock:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("unbreakable vault: %w", err)
+	}
+	atomic.AddInt64(&s.vaultLocks, 1)
+	return nil
+}

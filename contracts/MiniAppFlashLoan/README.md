@@ -207,3 +207,91 @@ Before using this contract:
 - **Version**: 1.0.0
 - **Description**: Flash Loan - Instant borrow and repay
 - **Permissions**: Full contract permissions (`*`, `*`)
+
+## 中文说明
+
+### 概述
+
+MiniAppFlashLoan 是一个闪电贷服务合约,允许用户在同一交易内无抵押即时借款,但必须在交易结束前连本带息归还。这是DeFi中用于套利、清算和其他高级交易策略的基础原语。
+
+### 核心功能
+
+- **无抵押即时借款**: 用户无需提供前期抵押即可借入任意可用金额
+- **同交易内还款**: 贷款必须在同一交易执行内归还
+- **TEE验证机制**: 通过可信执行环境验证回调合约将正确还款
+- **费用模型**: 对借款金额收取0.09%的手续费(9个基点)
+- **网关控制**: 所有贷款执行通过ServiceLayerGateway管理
+
+### 使用方法
+
+#### 请求闪电贷
+
+```csharp
+RequestLoan(borrower, amount, callbackContract, callbackMethod)
+```
+
+**参数:**
+
+- `borrower`: 借款人地址
+- `amount`: 借款金额(最小1 GAS,最大100,000 GAS)
+- `callbackContract`: 回调合约地址
+- `callbackMethod`: 回调方法名称
+
+**流程:**
+
+1. 用户通过前端发起闪电贷请求
+2. 合约验证借款人授权和池子余额
+3. 请求TEE验证回调合约将正确还款
+4. TEE验证通过后执行贷款
+5. 自动收取手续费到资金池
+
+#### 存入流动性
+
+```csharp
+Deposit(depositor, amount)
+```
+
+为闪电贷资金池提供流动性。
+
+### 参数说明
+
+**合约常量:**
+
+- `MIN_LOAN`: 100000000 (1 GAS) - 最小借款金额
+- `MAX_LOAN`: 10000000000000 (100,000 GAS) - 最大借款金额
+- `FEE_BASIS_POINTS`: 9 (0.09%) - 手续费率
+
+**手续费计算:**
+
+```
+手续费 = 借款金额 × 9 / 10000
+```
+
+示例:
+
+- 借款 10,000 代币 → 手续费 = 9 代币
+- 借款 100,000 代币 → 手续费 = 90 代币
+
+### 自动化支持
+
+合约支持通过AutomationAnchor进行周期性自动化:
+
+- **触发类型**: `interval` 或 `cron`
+- **调度配置**: 例如 `hourly`、`daily` 或 cron表达式
+- **业务逻辑**: 自动清算违约贷款
+
+### 安全考虑
+
+1. **TEE验证**: 贷款执行前验证回调合约将正确还款
+2. **网关控制**: 所有操作必须通过可信的ServiceLayerGateway
+3. **原子执行**: 贷款必须在同一交易内还款(由区块链强制执行)
+4. **暂停机制**: 管理员可在紧急情况下暂停合约
+
+### 集成要求
+
+使用此合约前:
+
+1. 管理员必须调用 `SetGateway()` 配置ServiceLayerGateway
+2. 管理员必须调用 `SetAutomationAnchor()` 配置自动化锚点
+3. 合约必须有足够的流动性用于贷款
+4. 用户必须通过ServiceLayerGateway交互,不能直接调用

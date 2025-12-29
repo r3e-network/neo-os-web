@@ -37,7 +37,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-bridgeguardian";
+        private const string APP_ID = "miniapp-bridgeguardian";
         private const long MIN_BRIDGE_AMOUNT = 100000000; // 1 GAS
         #endregion
 

@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-zk-badge",
+  "name": "ZK Badge",
+  "name_zh": "匿名证明者",
+  "description": "Zero-knowledge wealth proof - prove without revealing wallet",
+  "description_zh": "零知识财富证明，证明你是大户但不暴露钱包地址",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-zk-badge",
+  "permissions": { "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "utility",
+  "tags": ["privacy", "badge", "proof"]
+}

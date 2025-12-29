@@ -38,7 +38,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-govbooster";
+        private const string APP_ID = "miniapp-govbooster";
         private const long MIN_STAKE = 100000000; // 1 GAS
         private const int BASE_MULTIPLIER = 100; // 1x = 100
         private const int MAX_MULTIPLIER = 300; // 3x = 300

@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-worldpiano",
+  "name": "World Piano",
+  "name_zh": "全球共奏钢琴",
+  "description": "Global collaborative piano - play notes on-chain",
+  "description_zh": "全球协作钢琴 - 链上演奏音符",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-worldpiano",
+  "permissions": { "wallet": ["read-address"], "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "creative",
+  "tags": ["music", "piano", "collaborative"]
+}

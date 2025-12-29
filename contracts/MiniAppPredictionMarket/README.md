@@ -253,3 +253,73 @@ Contract.Call(
 **Version:** 1.0.0
 **Author:** R3E Network
 **Description:** Prediction Market - Bet on price movements
+
+## 中文说明
+
+### 概述
+
+MiniAppPredictionMarket 是一个去中心化预测市场合约,允许用户对各种资产的价格走势进行预测下注。用户可以预测资产价格将上涨或下跌,并根据预测准确性获得奖励。
+
+### 核心功能
+
+- **价格方向预测**: 用户预测资产价格将上涨(UP)或下跌(DOWN)
+- **预言机结算**: 通过价格预言机获取真实价格数据进行结算
+- **自动化奖励**: 预测正确者获得1.9倍奖励(扣除10%平台费)
+- **多资产支持**: 支持任意交易对的价格预测(NEO、GAS、BTC等)
+- **最小时长保护**: 预测至少需要1分钟后才能结算
+
+### 使用方法
+
+#### 下注预测
+
+```csharp
+PlacePrediction(player, symbol, direction, amount, startPrice)
+```
+
+**参数:**
+
+- `player`: 玩家地址
+- `symbol`: 资产符号(例如 "NEO", "BTC")
+- `direction`: true = 预测上涨, false = 预测下跌
+- `amount`: 下注金额(最小0.1 GAS)
+- `startPrice`: 起始价格
+
+#### 请求结算
+
+```csharp
+RequestResolve(predictionId)
+```
+
+玩家或管理员可在预测时间到期后请求结算。
+
+### 参数说明
+
+**合约常量:**
+
+- `MIN_BET`: 10000000 (0.1 GAS) - 最小下注金额
+- `MIN_DURATION`: 60000 (1分钟) - 最小预测时长
+- `PLATFORM_FEE_PERCENT`: 10 (10%) - 平台手续费
+
+**奖励计算:**
+
+```
+预测正确: 奖励 = 下注金额 × (200 - 10) / 100 = 1.9倍
+预测错误: 奖励 = 0
+```
+
+### 自动化支持
+
+合约支持通过AutomationAnchor进行周期性自动化:
+
+- **触发类型**: `interval` 或 `cron`
+- **调度配置**: 例如 `hourly`、`daily` 或 cron表达式
+- **业务逻辑**: 自动结算到期的预测市场
+
+### 集成要求
+
+使用此合约前:
+
+1. 管理员必须调用 `SetGateway()` 配置ServiceLayerGateway
+2. 管理员必须调用 `SetAutomationAnchor()` 配置自动化锚点
+3. 价格预言机服务必须配置好价格监控
+4. 前端应用需配置好预测下注界面

@@ -187,3 +187,56 @@ This contract supports periodic automation via AutomationAnchor integration.
 - PaymentHub must be set for automatic payouts
 - Frontend should listen to `DiceRolled` events for real-time updates
 - Randomness must be at least 1 byte in length
+
+## 中文说明
+
+### 概述
+
+MiniAppDiceGame 是一个可证明公平的掷骰子游戏,玩家选择 1-6 之间的数字,如果骰子结果匹配所选数字,则赢得 6 倍赌注(扣除 5% 平台费用)。游戏使用通过 ServiceLayerGateway 提供的 VRF(可验证随机函数)随机性确保公平性。
+
+### 核心功能
+
+1. **玩家选择**: 玩家选择 1 到 6 之间的数字
+2. **随机性生成**: 网关提供 VRF 随机性
+3. **掷骰子**: 合约从随机性中提取第一个字节并计算: `rolled = (randomness[0] % 6) + 1`
+4. **支付计算**: 如果掷出的数字匹配所选数字,玩家赢得 `betAmount * 6 * 0.95`(5% 平台费用)
+
+### 使用方法
+
+**标准游戏流程:**
+
+```
+1. 玩家通过前端发起游戏
+2. 前端调用 Gateway 传入赌注和所选数字
+3. Gateway 请求 VRF 随机性
+4. Gateway 使用随机性调用 Roll()
+5. 合约计算结果并发出 DiceRolled 事件
+6. PaymentHub 处理支付(如果玩家获胜)
+7. 前端向玩家显示结果
+```
+
+### 参数说明
+
+**Roll 方法:**
+
+- `player`: 玩家地址
+- `chosenNumber`: 玩家选择的数字(1-6)
+- `betAmount`: 下注金额
+- `randomness`: 来自网关的 VRF 随机性
+
+**游戏经济:**
+
+- 获胜概率: 1/6 (16.67%)
+- 获胜倍数: 6x
+- 平台费用: 5%
+- 有效支付: 5.7x (6 \* 0.95)
+- 庄家优势: 5%
+- 预期回报: 95%(带庄家优势的公平游戏)
+
+**安全特性:**
+
+- 仅网关可访问游戏逻辑
+- 管理员控制功能需要见证验证
+- 紧急暂停机制
+- 使用 VRF 保证确定性随机性
+- 输入验证确保所选数字范围(1-6)

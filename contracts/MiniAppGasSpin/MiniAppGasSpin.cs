@@ -36,9 +36,10 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-gasspin";
+        private const string APP_ID = "miniapp-gasspin";
         private const int PLATFORM_FEE_PERCENT = 10;
-        private const long MIN_BET = 5000000; // 0.05 GAS
+        private const long MIN_BET = 5000000;    // 0.05 GAS
+        private const long MAX_BET = 2000000000; // 20 GAS (anti-Martingale)
         #endregion
 
         #region App Prefixes (start from 0x10)
@@ -97,6 +98,10 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
             ExecutionEngine.Assert(bet >= MIN_BET, "min bet 0.05 GAS");
+            ExecutionEngine.Assert(bet <= MAX_BET, "max bet 20 GAS (anti-Martingale)");
+
+            // Anti-Martingale protection
+            ValidateBetLimits(player, bet);
 
             BigInteger spinId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_SPIN_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_SPIN_ID, spinId);
@@ -109,6 +114,9 @@ namespace NeoMiniAppPlatform.Contracts
                 Resolved = false
             };
             StoreSpin(spinId, spin);
+
+            // Record bet for tracking
+            RecordBet(player, bet);
 
             BigInteger requestId = RequestRng(spinId);
             Storage.Put(Storage.CurrentContext,

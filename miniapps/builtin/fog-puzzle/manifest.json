@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-fogpuzzle",
+  "name": "Fog Puzzle",
+  "name_zh": "迷雾拼图",
+  "description": "Hidden treasure hunt with fog of war",
+  "description_zh": "迷雾中的宝藏寻找游戏",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-fogpuzzle",
+  "permissions": { "wallet": ["read-address"], "payments": true, "rng": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub", "RandomnessLog"],
+  "category": "gaming",
+  "tags": ["puzzle", "fog", "treasure"]
+}

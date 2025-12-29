@@ -98,6 +98,7 @@ build_sources() {
 # MiniApp base files (shared partial classes)
 MINIAPP_BASE_FILES=(
     "MiniAppBase/MiniAppBase.Core.cs"
+    "MiniAppBase/MiniAppBase.BetLimits.cs"
 )
 
 build_miniapp() {
@@ -198,6 +199,63 @@ miniapp_contracts_phase4=(
     "MiniAppBridgeGuardian:MiniAppBridgeGuardian"
 )
 
+# MiniApp contracts - Phase 5 (New Gaming/DeFi/Social)
+miniapp_contracts_phase5=(
+    "MiniAppNeoCrash:MiniAppNeoCrash"
+    "MiniAppCandleWars:MiniAppCandleWars"
+    "MiniAppDutchAuction:MiniAppDutchAuction"
+    "MiniAppParasite:MiniAppParasite"
+    "MiniAppThroneOfGas:MiniAppThroneOfGas"
+    "MiniAppNoLossLottery:MiniAppNoLossLottery"
+    "MiniAppDoomsdayClock:MiniAppDoomsdayClock"
+    "MiniAppPayToView:MiniAppPayToView"
+)
+
+# MiniApp contracts - Phase 6 (TEE-Powered Creative Apps)
+miniapp_contracts_phase6=(
+    "MiniAppSchrodingerNFT:MiniAppSchrodingerNFT"
+    "MiniAppAlgoBattle:MiniAppAlgoBattle"
+    "MiniAppTimeCapsule:MiniAppTimeCapsule"
+    "MiniAppGardenOfNeo:MiniAppGardenOfNeo"
+    "MiniAppDevTipping:MiniAppDevTipping"
+)
+
+# MiniApp contracts - Phase 7 (Advanced DeFi & Social)
+miniapp_contracts_phase7=(
+    "MiniAppAISoulmate:MiniAppAISoulmate"
+    "MiniAppDeadSwitch:MiniAppDeadSwitch"
+    "MiniAppHeritageTrust:MiniAppHeritageTrust"
+    "MiniAppDarkRadio:MiniAppDarkRadio"
+    "MiniAppZKBadge:MiniAppZKBadge"
+    "MiniAppGraveyard:MiniAppGraveyard"
+    "MiniAppCompoundCapsule:MiniAppCompoundCapsule"
+    "MiniAppSelfLoan:MiniAppSelfLoan"
+    "MiniAppDarkPool:MiniAppDarkPool"
+    "MiniAppBurnLeague:MiniAppBurnLeague"
+    "MiniAppGovMerc:MiniAppGovMerc"
+)
+
+# MiniApp contracts - Phase 8 (Creative & Social)
+miniapp_contracts_phase8=(
+    "MiniAppQuantumSwap:MiniAppQuantumSwap"
+    "MiniAppOnChainTarot:MiniAppOnChainTarot"
+    "MiniAppExFiles:MiniAppExFiles"
+    "MiniAppScreamToEarn:MiniAppScreamToEarn"
+    "MiniAppBreakupContract:MiniAppBreakupContract"
+    "MiniAppGeoSpotlight:MiniAppGeoSpotlight"
+    "MiniAppPuzzleMining:MiniAppPuzzleMining"
+    "MiniAppNFTChimera:MiniAppNFTChimera"
+    "MiniAppWorldPiano:MiniAppWorldPiano"
+    "MiniAppBountyHunter:MiniAppBountyHunter"
+    "MiniAppMasqueradeDAO:MiniAppMasqueradeDAO"
+    "MiniAppMeltingAsset:MiniAppMeltingAsset"
+    "MiniAppUnbreakableVault:MiniAppUnbreakableVault"
+    "MiniAppWhisperChain:MiniAppWhisperChain"
+    "MiniAppMillionPieceMap:MiniAppMillionPieceMap"
+    "MiniAppFogPuzzle:MiniAppFogPuzzle"
+    "MiniAppCryptoRiddle:MiniAppCryptoRiddle"
+)
+
 echo "=== Building Platform Contracts ==="
 for entry in "${platform_contracts[@]}"; do
     dir="${entry%%:*}"
@@ -275,6 +333,66 @@ done
 echo ""
 echo "=== Building MiniApp Contracts - Phase 4 (Long-Running) ==="
 for entry in "${miniapp_contracts_phase4[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_miniapp "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building MiniApp Contracts - Phase 5 (New Gaming/DeFi/Social) ==="
+for entry in "${miniapp_contracts_phase5[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_miniapp "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building MiniApp Contracts - Phase 6 (TEE-Powered Creative Apps) ==="
+for entry in "${miniapp_contracts_phase6[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_miniapp "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building MiniApp Contracts - Phase 7 (Advanced DeFi & Social) ==="
+for entry in "${miniapp_contracts_phase7[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_miniapp "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building MiniApp Contracts - Phase 8 (Creative & Social) ==="
+for entry in "${miniapp_contracts_phase8[@]}"; do
     dir="${entry%%:*}"
     name="${entry##*:}"
 

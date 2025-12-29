@@ -22,7 +22,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-serviceconsumer";
+        private const string APP_ID = "miniapp-serviceconsumer";
         #endregion
 
         #region App Prefixes (start from 0x10)

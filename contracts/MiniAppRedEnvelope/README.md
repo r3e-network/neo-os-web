@@ -445,3 +445,91 @@ Best Luck Winner: Packet 3 claimer (3.5 GAS)
 - **Author**: R3E Network
 - **Version**: 2.0.0
 - **Description**: Red Envelope - WeChat-style random GAS red packets with best luck winner
+
+## 中文说明
+
+### 概述
+
+MiniAppRedEnvelope 是一个微信风格的红包合约,使用户能够在 Neo 区块链上创建和分发随机 GAS 红包。合约实现了流行的中国传统红包,并带有游戏化的转折 - 随机分配金额和"手气最佳"获胜者功能。
+
+### 核心功能
+
+1. **创建红包**: 使用随机红包分配创建红包
+2. **管理机制**: 微信风格的随机领取机制
+3. **手气最佳追踪**: 追踪领取最大红包的获胜者
+4. **防止重复领取**: 确保公平分配
+5. **事件发出**: 为红包生命周期发出事件(创建、领取、完成)
+
+### 使用方法
+
+**创建红包流程:**
+
+```
+1. 用户创建红包
+   用户 → MiniApp 前端 → PaymentHub(存入 GAS)
+
+2. 红包创建
+   PaymentHub → Gateway → CreateEnvelope() → EnvelopeCreated 事件
+
+3. 分享红包
+   前端 → 生成分享链接 → 社交媒体/聊天
+```
+
+**领取红包流程:**
+
+```
+1. 用户打开红包
+   用户 → MiniApp 前端 → 检查 HasClaimed()
+
+2. 随机金额生成
+   前端 → 链外服务 → 生成随机金额
+
+3. 领取处理
+   服务 → Gateway → Claim() → EnvelopeClaimed 事件 → PaymentHub
+
+4. 更新显示
+   EnvelopeClaimed 事件 → 前端 → 显示金额 + 手气最佳状态
+```
+
+### 参数说明
+
+**合约常量:**
+
+- `MIN_AMOUNT`: 10000000 (0.1 GAS) - 红包总金额最小值
+- `MAX_PACKETS`: 100 - 最大红包个数
+- 每包最小金额: 0.01 GAS
+
+**CreateEnvelope 方法:**
+
+- `creator`: 红包创建者地址
+- `totalAmount`: 要分配的总 GAS 金额 (最小 0.1 GAS)
+- `packetCount`: 红包个数 (1-100 个)
+- `expiryDurationMs`: 过期时间 (毫秒)
+- `receiptId`: 支付收据 ID
+
+**Claim 方法:**
+
+- `envelopeId`: 要领取的红包标识符
+- `claimer`: 领取用户的地址
+
+**GetEnvelope 方法:**
+
+- `envelopeId`: 红包标识符
+- 返回: 包含创建者、总金额、红包个数、剩余个数、手气最佳地址和金额的数组
+
+**微信红包算法:**
+
+- 总金额最小值: 0.1 GAS
+- 每包最小金额: 0.01 GAS
+- 随机范围: 每个红包可获得 0.01 到 (剩余金额 \* 2 / 剩余红包数)
+- 最后一个红包: 获得所有剩余余额
+- 公平性: 平均金额等于总金额 / 红包个数
+
+**安全特性:**
+
+- 仅网关可以创建红包和处理领取
+- 管理功能需要管理员见证
+- 紧急暂停机制
+- 基于存储的追踪防止重复领取
+- 领取验证确保每个红包只能领取一次
+- 红包个数限制最多 100 个防止滥用

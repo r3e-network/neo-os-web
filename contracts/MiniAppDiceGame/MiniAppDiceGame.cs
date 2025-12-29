@@ -38,9 +38,10 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-dicegame";
+        private const string APP_ID = "miniapp-dicegame";
         private const int PLATFORM_FEE_PERCENT = 5;
-        private const long MIN_BET = 5000000; // 0.05 GAS
+        private const long MIN_BET = 5000000;    // 0.05 GAS
+        private const long MAX_BET = 2000000000; // 20 GAS (anti-Martingale, lower due to 6x payout)
         #endregion
 
         #region App Prefixes (start from 0x10)
@@ -102,6 +103,10 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
             ExecutionEngine.Assert(chosenNumber >= 1 && chosenNumber <= 6, "choose 1-6");
             ExecutionEngine.Assert(amount >= MIN_BET, "min bet 0.05 GAS");
+            ExecutionEngine.Assert(amount <= MAX_BET, "max bet 20 GAS (anti-Martingale)");
+
+            // Anti-Martingale: Validate bet limits
+            ValidateBetLimits(player, amount);
 
             BigInteger betId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_BET_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_BET_ID, betId);
@@ -115,6 +120,9 @@ namespace NeoMiniAppPlatform.Contracts
                 Resolved = false
             };
             StoreBet(betId, bet);
+
+            // Record bet for anti-Martingale tracking
+            RecordBet(player, amount);
 
             BigInteger requestId = RequestRng(betId);
             Storage.Put(Storage.CurrentContext,

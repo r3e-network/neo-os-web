@@ -37,7 +37,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-gridbot";
+        private const string APP_ID = "miniapp-gridbot";
         private const long MIN_STAKE = 10000000; // 0.1 GAS
         private const int MAX_GRID_LEVELS = 20;
         #endregion

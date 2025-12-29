@@ -1,0 +1,15 @@
+{
+  "app_id": "miniapp-dev-tipping",
+  "name": "Dev Tipping",
+  "name_zh": "开发者打赏",
+  "description": "Support ecosystem developers with tips",
+  "description_zh": "打赏支持生态系统开发者",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-dev-tipping",
+  "permissions": { "wallet": ["read-address"], "payments": true },
+  "assets_allowed": ["GAS"],
+  "limits": { "max_gas_per_tx": "100", "daily_gas_cap_per_user": "1000" },
+  "contracts_needed": ["PaymentHub"],
+  "category": "social",
+  "tags": ["tipping", "donation", "developers"]
+}

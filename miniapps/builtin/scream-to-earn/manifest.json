@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-screamtoearn",
+  "name": "Scream to Earn",
+  "name_zh": "尖叫挖矿",
+  "description": "Earn GAS by screaming into your microphone",
+  "description_zh": "对着麦克风尖叫来挖矿",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-screamtoearn",
+  "permissions": { "wallet": ["read-address"], "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "gaming",
+  "tags": ["voice", "mining", "fun"]
+}

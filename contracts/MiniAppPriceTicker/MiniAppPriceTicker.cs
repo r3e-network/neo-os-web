@@ -36,7 +36,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-priceticker";
+        private const string APP_ID = "miniapp-priceticker";
         private const ulong MIN_UPDATE_INTERVAL = 60000; // 60 seconds
         #endregion
 

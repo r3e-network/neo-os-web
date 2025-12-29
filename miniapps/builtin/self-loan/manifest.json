@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-self-loan",
+  "name": "Self Loan",
+  "name_zh": "NEO 借贷：利息抵扣",
+  "description": "Alchemix-style self-repaying loans - borrow now, repay with yield",
+  "description_zh": "Alchemix 模式自动还款，白捡流动性不用掏腰包",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-self-loan",
+  "permissions": { "payments": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "defi",
+  "tags": ["lending", "self-repaying", "defi"]
+}

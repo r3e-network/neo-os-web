@@ -36,9 +36,10 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-micropredict";
+        private const string APP_ID = "miniapp-micropredict";
         private const int PLATFORM_FEE_PERCENT = 10;
-        private const long MIN_BET = 5000000; // 0.05 GAS
+        private const long MIN_BET = 5000000;    // 0.05 GAS
+        private const long MAX_BET = 5000000000; // 50 GAS (anti-Martingale)
         private const ulong PREDICTION_DURATION = 60000; // 60 seconds
         #endregion
 
@@ -100,7 +101,11 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
             ExecutionEngine.Assert(symbol != null && symbol.Length > 0, "symbol required");
             ExecutionEngine.Assert(amount >= MIN_BET, "min bet 0.05 GAS");
+            ExecutionEngine.Assert(amount <= MAX_BET, "max bet 50 GAS (anti-Martingale)");
             ExecutionEngine.Assert(startPrice > 0, "start price required");
+
+            // Anti-Martingale protection
+            ValidateBetLimits(player, amount);
 
             BigInteger predictionId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_PRED_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_PRED_ID, predictionId);

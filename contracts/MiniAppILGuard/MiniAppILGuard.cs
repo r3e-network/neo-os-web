@@ -38,7 +38,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-ilguard";
+        private const string APP_ID = "miniapp-ilguard";
         private const long MIN_POSITION = 100000000; // 1 GAS
         private const int IL_THRESHOLD_PERCENT = 5; // 5% IL triggers compensation
         private const int MAX_COMPENSATION_PERCENT = 50; // Max 50% compensation

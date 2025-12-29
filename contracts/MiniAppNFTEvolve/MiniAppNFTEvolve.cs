@@ -37,7 +37,7 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants
-        private const string APP_ID = "builtin-nftevolve";
+        private const string APP_ID = "miniapp-nftevolve";
         private const long EVOLUTION_FEE = 50000000; // 0.5 GAS
         private const int MAX_LEVEL = 10;
         #endregion

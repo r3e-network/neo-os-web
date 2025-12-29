@@ -17,7 +17,7 @@ import (
 func TestAllMiniApps(t *testing.T) {
 	apps := AllMiniApps()
 
-	assert.Len(t, apps, 23)
+	assert.Len(t, apps, 64) // Phase 1-8: 64 total MiniApps
 
 	// Verify all expected apps are present
 	appIDs := make(map[string]bool)
@@ -25,6 +25,7 @@ func TestAllMiniApps(t *testing.T) {
 		appIDs[app.AppID] = true
 	}
 
+	// Phase 1 MiniApps
 	assert.True(t, appIDs["builtin-lottery"])
 	assert.True(t, appIDs["builtin-coin-flip"])
 	assert.True(t, appIDs["builtin-dice-game"])
@@ -51,6 +52,51 @@ func TestAllMiniApps(t *testing.T) {
 	assert.True(t, appIDs["builtin-grid-bot"])
 	assert.True(t, appIDs["builtin-nft-evolve"])
 	assert.True(t, appIDs["builtin-bridge-guardian"])
+	// Phase 5 MiniApps - New deployed contracts
+	assert.True(t, appIDs["builtin-neo-crash"])
+	assert.True(t, appIDs["builtin-candle-wars"])
+	assert.True(t, appIDs["builtin-dutch-auction"])
+	assert.True(t, appIDs["builtin-the-parasite"])
+	assert.True(t, appIDs["builtin-throne-of-gas"])
+	assert.True(t, appIDs["builtin-no-loss-lottery"])
+	assert.True(t, appIDs["builtin-doomsday-clock"])
+	assert.True(t, appIDs["builtin-pay-to-view"])
+	// Phase 6 MiniApps - TEE-powered creative apps
+	assert.True(t, appIDs["builtin-schrodinger-nft"])
+	assert.True(t, appIDs["builtin-algo-battle"])
+	assert.True(t, appIDs["builtin-time-capsule"])
+	assert.True(t, appIDs["builtin-garden-of-neo"])
+	assert.True(t, appIDs["builtin-dev-tipping"])
+	// Phase 7 MiniApps - Advanced DeFi & Social
+	assert.True(t, appIDs["miniapp-ai-soulmate"])
+	assert.True(t, appIDs["miniapp-dead-switch"])
+	assert.True(t, appIDs["miniapp-heritage-trust"])
+	assert.True(t, appIDs["miniapp-dark-radio"])
+	assert.True(t, appIDs["miniapp-zk-badge"])
+	assert.True(t, appIDs["miniapp-graveyard"])
+	assert.True(t, appIDs["miniapp-compound-capsule"])
+	assert.True(t, appIDs["miniapp-self-loan"])
+	assert.True(t, appIDs["miniapp-dark-pool"])
+	assert.True(t, appIDs["miniapp-burn-league"])
+	assert.True(t, appIDs["miniapp-gov-merc"])
+	// Phase 8 MiniApps - Creative & Social
+	assert.True(t, appIDs["miniapp-quantum-swap"])
+	assert.True(t, appIDs["miniapp-onchain-tarot"])
+	assert.True(t, appIDs["miniapp-ex-files"])
+	assert.True(t, appIDs["miniapp-scream-to-earn"])
+	assert.True(t, appIDs["miniapp-breakup-contract"])
+	assert.True(t, appIDs["miniapp-geo-spotlight"])
+	assert.True(t, appIDs["miniapp-puzzle-mining"])
+	assert.True(t, appIDs["miniapp-nft-chimera"])
+	assert.True(t, appIDs["miniapp-world-piano"])
+	assert.True(t, appIDs["miniapp-bounty-hunter"])
+	assert.True(t, appIDs["miniapp-masquerade-dao"])
+	assert.True(t, appIDs["miniapp-melting-asset"])
+	assert.True(t, appIDs["miniapp-unbreakable-vault"])
+	assert.True(t, appIDs["miniapp-whisper-chain"])
+	assert.True(t, appIDs["miniapp-million-piece-map"])
+	assert.True(t, appIDs["miniapp-fog-puzzle"])
+	assert.True(t, appIDs["miniapp-crypto-riddle"])
 }
 
 func TestAllMiniApps_Categories(t *testing.T) {
@@ -61,6 +107,7 @@ func TestAllMiniApps_Categories(t *testing.T) {
 	governance := 0
 	social := 0
 	advanced := 0
+	creative := 0
 	for _, app := range apps {
 		switch app.Category {
 		case "gaming":
@@ -73,14 +120,18 @@ func TestAllMiniApps_Categories(t *testing.T) {
 			social++
 		case "advanced":
 			advanced++
+		case "creative":
+			creative++
 		}
 	}
 
-	assert.Equal(t, 6, gaming)     // lottery, coin-flip, dice-game, scratch-card, mega-millions, gas-spin
-	assert.Equal(t, 6, defi)       // prediction-market, flashloan, price-ticker, price-predict, turbo-options, il-guard
-	assert.Equal(t, 1, governance) // gov-booster
-	assert.Equal(t, 5, social)     // secret-vote, secret-poker, micro-predict, red-envelope, gas-circle
-	assert.Equal(t, 5, advanced)   // ai-trader, grid-bot, nft-evolve, bridge-guardian, fog-chess
+	// Phase 1-8 totals: gaming=17, defi=17, governance=3, social=18, advanced=6, creative=3
+	assert.Equal(t, 17, gaming)
+	assert.Equal(t, 17, defi)
+	assert.Equal(t, 3, governance)
+	assert.Equal(t, 18, social)
+	assert.Equal(t, 6, advanced)
+	assert.Equal(t, 3, creative) // nft-chimera, world-piano, million-piece-map
 }
 
 func TestAllMiniApps_BetAmounts(t *testing.T) {
@@ -449,12 +500,18 @@ func TestMiniAppSimulator_GetStats(t *testing.T) {
 	assert.Contains(t, stats, "defi")
 	assert.Contains(t, stats, "social")
 	assert.Contains(t, stats, "other")
+	assert.Contains(t, stats, "phase5")
+	assert.Contains(t, stats, "phase6")
+	assert.Contains(t, stats, "phase7")
+	assert.Contains(t, stats, "phase8")
 	assert.Contains(t, stats, "errors")
 
 	gaming := stats["gaming"].(map[string]interface{})
 	defi := stats["defi"].(map[string]interface{})
 	social := stats["social"].(map[string]interface{})
 	other := stats["other"].(map[string]interface{})
+	phase7 := stats["phase7"].(map[string]interface{})
+	phase8 := stats["phase8"].(map[string]interface{})
 
 	assert.Contains(t, gaming, "lottery")
 	assert.Contains(t, gaming, "coin_flip")
@@ -472,6 +529,38 @@ func TestMiniAppSimulator_GetStats(t *testing.T) {
 
 	assert.Contains(t, other, "gov_booster")
 	assert.Contains(t, other, "fog_chess")
+
+	// Phase 7 stats
+	assert.Contains(t, phase7, "ai_soulmate")
+	assert.Contains(t, phase7, "dead_switch")
+	assert.Contains(t, phase7, "heritage_trust")
+	assert.Contains(t, phase7, "dark_radio")
+	assert.Contains(t, phase7, "zk_badge")
+	assert.Contains(t, phase7, "graveyard")
+	assert.Contains(t, phase7, "compound_capsule")
+	assert.Contains(t, phase7, "self_loan")
+	assert.Contains(t, phase7, "dark_pool")
+	assert.Contains(t, phase7, "burn_league")
+	assert.Contains(t, phase7, "gov_merc")
+
+	// Phase 8 stats
+	assert.Contains(t, phase8, "quantum_swap")
+	assert.Contains(t, phase8, "onchain_tarot")
+	assert.Contains(t, phase8, "ex_files")
+	assert.Contains(t, phase8, "scream_to_earn")
+	assert.Contains(t, phase8, "breakup_contract")
+	assert.Contains(t, phase8, "geo_spotlight")
+	assert.Contains(t, phase8, "puzzle_mining")
+	assert.Contains(t, phase8, "nft_chimera")
+	assert.Contains(t, phase8, "world_piano")
+	assert.Contains(t, phase8, "bounty_hunter")
+	assert.Contains(t, phase8, "masquerade_dao")
+	assert.Contains(t, phase8, "melting_asset")
+	assert.Contains(t, phase8, "unbreakable_vault")
+	assert.Contains(t, phase8, "whisper_chain")
+	assert.Contains(t, phase8, "million_piece_map")
+	assert.Contains(t, phase8, "fog_puzzle")
+	assert.Contains(t, phase8, "crypto_riddle")
 }
 
 // =============================================================================
