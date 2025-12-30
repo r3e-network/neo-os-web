@@ -38,13 +38,16 @@ export function CardRenderer({ data, className = "" }: CardRendererProps) {
 // Countdown Card (Lottery, Auctions)
 function CountdownCard({ data, className }: { data: CountdownData; className: string }) {
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+  const endTime = data.endTime ?? 0;
+  const jackpot = data.jackpot ?? 0;
+  const ticketsSold = data.ticketsSold ?? 0;
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const remaining = Math.max(0, data.endTime - now);
+  const remaining = Math.max(0, endTime - now);
   const hours = String(Math.floor(remaining / 3600)).padStart(2, "0");
   const minutes = String(Math.floor((remaining % 3600) / 60)).padStart(2, "0");
   const seconds = String(remaining % 60).padStart(2, "0");
@@ -62,9 +65,9 @@ function CountdownCard({ data, className }: { data: CountdownData; className: st
       </div>
       <div className="mb-1">
         <span className="text-xs opacity-80 block">Jackpot</span>
-        <span className="text-lg font-bold">{data.jackpot} GAS</span>
+        <span className="text-lg font-bold">{jackpot} GAS</span>
       </div>
-      <div className="text-xs opacity-90">{data.ticketsSold} tickets sold</div>
+      <div className="text-xs opacity-90">{ticketsSold} tickets sold</div>
     </div>
   );
 }
@@ -77,14 +80,16 @@ function MultiplierCard({ data, className }: { data: MultiplierData; className: 
     crashed: "from-red-500 to-red-700",
   };
   const statusText = { waiting: "Starting...", running: "LIVE", crashed: "Crashed!" };
+  const multiplier = data.currentMultiplier ?? 1;
+  const status = data.status ?? "waiting";
 
   return (
     <div
-      className={`h-full flex flex-col justify-center p-4 text-white text-center bg-gradient-to-br ${statusColors[data.status]} ${className}`}
+      className={`h-full flex flex-col justify-center p-4 text-white text-center bg-gradient-to-br ${statusColors[status]} ${className}`}
     >
       <div className="mb-2">
-        <span className="text-3xl font-bold block">{data.currentMultiplier.toFixed(2)}x</span>
-        <span className="text-xs bg-black/20 px-2 py-0.5 rounded">{statusText[data.status]}</span>
+        <span className="text-3xl font-bold block">{multiplier.toFixed(2)}x</span>
+        <span className="text-xs bg-black/20 px-2 py-0.5 rounded">{statusText[status]}</span>
       </div>
       <div className="flex justify-around text-xs opacity-90">
         <span>{data.playersCount} players</span>
@@ -97,22 +102,24 @@ function MultiplierCard({ data, className }: { data: MultiplierData; className: 
 // Canvas Card (Pixel Art)
 function CanvasCard({ data, className }: { data: CanvasData; className: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pixels = data.pixels ?? "";
+  const width = data.width ?? 10;
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !pixels) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const scale = 80 / data.width;
-    for (let i = 0; i < data.pixels.length / 6; i++) {
-      const color = "#" + data.pixels.slice(i * 6, i * 6 + 6);
-      const x = (i % data.width) * scale;
-      const y = Math.floor(i / data.width) * scale;
+    const scale = 80 / width;
+    for (let i = 0; i < pixels.length / 6; i++) {
+      const color = "#" + pixels.slice(i * 6, i * 6 + 6);
+      const x = (i % width) * scale;
+      const y = Math.floor(i / width) * scale;
       ctx.fillStyle = color;
       ctx.fillRect(x, y, scale, scale);
     }
-  }, [data.pixels, data.width]);
+  }, [pixels, width]);
 
   return (
     <div
@@ -131,11 +138,13 @@ function CanvasCard({ data, className }: { data: CanvasData; className: string }
 
 // Stats Card (Red Envelope, Tipping)
 function StatsCard({ data, className }: { data: StatsData; className: string }) {
+  const stats = data.stats ?? [];
+
   return (
     <div
       className={`h-full flex flex-col justify-center p-3 text-white bg-gradient-to-br from-red-600 to-red-800 ${className}`}
     >
-      {data.stats.slice(0, 3).map((stat, idx) => (
+      {stats.slice(0, 3).map((stat, idx) => (
         <div key={idx} className="flex items-center py-1 border-b border-white/10 last:border-0">
           {stat.icon && <span className="text-base mr-2">{stat.icon}</span>}
           <div className="flex-1">
@@ -150,7 +159,8 @@ function StatsCard({ data, className }: { data: StatsData; className: string }) 
 
 // Voting Card (Governance)
 function VotingCard({ data, className }: { data: VotingData; className: string }) {
-  const yesPercent = Math.round((data.yesVotes / data.totalVotes) * 100);
+  const totalVotes = data.totalVotes || 1; // Avoid division by zero
+  const yesPercent = Math.round((data.yesVotes / totalVotes) * 100);
   const noPercent = 100 - yesPercent;
   const diff = data.endTime - Math.floor(Date.now() / 1000);
   const timeLeft =
@@ -181,11 +191,14 @@ function VotingCard({ data, className }: { data: VotingData; className: string }
 
 // Price Card (Trading, DeFi)
 function PriceCard({ data, className }: { data: PriceData; className: string }) {
-  const min = Math.min(...data.sparkline);
-  const max = Math.max(...data.sparkline);
+  const sparkline = data.sparkline ?? [];
+  const hasData = sparkline.length > 0;
+  const min = hasData ? Math.min(...sparkline) : 0;
+  const max = hasData ? Math.max(...sparkline) : 1;
   const range = max - min || 1;
-  const normalized = data.sparkline.map((v) => 20 + ((v - min) / range) * 80);
-  const isUp = data.change24h >= 0;
+  const normalized = sparkline.map((v) => 20 + ((v - min) / range) * 80);
+  const change = data.change24h ?? 0;
+  const isUp = change >= 0;
 
   return (
     <div
@@ -197,7 +210,7 @@ function PriceCard({ data, className }: { data: PriceData; className: string }) 
           className={`text-xs px-1.5 py-0.5 rounded ${isUp ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
         >
           {isUp ? "+" : ""}
-          {data.change24h.toFixed(2)}%
+          {change.toFixed(2)}%
         </span>
       </div>
       <span className="text-xl font-bold block mb-2">${data.price}</span>

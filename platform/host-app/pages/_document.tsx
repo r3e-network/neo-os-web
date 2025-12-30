@@ -16,9 +16,11 @@ export default class MyDocument extends Document<Props> {
         <Head>
           <meta charSet="utf-8" />
           <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
+          <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+          <link rel="apple-touch-icon" href="/favicon.svg" />
           {/* Security Headers - Additional layer beyond middleware */}
           <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-          <meta httpEquiv="X-Frame-Options" content="DENY" />
+          {/* X-Frame-Options must be set via HTTP header, not meta tag */}
           <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
           <meta name="referrer" content="strict-origin-when-cross-origin" />
           <meta httpEquiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />

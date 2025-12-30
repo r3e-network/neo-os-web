@@ -8,7 +8,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
-    return res.status(500).json({ error: "Edge functions not configured" });
+    // Return empty data when Edge functions not configured (graceful degradation)
+    return res.status(200).json({ transactions: [], has_more: false });
   }
 
   const params = new URLSearchParams();
@@ -27,10 +28,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
+    if (!upstream.ok) {
+      // Return empty data on upstream error (graceful degradation)
+      return res.status(200).json({ transactions: [], has_more: false });
+    }
+
     const data = await upstream.json();
-    res.status(upstream.status).json(data);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Failed to fetch transactions";
-    res.status(500).json({ error: msg });
+    res.status(200).json(data);
+  } catch {
+    // Return empty data on network error (graceful degradation)
+    res.status(200).json({ transactions: [], has_more: false });
   }
 }
