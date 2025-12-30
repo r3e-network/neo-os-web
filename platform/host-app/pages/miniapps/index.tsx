@@ -57,7 +57,7 @@ export default function MiniAppsPage() {
   const rawSearchQuery = (router.query.q as string) || "";
   const searchQuery = sanitizeInput(rawSearchQuery);
 
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortOption>("trending");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [filters, setFilters] = useState<Record<string, string[]>>({});
