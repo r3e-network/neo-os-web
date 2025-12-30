@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { handleAuth } from "@auth0/nextjs-auth0";
 
 // Check if Auth0 is configured
 const isAuth0Configured = Boolean(
@@ -27,4 +26,19 @@ function fallbackHandler(req: NextApiRequest, res: NextApiResponse) {
   return res.status(404).json({ error: "Auth not configured" });
 }
 
-export default isAuth0Configured ? handleAuth() : fallbackHandler;
+// Lazy load handleAuth only when Auth0 is configured
+let auth0Handler: ReturnType<typeof import("@auth0/nextjs-auth0").handleAuth> | null = null;
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!isAuth0Configured) {
+    return fallbackHandler(req, res);
+  }
+
+  // Lazy initialize Auth0 handler
+  if (!auth0Handler) {
+    const { handleAuth } = await import("@auth0/nextjs-auth0");
+    auth0Handler = handleAuth();
+  }
+
+  return auth0Handler(req, res);
+}
