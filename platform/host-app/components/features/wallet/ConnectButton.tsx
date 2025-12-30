@@ -14,14 +14,18 @@ export function ConnectButton() {
   if (connected) {
     return (
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2">
+        <div className="flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-4 py-2 border border-gray-200 dark:border-gray-700">
           <div className="h-2 w-2 rounded-full bg-green-500" />
-          <span className="text-sm font-medium">
+          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {address.slice(0, 6)}...{address.slice(-4)}
           </span>
-          {balance && <span className="text-xs text-gray-500">{balance.gas} GAS</span>}
+          {balance && (
+            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
+              {parseFloat(balance.gas).toFixed(4)} GAS
+            </span>
+          )}
         </div>
-        <Button variant="ghost" size="sm" onClick={disconnect}>
+        <Button variant="ghost" size="sm" onClick={disconnect} className="text-gray-700 dark:text-gray-300">
           Disconnect
         </Button>
       </div>
@@ -39,13 +43,13 @@ export function ConnectButton() {
       </Button>
 
       {showMenu && (
-        <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-xl z-50">
-          <div className="text-xs text-gray-500 px-3 py-1 mb-1">Select Wallet</div>
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 shadow-xl z-50">
+          <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-1 mb-1">Select Wallet</div>
           {walletOptions.map((wallet) => (
             <button
               key={wallet.id}
               onClick={() => handleConnect(wallet.id)}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm hover:bg-gray-100 transition-colors"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <img
                 src={wallet.icon}
@@ -55,7 +59,7 @@ export function ConnectButton() {
                   e.currentTarget.src = "/wallet-default.svg";
                 }}
               />
-              <span className="font-medium text-gray-800">{wallet.name}</span>
+              <span className="font-medium text-gray-800 dark:text-gray-200">{wallet.name}</span>
             </button>
           ))}
         </div>
