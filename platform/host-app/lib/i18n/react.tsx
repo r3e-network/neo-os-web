@@ -78,10 +78,18 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
 
+// Default translation function for SSR/SSG
+const defaultT = (key: string): string => key;
+
 export function useI18n() {
   const context = useContext(I18nContext);
+  // Return default values during SSR/SSG when provider hasn't mounted
   if (!context) {
-    throw new Error("useI18n must be used within I18nProvider");
+    return {
+      locale: defaultLocale,
+      setLocale: () => {},
+      t: defaultT,
+    };
   }
   return context;
 }
