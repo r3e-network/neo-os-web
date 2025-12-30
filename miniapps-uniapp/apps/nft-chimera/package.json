@@ -21,5 +21,10 @@
     "typescript": "^5.4.5",
     "vite": "^5.2.8",
     "sass": "^1.77.0"
+  },
+  "overrides": {
+    "@intlify/core-base": ">=9.14.5",
+    "@intlify/message-resolver": ">=9.14.5",
+    "@intlify/shared": ">=9.14.5"
   }
 }
