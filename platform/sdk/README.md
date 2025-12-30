@@ -1,5 +1,7 @@
 # MiniApp SDK
 
+**Platform: https://neomini.app**
+
 This package is the TypeScript SDK matching the platform blueprint:
 
 - MiniApps do not talk to the chain directly.
@@ -89,7 +91,11 @@ const trigger = await host.automation.createTrigger({
   name: "Every 5 minutes",
   trigger_type: "cron",
   schedule: "*/5 * * * *",
-  action: { type: "webhook", url: "https://hooks.miniapps.com/callback", method: "POST" },
+  action: {
+    type: "webhook",
+    url: "https://hooks.miniapps.com/callback",
+    method: "POST",
+  },
 });
 
 const executions = await host.automation.listExecutions(trigger.id, 25);
