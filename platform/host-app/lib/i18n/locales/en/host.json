@@ -1,0 +1,45 @@
+{
+  "hero": {
+    "title": "Neo MiniApp Platform",
+    "subtitle": "Build and deploy decentralized applications with TEE-powered security",
+    "exploreApps": "Explore Apps",
+    "launchApp": "Launch App"
+  },
+  "features": {
+    "title": "Features",
+    "secureCompute": "Secure Compute",
+    "secureComputeDesc": "TEE-powered confidential computing for sensitive operations",
+    "verifiableRandom": "Verifiable Random",
+    "verifiableRandomDesc": "Provably fair randomness for gaming and lotteries",
+    "realTimeData": "Real-Time Data",
+    "realTimeDataDesc": "Live price feeds and market data from trusted sources",
+    "automatedTasks": "Automated Tasks",
+    "automatedTasksDesc": "Schedule and automate on-chain operations"
+  },
+  "stats": {
+    "totalApps": "Total Apps",
+    "totalUsers": "Total Users",
+    "totalTransactions": "Transactions",
+    "totalVolume": "Total Volume"
+  },
+  "categories": {
+    "all": "All",
+    "gaming": "Gaming",
+    "defi": "DeFi",
+    "social": "Social",
+    "utility": "Utility",
+    "nft": "NFT",
+    "governance": "Governance"
+  },
+  "activity": {
+    "recent": "Recent Activity",
+    "noActivity": "No recent activity",
+    "viewAll": "View All"
+  },
+  "account": {
+    "title": "My Account",
+    "profile": "Profile",
+    "transactions": "Transactions",
+    "favorites": "Favorites"
+  }
+}

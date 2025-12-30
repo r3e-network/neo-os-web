@@ -3,7 +3,7 @@ import type { AppProps } from "next/app";
 import { UserProvider } from "@auth0/nextjs-auth0/client";
 import { QueryProvider } from "@/lib/query";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { I18nProvider } from "../../shared/i18n/react";
+import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "@/styles/globals.css";
 
