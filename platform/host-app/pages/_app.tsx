@@ -7,10 +7,21 @@ import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "@/styles/globals.css";
 
+// Check if Auth0 is configured (client-side safe check)
+const isAuth0Configured = Boolean(process.env.NEXT_PUBLIC_AUTH0_ENABLED === "true");
+
+// Conditional Auth wrapper
+function AuthWrapper({ children }: { children: React.ReactNode }) {
+  if (!isAuth0Configured) {
+    return <>{children}</>;
+  }
+  return <UserProvider>{children}</UserProvider>;
+}
+
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <ErrorBoundary>
-      <UserProvider>
+      <AuthWrapper>
         <I18nProvider>
           <QueryProvider>
             <ThemeProvider>
@@ -18,7 +29,7 @@ export default function App({ Component, pageProps }: AppProps) {
             </ThemeProvider>
           </QueryProvider>
         </I18nProvider>
-      </UserProvider>
+      </AuthWrapper>
     </ErrorBoundary>
   );
 }
