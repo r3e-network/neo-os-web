@@ -327,10 +327,19 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
   const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
   const encodedId = encodeURIComponent(id);
 
+  // First check if it's a builtin app - return immediately if found
+  const fallback = getBuiltinApp(id);
+
   try {
-    // Fetch app info and stats with timeout for SSR
-    const statsRes = await fetchWithTimeout(`${baseUrl}/api/miniapp-stats?app_id=${encodedId}`);
-    const statsData = statsRes.ok ? await statsRes.json() : {};
+    // Parallel fetch with shorter timeout (2s) for faster page load
+    const [statsRes, notifRes] = await Promise.all([
+      fetchWithTimeout(`${baseUrl}/api/miniapp-stats?app_id=${encodedId}`, {}, 2000).catch(() => null),
+      fetchWithTimeout(`${baseUrl}/api/app/${encodedId}/news?limit=20`, {}, 2000).catch(() => null),
+    ]);
+
+    const statsData = statsRes?.ok ? await statsRes.json().catch(() => ({})) : {};
+    const notifData = notifRes?.ok ? await notifRes.json().catch(() => ({ notifications: [] })) : { notifications: [] };
+
     const statsList = Array.isArray(statsData?.stats)
       ? statsData.stats
       : Array.isArray(statsData)
@@ -339,12 +348,7 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
           ? [statsData]
           : [];
 
-    // Fetch notifications with timeout
-    const notifRes = await fetchWithTimeout(`${baseUrl}/api/app/${encodedId}/news?limit=20`);
-    const notifData = notifRes.ok ? await notifRes.json() : { notifications: [] };
-
     const rawStats = statsList.find((s: Record<string, unknown>) => s?.app_id === id) ?? statsList[0] ?? null;
-    const fallback = getBuiltinApp(id);
     const app = rawStats ? coerceMiniAppInfo(rawStats, fallback) : (fallback ?? null);
 
     if (!app) {
