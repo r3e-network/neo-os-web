@@ -3,12 +3,14 @@ import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
 import { LaunchDock } from "../../components/LaunchDock";
 import { FederatedMiniApp } from "../../components/FederatedMiniApp";
+import { LiveChat } from "../../components/features/chat";
 import { WalletState, MiniAppInfo } from "../../components/types";
 import { installMiniAppSDK } from "../../lib/miniapp-sdk";
 import type { MiniAppSDK } from "../../lib/miniapp-sdk";
 import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { logger } from "../../lib/logger";
 import { resolveInternalBaseUrl } from "../../lib/edge";
+import { BUILTIN_APPS } from "../../lib/builtin-apps";
 
 /** NeoLine N3 wallet interface */
 interface NeoLineN3Wallet {
@@ -28,63 +30,8 @@ type RequestLike = {
   headers?: Record<string, string | string[] | undefined>;
 };
 
-// Static catalog (fallback for builtin apps)
-const MINIAPP_CATALOG: MiniAppInfo[] = [
-  {
-    app_id: "builtin-lottery",
-    name: "Neo Lottery",
-    description: "Decentralized lottery with provably fair randomness",
-    icon: "🎰",
-    category: "gaming",
-    entry_url: "mf://builtin?app=builtin-lottery",
-    permissions: { payments: true, randomness: true },
-  },
-  {
-    app_id: "builtin-coin-flip",
-    name: "Coin Flip",
-    description: "50/50 coin flip - double your GAS",
-    icon: "🪙",
-    category: "gaming",
-    entry_url: "mf://builtin?app=builtin-coin-flip",
-    permissions: { payments: true, randomness: true },
-  },
-  {
-    app_id: "builtin-dice-game",
-    name: "Dice Game",
-    description: "Roll the dice and win up to 6x",
-    icon: "🎲",
-    category: "gaming",
-    entry_url: "mf://builtin?app=builtin-dice-game",
-    permissions: { payments: true, randomness: true },
-  },
-  {
-    app_id: "builtin-prediction-market",
-    name: "Prediction Market",
-    description: "Bet on real-world events",
-    icon: "📊",
-    category: "defi",
-    entry_url: "mf://builtin?app=builtin-prediction-market",
-    permissions: { payments: true, datafeed: true },
-  },
-  {
-    app_id: "builtin-price-ticker",
-    name: "Price Ticker",
-    description: "Real-time GAS/NEO price",
-    icon: "💹",
-    category: "utility",
-    entry_url: "mf://builtin?app=builtin-price-ticker",
-    permissions: { datafeed: true },
-  },
-  {
-    app_id: "builtin-secret-vote",
-    name: "Secret Vote",
-    description: "Vote on governance proposals",
-    icon: "🗳️",
-    category: "governance",
-    entry_url: "mf://builtin?app=builtin-secret-vote",
-    permissions: { governance: true },
-  },
-];
+// Use centralized app catalog from builtin-apps.ts
+const MINIAPP_CATALOG: MiniAppInfo[] = BUILTIN_APPS;
 
 type LaunchPageProps = {
   app: MiniAppInfo;
@@ -240,8 +187,8 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   }, [app.app_id, app.entry_url, app.permissions, federated]);
 
   const handleExit = useCallback(() => {
-    // Return to app detail page (or homepage if app page doesn't exist)
-    router.push(`/app/${app.app_id}`);
+    // Return to app detail page
+    router.push(`/miniapps/${app.app_id}`);
   }, [router, app.app_id]);
 
   const handleShare = useCallback(() => {
@@ -283,6 +230,13 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         />
       )}
       {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
+
+      {/* LiveChat for MiniApp */}
+      <LiveChat
+        appId={app.app_id}
+        walletAddress={wallet.address}
+        userName={wallet.address ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}` : undefined}
+      />
     </div>
   );
 }
@@ -470,4 +424,79 @@ const toastStyle: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 14,
   zIndex: 9999,
+};
+
+const comingSoonStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 48,
+  left: 0,
+  width: "100vw",
+  height: "calc(100vh - 48px)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)",
+};
+
+const comingSoonContentStyle: React.CSSProperties = {
+  textAlign: "center",
+  padding: 40,
+  maxWidth: 500,
+};
+
+const comingSoonIconStyle: React.CSSProperties = {
+  fontSize: 80,
+  marginBottom: 24,
+};
+
+const comingSoonTitleStyle: React.CSSProperties = {
+  fontSize: 32,
+  fontWeight: 700,
+  marginBottom: 16,
+  background: "linear-gradient(90deg, #00E599, #00D4AA)",
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+};
+
+const comingSoonDescStyle: React.CSSProperties = {
+  color: "#888",
+  fontSize: 16,
+  lineHeight: 1.6,
+  marginBottom: 24,
+};
+
+const comingSoonBadgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "12px 24px",
+  background: "rgba(0, 229, 153, 0.1)",
+  border: "1px solid rgba(0, 229, 153, 0.3)",
+  borderRadius: 100,
+  fontSize: 14,
+  color: "#00E599",
+  marginBottom: 24,
+};
+
+const comingSoonDotStyle: React.CSSProperties = {
+  width: 8,
+  height: 8,
+  background: "#00E599",
+  borderRadius: "50%",
+};
+
+const comingSoonInfoStyle: React.CSSProperties = {
+  color: "#666",
+  fontSize: 14,
+  marginBottom: 24,
+};
+
+const backToAppsButtonStyle: React.CSSProperties = {
+  padding: "12px 24px",
+  borderRadius: 8,
+  border: "1px solid rgba(255,255,255,0.2)",
+  background: "transparent",
+  color: "#fff",
+  fontSize: 14,
+  cursor: "pointer",
 };

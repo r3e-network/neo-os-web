@@ -21,7 +21,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppQuantumSwap")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Quantum Swap - Blind box exchange with unknown values")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. QuantumSwap is a mystery exchange application for blind box trading. Use it to deposit GAS into sealed boxes and swap randomly, you can discover unknown values like Schrödinger's cat.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

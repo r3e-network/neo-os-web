@@ -16,7 +16,7 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
     statusColor = colors.primary;
   } else if (app.status === "disabled") {
     statusBadge = "Maintenance";
-    statusColor = "#f97316";
+    statusColor = "#10b981"; // emerald-500 (Neo Green style)
   } else if (app.status === "pending") {
     statusBadge = "Pending";
     statusColor = colors.textMuted;

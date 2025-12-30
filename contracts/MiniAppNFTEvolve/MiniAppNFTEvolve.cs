@@ -32,7 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppNFTEvolve")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "NFT Evolve - NFT evolution with on-chain RNG oracle")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. NFTEvolve is an NFT evolution system for dynamic collectibles. Use it to evolve your NFTs through multiple levels, you can unlock higher rarities and enhanced attributes.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

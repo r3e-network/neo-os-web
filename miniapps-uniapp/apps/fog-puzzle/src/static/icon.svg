@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="puzzle-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6"/>
+      <stop offset="100%" style="stop-color:#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#puzzle-bg)"/>
+  <rect x="12" y="12" width="16" height="16" rx="2" fill="#fff" opacity="0.9"/>
+  <rect x="36" y="12" width="16" height="16" rx="2" fill="#fff" opacity="0.6"/>
+  <rect x="12" y="36" width="16" height="16" rx="2" fill="#fff" opacity="0.6"/>
+  <rect x="36" y="36" width="16" height="16" rx="2" fill="#fff" opacity="0.9"/>
+  <circle cx="32" cy="32" r="8" fill="#A78BFA" opacity="0.8"/>
+  <text x="32" y="36" font-size="10" fill="#fff" text-anchor="middle">?</text>
+</svg>

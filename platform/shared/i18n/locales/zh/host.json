@@ -1,0 +1,45 @@
+{
+  "hero": {
+    "title": "Neo 小程序平台",
+    "subtitle": "使用 TEE 安全技术构建和部署去中心化应用",
+    "exploreApps": "探索应用",
+    "launchApp": "启动应用"
+  },
+  "features": {
+    "title": "功能特性",
+    "secureCompute": "安全计算",
+    "secureComputeDesc": "TEE 驱动的机密计算，保护敏感操作",
+    "verifiableRandom": "可验证随机",
+    "verifiableRandomDesc": "可证明公平的随机数，用于游戏和抽奖",
+    "realTimeData": "实时数据",
+    "realTimeDataDesc": "来自可信来源的实时价格和市场数据",
+    "automatedTasks": "自动化任务",
+    "automatedTasksDesc": "调度和自动化链上操作"
+  },
+  "stats": {
+    "totalApps": "应用总数",
+    "totalUsers": "用户总数",
+    "totalTransactions": "交易数",
+    "totalVolume": "总交易量"
+  },
+  "categories": {
+    "all": "全部",
+    "gaming": "游戏",
+    "defi": "DeFi",
+    "social": "社交",
+    "utility": "工具",
+    "nft": "NFT",
+    "governance": "治理"
+  },
+  "activity": {
+    "recent": "最近活动",
+    "noActivity": "暂无活动",
+    "viewAll": "查看全部"
+  },
+  "account": {
+    "title": "我的账户",
+    "profile": "个人资料",
+    "transactions": "交易记录",
+    "favorites": "收藏"
+  }
+}

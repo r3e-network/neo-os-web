@@ -33,7 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppGovBooster")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Gov Booster - Voting power boost with TEE verification")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. GovBooster is a voting power amplifier for governance participation. Use it to stake tokens and boost your voting power, you can increase governance influence with verified multipliers.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

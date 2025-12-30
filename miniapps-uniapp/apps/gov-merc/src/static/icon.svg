@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="merc-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B"/>
+      <stop offset="100%" style="stop-color:#D97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#merc-bg)"/>
+  <circle cx="32" cy="24" r="12" fill="#fff" opacity="0.9"/>
+  <path d="M20 40c0-6 5.4-10 12-10s12 4 12 10v8H20v-8z" fill="#fff" opacity="0.9"/>
+  <circle cx="32" cy="24" r="6" fill="#FEF3C7"/>
+  <path d="M29 24h6M32 21v6" stroke="#D97706" stroke-width="2"/>
+  <rect x="44" y="12" width="12" height="8" rx="2" fill="#10B981"/>
+  <text x="50" y="18" font-size="6" fill="#fff" text-anchor="middle">$</text>
+</svg>

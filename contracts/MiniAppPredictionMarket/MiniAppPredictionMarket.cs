@@ -33,7 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppPredictionMarket")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Prediction Market with on-chain price oracle requests")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. PredictionMarket is a decentralized prediction platform for price movement betting. Use it to predict asset price directions, you can earn 1.9x returns with oracle-verified outcomes.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

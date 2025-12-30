@@ -17,3 +17,5 @@ export default function TestPage() {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

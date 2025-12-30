@@ -1,0 +1,55 @@
+{
+  "name": "Neo Canvas",
+  "appid": "miniapp-canvas",
+  "description": "Collaborative pixel art canvas",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Canvas",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "Neo 画布",
+  "description_zh": "协作像素艺术画布",
+  "category": "nft",
+  "tags": [
+    "art",
+    "collaborative",
+    "pixels"
+  ],
+  "permissions": {
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x53f9c7b86fa2f8336839ef5073d964d644cbb46c",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_canvas",
+      "banner": "/static/banner.svg",
+      "live_status": null
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

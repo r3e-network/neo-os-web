@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="whisper-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="100%" style="stop-color:#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#whisper-bg)"/>
+  <circle cx="20" cy="32" r="8" fill="#fff" opacity="0.9"/>
+  <circle cx="44" cy="32" r="8" fill="#fff" opacity="0.9"/>
+  <path d="M28 32h8" stroke="#fff" stroke-width="2" stroke-dasharray="2 2"/>
+  <path d="M16 20c8-4 16-4 24 0M24 44c4 2 8 2 12 0" stroke="#fff" stroke-width="2" opacity="0.6"/>
+</svg>

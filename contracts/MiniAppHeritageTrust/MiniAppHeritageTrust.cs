@@ -24,7 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppHeritageTrust")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Heritage Trust - Living trust with automated inheritance")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. HeritageTrust is a living trust protocol for estate planning. Use it to create automated trusts, you can earn yields while alive and transfer principal to heirs automatically.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

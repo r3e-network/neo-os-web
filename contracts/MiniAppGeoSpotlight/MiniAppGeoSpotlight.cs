@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppGeoSpotlight")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Geo Spotlight - Location-based attention economy")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. GeoSpotlight is a location-based attention application for map highlighting. Use it to bid for spotlight visibility on global maps, you can promote locations with size proportional to your stake.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

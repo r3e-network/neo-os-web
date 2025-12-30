@@ -1,0 +1,55 @@
+{
+  "name": "Pay to View",
+  "appid": "miniapp-pay-to-view",
+  "description": "Unlock premium content with GAS",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Pay to View",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "付费查看",
+  "description_zh": "使用 GAS 解锁优质内容",
+  "category": "security",
+  "tags": [
+    "content",
+    "paywall",
+    "premium"
+  ],
+  "permissions": {
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0xfa920907126e63b5360a68fbf607294a82ef6266",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "image",
+      "banner": "/static/banner.svg",
+      "live_status": null
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

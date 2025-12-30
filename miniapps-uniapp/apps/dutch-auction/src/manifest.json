@@ -1,0 +1,63 @@
+{
+  "name": "Dutch Auction",
+  "appid": "miniapp-dutch-auction",
+  "description": "Reverse auction - price drops until sold",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Dutch Auction",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "荷兰式拍卖",
+  "description_zh": "反向拍卖 - 价格递减直到成交",
+  "category": "defi",
+  "tags": [
+    "auction",
+    "nft",
+    "marketplace"
+  ],
+  "permissions": {
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0xb4394ee9eee040a9cce5450fceaaeabe83946410",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_countdown",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "tvl",
+          "apy",
+          "volume_24h"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

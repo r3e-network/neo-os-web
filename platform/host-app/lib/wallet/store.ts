@@ -123,7 +123,7 @@ export function getWalletAdapter(): WalletAdapter | null {
 
 /** Available wallet options */
 export const walletOptions = [
-  { id: "neoline" as const, name: "NeoLine", icon: "🔗" },
-  { id: "o3" as const, name: "O3", icon: "🌐" },
-  { id: "onegate" as const, name: "OneGate", icon: "🚪" },
+  { id: "neoline" as const, name: "NeoLine", icon: "https://neoline.io/favicon.ico" },
+  { id: "o3" as const, name: "O3", icon: "https://o3.network/favicon.ico" },
+  { id: "onegate" as const, name: "OneGate", icon: "https://onegate.space/favicon.ico" },
 ];

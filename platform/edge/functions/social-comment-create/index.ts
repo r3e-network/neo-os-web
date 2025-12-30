@@ -48,7 +48,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const userId = auth.userId;
 
   // Verify proof of interaction (user must have used the app)
   const proof = await verifyProofOfInteraction(supabase, app_id, userId, req);

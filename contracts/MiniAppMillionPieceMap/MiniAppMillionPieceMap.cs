@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppMillionPieceMap")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Million Piece Map - Collaborative map ownership")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. MillionPieceMap is a collaborative ownership application for virtual map trading. Use it to buy and trade map pieces, you can complete regions and earn bonuses through collective ownership.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

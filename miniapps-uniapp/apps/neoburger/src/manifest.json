@@ -16,7 +16,7 @@
   "card": {
     "display": {
       "type": "live_status",
-      "banner": "https://cdn.miniapps.neo.org/apps/neoburger/banner.png",
+      "banner": "/static/banner.svg",
       "live_status": {
         "enabled": true,
         "refresh_interval": 60,
@@ -24,7 +24,7 @@
       }
     },
     "info": {
-      "logo": "https://cdn.miniapps.neo.org/apps/neoburger/logo.png",
+      "logo": "/static/icon.svg",
       "owner": {
         "name": "NeoBurger",
         "address": "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",

@@ -33,7 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Lottery MiniApp with on-chain RNG requests")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. Lottery is a jackpot gaming application for prize pool betting. Use it to buy lottery tickets, you can win massive jackpot prizes through provable random draws.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

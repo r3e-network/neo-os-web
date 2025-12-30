@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bridge-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="100%" style="stop-color:#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#bridge-bg)"/>
+  <path d="M8 44h48" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M12 44v-16c0-8 8-12 20-12s20 4 20 12v16" stroke="#fff" stroke-width="3" fill="none"/>
+  <rect x="16" y="32" width="8" height="12" rx="1" fill="#FFE066"/>
+  <rect x="28" y="32" width="8" height="12" rx="1" fill="#FFE066"/>
+  <rect x="40" y="32" width="8" height="12" rx="1" fill="#FFE066"/>
+  <circle cx="50" cy="14" r="8" fill="#10B981"/>
+  <path d="M47 14l2 2 4-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

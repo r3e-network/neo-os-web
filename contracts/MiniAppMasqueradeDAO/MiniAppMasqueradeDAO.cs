@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppMasqueradeDAO")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Masquerade DAO - Anonymous governance")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. MasqueradeDAO is an anonymous DAO for identity-hidden governance. Use it to create mask identities and vote anonymously, you can participate in DAO governance without revealing your real identity.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

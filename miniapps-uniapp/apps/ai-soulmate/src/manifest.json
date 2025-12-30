@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-ai-soulmate",
+  "name": "AI Soulmate",
+  "name_zh": "AI 灵魂伴侣进化论",
+  "description": "AI companion with TEE-encrypted memories and personality evolution",
+  "description_zh": "TEE 隐私推理 + 链上养成，绝对隐私的情感寄托",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-ai-soulmate",
+  "permissions": { "payments": true, "confidential": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "social",
+  "tags": ["ai", "companion", "privacy"]
+}

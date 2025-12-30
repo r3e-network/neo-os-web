@@ -1,0 +1,66 @@
+{
+  "name": "Melting Asset",
+  "appid": "miniapp-meltingasset",
+  "description": "NFTs that lose value over time unless maintained",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Melting Asset",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "正在融化的 NFT",
+  "description_zh": "随时间贬值的 NFT，需要维护",
+  "category": "defi",
+  "tags": [
+    "nft",
+    "decay",
+    "maintenance"
+  ],
+  "permissions": {
+    "wallet": [
+      "read-address"
+    ],
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x964994b4ce9d77c7af303c6c762192d4184313ee",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_status",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "tvl",
+          "apy",
+          "volume_24h"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

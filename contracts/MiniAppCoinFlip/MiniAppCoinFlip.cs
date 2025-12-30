@@ -50,7 +50,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Coin Flip MiniApp - 50/50 double or nothing with on-chain RNG requests")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. CoinFlip is a provably fair gaming application for 50/50 betting. Use it to place heads or tails bets, you can win 2x your stake with verifiable on-chain randomness.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

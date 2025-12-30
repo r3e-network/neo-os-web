@@ -19,7 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppGovMerc")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Gov Merc - Vote rental market")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. GovMerc is a vote delegation marketplace for governance influence. Use it to rent or delegate voting power through competitive bidding, you can monetize your governance rights or acquire voting influence.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

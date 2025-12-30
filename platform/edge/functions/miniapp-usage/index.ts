@@ -72,7 +72,7 @@ export async function handler(req: Request): Promise<Response> {
     if (err) return error(500, err.message, "DB_ERROR", req);
 
     const usage = normalizeUsageRow(data ?? {}, { app_id: appId, usage_date: date });
-    return json({ usage }, req);
+    return json({ usage }, {}, req);
   }
 
   const { data, error: err } = await supabase

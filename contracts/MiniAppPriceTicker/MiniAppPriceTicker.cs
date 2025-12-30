@@ -31,7 +31,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppPriceTicker")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Price Ticker - Real-time price feeds with on-chain oracle")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. PriceTicker is a price feed service for real-time market data. Use it to access on-chain price oracles, you can integrate live price feeds into your contracts.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

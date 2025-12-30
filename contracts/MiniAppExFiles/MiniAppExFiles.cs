@@ -21,7 +21,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppExFiles")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Ex-Files - Anonymous relationship database")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. ExFiles is a privacy-preserving database application for anonymous records. Use it to store and query encrypted relationship data, you can access pattern matching with TEE-protected privacy.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

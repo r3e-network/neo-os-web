@@ -54,6 +54,15 @@ declare -A MINIAPPS=(
     ["MiniAppNFTEvolve"]="0xadd18a719d14d59c064244833cd2c812c79d6015|MiniAppNFTEvolve"
     ["MiniAppBridgeGuardian"]="0x2d03f3e4ff10e14ea94081e0c21e79e79c33f9e3|MiniAppBridgeGuardian"
     ["MiniAppMegaMillions"]="0x5a8b9c2d3e4f5061728394a5b6c7d8e9f0a1b2c3|MiniAppMegaMillions"
+    # Phase 5: New Gaming/DeFi/Social MiniApps
+    ["MiniAppNeoCrash"]="0x2e594e12b2896c135c3c8c80dbf2317fa56ceead|MiniAppNeoCrash"
+    ["MiniAppCandleWars"]="0x9dddba9357b93e75c29aaeaf37e7851aaaed6dbe|MiniAppCandleWars"
+    ["MiniAppDutchAuction"]="0xb4394ee9eee040a9cce5450fceaaeabe83946410|MiniAppDutchAuction"
+    ["MiniAppParasite"]="0xe1726fbc4b6a5862eb2336ff32494be9f117563b|MiniAppParasite"
+    ["MiniAppThroneOfGas"]="0xa89c3f6d82ad2803e1e576a2b441660c93316678|MiniAppThroneOfGas"
+    ["MiniAppNoLossLottery"]="0x18cecd52efb529ac4e2827e9c9956c1bc450f154|MiniAppNoLossLottery"
+    ["MiniAppDoomsdayClock"]="0xe4f386057d6308b83a5fd2e84bc3eb9149adc719|MiniAppDoomsdayClock"
+    ["MiniAppPayToView"]="0xfa920907126e63b5360a68fbf607294a82ef6266|MiniAppPayToView"
 )
 
 update_contract() {

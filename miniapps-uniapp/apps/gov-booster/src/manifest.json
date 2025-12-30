@@ -1,0 +1,67 @@
+{
+  "name": "Gov Booster",
+  "appid": "miniapp-govbooster",
+  "description": "Boost your governance voting power",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Gov Booster",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "治理加速器",
+  "description_zh": "提升您的治理投票权重",
+  "category": "governance",
+  "tags": [
+    "governance",
+    "voting",
+    "staking"
+  ],
+  "permissions": [
+    "payments",
+    "governance",
+    "confidential",
+    "automation"
+  ],
+  "assets_allowed": [
+    "GAS",
+    "NEO"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0xebabd9712f985afc0e5a4e24ed2fc4acb874796f",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_voting",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "active_proposals",
+          "total_votes",
+          "quorum"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

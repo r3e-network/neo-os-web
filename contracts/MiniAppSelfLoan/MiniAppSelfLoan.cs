@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppSelfLoan")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Self-Repaying Loan - Auto-repaying DeFi")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. SelfLoan is a self-repaying loan protocol for automated debt management. Use it to borrow against collateral with yield-based repayment, you can access liquidity while your collateral automatically pays down debt.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

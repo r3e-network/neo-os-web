@@ -12,6 +12,8 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void CapsuleBuriedHandler(UInt160 owner, BigInteger capsuleId, BigInteger unlockTime, bool isPublic);
     public delegate void CapsuleRevealedHandler(BigInteger capsuleId, UInt160 revealer);
     public delegate void CapsuleFishedHandler(UInt160 fisher, BigInteger capsuleId);
+    public delegate void CapsuleEncryptedHandler(BigInteger capsuleId, ByteString encryptedContent);
+    public delegate void CapsuleDecryptedHandler(BigInteger capsuleId, ByteString decryptedContent);
 
     /// <summary>
     /// TEE Time Capsule - Encrypted messages unlocked by time or conditions.
@@ -25,7 +27,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppTimeCapsule")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Encrypted messages unlocked by time or price")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. TimeCapsule is a time-locked message system for future delivery. Use it to bury encrypted messages, you can reveal content after time conditions are met.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {
@@ -43,6 +45,8 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_CAPSULE_PUBLIC = new byte[] { 0x14 };
         private static readonly byte[] PREFIX_CAPSULE_REVEALED = new byte[] { 0x15 };
         private static readonly byte[] PREFIX_PUBLIC_CAPSULES = new byte[] { 0x16 };
+        private static readonly byte[] PREFIX_CAPSULE_ENCRYPTED = new byte[] { 0x17 };
+        private static readonly byte[] PREFIX_REQUEST_TO_CAPSULE = new byte[] { 0x18 };
         #endregion
 
         #region Events
@@ -54,6 +58,12 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("CapsuleFished")]
         public static event CapsuleFishedHandler OnCapsuleFished;
+
+        [DisplayName("CapsuleEncrypted")]
+        public static event CapsuleEncryptedHandler OnCapsuleEncrypted;
+
+        [DisplayName("CapsuleDecrypted")]
+        public static event CapsuleDecryptedHandler OnCapsuleDecrypted;
         #endregion
 
         #region Getters
@@ -188,6 +198,57 @@ namespace NeoMiniAppPlatform.Contracts
 
             bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, recipient, amount);
             ExecutionEngine.Assert(transferred, "withdraw failed");
+        }
+
+        #endregion
+
+        #region TEE Service Methods
+
+        /// <summary>
+        /// Request TEE to encrypt capsule content.
+        /// </summary>
+        private static BigInteger RequestTeeEncrypt(BigInteger capsuleId, ByteString content)
+        {
+            UInt160 gateway = Gateway();
+            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+
+            ByteString payload = StdLib.Serialize(new object[] { "encrypt", capsuleId, content });
+            BigInteger requestId = (BigInteger)Contract.Call(
+                gateway, "requestService", CallFlags.All,
+                APP_ID, "tee-compute", payload,
+                Runtime.ExecutingScriptHash, "OnTeeCallback"
+            );
+
+            // Map request to capsule
+            byte[] key = Helper.Concat(PREFIX_REQUEST_TO_CAPSULE, (ByteString)requestId.ToByteArray());
+            Storage.Put(Storage.CurrentContext, key, capsuleId);
+
+            return requestId;
+        }
+
+        /// <summary>
+        /// TEE service callback handler.
+        /// </summary>
+        public static void OnTeeCallback(
+            BigInteger requestId, string appId, string serviceType,
+            bool success, ByteString result, string error)
+        {
+            ValidateGateway();
+
+            byte[] key = Helper.Concat(PREFIX_REQUEST_TO_CAPSULE, (ByteString)requestId.ToByteArray());
+            ByteString capsuleIdData = Storage.Get(Storage.CurrentContext, key);
+            ExecutionEngine.Assert(capsuleIdData != null, "unknown request");
+
+            BigInteger capsuleId = (BigInteger)capsuleIdData;
+            Storage.Delete(Storage.CurrentContext, key);
+
+            if (success && result != null && result.Length > 0)
+            {
+                // Store encrypted content
+                byte[] encKey = Helper.Concat(PREFIX_CAPSULE_ENCRYPTED, (ByteString)capsuleId.ToByteArray());
+                Storage.Put(Storage.CurrentContext, encKey, result);
+                OnCapsuleEncrypted(capsuleId, result);
+            }
         }
 
         #endregion

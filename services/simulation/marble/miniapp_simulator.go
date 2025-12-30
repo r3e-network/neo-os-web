@@ -130,6 +130,12 @@ type MiniAppSimulator struct {
 	fogPuzzleReveals     int64
 	riddleSolves         int64
 
+	// Phase 9 stats (new MiniApps)
+	canvasDraws          int64
+	candidateVotes       int64
+	neoburgerStakes      int64
+	guardianPolicySets   int64
+
 	simulationErrors int64
 
 	missingUserAddressesLogged uint32

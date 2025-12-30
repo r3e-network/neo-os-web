@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"strings"
 	"time"
@@ -183,7 +184,7 @@ func (s *Service) executeService(ctx context.Context, userID, appID, requestID, 
 	case "oracle":
 		return s.executeOracle(ctx, userID, payload)
 	case "compute":
-		return s.executeCompute(ctx, userID, payload)
+		return s.executeCompute(ctx, userID, appID, payload)
 	default:
 		return serviceResult{}, fmt.Errorf("unsupported service type: %s", serviceType)
 	}
@@ -304,7 +305,7 @@ func (s *Service) executeOracle(ctx context.Context, userID string, payload []by
 	return serviceResult{ResultBytes: resultBytes, AuditJSON: neorequestsupabase.MarshalParams(result)}, nil
 }
 
-func (s *Service) executeCompute(ctx context.Context, userID string, payload []byte) (serviceResult, error) {
+func (s *Service) executeCompute(ctx context.Context, userID, appID string, payload []byte) (serviceResult, error) {
 	if s.computeURL == "" {
 		return serviceResult{}, fmt.Errorf("neocompute URL not configured")
 	}
@@ -316,8 +317,21 @@ func (s *Service) executeCompute(ctx context.Context, userID string, payload []b
 	if err := json.Unmarshal(payload, &req); err != nil {
 		return serviceResult{}, fmt.Errorf("invalid compute payload")
 	}
+
+	// If script_name is provided, load script from app manifest
+	if scriptName := strings.TrimSpace(req.ScriptName); scriptName != "" {
+		script, entryPoint, err := s.loadTeeScript(ctx, appID, scriptName)
+		if err != nil {
+			return serviceResult{}, fmt.Errorf("failed to load TEE script: %w", err)
+		}
+		req.Script = script
+		if req.EntryPoint == "" {
+			req.EntryPoint = entryPoint
+		}
+	}
+
 	if strings.TrimSpace(req.Script) == "" {
-		return serviceResult{}, fmt.Errorf("compute script required")
+		return serviceResult{}, fmt.Errorf("compute script required (provide script_name or script)")
 	}
 	if strings.TrimSpace(req.EntryPoint) == "" {
 		req.EntryPoint = "main"
@@ -1153,4 +1167,82 @@ func (s *Service) markMetricProcessed(ctx context.Context, event *chain.Contract
 	}
 
 	return s.repo.MarkProcessedEvent(ctx, processed)
+}
+
+// teeScriptInfo represents a TEE script definition in the manifest.
+type teeScriptInfo struct {
+	File        string `json:"file"`
+	EntryPoint  string `json:"entry_point"`
+	Description string `json:"description,omitempty"`
+}
+
+// loadTeeScript loads a TEE script from the app manifest by script name.
+func (s *Service) loadTeeScript(ctx context.Context, appID, scriptName string) (string, string, error) {
+	if s.scriptsURL == "" {
+		return "", "", fmt.Errorf("scripts base URL not configured")
+	}
+	if appID == "" {
+		return "", "", fmt.Errorf("app_id required")
+	}
+	if scriptName == "" {
+		return "", "", fmt.Errorf("script_name required")
+	}
+
+	// Fetch manifest
+	baseURL := strings.TrimSuffix(s.scriptsURL, "/")
+	manifestURL := fmt.Sprintf("%s/apps/%s/manifest.json", baseURL, appID)
+	manifestResp, err := s.httpClient.Get(manifestURL)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to fetch manifest: %w", err)
+	}
+	defer manifestResp.Body.Close()
+
+	if manifestResp.StatusCode != 200 {
+		return "", "", fmt.Errorf("manifest not found: %s", manifestURL)
+	}
+
+	var manifest struct {
+		TeeScripts map[string]teeScriptInfo `json:"tee_scripts"`
+	}
+	if err := json.NewDecoder(manifestResp.Body).Decode(&manifest); err != nil {
+		return "", "", fmt.Errorf("invalid manifest: %w", err)
+	}
+
+	scriptInfo, ok := manifest.TeeScripts[scriptName]
+	if !ok {
+		return "", "", fmt.Errorf("script %q not found in manifest", scriptName)
+	}
+	if scriptInfo.File == "" {
+		return "", "", fmt.Errorf("script %q has no file path", scriptName)
+	}
+
+	// Fetch script content
+	scriptURL := fmt.Sprintf("%s/apps/%s/%s", baseURL, appID, scriptInfo.File)
+	scriptResp, err := s.httpClient.Get(scriptURL)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to fetch script: %w", err)
+	}
+	defer scriptResp.Body.Close()
+
+	if scriptResp.StatusCode != 200 {
+		return "", "", fmt.Errorf("script not found: %s", scriptURL)
+	}
+
+	// Read script content with size limit (1MB)
+	const maxScriptSize = 1 << 20
+	limitedReader := io.LimitReader(scriptResp.Body, maxScriptSize+1)
+	scriptBytes, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read script: %w", err)
+	}
+	if len(scriptBytes) > maxScriptSize {
+		return "", "", fmt.Errorf("script exceeds max size (%d bytes)", maxScriptSize)
+	}
+
+	entryPoint := scriptInfo.EntryPoint
+	if entryPoint == "" {
+		entryPoint = "main"
+	}
+
+	return string(scriptBytes), entryPoint, nil
 }

@@ -56,7 +56,7 @@ gateway + TEE services, with final enforcement at the contract layer.
 | **AutomationAnchor**    | `AutomationAnchor/AutomationAnchor.cs`       | Task scheduling with nonce-based anti-replay       |
 | **ServiceLayerGateway** | `ServiceLayerGateway/ServiceLayerGateway.cs` | On-chain service request routing + callbacks       |
 
-## MiniApp Contracts (67 Deployed)
+## MiniApp Contracts (60 Deployed)
 
 Each MiniApp has its own smart contract that handles app-specific logic using the **Chainlink-style oracle pattern**. Contracts actively request services from ServiceLayerGateway and receive callbacks with results. All MiniApp contracts use the shared `MiniAppContract` partial class pattern for common functionality.
 
@@ -175,42 +175,6 @@ Deploy all MiniApp contracts to testnet:
 go run scripts/deploy_miniapp_contracts.go
 ```
 
-### MiniApp Contract: MiniAppServiceConsumer
-
-This repo includes a **sample** on-chain MiniApp contract that demonstrates the
-ServiceLayerGateway request/callback workflow:
-
-| Contract                   | Source                                             | Description                                      |
-| -------------------------- | -------------------------------------------------- | ------------------------------------------------ |
-| **MiniAppServiceConsumer** | `MiniAppServiceConsumer/MiniAppServiceConsumer.cs` | Sample callback receiver for ServiceLayerGateway |
-
-**Features:**
-
-- Receives callbacks from ServiceLayerGateway after TEE service execution
-- Stores callback records (requestId, appId, serviceType, success, result, error)
-- Emits `ServiceCallback` event for off-chain indexing
-- Admin-controlled gateway address configuration
-
-**Key Methods:**
-
-```
-SetGateway(gateway)      - Set the ServiceLayerGateway contract address
-OnServiceCallback(...)   - Callback entry point (called by gateway)
-GetLastCallback()        - Query the most recent callback record
-```
-
-**Deployment (Optional):**
-
-```bash
-# Build the contract
-./build.sh
-
-# Deploy to testnet (requires NEO_TESTNET_WIF)
-go run scripts/deploy_miniapp_consumer.go
-```
-
-It is **not** deployed by default; deploy it as needed for testnet workflows.
-
 ## Common Contract Features
 
 All platform contracts include:
@@ -317,14 +281,11 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | MiniAppPredictionMarket | `0x64118096bd004a2bcb010f4371aba45121eca790` | ✅ Active |
 | MiniAppFlashLoan        | `0xee51e5b399f7727267b7d296ff34ec6bb9283131` | ✅ Active |
 | MiniAppPriceTicker      | `0x838bd5dd3d257a844fadddb5af2b9dac45e1d320` | ✅ Active |
-| MiniAppGasSpin          | `0x19bcb0a50ddf5bf7cefbb47044cdb3ce4cb9e4cd` | ✅ Active |
-| MiniAppPricePredict     | `0x6317f97029b39f9211193085fe20dcf6500ec59d` | ✅ Active |
 | MiniAppSecretVote       | `0x7763ce957515f6acef6d093376977ac6c1cbc47d` | ✅ Active |
 | MiniAppSecretPoker      | `0xa27348cc0a79c776699a028244250b4f3d6bbe0c` | ✅ Active |
-| MiniAppMicroPredict     | `0x73264e59d8215e28485420bb33ba841ff6fb45f8` | ✅ Active |
 | MiniAppRedEnvelope      | `0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e` | ✅ Active |
 | MiniAppGasCircle        | `0x7736c8d1ff918f94d26adc688dac4d4bc084bd39` | ✅ Active |
-| MiniAppCanvas           | `0x285e2dc88e15fee4684588f34985155ac95d8d98` | ✅ Active |
+| MiniAppCanvas           | `0x53f9c7b86fa2f8336839ef5073d964d644cbb46c` | ✅ Active |
 
 **Phase 3 - Advanced:**
 
@@ -332,7 +293,6 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | --------------------- | -------------------------------------------- | --------- |
 | MiniAppFogChess       | `0x23a44ca6643c104fbaa97daab65d5e53b3662b4a` | ✅ Active |
 | MiniAppGovBooster     | `0xebabd9712f985afc0e5a4e24ed2fc4acb874796f` | ✅ Active |
-| MiniAppTurboOptions   | `0xbbe5a4d4272618b23b983c40e22d4b072e20f4bc` | ✅ Active |
 | MiniAppILGuard        | `0xd3557ccbb2ced2254f5862fbc784cd97cf746872` | ✅ Active |
 | MiniAppGuardianPolicy | `0x893a774957244b83a0efed1d42771fe1e424cfec` | ✅ Active |
 
@@ -353,7 +313,6 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | MiniAppCandleWars    | `0x9dddba9357b93e75c29aaeaf37e7851aaaed6dbe` | ✅ Active |
 | MiniAppDutchAuction  | `0xb4394ee9eee040a9cce5450fceaaeabe83946410` | ✅ Active |
 | MiniAppParasite      | `0xe1726fbc4b6a5862eb2336ff32494be9f117563b` | ✅ Active |
-| MiniAppThroneOfGas   | `0xa89c3f6d82ad2803e1e576a2b441660c93316678` | ✅ Active |
 | MiniAppNoLossLottery | `0x18cecd52efb529ac4e2827e9c9956c1bc450f154` | ✅ Active |
 | MiniAppDoomsdayClock | `0xe4f386057d6308b83a5fd2e84bc3eb9149adc719` | ✅ Active |
 | MiniAppPayToView     | `0xfa920907126e63b5360a68fbf607294a82ef6266` | ✅ Active |
@@ -362,59 +321,53 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 
 | Contract              | Hash                                         | Status    |
 | --------------------- | -------------------------------------------- | --------- |
-| MiniAppSchrodingerNFT | `0x06fcf2d556322637e1b97ec1e0137c77c6a7b27e` | ✅ Active |
-| MiniAppAlgoBattle     | `0xb75677584c3f3b168129767534c1478d42144913` | ✅ Active |
-| MiniAppTimeCapsule    | `0x0108b2d8d020f921d9bdc82ffda5e55f9b749823` | ✅ Active |
-| MiniAppGardenOfNeo    | `0x192e2a0a1e050440b97d449b7905f37516042faa` | ✅ Active |
-| MiniAppDevTipping     | `0x93d2406a73e060d43cbe28fb26d863e5ac4744a2` | ✅ Active |
+| MiniAppSchrodingerNFT | `0x43165f491aa0584d402f4b360d667f3e0e3293e7` | ✅ Active |
+| MiniAppAlgoBattle     | `0xdeb2117b8db028e68e6acf2e9c67c26517d00a3e` | ✅ Active |
+| MiniAppTimeCapsule    | `0x119763e1402d7190728191d83c95c5b8e995abcd` | ✅ Active |
+| MiniAppGardenOfNeo    | `0xdb52b284d97973b01fed431dd6d143a4d04d9fa7` | ✅ Active |
+| MiniAppDevTipping     | `0x38ec54ce12e9cbf041cc7e31534eccae0eaa38dc` | ✅ Active |
 
 **Phase 7 - Advanced DeFi & Social:**
 
 | Contract               | Hash                                         | Status    |
 | ---------------------- | -------------------------------------------- | --------- |
-| MiniAppAISoulmate      | `0x941d3f3662b5e4a744a06356ca4e91362d5c4556` | ✅ Active |
-| MiniAppDeadSwitch      | `0xb77119b93b305e75e5becb8c23a2962c4940e6e5` | ✅ Active |
-| MiniAppHeritageTrust   | `0x6d910186e2eee3fc38fd027e5e77d50d6f8c429b` | ✅ Active |
-| MiniAppDarkRadio       | `0xf4e6fc1a86281df7527eec74b809403822e973d8` | ✅ Active |
-| MiniAppZKBadge         | `0x34a71f8c85830789d82a6a6e966aef74a4f9292c` | ✅ Active |
-| MiniAppGraveyard       | `0x8cf45cdc1d879710c2b88fd8705696fe6f5aacb5` | ✅ Active |
-| MiniAppCompoundCapsule | `0x20397862ba24b84103a745ec2ed1f581126674dc` | ✅ Active |
-| MiniAppSelfLoan        | `0xb7522afccd80ad5b3cbc112033c22b3d8f2d120c` | ✅ Active |
-| MiniAppDarkPool        | `0x7c49a0c0184e2da82130de1e2c5fef283bd0a1a0` | ✅ Active |
-| MiniAppBurnLeague      | `0x8db1b8c67b52e02592d2ee7ceb47dea908ab0e46` | ✅ Active |
-| MiniAppGovMerc         | `0x69a013c8fde3e835d642717ef1af71f7e02ade00` | ✅ Active |
+| MiniAppAISoulmate      | `0x5df263b8d65fa5cc755b46acf8a7866f5dc05b92` | ✅ Active |
+| MiniAppDeadSwitch      | `0x87dbc02162b5681dd4788061c1f411c7abce0e66` | ✅ Active |
+| MiniAppHeritageTrust   | `0xd59eea851cd8e5dd57efe80646ff53fa274600f8` | ✅ Active |
+| MiniAppDarkRadio       | `0x2652053354c3d2c574a0bc74e21a92a5dd94a42d` | ✅ Active |
+| MiniAppZKBadge         | `0x70915211c56fe3323b22043d3073765a7b633d3f` | ✅ Active |
+| MiniAppGraveyard       | `0xe88938b2c2032483cf5edcdab7e4bde981e5fb24` | ✅ Active |
+| MiniAppCompoundCapsule | `0xba302bebace6c2bd0f610228b56bd3d3de07dbd7` | ✅ Active |
+| MiniAppSelfLoan        | `0x5ed7d8c85f24f4aa16b328aca776e09be5241296` | ✅ Active |
+| MiniAppDarkPool        | `0xf25a43e726c58ae5ec9468ff42caeaeeadd78128` | ✅ Active |
+| MiniAppBurnLeague      | `0xf1aa73e2fb00664e8ef100dac083fc42be6aaf85` | ✅ Active |
+| MiniAppGovMerc         | `0x05d4ed2e60141043d6d20f5cde274704bd42c0dc` | ✅ Active |
 
 **Phase 8 - Creative & Social:**
 
 | Contract                | Hash                                         | Status    |
 | ----------------------- | -------------------------------------------- | --------- |
-| MiniAppQuantumSwap      | `0x21f0b8f1fd5c65e239bda0bc8a04a367b821b79c` | ✅ Active |
-| MiniAppOnChainTarot     | `0xfff9616dd3d9e863bc72bf26ff0a0da2d698e767` | ✅ Active |
-| MiniAppExFiles          | `0x6057934459f1ddc6c63a63bc816afed971514b43` | ✅ Active |
-| MiniAppScreamToEarn     | `0xd726b3d241bef1ee299fa469f7cfbd03b7123e0f` | ✅ Active |
-| MiniAppBreakupContract  | `0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f` | ✅ Active |
-| MiniAppGeoSpotlight     | `0x2f74728dd5f3d143d2a2d2dbb99aa2f8feeb8353` | ✅ Active |
-| MiniAppPuzzleMining     | `0xefda59e287f0bf46d6c3ec5db565a339cb2c0e89` | ✅ Active |
-| MiniAppNFTChimera       | `0x3d75708a45c2e3850608b65d4588dc683672004a` | ✅ Active |
-| MiniAppWorldPiano       | `0x0920ef4ca5eca4836e2514af0c080d3741ba7c73` | ✅ Active |
-| MiniAppBountyHunter     | `0xa2a83c007d091ee65cda36c1b4c120c3c09304f9` | ✅ Active |
-| MiniAppMasqueradeDAO    | `0x07ff6bac7e2824d1cec0e71a1383d131cdf86c65` | ✅ Active |
-| MiniAppMeltingAsset     | `0x31662a42f65e394c2e038030e410b75251eb0705` | ✅ Active |
-| MiniAppUnbreakableVault | `0xcf4c6eb16baad22292fb3ced6e570c31fadddd4e` | ✅ Active |
-| MiniAppWhisperChain     | `0x28d346d23fe5cad44e12dafdbda4422764fa544a` | ✅ Active |
-| MiniAppMillionPieceMap  | `0xf4ab0fa6f245427482cb5c693a5f40baf6d58c71` | ✅ Active |
-| MiniAppFogPuzzle        | `0x1eafd1f7fc27607bd51ef4524c650c39ba2a7d55` | ✅ Active |
-| MiniAppCryptoRiddle     | `0x088b4974a83cd6afa4c52c041d75637317b54ad3` | ✅ Active |
-
-**Sample Contract:**
-
-| Contract               | Hash                                         | Status    |
-| ---------------------- | -------------------------------------------- | --------- |
-| MiniAppServiceConsumer | `0x8894b8d122cbc49c19439f680a4b5dbb2093b426` | ✅ Active |
+| MiniAppQuantumSwap      | `0x99fd1213d1d73181b84270ec3458bb46b9c4aab3` | ✅ Active |
+| MiniAppOnChainTarot     | `0xc2bb26d21f357f125a0e49cbca7718b6aa5c3b1e` | ✅ Active |
+| MiniAppExFiles          | `0xb45cd9f5869f75f3a7ac9e71587909262cbb96a5` | ✅ Active |
+| MiniAppScreamToEarn     | `0xe94d5f6815b0574c7c685f1a460f3d05273b5e63` | ✅ Active |
+| MiniAppBreakupContract  | `0x84a3864028b7b71e9f420056e1eae2e3e3113a0c` | ✅ Active |
+| MiniAppGeoSpotlight     | `0x925959dc2360bd2fed7dd52ac3d29b76ff24c5dd` | ✅ Active |
+| MiniAppPuzzleMining     | `0x25409ffab1eb192b2313f86142aaa90f9fcfcbea` | ✅ Active |
+| MiniAppNFTChimera       | `0x200996e599a2e3dba781438826a4f3622560dddd` | ✅ Active |
+| MiniAppWorldPiano       | `0x946d0afa22c7661734288002fd7cb0dc6e765663` | ✅ Active |
+| MiniAppBountyHunter     | `0x7b3929e7d7881c5929d29953d194c833178a0887` | ✅ Active |
+| MiniAppMasqueradeDAO    | `0x36873ae952147150e065ad2ba8d23731ffd00d5a` | ✅ Active |
+| MiniAppMeltingAsset     | `0x964994b4ce9d77c7af303c6c762192d4184313ee` | ✅ Active |
+| MiniAppUnbreakableVault | `0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4` | ✅ Active |
+| MiniAppWhisperChain     | `0xbd51b0aee399ed00645c4a698c18806d2797fe64` | ✅ Active |
+| MiniAppMillionPieceMap  | `0xdf787aaf8a70dd2612521de69f12c7bf5a8d0d6d` | ✅ Active |
+| MiniAppFogPuzzle        | `0xde0615f83fb3f0f80ef7b4e40b06e64b0d5ffa2a` | ✅ Active |
+| MiniAppCryptoRiddle     | `0x35718d58fff23aed609df196d7954cbeb8ac3d7c` | ✅ Active |
 
 ## MiniApp Automation Support
 
-All 67 MiniApp contracts support periodic automation via AutomationAnchor integration. This enables scheduled task execution for time-sensitive operations.
+All 60 MiniApp contracts support periodic automation via AutomationAnchor integration. This enables scheduled task execution for time-sensitive operations.
 
 ### Automation Feature Matrix
 
@@ -422,19 +375,14 @@ All 67 MiniApp contracts support periodic automation via AutomationAnchor integr
 | ----------------------- | -------- | ------------------------------- | ------------ |
 | MiniAppCoinFlip         | Gaming   | Auto-settle expired bets        | interval     |
 | MiniAppDiceGame         | Gaming   | Auto-settle expired games       | interval     |
-| MiniAppGasSpin          | Gaming   | Auto-process spin results       | interval     |
 | MiniAppScratchCard      | Gaming   | Auto-manage prize pool          | interval     |
-| MiniAppMegaMillions     | Gaming   | Auto-draw when conditions met   | cron         |
 | MiniAppLottery          | Gaming   | Auto-trigger lottery draws      | cron         |
 | MiniAppFlashLoan        | DeFi     | Auto-liquidate defaulted loans  | interval     |
 | MiniAppPredictionMarket | DeFi     | Auto-resolve expired markets    | interval     |
-| MiniAppPricePredict     | DeFi     | Auto-settle predictions         | interval     |
 | MiniAppPriceTicker      | DeFi     | Auto-update price feeds         | interval     |
-| MiniAppTurboOptions     | DeFi     | Auto-settle expired options     | interval     |
 | MiniAppILGuard          | DeFi     | Auto-check IL protection        | interval     |
 | MiniAppRedEnvelope      | Social   | Auto-refund expired envelopes   | interval     |
 | MiniAppSecretVote       | Social   | Auto-tally votes after deadline | cron         |
-| MiniAppMicroPredict     | Social   | Auto-settle micro predictions   | interval     |
 | MiniAppSecretPoker      | Social   | Auto-timeout inactive games     | interval     |
 | MiniAppAITrader         | Advanced | Auto-execute trading signals    | interval     |
 | MiniAppGridBot          | Advanced | Auto-execute grid orders        | interval     |
@@ -450,7 +398,6 @@ All 67 MiniApp contracts support periodic automation via AutomationAnchor integr
 | MiniAppNoLossLottery    | Gaming   | Auto-distribute yield prizes    | cron         |
 | MiniAppDutchAuction     | DeFi     | Auto-settle expired auctions    | interval     |
 | MiniAppDoomsdayClock    | DeFi     | Auto-trigger doomsday events    | cron         |
-| MiniAppThroneOfGas      | Gaming   | Auto-crown new kings            | interval     |
 | MiniAppParasite         | Gaming   | Auto-spread parasite effects    | interval     |
 | MiniAppPayToView        | Social   | Auto-unlock expired content     | interval     |
 | MiniAppSchrodingerNFT   | Creative | Auto-collapse quantum states    | interval     |

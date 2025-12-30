@@ -18,7 +18,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppCompoundCapsule")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Compound Capsule - Auto-compounding savings")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. CompoundCapsule is an auto-compounding vault for yield optimization. Use it to lock assets with time-based unlocking, you can maximize returns through automated compounding.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

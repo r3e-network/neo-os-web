@@ -1,0 +1,14 @@
+{
+  "name": "neo-miniapps-uniapp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "build:all": "node scripts/generate-templates.js && bash scripts/build-all.sh",
+    "generate": "node scripts/generate-templates.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

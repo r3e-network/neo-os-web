@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppCryptoRiddle")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Crypto Riddle - Password red envelope hunter")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. CryptoRiddle is a puzzle gaming application for password-protected rewards. Use it to create or solve riddles, you can claim GAS rewards by cracking the correct answers.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

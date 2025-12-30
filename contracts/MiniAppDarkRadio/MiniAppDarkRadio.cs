@@ -22,7 +22,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppDarkRadio")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Dark Forest Radio - Anonymous broadcast")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. DarkRadio is an anonymous broadcast platform for private messaging. Use it to broadcast censorship-resistant messages, you can share thoughts anonymously with display time proportional to GAS spent.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

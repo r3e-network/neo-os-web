@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppWhisperChain")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Whisper Chain - Voice drift bottles")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. WhisperChain is an anonymous messaging system for voice drift bottles. Use it to send encrypted voice messages, you can randomly connect with others through blockchain-based message discovery.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

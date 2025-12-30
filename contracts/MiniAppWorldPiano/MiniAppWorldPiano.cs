@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppWorldPiano")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "World Piano - Global collaborative music")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. WorldPiano is a collaborative music application for global composition. Use it to play notes on a shared piano, you can create permanent on-chain melodies with contributors worldwide.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

@@ -1,3 +1,0 @@
-infrastructure/database/supabase_client.go:49:	allowInsecure := strings.EqualFold(os.Getenv("SUPABASE_ALLOW_INSECURE"), "true")
-infrastructure/database/supabase_client.go:50:	if allowInsecure && !isDev {
-infrastructure/database/supabase_client.go:79:	allowHTTPInStrict := allowInsecure

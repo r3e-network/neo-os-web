@@ -31,30 +31,38 @@ type BuiltinApp struct {
 }
 
 var builtinApps = []BuiltinApp{
-	// Existing apps
-	{"builtin-gas-spin", "Gas Spin", "miniapps/builtin/gas-spin/index.html", []string{"wallet", "payments", "rng"}},
-	{"builtin-price-predict", "Price Predict", "miniapps/builtin/price-predict/index.html", []string{"wallet", "payments", "datafeed"}},
-	{"builtin-secret-vote", "Secret Vote", "miniapps/builtin/secret-vote/index.html", []string{"wallet", "payments", "governance"}},
-	{"builtin-lottery", "Lottery", "miniapps/builtin/lottery/index.html", []string{"wallet", "payments", "rng"}},
-	{"builtin-coin-flip", "Coin Flip", "miniapps/builtin/coin-flip/index.html", []string{"wallet", "payments", "rng"}},
-	{"builtin-dice-game", "Dice Game", "miniapps/builtin/dice-game/index.html", []string{"wallet", "payments", "rng"}},
-	// New Phase 1 apps
-	{"builtin-secret-poker", "Secret Poker", "miniapps/builtin/secret-poker/index.html", []string{"wallet", "payments", "rng", "compute"}},
-	{"builtin-micro-predict", "Micro Predict", "miniapps/builtin/micro-predict/index.html", []string{"wallet", "payments", "datafeed"}},
-	{"builtin-red-envelope", "Red Envelope", "miniapps/builtin/red-envelope/index.html", []string{"wallet", "payments", "rng"}},
-	// Phase 2 apps (to be added)
-	{"builtin-gas-circle", "GAS Circle", "miniapps/builtin/gas-circle/index.html", []string{"wallet", "payments", "rng", "automation"}},
-	{"builtin-fog-chess", "Fog Chess", "miniapps/builtin/fog-chess/index.html", []string{"wallet", "payments", "rng", "compute"}},
-	{"builtin-gov-booster", "Gov Booster", "miniapps/builtin/gov-booster/index.html", []string{"wallet", "payments", "governance", "automation", "datafeed"}},
-	// Phase 3 apps
-	{"builtin-turbo-options", "Turbo Options", "miniapps/builtin/turbo-options/index.html", []string{"wallet", "payments", "datafeed", "automation"}},
-	{"builtin-il-guard", "IL Guard", "miniapps/builtin/il-guard/index.html", []string{"wallet", "payments", "datafeed", "automation"}},
-	{"builtin-guardian-policy", "Guardian Policy", "miniapps/builtin/guardian-policy/index.html", []string{"wallet", "payments", "compute"}},
-	// Phase 4 apps - Long-Running Processes
-	{"builtin-ai-trader", "AI Trader", "miniapps/builtin/ai-trader/index.html", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
-	{"builtin-grid-bot", "Grid Bot", "miniapps/builtin/grid-bot/index.html", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
-	{"builtin-nft-evolve", "NFT Evolve", "miniapps/builtin/nft-evolve/index.html", []string{"wallet", "payments", "rng", "datafeed", "automation"}},
-	{"builtin-bridge-guardian", "Bridge Guardian", "miniapps/builtin/bridge-guardian/index.html", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
+	// Gaming apps
+	{"builtin-lottery", "Lottery", "miniapps-uniapp/apps/lottery", []string{"wallet", "payments", "rng"}},
+	{"builtin-coin-flip", "Coin Flip", "miniapps-uniapp/apps/coin-flip", []string{"wallet", "payments", "rng"}},
+	{"builtin-dice-game", "Dice Game", "miniapps-uniapp/apps/dice-game", []string{"wallet", "payments", "rng"}},
+	{"builtin-secret-poker", "Secret Poker", "miniapps-uniapp/apps/secret-poker", []string{"wallet", "payments", "rng", "compute"}},
+	{"builtin-red-envelope", "Red Envelope", "miniapps-uniapp/apps/red-envelope", []string{"wallet", "payments", "rng"}},
+	{"builtin-gas-circle", "GAS Circle", "miniapps-uniapp/apps/gas-circle", []string{"wallet", "payments", "rng", "automation"}},
+	{"builtin-fog-chess", "Fog Chess", "miniapps-uniapp/apps/fog-chess", []string{"wallet", "payments", "rng", "compute"}},
+	{"builtin-scratch-card", "Scratch Card", "miniapps-uniapp/apps/scratch-card", []string{"wallet", "payments", "rng"}},
+	{"builtin-neo-crash", "Neo Crash", "miniapps-uniapp/apps/neo-crash", []string{"wallet", "payments", "rng"}},
+	// DeFi apps
+	{"builtin-prediction-market", "Prediction Market", "miniapps-uniapp/apps/prediction-market", []string{"wallet", "payments", "datafeed"}},
+	{"builtin-il-guard", "IL Guard", "miniapps-uniapp/apps/il-guard", []string{"wallet", "payments", "datafeed", "automation"}},
+	{"builtin-grid-bot", "Grid Bot", "miniapps-uniapp/apps/grid-bot", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
+	{"builtin-ai-trader", "AI Trader", "miniapps-uniapp/apps/ai-trader", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
+	{"builtin-flashloan", "Flash Loan", "miniapps-uniapp/apps/flashloan", []string{"wallet", "payments"}},
+	{"builtin-dark-pool", "Dark Pool", "miniapps-uniapp/apps/dark-pool", []string{"wallet", "payments", "compute"}},
+	{"builtin-dutch-auction", "Dutch Auction", "miniapps-uniapp/apps/dutch-auction", []string{"wallet", "payments"}},
+	// Governance apps
+	{"builtin-secret-vote", "Secret Vote", "miniapps-uniapp/apps/secret-vote", []string{"wallet", "payments", "governance"}},
+	{"builtin-gov-booster", "Gov Booster", "miniapps-uniapp/apps/gov-booster", []string{"wallet", "payments", "governance", "automation", "datafeed"}},
+	{"builtin-gov-merc", "Gov Merc", "miniapps-uniapp/apps/gov-merc", []string{"wallet", "payments", "governance"}},
+	// NFT apps
+	{"builtin-nft-evolve", "NFT Evolve", "miniapps-uniapp/apps/nft-evolve", []string{"wallet", "payments", "rng", "datafeed", "automation"}},
+	{"builtin-schrodinger-nft", "Schrodinger NFT", "miniapps-uniapp/apps/schrodinger-nft", []string{"wallet", "payments", "rng"}},
+	// Utility apps
+	{"builtin-bridge-guardian", "Bridge Guardian", "miniapps-uniapp/apps/bridge-guardian", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
+	{"builtin-guardian-policy", "Guardian Policy", "miniapps-uniapp/apps/guardian-policy", []string{"wallet", "payments", "compute"}},
+	{"builtin-price-ticker", "Price Ticker", "miniapps-uniapp/apps/price-ticker", []string{"wallet", "datafeed"}},
+	{"builtin-dead-switch", "Dead Switch", "miniapps-uniapp/apps/dead-switch", []string{"wallet", "payments", "automation"}},
+	{"builtin-heritage-trust", "Heritage Trust", "miniapps-uniapp/apps/heritage-trust", []string{"wallet", "payments", "automation"}},
+	{"builtin-time-capsule", "Time Capsule", "miniapps-uniapp/apps/time-capsule", []string{"wallet", "payments"}},
 }
 
 func main() {

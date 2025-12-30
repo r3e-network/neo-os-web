@@ -96,10 +96,38 @@ build_sources() {
 }
 
 # MiniApp base files (shared partial classes)
-MINIAPP_BASE_FILES=(
+# Core module - required by ALL MiniApps
+MINIAPP_CORE_FILES=(
     "MiniAppBase/MiniAppBase.Core.cs"
+)
+
+# BetLimits module - only for Gaming MiniApps (~13%)
+MINIAPP_BETLIMITS_FILES=(
     "MiniAppBase/MiniAppBase.BetLimits.cs"
 )
+
+# Gaming contracts that need BetLimits
+GAMING_CONTRACTS=(
+    "MiniAppCoinFlip"
+    "MiniAppDiceGame"
+    "MiniAppGasSpin"
+    "MiniAppScratchCard"
+    "MiniAppLottery"
+    "MiniAppMicroPredict"
+    "MiniAppPricePredict"
+    "MiniAppTurboOptions"
+    "MiniAppCandleWars"
+)
+
+is_gaming_contract() {
+    local name=$1
+    for gaming in "${GAMING_CONTRACTS[@]}"; do
+        if [ "$gaming" = "$name" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 build_miniapp() {
     local label=$1
@@ -112,17 +140,29 @@ build_miniapp() {
         return 0
     fi
 
-    # Add MiniAppBase shared files
+    # Add Core files (always)
     local all_sources=()
-    for base_file in "${MINIAPP_BASE_FILES[@]}"; do
+    for base_file in "${MINIAPP_CORE_FILES[@]}"; do
         if [ -f "$base_file" ]; then
             all_sources+=("$base_file")
         fi
     done
+
+    # Add BetLimits only for Gaming contracts
+    if is_gaming_contract "$label"; then
+        for bet_file in "${MINIAPP_BETLIMITS_FILES[@]}"; do
+            if [ -f "$bet_file" ]; then
+                all_sources+=("$bet_file")
+            fi
+        done
+        echo "Building $label (Core + BetLimits)..."
+    else
+        echo "Building $label (Core only)..."
+    fi
+
     all_sources+=("${sources[@]}")
 
     mkdir -p "$outdir"
-    echo "Building $label (with MiniAppBase)..."
 
     if ! "$NCCS_BIN" "${all_sources[@]}" -o "$outdir"; then
         echo "  ✗ Compilation failed for $label"

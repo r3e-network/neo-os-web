@@ -1,0 +1,14 @@
+{
+  "app_id": "miniapp-algo-battle",
+  "name": "Algo Battle",
+  "name_zh": "算法角斗场",
+  "description": "Code gladiator battles in TEE",
+  "description_zh": "TEE 中的代码角斗士对战",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-algo-battle",
+  "permissions": { "payments": true, "confidential": true },
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "category": "creative",
+  "tags": ["coding", "battle", "competition"]
+}

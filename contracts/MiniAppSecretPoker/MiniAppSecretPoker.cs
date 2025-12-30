@@ -36,7 +36,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppSecretPoker")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Secret Poker - TEE Texas Hold'em with confidential dealing")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. SecretPoker is a confidential poker gaming application for Texas Hold'em. Use it to play poker with TEE-encrypted cards, you can enjoy provably fair dealing with hidden hand information.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

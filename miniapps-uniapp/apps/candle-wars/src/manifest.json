@@ -1,0 +1,65 @@
+{
+  "name": "Candle Wars",
+  "appid": "miniapp-candle-wars",
+  "description": "Binary options on price direction",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Candle Wars",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "K线大战",
+  "description_zh": "价格方向二元期权",
+  "category": "gaming",
+  "tags": [
+    "trading",
+    "prediction",
+    "binary-options"
+  ],
+  "permissions": {
+    "payments": true,
+    "datafeed": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub",
+    "PriceFeed"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x9dddba9357b93e75c29aaeaf37e7851aaaed6dbe",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_multiplier",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "jackpot",
+          "players_online",
+          "next_draw"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+import sgMail from "@sendgrid/mail";
+
+const apiKey = process.env.SENDGRID_API_KEY || "";
+const fromEmail = process.env.SENDGRID_FROM_EMAIL || "noreply@r3e.network";
+
+if (apiKey) {
+  sgMail.setApiKey(apiKey);
+}
+
+export const isEmailConfigured = Boolean(apiKey);
+
+export interface EmailOptions {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}
+
+/** Send email via SendGrid */
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  if (!isEmailConfigured) {
+    console.warn("SendGrid not configured, skipping email");
+    return false;
+  }
+
+  try {
+    await sgMail.send({
+      to: options.to,
+      from: fromEmail,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+    });
+    return true;
+  } catch (error) {
+    console.error("SendGrid error:", error);
+    return false;
+  }
+}

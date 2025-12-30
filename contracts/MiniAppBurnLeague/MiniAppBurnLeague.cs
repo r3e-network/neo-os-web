@@ -18,7 +18,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppBurnLeague")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Burn League - Deflationary rewards")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. BurnLeague is a deflationary rewards application for GAS burning. Use it to burn GAS tokens competitively, you can earn platform rewards proportional to your contribution.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

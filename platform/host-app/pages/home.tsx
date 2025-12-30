@@ -3,6 +3,10 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { StatsBar } from "@/components/features/stats";
 import { MiniAppGrid, type MiniAppInfo } from "@/components/features/miniapp";
+import { TwitterFeed } from "@/components/features/twitter";
+import { StakingCard } from "@/components/features/staking";
+import { useTranslation } from "../../shared/i18n/react";
+import { LanguageToggle } from "../../shared/i18n/LanguageSwitcher";
 
 // Platform stats
 const platformStats = [
@@ -65,27 +69,32 @@ const miniApps: MiniAppInfo[] = [
 ];
 
 export default function HomePage() {
+  const { t } = useTranslation("host");
+  const { t: tc } = useTranslation("common");
+
   return (
     <Layout>
       <Head>
-        <title>Neo MiniApp Platform</title>
-        <meta name="description" content="The future of decentralized applications on Neo N3" />
+        <title>{t("hero.title")}</title>
+        <meta name="description" content={t("hero.subtitle")} />
       </Head>
+
+      {/* Language Toggle */}
+      <div className="absolute right-4 top-4 z-50">
+        <LanguageToggle />
+      </div>
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary-500 to-primary-700 py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 text-center">
-          <h1 className="text-4xl font-bold md:text-6xl">The Future of Decentralized Apps</h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-primary-100">
-            Discover, play, and build MiniApps on Neo N3 with confidential computing, verifiable randomness, and secure
-            payments.
-          </p>
+          <h1 className="text-4xl font-bold md:text-6xl">{t("hero.title")}</h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-primary-100">{t("hero.subtitle")}</p>
           <div className="mt-8 flex justify-center gap-4">
             <Button size="lg" className="bg-white text-primary-600 hover:bg-gray-100">
-              Explore MiniApps
+              {t("hero.exploreApps")}
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-              Start Building
+              {t("hero.launchApp")}
             </Button>
           </div>
         </div>
@@ -94,12 +103,32 @@ export default function HomePage() {
       {/* Stats Bar */}
       <StatsBar stats={platformStats} />
 
+      {/* Staking & Twitter Section */}
+      <section className="py-12 bg-gray-50">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="grid gap-8 md:grid-cols-2">
+            {/* Staking Card */}
+            <div>
+              <h2 className="mb-4 text-xl font-bold text-gray-900">Earn Passive Income</h2>
+              <StakingCard />
+            </div>
+            {/* Twitter Feed */}
+            <div>
+              <h2 className="mb-4 text-xl font-bold text-gray-900">Latest from Neo</h2>
+              <TwitterFeed />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* MiniApps Section */}
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">Popular MiniApps</h2>
-            <Button variant="outline">View All</Button>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {t("categories.all")} {tc("navigation.miniapps")}
+            </h2>
+            <Button variant="outline">{tc("actions.viewAll")}</Button>
           </div>
           <MiniAppGrid apps={miniApps} columns={3} />
         </div>
@@ -108,13 +137,13 @@ export default function HomePage() {
       {/* Features Section */}
       <section className="bg-gray-50 py-16">
         <div className="mx-auto max-w-7xl px-4">
-          <h2 className="mb-12 text-center text-2xl font-bold text-gray-900">Platform Features</h2>
+          <h2 className="mb-12 text-center text-2xl font-bold text-gray-900">{t("features.title")}</h2>
           <div className="grid gap-8 md:grid-cols-4">
             {[
-              { icon: "🔒", title: "TEE Security", desc: "Confidential computing in secure enclaves" },
-              { icon: "🎲", title: "VRF Randomness", desc: "Provably fair on-chain randomness" },
-              { icon: "📈", title: "Price Feeds", desc: "Real-time price data from multiple sources" },
-              { icon: "⚡", title: "Automation", desc: "Scheduled tasks and workflows" },
+              { icon: "🔒", title: t("features.secureCompute"), desc: t("features.secureComputeDesc") },
+              { icon: "🎲", title: t("features.verifiableRandom"), desc: t("features.verifiableRandomDesc") },
+              { icon: "📈", title: t("features.realTimeData"), desc: t("features.realTimeDataDesc") },
+              { icon: "⚡", title: t("features.automatedTasks"), desc: t("features.automatedTasksDesc") },
             ].map((feature, i) => (
               <div key={i} className="rounded-xl bg-white p-6 text-center shadow-sm">
                 <div className="text-4xl">{feature.icon}</div>

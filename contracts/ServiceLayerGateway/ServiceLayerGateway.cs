@@ -38,6 +38,12 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_REQUEST = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_COUNTER = new byte[] { 0x04 };
         private static readonly byte[] PREFIX_ALLOWED_CALLBACK = new byte[] { 0x05 };
+        // Stats storage prefixes
+        private static readonly byte[] PREFIX_TOTAL_REQUESTS = new byte[] { 0x10 };
+        private static readonly byte[] PREFIX_TOTAL_FULFILLED = new byte[] { 0x11 };
+        private static readonly byte[] PREFIX_APP_REQUESTS = new byte[] { 0x12 };
+        private static readonly byte[] PREFIX_APP_FULFILLED = new byte[] { 0x13 };
+        private static readonly byte[] PREFIX_APP_USERS = new byte[] { 0x14 };
 
         public struct ServiceRequest
         {
@@ -147,6 +153,92 @@ namespace NeoMiniAppPlatform.Contracts
             return AllowedCallbackMap().Get((byte[])contractHash) != null;
         }
 
+        // ============ Stats Storage Maps ============
+        private static StorageMap AppRequestsMap() => new StorageMap(Storage.CurrentContext, PREFIX_APP_REQUESTS);
+        private static StorageMap AppFulfilledMap() => new StorageMap(Storage.CurrentContext, PREFIX_APP_FULFILLED);
+        private static StorageMap AppUsersMap() => new StorageMap(Storage.CurrentContext, PREFIX_APP_USERS);
+
+        // ============ Stats Helper Methods ============
+        private static void IncrementTotalRequests()
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_REQUESTS);
+            BigInteger current = raw == null ? 0 : (BigInteger)raw;
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_REQUESTS, current + 1);
+        }
+
+        private static void IncrementTotalFulfilled()
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_FULFILLED);
+            BigInteger current = raw == null ? 0 : (BigInteger)raw;
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_FULFILLED, current + 1);
+        }
+
+        private static void IncrementAppRequests(string appId)
+        {
+            ByteString raw = AppRequestsMap().Get(appId);
+            BigInteger current = raw == null ? 0 : (BigInteger)raw;
+            AppRequestsMap().Put(appId, current + 1);
+        }
+
+        private static void IncrementAppFulfilled(string appId)
+        {
+            ByteString raw = AppFulfilledMap().Get(appId);
+            BigInteger current = raw == null ? 0 : (BigInteger)raw;
+            AppFulfilledMap().Put(appId, current + 1);
+        }
+
+        private static void TrackAppUser(string appId, UInt160 user)
+        {
+            ByteString key = Helper.Concat((ByteString)appId, (ByteString)(byte[])user);
+            StorageMap usersMap = AppUsersMap();
+            if (usersMap.Get(key) == null)
+            {
+                usersMap.Put(key, 1);
+                // Increment unique user count for this app
+                ByteString countKey = Helper.Concat((ByteString)appId, (ByteString)"_count");
+                ByteString raw = usersMap.Get(countKey);
+                BigInteger current = raw == null ? 0 : (BigInteger)raw;
+                usersMap.Put(countKey, current + 1);
+            }
+        }
+
+        // ============ Stats Query Methods ============
+        [Safe]
+        public static BigInteger GetTotalRequests()
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_REQUESTS);
+            return raw == null ? 0 : (BigInteger)raw;
+        }
+
+        [Safe]
+        public static BigInteger GetTotalFulfilled()
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_FULFILLED);
+            return raw == null ? 0 : (BigInteger)raw;
+        }
+
+        [Safe]
+        public static BigInteger GetAppRequests(string appId)
+        {
+            ByteString raw = AppRequestsMap().Get(appId);
+            return raw == null ? 0 : (BigInteger)raw;
+        }
+
+        [Safe]
+        public static BigInteger GetAppFulfilled(string appId)
+        {
+            ByteString raw = AppFulfilledMap().Get(appId);
+            return raw == null ? 0 : (BigInteger)raw;
+        }
+
+        [Safe]
+        public static BigInteger GetAppUniqueUsers(string appId)
+        {
+            ByteString countKey = Helper.Concat((ByteString)appId, (ByteString)"_count");
+            ByteString raw = AppUsersMap().Get(countKey);
+            return raw == null ? 0 : (BigInteger)raw;
+        }
+
         private static StorageMap RequestMap() => new StorageMap(Storage.CurrentContext, PREFIX_REQUEST);
 
         private static BigInteger NextRequestId()
@@ -209,6 +301,12 @@ namespace NeoMiniAppPlatform.Contracts
             };
 
             RequestMap().Put(requestId.ToByteArray(), StdLib.Serialize(req));
+
+            // Record stats
+            IncrementTotalRequests();
+            IncrementAppRequests(appId);
+            TrackAppUser(appId, req.Requester);
+
             OnServiceRequested(requestId, appId, serviceType, req.Requester, callbackContract, callbackMethod, req.Payload);
             return requestId;
         }
@@ -228,6 +326,10 @@ namespace NeoMiniAppPlatform.Contracts
             req.Result = result ?? (ByteString)"";
             req.Error = error ?? "";
             RequestMap().Put(requestId.ToByteArray(), StdLib.Serialize(req));
+
+            // Record fulfilled stats
+            IncrementTotalFulfilled();
+            IncrementAppFulfilled(req.AppId);
 
             OnServiceFulfilled(requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
 

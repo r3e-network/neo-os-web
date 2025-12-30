@@ -16,6 +16,12 @@ export default class MyDocument extends Document<Props> {
         <Head>
           <meta charSet="utf-8" />
           <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
+          {/* Security Headers - Additional layer beyond middleware */}
+          <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
+          <meta httpEquiv="X-Frame-Options" content="DENY" />
+          <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
+          <meta name="referrer" content="strict-origin-when-cross-origin" />
+          <meta httpEquiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />
         </Head>
         <body>
           <Main />

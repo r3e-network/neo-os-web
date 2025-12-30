@@ -14,6 +14,7 @@ import (
 	"github.com/R3E-Network/service_layer/infrastructure/errors"
 	internalhttputil "github.com/R3E-Network/service_layer/infrastructure/httputil"
 	"github.com/R3E-Network/service_layer/infrastructure/logging"
+	"github.com/R3E-Network/service_layer/infrastructure/security"
 	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
 )
 
@@ -72,6 +73,8 @@ type ServiceAuthMiddleware struct {
 	skipPaths       map[string]bool
 	mu              sync.RWMutex
 	validatedTokens map[string]*cachedToken // In-memory cache for validated tokens
+	stopCleanup     chan struct{}           // Channel to stop background cleanup
+	cleanupOnce     sync.Once               // Ensures cleanup goroutine starts only once
 }
 
 // cachedToken stores validated token info with expiry.
@@ -106,14 +109,20 @@ func NewServiceAuthMiddleware(cfg ServiceAuthConfig) *ServiceAuthMiddleware {
 		logger = logging.New("serviceauth", "info", "json")
 	}
 
-	return &ServiceAuthMiddleware{
+	m := &ServiceAuthMiddleware{
 		publicKey:       cfg.PublicKey,
 		logger:          logger,
 		allowedServices: allowed,
 		requireUserID:   cfg.RequireUserID,
 		skipPaths:       skip,
 		validatedTokens: make(map[string]*cachedToken),
+		stopCleanup:     make(chan struct{}),
 	}
+
+	// Start background cleanup goroutine
+	m.startBackgroundCleanup()
+
+	return m
 }
 
 // Handler returns the middleware handler function.
@@ -287,6 +296,66 @@ func (m *ServiceAuthMiddleware) cleanupCache() {
 	}
 }
 
+// startBackgroundCleanup starts a background goroutine to periodically clean up expired tokens.
+// This ensures that the cache doesn't grow unbounded and that expired tokens are removed promptly.
+func (m *ServiceAuthMiddleware) startBackgroundCleanup() {
+	m.cleanupOnce.Do(func() {
+		go func() {
+			ticker := time.NewTicker(2 * time.Minute)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-ticker.C:
+					m.mu.Lock()
+					m.cleanupCache()
+					cacheSize := len(m.validatedTokens)
+					m.mu.Unlock()
+
+					if m.logger != nil {
+						m.logger.WithFields(map[string]interface{}{
+							"cache_size": cacheSize,
+						}).Debug("Token cache cleanup completed")
+					}
+
+				case <-m.stopCleanup:
+					if m.logger != nil {
+						m.logger.WithFields(map[string]interface{}{}).Info("Token cache cleanup goroutine stopped")
+					}
+					return
+				}
+			}
+		}()
+	})
+}
+
+// StopCleanup stops the background cleanup goroutine.
+// This should be called when the middleware is no longer needed (e.g., during shutdown).
+func (m *ServiceAuthMiddleware) StopCleanup() {
+	select {
+	case <-m.stopCleanup:
+		// Already stopped
+	default:
+		close(m.stopCleanup)
+	}
+}
+
+// InvalidateCache clears all cached tokens.
+// This should be called when keys are rotated or when a security event requires cache invalidation.
+func (m *ServiceAuthMiddleware) InvalidateCache() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	oldSize := len(m.validatedTokens)
+	m.validatedTokens = make(map[string]*cachedToken)
+
+	if m.logger != nil {
+		m.logger.WithFields(map[string]interface{}{
+			"invalidated_count": oldSize,
+		}).Info("Token cache invalidated")
+	}
+}
+
 // isServiceAllowed checks if a service is in the allowed list.
 func (m *ServiceAuthMiddleware) isServiceAllowed(serviceID string) bool {
 	// If no allowed services configured, allow all
@@ -303,13 +372,21 @@ func (m *ServiceAuthMiddleware) respondError(w http.ResponseWriter, r *http.Requ
 		serviceErr = errors.Internal("Service authentication failed", err)
 	}
 
-	internalhttputil.WriteErrorResponse(w, r, serviceErr.HTTPStatus, string(serviceErr.Code), serviceErr.Message, serviceErr.Details)
+	// Sanitize error message and details before sending to client
+	sanitizedMessage := security.SanitizeString(serviceErr.Message)
+	sanitizedDetails := security.SanitizeMap(serviceErr.Details)
 
-	m.logger.WithContext(r.Context()).WithError(err).WithFields(map[string]interface{}{
+	internalhttputil.WriteErrorResponse(w, r, serviceErr.HTTPStatus, string(serviceErr.Code), sanitizedMessage, sanitizedDetails)
+
+	// Sanitize error for logging
+	sanitizedErrMsg := security.SanitizeError(err)
+	logFields := map[string]interface{}{
 		"path":   r.URL.Path,
 		"method": r.Method,
 		"status": serviceErr.HTTPStatus,
-	}).Warn("Service authentication failed")
+	}
+
+	m.logger.WithContext(r.Context()).WithFields(logFields).Warnf("Service authentication failed: %s", sanitizedErrMsg)
 }
 
 // =============================================================================

@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppUnbreakableVault")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Unbreakable Vault - Security bounty challenges")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. UnbreakableVault is a security challenge application for hacker bounties. Use it to create vaults with GAS bounties, you can test security or earn rewards by breaking challenges.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="fog-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6B7280"/>
+      <stop offset="100%" style="stop-color:#4B5563"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#fog-bg)"/>
+  <rect x="12" y="12" width="40" height="40" fill="#E5E7EB" rx="2"/>
+  <rect x="12" y="12" width="10" height="10" fill="#1F2937"/>
+  <rect x="32" y="12" width="10" height="10" fill="#E5E7EB"/>
+  <rect x="22" y="22" width="10" height="10" fill="#1F2937"/>
+  <rect x="42" y="22" width="10" height="10" fill="#E5E7EB"/>
+  <rect x="12" y="32" width="10" height="10" fill="#E5E7EB"/>
+  <rect x="32" y="32" width="10" height="10" fill="#1F2937"/>
+  <rect x="22" y="42" width="10" height="10" fill="#E5E7EB"/>
+  <rect x="42" y="42" width="10" height="10" fill="#1F2937"/>
+  <circle cx="27" cy="27" r="4" fill="#9CA3AF" opacity="0.8"/>
+  <circle cx="37" cy="37" r="4" fill="#9CA3AF" opacity="0.8"/>
+</svg>

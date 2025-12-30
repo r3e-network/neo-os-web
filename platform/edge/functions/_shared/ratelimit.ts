@@ -7,6 +7,11 @@ type RateLimitHit = {
   request_count: number;
 };
 
+type RateLimitBumpResponse = {
+  window_start: string;
+  request_count: number;
+};
+
 function parseIntEnv(name: string): number | undefined {
   const raw = getEnv(name);
   if (!raw) return undefined;
@@ -20,10 +25,7 @@ function endpointEnvKey(endpoint: string): string {
 
 function getRateLimitConfig(endpoint: string): { maxPerMinute: number; windowSeconds: number } {
   const windowSeconds = parseIntEnv("EDGE_RATELIMIT_WINDOW_SECONDS") ?? 60;
-  const maxPerMinute =
-    parseIntEnv(endpointEnvKey(endpoint)) ??
-    parseIntEnv("EDGE_RATELIMIT_DEFAULT_PER_MINUTE") ??
-    60;
+  const maxPerMinute = parseIntEnv(endpointEnvKey(endpoint)) ?? parseIntEnv("EDGE_RATELIMIT_DEFAULT_PER_MINUTE") ?? 60;
 
   return {
     maxPerMinute: Math.max(1, maxPerMinute),
@@ -42,14 +44,17 @@ function getClientIP(req: Request): string | undefined {
   return candidates[0];
 }
 
-function rateLimitedResponse(req: Request, params: {
-  endpoint: string;
-  max: number;
-  count: number;
-  windowSeconds: number;
-  retryAfterSeconds: number;
-  resetAtEpochSeconds: number;
-}): Response {
+function rateLimitedResponse(
+  req: Request,
+  params: {
+    endpoint: string;
+    max: number;
+    count: number;
+    windowSeconds: number;
+    retryAfterSeconds: number;
+    resetAtEpochSeconds: number;
+  },
+): Response {
   const headers = new Headers();
   headers.set("Retry-After", String(params.retryAfterSeconds));
   headers.set("X-RateLimit-Limit", String(params.max));
@@ -82,18 +87,14 @@ async function bump(identifier: string, identifierType: string, windowSeconds: n
   if (error) {
     throw new Error(error.message);
   }
-  const row = Array.isArray(data) ? data[0] : data;
+  const row: RateLimitBumpResponse | null = Array.isArray(data) ? data[0] : data;
   return {
-    window_start: String((row as any)?.window_start ?? ""),
-    request_count: Number((row as any)?.request_count ?? 0),
+    window_start: String(row?.window_start ?? ""),
+    request_count: Number(row?.request_count ?? 0),
   };
 }
 
-export async function requireRateLimit(
-  req: Request,
-  endpoint: string,
-  auth?: AuthContext,
-): Promise<Response | null> {
+export async function requireRateLimit(req: Request, endpoint: string, auth?: AuthContext): Promise<Response | null> {
   const { maxPerMinute, windowSeconds } = getRateLimitConfig(endpoint);
 
   let identifierType = "ip";
@@ -117,11 +118,7 @@ export async function requireRateLimit(
   } catch (e) {
     // In local dev, do not hard-fail on missing DB/RPC plumbing.
     if (!isProductionEnv()) return null;
-    return json(
-      { error: { code: "RATE_LIMIT_UNAVAILABLE", message: (e as Error).message } },
-      { status: 503 },
-      req,
-    );
+    return json({ error: { code: "RATE_LIMIT_UNAVAILABLE", message: (e as Error).message } }, { status: 503 }, req);
   }
 
   const nowMs = Date.now();

@@ -32,7 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Scratch Card MiniApp - Instant win cards with on-chain RNG requests")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. ScratchCard is an instant-win gaming application for scratch card prizes. Use it to purchase and reveal scratch cards, you can win instant prizes with provable randomness.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

@@ -1,0 +1,49 @@
+// Neo MiniApp Platform Theme Variables
+// Used across all uni-app MiniApps
+
+// Base colors
+$color-bg-primary: #0d1117;
+$color-bg-secondary: #1a1a2e;
+$color-bg-card: rgba(255, 255, 255, 0.05);
+$color-border: rgba(255, 255, 255, 0.1);
+
+// Text colors
+$color-text-primary: #ffffff;
+$color-text-secondary: #888888;
+$color-text-muted: #666666;
+
+// Category accent colors
+$color-gaming: #10b981; // Green
+$color-defi: #3b82f6; // Blue
+$color-social: #ec4899; // Pink
+$color-nft: #a855f7; // Purple
+$color-governance: #8b5cf6; // Violet
+$color-utility: #f59e0b; // Amber
+
+// Status colors
+$color-success: #22c55e;
+$color-error: #ef4444;
+$color-warning: #f59e0b;
+$color-info: #3b82f6;
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 20px;
+$spacing-2xl: 24px;
+
+// Border radius
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+
+// Font sizes
+$font-xs: 0.75em;
+$font-sm: 0.85em;
+$font-base: 1em;
+$font-lg: 1.1em;
+$font-xl: 1.2em;
+$font-2xl: 1.5em;
+$font-3xl: 1.8em;

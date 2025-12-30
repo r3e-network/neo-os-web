@@ -34,7 +34,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppNeoCrash")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Neo Crash - Multiplier crash game with VRF")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. NeoCrash is a multiplier crash game for timing-based betting. Use it to cash out before the crash, you can multiply your stake up to 1000x with VRF-powered fairness.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

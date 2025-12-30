@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppPayToView")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Pay-to-View - Unlock premium content")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. PayToView is a content monetization application for premium access. Use it to publish or purchase exclusive content, you can earn from your creations or unlock premium materials.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {
