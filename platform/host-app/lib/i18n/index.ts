@@ -18,7 +18,8 @@ export const localeNames: Record<Locale, string> = {
 export const LOCALE_STORAGE_KEY = "neo-miniapp-locale";
 
 /**
- * Get the current locale from storage or browser preference
+ * Get the current locale from storage (user preference only)
+ * Does not auto-detect browser language - defaults to English
  */
 export function getStoredLocale(): Locale {
   if (typeof window === "undefined") return defaultLocale;
@@ -28,12 +29,7 @@ export function getStoredLocale(): Locale {
     return stored as Locale;
   }
 
-  // Check browser language
-  const browserLang = navigator.language.split("-")[0];
-  if (browserLang === "zh") return "zh";
-  if (browserLang === "ja") return "ja";
-  if (browserLang === "ko") return "ko";
-
+  // Default to English, let user change manually
   return defaultLocale;
 }
 
