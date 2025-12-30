@@ -207,24 +207,26 @@ export default function MiniAppsPage() {
                   <button
                     onClick={() => setViewMode("list")}
                     className={cn(
-                      "p-1.5",
+                      "p-2 transition-colors",
                       viewMode === "list"
                         ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300",
+                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
                     )}
+                    title="List view"
                   >
-                    <List size={16} />
+                    <List size={18} />
                   </button>
                   <button
                     onClick={() => setViewMode("grid")}
                     className={cn(
-                      "p-1.5",
+                      "p-2 transition-colors",
                       viewMode === "grid"
                         ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300",
+                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
                     )}
+                    title="Card view"
                   >
-                    <LayoutGrid size={16} />
+                    <LayoutGrid size={18} />
                   </button>
                 </div>
               </div>
