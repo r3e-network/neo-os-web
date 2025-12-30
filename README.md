@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <a href="https://neomini.app"><img src="https://img.shields.io/badge/Live-neomini.app-00E599?style=flat-square" alt="Live"/></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/Quick%20Start-Guide-00E599?style=flat-square" alt="Quick Start"/></a>
   <a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/Docs-Architecture-00D9FF?style=flat-square" alt="Architecture"/></a>
   <a href="#platform-contracts"><img src="https://img.shields.io/badge/Network-Neo%20N3%20Testnet-green?style=flat-square" alt="Neo N3"/></a>

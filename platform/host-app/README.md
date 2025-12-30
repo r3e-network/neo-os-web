@@ -1,5 +1,7 @@
 # Host App (Next.js)
 
+**Production URL: https://neomini.app**
+
 This **Next.js** host runs on **Vercel** and serves as the entry point for MiniApps.
 
 Responsibilities:
