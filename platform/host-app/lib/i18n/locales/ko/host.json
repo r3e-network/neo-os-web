@@ -1,0 +1,45 @@
+{
+  "hero": {
+    "title": "Neo 미니앱 플랫폼",
+    "subtitle": "TEE 보안으로 분산 애플리케이션 구축 및 배포",
+    "exploreApps": "앱 탐색",
+    "launchApp": "앱 실행"
+  },
+  "features": {
+    "title": "기능",
+    "secureCompute": "보안 컴퓨팅",
+    "secureComputeDesc": "민감한 작업을 위한 TEE 기반 기밀 컴퓨팅",
+    "verifiableRandom": "검증 가능한 난수",
+    "verifiableRandomDesc": "게임과 복권을 위한 증명 가능한 공정성",
+    "realTimeData": "실시간 데이터",
+    "realTimeDataDesc": "신뢰할 수 있는 소스의 실시간 가격 피드",
+    "automatedTasks": "자동화 작업",
+    "automatedTasksDesc": "온체인 작업 예약 및 자동화"
+  },
+  "stats": {
+    "totalApps": "총 앱 수",
+    "totalUsers": "총 사용자 수",
+    "totalTransactions": "트랜잭션",
+    "totalVolume": "총 거래량"
+  },
+  "categories": {
+    "all": "전체",
+    "gaming": "게임",
+    "defi": "DeFi",
+    "social": "소셜",
+    "utility": "유틸리티",
+    "nft": "NFT",
+    "governance": "거버넌스"
+  },
+  "activity": {
+    "recent": "최근 활동",
+    "noActivity": "최근 활동이 없습니다",
+    "viewAll": "전체 보기"
+  },
+  "account": {
+    "title": "내 계정",
+    "profile": "프로필",
+    "transactions": "트랜잭션",
+    "favorites": "즐겨찾기"
+  }
+}

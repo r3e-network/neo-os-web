@@ -1,0 +1,74 @@
+{
+  "common": {
+    "play": "开始",
+    "bet": "下注",
+    "stake": "质押",
+    "unstake": "取消质押",
+    "claim": "领取",
+    "withdraw": "提取",
+    "deposit": "存入",
+    "win": "赢",
+    "lose": "输",
+    "draw": "平局",
+    "jackpot": "大奖",
+    "prize": "奖金",
+    "pool": "奖池",
+    "odds": "赔率",
+    "multiplier": "倍数",
+    "round": "回合",
+    "history": "历史",
+    "leaderboard": "排行榜",
+    "rank": "排名",
+    "player": "玩家",
+    "reward": "奖励",
+    "yourBet": "您的下注",
+    "potentialWin": "预计收益",
+    "placeBet": "确认下注",
+    "cashOut": "提现",
+    "waiting": "等待结果...",
+    "gameOver": "游戏结束",
+    "newGame": "新游戏",
+    "rules": "规则",
+    "howToPlay": "玩法说明"
+  },
+  "coinFlip": {
+    "title": "抛硬币",
+    "heads": "正面",
+    "tails": "反面",
+    "flip": "抛硬币",
+    "result": "结果"
+  },
+  "diceGame": {
+    "title": "骰子游戏",
+    "roll": "掷骰子",
+    "rollOver": "大于",
+    "rollUnder": "小于",
+    "target": "目标"
+  },
+  "lottery": {
+    "title": "彩票",
+    "buyTicket": "购买彩票",
+    "ticketNumber": "彩票号码",
+    "drawTime": "开奖时间",
+    "nextDraw": "下次开奖",
+    "prizePool": "奖池"
+  },
+  "scratchCard": {
+    "title": "刮刮卡",
+    "scratch": "刮开",
+    "reveal": "全部揭晓",
+    "buyCard": "购买刮刮卡"
+  },
+  "tipping": {
+    "title": "开发者打赏",
+    "tip": "打赏",
+    "tipAmount": "打赏金额",
+    "message": "留言",
+    "tipperName": "您的名字",
+    "anonymous": "匿名",
+    "topTippers": "打赏排行",
+    "totalTips": "总打赏",
+    "sendTip": "发送打赏",
+    "thankYou": "感谢您的支持！"
+  }
+}

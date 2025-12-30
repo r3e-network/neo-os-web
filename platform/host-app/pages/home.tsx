@@ -5,8 +5,8 @@ import { StatsBar } from "@/components/features/stats";
 import { MiniAppGrid, type MiniAppInfo } from "@/components/features/miniapp";
 import { TwitterFeed } from "@/components/features/twitter";
 import { StakingCard } from "@/components/features/staking";
-import { useTranslation } from "../../shared/i18n/react";
-import { LanguageToggle } from "../../shared/i18n/LanguageSwitcher";
+import { useTranslation } from "@/lib/i18n/react";
+import { LanguageToggle } from "@/lib/i18n/LanguageSwitcher";
 
 // Platform stats
 const platformStats = [

@@ -7,7 +7,7 @@ import { Search, Moon, Sun, Menu, X, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useTheme } from "@/components/providers/ThemeProvider";
-import { useI18n } from "../../../shared/i18n/react";
+import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
 import { NotificationDropdown } from "@/components/features/notifications/NotificationDropdown";
 
