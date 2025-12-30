@@ -25,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppSchrodingerNFT")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Quantum pet box - observe to collapse state")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. SchrodingerNFT is a quantum state NFT for mystery collectibles. Use it to adopt mystery boxes and observe hidden states, you can discover rare quantum pet variations.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

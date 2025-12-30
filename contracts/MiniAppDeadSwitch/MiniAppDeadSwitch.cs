@@ -25,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppDeadSwitch")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Dead Man's Switch - Automated inheritance")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. DeadSwitch is an automated inheritance system for digital assets. Use it to set up dead man's switches, you can ensure assets transfer to heirs if heartbeat stops.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

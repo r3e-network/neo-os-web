@@ -1,6 +1,8 @@
 // MiniApp Platform Types
 
-export type MiniAppCategory = "gaming" | "defi" | "governance" | "utility" | "social";
+export type MiniAppCategory = "gaming" | "defi" | "governance" | "utility" | "social" | "nft";
+
+export type MiniAppSource = "builtin" | "community" | "verified";
 
 export type MiniAppInfo = {
   app_id: string;
@@ -9,21 +11,29 @@ export type MiniAppInfo = {
   icon: string;
   category: MiniAppCategory;
   entry_url: string;
-  contract_hash?: string;
-  news_integration?: boolean;
-  stats_display?: string[];
-  status?: "active" | "disabled" | "pending";
+  contract_hash?: string | null;
+  news_integration?: boolean | null;
+  stats_display?: string[] | null;
+  status?: "active" | "disabled" | "pending" | null;
+  source?: MiniAppSource;
+  stats?: { users?: number; transactions?: number };
+  developer?: {
+    name: string;
+    address: string;
+    verified?: boolean;
+  };
   permissions: {
     payments?: boolean;
     governance?: boolean;
     randomness?: boolean;
     datafeed?: boolean;
+    confidential?: boolean;
   };
   limits?: {
     max_gas_per_tx?: string;
     daily_gas_cap_per_user?: string;
     governance_cap?: string;
-  };
+  } | null;
 };
 
 export type MiniAppStats = {

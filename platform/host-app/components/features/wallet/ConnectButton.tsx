@@ -30,20 +30,32 @@ export function ConnectButton() {
 
   return (
     <div className="relative">
-      <Button onClick={() => setShowMenu(!showMenu)} disabled={loading}>
+      <Button
+        onClick={() => setShowMenu(!showMenu)}
+        disabled={loading}
+        className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2"
+      >
         {loading ? "Connecting..." : "Connect Wallet"}
       </Button>
 
       {showMenu && (
-        <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border bg-white p-2 shadow-lg">
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-xl z-50">
+          <div className="text-xs text-gray-500 px-3 py-1 mb-1">Select Wallet</div>
           {walletOptions.map((wallet) => (
             <button
               key={wallet.id}
               onClick={() => handleConnect(wallet.id)}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-gray-100"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm hover:bg-gray-100 transition-colors"
             >
-              <span>{wallet.icon}</span>
-              <span>{wallet.name}</span>
+              <img
+                src={wallet.icon}
+                alt={wallet.name}
+                className="w-6 h-6 rounded"
+                onError={(e) => {
+                  e.currentTarget.src = "/wallet-default.svg";
+                }}
+              />
+              <span className="font-medium text-gray-800">{wallet.name}</span>
             </button>
           ))}
         </div>

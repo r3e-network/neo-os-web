@@ -32,7 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppBridgeGuardian")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Bridge Guardian - Cross-chain bridge with on-chain oracle")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. BridgeGuardian is a cross-chain bridge application for secure asset transfers. Use it to bridge tokens between blockchains, you can transfer assets with oracle-verified security.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

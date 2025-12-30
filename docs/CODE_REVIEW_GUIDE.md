@@ -320,10 +320,10 @@ contracts/
 
 **Categories**:
 
-- **Gaming**: Lottery, CoinFlip, DiceGame, ScratchCard, GasSpin, SecretPoker, FogChess
-- **DeFi**: PredictionMarket, FlashLoan, PriceTicker, PricePredict, TurboOptions, ILGuard, AITrader, GridBot
-- **Social**: RedEnvelope, GasCircle, SecretVote, NFTEvolve
-- **Governance**: GovBooster, BridgeGuardian, GuardianPolicy
+- **Gaming**: Lottery, CoinFlip, DiceGame, ScratchCard, SecretPoker, FogChess, NeoCrash, AlgoBattle
+- **DeFi**: PredictionMarket, FlashLoan, PriceTicker, ILGuard, AITrader, GridBot, DarkPool, QuantumSwap
+- **Social**: RedEnvelope, GasCircle, SecretVote, NFTEvolve, DevTipping, WhisperChain
+- **Governance**: GovBooster, BridgeGuardian, GuardianPolicy, CandidateVote, BurnLeague
 
 **Review Focus per Contract**:
 

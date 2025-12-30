@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppMeltingAsset")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Melting Asset - Time-decaying NFTs")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. MeltingAsset is a time-decaying NFT system for ephemeral art. Use it to create assets that lose value over time, you can maintain them with payments or watch them melt away.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

@@ -19,7 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppCandleWars")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Candle Wars - Binary options game")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. CandleWars is a candle prediction game for price direction betting. Use it to bet on green or red candles, you can win from pooled betting with 5% platform fee.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

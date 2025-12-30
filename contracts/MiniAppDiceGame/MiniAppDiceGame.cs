@@ -33,7 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Dice Game MiniApp - Roll dice, win up to 6x with on-chain RNG requests")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. DiceGame is a provably fair dice game for multiplier betting. Use it to predict dice outcomes, you can win up to 6x your stake with TEE-verified randomness.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

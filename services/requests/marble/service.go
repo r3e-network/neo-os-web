@@ -48,6 +48,7 @@ type Config struct {
 	NeoVRFURL          string
 	NeoOracleURL       string
 	NeoComputeURL      string
+	ScriptsBaseURL     string // Base URL for loading TEE scripts (e.g., https://cdn.miniapps.neo.org)
 
 	HTTPClient     *http.Client
 	ChainID        string
@@ -90,6 +91,7 @@ type Service struct {
 	vrfURL      string
 	oracleURL   string
 	computeURL  string
+	scriptsURL  string // Base URL for loading TEE scripts from app manifests
 	chainID     string
 	txWait      bool
 	maxResult   int
@@ -322,6 +324,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		vrfURL:                  strings.TrimSpace(cfg.NeoVRFURL),
 		oracleURL:               strings.TrimSpace(cfg.NeoOracleURL),
 		computeURL:              strings.TrimSpace(cfg.NeoComputeURL),
+		scriptsURL:              strings.TrimSpace(cfg.ScriptsBaseURL),
 		chainID:                 chainID,
 		txWait:                  txWait,
 		maxResult:               maxResult,

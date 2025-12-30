@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppPuzzleMining")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Puzzle Mining - Collaborative puzzle completion")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. PuzzleMining is a collaborative gaming application for puzzle completion. Use it to mine puzzle pieces with random distribution, you can complete puzzles and win rewards through teamwork.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

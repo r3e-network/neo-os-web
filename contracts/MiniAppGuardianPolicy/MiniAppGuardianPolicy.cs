@@ -33,7 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppGuardianPolicy")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Guardian Policy - Decentralized insurance with oracle verification")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. GuardianPolicy is a decentralized insurance application for asset protection. Use it to create coverage policies, you can receive automated claim payouts with oracle-verified conditions.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

@@ -445,3 +445,63 @@ func (s *MiniAppSimulator) SimulateGovMerc(ctx context.Context) error {
 	atomic.AddInt64(&s.govMercVotes, 1)
 	return nil
 }
+
+// SimulateCanvas simulates collaborative canvas drawing.
+func (s *MiniAppSimulator) SimulateCanvas(ctx context.Context) error {
+	appID := "miniapp-canvas"
+	amount := int64(100000)
+
+	memo := fmt.Sprintf("canvas:draw:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("canvas: %w", err)
+	}
+	atomic.AddInt64(&s.canvasDraws, 1)
+	return nil
+}
+
+// SimulateCandidateVote simulates candidate voting.
+func (s *MiniAppSimulator) SimulateCandidateVote(ctx context.Context) error {
+	appID := "miniapp-candidate-vote"
+	amount := int64(1000000)
+
+	memo := fmt.Sprintf("vote:cast:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("candidate vote: %w", err)
+	}
+	atomic.AddInt64(&s.candidateVotes, 1)
+	return nil
+}
+
+// SimulateNeoburger simulates NeoBurger staking.
+func (s *MiniAppSimulator) SimulateNeoburger(ctx context.Context) error {
+	appID := "miniapp-neoburger"
+	amount := int64(100000000)
+
+	memo := fmt.Sprintf("burger:stake:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("neoburger: %w", err)
+	}
+	atomic.AddInt64(&s.neoburgerStakes, 1)
+	return nil
+}
+
+// SimulateGuardianPolicy simulates guardian policy setup.
+func (s *MiniAppSimulator) SimulateGuardianPolicy(ctx context.Context) error {
+	appID := "miniapp-guardian-policy"
+	amount := int64(5000000)
+
+	memo := fmt.Sprintf("guardian:set:%d", time.Now().UnixNano())
+	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	if err != nil {
+		atomic.AddInt64(&s.simulationErrors, 1)
+		return fmt.Errorf("guardian policy: %w", err)
+	}
+	atomic.AddInt64(&s.guardianPolicySets, 1)
+	return nil
+}

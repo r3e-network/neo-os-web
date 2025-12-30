@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppFogPuzzle")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Fog Puzzle - Hidden treasure hunt")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. FogPuzzle is a treasure hunt application with fog-of-war mechanics. Use it to reveal hidden tiles by paying GAS, you can discover treasures and win rewards.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

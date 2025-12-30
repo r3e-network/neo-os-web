@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppParasite")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "The Parasite - Stake and attack")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. Parasite is a competitive DeFi application for staking with PvP mechanics. Use it to stake GAS and attack other players, you can earn yields or steal rewards from competitors.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

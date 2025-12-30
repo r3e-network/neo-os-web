@@ -284,13 +284,13 @@ based on the latest block timestamp.
 Use this runbook to validate the **full on-chain request → service → callback**
 workflow on Neo N3 testnet.
 
-1. **Deploy the sample MiniApp callback contract**
+1. **Deploy a MiniApp callback contract**
     - Build artifacts are expected in `contracts/build/`.
     - If missing, run: `./contracts/build.sh`.
     - Run:
         ```bash
-        # deploy MiniAppServiceConsumer and set its gateway
-        go run scripts/deploy_miniapp_consumer.go
+        # deploy MiniAppLottery (or any MiniApp with callback support)
+        go run scripts/deploy_miniapp.go --contract MiniAppLottery
         ```
     - Record the deployed contract hash printed by the script.
 2. **Seed Supabase `miniapps`**
@@ -323,7 +323,7 @@ workflow on Neo N3 testnet.
         export MINIAPP_WAIT_CALLBACK=true
         # optional: override callback wait timeout (default 180s)
         export MINIAPP_CALLBACK_TIMEOUT_SECONDS=240
-        # calls MiniAppServiceConsumer.requestRng(app_id)
+        # calls MiniAppLottery.requestRng(app_id) or similar RNG method
         go run scripts/request_miniapp_rng.go
         ```
     - For Oracle / Compute:
@@ -346,7 +346,7 @@ workflow on Neo N3 testnet.
     - Check `neorequests` logs for `ServiceRequested` and `fulfillRequest`.
     - Check `txproxy` logs for the callback submission.
     - Query `service_requests` and `chain_txs` in Supabase.
-    - Invoke `MiniAppServiceConsumer.getLastCallback` to confirm it was stored.
+    - Invoke the MiniApp's callback getter method to confirm data was stored.
 
 If the callback does not arrive, verify:
 

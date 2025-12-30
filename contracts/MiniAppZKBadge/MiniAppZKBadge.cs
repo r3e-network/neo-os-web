@@ -18,7 +18,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppZKBadge")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "ZK Badge - Privacy-preserving wealth proof")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. ZKBadge is a privacy-preserving credential application for wealth verification. Use it to prove asset holdings without revealing your wallet, you can receive soulbound badges with TEE-verified proofs.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

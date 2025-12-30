@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppDoomsdayClock")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Doomsday Clock - FOMO3D style game")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. DoomsdayClock is a FOMO-style gaming application for countdown jackpots. Use it to buy keys and reset the timer, you can win the entire pot as the last buyer when time expires.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

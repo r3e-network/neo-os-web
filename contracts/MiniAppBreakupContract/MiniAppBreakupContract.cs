@@ -21,7 +21,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppBreakupContract")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Breakup Contract - Relationship commitment with stakes")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. BreakupContract is a commitment application for relationship agreements. Use it to stake GAS with your partner, you can enforce commitment terms with penalty distribution for early exits.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

@@ -62,7 +62,7 @@ func TestRedEnvelopeContract(t *testing.T) {
 // testRedEnvelopeAdmin tests admin functionality
 func testRedEnvelopeAdmin(t *testing.T, nx *NeoExpress, contract *chain.DeployedContract, account string) {
 	// Test Admin() returns deployer address
-	result, err := nx.InvokeRead(contract.Hash, "Admin", nil)
+	result, err := nx.InvokeWithAccountResults(contract.Hash, "Admin", account)
 	if err != nil {
 		t.Fatalf("Admin() invoke failed: %v", err)
 	}
@@ -75,7 +75,7 @@ func testRedEnvelopeAdmin(t *testing.T, nx *NeoExpress, contract *chain.Deployed
 // testRedEnvelopeGateway tests gateway functionality
 func testRedEnvelopeGateway(t *testing.T, nx *NeoExpress, contract *chain.DeployedContract, account string) {
 	// Test Gateway() initially returns null/empty
-	result, err := nx.InvokeRead(contract.Hash, "Gateway", nil)
+	result, err := nx.InvokeWithAccountResults(contract.Hash, "Gateway", account)
 	if err != nil {
 		t.Fatalf("Gateway() invoke failed: %v", err)
 	}

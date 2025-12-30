@@ -36,7 +36,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppFogChess")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Fog Chess - Fog of War Chess with TEE-verified hidden moves")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. FogChess is a strategic gaming application for fog-of-war chess. Use it to play chess with hidden board states, you can compete with TEE-verified moves and limited visibility.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

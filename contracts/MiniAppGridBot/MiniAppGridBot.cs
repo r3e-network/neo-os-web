@@ -32,7 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppGridBot")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Grid Bot - Grid trading with on-chain oracle")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. GridBot is an automated trading bot for grid strategy execution. Use it to automate buy-low-sell-high trading within price ranges, you can profit from market volatility without constant monitoring.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

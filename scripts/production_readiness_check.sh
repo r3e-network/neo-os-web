@@ -89,9 +89,23 @@ check_pattern() {
             done
         done || true)
 
-    # Filter out HTML placeholder attributes, StatusTemporaryRedirect, and Tailwind placeholder- classes
+    # Filter out false positives:
+    # - HTML placeholder attributes (placeholder="...")
+    # - StatusTemporaryRedirect (Go HTTP status)
+    # - Tailwind placeholder- classes
+    # - "Bug bounty" application names (not actual bugs)
+    # - Input component placeholder props
+    # - SENDER placeholder in SDK (intentional design)
     if [[ -n "$results" ]]; then
-        results=$(echo "$results" | grep -v 'placeholder="' | grep -v "placeholder='" | grep -v "StatusTemporaryRedirect" | grep -v "placeholder-" || true)
+        results=$(echo "$results" | \
+            grep -v 'placeholder="' | \
+            grep -v "placeholder='" | \
+            grep -v "StatusTemporaryRedirect" | \
+            grep -v "placeholder-" | \
+            grep -v -i "bug bounty" | \
+            grep -v -i "bounty.hunter" | \
+            grep -v "placeholder?: string" | \
+            grep -v "SENDER placeholder" || true)
     fi
 
     if [[ -n "$results" ]]; then

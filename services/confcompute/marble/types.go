@@ -14,6 +14,8 @@ type ExecuteRequest struct {
 	Input      map[string]interface{} `json:"input,omitempty"`
 	SecretRefs []string               `json:"secret_refs,omitempty"`
 	Timeout    int                    `json:"timeout,omitempty"`
+	AppID      string                 `json:"app_id,omitempty"`
+	ScriptName string                 `json:"script_name,omitempty"`
 }
 
 // ExecuteResponse represents a script execution response.

@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppScreamToEarn")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Scream to Earn - Voice-powered mining")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. ScreamToEarn is a voice-powered mining application for audio verification. Use it to scream into your microphone, you can earn GAS rewards based on TEE-verified decibel levels.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

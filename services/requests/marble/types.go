@@ -32,7 +32,14 @@ type oracleResponse struct {
 }
 
 type computePayload struct {
-	Script     string                 `json:"script"`
+	// ScriptName references a pre-registered TEE script in the app manifest.
+	// When provided, the script is loaded from the manifest's tee_scripts section.
+	// This is the preferred method for on-chain service requests.
+	ScriptName string `json:"script_name,omitempty"`
+
+	// Script contains the raw script content (deprecated for on-chain requests).
+	// Only used for backward compatibility or direct API calls.
+	Script     string                 `json:"script,omitempty"`
 	EntryPoint string                 `json:"entry_point,omitempty"`
 	Input      map[string]interface{} `json:"input,omitempty"`
 	SecretRefs []string               `json:"secret_refs,omitempty"`

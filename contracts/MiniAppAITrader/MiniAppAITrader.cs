@@ -15,6 +15,7 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void AutomationRegisteredHandler(BigInteger taskId, string triggerType, string schedule);
     public delegate void AutomationCancelledHandler(BigInteger taskId);
     public delegate void PeriodicExecutionTriggeredHandler(BigInteger taskId);
+    public delegate void AISignalGeneratedHandler(BigInteger strategyId, bool isBuy, BigInteger confidence);
 
     /// <summary>
     /// AI Trader - AI-powered trading with price oracle.
@@ -32,7 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppAITrader")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "AI Trader - AI-powered trading with on-chain oracle")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. AITrader is an AI-powered trading system for intelligent portfolio management. Use it to execute automated trading strategies based on AI signals, you can optimize your trading performance with machine learning insights.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {
@@ -47,6 +48,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_REQUEST_TO_STRATEGY = new byte[] { 0x12 };
         private static readonly byte[] PREFIX_AUTOMATION_TASK = new byte[] { 0x20 };
         private static readonly byte[] PREFIX_AUTOMATION_ANCHOR = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_TEE_REQUEST = new byte[] { 0x22 };
         #endregion
 
         #region Strategy Data Structure
@@ -79,6 +81,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("PeriodicExecutionTriggered")]
         public static event PeriodicExecutionTriggeredHandler OnPeriodicExecutionTriggered;
+
+        [DisplayName("AISignalGenerated")]
+        public static event AISignalGeneratedHandler OnAISignalGenerated;
         #endregion
 
         #region Lifecycle
@@ -172,6 +177,52 @@ namespace NeoMiniAppPlatform.Contracts
                 APP_ID, "pricefeed", payload,
                 Runtime.ExecutingScriptHash, "onServiceCallback"
             );
+        }
+
+        /// <summary>
+        /// Request TEE to execute AI model for trading signal.
+        /// </summary>
+        private static BigInteger RequestTeeAI(BigInteger strategyId, ByteString priceHistory)
+        {
+            UInt160 gateway = Gateway();
+            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+
+            ByteString payload = StdLib.Serialize(new object[] { "ai-signal", strategyId, priceHistory });
+            BigInteger requestId = (BigInteger)Contract.Call(
+                gateway, "requestService", CallFlags.All,
+                APP_ID, "tee-compute", payload,
+                Runtime.ExecutingScriptHash, "OnTeeCallback"
+            );
+
+            byte[] key = Helper.Concat(PREFIX_TEE_REQUEST, (ByteString)requestId.ToByteArray());
+            Storage.Put(Storage.CurrentContext, key, strategyId);
+
+            return requestId;
+        }
+
+        /// <summary>
+        /// TEE AI callback handler.
+        /// </summary>
+        public static void OnTeeCallback(
+            BigInteger requestId, string appId, string serviceType,
+            bool success, ByteString result, string error)
+        {
+            ValidateGateway();
+
+            byte[] key = Helper.Concat(PREFIX_TEE_REQUEST, (ByteString)requestId.ToByteArray());
+            ByteString strategyIdData = Storage.Get(Storage.CurrentContext, key);
+            ExecutionEngine.Assert(strategyIdData != null, "unknown tee request");
+
+            BigInteger strategyId = (BigInteger)strategyIdData;
+            Storage.Delete(Storage.CurrentContext, key);
+
+            if (success && result != null && result.Length > 0)
+            {
+                object[] aiResult = (object[])StdLib.Deserialize(result);
+                bool isBuy = (bool)aiResult[0];
+                BigInteger confidence = (BigInteger)aiResult[1];
+                OnAISignalGenerated(strategyId, isBuy, confidence);
+            }
         }
 
         public static void OnServiceCallback(

@@ -38,7 +38,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppRedEnvelope")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Red Envelope - Random GAS packets with on-chain RNG oracle")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. RedEnvelope is a social gifting application for random GAS distribution. Use it to send lucky red packets, you can share joy and rewards with friends through blockchain-powered random distributions.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

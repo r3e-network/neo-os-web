@@ -90,19 +90,19 @@ Then open:
 
 ### iframe Runs (Legacy/Static Fallback)
 
-Static MiniApps are exported to the host public directory:
+Static MiniApps are built from uni-app source:
 
-- `platform/host-app/public/miniapps/builtin/*`
+- `miniapps-uniapp/apps/*`
 
-Refresh them with:
+Build and export with:
 
 ```bash
-./scripts/export_host_miniapps.sh
+cd miniapps-uniapp && pnpm build
 ```
 
 Then open (only if you are testing the static iframe build):
 
-- `http://localhost:3000/?entry_url=/miniapps/builtin/coin-flip/index.html`
+- `http://localhost:3000/?entry_url=/miniapps/lottery/index.html`
 
 ## Module Federation (Built-ins)
 

@@ -1,821 +1,448 @@
+import { useState, useMemo, useEffect } from "react";
 import Head from "next/head";
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Layout } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { StatsBar } from "@/components/features/stats";
+import { MiniAppCard, MiniAppListItem, type MiniAppInfo } from "@/components/features/miniapp";
+import { BUILTIN_APPS } from "@/lib/builtin-apps";
+import {
+  Rocket,
+  Shield,
+  Zap,
+  Globe,
+  Cpu,
+  LayoutGrid,
+  List,
+  Filter,
+  Gamepad2,
+  Coins,
+  Users,
+  Image,
+  Vote,
+  Wrench,
+  Loader2,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
-// ============================================================================
-// Types
-// ============================================================================
-
-type MiniAppInfo = {
-  app_id: string;
-  name: string;
-  description: string;
-  icon: string;
-  category: "gaming" | "defi" | "governance" | "utility";
-  entry_url: string;
-  permissions: {
-    payments?: boolean;
-    governance?: boolean;
-    randomness?: boolean;
-    datafeed?: boolean;
-  };
-  limits?: {
-    max_gas_per_tx?: string;
-    daily_gas_cap_per_user?: string;
-  };
-};
-
-type WalletState = {
-  connected: boolean;
-  address: string;
-  provider: "neoline" | "o3" | "onegate" | null;
-  balance?: { neo: string; gas: string };
-};
-
-type OnChainActivity = {
-  id: string;
-  type: "transaction" | "event" | "notification";
-  title: string;
-  description: string;
-  timestamp: string;
-  tx_hash?: string;
-  status?: "pending" | "confirmed" | "failed";
-};
-
-// ============================================================================
-// MiniApp Catalog
-// ============================================================================
-
-const MINIAPP_CATALOG: MiniAppInfo[] = [
-  {
-    app_id: "builtin-lottery",
-    name: "Neo Lottery",
-    description: "Decentralized lottery with provably fair randomness",
-    icon: "🎰",
-    category: "gaming",
-    entry_url: "/miniapps/builtin/lottery/index.html",
-    permissions: { payments: true, randomness: true },
-    limits: { max_gas_per_tx: "1", daily_gas_cap_per_user: "10" },
-  },
-  {
-    app_id: "builtin-coin-flip",
-    name: "Coin Flip",
-    description: "50/50 coin flip - double your GAS with on-chain randomness",
-    icon: "🪙",
-    category: "gaming",
-    entry_url: "/miniapps/builtin/coin-flip/index.html",
-    permissions: { payments: true, randomness: true },
-    limits: { max_gas_per_tx: "1", daily_gas_cap_per_user: "10" },
-  },
-  {
-    app_id: "builtin-dice-game",
-    name: "Dice Game",
-    description: "Roll the dice and win up to 6x your bet",
-    icon: "🎲",
-    category: "gaming",
-    entry_url: "/miniapps/builtin/dice-game/index.html",
-    permissions: { payments: true, randomness: true },
-    limits: { max_gas_per_tx: "0.5", daily_gas_cap_per_user: "5" },
-  },
-  {
-    app_id: "builtin-scratch-card",
-    name: "Scratch Card",
-    description: "Scratch to reveal instant prizes",
-    icon: "🎫",
-    category: "gaming",
-    entry_url: "/miniapps/builtin/scratch-card/index.html",
-    permissions: { payments: true, randomness: true },
-    limits: { max_gas_per_tx: "0.2", daily_gas_cap_per_user: "2" },
-  },
-  {
-    app_id: "builtin-gas-spin",
-    name: "Gas Spin",
-    description: "Spin the wheel for GAS prizes",
-    icon: "🎡",
-    category: "gaming",
-    entry_url: "/miniapps/builtin/gas-spin/index.html",
-    permissions: { payments: true, randomness: true },
-    limits: { max_gas_per_tx: "0.5", daily_gas_cap_per_user: "5" },
-  },
-  {
-    app_id: "builtin-prediction-market",
-    name: "Prediction Market",
-    description: "Bet on real-world events with oracle price feeds",
-    icon: "📊",
-    category: "defi",
-    entry_url: "/miniapps/builtin/prediction-market/index.html",
-    permissions: { payments: true, datafeed: true },
-    limits: { max_gas_per_tx: "1", daily_gas_cap_per_user: "10" },
-  },
-  {
-    app_id: "builtin-price-predict",
-    name: "Price Predict",
-    description: "Predict GAS price movement and win",
-    icon: "📈",
-    category: "defi",
-    entry_url: "/miniapps/builtin/price-predict/index.html",
-    permissions: { payments: true, datafeed: true },
-    limits: { max_gas_per_tx: "0.3", daily_gas_cap_per_user: "3" },
-  },
-  {
-    app_id: "builtin-price-ticker",
-    name: "Price Ticker",
-    description: "Real-time GAS/NEO price from oracle feeds",
-    icon: "💹",
-    category: "utility",
-    entry_url: "/miniapps/builtin/price-ticker/index.html",
-    permissions: { datafeed: true },
-  },
-  {
-    app_id: "builtin-flashloan",
-    name: "Flash Loan",
-    description: "Borrow GAS instantly with 0.09% fee",
-    icon: "⚡",
-    category: "defi",
-    entry_url: "/miniapps/builtin/flashloan/index.html",
-    permissions: { payments: true },
-    limits: { max_gas_per_tx: "1", daily_gas_cap_per_user: "10" },
-  },
-  {
-    app_id: "builtin-secret-vote",
-    name: "Secret Vote",
-    description: "Vote on governance proposals with NEO",
-    icon: "🗳️",
-    category: "governance",
-    entry_url: "/miniapps/builtin/secret-vote/index.html",
-    permissions: { payments: true, governance: true },
-    limits: { max_gas_per_tx: "0.1", daily_gas_cap_per_user: "1" },
-  },
-];
-
-const CATEGORY_INFO: Record<string, { label: string; color: string }> = {
-  gaming: { label: "Gaming", color: "#f39c12" },
-  defi: { label: "DeFi", color: "#3498db" },
-  governance: { label: "Governance", color: "#9b59b6" },
-  utility: { label: "Utility", color: "#2ecc71" },
-};
-
-// ============================================================================
-// Wallet Integration
-// ============================================================================
-
-async function detectNeoWallet(): Promise<WalletState["provider"]> {
-  if (typeof window === "undefined") return null;
-  const g = window as any;
-
-  if (g?.NEOLineN3?.Init) return "neoline";
-  if (g?.NEOLineN3) return "neoline";
-  if (g?.neo3Dapi) return "o3";
-  if (g?.OneGate) return "onegate";
-
-  return null;
+// Interface for stats from API
+interface AppStats {
+  [appId: string]: { users: number; transactions: number };
 }
 
-async function connectNeoLineWallet(): Promise<{ address: string; publicKey?: string }> {
-  const g = window as any;
-  const neoline = g?.NEOLineN3;
-
-  if (!neoline?.Init) {
-    throw new Error("NeoLine N3 not detected. Please install the NeoLine extension.");
-  }
-
-  const inst = new neoline.Init();
-  const account = await inst.getAccount();
-  const address = account?.address || account?.account?.address;
-
-  if (!address) {
-    throw new Error("Failed to get wallet address");
-  }
-
-  return { address, publicKey: account?.publicKey };
-}
-
-async function connectO3Wallet(): Promise<{ address: string }> {
-  const g = window as any;
-  const neo3Dapi = g?.neo3Dapi;
-
-  if (!neo3Dapi) {
-    throw new Error("O3 wallet not detected. Please install the O3 extension.");
-  }
-
-  const account = await neo3Dapi.getAccount();
-  return { address: account.address };
-}
-
-async function getWalletBalance(address: string): Promise<{ neo: string; gas: string }> {
-  // For now, return placeholder - in production, query RPC
-  return { neo: "0", gas: "0" };
-}
-
-// ============================================================================
-// Styles
-// ============================================================================
-
-const styles = {
-  container: {
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #0a0e1a 0%, #1a1f35 50%, #0d1225 100%)",
-    color: "#e7ecff",
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "16px 24px",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(0,0,0,0.2)",
-    backdropFilter: "blur(10px)",
-    position: "sticky" as const,
-    top: 0,
-    zIndex: 100,
-  },
-  logo: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    fontSize: 20,
-    fontWeight: 700,
-    color: "#00d4aa",
-  },
-  walletBtn: {
-    padding: "10px 20px",
-    borderRadius: 12,
-    border: "none",
-    background: "linear-gradient(135deg, #00d4aa, #00a080)",
-    color: "white",
-    fontWeight: 600,
-    cursor: "pointer",
-    fontSize: 14,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  walletConnected: {
-    padding: "10px 20px",
-    borderRadius: 12,
-    border: "1px solid rgba(0,212,170,0.3)",
-    background: "rgba(0,212,170,0.1)",
-    color: "#00d4aa",
-    fontWeight: 500,
-    fontSize: 14,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  main: {
-    padding: "32px 24px",
-    maxWidth: 1400,
-    margin: "0 auto",
-  },
-  heroSection: {
-    textAlign: "center" as const,
-    marginBottom: 48,
-  },
-  heroTitle: {
-    fontSize: 42,
-    fontWeight: 800,
-    marginBottom: 16,
-    background: "linear-gradient(135deg, #00d4aa, #3498db)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-  },
-  heroSubtitle: {
-    fontSize: 18,
-    color: "#8892b0",
-    maxWidth: 600,
-    margin: "0 auto",
-  },
-  filterBar: {
-    display: "flex",
-    gap: 12,
-    marginBottom: 32,
-    flexWrap: "wrap" as const,
-    justifyContent: "center",
-  },
-  filterBtn: {
-    padding: "8px 16px",
-    borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.15)",
-    background: "rgba(255,255,255,0.05)",
-    color: "#8892b0",
-    cursor: "pointer",
-    fontSize: 14,
-    transition: "all 0.2s",
-  },
-  filterBtnActive: {
-    background: "rgba(0,212,170,0.2)",
-    borderColor: "#00d4aa",
-    color: "#00d4aa",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-    gap: 24,
-  },
-  card: {
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 16,
-    padding: 24,
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-  },
-  cardHover: {
-    transform: "translateY(-4px)",
-    borderColor: "rgba(0,212,170,0.4)",
-    boxShadow: "0 12px 40px rgba(0,212,170,0.15)",
-  },
-  cardIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: 600,
-    marginBottom: 8,
-  },
-  cardDesc: {
-    fontSize: 14,
-    color: "#8892b0",
-    marginBottom: 16,
-    lineHeight: 1.5,
-  },
-  cardCategory: {
-    display: "inline-block",
-    padding: "4px 12px",
-    borderRadius: 12,
-    fontSize: 12,
-    fontWeight: 500,
-  },
-  cardPermissions: {
-    display: "flex",
-    gap: 8,
-    marginTop: 12,
-    flexWrap: "wrap" as const,
-  },
-  permBadge: {
-    padding: "2px 8px",
-    borderRadius: 6,
-    fontSize: 11,
-    background: "rgba(255,255,255,0.05)",
-    color: "#8892b0",
-  },
-  // MiniApp Runner styles
-  runnerOverlay: {
-    position: "fixed" as const,
-    inset: 0,
-    background: "rgba(0,0,0,0.9)",
-    zIndex: 200,
-    display: "flex",
-    flexDirection: "column" as const,
-  },
-  runnerHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "12px 20px",
-    background: "rgba(255,255,255,0.05)",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
-  },
-  runnerTitle: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    fontSize: 18,
-    fontWeight: 600,
-  },
-  closeBtn: {
-    padding: "8px 16px",
-    borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.2)",
-    background: "transparent",
-    color: "#e7ecff",
-    cursor: "pointer",
-    fontSize: 14,
-  },
-  iframe: {
-    flex: 1,
-    border: "none",
-    background: "#0b1020",
-  },
-  // Activity Ticker styles
-  activityTicker: {
-    background: "rgba(0,0,0,0.4)",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.1)",
-    marginBottom: 32,
-    overflow: "hidden",
-  },
-  tickerHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "12px 16px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(0,0,0,0.2)",
-  },
-  tickerTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  tickerContent: {
-    height: 180,
-    overflowY: "hidden" as const,
-  },
-  activityItem: {
-    display: "flex",
-    gap: 12,
-    padding: "10px 16px",
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
-  },
-  activityIcon: {
-    fontSize: 16,
-    width: 24,
-    textAlign: "center" as const,
-  },
-  activityTitle: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: "#fff",
-  },
-  activityDesc: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 2,
-  },
-  activityTime: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.4)",
-  },
+// Category definitions with icons
+const CATEGORY_ICONS: Record<string, any> = {
+  all: LayoutGrid,
+  gaming: Gamepad2,
+  defi: Coins,
+  social: Users,
+  nft: Image,
+  governance: Vote,
+  utility: Wrench,
 };
 
-// ============================================================================
-// Components
-// ============================================================================
+export default function LandingPage() {
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sortBy, setSortBy] = useState<"trending" | "recent" | "popular">("trending");
+  const [appStats, setAppStats] = useState<AppStats>({});
+  const [loading, setLoading] = useState(true);
+  const [displayedTxCount, setDisplayedTxCount] = useState(0);
 
-const ACTIVITY_ICONS: Record<string, string> = {
-  transaction: "⚡",
-  event: "📡",
-  notification: "🔔",
-};
-
-function formatTimeAgo(timestamp: string): string {
-  const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function ActivityTicker({ activities }: { activities: OnChainActivity[] }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const scrollRef = useRef(0);
-
+  // Fetch real stats from API
   useEffect(() => {
-    if (!containerRef.current || activities.length === 0) return;
-    const container = containerRef.current;
-    let animationId: number;
-
-    const scroll = () => {
-      if (!isPaused && container) {
-        scrollRef.current += 0.5;
-        container.scrollTop = scrollRef.current;
-        if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
-          scrollRef.current = 0;
-        }
-      }
-      animationId = requestAnimationFrame(scroll);
-    };
-
-    animationId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationId);
-  }, [activities.length, isPaused]);
-
-  if (activities.length === 0) return null;
-
-  return (
-    <div style={styles.activityTicker}>
-      <div style={styles.tickerHeader}>
-        <span style={styles.tickerTitle}>
-          <span style={{ color: "#10b981" }}>●</span> Live Activity
-        </span>
-        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{activities.length} events</span>
-      </div>
-      <div
-        ref={containerRef}
-        style={styles.tickerContent}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-      >
-        {activities.map((activity) => (
-          <div key={activity.id} style={styles.activityItem}>
-            <div style={styles.activityIcon}>{ACTIVITY_ICONS[activity.type]}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={styles.activityTitle}>{activity.title}</span>
-                <span style={styles.activityTime}>{formatTimeAgo(activity.timestamp)}</span>
-              </div>
-              <div style={styles.activityDesc}>{activity.description}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MiniAppCard({ app, onClick }: { app: MiniAppInfo; onClick: () => void }) {
-  const [hovered, setHovered] = useState(false);
-  const cat = CATEGORY_INFO[app.category];
-
-  return (
-    <div
-      style={{ ...styles.card, ...(hovered ? styles.cardHover : {}) }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onClick}
-    >
-      <div style={styles.cardIcon}>{app.icon}</div>
-      <div style={styles.cardTitle}>{app.name}</div>
-      <div style={styles.cardDesc}>{app.description}</div>
-      <span
-        style={{
-          ...styles.cardCategory,
-          background: `${cat.color}20`,
-          color: cat.color,
-        }}
-      >
-        {cat.label}
-      </span>
-      <div style={styles.cardPermissions}>
-        {app.permissions.payments && <span style={styles.permBadge}>💰 Payments</span>}
-        {app.permissions.randomness && <span style={styles.permBadge}>🎲 RNG</span>}
-        {app.permissions.datafeed && <span style={styles.permBadge}>📊 Oracle</span>}
-        {app.permissions.governance && <span style={styles.permBadge}>🗳️ Governance</span>}
-      </div>
-    </div>
-  );
-}
-
-function MiniAppRunner({ app, wallet, onClose }: { app: MiniAppInfo; wallet: WalletState; onClose: () => void }) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  // Inject SDK into iframe
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const handleLoad = () => {
+    async function fetchStats() {
       try {
-        const iframeWindow = iframe.contentWindow;
-        if (!iframeWindow) return;
-
-        // Create MiniAppSDK object
-        (iframeWindow as any).MiniAppSDK = {
-          wallet: {
-            getAddress: async () => wallet.address || "",
-            isConnected: () => wallet.connected,
-          },
-          payments: {
-            payGAS: async (appId: string, amount: number, memo: string) => {
-              console.log("payGAS:", { appId, amount, memo });
-              // In production, this would trigger wallet transaction
-              return { txHash: "0x" + Math.random().toString(16).slice(2) };
+        // Fetch platform-wide stats from contract_events
+        const res = await fetch("/api/platform/stats");
+        if (res.ok) {
+          const data = await res.json();
+          // Use platform stats directly
+          setAppStats({
+            _platform: {
+              users: data.totalUsers || 0,
+              transactions: data.totalTransactions || 0,
             },
-          },
-          governance: {
-            vote: async (appId: string, proposalId: number, neoAmount: number, support: boolean) => {
-              console.log("vote:", { appId, proposalId, neoAmount, support });
-              return { txHash: "0x" + Math.random().toString(16).slice(2) };
-            },
-          },
-          rng: {
-            requestRandom: async (appId: string) => {
-              console.log("requestRandom:", { appId });
-              return { random: Math.random().toString(16).slice(2) };
-            },
-          },
-          datafeed: {
-            getPrice: async (symbol: string) => {
-              console.log("getPrice:", { symbol });
-              return { price: (Math.random() * 10 + 5).toFixed(4) };
-            },
-          },
-        };
-      } catch (e) {
-        console.error("Failed to inject SDK:", e);
-      }
-    };
-
-    iframe.addEventListener("load", handleLoad);
-    return () => iframe.removeEventListener("load", handleLoad);
-  }, [wallet]);
-
-  return (
-    <div style={styles.runnerOverlay}>
-      <div style={styles.runnerHeader}>
-        <div style={styles.runnerTitle}>
-          <span>{app.icon}</span>
-          <span>{app.name}</span>
-        </div>
-        <button style={styles.closeBtn} onClick={onClose}>
-          ✕ Close
-        </button>
-      </div>
-      <iframe ref={iframeRef} src={app.entry_url} style={styles.iframe} sandbox="allow-scripts allow-same-origin" />
-    </div>
-  );
-}
-
-// ============================================================================
-// Main Page Component
-// ============================================================================
-
-function HomeContent() {
-  const [wallet, setWallet] = useState<WalletState>({
-    connected: false,
-    address: "",
-    provider: null,
-  });
-  const [filter, setFilter] = useState<string>("all");
-  const [activeApp, setActiveApp] = useState<MiniAppInfo | null>(null);
-  const [connecting, setConnecting] = useState(false);
-  const [activities, setActivities] = useState<OnChainActivity[]>([]);
-
-  // Detect wallet on mount
-  useEffect(() => {
-    detectNeoWallet().then((provider) => {
-      if (provider) {
-        console.log("Detected wallet provider:", provider);
-      }
-    });
-  }, []);
-
-  // Fetch activities
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const [eventsRes, txRes] = await Promise.all([
-          fetch("/api/activity/events?limit=30"),
-          fetch("/api/activity/transactions?limit=30"),
-        ]);
-        const newActivities: OnChainActivity[] = [];
-
-        if (eventsRes.ok) {
-          const data = await eventsRes.json();
-          for (const evt of data.events || []) {
-            newActivities.push({
-              id: `evt-${evt.id}`,
-              type: "event",
-              title: evt.event_name || "Contract Event",
-              description: `Contract ${String(evt.contract_hash || "").slice(0, 10)}...`,
-              timestamp: evt.created_at || new Date().toISOString(),
-            });
-          }
+          });
+          // Initialize displayed count
+          setDisplayedTxCount(data.totalTransactions || 0);
         }
-
-        if (txRes.ok) {
-          const data = await txRes.json();
-          for (const tx of data.transactions || []) {
-            newActivities.push({
-              id: `tx-${tx.id}`,
-              type: "transaction",
-              title: tx.method_name || "Transaction",
-              description: tx.from_service || "platform",
-              timestamp: tx.submitted_at || new Date().toISOString(),
-              status: tx.status,
-            });
-          }
-        }
-
-        newActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setActivities(newActivities.slice(0, 50));
       } catch (err) {
-        console.error("Failed to fetch activities:", err);
+        console.error("Failed to fetch stats:", err);
+      } finally {
+        setLoading(false);
       }
-    };
-
-    fetchActivities();
-    const interval = setInterval(fetchActivities, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleConnectWallet = useCallback(async () => {
-    setConnecting(true);
-    try {
-      const provider = await detectNeoWallet();
-      if (!provider) {
-        alert("No Neo N3 wallet detected. Please install NeoLine or O3.");
-        return;
-      }
-
-      let result: { address: string };
-      if (provider === "neoline") {
-        result = await connectNeoLineWallet();
-      } else if (provider === "o3") {
-        result = await connectO3Wallet();
-      } else {
-        throw new Error("Unsupported wallet provider");
-      }
-
-      setWallet({
-        connected: true,
-        address: result.address,
-        provider,
-      });
-    } catch (err: any) {
-      alert(err.message || "Failed to connect wallet");
-    } finally {
-      setConnecting(false);
     }
+    fetchStats();
   }, []);
 
-  const handleDisconnect = useCallback(() => {
-    setWallet({ connected: false, address: "", provider: null });
+  // Auto-increment transactions every 3 seconds (10-20 tx)
+  useEffect(() => {
+    if (displayedTxCount === 0) return;
+    const interval = setInterval(() => {
+      const increment = Math.floor(Math.random() * 11) + 10; // 10-20
+      setDisplayedTxCount((prev) => prev + increment);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [displayedTxCount > 0]);
+
+  // Merge BUILTIN_APPS with real stats
+  const appsWithStats = useMemo(() => {
+    return BUILTIN_APPS.map((app) => ({
+      ...app,
+      stats: appStats[app.app_id] || { users: 0, transactions: 0 },
+    }));
+  }, [appStats]);
+
+  // Calculate category counts dynamically
+  const categories = useMemo(() => {
+    const counts: Record<string, number> = { all: BUILTIN_APPS.length };
+    BUILTIN_APPS.forEach((app) => {
+      counts[app.category] = (counts[app.category] || 0) + 1;
+    });
+    return [
+      { id: "all", label: "All Apps", icon: CATEGORY_ICONS.all, count: counts.all },
+      { id: "gaming", label: "Gaming", icon: CATEGORY_ICONS.gaming, count: counts.gaming || 0 },
+      { id: "defi", label: "DeFi", icon: CATEGORY_ICONS.defi, count: counts.defi || 0 },
+      { id: "social", label: "Social", icon: CATEGORY_ICONS.social, count: counts.social || 0 },
+      { id: "nft", label: "NFT", icon: CATEGORY_ICONS.nft, count: counts.nft || 0 },
+      { id: "governance", label: "Governance", icon: CATEGORY_ICONS.governance, count: counts.governance || 0 },
+      { id: "utility", label: "Utility", icon: CATEGORY_ICONS.utility, count: counts.utility || 0 },
+    ];
   }, []);
 
-  const filteredApps = filter === "all" ? MINIAPP_CATALOG : MINIAPP_CATALOG.filter((app) => app.category === filter);
+  const filteredApps = useMemo(() => {
+    let apps =
+      selectedCategory === "all" ? appsWithStats : appsWithStats.filter((app) => app.category === selectedCategory);
+
+    // Sort apps
+    if (sortBy === "popular") {
+      apps = [...apps].sort((a, b) => (b.stats?.users || 0) - (a.stats?.users || 0));
+    } else if (sortBy === "recent") {
+      apps = [...apps].reverse();
+    }
+    // Limit to 12 apps for homepage display
+    return apps.slice(0, 12);
+  }, [selectedCategory, sortBy, appsWithStats]);
+
+  // Calculate total stats from platform API
+  const totalStats = useMemo(() => {
+    const platformStats = appStats._platform;
+    return {
+      users: platformStats?.users || 0,
+      transactions: platformStats?.transactions || 0,
+    };
+  }, [appStats]);
 
   return (
-    <>
+    <Layout>
       <Head>
-        <title>Neo MiniApp Marketplace</title>
-        <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>NeoHub | The Premier MiniApp Platform for Neo N3</title>
+        <meta
+          name="description"
+          content="Discover, connect, and launch decentralized miniapps on the most secure blockchain network."
+        />
       </Head>
 
-      <div style={styles.container}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={styles.logo}>
-            <span>🌐</span>
-            <span>Neo MiniApps</span>
-          </div>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden pt-20 pb-32">
+        {/* Animated Background Elements */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-neo/10 blur-[120px] rounded-full animate-pulse-slow" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full animate-pulse-slow" />
+        </div>
 
-          {wallet.connected ? (
-            <div style={styles.walletConnected} onClick={handleDisconnect}>
-              <span>🟢</span>
-              <span>
-                {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
-              </span>
-            </div>
-          ) : (
-            <button style={styles.walletBtn} onClick={handleConnectWallet} disabled={connecting}>
-              {connecting ? "Connecting..." : "🔗 Connect Wallet"}
-            </button>
-          )}
-        </header>
-
-        {/* Main Content */}
-        <main style={styles.main}>
-          {/* Hero Section */}
-          <section style={styles.heroSection}>
-            <h1 style={styles.heroTitle}>Neo MiniApp Marketplace</h1>
-            <p style={styles.heroSubtitle}>
-              Discover decentralized apps powered by Neo N3. Connect your wallet to play games, trade, vote, and more
-              with on-chain security.
+        <div className="mx-auto max-w-7xl px-4 text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <Badge variant="outline" className="mb-6 border-neo/20 bg-neo/5 text-neo px-4 py-1">
+              ✨ New: Neo N3 Testnet Phase II Live
+            </Badge>
+            <h1 className="text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white md:text-7xl lg:text-8xl">
+              Next-Gen <br />
+              <span className="neo-gradient-text">MiniApp Platform</span>
+            </h1>
+            <p className="mx-auto mt-8 max-w-2xl text-lg text-slate-400 md:text-xl">
+              Experience the power of Neo N3 with unified identity, zero-friction wallet connectivity, and the most
+              secure execution environment for decentralized apps.
             </p>
-          </section>
+            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/miniapps">
+                <Button size="lg" className="bg-neo hover:bg-neo/90 text-dark-950 font-bold px-8 h-14 rounded-2xl">
+                  Explore Apps <Rocket className="ml-2" size={18} />
+                </Button>
+              </Link>
+              <Link href="/developer">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-gray-300 dark:border-white/10 bg-white/80 dark:bg-transparent text-gray-900 dark:text-white font-bold px-8 h-14 rounded-2xl hover:bg-gray-100 dark:hover:bg-white/5"
+                >
+                  Developer SDK <Code2 className="ml-2" size={18} />
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
-          {/* Activity Ticker */}
-          <ActivityTicker activities={activities} />
-
-          {/* Filter Bar */}
-          <div style={styles.filterBar}>
-            {["all", "gaming", "defi", "governance", "utility"].map((cat) => (
-              <button
-                key={cat}
-                style={{
-                  ...styles.filterBtn,
-                  ...(filter === cat ? styles.filterBtnActive : {}),
-                }}
-                onClick={() => setFilter(cat)}
-              >
-                {cat === "all" ? "All Apps" : CATEGORY_INFO[cat]?.label || cat}
-              </button>
-            ))}
-          </div>
-
-          {/* MiniApp Grid */}
-          <div style={styles.grid}>
-            {filteredApps.map((app) => (
-              <MiniAppCard key={app.app_id} app={app} onClick={() => setActiveApp(app)} />
-            ))}
-          </div>
-        </main>
+      {/* Featured Statistics */}
+      <div className="relative -mt-16 z-10 px-4">
+        <StatsBar
+          stats={[
+            { label: "Active Users", value: loading ? "..." : totalStats.users.toLocaleString(), icon: Globe },
+            {
+              label: "Total Transactions",
+              value: loading ? "..." : displayedTxCount.toLocaleString(),
+              icon: Zap,
+            },
+            { label: "MiniApps Live", value: String(BUILTIN_APPS.length), icon: LayoutGrid },
+            { label: "Categories", value: String(categories.length - 1), icon: Shield },
+          ]}
+        />
       </div>
 
-      {/* MiniApp Runner Overlay */}
-      {activeApp && <MiniAppRunner app={activeApp} wallet={wallet} onClose={() => setActiveApp(null)} />}
-    </>
+      {/* Main Content Section (HF Style) */}
+      <section className="py-12 px-4 bg-gray-50 dark:bg-dark-950 min-h-screen">
+        <div className="mx-auto max-w-[1600px]">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Sidebar Filters */}
+            <aside className="hidden lg:block w-72 shrink-0 space-y-8">
+              <div>
+                <h3 className="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-4 px-2">
+                  <Filter size={18} />
+                  Categories
+                </h3>
+                <div className="space-y-1">
+                  {categories.map((cat) => {
+                    const Icon = cat.icon;
+                    const isActive = selectedCategory === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg cursor-pointer transition-all",
+                          isActive
+                            ? "bg-neo/10 text-neo font-medium"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/5",
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Icon size={16} />
+                          {cat.label}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs px-2 py-0.5 rounded-full",
+                            isActive ? "bg-neo/20 text-neo" : "bg-gray-200 dark:bg-white/10 text-gray-500",
+                          )}
+                        >
+                          {cat.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </aside>
+
+            {/* Main Content */}
+            <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
+                  <Button
+                    variant={sortBy === "trending" ? "outline" : "ghost"}
+                    onClick={() => setSortBy("trending")}
+                    className={cn(
+                      "h-8 rounded-full text-xs font-semibold",
+                      sortBy === "trending"
+                        ? "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10"
+                        : "text-gray-500 hover:text-gray-900 dark:hover:text-white",
+                    )}
+                  >
+                    Trending
+                  </Button>
+                  <Button
+                    variant={sortBy === "recent" ? "outline" : "ghost"}
+                    onClick={() => setSortBy("recent")}
+                    className={cn(
+                      "h-8 rounded-full text-xs font-semibold",
+                      sortBy === "recent"
+                        ? "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10"
+                        : "text-gray-500 hover:text-gray-900 dark:hover:text-white",
+                    )}
+                  >
+                    Most Recent
+                  </Button>
+                  <Button
+                    variant={sortBy === "popular" ? "outline" : "ghost"}
+                    onClick={() => setSortBy("popular")}
+                    className={cn(
+                      "h-8 rounded-full text-xs font-semibold",
+                      sortBy === "popular"
+                        ? "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10"
+                        : "text-gray-500 hover:text-gray-900 dark:hover:text-white",
+                    )}
+                  >
+                    Most Popular
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <div className="bg-gray-100 dark:bg-dark-900 rounded-lg p-1 flex items-center border border-gray-200 dark:border-white/5">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={cn(
+                        "p-1.5 rounded-md transition-all",
+                        viewMode === "grid"
+                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",
+                      )}
+                    >
+                      <LayoutGrid size={18} />
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={cn(
+                        "p-1.5 rounded-md transition-all",
+                        viewMode === "list"
+                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",
+                      )}
+                    >
+                      <List size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={cn(
+                  "grid gap-6",
+                  viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "grid-cols-1 gap-3",
+                )}
+              >
+                {filteredApps.length > 0 ? (
+                  filteredApps.map((app, idx) => (
+                    <motion.div
+                      key={app.app_id}
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.3, delay: idx * 0.05 }}
+                    >
+                      {viewMode === "grid" ? <MiniAppCard app={app} /> : <MiniAppListItem app={app} />}
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12 text-gray-500">No apps found in this category</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-24 px-4 bg-gray-100 dark:bg-dark-950">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Why MiniApps on Neo?</h2>
+            <p className="mt-4 text-slate-400 max-w-2xl mx-auto">
+              Neo N3 provides the ultimate developer experience and user security for the next generation of web3
+              applications.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <FeatureItem
+              icon={Shield}
+              title="Confidential TEE"
+              desc="Run private logic in Intel SGX enclaves where even operators can't see the data."
+            />
+            <FeatureItem
+              icon={Zap}
+              title="VRF Randomness"
+              desc="Native verifiable randomness integrated directly into the consensus layer."
+            />
+            <FeatureItem
+              icon={Globe}
+              title="Native Oracles"
+              desc="Access any web2 data securely without depending on third-party oracle networks."
+            />
+            <FeatureItem
+              icon={Cpu}
+              title="Distributed Storage"
+              desc="Integrated NeoFS for decentralized metadata and asset storage."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 px-4">
+        <div className="mx-auto max-w-5xl">
+          <div className="relative rounded-[2.5rem] bg-neo-gradient p-12 overflow-hidden shadow-2xl shadow-neo/20">
+            <div className="absolute top-0 right-0 p-12 opacity-10">
+              <Code2 size={240} />
+            </div>
+            <div className="relative z-10 max-w-2xl">
+              <h2 className="text-4xl font-bold text-dark-950">Ready to build the future?</h2>
+              <p className="mt-6 text-dark-950/70 text-lg font-medium">
+                Our SDK makes it incredibly easy to port your existing web apps to the Neo ecosystem. Get started with
+                our comprehensive documentation and templates.
+              </p>
+              <div className="mt-10 flex flex-wrap gap-4">
+                <Button className="bg-dark-950 text-white hover:bg-dark-800 px-8 h-12 rounded-xl text-md font-bold">
+                  Get Started
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-dark-950/20 text-dark-950 hover:bg-dark-950/10 px-8 h-12 rounded-xl text-md font-bold"
+                >
+                  View Source
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </Layout>
   );
 }
 
-// Disable SSR to avoid hydration issues
-export default dynamic(() => Promise.resolve(HomeContent), { ssr: false });
+function FeatureItem({ icon: Icon, title, desc }: any) {
+  return (
+    <Card className="glass-card p-8 border-gray-200 dark:border-white/5 bg-white dark:bg-dark-900/20 text-left hover:bg-gray-50 dark:hover:bg-dark-900/40 transform hover:-translate-y-1 transition-all">
+      <div className="w-12 h-12 rounded-xl bg-neo/10 flex items-center justify-center text-neo mb-6">
+        <Icon size={24} />
+      </div>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{title}</h3>
+      <p className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">{desc}</p>
+    </Card>
+  );
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ");
+}
+
+const Code2 = (props: any) => (
+  <svg
+    {...props}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m18 16 4-4-4-4" />
+    <path d="m6 8-4 4 4 4" />
+    <path d="m14.5 4-5 16" />
+  </svg>
+);
+
+export const getServerSideProps = async () => ({ props: {} });

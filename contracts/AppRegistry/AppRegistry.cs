@@ -23,6 +23,7 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void AllowlistUpdatedHandler(string appId, ByteString allowlistHash);
     public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
     public delegate void ContractHashUpdatedHandler(string appId, ByteString contractHash);
+    public delegate void TeeScriptRegisteredHandler(string appId, string scriptName, ByteString scriptHash);
 
     [DisplayName("AppRegistry")]
     [ManifestExtra("Author", "R3E Network")]
@@ -33,6 +34,7 @@ namespace NeoMiniAppPlatform.Contracts
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_APP = new byte[] { 0x02 };
+        private static readonly byte[] PREFIX_TEE_SCRIPT = new byte[] { 0x03 };
 
         public struct AppInfo
         {
@@ -68,6 +70,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("ContractHashUpdated")]
         public static event ContractHashUpdatedHandler OnContractHashUpdated;
+
+        [DisplayName("TeeScriptRegistered")]
+        public static event TeeScriptRegisteredHandler OnTeeScriptRegistered;
 
         public static void _deploy(object data, bool update)
         {
@@ -296,6 +301,38 @@ namespace NeoMiniAppPlatform.Contracts
             UInt160 oldAdmin = Admin();
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
             OnAdminChanged(oldAdmin, newAdmin);
+        }
+
+        private static StorageMap TeeScriptMap() => new StorageMap(Storage.CurrentContext, PREFIX_TEE_SCRIPT);
+
+        private static ByteString TeeScriptKey(string appId, string scriptName)
+        {
+            return Helper.Concat((ByteString)appId, (ByteString)(":" + scriptName));
+        }
+
+        /// <summary>
+        /// Register a TEE script hash for a MiniApp.
+        /// Only the app developer can register scripts.
+        /// </summary>
+        public static void RegisterTeeScript(string appId, string scriptName, ByteString scriptHash)
+        {
+            AppInfo info = GetApp(appId);
+            ExecutionEngine.Assert(info.AppId != null && info.AppId.Length > 0, "app not found");
+            ExecutionEngine.Assert(Runtime.CheckWitness(info.Developer), "unauthorized");
+            ExecutionEngine.Assert(scriptName != null && scriptName.Length > 0, "script name required");
+            ExecutionEngine.Assert(scriptHash != null && scriptHash.Length == 32, "invalid script hash");
+
+            TeeScriptMap().Put(TeeScriptKey(appId, scriptName), scriptHash);
+            OnTeeScriptRegistered(appId, scriptName, scriptHash);
+        }
+
+        /// <summary>
+        /// Get the registered TEE script hash for a MiniApp.
+        /// </summary>
+        [Safe]
+        public static ByteString GetTeeScriptHash(string appId, string scriptName)
+        {
+            return TeeScriptMap().Get(TeeScriptKey(appId, scriptName));
         }
 
         public static void Update(ByteString nefFile, string manifest)

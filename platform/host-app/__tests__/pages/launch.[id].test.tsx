@@ -227,21 +227,21 @@ describe("LaunchPage", () => {
   });
 
   describe("Exit Functionality", () => {
-    it("should navigate to /app/[id] when exit button is clicked", async () => {
+    it("should navigate to /miniapps/[id] when exit button is clicked", async () => {
       await renderLaunchPage();
 
       const exitButton = screen.getByText("Exit");
       fireEvent.click(exitButton);
 
-      expect(mockPush).toHaveBeenCalledWith("/app/test-app");
+      expect(mockPush).toHaveBeenCalledWith("/miniapps/test-app");
     });
 
-    it("should navigate to /app/[id] when ESC key is pressed", async () => {
+    it("should navigate to /miniapps/[id] when ESC key is pressed", async () => {
       await renderLaunchPage();
 
       fireEvent.keyDown(window, { key: "Escape" });
 
-      expect(mockPush).toHaveBeenCalledWith("/app/test-app");
+      expect(mockPush).toHaveBeenCalledWith("/miniapps/test-app");
     });
 
     it("should not navigate on other keys", async () => {
@@ -458,7 +458,7 @@ describe("getServerSideProps", () => {
 
   it("should return props with correct entry_url", async () => {
     const context = {
-      params: { id: "builtin-coin-flip" },
+      params: { id: "miniapp-coinflip" },
       req: { headers: { host: "localhost:3000" } },
     } as any;
 
@@ -468,12 +468,12 @@ describe("getServerSideProps", () => {
 
     const result = await getServerSideProps(context);
 
-    expect((result as any).props.app.entry_url).toBe("mf://builtin?app=builtin-coin-flip");
+    expect((result as any).props.app.entry_url).toBe("/miniapps/coin-flip/");
   });
 
   it("should return app with required fields", async () => {
     const context = {
-      params: { id: "builtin-dice-game" },
+      params: { id: "miniapp-dicegame" },
       req: { headers: { host: "localhost:3000" } },
     } as any;
 

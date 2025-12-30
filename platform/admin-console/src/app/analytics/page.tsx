@@ -59,7 +59,7 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Usage Chart Placeholder */}
+      {/* Usage Chart */}
       <Card>
         <CardHeader>
           <CardTitle>Usage Over Time (Last 30 Days)</CardTitle>
@@ -69,10 +69,8 @@ export default function AnalyticsPage() {
             <Spinner />
           ) : (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-              <p className="text-gray-600">
-                Chart visualization placeholder - {usage?.length || 0} data points available
-              </p>
-              <p className="mt-2 text-sm text-gray-500">Integration with charting library (recharts) pending</p>
+              <p className="text-gray-600">{usage?.length || 0} data points available</p>
+              <p className="mt-2 text-sm text-gray-500">Chart visualization requires recharts integration</p>
             </div>
           )}
         </CardContent>

@@ -64,7 +64,7 @@ export function normalizeStatus(value: unknown, fallback?: MiniAppInfo["status"]
 
 export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniAppInfo | null {
   const obj = asObject(raw);
-  const appId = toString(obj.app_id ?? fallback?.app_id).trim();
+  const appId = toString(obj.app_id ?? obj.appid ?? fallback?.app_id).trim();
   if (!appId) return null;
 
   const entryUrl = toString(obj.entry_url ?? fallback?.entry_url).trim();
@@ -89,12 +89,12 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     icon,
     category,
     entry_url: entryUrl,
-    contract_hash: contractHash || undefined,
-    status,
+    contract_hash: contractHash || null,
+    status: status ?? null,
     permissions,
-    limits,
-    news_integration: newsIntegration,
-    stats_display: statsDisplay,
+    limits: limits ?? null,
+    news_integration: newsIntegration ?? null,
+    stats_display: statsDisplay ?? null,
   };
 }
 

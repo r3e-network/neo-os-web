@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppNFTChimera")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "NFT Chimera - NFT fusion and evolution")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. NFTChimera is an NFT fusion platform for hybrid creations. Use it to fuse two NFTs into unique offspring, you can breed rare chimeras with inherited traits.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

@@ -25,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppGardenOfNeo")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Plants grow based on blockchain data")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. GardenOfNeo is an interactive gaming application for blockchain-powered gardening. Use it to plant and grow virtual seeds, you can harvest rewards based on network activity and plant maturity.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

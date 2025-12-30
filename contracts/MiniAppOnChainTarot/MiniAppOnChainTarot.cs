@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppOnChainTarot")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "On-Chain Tarot - Verifiable fortune telling")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. OnChainTarot is a fortune telling application for verifiable readings. Use it to request tarot card draws, you can receive transparent interpretations with provably random card selection.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

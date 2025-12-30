@@ -76,7 +76,17 @@ export class NeoLineAdapter implements WalletAdapter {
     try {
       const win = window as unknown as NeoLineWindow;
       const provider = win.NEOLineN3 || win.NEOLine;
-      this.instance = await provider!.Init();
+
+      // NeoLine requires calling Init as a constructor-like pattern
+      // Wait for the NEOLine.Init event if not ready
+      if (!provider) {
+        throw new WalletConnectionError("NeoLine provider not found");
+      }
+
+      // NeoLine.Init is a class constructor, must be called with 'new'
+      // It returns the instance directly (not a Promise)
+      this.instance = new (provider.Init as unknown as new () => NeoLineInstance)();
+
       return this.instance;
     } catch (error) {
       throw new WalletConnectionError(`Failed to initialize NeoLine: ${error}`);
@@ -113,13 +123,23 @@ export class NeoLineAdapter implements WalletAdapter {
       let neo = "0";
       let gas = "0";
 
+      // Normalize contract addresses for comparison (case-insensitive, handle 0x prefix)
+      const normalizeContract = (c: string) => c.toLowerCase().replace(/^0x/, "");
+      const neoNorm = normalizeContract(NEO_CONTRACT);
+      const gasNorm = normalizeContract(GAS_CONTRACT);
+
       for (const b of balances) {
-        if (b.contract === NEO_CONTRACT) neo = b.amount;
-        if (b.contract === GAS_CONTRACT) gas = b.amount;
+        const contractNorm = normalizeContract(b.contract);
+        if (contractNorm === neoNorm) neo = b.amount;
+        if (contractNorm === gasNorm) gas = b.amount;
+        // Also check by symbol as fallback
+        if (b.symbol?.toUpperCase() === "NEO") neo = b.amount;
+        if (b.symbol?.toUpperCase() === "GAS") gas = b.amount;
       }
 
       return { neo, gas };
-    } catch {
+    } catch (error) {
+      console.error("Failed to get balance:", error);
       return { neo: "0", gas: "0" };
     }
   }

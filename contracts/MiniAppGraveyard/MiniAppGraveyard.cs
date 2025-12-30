@@ -18,7 +18,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppGraveyard")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Digital Graveyard - Paid data deletion")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. Graveyard is a data management application for permanent deletion. Use it to bury encrypted memories on-chain, you can permanently forget data with verified deletion proofs.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

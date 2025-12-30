@@ -18,7 +18,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppDutchAuction")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Dutch Auction - Price drops until someone buys")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. DutchAuction is a descending price auction for fair price discovery. Use it to sell assets through time-based price reduction, you can achieve efficient market-driven pricing without minimum bid requirements.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

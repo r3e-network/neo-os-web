@@ -19,7 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppNoLossLottery")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "No-Loss Lottery - Win yields, keep principal")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. NoLossLottery is a savings protocol for risk-free prize winning. Use it to stake funds and enter lottery draws, you can win yield prizes while keeping your principal safe.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {
@@ -35,6 +35,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_PLAYER_STAKE = new byte[] { 0x12 };
         private static readonly byte[] PREFIX_REQUEST_TO_ROUND = new byte[] { 0x13 };
         private static readonly byte[] PREFIX_STAKE_TIMESTAMP = new byte[] { 0x14 };
+        private static readonly byte[] PREFIX_PARTICIPANT_COUNT = new byte[] { 0x15 };
+        private static readonly byte[] PREFIX_PARTICIPANT_INDEX = new byte[] { 0x16 };
+        private static readonly byte[] PREFIX_PARTICIPANT_AT = new byte[] { 0x17 };
         #endregion
 
         #region Events
@@ -69,6 +72,21 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString data = Storage.Get(Storage.CurrentContext, key);
             return data == null ? 0 : (BigInteger)data;
         }
+
+        [Safe]
+        public static BigInteger ParticipantCount()
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_PARTICIPANT_COUNT);
+            return data == null ? 0 : (BigInteger)data;
+        }
+
+        [Safe]
+        public static UInt160 GetParticipantAt(BigInteger index)
+        {
+            byte[] key = Helper.Concat(PREFIX_PARTICIPANT_AT, (ByteString)index.ToByteArray());
+            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            return data == null ? UInt160.Zero : (UInt160)data;
+        }
         #endregion
 
         #region Lifecycle
@@ -93,6 +111,13 @@ namespace NeoMiniAppPlatform.Contracts
 
             byte[] stakeKey = Helper.Concat(PREFIX_PLAYER_STAKE, player);
             BigInteger currentStake = (BigInteger)Storage.Get(Storage.CurrentContext, stakeKey);
+
+            // Track new participants for weighted random selection
+            if (currentStake == 0)
+            {
+                AddParticipant(player);
+            }
+
             Storage.Put(Storage.CurrentContext, stakeKey, currentStake + amount);
 
             // Record stake timestamp for anti-flash-loan protection
@@ -124,10 +149,12 @@ namespace NeoMiniAppPlatform.Contracts
 
             Storage.Put(Storage.CurrentContext, stakeKey, 0);
 
+            // Remove from participant list
+            RemoveParticipant(player);
+
             BigInteger total = TotalStaked();
             Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_STAKED, total - stake);
 
-            // SECURITY FIX: Actually transfer principal back to player
             bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, player, stake);
             ExecutionEngine.Assert(transferred, "principal transfer failed");
 
@@ -184,12 +211,9 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger total = TotalStaked();
             BigInteger prize = total * YIELD_RATE_PERCENT / 100;
 
-            // Use RNG result to select winner (simplified - in production would iterate participants)
-            BigInteger rngValue = (BigInteger)StdLib.Deserialize(result);
-            // For now, use admin as placeholder winner - production would use participant list
-            UInt160 winner = Admin();
+            // Select winner using weighted random selection based on stake amounts
+            UInt160 winner = SelectWinnerWeighted(result, total);
 
-            // SECURITY FIX: Actually transfer prize to winner
             if (prize > 0 && winner != UInt160.Zero)
             {
                 bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, winner, prize);
@@ -199,6 +223,75 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_ROUND_ID, roundId + 1);
 
             OnLotteryWinner(winner, prize, roundId);
+        }
+        #endregion
+
+        #region Participant Management
+        private static void AddParticipant(UInt160 player)
+        {
+            byte[] indexKey = Helper.Concat(PREFIX_PARTICIPANT_INDEX, player);
+            ByteString existingIndex = Storage.Get(Storage.CurrentContext, indexKey);
+            if (existingIndex != null) return;
+
+            BigInteger count = ParticipantCount();
+            byte[] atKey = Helper.Concat(PREFIX_PARTICIPANT_AT, (ByteString)count.ToByteArray());
+            Storage.Put(Storage.CurrentContext, atKey, player);
+            Storage.Put(Storage.CurrentContext, indexKey, count);
+            Storage.Put(Storage.CurrentContext, PREFIX_PARTICIPANT_COUNT, count + 1);
+        }
+
+        private static void RemoveParticipant(UInt160 player)
+        {
+            byte[] indexKey = Helper.Concat(PREFIX_PARTICIPANT_INDEX, player);
+            ByteString indexData = Storage.Get(Storage.CurrentContext, indexKey);
+            if (indexData == null) return;
+
+            BigInteger index = (BigInteger)indexData;
+            BigInteger lastIndex = ParticipantCount() - 1;
+
+            if (index < lastIndex)
+            {
+                UInt160 lastPlayer = GetParticipantAt(lastIndex);
+                byte[] atKey = Helper.Concat(PREFIX_PARTICIPANT_AT, (ByteString)index.ToByteArray());
+                Storage.Put(Storage.CurrentContext, atKey, lastPlayer);
+                byte[] lastIndexKey = Helper.Concat(PREFIX_PARTICIPANT_INDEX, lastPlayer);
+                Storage.Put(Storage.CurrentContext, lastIndexKey, index);
+            }
+
+            byte[] lastAtKey = Helper.Concat(PREFIX_PARTICIPANT_AT, (ByteString)lastIndex.ToByteArray());
+            Storage.Delete(Storage.CurrentContext, lastAtKey);
+            Storage.Delete(Storage.CurrentContext, indexKey);
+            Storage.Put(Storage.CurrentContext, PREFIX_PARTICIPANT_COUNT, lastIndex);
+        }
+
+        private static UInt160 SelectWinnerWeighted(ByteString rngResult, BigInteger totalStaked)
+        {
+            BigInteger count = ParticipantCount();
+            if (count == 0) return UInt160.Zero;
+
+            byte[] randomBytes = (byte[])rngResult;
+            BigInteger rngValue = 0;
+            for (int i = 0; i < randomBytes.Length && i < 8; i++)
+            {
+                rngValue = (rngValue << 8) + randomBytes[i];
+            }
+            if (rngValue < 0) rngValue = -rngValue;
+
+            BigInteger target = rngValue % totalStaked;
+            BigInteger cumulative = 0;
+
+            for (BigInteger i = 0; i < count; i++)
+            {
+                UInt160 participant = GetParticipantAt(i);
+                BigInteger stake = GetStake(participant);
+                cumulative += stake;
+                if (cumulative > target)
+                {
+                    return participant;
+                }
+            }
+
+            return GetParticipantAt(count - 1);
         }
         #endregion
     }

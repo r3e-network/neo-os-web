@@ -25,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppDevTipping")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "EcoBoost - Support the builders who power the ecosystem")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. DevTipping is a developer support platform for ecosystem contributions. Use it to tip core developers, you can directly reward builders who power the Neo ecosystem.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

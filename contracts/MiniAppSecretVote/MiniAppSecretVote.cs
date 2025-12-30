@@ -34,7 +34,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppSecretVote")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Secret Vote - Privacy-preserving voting with TEE computation")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. SecretVote is a privacy-preserving voting system for confidential governance. Use it to create encrypted proposals and submit anonymous votes, you can protect voter privacy while ensuring vote integrity.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

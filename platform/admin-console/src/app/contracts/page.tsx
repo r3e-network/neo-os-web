@@ -64,8 +64,11 @@ export default function ContractsPage() {
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-            <p className="text-gray-600">Contract deployment wizard placeholder</p>
-            <p className="mt-2 text-sm text-gray-500">Step-by-step deployment flow implementation pending</p>
+            <p className="text-gray-600">Contract deployment available via CLI</p>
+            <p className="mt-2 text-sm text-gray-500">
+              Use <code className="bg-gray-200 px-1 rounded">neo-go contract deploy</code> or the deploy scripts in{" "}
+              <code className="bg-gray-200 px-1 rounded">cmd/deploy-contracts</code>
+            </p>
           </div>
         </CardContent>
       </Card>

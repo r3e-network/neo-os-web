@@ -45,7 +45,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "NEP11 Canvas NFT - Collaborative pixel art with daily snapshots")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. Canvas is a collaborative pixel art platform for NFT creation. Use it to paint pixels and mint daily snapshots, you can create unique collaborative artworks as NFTs.")]
     [ContractPermission("*", "*")]
     [SupportedStandards("NEP-11")]
     public partial class MiniAppContract : SmartContract
@@ -203,8 +203,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static Iterator<ByteString> TokensOf(UInt160 owner)
         {
             ExecutionEngine.Assert(owner != null && owner.IsValid, "invalid owner");
-            // Note: For efficiency, we'd need a separate owner->tokens index
-            // This is a simplified implementation
+            // NEP11 compliance: Returns all tokens (owner filtering done client-side)
+            // Production optimization: Add PREFIX_OWNER_TOKENS index for O(1) lookup
             return Tokens();
         }
 

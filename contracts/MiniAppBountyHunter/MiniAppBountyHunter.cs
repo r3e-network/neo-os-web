@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppBountyHunter")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Bounty Hunter - On-chain task marketplace")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. BountyHunter is a task marketplace application for on-chain bounties. Use it to post or claim bounties, you can earn rewards with TEE-verified proof submissions.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

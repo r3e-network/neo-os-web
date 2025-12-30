@@ -25,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppAlgoBattle")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Code gladiator battles in TEE")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. AlgoBattle is a competitive programming application for algorithm battles. Use it to upload battle scripts and compete, you can climb the ladder rankings with TEE-verified match results.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

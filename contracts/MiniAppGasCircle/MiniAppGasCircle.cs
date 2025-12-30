@@ -36,7 +36,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppGasCircle")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "GAS Circle - Rotating savings circle with automation")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. GasCircle is a rotating savings circle for community savings. Use it to create savings groups, you can pool funds and receive payouts in rotation.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {

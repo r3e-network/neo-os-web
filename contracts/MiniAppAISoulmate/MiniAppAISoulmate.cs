@@ -26,7 +26,7 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppAISoulmate")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "AI Soulmate - Private AI companion with evolving personality")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. AISoulmate is an AI companion application for personalized interactions. Use it to create and chat with AI companions, you can build evolving relationships with TEE-encrypted memories.")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {
