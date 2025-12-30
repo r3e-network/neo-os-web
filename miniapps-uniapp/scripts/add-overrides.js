@@ -5,9 +5,9 @@ const appsDir = path.join(__dirname, "../apps");
 const apps = fs.readdirSync(appsDir);
 
 const overrides = {
-  "@intlify/core-base": ">=9.14.5",
-  "@intlify/message-resolver": ">=9.14.5",
-  "@intlify/shared": ">=9.14.5",
+  "@intlify/core-base": ">=9.1.11",
+  "@intlify/message-resolver": ">=9.1.11",
+  "@intlify/shared": ">=9.1.11",
 };
 
 let updated = 0;
