@@ -1,5 +1,5 @@
-import { createMiniAppSDK } from "../../sdk/dist/client.js";
-import type { MiniAppSDK, MiniAppSDKConfig } from "../../sdk/dist/types.js";
+import { createMiniAppSDK } from "./sdk/client.js";
+import type { MiniAppSDK, MiniAppSDKConfig } from "./sdk/types.js";
 
 type MiniAppPermissions = {
   payments?: boolean;
