@@ -59,8 +59,13 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
 
   // Get translated app name and description (fallback to original)
   const appKey = app.app_id.replace("miniapp-", "").replace(/-/g, "");
-  const appName = tm(`apps.${appKey}.name`, { defaultValue: app.name });
-  const appDesc = tm(`apps.${appKey}.description`, { defaultValue: app.description });
+  const nameKey = `apps.${appKey}.name`;
+  const descKey = `apps.${appKey}.description`;
+  const translatedName = tm(nameKey);
+  const translatedDesc = tm(descKey);
+  // If translation returns the key itself, use original value
+  const appName = translatedName === nameKey ? app.name : translatedName;
+  const appDesc = translatedDesc === descKey ? app.description : translatedDesc;
 
   return (
     <Link href={`/miniapps/${app.app_id}`} className="relative block">
