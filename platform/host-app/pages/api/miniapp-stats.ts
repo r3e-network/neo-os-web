@@ -19,6 +19,85 @@ interface AppStats {
   data_sources: string[]; // Track which tables contributed data
 }
 
+/**
+ * Normalize app_id from database format to frontend format
+ * Database: builtin-lottery, builtin-coin-flip, builtin-dice-game
+ * Frontend: miniapp-lottery, miniapp-coinflip, miniapp-dicegame
+ */
+function normalizeAppId(dbAppId: string): string {
+  if (!dbAppId.startsWith("builtin-")) return dbAppId;
+
+  // Remove "builtin-" prefix and convert to frontend format
+  const name = dbAppId.replace("builtin-", "");
+
+  // Map database names to frontend app_id format
+  const nameMap: Record<string, string> = {
+    lottery: "miniapp-lottery",
+    "coin-flip": "miniapp-coinflip",
+    "dice-game": "miniapp-dicegame",
+    "scratch-card": "miniapp-scratchcard",
+    "secret-poker": "miniapp-secretpoker",
+    "neo-crash": "miniapp-neocrash",
+    "fog-chess": "miniapp-fogchess",
+    "candle-wars": "miniapp-candlewars",
+    "algo-battle": "miniapp-algobattle",
+    "crypto-riddle": "miniapp-cryptoriddle",
+    "fog-puzzle": "miniapp-fogpuzzle",
+    "burn-league": "miniapp-burnleague",
+    "world-piano": "miniapp-worldpiano",
+    "scream-to-earn": "miniapp-screamtoearn",
+    "garden-of-neo": "miniapp-gardenofneo",
+    flashloan: "miniapp-flashloan",
+    "price-ticker": "miniapp-priceticker",
+    "price-predict": "miniapp-pricepredict",
+    "prediction-market": "miniapp-predictionmarket",
+    "il-guard": "miniapp-ilguard",
+    "quantum-swap": "miniapp-quantumswap",
+    "dark-pool": "miniapp-darkpool",
+    "self-loan": "miniapp-selfloan",
+    "compound-capsule": "miniapp-compoundcapsule",
+    "melting-asset": "miniapp-meltingasset",
+    "no-loss-lottery": "miniapp-nolosslottery",
+    "ai-trader": "miniapp-aitrader",
+    "grid-bot": "miniapp-gridbot",
+    "red-envelope": "miniapp-redenvelope",
+    "gas-circle": "miniapp-gascircle",
+    "dev-tipping": "miniapp-devtipping",
+    "whisper-chain": "miniapp-whisperchain",
+    "dead-switch": "miniapp-deadswitch",
+    "time-capsule": "miniapp-timecapsule",
+    "breakup-contract": "miniapp-breakupcontract",
+    "ai-soulmate": "miniapp-aisoulmate",
+    "dark-radio": "miniapp-darkradio",
+    "ex-files": "miniapp-exfiles",
+    "secret-vote": "miniapp-secretvote",
+    "gov-booster": "miniapp-govbooster",
+    "gov-merc": "miniapp-govmerc",
+    "masquerade-dao": "miniapp-masqueradedao",
+    "doomsday-clock": "miniapp-doomsdayclock",
+    "bridge-guardian": "miniapp-bridgeguardian",
+    "guardian-policy": "miniapp-guardianpolicy",
+    "heritage-trust": "miniapp-heritagetrust",
+    "nft-evolve": "miniapp-nftevolve",
+    "nft-chimera": "miniapp-nftchimera",
+    "schrodinger-nft": "miniapp-schrodingernft",
+    "on-chain-tarot": "miniapp-onchaintarot",
+    "pay-to-view": "miniapp-paytoview",
+    graveyard: "miniapp-graveyard",
+    parasite: "miniapp-parasite",
+    "million-piece-map": "miniapp-millionpiecemap",
+    "geo-spotlight": "miniapp-geospotlight",
+    canvas: "miniapp-canvas",
+    "zk-badge": "miniapp-zkbadge",
+    "puzzle-mining": "miniapp-puzzlemining",
+    "bounty-hunter": "miniapp-bountyhunter",
+    "dutch-auction": "miniapp-dutchauction",
+    "unbreakable-vault": "miniapp-unbreakablevault",
+  };
+
+  return nameMap[name] || `miniapp-${name.replace(/-/g, "")}`;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -104,10 +183,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Convert to array
+    // Convert to array with normalized app_ids
     const stats: AppStats[] = Object.entries(appStatsMap)
       .map(([appId, data]) => ({
-        app_id: appId,
+        app_id: normalizeAppId(appId),
         total_users: data.users.size,
         total_transactions: data.txCount,
         total_gas_used: (Number(data.volume) / 100000000).toFixed(2),
