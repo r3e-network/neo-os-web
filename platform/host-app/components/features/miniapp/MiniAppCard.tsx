@@ -51,10 +51,16 @@ function formatNumber(num?: number): string {
 
 export function MiniAppCard({ app }: { app: MiniAppInfo }) {
   const { t } = useTranslation("host");
+  const { t: tm } = useTranslation("miniapp");
   const showSourceBadge = app.source && app.source !== "builtin";
 
   // Get translated category name
   const categoryLabel = t(`categories.${app.category}`) || app.category;
+
+  // Get translated app name and description (fallback to original)
+  const appKey = app.app_id.replace("miniapp-", "").replace(/-/g, "");
+  const appName = tm(`apps.${appKey}.name`, { defaultValue: app.name });
+  const appDesc = tm(`apps.${appKey}.description`, { defaultValue: app.description });
 
   return (
     <Link href={`/miniapps/${app.app_id}`} className="relative block">
@@ -73,7 +79,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
         <CardContent className="p-5 bg-white dark:bg-gray-900">
           <div className="flex items-center gap-3 mb-2">
             <MiniAppLogo appId={app.app_id} category={app.category} size="md" />
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate flex-1">{app.name}</h3>
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate flex-1">{appName}</h3>
             <Badge className={categoryColors[app.category]} variant="secondary">
               {categoryLabel}
             </Badge>
@@ -84,7 +90,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
             )}
           </div>
           <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 group-hover:line-clamp-none leading-relaxed mb-3 transition-all duration-300">
-            {app.description}
+            {appDesc}
           </p>
 
           {/* Stats Section */}

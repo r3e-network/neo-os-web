@@ -1,4 +1,66 @@
 {
+  "apps": {
+    "lottery": {
+      "name": "Neo 彩票",
+      "description": "体验由 VRF 随机数驱动的公平彩票抽奖。使用 GAS 购买彩票，竞争巨额奖池，100% 链上透明验证。"
+    },
+    "coinflip": {
+      "name": "抛硬币",
+      "description": "经典 50/50 投注在区块链上重新演绎。抛硬币，使用加密安全随机数确保每次公平结果，即时翻倍您的 GAS。"
+    },
+    "dicegame": {
+      "name": "骰子游戏",
+      "description": "掷骰子测试您的运气！选择获胜范围，下注，观看 VRF 驱动的骰子以可验证的公平性决定您的命运。"
+    },
+    "scratchcard": {
+      "name": "刮刮卡",
+      "description": "即时赢取奖励的数字刮刮卡。刮开揭示您的奖品，奖励即时发放到您的钱包。"
+    },
+    "secretpoker": {
+      "name": "秘密扑克",
+      "description": "使用零知识证明的隐私扑克游戏。您的手牌保密，同时确保游戏公平。"
+    },
+    "neocrash": {
+      "name": "Neo 崩盘",
+      "description": "刺激的倍数游戏。观看倍数上升，在崩盘前及时提现！"
+    },
+    "redenvelope": {
+      "name": "红包",
+      "description": "发送幸运 GAS 红包给朋友。创建红包，分享链接，让朋友们抢红包！"
+    },
+    "secretvote": {
+      "name": "秘密投票",
+      "description": "使用零知识证明的隐私链上投票。您的投票保密，结果可验证。"
+    },
+    "canvas": {
+      "name": "协作画布",
+      "description": "链上协作像素画布。每个像素都是 NFT，与全球用户一起创作艺术。"
+    },
+    "flashloan": {
+      "name": "闪电贷",
+      "description": "无抵押即时借贷。在单笔交易内借入、使用、归还，实现套利和清算。"
+    },
+    "neoswap": {
+      "name": "Neo 兑换",
+      "description": "去中心化代币兑换。即时交换 NEO 生态系统中的代币，享受最优价格。"
+    },
+    "priceticker": {
+      "name": "价格行情",
+      "description": "实时加密货币价格追踪。查看 NEO、GAS 和其他代币的最新价格。"
+    },
+    "explorer": {
+      "name": "区块浏览器",
+      "description": "探索 Neo 区块链。查看交易、区块、地址和智能合约详情。"
+    },
+    "candidatevote": {
+      "name": "候选人投票",
+      "description": "为 Neo 共识节点候选人投票。参与网络治理，支持您信任的节点。"
+    },
+    "neoburger": {
+      "name": "NeoBurger",
+      "description": "Neo 质押聚合器。质押 NEO 获取 bNEO，自动复投最大化收益。"
+    }
+  },
   "common": {
     "play": "开始",
     "bet": "下注",
