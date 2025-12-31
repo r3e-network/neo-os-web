@@ -756,9 +756,23 @@ export const BUILTIN_APPS_MAP: Record<string, MiniAppInfo> = Object.fromEntries(
   BUILTIN_APPS.map((app) => [app.app_id, app]),
 );
 
-// Find a built-in app by ID
+// Additional lookup map by short ID (without "miniapp-" prefix)
+const BUILTIN_APPS_SHORT_MAP: Record<string, MiniAppInfo> = Object.fromEntries(
+  BUILTIN_APPS.map((app) => {
+    // Extract short ID from entry_url (e.g., "/miniapps/lottery" -> "lottery")
+    const shortId = app.entry_url?.replace("/miniapps/", "") || app.app_id.replace("miniapp-", "");
+    return [shortId, app];
+  }),
+);
+
+// Find a built-in app by ID (supports both full ID and short ID)
 export function getBuiltinApp(appId: string): MiniAppInfo | undefined {
-  return BUILTIN_APPS_MAP[appId];
+  // Try full ID first (e.g., "miniapp-lottery")
+  if (BUILTIN_APPS_MAP[appId]) {
+    return BUILTIN_APPS_MAP[appId];
+  }
+  // Try short ID (e.g., "lottery")
+  return BUILTIN_APPS_SHORT_MAP[appId];
 }
 
 export { GAMING_APPS, DEFI_APPS, SOCIAL_APPS, NFT_APPS, GOVERNANCE_APPS, UTILITY_APPS };
