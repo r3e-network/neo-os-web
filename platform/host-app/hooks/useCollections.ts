@@ -2,7 +2,7 @@
  * useCollections Hook - React hook for MiniApp collection management
  */
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useCollectionStore } from "@/lib/collections/store";
 import { useWalletStore } from "@/lib/wallet/store";
 
@@ -41,9 +41,13 @@ export function useCollections() {
     [connected, address, isCollected, addCollection, removeCollection],
   );
 
+  // Create a new Set on each render when collections change
+  // This ensures React detects the change for useMemo dependencies
+  const collectionsSet = useMemo(() => new Set(collections), [collections]);
+
   return {
     collections: Array.from(collections),
-    collectionsSet: collections,
+    collectionsSet,
     loading,
     error,
     isCollected,

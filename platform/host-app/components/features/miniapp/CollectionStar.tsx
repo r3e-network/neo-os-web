@@ -15,9 +15,10 @@ interface CollectionStarProps {
 }
 
 export function CollectionStar({ appId, className }: CollectionStarProps) {
-  const { isCollected, toggleCollection, isWalletConnected } = useCollections();
+  const { collectionsSet, toggleCollection, isWalletConnected } = useCollections();
   const [isAnimating, setIsAnimating] = useState(false);
-  const collected = isCollected(appId);
+  // Use collectionsSet directly for reactive updates
+  const collected = collectionsSet.has(appId);
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
