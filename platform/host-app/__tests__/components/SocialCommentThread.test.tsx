@@ -86,7 +86,7 @@ describe("SocialCommentThread", () => {
     it("hides comment form when canComment is false", () => {
       render(<SocialCommentThread {...defaultProps} canComment={false} />);
       expect(screen.queryByPlaceholderText("Write a comment...")).not.toBeInTheDocument();
-      expect(screen.getByText("Use this app to leave comments")).toBeInTheDocument();
+      expect(screen.getByText("Connect wallet to leave comments")).toBeInTheDocument();
     });
 
     it("submits comment when clicking Post Comment", async () => {

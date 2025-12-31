@@ -19,6 +19,7 @@ import { coerceMiniAppInfo } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { getBuiltinApp } from "../../lib/builtin-apps";
 import { logger } from "../../lib/logger";
+import { useTranslation } from "../../lib/i18n/react";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -52,42 +53,62 @@ const STAT_KEY_ALIASES: Record<string, string> = {
   gas_consumed: "total_gas_used",
 };
 
-const STAT_CARD_BUILDERS: Record<string, (stats: MiniAppStats) => StatCardConfig | null> = {
-  total_transactions: (stats) =>
-    stats.total_transactions != null
-      ? { title: "Total TXs", value: stats.total_transactions.toLocaleString(), icon: "📊", trend: "neutral" }
-      : null,
-  total_users: (stats) =>
-    stats.total_users != null
-      ? { title: "Total Users", value: stats.total_users.toLocaleString(), icon: "👥", trend: "neutral" }
-      : null,
-  total_gas_used: (stats) => ({
-    title: "GAS Burned",
-    value: formatGas(stats.total_gas_used),
-    icon: "🔥",
-    trend: "neutral",
-  }),
-  total_gas_earned: (stats) => ({
-    title: "GAS Earned",
-    value: formatGas(stats.total_gas_earned),
-    icon: "💰",
-    trend: "neutral",
-  }),
-  daily_active_users: (stats) =>
-    stats.daily_active_users != null
-      ? { title: "Daily Active Users", value: stats.daily_active_users.toLocaleString(), icon: "👥", trend: "up" }
-      : null,
-  weekly_active_users: (stats) =>
-    stats.weekly_active_users != null
-      ? { title: "Weekly Active", value: stats.weekly_active_users.toLocaleString(), icon: "📈", trend: "up" }
-      : null,
-  last_activity_at: (stats) => ({
-    title: "Last Active",
-    value: formatLastActive(stats.last_activity_at),
-    icon: "⏱",
-    trend: "neutral",
-  }),
-};
+// Factory function to create stat card builders with i18n support
+function createStatCardBuilders(
+  t: (key: string) => string,
+): Record<string, (stats: MiniAppStats) => StatCardConfig | null> {
+  return {
+    total_transactions: (stats) =>
+      stats.total_transactions != null
+        ? {
+            title: t("detail.totalTxs"),
+            value: stats.total_transactions.toLocaleString(),
+            icon: "📊",
+            trend: "neutral",
+          }
+        : null,
+    total_users: (stats) =>
+      stats.total_users != null
+        ? { title: t("detail.totalUsers"), value: stats.total_users.toLocaleString(), icon: "👥", trend: "neutral" }
+        : null,
+    total_gas_used: (stats) => ({
+      title: t("detail.gasBurned"),
+      value: formatGas(stats.total_gas_used),
+      icon: "🔥",
+      trend: "neutral",
+    }),
+    total_gas_earned: (stats) => ({
+      title: t("detail.gasEarned"),
+      value: formatGas(stats.total_gas_earned),
+      icon: "💰",
+      trend: "neutral",
+    }),
+    daily_active_users: (stats) =>
+      stats.daily_active_users != null
+        ? {
+            title: t("detail.dailyActiveUsers"),
+            value: stats.daily_active_users.toLocaleString(),
+            icon: "👥",
+            trend: "up",
+          }
+        : null,
+    weekly_active_users: (stats) =>
+      stats.weekly_active_users != null
+        ? {
+            title: t("detail.weeklyActive"),
+            value: stats.weekly_active_users.toLocaleString(),
+            icon: "📈",
+            trend: "up",
+          }
+        : null,
+    last_activity_at: (stats) => ({
+      title: t("detail.lastActive"),
+      value: formatLastActive(stats.last_activity_at),
+      icon: "⏱",
+      trend: "neutral",
+    }),
+  };
+}
 
 export type AppDetailPageProps = {
   app: MiniAppInfo | null;
@@ -98,6 +119,7 @@ export type AppDetailPageProps = {
 
 export default function MiniAppDetailPage({ app, stats, notifications, error }: AppDetailPageProps) {
   const router = useRouter();
+  const { t } = useTranslation("host");
   const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "forum" | "news" | "secrets">("overview");
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
@@ -113,10 +135,10 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     return (
       <div style={containerStyle}>
         <div style={errorContainerStyle}>
-          <h1 style={errorTitleStyle}>App Not Found</h1>
-          <p style={errorMessageStyle}>{error || "The requested MiniApp does not exist."}</p>
+          <h1 style={errorTitleStyle}>{t("detail.appNotFound")}</h1>
+          <p style={errorMessageStyle}>{error || t("detail.appNotFoundDesc")}</p>
           <button style={backButtonStyle} onClick={() => router.push("/miniapps")}>
-            ← Back to MiniApps
+            ← {t("detail.backToMiniApps")}
           </button>
         </div>
       </div>
@@ -131,7 +153,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     router.push(`/launch/${app.app_id}`);
   };
 
-  const statCards = stats ? buildStatCards(stats, app.stats_display ?? undefined) : [];
+  const statCards = stats ? buildStatCards(stats, app.stats_display ?? undefined, t) : [];
 
   return (
     <div style={containerStyle}>
@@ -161,7 +183,12 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
         {/* App Activity Ticker */}
         <section style={activitySectionStyle}>
-          <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={150} scrollSpeed={20} />
+          <ActivityTicker
+            activities={appActivities}
+            title={`${app.name} ${t("detail.activity")}`}
+            height={150}
+            scrollSpeed={20}
+          />
         </section>
 
         {/* Tabs */}
@@ -171,26 +198,26 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               style={activeTab === "overview" ? tabButtonActiveStyle : tabButtonStyle}
               onClick={() => setActiveTab("overview")}
             >
-              Overview
+              {t("detail.overview")}
             </button>
             <button
               style={activeTab === "reviews" ? tabButtonActiveStyle : tabButtonStyle}
               onClick={() => setActiveTab("reviews")}
             >
-              ⭐ Reviews
+              ⭐ {t("detail.reviews")}
             </button>
             <button
               style={activeTab === "forum" ? tabButtonActiveStyle : tabButtonStyle}
               onClick={() => setActiveTab("forum")}
             >
-              💬 Forum
+              💬 {t("detail.forum")}
             </button>
             {showNews && (
               <button
                 style={activeTab === "news" ? tabButtonActiveStyle : tabButtonStyle}
                 onClick={() => setActiveTab("news")}
               >
-                News ({notifications.length})
+                {t("detail.news")} ({notifications.length})
               </button>
             )}
             {showSecrets && (
@@ -198,18 +225,18 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
                 style={activeTab === "secrets" ? tabButtonActiveStyle : tabButtonStyle}
                 onClick={() => setActiveTab("secrets")}
               >
-                🔐 Secrets
+                🔐 {t("detail.secrets")}
               </button>
             )}
           </div>
 
           <div style={tabContentStyle}>
-            {activeTab === "overview" && <OverviewTab app={app} />}
+            {activeTab === "overview" && <OverviewTab app={app} t={t} />}
             {activeTab === "reviews" && <ReviewsTab appId={app.app_id} />}
             {activeTab === "forum" && <ForumTab appId={app.app_id} />}
             {activeTab === "news" && showNews && <AppNewsList notifications={notifications} />}
             {activeTab === "secrets" && showSecrets && <AppSecretsTab appId={app.app_id} appName={app.name} />}
-            {!showNews && activeTab === "news" && <p style={newsDisabledStyle}>News feed disabled by manifest.</p>}
+            {!showNews && activeTab === "news" && <p style={newsDisabledStyle}>{t("detail.newsDisabled")}</p>}
           </div>
         </section>
       </main>
@@ -217,18 +244,18 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
       {/* Fixed Launch Button */}
       <div style={launchBarStyle}>
         <button style={launchButtonStyle} onClick={handleLaunch}>
-          Launch App →
+          {t("detail.launchApp")} →
         </button>
       </div>
     </div>
   );
 }
 
-function OverviewTab({ app }: { app: MiniAppInfo }) {
+function OverviewTab({ app, t }: { app: MiniAppInfo; t: (key: string) => string }) {
   return (
     <div style={overviewContainerStyle}>
       <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>Permissions</h3>
+        <h3 style={sectionTitleStyle}>{t("detail.permissions")}</h3>
         <div style={permissionsGridStyle}>
           {Object.entries(app.permissions).map(([key, value]) =>
             value ? (
@@ -243,33 +270,39 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
 
       {app.limits && (
         <div style={sectionStyle}>
-          <h3 style={sectionTitleStyle}>Limits</h3>
+          <h3 style={sectionTitleStyle}>{t("detail.limits")}</h3>
           <ul style={limitListStyle}>
             {app.limits.max_gas_per_tx && (
-              <li style={limitItemStyle}>Max GAS per transaction: {app.limits.max_gas_per_tx}</li>
+              <li style={limitItemStyle}>
+                {t("detail.maxGasPerTx")}: {app.limits.max_gas_per_tx}
+              </li>
             )}
             {app.limits.daily_gas_cap_per_user && (
-              <li style={limitItemStyle}>Daily GAS cap per user: {app.limits.daily_gas_cap_per_user}</li>
+              <li style={limitItemStyle}>
+                {t("detail.dailyGasCap")}: {app.limits.daily_gas_cap_per_user}
+              </li>
             )}
             {app.limits.governance_cap && (
-              <li style={limitItemStyle}>Governance cap per user: {app.limits.governance_cap}</li>
+              <li style={limitItemStyle}>
+                {t("detail.governanceCap")}: {app.limits.governance_cap}
+              </li>
             )}
           </ul>
         </div>
       )}
 
       <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>Contract Details</h3>
+        <h3 style={sectionTitleStyle}>{t("detail.contractDetails")}</h3>
         <p style={infoTextStyle}>
-          App ID: <code style={codeStyle}>{app.app_id}</code>
+          {t("detail.appId")}: <code style={codeStyle}>{app.app_id}</code>
         </p>
         {app.contract_hash && (
           <p style={infoTextStyle}>
-            Contract Hash: <code style={codeStyle}>{app.contract_hash}</code>
+            {t("detail.contractHash")}: <code style={codeStyle}>{app.contract_hash}</code>
           </p>
         )}
         <p style={infoTextStyle}>
-          Entry URL: <code style={codeStyle}>{app.entry_url}</code>
+          {t("detail.entryUrl")}: <code style={codeStyle}>{app.entry_url}</code>
         </p>
       </div>
     </div>
@@ -283,16 +316,17 @@ function formatPermission(key: string): string {
     .join(" ");
 }
 
-function buildStatCards(stats: MiniAppStats, display?: string[]): StatCardConfig[] {
+function buildStatCards(stats: MiniAppStats, display?: string[], t?: (key: string) => string): StatCardConfig[] {
   const keys = display ? display : DEFAULT_STATS_DISPLAY;
   const cards: StatCardConfig[] = [];
+  const builders = createStatCardBuilders(t || ((key) => key));
   for (const rawKey of keys) {
     const key = String(rawKey || "")
       .trim()
       .toLowerCase();
     if (!key) continue;
     const canonicalKey = STAT_KEY_ALIASES[key] ?? key;
-    const builder = STAT_CARD_BUILDERS[canonicalKey];
+    const builder = builders[canonicalKey];
     if (!builder) continue;
     const card = builder(stats);
     if (card) cards.push(card);

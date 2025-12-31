@@ -9,6 +9,14 @@ import (
 // Core Transaction Types
 // =============================================================================
 
+// TxType represents the complexity type of a transaction.
+type TxType string
+
+const (
+	TxTypeSimple  TxType = "simple"  // Simple NEP-17 transfers
+	TxTypeComplex TxType = "complex" // Contract invocations
+)
+
 // Transaction represents an indexed Neo N3 transaction.
 type Transaction struct {
 	Hash            string          `json:"hash" db:"hash"`
@@ -26,6 +34,7 @@ type Transaction struct {
 	VMState         string          `json:"vm_state" db:"vm_state"`
 	GasConsumed     string          `json:"gas_consumed" db:"gas_consumed"`
 	Exception       string          `json:"exception,omitempty" db:"exception"`
+	TxType          TxType          `json:"tx_type" db:"tx_type"`
 	SignersJSON     json.RawMessage `json:"signers" db:"signers_json"`
 	CreatedAt       time.Time       `json:"created_at" db:"created_at"`
 }

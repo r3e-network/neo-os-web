@@ -15,6 +15,7 @@ import (
 type Syncer struct {
 	cfg     *Config
 	storage *Storage
+	tracer  *Tracer
 	clients map[Network]*chain.Client // One client per network
 	log     *logrus.Entry
 	mu      sync.Mutex
@@ -41,6 +42,7 @@ func NewSyncer(cfg *Config, storage *Storage) (*Syncer, error) {
 	return &Syncer{
 		cfg:     cfg,
 		storage: storage,
+		tracer:  NewTracer(storage),
 		clients: clients,
 		log:     logrus.WithField("component", "indexer-syncer"),
 		stopCh:  make(chan struct{}),
@@ -209,6 +211,12 @@ func (s *Syncer) indexTransactionForNetwork(ctx context.Context, network Network
 
 	signersJSON, _ := json.Marshal(chainTx.Signers)
 
+	// Determine transaction type based on script complexity
+	txType := TxTypeSimple
+	if IsComplexTransaction(chainTx.Script) {
+		txType = TxTypeComplex
+	}
+
 	tx := &Transaction{
 		Hash:            chainTx.Hash,
 		Network:         network,
@@ -225,11 +233,24 @@ func (s *Syncer) indexTransactionForNetwork(ctx context.Context, network Network
 		VMState:         vmState,
 		GasConsumed:     gasConsumed,
 		Exception:       exception,
+		TxType:          txType,
 		SignersJSON:     signersJSON,
 	}
 
 	if err := s.storage.SaveTransaction(ctx, tx); err != nil {
 		return fmt.Errorf("save tx: %w", err)
+	}
+
+	// Only parse and store opcode traces for complex transactions
+	if txType == TxTypeComplex {
+		traces, err := s.tracer.ParseScript(chainTx.Hash, chainTx.Script)
+		if err != nil {
+			s.log.WithError(err).WithField("tx", chainTx.Hash).Warn("parse script opcodes")
+		} else if len(traces) > 0 {
+			if err := s.tracer.SaveTraces(ctx, traces); err != nil {
+				s.log.WithError(err).WithField("tx", chainTx.Hash).Warn("save opcode traces")
+			}
+		}
 	}
 
 	// Index address relationships

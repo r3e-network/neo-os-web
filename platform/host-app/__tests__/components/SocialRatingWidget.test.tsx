@@ -71,7 +71,7 @@ describe("SocialRatingWidget", () => {
     it("shows message when user cannot rate", () => {
       render(<SocialRatingWidget rating={mockRating} canRate={false} />);
 
-      expect(screen.getByText("Use this app to leave a rating")).toBeInTheDocument();
+      expect(screen.getByText("Connect wallet to leave a rating")).toBeInTheDocument();
     });
 
     it("does not show rate button when canRate is false", () => {

@@ -60,17 +60,18 @@ func (s *Storage) SaveTransaction(ctx context.Context, tx *Transaction) error {
 		INSERT INTO indexer_transactions (
 			hash, network, block_index, block_time, size, version, nonce,
 			sender, system_fee, network_fee, valid_until_block, script,
-			vm_state, gas_consumed, exception, signers_json, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+			vm_state, gas_consumed, exception, tx_type, signers_json, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 		ON CONFLICT (hash) DO UPDATE SET
 			vm_state = EXCLUDED.vm_state,
 			gas_consumed = EXCLUDED.gas_consumed,
-			exception = EXCLUDED.exception
+			exception = EXCLUDED.exception,
+			tx_type = EXCLUDED.tx_type
 	`
 	_, err := s.db.ExecContext(ctx, query,
 		tx.Hash, tx.Network, tx.BlockIndex, tx.BlockTime, tx.Size, tx.Version, tx.Nonce,
 		tx.Sender, tx.SystemFee, tx.NetworkFee, tx.ValidUntilBlock, tx.Script,
-		tx.VMState, tx.GasConsumed, tx.Exception, tx.SignersJSON, time.Now().UTC(),
+		tx.VMState, tx.GasConsumed, tx.Exception, tx.TxType, tx.SignersJSON, time.Now().UTC(),
 	)
 	return err
 }
@@ -80,14 +81,14 @@ func (s *Storage) GetTransaction(ctx context.Context, hash string) (*Transaction
 	query := `
 		SELECT hash, network, block_index, block_time, size, version, nonce,
 			sender, system_fee, network_fee, valid_until_block, script,
-			vm_state, gas_consumed, exception, signers_json, created_at
+			vm_state, gas_consumed, exception, COALESCE(tx_type, 'simple') as tx_type, signers_json, created_at
 		FROM indexer_transactions WHERE hash = $1
 	`
 	tx := &Transaction{}
 	err := s.db.QueryRowContext(ctx, query, hash).Scan(
 		&tx.Hash, &tx.Network, &tx.BlockIndex, &tx.BlockTime, &tx.Size, &tx.Version, &tx.Nonce,
 		&tx.Sender, &tx.SystemFee, &tx.NetworkFee, &tx.ValidUntilBlock, &tx.Script,
-		&tx.VMState, &tx.GasConsumed, &tx.Exception, &tx.SignersJSON, &tx.CreatedAt,
+		&tx.VMState, &tx.GasConsumed, &tx.Exception, &tx.TxType, &tx.SignersJSON, &tx.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -100,7 +101,7 @@ func (s *Storage) GetTransactionsByAddress(ctx context.Context, address string, 
 	query := `
 		SELECT t.hash, t.network, t.block_index, t.block_time, t.size, t.version, t.nonce,
 			t.sender, t.system_fee, t.network_fee, t.valid_until_block, t.script,
-			t.vm_state, t.gas_consumed, t.exception, t.signers_json, t.created_at
+			t.vm_state, t.gas_consumed, t.exception, COALESCE(t.tx_type, 'simple') as tx_type, t.signers_json, t.created_at
 		FROM indexer_transactions t
 		JOIN indexer_address_txs a ON t.hash = a.tx_hash
 		WHERE a.address = $1
@@ -119,7 +120,7 @@ func (s *Storage) GetTransactionsByAddress(ctx context.Context, address string, 
 		if err := rows.Scan(
 			&tx.Hash, &tx.Network, &tx.BlockIndex, &tx.BlockTime, &tx.Size, &tx.Version, &tx.Nonce,
 			&tx.Sender, &tx.SystemFee, &tx.NetworkFee, &tx.ValidUntilBlock, &tx.Script,
-			&tx.VMState, &tx.GasConsumed, &tx.Exception, &tx.SignersJSON, &tx.CreatedAt,
+			&tx.VMState, &tx.GasConsumed, &tx.Exception, &tx.TxType, &tx.SignersJSON, &tx.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Heart, Clock, Globe, Zap } from "lucide-react";
+import { Globe, Zap } from "lucide-react";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/lib/i18n/react";
 import type { MiniAppInfo } from "./MiniAppCard";
 
 interface MiniAppListItemProps {
@@ -31,6 +32,9 @@ function formatTimeAgo(date?: string): string {
 }
 
 export function MiniAppListItem({ app }: MiniAppListItemProps) {
+  const { t } = useTranslation("host");
+  const categoryLabel = t(`categories.${app.category}`) || app.category;
+
   return (
     <Link
       href={`/miniapps/${app.app_id}`}
@@ -44,7 +48,6 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
 
         {/* Content Grid */}
         <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-center">
-
           {/* Main Info */}
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
@@ -52,7 +55,7 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
                 {app.name}
               </h3>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
-                {app.category}
+                {categoryLabel}
               </Badge>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{app.description}</p>

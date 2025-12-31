@@ -432,41 +432,42 @@ export function DynamicBanner({ category, icon, appId, highlights }: DynamicBann
         );
       })()}
 
-      {/* Live Data Highlights Overlay - Large & Beautiful */}
+      {/* Live Data Highlights Overlay - High Contrast */}
       {highlights && highlights.length > 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-          {/* Primary highlight - Large centered */}
-          <div className="text-center mb-2">
-            <div className="text-3xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] tracking-tight">
-              {highlights[0].value}
-            </div>
-            <div className="text-sm font-semibold text-white/90 drop-shadow-md flex items-center justify-center gap-1">
+          {/* Primary highlight - Dark background for contrast */}
+          <div className="text-center px-4 py-2 rounded-xl bg-gray-900/80 backdrop-blur-md border border-gray-700/50 shadow-2xl">
+            <div className="text-2xl font-black text-yellow-300 tracking-tight">{highlights[0].value}</div>
+            <div className="text-xs font-semibold text-gray-200 flex items-center justify-center gap-1 mt-0.5">
               {highlights[0].icon && <span>{highlights[0].icon}</span>}
               <span>{highlights[0].label}</span>
               {highlights[0].trend && (
                 <span
                   className={
                     highlights[0].trend === "up"
-                      ? "text-emerald-300"
+                      ? "text-green-400 font-bold"
                       : highlights[0].trend === "down"
-                        ? "text-red-300"
+                        ? "text-red-400 font-bold"
                         : ""
                   }
                 >
-                  {highlights[0].trend === "up" ? "↑" : highlights[0].trend === "down" ? "↓" : ""}
+                  {highlights[0].trend === "up" ? " ↑" : highlights[0].trend === "down" ? " ↓" : ""}
                 </span>
               )}
             </div>
           </div>
           {/* Secondary highlights - Bottom row */}
           {highlights.length > 1 && (
-            <div className="flex gap-3 mt-1">
+            <div className="flex gap-2 mt-2">
               {highlights.slice(1, 3).map((h, idx) => (
-                <div key={idx} className="px-3 py-1 rounded-full bg-black/30 backdrop-blur-sm border border-white/20">
-                  <span className="text-xs text-white/80">
+                <div
+                  key={idx}
+                  className="px-2 py-1 rounded-lg bg-gray-900/70 backdrop-blur-sm border border-gray-600/50"
+                >
+                  <span className="text-xs text-gray-300">
                     {h.icon} {h.label}:{" "}
                   </span>
-                  <span className="text-sm font-bold text-white">{h.value}</span>
+                  <span className="text-xs font-bold text-cyan-300">{h.value}</span>
                 </div>
               ))}
             </div>

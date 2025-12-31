@@ -2,11 +2,16 @@ package indexer
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
 	"github.com/nspcc-dev/neo-go/pkg/vm/opcode"
 )
+
+// System.Contract.Call syscall ID (little-endian)
+// This is the interop hash for System.Contract.Call
+const syscallContractCall uint32 = 0x627d5b52
 
 // Tracer extracts VM execution traces from transactions.
 type Tracer struct {
@@ -16,6 +21,34 @@ type Tracer struct {
 // NewTracer creates a new VM tracer.
 func NewTracer(storage *Storage) *Tracer {
 	return &Tracer{storage: storage}
+}
+
+// IsComplexTransaction determines if a transaction involves contract invocations.
+// Simple NEP-17 transfers only use System.Runtime.Notify, while complex transactions
+// use System.Contract.Call to invoke other contracts.
+func IsComplexTransaction(scriptHex string) bool {
+	script, err := hex.DecodeString(scriptHex)
+	if err != nil {
+		return false
+	}
+	return containsContractCall(script)
+}
+
+// containsContractCall scans script for System.Contract.Call syscall.
+func containsContractCall(script []byte) bool {
+	pos := 0
+	for pos < len(script) {
+		op := opcode.Opcode(script[pos])
+		if op == opcode.SYSCALL && pos+4 < len(script) {
+			// SYSCALL is followed by 4-byte interop ID
+			interopID := binary.LittleEndian.Uint32(script[pos+1 : pos+5])
+			if interopID == syscallContractCall {
+				return true
+			}
+		}
+		pos += getOpcodeSize(op, script[pos:])
+	}
+	return false
 }
 
 // ParseScript parses a transaction script into opcode traces.

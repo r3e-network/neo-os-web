@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { Search, Moon, Sun, Menu, X, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
@@ -29,13 +29,48 @@ export function Navbar() {
   const { address: walletAddress } = useWalletStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/miniapps?q=${encodeURIComponent(searchQuery)}`);
+  // Real-time search with debounce (300ms delay)
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+
+      // Clear previous timeout
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+
+      // Debounce the route change
+      debounceRef.current = setTimeout(() => {
+        if (value.trim()) {
+          router.push(`/miniapps?q=${encodeURIComponent(value.trim())}`, undefined, { shallow: true });
+        } else if (router.pathname === "/miniapps" && router.query.q) {
+          // Clear search when input is empty
+          router.push("/miniapps", undefined, { shallow: true });
+        }
+      }, 300);
+    },
+    [router],
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  // Sync search query with URL on mount/route change
+  useEffect(() => {
+    const urlQuery = (router.query.q as string) || "";
+    if (urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.query.q]);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
@@ -70,19 +105,19 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-6">
+        {/* Search Bar - Real-time search on keystroke */}
+        <div className="hidden md:flex flex-1 max-w-md mx-6">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder={t("actions.search")}
               className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
-        </form>
+        </div>
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
@@ -122,18 +157,18 @@ export function Navbar() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 py-3">
-          <form onSubmit={handleSearch} className="mb-3">
+          <div className="mb-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={t("actions.search")}
                 className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500"
               />
             </div>
-          </form>
+          </div>
           <div className="flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link

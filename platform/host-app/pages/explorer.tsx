@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, ArrowRight, Code, FileCode, Cpu } from "lucide-react";
+import { Search, Loader2, FileCode, Cpu } from "lucide-react";
+import { OpcodeViewer } from "@/components/features/explorer";
 
 interface SearchResult {
   type: string;
@@ -26,6 +27,7 @@ interface TransactionData {
   gas_consumed: string;
   block_index: number;
   block_time: string;
+  tx_type?: "simple" | "complex";
   opcode_traces: OpcodeTrace[];
   contract_calls: ContractCall[];
   syscalls: Syscall[];
@@ -173,41 +175,35 @@ function TransactionResult({ data }: { data: TransactionData }) {
         </CardContent>
       </Card>
 
-      {/* Opcode Traces */}
-      {data.opcode_traces?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Code className="h-5 w-5" />
-              Opcode Execution Trace ({data.opcode_traces.length} steps)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="max-h-96 overflow-auto">
-              <table className="w-full text-xs font-mono">
-                <thead className="sticky top-0 bg-background">
-                  <tr className="border-b">
-                    <th className="p-2 text-left">Step</th>
-                    <th className="p-2 text-left">Opcode</th>
-                    <th className="p-2 text-left">Hex</th>
-                    <th className="p-2 text-left">IP</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.opcode_traces.map((t) => (
-                    <tr key={t.step_index} className="border-b hover:bg-muted/50">
-                      <td className="p-2">{t.step_index}</td>
-                      <td className="p-2 text-green-600">{t.opcode}</td>
-                      <td className="p-2 text-muted-foreground">{t.opcode_hex}</td>
-                      <td className="p-2">{t.instruction_ptr}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Opcode Traces - Using new OpcodeViewer component */}
+      <OpcodeViewer
+        hash={data.hash}
+        txType={data.tx_type || (data.opcode_traces?.length > 0 ? "complex" : "simple")}
+        vmState={data.vm_state}
+        gasConsumed={data.gas_consumed}
+        opcodes={
+          data.opcode_traces?.map((t, idx) => ({
+            id: idx,
+            tx_hash: data.hash,
+            step_index: t.step_index,
+            opcode: t.opcode,
+            opcode_hex: t.opcode_hex,
+            gas_consumed: t.gas_consumed,
+            stack_size: 0,
+            instruction_ptr: t.instruction_ptr,
+          })) || []
+        }
+        contractCalls={data.contract_calls?.map((c, idx) => ({
+          id: idx,
+          tx_hash: data.hash,
+          call_index: idx,
+          contract_hash: c.contract_hash,
+          method: c.method,
+          args: [],
+          gas_consumed: c.gas_consumed,
+          success: c.success,
+        }))}
+      />
 
       {/* Contract Calls */}
       {data.contract_calls?.length > 0 && (

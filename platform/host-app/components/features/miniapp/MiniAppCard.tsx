@@ -7,6 +7,7 @@ import { CardRenderer } from "./CardRenderer";
 import { DynamicBanner, type HighlightData } from "./DynamicBanner";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { CollectionStar } from "./CollectionStar";
+import { useTranslation } from "@/lib/i18n/react";
 import type { AnyCardData } from "@/types/card-display";
 
 export interface MiniAppInfo {
@@ -49,7 +50,11 @@ function formatNumber(num?: number): string {
 }
 
 export function MiniAppCard({ app }: { app: MiniAppInfo }) {
+  const { t } = useTranslation("host");
   const showSourceBadge = app.source && app.source !== "builtin";
+
+  // Get translated category name
+  const categoryLabel = t(`categories.${app.category}`) || app.category;
 
   return (
     <Link href={`/miniapps/${app.app_id}`} className="relative block">
@@ -70,7 +75,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
             <MiniAppLogo appId={app.app_id} category={app.category} size="md" />
             <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate flex-1">{app.name}</h3>
             <Badge className={categoryColors[app.category]} variant="secondary">
-              {app.category}
+              {categoryLabel}
             </Badge>
             {showSourceBadge && (
               <Badge className={sourceColors[app.source!]} variant="outline">

@@ -198,3 +198,32 @@ func (c *Client) request(ctx context.Context, method, table string, body interfa
 
 	return respBody, nil
 }
+
+// Insert inserts a record into the specified table.
+func (c *Client) Insert(ctx context.Context, table string, data interface{}) ([]byte, error) {
+	return c.request(ctx, http.MethodPost, table, data, "")
+}
+
+// Update updates records in the specified table matching the query.
+func (c *Client) Update(ctx context.Context, table string, data interface{}, query string) ([]byte, error) {
+	return c.request(ctx, http.MethodPatch, table, data, query)
+}
+
+// Select retrieves records from the specified table.
+func (c *Client) Select(ctx context.Context, table string, query string) ([]byte, error) {
+	return c.request(ctx, http.MethodGet, table, nil, query)
+}
+
+// Delete removes records from the specified table matching the query.
+func (c *Client) Delete(ctx context.Context, table string, query string) ([]byte, error) {
+	return c.request(ctx, http.MethodDelete, table, nil, query)
+}
+
+// Upsert inserts or updates a record in the specified table.
+func (c *Client) Upsert(ctx context.Context, table string, data interface{}, onConflict string) ([]byte, error) {
+	query := ""
+	if onConflict != "" {
+		query = "on_conflict=" + onConflict
+	}
+	return c.request(ctx, http.MethodPost, table, data, query)
+}
