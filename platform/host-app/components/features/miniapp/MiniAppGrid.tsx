@@ -1,6 +1,6 @@
 "use client";
 
-import { MiniAppCardWithHighlights } from "./MiniAppCardWithHighlights";
+import { LazyMiniAppCard } from "./LazyMiniAppCard";
 import type { MiniAppInfo } from "./MiniAppCard";
 
 interface MiniAppGridProps {
@@ -18,7 +18,7 @@ export function MiniAppGrid({ apps, columns = 3 }: MiniAppGridProps) {
   return (
     <div className={`grid gap-6 ${gridCols[columns]}`}>
       {apps.map((app) => (
-        <MiniAppCardWithHighlights key={app.app_id} app={app} />
+        <LazyMiniAppCard key={app.app_id} app={app} />
       ))}
     </div>
   );

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
-import { categoryParticles } from "./configs";
+import { categoryParticlesLite } from "./configs-lite";
 
 interface ParticleBannerProps {
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
@@ -21,7 +21,7 @@ export function ParticleBanner({ category, appId, className = "" }: ParticleBann
   }, []);
 
   const options = useMemo(() => {
-    return categoryParticles[category] || categoryParticles.gaming;
+    return categoryParticlesLite[category] || categoryParticlesLite.gaming;
   }, [category]);
 
   if (!init) return null;

@@ -1,5 +1,6 @@
 export { MiniAppCard, type MiniAppInfo } from "./MiniAppCard";
 export { MiniAppCardWithHighlights } from "./MiniAppCardWithHighlights";
+export { LazyMiniAppCard } from "./LazyMiniAppCard";
 export { MiniAppGrid } from "./MiniAppGrid";
 export { MiniAppLogo } from "./MiniAppLogo";
 export { MiniAppListItem } from "./MiniAppListItem";
