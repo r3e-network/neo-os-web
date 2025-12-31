@@ -35,7 +35,7 @@ function parseFederatedOrigins(): string[] {
   return Array.from(origins);
 }
 
-function buildCSP(nonce: string): string {
+function buildCSP(nonce: string, allowFrameAncestors: boolean = false): string {
   const isDev = process.env.NODE_ENV !== "production";
   const federatedOrigins = parseFederatedOrigins();
 
@@ -64,8 +64,8 @@ function buildCSP(nonce: string): string {
     "img-src 'self' data: https:",
     `connect-src ${connectSrc}`,
     `frame-src ${frameSrc}`,
-    // Prevent the host itself being embedded.
-    "frame-ancestors 'none'",
+    // Allow miniapps to be embedded in same-origin iframes (for /launch pages)
+    `frame-ancestors ${allowFrameAncestors ? "'self'" : "'none'"}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -85,11 +85,14 @@ export function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-csp-nonce", nonce);
 
+  // Allow miniapps to be embedded in iframes (for /launch pages)
+  const allowFrameAncestors = pathname.startsWith("/miniapps/");
+
   const res = NextResponse.next({
     request: { headers: requestHeaders },
   });
 
-  res.headers.set("Content-Security-Policy", buildCSP(nonce));
+  res.headers.set("Content-Security-Policy", buildCSP(nonce, allowFrameAncestors));
 
   return res;
 }
