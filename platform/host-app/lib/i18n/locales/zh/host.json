@@ -41,5 +41,44 @@
     "profile": "个人资料",
     "transactions": "交易记录",
     "favorites": "收藏"
+  },
+  "miniapps": {
+    "title": "小程序",
+    "apps": "个应用",
+    "noApps": "未找到小程序",
+    "resultsFor": "搜索结果",
+    "sort": {
+      "trending": "热门",
+      "users": "用户最多",
+      "transactions": "最活跃",
+      "recent": "最新添加"
+    },
+    "filters": {
+      "category": "分类",
+      "features": "功能",
+      "payments": "支付",
+      "randomness": "随机数",
+      "datafeed": "数据源"
+    },
+    "view": {
+      "list": "列表视图",
+      "grid": "卡片视图"
+    }
+  },
+  "reviews": {
+    "title": "评价",
+    "ratings": "条评分",
+    "noComments": "暂无评论",
+    "writeComment": "写评论...",
+    "writeReview": "写评价（可选）",
+    "postComment": "发表评论",
+    "rateApp": "评价此应用",
+    "editRating": "编辑评价",
+    "connectWallet": "连接钱包后可评价",
+    "submit": "提交",
+    "cancel": "取消",
+    "reply": "回复",
+    "replies": "条回复",
+    "loadMore": "加载更多评论"
   }
 }

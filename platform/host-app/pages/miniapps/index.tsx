@@ -7,6 +7,7 @@ import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { getCardData } from "@/hooks/useCardData";
 import { cn, sanitizeInput } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/react";
 
 const categories = ["all", "gaming", "defi", "social", "nft", "governance", "utility"] as const;
 
@@ -54,6 +55,7 @@ type StatsMap = Record<string, { users?: number; transactions?: number; volume?:
 
 export default function MiniAppsPage() {
   const router = useRouter();
+  const { t } = useTranslation("host");
   const rawSearchQuery = (router.query.q as string) || "";
   const searchQuery = sanitizeInput(rawSearchQuery);
 
@@ -162,8 +164,10 @@ export default function MiniAppsPage() {
           <div className="sticky top-14 z-40 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-6 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">MiniApps</h1>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{filteredAndSortedApps.length} apps</span>
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{t("miniapps.title")}</h1>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {filteredAndSortedApps.length} {t("miniapps.apps")}
+                </span>
               </div>
 
               <div className="flex items-center gap-3">
@@ -174,7 +178,7 @@ export default function MiniAppsPage() {
                     className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     <currentSort.icon size={14} />
-                    {currentSort.label}
+                    {t(`miniapps.sort.${currentSort.value}`)}
                     <ChevronDown size={14} />
                   </button>
 
@@ -195,7 +199,7 @@ export default function MiniAppsPage() {
                           )}
                         >
                           <option.icon size={14} />
-                          {option.label}
+                          {t(`miniapps.sort.${option.value}`)}
                         </button>
                       ))}
                     </div>
@@ -237,7 +241,7 @@ export default function MiniAppsPage() {
           <div className="p-6">
             {searchQuery && (
               <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                Results for "<span className="text-gray-900 dark:text-white">{searchQuery}</span>"
+                {t("miniapps.resultsFor")} "<span className="text-gray-900 dark:text-white">{searchQuery}</span>"
               </p>
             )}
 
@@ -247,7 +251,7 @@ export default function MiniAppsPage() {
                   <MiniAppListItem key={app.app_id} app={app} />
                 ))}
                 {filteredAndSortedApps.length === 0 && (
-                  <div className="py-12 text-center text-gray-500 dark:text-gray-400">No MiniApps found</div>
+                  <div className="py-12 text-center text-gray-500 dark:text-gray-400">{t("miniapps.noApps")}</div>
                 )}
               </div>
             ) : (

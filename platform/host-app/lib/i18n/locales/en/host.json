@@ -41,5 +41,44 @@
     "profile": "Profile",
     "transactions": "Transactions",
     "favorites": "Favorites"
+  },
+  "miniapps": {
+    "title": "MiniApps",
+    "apps": "apps",
+    "noApps": "No MiniApps found",
+    "resultsFor": "Results for",
+    "sort": {
+      "trending": "Trending",
+      "users": "Most Users",
+      "transactions": "Most Active",
+      "recent": "Recently Added"
+    },
+    "filters": {
+      "category": "Category",
+      "features": "Features",
+      "payments": "Payments",
+      "randomness": "Randomness",
+      "datafeed": "Data Feed"
+    },
+    "view": {
+      "list": "List view",
+      "grid": "Card view"
+    }
+  },
+  "reviews": {
+    "title": "Reviews",
+    "ratings": "ratings",
+    "noComments": "No comments yet",
+    "writeComment": "Write a comment...",
+    "writeReview": "Write a review (optional)",
+    "postComment": "Post Comment",
+    "rateApp": "Rate this app",
+    "editRating": "Edit your rating",
+    "connectWallet": "Connect wallet to leave a rating",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "reply": "Reply",
+    "replies": "replies",
+    "loadMore": "Load more comments"
   }
 }
