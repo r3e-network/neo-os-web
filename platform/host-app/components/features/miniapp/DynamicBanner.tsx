@@ -10,6 +10,37 @@ export interface HighlightData {
   trend?: "up" | "down" | "neutral";
 }
 
+// Custom Swap Animation for Neo Swap
+function SwapAnimation() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      {/* Swap container */}
+      <div className="relative w-32 h-32">
+        {/* NEO token - moves right then left */}
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 animate-swap-left">
+          <div className="w-14 h-14 rounded-full bg-[#00e599] flex items-center justify-center shadow-lg shadow-[#00e599]/50">
+            <span className="text-white font-bold text-sm">NEO</span>
+          </div>
+        </div>
+
+        {/* Swap arrows in center */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="animate-spin-slow">
+            <span className="text-3xl">🔄</span>
+          </div>
+        </div>
+
+        {/* GAS token - moves left then right */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 animate-swap-right">
+          <div className="w-14 h-14 rounded-full bg-[#58bf00] flex items-center justify-center shadow-lg shadow-[#58bf00]/50">
+            <span className="text-white font-bold text-sm">GAS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface DynamicBannerProps {
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
   icon: string;
@@ -41,6 +72,7 @@ const APP_ELEMENTS: Record<string, string[]> = {
   "miniapp-burnleague": ["🔥", "🏆", "📊", "💀", "⚡", "🎖️"],
 
   // DeFi
+  "miniapp-neo-swap": ["swap"], // Special swap animation
   "miniapp-flashloan": ["⚡", "💰", "🔄", "💵", "⏱️", "🏦"],
   "miniapp-aitrader": ["🤖", "📈", "💹", "🧠", "📊", "💰"],
   "miniapp-gridbot": ["📊", "🤖", "📈", "📉", "💹", "⚙️"],
@@ -312,10 +344,14 @@ export function DynamicBanner({ category, icon, appId, highlights }: DynamicBann
         }}
       />
 
-      {/* Center icon */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-7xl drop-shadow-2xl animate-bounce-slow">{icon}</span>
-      </div>
+      {/* Center icon or custom animation */}
+      {appId === "miniapp-neo-swap" ? (
+        <SwapAnimation />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-7xl drop-shadow-2xl animate-bounce-slow">{icon}</span>
+        </div>
+      )}
 
       {/* Live Data Highlights Overlay - Large & Beautiful */}
       {highlights && highlights.length > 0 && (

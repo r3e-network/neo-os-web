@@ -48,6 +48,9 @@ module.exports = {
         "bounce-slow": "bounce-gentle 3s ease-in-out infinite",
         draw: "draw 2s ease-in-out infinite",
         "draw-delayed": "draw 2s ease-in-out 0.5s infinite",
+        "swap-left": "swap-left 2s ease-in-out infinite",
+        "swap-right": "swap-right 2s ease-in-out infinite",
+        "spin-slow": "spin 3s linear infinite",
       },
       keyframes: {
         "border-glow": {
@@ -66,6 +69,14 @@ module.exports = {
           "0%": { "stroke-dasharray": "0, 500" },
           "50%": { "stroke-dasharray": "200, 500" },
           "100%": { "stroke-dasharray": "0, 500" },
+        },
+        "swap-left": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(70px)" },
+        },
+        "swap-right": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(-70px)" },
         },
       },
     },
