@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
 import { LaunchDock } from "../../components/LaunchDock";
@@ -11,6 +11,7 @@ import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { logger } from "../../lib/logger";
 import { resolveInternalBaseUrl } from "../../lib/edge";
 import { BUILTIN_APPS } from "../../lib/builtin-apps";
+import { useI18n } from "../../lib/i18n/react";
 
 /** NeoLine N3 wallet interface */
 interface NeoLineN3Wallet {
@@ -39,12 +40,21 @@ type LaunchPageProps = {
 
 export default function LaunchPage({ app }: LaunchPageProps) {
   const router = useRouter();
+  const { locale } = useI18n();
   const [wallet, setWallet] = useState<WalletState>({ connected: false, address: "", provider: null });
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const federated = parseFederatedEntryUrl(app.entry_url, app.app_id);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sdkRef = useRef<MiniAppSDK | null>(null);
+
+  // Build iframe URL with language parameter
+  // Only support en/zh, fallback to en for unsupported languages
+  const iframeSrc = useMemo(() => {
+    const supportedLocale = locale === "zh" ? "zh" : "en";
+    const separator = app.entry_url.includes("?") ? "&" : "?";
+    return `${app.entry_url}${separator}lang=${supportedLocale}`;
+  }, [app.entry_url, locale]);
 
   useEffect(() => {
     sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
@@ -184,7 +194,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-  }, [app.app_id, app.entry_url, app.permissions, federated]);
+  }, [app.app_id, iframeSrc, app.permissions, federated]);
 
   const handleExit = useCallback(() => {
     // Return to app detail page
@@ -221,7 +231,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         </div>
       ) : (
         <iframe
-          src={app.entry_url}
+          src={iframeSrc}
           ref={iframeRef}
           style={iframeStyle}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"

@@ -23,6 +23,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🎰",
     category: "gaming",
     entry_url: "/miniapps/lottery",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -33,6 +34,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🪙",
     category: "gaming",
     entry_url: "/miniapps/coin-flip",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -43,6 +45,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🎲",
     category: "gaming",
     entry_url: "/miniapps/dice-game",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -53,6 +56,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🎫",
     category: "gaming",
     entry_url: "/miniapps/scratch-card",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -63,6 +67,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🃏",
     category: "gaming",
     entry_url: "/miniapps/secret-poker",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -73,6 +78,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "📈",
     category: "gaming",
     entry_url: "/miniapps/neo-crash",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -83,6 +89,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🕯️",
     category: "gaming",
     entry_url: "/miniapps/candle-wars",
+    status: "active",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -93,6 +100,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🤖",
     category: "gaming",
     entry_url: "/miniapps/algo-battle",
+    status: "active",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -103,6 +111,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "♟️",
     category: "gaming",
     entry_url: "/miniapps/fog-chess",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -113,6 +122,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🧩",
     category: "gaming",
     entry_url: "/miniapps/fog-puzzle",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -123,6 +133,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "❓",
     category: "gaming",
     entry_url: "/miniapps/crypto-riddle",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -133,6 +144,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🎹",
     category: "gaming",
     entry_url: "/miniapps/world-piano",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -143,6 +155,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🗺️",
     category: "gaming",
     entry_url: "/miniapps/million-piece-map",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -153,6 +166,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "⛏️",
     category: "gaming",
     entry_url: "/miniapps/puzzle-mining",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -163,6 +177,7 @@ const GAMING_APPS: MiniAppInfo[] = [
     icon: "🗣️",
     category: "gaming",
     entry_url: "/miniapps/scream-to-earn",
+    status: "active",
     permissions: { payments: true },
   },
 ];
@@ -177,6 +192,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "🔄",
     category: "defi",
     entry_url: "/miniapps/neo-swap",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -187,6 +203,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "⚡",
     category: "defi",
     entry_url: "/miniapps/flashloan",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -197,6 +214,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "🤖",
     category: "defi",
     entry_url: "/miniapps/ai-trader",
+    status: "active",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -207,6 +225,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "📊",
     category: "defi",
     entry_url: "/miniapps/grid-bot",
+    status: "active",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -217,6 +236,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "🌉",
     category: "defi",
     entry_url: "/miniapps/bridge-guardian",
+    status: "active",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -227,6 +247,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "⭕",
     category: "defi",
     entry_url: "/miniapps/gas-circle",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -237,6 +258,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "🛡️",
     category: "defi",
     entry_url: "/miniapps/il-guard",
+    status: "active",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -247,6 +269,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "💊",
     category: "defi",
     entry_url: "/miniapps/compound-capsule",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -257,6 +280,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "🌑",
     category: "defi",
     entry_url: "/miniapps/dark-pool",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -267,6 +291,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "🔨",
     category: "defi",
     entry_url: "/miniapps/dutch-auction",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -277,6 +302,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "🎯",
     category: "defi",
     entry_url: "/miniapps/no-loss-lottery",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -287,6 +313,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "⚛️",
     category: "defi",
     entry_url: "/miniapps/quantum-swap",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -297,6 +324,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "🔄",
     category: "defi",
     entry_url: "/miniapps/self-loan",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -307,6 +335,7 @@ const DEFI_APPS: MiniAppInfo[] = [
     icon: "🍔",
     category: "defi",
     entry_url: "/miniapps/neoburger",
+    status: "active",
     permissions: { payments: true },
   },
 ];
@@ -321,6 +350,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
     icon: "💕",
     category: "social",
     entry_url: "/miniapps/ai-soulmate",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -331,6 +361,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
     icon: "🧧",
     category: "social",
     entry_url: "/miniapps/red-envelope",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -341,6 +372,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
     icon: "📻",
     category: "social",
     entry_url: "/miniapps/dark-radio",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -351,6 +383,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
     icon: "💰",
     category: "social",
     entry_url: "/miniapps/dev-tipping",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -361,6 +394,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
     icon: "🎯",
     category: "social",
     entry_url: "/miniapps/bounty-hunter",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -371,6 +405,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
     icon: "💔",
     category: "social",
     entry_url: "/miniapps/breakup-contract",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -381,6 +416,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
     icon: "📁",
     category: "social",
     entry_url: "/miniapps/ex-files",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -391,6 +427,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
     icon: "📍",
     category: "social",
     entry_url: "/miniapps/geo-spotlight",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -401,6 +438,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
     icon: "🤫",
     category: "social",
     entry_url: "/miniapps/whisper-chain",
+    status: "active",
     permissions: { payments: true },
   },
 ];
@@ -415,6 +453,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "🎨",
     category: "nft",
     entry_url: "/miniapps/canvas",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -425,6 +464,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "🦋",
     category: "nft",
     entry_url: "/miniapps/nft-evolve",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -435,6 +475,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "🐉",
     category: "nft",
     entry_url: "/miniapps/nft-chimera",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -445,6 +486,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "🐱",
     category: "nft",
     entry_url: "/miniapps/schrodinger-nft",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -455,6 +497,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "🧊",
     category: "nft",
     entry_url: "/miniapps/melting-asset",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -465,6 +508,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "🔮",
     category: "nft",
     entry_url: "/miniapps/on-chain-tarot",
+    status: "active",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -475,6 +519,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "⏳",
     category: "nft",
     entry_url: "/miniapps/time-capsule",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -485,6 +530,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "📜",
     category: "nft",
     entry_url: "/miniapps/heritage-trust",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -495,6 +541,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "🌱",
     category: "nft",
     entry_url: "/miniapps/garden-of-neo",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -505,6 +552,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "🪦",
     category: "nft",
     entry_url: "/miniapps/graveyard",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -515,6 +563,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "🦠",
     category: "nft",
     entry_url: "/miniapps/parasite",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -525,6 +574,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "👁️",
     category: "nft",
     entry_url: "/miniapps/pay-to-view",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -535,6 +585,7 @@ const NFT_APPS: MiniAppInfo[] = [
     icon: "💀",
     category: "nft",
     entry_url: "/miniapps/dead-switch",
+    status: "active",
     permissions: { payments: true },
   },
 ];
@@ -549,6 +600,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
     icon: "🗳️",
     category: "governance",
     entry_url: "/miniapps/secret-vote",
+    status: "active",
     permissions: { governance: true },
   },
   {
@@ -559,6 +611,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
     icon: "🚀",
     category: "governance",
     entry_url: "/miniapps/gov-booster",
+    status: "active",
     permissions: { governance: true, payments: true },
   },
   {
@@ -569,6 +622,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
     icon: "📊",
     category: "governance",
     entry_url: "/miniapps/prediction-market",
+    status: "active",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -579,6 +633,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
     icon: "🔥",
     category: "governance",
     entry_url: "/miniapps/burn-league",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -589,6 +644,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
     icon: "⏰",
     category: "governance",
     entry_url: "/miniapps/doomsday-clock",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -599,6 +655,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
     icon: "🎭",
     category: "governance",
     entry_url: "/miniapps/masquerade-dao",
+    status: "active",
     permissions: { governance: true },
   },
   {
@@ -609,6 +666,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
     icon: "⚔️",
     category: "governance",
     entry_url: "/miniapps/gov-merc",
+    status: "active",
     permissions: { governance: true, payments: true },
   },
   {
@@ -619,6 +677,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
     icon: "🗳️",
     category: "governance",
     entry_url: "/miniapps/candidate-vote",
+    status: "active",
     permissions: { governance: true, payments: true },
   },
 ];
@@ -633,6 +692,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
     icon: "🔍",
     category: "utility",
     entry_url: "/miniapps/explorer",
+    status: "active",
     permissions: { datafeed: true },
   },
   {
@@ -643,6 +703,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
     icon: "💹",
     category: "utility",
     entry_url: "/miniapps/price-ticker",
+    status: "active",
     permissions: { datafeed: true },
   },
   {
@@ -653,6 +714,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
     icon: "📋",
     category: "utility",
     entry_url: "/miniapps/guardian-policy",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -663,6 +725,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
     icon: "🔐",
     category: "utility",
     entry_url: "/miniapps/unbreakable-vault",
+    status: "active",
     permissions: { payments: true },
   },
   {
@@ -673,6 +736,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
     icon: "🏅",
     category: "utility",
     entry_url: "/miniapps/zk-badge",
+    status: "active",
     permissions: { payments: true },
   },
 ];
