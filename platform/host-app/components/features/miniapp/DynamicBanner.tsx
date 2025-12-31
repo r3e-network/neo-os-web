@@ -2,10 +2,19 @@
 
 import { useMemo } from "react";
 
+// Highlight data structure for live stats overlay
+export interface HighlightData {
+  label: string;
+  value: string;
+  icon?: string;
+  trend?: "up" | "down" | "neutral";
+}
+
 interface DynamicBannerProps {
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
   icon: string;
   appId: string;
+  highlights?: HighlightData[];
 }
 
 // App-specific floating elements based on functionality
@@ -214,7 +223,7 @@ const FLOAT_ANIMATIONS = ["animate-float-slow", "animate-float-medium", "animate
 
 const SIZES = ["text-sm", "text-base", "text-lg", "text-xl", "text-2xl"];
 
-export function DynamicBanner({ category, icon, appId }: DynamicBannerProps) {
+export function DynamicBanner({ category, icon, appId, highlights }: DynamicBannerProps) {
   const { elements, positions, gradient, glow } = useMemo(() => {
     const random = seededRandom(appId);
 
@@ -307,6 +316,48 @@ export function DynamicBanner({ category, icon, appId }: DynamicBannerProps) {
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-7xl drop-shadow-2xl animate-bounce-slow">{icon}</span>
       </div>
+
+      {/* Live Data Highlights Overlay - Large & Beautiful */}
+      {highlights && highlights.length > 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+          {/* Primary highlight - Large centered */}
+          <div className="text-center mb-2">
+            <div className="text-3xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] tracking-tight">
+              {highlights[0].value}
+            </div>
+            <div className="text-sm font-semibold text-white/90 drop-shadow-md flex items-center justify-center gap-1">
+              {highlights[0].icon && <span>{highlights[0].icon}</span>}
+              <span>{highlights[0].label}</span>
+              {highlights[0].trend && (
+                <span
+                  className={
+                    highlights[0].trend === "up"
+                      ? "text-emerald-300"
+                      : highlights[0].trend === "down"
+                        ? "text-red-300"
+                        : ""
+                  }
+                >
+                  {highlights[0].trend === "up" ? "↑" : highlights[0].trend === "down" ? "↓" : ""}
+                </span>
+              )}
+            </div>
+          </div>
+          {/* Secondary highlights - Bottom row */}
+          {highlights.length > 1 && (
+            <div className="flex gap-3 mt-1">
+              {highlights.slice(1, 3).map((h, idx) => (
+                <div key={idx} className="px-3 py-1 rounded-full bg-black/30 backdrop-blur-sm border border-white/20">
+                  <span className="text-xs text-white/80">
+                    {h.icon} {h.label}:{" "}
+                  </span>
+                  <span className="text-sm font-bold text-white">{h.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
