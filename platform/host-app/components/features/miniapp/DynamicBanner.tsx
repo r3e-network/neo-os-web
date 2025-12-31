@@ -1,11 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import dynamic from "next/dynamic";
 import * as Animations from "./animations";
-
-// Dynamic import for particles (client-side only) - using lazy version
-const LazyParticleBanner = dynamic(() => import("./particles").then((mod) => mod.LazyParticleBanner), { ssr: false });
 
 // Highlight data structure for live stats overlay
 export interface HighlightData {
@@ -384,9 +380,6 @@ export function DynamicBanner({ category, icon, appId, highlights }: DynamicBann
 
   return (
     <div className={`relative h-full bg-gradient-to-br ${gradient} overflow-hidden`}>
-      {/* Professional Particle System Layer */}
-      <LazyParticleBanner category={category} appId={appId} className="absolute inset-0 z-0" />
-
       {/* Animated floating elements */}
       <div className="absolute inset-0 z-10">
         {elements.map((emoji, idx) => (
