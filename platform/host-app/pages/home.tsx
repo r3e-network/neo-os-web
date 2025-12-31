@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { StatsBar } from "@/components/features/stats";
@@ -10,14 +10,7 @@ import { LiveChat } from "@/components/features/chat/LiveChat";
 import { useTranslation } from "@/lib/i18n/react";
 import { LanguageToggle } from "@/lib/i18n/LanguageSwitcher";
 import { useWalletStore } from "@/lib/wallet/store";
-
-// Default stats (fallback)
-const defaultStats = [
-  { label: "Total Transactions", value: "1.2M+" },
-  { label: "Active Users", value: "45K+" },
-  { label: "Staking APR", value: "4.5%" },
-  { label: "Gas Burned", value: "85K GAS" },
-];
+import { BUILTIN_APPS } from "@/lib/builtin-apps";
 
 // Format large numbers (e.g., 1234567 -> "1.2M")
 function formatNumber(num: number): string {
@@ -26,88 +19,44 @@ function formatNumber(num: number): string {
   return String(num);
 }
 
-// MiniApp catalog
-const miniApps: MiniAppInfo[] = [
-  {
-    app_id: "builtin-lottery",
-    name: "Neo Lottery",
-    description: "Decentralized lottery with provably fair randomness",
-    icon: "🎰",
-    category: "gaming",
-    stats: { users: 12500, transactions: 45000 },
-  },
-  {
-    app_id: "builtin-coin-flip",
-    name: "Coin Flip",
-    description: "50/50 coin flip - double your GAS",
-    icon: "🪙",
-    category: "gaming",
-    stats: { users: 8900, transactions: 32000 },
-  },
-  {
-    app_id: "builtin-dice-game",
-    name: "Dice Game",
-    description: "Roll the dice and win up to 6x",
-    icon: "🎲",
-    category: "gaming",
-    stats: { users: 6700, transactions: 28000 },
-  },
-  {
-    app_id: "builtin-prediction-market",
-    name: "Prediction Market",
-    description: "Trade on future outcomes",
-    icon: "📊",
-    category: "defi",
-    stats: { users: 3200, transactions: 15000 },
-  },
-  {
-    app_id: "builtin-red-envelope",
-    name: "Red Envelope",
-    description: "Send lucky GAS gifts to friends",
-    icon: "🧧",
-    category: "social",
-    stats: { users: 5600, transactions: 22000 },
-  },
-  {
-    app_id: "builtin-secret-vote",
-    name: "Secret Vote",
-    description: "Private on-chain voting",
-    icon: "🗳️",
-    category: "governance",
-    stats: { users: 2100, transactions: 8500 },
-  },
-];
+// Featured apps for homepage (first 6 from BUILTIN_APPS)
+const featuredApps = BUILTIN_APPS.slice(0, 6);
 
 export default function HomePage() {
   const { t } = useTranslation("host");
   const { t: tc } = useTranslation("common");
   const { address: walletAddress } = useWalletStore();
-  const [platformStats, setPlatformStats] = useState(defaultStats);
 
-  // Fetch real platform stats
+  // Stats state - null means loading
+  const [platformStats, setPlatformStats] = useState<{ label: string; value: string }[] | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  // Fetch real platform stats from API
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        setStatsError(null);
         const res = await fetch("/api/platform/stats");
-        if (res.ok) {
-          const data = await res.json();
-          setPlatformStats([
-            { label: "Total Transactions", value: formatNumber(data.totalTransactions) },
-            { label: "Active Users", value: formatNumber(data.totalUsers) },
-            { label: "Staking APR", value: `${data.stakingApr || "4.5"}%` },
-            { label: "Gas Burned", value: `${formatNumber(parseFloat(data.totalGasBurned || "0"))} GAS` },
-          ]);
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
         }
+        const data = await res.json();
+        setPlatformStats([
+          { label: t("detail.totalTransactions"), value: formatNumber(data.totalTransactions) },
+          { label: t("detail.activeUsers"), value: formatNumber(data.totalUsers) },
+          { label: t("detail.stakingApr"), value: `${data.stakingApr}%` },
+          { label: t("detail.gasBurned"), value: `${formatNumber(parseFloat(data.totalGasBurned))} GAS` },
+        ]);
       } catch (error) {
         console.error("Failed to fetch platform stats:", error);
+        setStatsError("Failed to load stats");
       }
     };
 
     fetchStats();
-    // Refresh stats every 30 seconds
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [t]);
 
   return (
     <Layout>
@@ -138,7 +87,13 @@ export default function HomePage() {
       </section>
 
       {/* Stats Bar */}
-      <StatsBar stats={platformStats} />
+      {statsError ? (
+        <div className="mx-auto max-w-7xl px-4 py-4 text-center text-red-500">{statsError}</div>
+      ) : platformStats ? (
+        <StatsBar stats={platformStats} />
+      ) : (
+        <div className="mx-auto max-w-7xl px-4 py-8 text-center text-gray-500">Loading stats...</div>
+      )}
 
       {/* Staking & Twitter Section */}
       <section className="py-12 bg-gray-50">
@@ -167,7 +122,7 @@ export default function HomePage() {
             </h2>
             <Button variant="outline">{tc("actions.viewAll")}</Button>
           </div>
-          <MiniAppGrid apps={miniApps} columns={3} />
+          <MiniAppGrid apps={featuredApps} columns={3} />
         </div>
       </section>
 

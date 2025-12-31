@@ -25,36 +25,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Default stats if DB not available
-    const defaultStats: PlatformStats = {
-      totalUsers: 12500,
-      totalTransactions: 445000,
-      totalVolume: "125000.00",
-      totalGasBurned: "85000.00",
-      stakingApr: "4.5",
-      activeApps: 64,
-      topApps: [],
-      dataSource: "default",
-    };
-
+    // Require Supabase configuration - no fallback data
     if (!isSupabaseConfigured) {
-      return res.status(200).json(defaultStats);
+      return res.status(503).json({ error: "Database not configured" });
     }
 
-    // Try platform_stats first, fallback to aggregating from miniapp_stats
+    // Try platform_stats first
     const { data: platformData, error: platformError } = await supabase
       .from("platform_stats")
       .select("total_users, total_transactions, total_volume_gas, total_gas_burned, active_apps")
       .eq("id", 1)
       .single();
 
-    // Fetch staking APR from NeoBurger (with fallback)
-    let stakingApr = defaultStats.stakingApr;
+    // Fetch staking APR from NeoBurger
+    let stakingApr = "0";
     try {
       const neoBurgerStats = await getNeoBurgerStats("mainnet");
       stakingApr = neoBurgerStats.apr;
     } catch (e) {
-      console.warn("Failed to fetch NeoBurger APR, using default:", e);
+      console.warn("Failed to fetch NeoBurger APR:", e);
     }
 
     let stats: PlatformStats;
@@ -62,12 +51,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!platformError && platformData) {
       // Use platform_stats if available
       stats = {
-        totalUsers: platformData.total_users || defaultStats.totalUsers,
-        totalTransactions: platformData.total_transactions || defaultStats.totalTransactions,
-        totalVolume: platformData.total_volume_gas || defaultStats.totalVolume,
-        totalGasBurned: platformData.total_gas_burned || defaultStats.totalGasBurned,
+        totalUsers: platformData.total_users || 0,
+        totalTransactions: platformData.total_transactions || 0,
+        totalVolume: platformData.total_volume_gas || "0",
+        totalGasBurned: platformData.total_gas_burned || "0",
         stakingApr,
-        activeApps: platformData.active_apps || defaultStats.activeApps,
+        activeApps: platformData.active_apps || 0,
         topApps: [],
         dataSource: "database",
       };
@@ -89,17 +78,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
 
         stats = {
-          totalUsers: totals.users || defaultStats.totalUsers,
-          totalTransactions: totals.txs || defaultStats.totalTransactions,
-          totalVolume: totals.volume.toFixed(2) || defaultStats.totalVolume,
-          totalGasBurned: defaultStats.totalGasBurned,
+          totalUsers: totals.users,
+          totalTransactions: totals.txs,
+          totalVolume: totals.volume.toFixed(2),
+          totalGasBurned: "0",
           stakingApr,
           activeApps: aggregateData.length,
           topApps: [],
           dataSource: "miniapp_stats",
         };
       } else {
-        stats = { ...defaultStats, stakingApr };
+        // No data available - return error
+        return res.status(503).json({ error: "No stats data available" });
       }
     }
 
