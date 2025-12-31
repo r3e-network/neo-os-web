@@ -22,7 +22,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Experience the thrill of provably fair lottery draws powered by VRF randomness. Buy tickets with GAS and compete for massive jackpots with 100% transparent on-chain verification.",
     icon: "🎰",
     category: "gaming",
-    entry_url: "/miniapps/lottery/",
+    entry_url: "/miniapps/lottery",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -32,7 +32,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Classic 50/50 betting reimagined on blockchain. Flip a coin, double your GAS instantly with cryptographically secure randomness ensuring fair outcomes every time.",
     icon: "🪙",
     category: "gaming",
-    entry_url: "/miniapps/coin-flip/",
+    entry_url: "/miniapps/coin-flip",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -42,7 +42,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Roll the dice and test your luck! Choose your winning range, place your bet, and watch the VRF-powered dice determine your fate with verifiable fairness.",
     icon: "🎲",
     category: "gaming",
-    entry_url: "/miniapps/dice-game/",
+    entry_url: "/miniapps/dice-game",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -52,7 +52,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Instant gratification meets blockchain gaming. Scratch virtual cards to reveal prizes instantly, with every outcome cryptographically guaranteed and transparent.",
     icon: "🎫",
     category: "gaming",
-    entry_url: "/miniapps/scratch-card/",
+    entry_url: "/miniapps/scratch-card",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -62,7 +62,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Play Texas Hold'em with true card privacy using zero-knowledge proofs. Your hand stays secret until showdown, eliminating cheating while preserving the poker experience.",
     icon: "🃏",
     category: "gaming",
-    entry_url: "/miniapps/secret-poker/",
+    entry_url: "/miniapps/secret-poker",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -72,7 +72,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Watch the multiplier climb and cash out before it crashes! This adrenaline-pumping game tests your nerve with real-time multipliers and instant payouts.",
     icon: "📈",
     category: "gaming",
-    entry_url: "/miniapps/neo-crash/",
+    entry_url: "/miniapps/neo-crash",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -82,7 +82,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Predict whether the next candle will be green or red using real-time price feeds. Compete against other traders in fast-paced 1-minute prediction rounds.",
     icon: "🕯️",
     category: "gaming",
-    entry_url: "/miniapps/candle-wars/",
+    entry_url: "/miniapps/candle-wars",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -92,7 +92,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Deploy your trading algorithms and compete for supremacy! Write strategies, backtest against historical data, and battle other bots in live trading competitions.",
     icon: "🤖",
     category: "gaming",
-    entry_url: "/miniapps/algo-battle/",
+    entry_url: "/miniapps/algo-battle",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -102,7 +102,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Strategic chess reimagined with fog of war mechanics. Only see pieces within your vision range, adding a thrilling layer of uncertainty to every move.",
     icon: "♟️",
     category: "gaming",
-    entry_url: "/miniapps/fog-chess/",
+    entry_url: "/miniapps/fog-chess",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -112,7 +112,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Solve intricate puzzles shrouded in mystery. Reveal tiles strategically, race against time, and compete on global leaderboards for the fastest solutions.",
     icon: "🧩",
     category: "gaming",
-    entry_url: "/miniapps/fog-puzzle/",
+    entry_url: "/miniapps/fog-puzzle",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -122,7 +122,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Crack cryptographic riddles and brain teasers to unlock GAS rewards. Daily challenges test your wit with puzzles ranging from ciphers to logic problems.",
     icon: "❓",
     category: "gaming",
-    entry_url: "/miniapps/crypto-riddle/",
+    entry_url: "/miniapps/crypto-riddle",
     permissions: { payments: true },
   },
   {
@@ -132,7 +132,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Join a global collaborative piano where every keystroke is recorded on-chain. Create music together with players worldwide in real-time jam sessions.",
     icon: "🎹",
     category: "gaming",
-    entry_url: "/miniapps/world-piano/",
+    entry_url: "/miniapps/world-piano",
     permissions: { payments: true },
   },
   {
@@ -142,7 +142,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Own and customize pixels on a massive collaborative canvas. Create art, advertise, or stake your claim on this permanent blockchain masterpiece.",
     icon: "🗺️",
     category: "gaming",
-    entry_url: "/miniapps/million-piece-map/",
+    entry_url: "/miniapps/million-piece-map",
     permissions: { payments: true },
   },
   {
@@ -152,7 +152,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Mine GAS by solving increasingly difficult puzzles. The faster you solve, the more you earn. Compete in mining pools or go solo for bigger rewards.",
     icon: "⛏️",
     category: "gaming",
-    entry_url: "/miniapps/puzzle-mining/",
+    entry_url: "/miniapps/puzzle-mining",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -162,7 +162,7 @@ const GAMING_APPS: MiniAppInfo[] = [
       "Use your voice to earn! Scream, sing, or make noise into your microphone. The louder and longer, the more GAS you mine in this unique audio-powered game.",
     icon: "🗣️",
     category: "gaming",
-    entry_url: "/miniapps/scream-to-earn/",
+    entry_url: "/miniapps/scream-to-earn",
     permissions: { payments: true },
   },
 ];
@@ -176,7 +176,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Swap NEO and GAS instantly via Flamingo DEX. Simple interface for quick token exchanges with real-time rates.",
     icon: "🔄",
     category: "defi",
-    entry_url: "/miniapps/neo-swap/",
+    entry_url: "/miniapps/neo-swap",
     permissions: { payments: true },
   },
   {
@@ -186,7 +186,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Access instant uncollateralized loans that must be repaid within a single transaction. Perfect for arbitrage, liquidations, and complex DeFi strategies.",
     icon: "⚡",
     category: "defi",
-    entry_url: "/miniapps/flashloan/",
+    entry_url: "/miniapps/flashloan",
     permissions: { payments: true },
   },
   {
@@ -196,7 +196,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Let artificial intelligence analyze markets and generate trading signals. Copy-trade AI strategies or use insights to inform your own decisions.",
     icon: "🤖",
     category: "defi",
-    entry_url: "/miniapps/ai-trader/",
+    entry_url: "/miniapps/ai-trader",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -206,7 +206,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Deploy automated grid trading strategies that profit from market volatility. Set your range, grid levels, and let the bot trade 24/7 while you sleep.",
     icon: "📊",
     category: "defi",
-    entry_url: "/miniapps/grid-bot/",
+    entry_url: "/miniapps/grid-bot",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -216,7 +216,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Monitor cross-chain bridges in real-time with instant alerts. Track your bridged assets, detect anomalies, and protect against bridge exploits.",
     icon: "🌉",
     category: "defi",
-    entry_url: "/miniapps/bridge-guardian/",
+    entry_url: "/miniapps/bridge-guardian",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -226,7 +226,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Join community savings circles where members pool GAS and take turns receiving the pot. Traditional ROSCA model meets blockchain transparency.",
     icon: "⭕",
     category: "defi",
-    entry_url: "/miniapps/gas-circle/",
+    entry_url: "/miniapps/gas-circle",
     permissions: { payments: true },
   },
   {
@@ -236,7 +236,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Protect your liquidity positions from impermanent loss with smart hedging strategies. Real-time IL tracking and automated protection triggers.",
     icon: "🛡️",
     category: "defi",
-    entry_url: "/miniapps/il-guard/",
+    entry_url: "/miniapps/il-guard",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -246,7 +246,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Maximize your yields with automatic compounding. Deposit once and watch your earnings grow exponentially as rewards are reinvested continuously.",
     icon: "💊",
     category: "defi",
-    entry_url: "/miniapps/compound-capsule/",
+    entry_url: "/miniapps/compound-capsule",
     permissions: { payments: true },
   },
   {
@@ -256,7 +256,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Execute large trades privately without moving markets. Your orders are matched off-chain and settled on-chain, protecting you from front-running.",
     icon: "🌑",
     category: "defi",
-    entry_url: "/miniapps/dark-pool/",
+    entry_url: "/miniapps/dark-pool",
     permissions: { payments: true },
   },
   {
@@ -266,7 +266,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Participate in descending price auctions for fair token distribution. Price drops until demand meets supply, ensuring optimal price discovery.",
     icon: "🔨",
     category: "defi",
-    entry_url: "/miniapps/dutch-auction/",
+    entry_url: "/miniapps/dutch-auction",
     permissions: { payments: true },
   },
   {
@@ -276,7 +276,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Enter the lottery without risking your principal. Your deposited GAS earns yield, and the interest funds the prize pool. Everyone gets their deposit back!",
     icon: "🎯",
     category: "defi",
-    entry_url: "/miniapps/no-loss-lottery/",
+    entry_url: "/miniapps/no-loss-lottery",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -286,7 +286,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Swap tokens with MEV protection using commit-reveal schemes. Your trades are shielded from sandwich attacks and front-running bots.",
     icon: "⚛️",
     category: "defi",
-    entry_url: "/miniapps/quantum-swap/",
+    entry_url: "/miniapps/quantum-swap",
     permissions: { payments: true },
   },
   {
@@ -296,7 +296,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Borrow against your own collateral with zero liquidation risk. Lock your assets, borrow up to 50%, and repay on your own schedule.",
     icon: "🔄",
     category: "defi",
-    entry_url: "/miniapps/self-loan/",
+    entry_url: "/miniapps/self-loan",
     permissions: { payments: true },
   },
   {
@@ -306,7 +306,7 @@ const DEFI_APPS: MiniAppInfo[] = [
       "Stake NEO to earn GAS rewards with liquid staking. Receive bNEO tokens representing your staked NEO, allowing you to earn staking rewards while maintaining liquidity for DeFi activities.",
     icon: "🍔",
     category: "defi",
-    entry_url: "/miniapps/neoburger/",
+    entry_url: "/miniapps/neoburger",
     permissions: { payments: true },
   },
 ];
@@ -320,7 +320,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
       "Your personalized AI companion that learns your personality and provides meaningful conversations. Build a unique relationship with an AI that truly understands you.",
     icon: "💕",
     category: "social",
-    entry_url: "/miniapps/ai-soulmate/",
+    entry_url: "/miniapps/ai-soulmate",
     permissions: { payments: true },
   },
   {
@@ -330,7 +330,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
       "Share the joy of giving with digital red envelopes! Send lucky GAS gifts to friends and groups with randomized amounts, perfect for celebrations and holidays.",
     icon: "🧧",
     category: "social",
-    entry_url: "/miniapps/red-envelope/",
+    entry_url: "/miniapps/red-envelope",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -340,7 +340,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
       "Broadcast anonymously to the world. Share thoughts, music, or messages without revealing your identity. Listeners can tip their favorite anonymous DJs.",
     icon: "📻",
     category: "social",
-    entry_url: "/miniapps/dark-radio/",
+    entry_url: "/miniapps/dark-radio",
     permissions: { payments: true },
   },
   {
@@ -350,7 +350,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
       "Support open-source developers directly! Tip contributors for their work on GitHub repos, Stack Overflow answers, or any valuable code contribution.",
     icon: "💰",
     category: "social",
-    entry_url: "/miniapps/dev-tipping/",
+    entry_url: "/miniapps/dev-tipping",
     permissions: { payments: true },
   },
   {
@@ -360,7 +360,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
       "Post and claim bug bounties with escrow protection. Developers earn rewards for finding vulnerabilities, while projects get security audits from the community.",
     icon: "🎯",
     category: "social",
-    entry_url: "/miniapps/bounty-hunter/",
+    entry_url: "/miniapps/bounty-hunter",
     permissions: { payments: true },
   },
   {
@@ -370,7 +370,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
       "Create immutable relationship agreements on-chain. Define terms for shared assets, responsibilities, and exit conditions with smart contract enforcement.",
     icon: "💔",
     category: "social",
-    entry_url: "/miniapps/breakup-contract/",
+    entry_url: "/miniapps/breakup-contract",
     permissions: { payments: true },
   },
   {
@@ -380,7 +380,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
       "A secure vault for shared memories that both parties can access. Store photos, messages, and mementos from relationships with mutual consent controls.",
     icon: "📁",
     category: "social",
-    entry_url: "/miniapps/ex-files/",
+    entry_url: "/miniapps/ex-files",
     permissions: { payments: true },
   },
   {
@@ -390,7 +390,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
       "Discover and share location-based content. Leave digital notes, art, or messages at real-world locations for others to find and interact with.",
     icon: "📍",
     category: "social",
-    entry_url: "/miniapps/geo-spotlight/",
+    entry_url: "/miniapps/geo-spotlight",
     permissions: { payments: true },
   },
   {
@@ -400,7 +400,7 @@ const SOCIAL_APPS: MiniAppInfo[] = [
       "Send encrypted messages that self-destruct after reading. Perfect for sensitive communications with complete privacy and no permanent traces.",
     icon: "🤫",
     category: "social",
-    entry_url: "/miniapps/whisper-chain/",
+    entry_url: "/miniapps/whisper-chain",
     permissions: { payments: true },
   },
 ];
@@ -414,7 +414,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Create collaborative NFT art with other artists in real-time. Each contribution is recorded on-chain, and the final piece is minted as a shared NFT.",
     icon: "🎨",
     category: "nft",
-    entry_url: "/miniapps/canvas/",
+    entry_url: "/miniapps/canvas",
     permissions: { payments: true },
   },
   {
@@ -424,7 +424,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Watch your NFTs grow and evolve over time! Traits change based on interactions, time held, and random mutations. Rare evolutions unlock special abilities.",
     icon: "🦋",
     category: "nft",
-    entry_url: "/miniapps/nft-evolve/",
+    entry_url: "/miniapps/nft-evolve",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -434,7 +434,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Combine two NFTs to create a unique hybrid! Merge traits, abilities, and aesthetics from different collections into one-of-a-kind chimera NFTs.",
     icon: "🐉",
     category: "nft",
-    entry_url: "/miniapps/nft-chimera/",
+    entry_url: "/miniapps/nft-chimera",
     permissions: { payments: true },
   },
   {
@@ -444,7 +444,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Own NFTs in quantum superposition - their traits remain unknown until observed. Opening the box collapses the state into a random final form.",
     icon: "🐱",
     category: "nft",
-    entry_url: "/miniapps/schrodinger-nft/",
+    entry_url: "/miniapps/schrodinger-nft",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -454,7 +454,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "NFTs that decay over time unless maintained. Watch the artwork slowly transform, or pay to preserve it. A commentary on digital permanence.",
     icon: "🧊",
     category: "nft",
-    entry_url: "/miniapps/melting-asset/",
+    entry_url: "/miniapps/melting-asset",
     permissions: { payments: true },
   },
   {
@@ -464,7 +464,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Receive mystical tarot readings powered by VRF randomness. Each reading is minted as a unique NFT capturing your fortune at that moment in time.",
     icon: "🔮",
     category: "nft",
-    entry_url: "/miniapps/on-chain-tarot/",
+    entry_url: "/miniapps/on-chain-tarot",
     permissions: { payments: true, randomness: true },
   },
   {
@@ -474,7 +474,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Lock messages, media, or assets in blockchain time capsules that unlock at a future date. Create digital legacies, schedule surprises, or preserve memories for future generations.",
     icon: "⏳",
     category: "nft",
-    entry_url: "/miniapps/time-capsule/",
+    entry_url: "/miniapps/time-capsule",
     permissions: { payments: true },
   },
   {
@@ -484,7 +484,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Create smart inheritance plans that automatically transfer your digital assets to beneficiaries. Set conditions, add trustees, and ensure your crypto legacy passes on securely.",
     icon: "📜",
     category: "nft",
-    entry_url: "/miniapps/heritage-trust/",
+    entry_url: "/miniapps/heritage-trust",
     permissions: { payments: true },
   },
   {
@@ -494,7 +494,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Cultivate your own virtual garden where plants grow based on your blockchain activity. Rare seeds, seasonal events, and cross-pollination create unique botanical NFTs.",
     icon: "🌱",
     category: "nft",
-    entry_url: "/miniapps/garden-of-neo/",
+    entry_url: "/miniapps/garden-of-neo",
     permissions: { payments: true },
   },
   {
@@ -504,7 +504,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Create permanent digital memorials for loved ones, pets, or even failed crypto projects. Mint tombstone NFTs with epitaphs, photos, and memories that live forever on-chain.",
     icon: "🪦",
     category: "nft",
-    entry_url: "/miniapps/graveyard/",
+    entry_url: "/miniapps/graveyard",
     permissions: { payments: true },
   },
   {
@@ -514,7 +514,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Own NFTs that attach to and feed off other NFTs in your wallet. Watch your parasite grow stronger as it drains traits from host NFTs in this dark experimental collection.",
     icon: "🦠",
     category: "nft",
-    entry_url: "/miniapps/parasite/",
+    entry_url: "/miniapps/parasite",
     permissions: { payments: true },
   },
   {
@@ -524,7 +524,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Monetize exclusive content with pay-per-view NFTs. Creators set prices, viewers pay to unlock, and smart contracts handle revenue splits automatically.",
     icon: "👁️",
     category: "nft",
-    entry_url: "/miniapps/pay-to-view/",
+    entry_url: "/miniapps/pay-to-view",
     permissions: { payments: true },
   },
   {
@@ -534,7 +534,7 @@ const NFT_APPS: MiniAppInfo[] = [
       "Set up a dead man's switch that triggers actions if you stop checking in. Release secrets, transfer assets, or send messages automatically when you go silent.",
     icon: "💀",
     category: "nft",
-    entry_url: "/miniapps/dead-switch/",
+    entry_url: "/miniapps/dead-switch",
     permissions: { payments: true },
   },
 ];
@@ -548,7 +548,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
       "Cast votes privately using zero-knowledge proofs. Your vote counts but your choice stays hidden, enabling truly anonymous governance without compromising verifiability.",
     icon: "🗳️",
     category: "governance",
-    entry_url: "/miniapps/secret-vote/",
+    entry_url: "/miniapps/secret-vote",
     permissions: { governance: true },
   },
   {
@@ -558,7 +558,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
       "Amplify your governance power through staking and delegation. Lock tokens for boosted voting weight, delegate to trusted representatives, and maximize your protocol influence.",
     icon: "🚀",
     category: "governance",
-    entry_url: "/miniapps/gov-booster/",
+    entry_url: "/miniapps/gov-booster",
     permissions: { governance: true, payments: true },
   },
   {
@@ -568,7 +568,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
       "Bet on real-world outcomes from elections to sports to crypto prices. Create markets, provide liquidity, and profit from your predictions with oracle-verified results.",
     icon: "📊",
     category: "governance",
-    entry_url: "/miniapps/prediction-market/",
+    entry_url: "/miniapps/prediction-market",
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -578,7 +578,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
       "Compete in token burning competitions where communities race to reduce supply. Climb leaderboards, earn burn badges, and prove your commitment to deflation.",
     icon: "🔥",
     category: "governance",
-    entry_url: "/miniapps/burn-league/",
+    entry_url: "/miniapps/burn-league",
     permissions: { payments: true },
   },
   {
@@ -588,7 +588,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
       "A community-controlled countdown that resets when people contribute. If it hits zero, locked funds redistribute. Keep the clock alive or watch it all burn.",
     icon: "⏰",
     category: "governance",
-    entry_url: "/miniapps/doomsday-clock/",
+    entry_url: "/miniapps/doomsday-clock",
     permissions: { payments: true },
   },
   {
@@ -598,7 +598,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
       "Participate in governance wearing a digital mask. Propose and vote anonymously while still proving membership, enabling honest discourse without social pressure.",
     icon: "🎭",
     category: "governance",
-    entry_url: "/miniapps/masquerade-dao/",
+    entry_url: "/miniapps/masquerade-dao",
     permissions: { governance: true },
   },
   {
@@ -608,7 +608,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
       "Hire governance mercenaries to vote on your behalf or sell your voting power to the highest bidder. A marketplace for delegation and influence in the DAO ecosystem.",
     icon: "⚔️",
     category: "governance",
-    entry_url: "/miniapps/gov-merc/",
+    entry_url: "/miniapps/gov-merc",
     permissions: { governance: true, payments: true },
   },
   {
@@ -642,7 +642,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
       "Track real-time cryptocurrency prices with customizable watchlists and alerts. Get instant notifications when your targets hit, powered by decentralized oracle feeds.",
     icon: "💹",
     category: "utility",
-    entry_url: "/miniapps/price-ticker/",
+    entry_url: "/miniapps/price-ticker",
     permissions: { datafeed: true },
   },
   {
@@ -652,7 +652,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
       "Define and enforce smart contract policies for your wallet. Set spending limits, whitelist addresses, require multi-sig for large transfers, and protect your assets.",
     icon: "📋",
     category: "utility",
-    entry_url: "/miniapps/guardian-policy/",
+    entry_url: "/miniapps/guardian-policy",
     permissions: { payments: true },
   },
   {
@@ -662,7 +662,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
       "Store your most valuable assets in a time-locked vault with multiple security layers. Social recovery, hardware key support, and customizable unlock conditions.",
     icon: "🔐",
     category: "utility",
-    entry_url: "/miniapps/unbreakable-vault/",
+    entry_url: "/miniapps/unbreakable-vault",
     permissions: { payments: true },
   },
   {
@@ -672,7 +672,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
       "Earn and display verifiable credentials without revealing personal data. Prove you're a whale, early adopter, or community member using zero-knowledge proofs.",
     icon: "🏅",
     category: "utility",
-    entry_url: "/miniapps/zk-badge/",
+    entry_url: "/miniapps/zk-badge",
     permissions: { payments: true },
   },
 ];

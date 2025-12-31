@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
+import { createClient } from "@supabase/supabase-js";
 
 export interface TrendingApp {
   app_id: string;
@@ -11,12 +12,12 @@ export interface TrendingApp {
     users_24h: number;
     txs_24h: number;
     volume_24h: string;
-    growth: number; // percentage
+    growth: number;
   };
 }
 
-// In-memory stats cache (replace with Supabase in production)
-const statsCache: Map<string, { users: number; txs: number; volume: number; ts: number }> = new Map();
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -26,18 +27,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { limit = "10", category } = req.query;
   const maxResults = Math.min(parseInt(limit as string) || 10, 50);
 
-  const trending = calculateTrending(category as string, maxResults);
-
-  return res.status(200).json({ trending, updated_at: new Date().toISOString() });
+  try {
+    const trending = await calculateTrending(category as string, maxResults);
+    return res.status(200).json({ trending, updated_at: new Date().toISOString() });
+  } catch (err) {
+    console.error("Trending API error:", err);
+    return res.status(500).json({ error: "Failed to fetch trending apps" });
+  }
 }
 
-/** Calculate trending score based on activity metrics */
-function calculateTrending(category: string | undefined, limit: number): TrendingApp[] {
+/** Calculate trending score based on Supabase stats */
+async function calculateTrending(category: string | undefined, limit: number): Promise<TrendingApp[]> {
   const apps = category ? BUILTIN_APPS.filter((a) => a.category === category) : BUILTIN_APPS;
+
+  // Fetch stats from Supabase if configured
+  const statsMap = await fetchStatsFromSupabase(apps.map((a) => a.app_id));
 
   return apps
     .map((app) => {
-      const stats = getAppStats(app.app_id);
+      const stats = statsMap.get(app.app_id) || getDefaultStats();
       const score = calculateScore(stats);
 
       return {
@@ -58,31 +66,50 @@ function calculateTrending(category: string | undefined, limit: number): Trendin
     .slice(0, limit);
 }
 
-/** Get app stats from cache or generate mock data */
-function getAppStats(appId: string): { users: number; txs: number; volume: number; growth: number } {
-  const cached = statsCache.get(appId);
-  const now = Date.now();
+/** Fetch stats from Supabase miniapp_stats table */
+async function fetchStatsFromSupabase(
+  appIds: string[],
+): Promise<Map<string, { users: number; txs: number; volume: number; growth: number }>> {
+  const statsMap = new Map<string, { users: number; txs: number; volume: number; growth: number }>();
 
-  // Return cached if fresh (< 5 min)
-  if (cached && now - cached.ts < 300000) {
-    return { ...cached, growth: Math.floor(Math.random() * 50) - 10 };
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return statsMap;
   }
 
-  // Generate mock stats (replace with real data in production)
-  const stats = {
-    users: Math.floor(Math.random() * 500) + 50,
-    txs: Math.floor(Math.random() * 2000) + 100,
-    volume: Math.floor(Math.random() * 10000) + 500,
-    ts: now,
-  };
-  statsCache.set(appId, stats);
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { data, error } = await supabase
+      .from("miniapp_stats")
+      .select("app_id, active_users_daily, transactions_24h, volume_24h_gas")
+      .in("app_id", appIds);
 
-  return { ...stats, growth: Math.floor(Math.random() * 50) - 10 };
+    if (error) {
+      console.error("Supabase stats fetch error:", error);
+      return statsMap;
+    }
+
+    for (const row of data || []) {
+      statsMap.set(row.app_id, {
+        users: row.active_users_daily || 0,
+        txs: row.transactions_24h || 0,
+        volume: parseFloat(row.volume_24h_gas || "0"),
+        growth: 0, // Calculate from historical data if available
+      });
+    }
+  } catch (err) {
+    console.error("Failed to fetch stats from Supabase:", err);
+  }
+
+  return statsMap;
+}
+
+/** Default stats when no data available */
+function getDefaultStats(): { users: number; txs: number; volume: number; growth: number } {
+  return { users: 0, txs: 0, volume: 0, growth: 0 };
 }
 
 /** Calculate trending score using weighted formula */
 function calculateScore(stats: { users: number; txs: number; volume: number; growth: number }): number {
-  // Weighted score: users (40%) + txs (30%) + volume (20%) + growth (10%)
   const normalizedUsers = Math.min(stats.users / 500, 1) * 40;
   const normalizedTxs = Math.min(stats.txs / 2000, 1) * 30;
   const normalizedVolume = Math.min(stats.volume / 10000, 1) * 20;
