@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { StatsBar } from "@/components/features/stats";
 import { MiniAppCard, MiniAppListItem, type MiniAppInfo } from "@/components/features/miniapp";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
+import { useTranslation } from "@/lib/i18n/react";
 import {
   Rocket,
   Shield,
@@ -44,6 +45,7 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 export default function LandingPage() {
+  const { t } = useTranslation("host");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState<"trending" | "recent" | "popular">("trending");
@@ -103,15 +105,20 @@ export default function LandingPage() {
       counts[app.category] = (counts[app.category] || 0) + 1;
     });
     return [
-      { id: "all", label: "All Apps", icon: CATEGORY_ICONS.all, count: counts.all },
-      { id: "gaming", label: "Gaming", icon: CATEGORY_ICONS.gaming, count: counts.gaming || 0 },
-      { id: "defi", label: "DeFi", icon: CATEGORY_ICONS.defi, count: counts.defi || 0 },
-      { id: "social", label: "Social", icon: CATEGORY_ICONS.social, count: counts.social || 0 },
-      { id: "nft", label: "NFT", icon: CATEGORY_ICONS.nft, count: counts.nft || 0 },
-      { id: "governance", label: "Governance", icon: CATEGORY_ICONS.governance, count: counts.governance || 0 },
-      { id: "utility", label: "Utility", icon: CATEGORY_ICONS.utility, count: counts.utility || 0 },
+      { id: "all", label: t("categories.all"), icon: CATEGORY_ICONS.all, count: counts.all },
+      { id: "gaming", label: t("categories.gaming"), icon: CATEGORY_ICONS.gaming, count: counts.gaming || 0 },
+      { id: "defi", label: t("categories.defi"), icon: CATEGORY_ICONS.defi, count: counts.defi || 0 },
+      { id: "social", label: t("categories.social"), icon: CATEGORY_ICONS.social, count: counts.social || 0 },
+      { id: "nft", label: t("categories.nft"), icon: CATEGORY_ICONS.nft, count: counts.nft || 0 },
+      {
+        id: "governance",
+        label: t("categories.governance"),
+        icon: CATEGORY_ICONS.governance,
+        count: counts.governance || 0,
+      },
+      { id: "utility", label: t("categories.utility"), icon: CATEGORY_ICONS.utility, count: counts.utility || 0 },
     ];
-  }, []);
+  }, [t]);
 
   const filteredApps = useMemo(() => {
     let apps =

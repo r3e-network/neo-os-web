@@ -41,5 +41,45 @@
     "profile": "プロフィール",
     "transactions": "トランザクション",
     "favorites": "お気に入り"
+  },
+  "miniapps": {
+    "title": "ミニアプリ",
+    "apps": "アプリ",
+    "noApps": "ミニアプリが見つかりません",
+    "resultsFor": "検索結果",
+    "sort": {
+      "trending": "トレンド",
+      "users": "ユーザー数順",
+      "transactions": "アクティブ順",
+      "recent": "新着順"
+    },
+    "filters": {
+      "title": "フィルター",
+      "category": "カテゴリ",
+      "features": "機能",
+      "payments": "支払い",
+      "randomness": "乱数",
+      "datafeed": "データフィード"
+    },
+    "view": {
+      "list": "リスト表示",
+      "grid": "カード表示"
+    }
+  },
+  "reviews": {
+    "title": "レビュー",
+    "ratings": "件の評価",
+    "noComments": "コメントはまだありません",
+    "writeComment": "コメントを書く...",
+    "writeReview": "レビューを書く（任意）",
+    "postComment": "コメントを投稿",
+    "rateApp": "このアプリを評価",
+    "editRating": "評価を編集",
+    "connectWallet": "評価するにはウォレットを接続",
+    "submit": "送信",
+    "cancel": "キャンセル",
+    "reply": "返信",
+    "replies": "件の返信",
+    "loadMore": "もっと読み込む"
   }
 }

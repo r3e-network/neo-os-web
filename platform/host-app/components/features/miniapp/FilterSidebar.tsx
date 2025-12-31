@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/react";
 
 interface FilterSection {
   id: string;
@@ -17,6 +18,7 @@ interface FilterSidebarProps {
 }
 
 export function FilterSidebar({ sections, selected, onChange }: FilterSidebarProps) {
+  const { t } = useTranslation("host");
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map((s) => [s.id, true])),
   );
@@ -35,7 +37,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
     <aside className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-y-auto">
       <div className="p-4">
         <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-          Filters
+          {t("miniapps.filters.title")}
         </h2>
 
         {sections.map((section) => (

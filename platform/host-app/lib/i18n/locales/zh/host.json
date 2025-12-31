@@ -54,6 +54,7 @@
       "recent": "最新添加"
     },
     "filters": {
+      "title": "筛选",
       "category": "分类",
       "features": "功能",
       "payments": "支付",

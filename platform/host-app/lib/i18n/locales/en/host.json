@@ -54,6 +54,7 @@
       "recent": "Recently Added"
     },
     "filters": {
+      "title": "Filters",
       "category": "Category",
       "features": "Features",
       "payments": "Payments",

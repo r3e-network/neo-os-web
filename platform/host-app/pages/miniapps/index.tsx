@@ -6,6 +6,7 @@ import { Layout } from "@/components/layout";
 import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@/components/features/miniapp";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { getCardData } from "@/hooks/useCardData";
+import { getAppHighlights, generateDefaultHighlights } from "@/lib/app-highlights";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
 
@@ -14,37 +15,8 @@ const categories = ["all", "gaming", "defi", "social", "nft", "governance", "uti
 type SortOption = "trending" | "users" | "transactions" | "recent";
 type ViewMode = "grid" | "list";
 
-const sortOptions: { value: SortOption; label: string; icon: typeof TrendingUp }[] = [
-  { value: "trending", label: "Trending", icon: TrendingUp },
-  { value: "users", label: "Most Users", icon: Download },
-  { value: "transactions", label: "Most Active", icon: TrendingUp },
-  { value: "recent", label: "Recently Added", icon: Clock },
-];
-
-const filterSections = [
-  {
-    id: "category",
-    label: "Category",
-    options: [
-      { value: "gaming", label: "Gaming" },
-      { value: "defi", label: "DeFi" },
-      { value: "social", label: "Social" },
-      { value: "nft", label: "NFT" },
-      { value: "governance", label: "Governance" },
-      { value: "utility", label: "Utility" },
-    ],
-  },
-  {
-    id: "features",
-    label: "Features",
-    options: [
-      { value: "payments", label: "Payments" },
-      { value: "randomness", label: "Randomness" },
-      { value: "governance", label: "Governance" },
-      { value: "datafeed", label: "Data Feed" },
-    ],
-  },
-];
+// Sort options and filter sections are now generated inside the component using useMemo
+// to support dynamic i18n translation updates
 
 const baseApps: MiniAppInfo[] = BUILTIN_APPS.map((app) => ({
   ...app,
@@ -59,6 +31,46 @@ export default function MiniAppsPage() {
   const rawSearchQuery = (router.query.q as string) || "";
   const searchQuery = sanitizeInput(rawSearchQuery);
 
+  // Dynamic sort options with i18n support
+  const sortOptions = useMemo(
+    () => [
+      { value: "trending" as SortOption, label: t("miniapps.sort.trending"), icon: TrendingUp },
+      { value: "users" as SortOption, label: t("miniapps.sort.users"), icon: Download },
+      { value: "transactions" as SortOption, label: t("miniapps.sort.transactions"), icon: TrendingUp },
+      { value: "recent" as SortOption, label: t("miniapps.sort.recent"), icon: Clock },
+    ],
+    [t],
+  );
+
+  // Dynamic filter sections with i18n support
+  const filterSections = useMemo(
+    () => [
+      {
+        id: "category",
+        label: t("miniapps.filters.category"),
+        options: [
+          { value: "gaming", label: t("categories.gaming") },
+          { value: "defi", label: t("categories.defi") },
+          { value: "social", label: t("categories.social") },
+          { value: "nft", label: t("categories.nft") },
+          { value: "governance", label: t("categories.governance") },
+          { value: "utility", label: t("categories.utility") },
+        ],
+      },
+      {
+        id: "features",
+        label: t("miniapps.filters.features"),
+        options: [
+          { value: "payments", label: t("miniapps.filters.payments") },
+          { value: "randomness", label: t("miniapps.filters.randomness") },
+          { value: "governance", label: t("categories.governance") },
+          { value: "datafeed", label: t("miniapps.filters.datafeed") },
+        ],
+      },
+    ],
+    [t],
+  );
+
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortOption>("trending");
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -68,7 +80,13 @@ export default function MiniAppsPage() {
   const [statsMap, setStatsMap] = useState<StatsMap>({});
 
   useEffect(() => {
-    setApps(baseApps.map((app) => ({ ...app, cardData: getCardData(app.app_id) })));
+    setApps(
+      baseApps.map((app) => ({
+        ...app,
+        cardData: getCardData(app.app_id),
+        highlights: getAppHighlights(app.app_id),
+      })),
+    );
   }, []);
 
   useEffect(() => {
@@ -103,10 +121,15 @@ export default function MiniAppsPage() {
   };
 
   const filteredAndSortedApps = useMemo(() => {
-    const appsWithStats = apps.map((app) => ({
-      ...app,
-      stats: statsMap[app.app_id] || app.stats,
-    }));
+    const appsWithStats = apps.map((app) => {
+      const stats = statsMap[app.app_id] || app.stats;
+      return {
+        ...app,
+        stats,
+        // Use configured highlights or generate from stats as fallback
+        highlights: app.highlights || generateDefaultHighlights(stats),
+      };
+    });
 
     let result = [...appsWithStats, ...communityApps];
 
@@ -178,7 +201,7 @@ export default function MiniAppsPage() {
                     className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     <currentSort.icon size={14} />
-                    {t(`miniapps.sort.${currentSort.value}`)}
+                    {currentSort.label}
                     <ChevronDown size={14} />
                   </button>
 
@@ -199,7 +222,7 @@ export default function MiniAppsPage() {
                           )}
                         >
                           <option.icon size={14} />
-                          {t(`miniapps.sort.${option.value}`)}
+                          {option.label}
                         </button>
                       ))}
                     </div>
