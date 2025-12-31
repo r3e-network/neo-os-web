@@ -44,3 +44,15 @@ export const supabase: SupabaseClient = createClient(
 
 /** Whether Supabase is properly configured */
 export const isSupabaseConfigured = isConfigured;
+
+/**
+ * Service Role Client for server-side write operations
+ * Only use in API routes, never expose to client
+ */
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+export const supabaseAdmin: SupabaseClient | null = serviceRoleKey
+  ? createClient(supabaseUrl || BUILD_FALLBACK_URL, serviceRoleKey, {
+      auth: { persistSession: false },
+    })
+  : null;

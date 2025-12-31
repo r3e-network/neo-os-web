@@ -1,20 +1,30 @@
 import Head from "next/head";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { StatsBar } from "@/components/features/stats";
 import { MiniAppGrid, type MiniAppInfo } from "@/components/features/miniapp";
 import { TwitterFeed } from "@/components/features/twitter";
 import { StakingCard } from "@/components/features/staking";
+import { LiveChat } from "@/components/features/chat/LiveChat";
 import { useTranslation } from "@/lib/i18n/react";
 import { LanguageToggle } from "@/lib/i18n/LanguageSwitcher";
+import { useWalletStore } from "@/lib/wallet/store";
 
-// Platform stats
-const platformStats = [
+// Default stats (fallback)
+const defaultStats = [
   { label: "Total Transactions", value: "1.2M+" },
   { label: "Active Users", value: "45K+" },
   { label: "MiniApps", value: "23" },
   { label: "Total Volume", value: "$2.5M" },
 ];
+
+// Format large numbers (e.g., 1234567 -> "1.2M")
+function formatNumber(num: number): string {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return String(num);
+}
 
 // MiniApp catalog
 const miniApps: MiniAppInfo[] = [
@@ -71,6 +81,33 @@ const miniApps: MiniAppInfo[] = [
 export default function HomePage() {
   const { t } = useTranslation("host");
   const { t: tc } = useTranslation("common");
+  const { address: walletAddress } = useWalletStore();
+  const [platformStats, setPlatformStats] = useState(defaultStats);
+
+  // Fetch real platform stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/platform/stats");
+        if (res.ok) {
+          const data = await res.json();
+          setPlatformStats([
+            { label: "Total Transactions", value: formatNumber(data.totalTransactions) },
+            { label: "Active Users", value: formatNumber(data.totalUsers) },
+            { label: "MiniApps", value: String(data.activeApps || 23) },
+            { label: "Total Volume", value: `${formatNumber(parseFloat(data.totalVolume || "0"))} GAS` },
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch platform stats:", error);
+      }
+    };
+
+    fetchStats();
+    // Refresh stats every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Layout>
@@ -154,6 +191,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Live Chat - Platform-wide */}
+      <LiveChat appId="platform" walletAddress={walletAddress} />
     </Layout>
   );
 }

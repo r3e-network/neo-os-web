@@ -1,14 +1,24 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 import { useWalletStore, walletOptions, WalletProvider } from "@/lib/wallet/store";
 
 export function ConnectButton() {
-  const { connected, address, balance, loading, error, connect, disconnect, clearError } = useWalletStore();
+  const { connected, address, balance, loading, error, connect, disconnect, refreshBalance, clearError } =
+    useWalletStore();
   const [showMenu, setShowMenu] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleConnect = async (provider: WalletProvider) => {
     setShowMenu(false);
     await connect(provider);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    console.log("[ConnectButton] Manually refreshing balance...");
+    await refreshBalance();
+    setRefreshing(false);
   };
 
   if (connected) {
@@ -24,6 +34,14 @@ export function ConnectButton() {
               {parseFloat(balance.gas).toFixed(4)} GAS
             </span>
           )}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+            title="Refresh balance"
+          >
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+          </button>
         </div>
         <Button variant="ghost" size="sm" onClick={disconnect} className="text-gray-700 dark:text-gray-300">
           Disconnect

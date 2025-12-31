@@ -77,15 +77,21 @@ export class NeoLineAdapter implements WalletAdapter {
       const win = window as unknown as NeoLineWindow;
       const provider = win.NEOLineN3 || win.NEOLine;
 
-      // NeoLine requires calling Init as a constructor-like pattern
-      // Wait for the NEOLine.Init event if not ready
       if (!provider) {
         throw new WalletConnectionError("NeoLine provider not found");
       }
 
-      // NeoLine.Init is a class constructor, must be called with 'new'
-      // It returns the instance directly (not a Promise)
-      this.instance = new (provider.Init as unknown as new () => NeoLineInstance)();
+      // NeoLine.Init can be called as constructor or as async function
+      // Try both patterns for compatibility
+      try {
+        // Pattern 1: Constructor style (older NeoLine versions)
+        this.instance = new (provider.Init as unknown as new () => NeoLineInstance)();
+        console.log("[NeoLine] Initialized via constructor pattern");
+      } catch {
+        // Pattern 2: Async function style (newer NeoLine versions)
+        this.instance = await provider.Init();
+        console.log("[NeoLine] Initialized via async pattern");
+      }
 
       return this.instance;
     } catch (error) {
@@ -118,7 +124,9 @@ export class NeoLineAdapter implements WalletAdapter {
     const instance = await this.getInstance();
 
     try {
+      console.log("[NeoLine] Fetching balance for address:", address);
       const balances = await instance.getBalance({ address });
+      console.log("[NeoLine] Raw balance response:", JSON.stringify(balances, null, 2));
 
       let neo = "0";
       let gas = "0";
@@ -128,8 +136,19 @@ export class NeoLineAdapter implements WalletAdapter {
       const neoNorm = normalizeContract(NEO_CONTRACT);
       const gasNorm = normalizeContract(GAS_CONTRACT);
 
-      for (const b of balances) {
-        const contractNorm = normalizeContract(b.contract);
+      // Handle case where balances might be nested in a response object
+      const balanceArray = Array.isArray(balances)
+        ? balances
+        : (balances as { balance?: typeof balances })?.balance || [];
+
+      if (!Array.isArray(balanceArray) || balanceArray.length === 0) {
+        console.warn("[NeoLine] No balances returned or empty array");
+      }
+
+      for (const b of balanceArray) {
+        const contractNorm = normalizeContract(b.contract || "");
+        console.log("[NeoLine] Processing balance:", b.symbol, b.amount, "contract:", b.contract);
+
         if (contractNorm === neoNorm) neo = b.amount;
         if (contractNorm === gasNorm) gas = b.amount;
         // Also check by symbol as fallback
@@ -137,9 +156,10 @@ export class NeoLineAdapter implements WalletAdapter {
         if (b.symbol?.toUpperCase() === "GAS") gas = b.amount;
       }
 
+      console.log("[NeoLine] Final balance - NEO:", neo, "GAS:", gas);
       return { neo, gas };
     } catch (error) {
-      console.error("Failed to get balance:", error);
+      console.error("[NeoLine] Failed to get balance:", error);
       return { neo: "0", gas: "0" };
     }
   }

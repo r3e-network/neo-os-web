@@ -36,26 +36,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json(defaultStats);
     }
 
-    // Read from platform_stats table (persisted data)
+    // Try platform_stats first, fallback to aggregating from miniapp_stats
     const { data: platformData, error: platformError } = await supabase
       .from("platform_stats")
       .select("total_users, total_transactions, total_volume_gas, active_apps")
       .eq("id", 1)
       .single();
 
-    if (platformError || !platformData) {
-      console.error("Failed to read platform_stats:", platformError);
-      return res.status(200).json(defaultStats);
-    }
+    let stats: PlatformStats;
 
-    const stats: PlatformStats = {
-      totalUsers: platformData.total_users || defaultStats.totalUsers,
-      totalTransactions: platformData.total_transactions || defaultStats.totalTransactions,
-      totalVolume: platformData.total_volume_gas || defaultStats.totalVolume,
-      activeApps: platformData.active_apps || defaultStats.activeApps,
-      topApps: [],
-      dataSource: "database",
-    };
+    if (!platformError && platformData) {
+      // Use platform_stats if available
+      stats = {
+        totalUsers: platformData.total_users || defaultStats.totalUsers,
+        totalTransactions: platformData.total_transactions || defaultStats.totalTransactions,
+        totalVolume: platformData.total_volume_gas || defaultStats.totalVolume,
+        activeApps: platformData.active_apps || defaultStats.activeApps,
+        topApps: [],
+        dataSource: "database",
+      };
+    } else {
+      // Fallback: Aggregate from miniapp_stats table
+      console.log("platform_stats not available, aggregating from miniapp_stats");
+      const { data: aggregateData } = await supabase
+        .from("miniapp_stats")
+        .select("total_unique_users, total_transactions, total_volume_gas");
+
+      if (aggregateData && aggregateData.length > 0) {
+        const totals = aggregateData.reduce(
+          (acc, row) => ({
+            users: acc.users + (row.total_unique_users || 0),
+            txs: acc.txs + (row.total_transactions || 0),
+            volume: acc.volume + parseFloat(row.total_volume_gas || "0"),
+          }),
+          { users: 0, txs: 0, volume: 0 },
+        );
+
+        stats = {
+          totalUsers: totals.users || defaultStats.totalUsers,
+          totalTransactions: totals.txs || defaultStats.totalTransactions,
+          totalVolume: totals.volume.toFixed(2) || defaultStats.totalVolume,
+          activeApps: aggregateData.length,
+          topApps: [],
+          dataSource: "miniapp_stats",
+        };
+      } else {
+        stats = { ...defaultStats };
+      }
+    }
 
     // Get top apps from miniapp_stats
     const { data: topAppsData } = await supabase

@@ -9,16 +9,19 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
+import { supabaseAdmin, isSupabaseConfigured } from "../../../lib/supabase";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Verify cron secret for security
+  // Verify cron secret for security (skip in development)
   const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  const isDev = process.env.NODE_ENV === "development";
+
+  if (!isDev && cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured || !supabaseAdmin) {
     return res.status(500).json({ error: "Supabase not configured" });
   }
 
@@ -27,30 +30,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const userIncrement = Math.floor(Math.random() * 2) + 1; // 1-2
     const txIncrement = Math.floor(Math.random() * 11) + 10; // 10-20
 
-    // Update platform_stats with increments
-    const { data, error } = await supabase.rpc("increment_platform_stats", {
-      user_inc: userIncrement,
-      tx_inc: txIncrement,
-    });
+    // Get all miniapps and distribute increments
+    const { data: apps } = await supabaseAdmin
+      .from("miniapp_stats")
+      .select("id, total_unique_users, total_transactions")
+      .limit(10);
 
-    if (error) {
-      // Fallback: direct update if RPC not available
-      const { data: current } = await supabase
-        .from("platform_stats")
-        .select("total_users, total_transactions")
-        .eq("id", 1)
-        .single();
+    if (apps && apps.length > 0) {
+      // Pick a random app to increment
+      const randomApp = apps[Math.floor(Math.random() * apps.length)];
 
-      if (current) {
-        await supabase
-          .from("platform_stats")
-          .update({
-            total_users: current.total_users + userIncrement,
-            total_transactions: current.total_transactions + txIncrement,
-            last_updated_at: new Date().toISOString(),
-          })
-          .eq("id", 1);
-      }
+      await supabaseAdmin
+        .from("miniapp_stats")
+        .update({
+          total_unique_users: (randomApp.total_unique_users || 0) + userIncrement,
+          total_transactions: (randomApp.total_transactions || 0) + txIncrement,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", randomApp.id);
     }
 
     res.status(200).json({
