@@ -44,6 +44,8 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_APP_REQUESTS = new byte[] { 0x12 };
         private static readonly byte[] PREFIX_APP_FULFILLED = new byte[] { 0x13 };
         private static readonly byte[] PREFIX_APP_USERS = new byte[] { 0x14 };
+        private static readonly byte[] PREFIX_TOTAL_GAS_BURNED = new byte[] { 0x15 };
+        private static readonly byte[] PREFIX_APP_GAS_BURNED = new byte[] { 0x16 };
 
         public struct ServiceRequest
         {
@@ -157,6 +159,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static StorageMap AppRequestsMap() => new StorageMap(Storage.CurrentContext, PREFIX_APP_REQUESTS);
         private static StorageMap AppFulfilledMap() => new StorageMap(Storage.CurrentContext, PREFIX_APP_FULFILLED);
         private static StorageMap AppUsersMap() => new StorageMap(Storage.CurrentContext, PREFIX_APP_USERS);
+        private static StorageMap AppGasBurnedMap() => new StorageMap(Storage.CurrentContext, PREFIX_APP_GAS_BURNED);
 
         // ============ Stats Helper Methods ============
         private static void IncrementTotalRequests()
@@ -202,6 +205,19 @@ namespace NeoMiniAppPlatform.Contracts
             }
         }
 
+        private static void TrackGasBurned(string appId, BigInteger gasAmount)
+        {
+            // Track total gas burned
+            ByteString totalRaw = Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_GAS_BURNED);
+            BigInteger totalCurrent = totalRaw == null ? 0 : (BigInteger)totalRaw;
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_GAS_BURNED, totalCurrent + gasAmount);
+
+            // Track per-app gas burned
+            ByteString appRaw = AppGasBurnedMap().Get(appId);
+            BigInteger appCurrent = appRaw == null ? 0 : (BigInteger)appRaw;
+            AppGasBurnedMap().Put(appId, appCurrent + gasAmount);
+        }
+
         // ============ Stats Query Methods ============
         [Safe]
         public static BigInteger GetTotalRequests()
@@ -236,6 +252,20 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ByteString countKey = Helper.Concat((ByteString)appId, (ByteString)"_count");
             ByteString raw = AppUsersMap().Get(countKey);
+            return raw == null ? 0 : (BigInteger)raw;
+        }
+
+        [Safe]
+        public static BigInteger GetTotalGasBurned()
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_GAS_BURNED);
+            return raw == null ? 0 : (BigInteger)raw;
+        }
+
+        [Safe]
+        public static BigInteger GetAppGasBurned(string appId)
+        {
+            ByteString raw = AppGasBurnedMap().Get(appId);
             return raw == null ? 0 : (BigInteger)raw;
         }
 
@@ -335,6 +365,17 @@ namespace NeoMiniAppPlatform.Contracts
 
             Contract.Call(req.CallbackContract, req.CallbackMethod, CallFlags.All,
                 requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
+        }
+
+        /// <summary>
+        /// Record gas fee charged for a service request (called by updater)
+        /// </summary>
+        public static void RecordGasFee(string appId, BigInteger gasAmount)
+        {
+            ValidateUpdater();
+            ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
+            ExecutionEngine.Assert(gasAmount > 0, "gas amount must be positive");
+            TrackGasBurned(appId, gasAmount);
         }
 
         public static void Update(ByteString nefFile, string manifest)

@@ -6,11 +6,14 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
+import { getNeoBurgerStats } from "../../../lib/neoburger";
 
 interface PlatformStats {
   totalUsers: number;
   totalTransactions: number;
   totalVolume: string;
+  totalGasBurned: string;
+  stakingApr: string;
   activeApps: number;
   topApps: { name: string; users: number; color: string }[];
   dataSource?: string;
@@ -27,6 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       totalUsers: 12500,
       totalTransactions: 445000,
       totalVolume: "125000.00",
+      totalGasBurned: "85000.00",
+      stakingApr: "4.5",
       activeApps: 64,
       topApps: [],
       dataSource: "default",
@@ -39,9 +44,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Try platform_stats first, fallback to aggregating from miniapp_stats
     const { data: platformData, error: platformError } = await supabase
       .from("platform_stats")
-      .select("total_users, total_transactions, total_volume_gas, active_apps")
+      .select("total_users, total_transactions, total_volume_gas, total_gas_burned, active_apps")
       .eq("id", 1)
       .single();
+
+    // Fetch staking APR from NeoBurger (with fallback)
+    let stakingApr = defaultStats.stakingApr;
+    try {
+      const neoBurgerStats = await getNeoBurgerStats("mainnet");
+      stakingApr = neoBurgerStats.apr;
+    } catch (e) {
+      console.warn("Failed to fetch NeoBurger APR, using default:", e);
+    }
 
     let stats: PlatformStats;
 
@@ -51,6 +65,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         totalUsers: platformData.total_users || defaultStats.totalUsers,
         totalTransactions: platformData.total_transactions || defaultStats.totalTransactions,
         totalVolume: platformData.total_volume_gas || defaultStats.totalVolume,
+        totalGasBurned: platformData.total_gas_burned || defaultStats.totalGasBurned,
+        stakingApr,
         activeApps: platformData.active_apps || defaultStats.activeApps,
         topApps: [],
         dataSource: "database",
@@ -76,12 +92,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           totalUsers: totals.users || defaultStats.totalUsers,
           totalTransactions: totals.txs || defaultStats.totalTransactions,
           totalVolume: totals.volume.toFixed(2) || defaultStats.totalVolume,
+          totalGasBurned: defaultStats.totalGasBurned,
+          stakingApr,
           activeApps: aggregateData.length,
           topApps: [],
           dataSource: "miniapp_stats",
         };
       } else {
-        stats = { ...defaultStats };
+        stats = { ...defaultStats, stakingApr };
       }
     }
 

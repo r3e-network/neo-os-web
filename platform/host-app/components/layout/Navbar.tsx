@@ -9,7 +9,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
-import { NotificationDropdown } from "@/components/features/notifications/NotificationDropdown";
 
 const ConnectButton = dynamic(() => import("@/components/features/wallet").then((m) => m.ConnectButton), {
   ssr: false,
@@ -128,9 +127,6 @@ export function Navbar() {
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-
-          {/* Notification Bell */}
-          <NotificationDropdown walletAddress={walletAddress} />
 
           {/* Language Switcher */}
           <button

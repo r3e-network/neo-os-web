@@ -122,14 +122,14 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         requirePermission(permissions, "payments");
         const resolved = resolveAppId(requestedAppId, appId);
         if (!resolved) throw new Error("app_id required");
-        return sdk.payments.payGAS(resolved, amount, memo);
+        return sdk.payments!.payGAS!(resolved, amount, memo);
       },
-      payGASAndInvoke: sdk.payments.payGASAndInvoke
+      payGASAndInvoke: sdk.payments?.payGASAndInvoke
         ? async (requestedAppId: string, amount: string, memo?: string) => {
             requirePermission(permissions, "payments");
             const resolved = resolveAppId(requestedAppId, appId);
             if (!resolved) throw new Error("app_id required");
-            return sdk.payments.payGASAndInvoke!(resolved, amount, memo);
+            return sdk.payments!.payGASAndInvoke!(resolved, amount, memo);
           }
         : undefined,
     },
@@ -139,14 +139,14 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         requirePermission(permissions, "governance");
         const resolved = resolveAppId(requestedAppId, appId);
         if (!resolved) throw new Error("app_id required");
-        return sdk.governance.vote(resolved, proposalId, neoAmount, support);
+        return sdk.governance!.vote!(resolved, proposalId, neoAmount, support);
       },
-      voteAndInvoke: sdk.governance.voteAndInvoke
+      voteAndInvoke: sdk.governance?.voteAndInvoke
         ? async (requestedAppId: string, proposalId: string, neoAmount: string, support?: boolean) => {
             requirePermission(permissions, "governance");
             const resolved = resolveAppId(requestedAppId, appId);
             if (!resolved) throw new Error("app_id required");
-            return sdk.governance.voteAndInvoke!(resolved, proposalId, neoAmount, support);
+            return sdk.governance!.voteAndInvoke!(resolved, proposalId, neoAmount, support);
           }
         : undefined,
     },
@@ -156,35 +156,35 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         requirePermission(permissions, "randomness");
         const resolved = resolveAppId(requestedAppId, appId);
         if (!resolved) throw new Error("app_id required");
-        return sdk.rng.requestRandom(resolved);
+        return sdk.rng!.requestRandom!(resolved);
       },
     },
     datafeed: {
       ...sdk.datafeed,
       getPrice: async (symbol: string) => {
         requirePermission(permissions, "datafeed");
-        return sdk.datafeed.getPrice(symbol);
+        return sdk.datafeed!.getPrice!(symbol);
       },
     },
     stats: {
       ...sdk.stats,
       getMyUsage: async (requestedAppId?: string, date?: string) => {
-        const resolved = resolveAppId(requestedAppId, appId);
-        return sdk.stats.getMyUsage(resolved, date);
+        const resolved = resolveAppId(requestedAppId, appId) || appId || "";
+        return sdk.stats!.getMyUsage!(resolved, date);
       },
     },
     events: {
       ...sdk.events,
-      list: async (params) => {
-        const resolved = resolveAppId(params?.app_id, appId);
-        return sdk.events.list({ ...params, app_id: resolved });
+      list: async (params: Record<string, unknown>) => {
+        const resolved = resolveAppId(params?.app_id as string | undefined, appId);
+        return sdk.events!.list!({ ...params, app_id: resolved });
       },
     },
     transactions: {
       ...sdk.transactions,
-      list: async (params) => {
-        const resolved = resolveAppId(params?.app_id, appId);
-        return sdk.transactions.list({ ...params, app_id: resolved });
+      list: async (params: Record<string, unknown>) => {
+        const resolved = resolveAppId(params?.app_id as string | undefined, appId);
+        return sdk.transactions!.list!({ ...params, app_id: resolved });
       },
     },
   };

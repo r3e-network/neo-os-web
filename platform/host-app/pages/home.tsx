@@ -15,8 +15,8 @@ import { useWalletStore } from "@/lib/wallet/store";
 const defaultStats = [
   { label: "Total Transactions", value: "1.2M+" },
   { label: "Active Users", value: "45K+" },
-  { label: "MiniApps", value: "23" },
-  { label: "Total Volume", value: "$2.5M" },
+  { label: "Staking APR", value: "4.5%" },
+  { label: "Gas Burned", value: "85K GAS" },
 ];
 
 // Format large numbers (e.g., 1234567 -> "1.2M")
@@ -94,8 +94,8 @@ export default function HomePage() {
           setPlatformStats([
             { label: "Total Transactions", value: formatNumber(data.totalTransactions) },
             { label: "Active Users", value: formatNumber(data.totalUsers) },
-            { label: "MiniApps", value: String(data.activeApps || 23) },
-            { label: "Total Volume", value: `${formatNumber(parseFloat(data.totalVolume || "0"))} GAS` },
+            { label: "Staking APR", value: `${data.stakingApr || "4.5"}%` },
+            { label: "Gas Burned", value: `${formatNumber(parseFloat(data.totalGasBurned || "0"))} GAS` },
           ]);
         }
       } catch (error) {
