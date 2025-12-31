@@ -1,4 +1,4 @@
 {
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "buildCommand": "rm -rf .next && npm run build"
 }
-
