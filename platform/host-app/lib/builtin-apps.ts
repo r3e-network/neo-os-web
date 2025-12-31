@@ -618,7 +618,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
       "Vote for platform candidates and earn GAS rewards. Participate in governance by staking your tokens and supporting your preferred candidates with transparent on-chain voting.",
     icon: "🗳️",
     category: "governance",
-    entry_url: "mf://builtin?app=miniapp-candidate-vote",
+    entry_url: "/miniapps/candidate-vote",
     permissions: { governance: true, payments: true },
   },
 ];
@@ -632,7 +632,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
       "Explore the Neo N3 blockchain with real-time stats for both Mainnet and Testnet. Search transactions, addresses, and contracts with detailed execution traces.",
     icon: "🔍",
     category: "utility",
-    entry_url: "mf://builtin?app=miniapp-explorer",
+    entry_url: "/miniapps/explorer",
     permissions: { datafeed: true },
   },
   {
