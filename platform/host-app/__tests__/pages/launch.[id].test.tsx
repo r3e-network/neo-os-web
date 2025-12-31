@@ -140,7 +140,7 @@ describe("LaunchPage", () => {
       await renderLaunchPage();
       const iframe = document.querySelector("iframe");
       expect(iframe).toBeInTheDocument();
-      expect(iframe?.src).toBe("https://example.com/app");
+      expect(iframe?.src).toBe("https://example.com/app?lang=en");
       expect(iframe?.getAttribute("sandbox")).toBe("allow-scripts allow-same-origin allow-forms allow-popups");
       expect(iframe?.title).toBe("Test App MiniApp");
     });
@@ -468,7 +468,7 @@ describe("getServerSideProps", () => {
 
     const result = await getServerSideProps(context);
 
-    expect((result as any).props.app.entry_url).toBe("/miniapps/coin-flip/");
+    expect((result as any).props.app.entry_url).toBe("/miniapps/coin-flip");
   });
 
   it("should return app with required fields", async () => {

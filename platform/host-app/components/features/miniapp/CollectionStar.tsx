@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Star } from "lucide-react";
 import { useCollections } from "@/hooks/useCollections";
 import { cn } from "@/lib/utils";
