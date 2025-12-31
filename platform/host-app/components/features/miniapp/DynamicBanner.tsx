@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import * as Animations from "./animations";
 
 // Highlight data structure for live stats overlay
 export interface HighlightData {
@@ -40,6 +41,80 @@ function SwapAnimation() {
     </div>
   );
 }
+
+// App ID to Animation Component mapping
+const APP_ANIMATIONS: Record<string, React.ComponentType> = {
+  // Gaming
+  "miniapp-lottery": Animations.LotteryAnimation,
+  "miniapp-coinflip": Animations.CoinFlipAnimation,
+  "miniapp-dicegame": Animations.DiceAnimation,
+  "miniapp-scratchcard": Animations.ScratchCardAnimation,
+  "miniapp-secretpoker": Animations.PokerAnimation,
+  "miniapp-neocrash": Animations.CrashAnimation,
+  "miniapp-candlewars": Animations.CandleWarsAnimation,
+  "miniapp-algobattle": Animations.AlgoBattleAnimation,
+  "miniapp-fogchess": Animations.FogChessAnimation,
+  "miniapp-fogpuzzle": Animations.FogPuzzleAnimation,
+  "miniapp-cryptoriddle": Animations.CryptoRiddleAnimation,
+  "miniapp-worldpiano": Animations.WorldPianoAnimation,
+  "miniapp-millionpiecemap": Animations.MillionPieceMapAnimation,
+  "miniapp-puzzlemining": Animations.PuzzleMiningAnimation,
+  "miniapp-screamtoearn": Animations.ScreamToEarnAnimation,
+  // DeFi
+  "miniapp-neo-swap": SwapAnimation,
+  "miniapp-flashloan": Animations.FlashLoanAnimation,
+  "miniapp-aitrader": Animations.AITraderAnimation,
+  "miniapp-gridbot": Animations.GridBotAnimation,
+  "miniapp-bridgeguardian": Animations.BridgeGuardianAnimation,
+  "miniapp-gascircle": Animations.GasCircleAnimation,
+  "miniapp-ilguard": Animations.ILGuardAnimation,
+  "miniapp-compoundcapsule": Animations.CompoundCapsuleAnimation,
+  "miniapp-darkpool": Animations.DarkPoolAnimation,
+  "miniapp-dutchauction": Animations.DutchAuctionAnimation,
+  "miniapp-nolosslottery": Animations.NoLossLotteryAnimation,
+  "miniapp-quantumswap": Animations.QuantumSwapAnimation,
+  "miniapp-selfloan": Animations.SelfLoanAnimation,
+  "miniapp-neoburger": Animations.NeoBurgerAnimation,
+  "miniapp-priceticker": Animations.PriceTickerAnimation,
+  // Social
+  "miniapp-aisoulmate": Animations.AISoulmateAnimation,
+  "miniapp-redenvelope": Animations.RedEnvelopeAnimation,
+  "miniapp-darkradio": Animations.DarkRadioAnimation,
+  "miniapp-devtipping": Animations.DevTippingAnimation,
+  "miniapp-bountyhunter": Animations.BountyHunterAnimation,
+  "miniapp-breakupcontract": Animations.BreakupContractAnimation,
+  "miniapp-exfiles": Animations.ExFilesAnimation,
+  "miniapp-geospotlight": Animations.GeoSpotlightAnimation,
+  "miniapp-whisperchain": Animations.WhisperChainAnimation,
+  "miniapp-paytoview": Animations.PayToViewAnimation,
+  "miniapp-deadswitch": Animations.DeadSwitchAnimation,
+  "miniapp-timecapsule": Animations.TimeCapsuleAnimation,
+  // NFT
+  "miniapp-canvas": Animations.CanvasAnimation,
+  "miniapp-nftevolve": Animations.NFTEvolveAnimation,
+  "miniapp-nftchimera": Animations.NFTChimeraAnimation,
+  "miniapp-schrodingernft": Animations.SchrodingerNFTAnimation,
+  "miniapp-meltingasset": Animations.MeltingAssetAnimation,
+  "miniapp-onchaintarot": Animations.OnChainTarotAnimation,
+  "miniapp-gardenofneo": Animations.GardenOfNeoAnimation,
+  "miniapp-graveyard": Animations.GraveyardAnimation,
+  "miniapp-parasite": Animations.ParasiteAnimation,
+  // Governance
+  "miniapp-secretvote": Animations.SecretVoteAnimation,
+  "miniapp-govbooster": Animations.GovBoosterAnimation,
+  "miniapp-predictionmarket": Animations.PredictionMarketAnimation,
+  "miniapp-burnleague": Animations.BurnLeagueAnimation,
+  "miniapp-doomsdayclock": Animations.DoomsdayClockAnimation,
+  "miniapp-masqueradedao": Animations.MasqueradeDAOAnimation,
+  "miniapp-govmerc": Animations.GovMercAnimation,
+  // Utility
+  "miniapp-candidate-vote": Animations.CandidateVoteAnimation,
+  "miniapp-explorer": Animations.ExplorerAnimation,
+  "miniapp-guardianpolicy": Animations.GuardianPolicyAnimation,
+  "miniapp-unbreakablevault": Animations.UnbreakableVaultAnimation,
+  "miniapp-zkbadge": Animations.ZKBadgeAnimation,
+  "miniapp-heritagetrust": Animations.HeritageTrustAnimation,
+};
 
 interface DynamicBannerProps {
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
@@ -345,13 +420,17 @@ export function DynamicBanner({ category, icon, appId, highlights }: DynamicBann
       />
 
       {/* Center icon or custom animation */}
-      {appId === "miniapp-neo-swap" ? (
-        <SwapAnimation />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-7xl drop-shadow-2xl animate-bounce-slow">{icon}</span>
-        </div>
-      )}
+      {(() => {
+        const AnimationComponent = APP_ANIMATIONS[appId];
+        if (AnimationComponent) {
+          return <AnimationComponent />;
+        }
+        return (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-7xl drop-shadow-2xl animate-bounce-slow">{icon}</span>
+          </div>
+        );
+      })()}
 
       {/* Live Data Highlights Overlay - Large & Beautiful */}
       {highlights && highlights.length > 0 && (

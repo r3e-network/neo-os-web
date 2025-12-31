@@ -4,8 +4,9 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardRenderer } from "./CardRenderer";
-import { DynamicBanner } from "./DynamicBanner";
+import { DynamicBanner, type HighlightData } from "./DynamicBanner";
 import { MiniAppLogo } from "./MiniAppLogo";
+import { CollectionStar } from "./CollectionStar";
 import type { AnyCardData } from "@/types/card-display";
 
 export interface MiniAppInfo {
@@ -21,6 +22,7 @@ export interface MiniAppInfo {
     volume?: string;
   };
   cardData?: AnyCardData;
+  highlights?: HighlightData[];
 }
 
 const categoryColors = {
@@ -53,12 +55,14 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
     <Link href={`/miniapps/${app.app_id}`} className="relative block">
       <Card className="group cursor-pointer transition-all duration-300 ease-out hover:shadow-xl hover:-translate-y-1 hover:z-50 overflow-hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-md relative">
         {app.cardData ? (
-          <div className="w-full h-48">
+          <div className="w-full h-48 relative">
             <CardRenderer data={app.cardData} className="h-full" />
+            <CollectionStar appId={app.app_id} className="absolute top-2 right-2 z-10" />
           </div>
         ) : (
-          <div className="w-full h-48">
-            <DynamicBanner category={app.category} icon={app.icon} appId={app.app_id} />
+          <div className="w-full h-48 relative">
+            <DynamicBanner category={app.category} icon={app.icon} appId={app.app_id} highlights={app.highlights} />
+            <CollectionStar appId={app.app_id} className="absolute top-2 right-2 z-10" />
           </div>
         )}
         <CardContent className="p-5 bg-white dark:bg-gray-900">

@@ -51,6 +51,62 @@ module.exports = {
         "swap-left": "swap-left 2s ease-in-out infinite",
         "swap-right": "swap-right 2s ease-in-out infinite",
         "spin-slow": "spin 3s linear infinite",
+        "reverse-spin": "spin 3s linear infinite reverse",
+        // Gaming animations
+        "slot-spin": "slot-spin 0.5s ease-in-out infinite",
+        "coin-flip": "coin-flip 2s ease-in-out infinite",
+        "dice-roll": "dice-roll 1s ease-in-out infinite",
+        "scratch-reveal": "scratch-reveal 2s ease-in-out infinite",
+        "scratch-shine": "scratch-shine 2s linear infinite",
+        "card-shuffle": "card-shuffle 1.5s ease-in-out infinite",
+        "rocket-launch": "rocket-launch 2s ease-in-out infinite",
+        "candle-green": "candle-pulse 1s ease-in-out infinite",
+        "candle-red": "candle-pulse 1s ease-in-out infinite 0.5s",
+        "battle-left": "battle-left 1s ease-in-out infinite",
+        "battle-right": "battle-right 1s ease-in-out infinite",
+        "chess-move": "chess-move 2s ease-in-out infinite",
+        "fog-drift": "fog-drift 3s ease-in-out infinite",
+        "puzzle-left": "puzzle-left 2s ease-in-out infinite",
+        "puzzle-right": "puzzle-right 2s ease-in-out infinite",
+        "riddle-bounce": "riddle-bounce 1.5s ease-in-out infinite",
+        "key-appear": "key-appear 2s ease-in-out infinite",
+        "piano-key": "piano-key 0.5s ease-in-out infinite",
+        "map-pan": "map-pan 4s ease-in-out infinite",
+        "pin-drop": "pin-drop 2s ease-in-out infinite",
+        "pickaxe-swing": "pickaxe-swing 1s ease-in-out infinite",
+        "gem-sparkle": "gem-sparkle 1s ease-in-out infinite",
+        soundwave: "soundwave 0.5s ease-in-out infinite alternate",
+        // DeFi animations
+        "lightning-flash": "lightning-flash 1s ease-in-out infinite",
+        "coin-fly": "coin-fly 1.5s ease-in-out infinite",
+        "chart-draw": "chart-draw 2s ease-in-out infinite",
+        "grid-pulse": "grid-pulse 1s ease-in-out infinite",
+        "bridge-connect": "bridge-connect 2s ease-in-out infinite",
+        "shield-pulse": "shield-pulse 2s ease-in-out infinite",
+        "capsule-grow": "capsule-grow 2s ease-in-out infinite",
+        ripple: "ripple 2s ease-out infinite",
+        "price-drop": "price-drop 1.5s ease-in-out infinite",
+        orbit: "orbit 3s linear infinite",
+        "orbit-reverse": "orbit 3s linear infinite reverse",
+        "burger-stack": "burger-stack 2s ease-in-out infinite",
+        "ticker-scroll": "ticker-scroll 4s linear infinite",
+        // Social animations
+        heartbeat: "heartbeat 1.5s ease-in-out infinite",
+        "envelope-open": "envelope-open 2s ease-in-out infinite",
+        "coin-burst": "coin-burst 2s ease-in-out infinite",
+        "radio-wave": "radio-wave 1s ease-out infinite",
+        "coin-rain": "coin-rain 2s linear infinite",
+        "target-lock": "target-lock 2s ease-in-out infinite",
+        "tear-left": "tear-left 2s ease-in-out infinite",
+        "tear-right": "tear-right 2s ease-in-out infinite",
+        "folder-open": "folder-open 2s ease-in-out infinite",
+        "file-pop": "file-pop 2s ease-in-out infinite",
+        "spotlight-scan": "spotlight-scan 3s ease-in-out infinite",
+        "whisper-chain": "whisper-chain 1.5s ease-in-out infinite",
+        "eye-open": "eye-open 2s ease-in-out infinite",
+        unlock: "unlock 2s ease-in-out infinite",
+        "switch-toggle": "switch-toggle 2s ease-in-out infinite",
+        "capsule-bury": "capsule-bury 2s ease-in-out infinite",
       },
       keyframes: {
         "border-glow": {
@@ -77,6 +133,216 @@ module.exports = {
         "swap-right": {
           "0%, 100%": { transform: "translateX(0)" },
           "50%": { transform: "translateX(-70px)" },
+        },
+        // Gaming keyframes
+        "slot-spin": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        "coin-flip": {
+          "0%": { transform: "rotateY(0deg)" },
+          "50%": { transform: "rotateY(180deg)" },
+          "100%": { transform: "rotateY(360deg)" },
+        },
+        "dice-roll": {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "25%": { transform: "rotate(90deg)" },
+          "50%": { transform: "rotate(180deg)" },
+          "75%": { transform: "rotate(270deg)" },
+        },
+        "scratch-reveal": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7", transform: "scale(1.05)" },
+        },
+        "scratch-shine": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        "card-shuffle": {
+          "0%, 100%": { transform: "translateX(0) rotate(0deg)" },
+          "50%": { transform: "translateX(10px) rotate(5deg)" },
+        },
+        "rocket-launch": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        "candle-pulse": {
+          "0%, 100%": { opacity: "1", transform: "scaleY(1)" },
+          "50%": { opacity: "0.8", transform: "scaleY(1.1)" },
+        },
+        "battle-left": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(10px)" },
+        },
+        "battle-right": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(-10px)" },
+        },
+        "chess-move": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(20px)" },
+        },
+        "fog-drift": {
+          "0%, 100%": { opacity: "0.3", transform: "translateX(0)" },
+          "50%": { opacity: "0.6", transform: "translateX(10px)" },
+        },
+        "puzzle-left": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(10px)" },
+        },
+        "puzzle-right": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(-10px)" },
+        },
+        "riddle-bounce": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "50%": { transform: "translateY(-10px) rotate(10deg)" },
+        },
+        "key-appear": {
+          "0%, 40%": { opacity: "0", transform: "scale(0)" },
+          "60%, 100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "piano-key": {
+          "0%, 100%": { transform: "scaleY(1)" },
+          "50%": { transform: "scaleY(0.9)" },
+        },
+        "map-pan": {
+          "0%, 100%": { transform: "translate(0, 0)" },
+          "25%": { transform: "translate(10px, -5px)" },
+          "75%": { transform: "translate(-10px, 5px)" },
+        },
+        "pin-drop": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-30px)" },
+        },
+        "pickaxe-swing": {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "50%": { transform: "rotate(-30deg)" },
+        },
+        "gem-sparkle": {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%": { opacity: "0.5", transform: "scale(1.2)" },
+        },
+        soundwave: {
+          "0%": { transform: "scaleY(0.5)" },
+          "100%": { transform: "scaleY(1.5)" },
+        },
+        // DeFi keyframes
+        "lightning-flash": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.3", transform: "scale(1.1)" },
+        },
+        "coin-fly": {
+          "0%, 100%": { transform: "translate(0, 0)" },
+          "50%": { transform: "translate(20px, -20px)" },
+        },
+        "chart-draw": {
+          "0%": { "stroke-dashoffset": "200" },
+          "100%": { "stroke-dashoffset": "0" },
+        },
+        "grid-pulse": {
+          "0%, 100%": { opacity: "0.4" },
+          "50%": { opacity: "0.8" },
+        },
+        "bridge-connect": {
+          "0%, 100%": { transform: "scaleX(0.5)", opacity: "0.5" },
+          "50%": { transform: "scaleX(1)", opacity: "1" },
+        },
+        "shield-pulse": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.1)" },
+        },
+        "capsule-grow": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.15)" },
+        },
+        ripple: {
+          "0%": { transform: "scale(0.5)", opacity: "1" },
+          "100%": { transform: "scale(2)", opacity: "0" },
+        },
+        "price-drop": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(15px)" },
+        },
+        orbit: {
+          "0%": { transform: "rotate(0deg) translateX(30px) rotate(0deg)" },
+          "100%": { transform: "rotate(360deg) translateX(30px) rotate(-360deg)" },
+        },
+        "burger-stack": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
+        "ticker-scroll": {
+          "0%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(-100%)" },
+        },
+        // Social keyframes
+        heartbeat: {
+          "0%, 100%": { transform: "scale(1)" },
+          "25%": { transform: "scale(1.1)" },
+          "50%": { transform: "scale(1)" },
+          "75%": { transform: "scale(1.1)" },
+        },
+        "envelope-open": {
+          "0%, 100%": { transform: "rotateX(0deg)" },
+          "50%": { transform: "rotateX(-20deg)" },
+        },
+        "coin-burst": {
+          "0%, 100%": { transform: "translateY(0)", opacity: "0" },
+          "50%": { transform: "translateY(-20px)", opacity: "1" },
+        },
+        "radio-wave": {
+          "0%": { transform: "scaleX(0)", opacity: "1" },
+          "100%": { transform: "scaleX(1)", opacity: "0" },
+        },
+        "coin-rain": {
+          "0%": { transform: "translateY(-100%)", opacity: "0" },
+          "50%": { opacity: "1" },
+          "100%": { transform: "translateY(200%)", opacity: "0" },
+        },
+        "target-lock": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.5" },
+          "50%": { transform: "scale(0.8)", opacity: "1" },
+        },
+        "tear-left": {
+          "0%, 100%": { transform: "translateX(0) rotate(0deg)" },
+          "50%": { transform: "translateX(-10px) rotate(-10deg)" },
+        },
+        "tear-right": {
+          "0%, 100%": { transform: "translateX(0) rotate(0deg)" },
+          "50%": { transform: "translateX(10px) rotate(10deg)" },
+        },
+        "folder-open": {
+          "0%, 100%": { transform: "perspective(100px) rotateX(0deg)" },
+          "50%": { transform: "perspective(100px) rotateX(-15deg)" },
+        },
+        "file-pop": {
+          "0%, 100%": { transform: "translateY(0)", opacity: "0" },
+          "50%": { transform: "translateY(-15px)", opacity: "1" },
+        },
+        "spotlight-scan": {
+          "0%, 100%": { transform: "translateX(-50%) rotate(0deg)" },
+          "50%": { transform: "translateX(50%) rotate(360deg)" },
+        },
+        "whisper-chain": {
+          "0%, 100%": { transform: "scale(0.8)", opacity: "0.5" },
+          "50%": { transform: "scale(1)", opacity: "1" },
+        },
+        "eye-open": {
+          "0%, 100%": { transform: "scaleY(1)" },
+          "50%": { transform: "scaleY(0.3)" },
+        },
+        unlock: {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "50%": { transform: "rotate(-15deg)" },
+        },
+        "switch-toggle": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(24px)" },
+        },
+        "capsule-bury": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(10px)" },
         },
       },
     },

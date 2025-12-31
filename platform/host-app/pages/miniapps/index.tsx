@@ -3,10 +3,12 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown } from "lucide-react";
 import { Layout } from "@/components/layout";
-import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@/components/features/miniapp";
+import { MiniAppGrid, MiniAppListItem, FilterSidebar } from "@/components/features/miniapp";
+import type { MiniAppInfo } from "@/components/types";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { getCardData } from "@/hooks/useCardData";
 import { getAppHighlights, generateDefaultHighlights } from "@/lib/app-highlights";
+import { useCollections } from "@/hooks/useCollections";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
 
@@ -120,6 +122,8 @@ export default function MiniAppsPage() {
     setFilters((prev) => ({ ...prev, [sectionId]: values }));
   };
 
+  const { collectionsSet } = useCollections();
+
   const filteredAndSortedApps = useMemo(() => {
     const appsWithStats = apps.map((app) => {
       const stats = statsMap[app.app_id] || app.stats;
@@ -151,6 +155,11 @@ export default function MiniAppsPage() {
 
     // Sort
     result.sort((a, b) => {
+      // Collected apps always come first
+      const aCollected = collectionsSet.has(a.app_id) ? 1 : 0;
+      const bCollected = collectionsSet.has(b.app_id) ? 1 : 0;
+      if (aCollected !== bCollected) return bCollected - aCollected;
+
       switch (sortBy) {
         case "users":
           return (b.stats?.users || 0) - (a.stats?.users || 0);
@@ -167,7 +176,7 @@ export default function MiniAppsPage() {
     });
 
     return result;
-  }, [apps, communityApps, statsMap, searchQuery, filters, sortBy]);
+  }, [apps, communityApps, statsMap, searchQuery, filters, sortBy, collectionsSet]);
 
   const currentSort = sortOptions.find((s) => s.value === sortBy) || sortOptions[0];
 
