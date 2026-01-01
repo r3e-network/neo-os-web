@@ -9,6 +9,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
+import { NotificationDropdown } from "@/components/features/notifications/NotificationDropdown";
 
 const ConnectButton = dynamic(() => import("@/components/features/wallet").then((m) => m.ConnectButton), {
   ssr: false,
@@ -137,6 +138,9 @@ export function Navbar() {
             <Globe size={18} />
             <span className="text-xs font-medium">{locale === "en" ? "EN" : "中"}</span>
           </button>
+
+          {/* Notification Dropdown */}
+          <NotificationDropdown />
 
           <ConnectButton />
 

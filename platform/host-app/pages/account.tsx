@@ -9,6 +9,7 @@ import { useWalletStore } from "@/lib/wallet/store";
 import { useOAuthStore, oauthProviders } from "@/lib/oauth/store";
 import { useGamification } from "@/hooks/useGamification";
 import { BadgeGrid } from "@/components/features/gamification";
+import { SecretManagement, TokenManagement, AccountBackup, PasswordChange } from "@/components/features/account";
 
 export default function AccountPage() {
   const { address, connected } = useWalletStore();
@@ -82,6 +83,16 @@ export default function AccountPage() {
                 })}
               </CardContent>
             </Card>
+
+            {/* Developer Tools Section */}
+            <SecretManagement walletAddress={address} />
+            <TokenManagement walletAddress={address} />
+
+            {/* Security Section */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <PasswordChange walletAddress={address} />
+              <AccountBackup walletAddress={address} />
+            </div>
           </div>
 
           {/* Sidebar Stats */}

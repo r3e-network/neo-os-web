@@ -22,6 +22,9 @@ export function ConnectButton() {
   };
 
   if (connected) {
+    const gasBalance = balance?.gas ? parseFloat(balance.gas) : 0;
+    const displayBalance = gasBalance > 0 ? gasBalance.toFixed(4) : "0.0000";
+
     return (
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-4 py-2 border border-gray-200 dark:border-gray-700">
@@ -29,11 +32,7 @@ export function ConnectButton() {
           <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {address.slice(0, 6)}...{address.slice(-4)}
           </span>
-          {balance && (
-            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
-              {parseFloat(balance.gas).toFixed(4)} GAS
-            </span>
-          )}
+          <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">{displayBalance} GAS</span>
           <button
             onClick={handleRefresh}
             disabled={refreshing}

@@ -137,30 +137,64 @@ export class NeoLineAdapter implements WalletAdapter {
       const neoNorm = normalizeContract(NEO_CONTRACT);
       const gasNorm = normalizeContract(GAS_CONTRACT);
 
-      // Handle case where balances might be nested in a response object
-      const balanceArray = Array.isArray(balances)
-        ? balances
-        : (balances as { balance?: typeof balances })?.balance || [];
+      // Handle multiple possible response formats from NeoLine
+      let balanceArray: Array<{ contract: string; symbol: string; amount: string }> = [];
+
+      if (Array.isArray(balances)) {
+        balanceArray = balances;
+      } else if (balances && typeof balances === "object") {
+        // Try different nested structures
+        if (Array.isArray((balances as any).balance)) {
+          balanceArray = (balances as any).balance;
+        } else if (Array.isArray((balances as any).balances)) {
+          balanceArray = (balances as any).balances;
+        } else if (Array.isArray((balances as any).result)) {
+          balanceArray = (balances as any).result;
+        }
+      }
 
       if (!Array.isArray(balanceArray) || balanceArray.length === 0) {
-        logger.warn("[NeoLine] No balances returned or empty array");
+        logger.warn("[NeoLine] No balances returned or empty array, response structure:", typeof balances);
+        // Return zero balances but don't throw error
+        return { neo: "0", gas: "0" };
       }
 
       for (const b of balanceArray) {
-        const contractNorm = normalizeContract(b.contract || "");
-        logger.debug("[NeoLine] Processing balance:", b.symbol, b.amount, "contract:", b.contract);
+        if (!b || typeof b !== "object") continue;
 
-        if (contractNorm === neoNorm) neo = b.amount;
-        if (contractNorm === gasNorm) gas = b.amount;
-        // Also check by symbol as fallback
-        if (b.symbol?.toUpperCase() === "NEO") neo = b.amount;
-        if (b.symbol?.toUpperCase() === "GAS") gas = b.amount;
+        const contractNorm = normalizeContract(b.contract || "");
+        const symbol = (b.symbol || "").toUpperCase();
+        const amount = b.amount || "0";
+
+        logger.debug("[NeoLine] Processing balance:", symbol, amount, "contract:", b.contract);
+
+        // Match by contract hash (most reliable)
+        if (contractNorm === neoNorm) {
+          neo = amount;
+        }
+        if (contractNorm === gasNorm) {
+          gas = amount;
+        }
+
+        // Fallback: match by symbol
+        if (symbol === "NEO" && neo === "0") {
+          neo = amount;
+        }
+        if (symbol === "GAS" && gas === "0") {
+          gas = amount;
+        }
       }
 
       logger.debug("[NeoLine] Final balance - NEO:", neo, "GAS:", gas);
-      return { neo, gas };
+
+      // Ensure we return valid numeric strings
+      return {
+        neo: neo || "0",
+        gas: gas || "0",
+      };
     } catch (error) {
       logger.error("[NeoLine] Failed to get balance:", error);
+      // Return zero balances on error
       return { neo: "0", gas: "0" };
     }
   }

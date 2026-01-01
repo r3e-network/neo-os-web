@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { StatsBar } from "@/components/features/stats";
 import { MiniAppCard, MiniAppListItem, type MiniAppInfo } from "@/components/features/miniapp";
+import { NewsSection } from "@/components/features/news";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { useTranslation } from "@/lib/i18n/react";
 import {
@@ -32,6 +33,15 @@ interface AppStats {
   [appId: string]: { users: number; transactions: number };
 }
 
+interface PlatformStats {
+  totalUsers: number;
+  totalTransactions: number;
+  totalVolume: string;
+  totalGasBurned: string;
+  stakingApr: string;
+  activeApps: number;
+}
+
 // Category definitions with icons
 const CATEGORY_ICONS: Record<string, any> = {
   all: LayoutGrid,
@@ -49,6 +59,7 @@ export default function LandingPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState<"trending" | "recent" | "popular">("trending");
   const [appStats, setAppStats] = useState<AppStats>({});
+  const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [displayedTxCount, setDisplayedTxCount] = useState(0);
 
@@ -59,7 +70,8 @@ export default function LandingPage() {
         // Fetch platform-wide stats from contract_events
         const res = await fetch("/api/platform/stats");
         if (res.ok) {
-          const data = await res.json();
+          const data: PlatformStats = await res.json();
+          setPlatformStats(data);
           // Use platform stats directly
           setAppStats({
             _platform: {
@@ -203,8 +215,20 @@ export default function LandingPage() {
               value: loading ? "..." : displayedTxCount.toLocaleString(),
               icon: Zap,
             },
-            { label: "MiniApps Live", value: String(BUILTIN_APPS.length), icon: LayoutGrid },
-            { label: "Categories", value: String(categories.length - 1), icon: Shield },
+            {
+              label: "Staking APR",
+              value: loading ? "..." : platformStats?.stakingApr ? `${platformStats.stakingApr}%` : "5.2%",
+              icon: Coins,
+            },
+            {
+              label: "Total GAS Burned",
+              value: loading
+                ? "..."
+                : platformStats?.totalGasBurned
+                  ? `${parseFloat(platformStats.totalGasBurned).toFixed(2)}`
+                  : "0",
+              icon: Shield,
+            },
           ]}
         />
       </div>
@@ -251,6 +275,11 @@ export default function LandingPage() {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* News Section */}
+              <div>
+                <NewsSection />
               </div>
             </aside>
 

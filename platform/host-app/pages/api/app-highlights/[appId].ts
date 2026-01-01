@@ -75,7 +75,7 @@ async function fetchNeoBurgerHighlights(): Promise<HighlightData[]> {
   const stats = await getNeoBurgerStats("mainnet");
   return [
     { label: "APR", value: `${stats.apr}%`, icon: "📈", trend: "up" },
-    { label: "Staked", value: `${stats.totalStakedFormatted} NEO`, icon: "🍔" },
+    { label: "Staked", value: `${stats.totalStaked} NEO`, icon: "🍔" },
   ];
 }
 

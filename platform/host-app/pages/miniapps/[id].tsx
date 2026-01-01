@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import {
@@ -9,17 +9,25 @@ import {
   AppDetailHeader,
   AppStatsCard,
   AppNewsList,
+  WalletState,
 } from "../../components";
 import { ActivityTicker } from "../../components/ActivityTicker";
 import { AppSecretsTab } from "../../components/features/secrets/AppSecretsTab";
 import { ReviewsTab } from "../../components/features/reviews";
 import { ForumTab } from "../../components/features/forum";
+import { SplitViewLayout } from "../../components/layout/SplitViewLayout";
+import { LaunchDock } from "../../components/LaunchDock";
+import { FederatedMiniApp } from "../../components/FederatedMiniApp";
+import { LiveChat } from "../../components/features/chat";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
-import { coerceMiniAppInfo } from "../../lib/miniapp";
+import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { getBuiltinApp } from "../../lib/builtin-apps";
 import { logger } from "../../lib/logger";
 import { useTranslation } from "../../lib/i18n/react";
+import { installMiniAppSDK } from "../../lib/miniapp-sdk";
+import type { MiniAppSDK } from "../../lib/miniapp-sdk";
+import { useI18n } from "../../lib/i18n/react";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -117,10 +125,27 @@ export type AppDetailPageProps = {
   error?: string;
 };
 
+/** NeoLine N3 wallet interface */
+interface NeoLineN3Wallet {
+  Init: new () => { getAccount: () => Promise<{ address: string }> };
+}
+
+interface WindowWithNeoLine extends Window {
+  NEOLineN3?: NeoLineN3Wallet;
+}
+
+interface WindowWithMiniAppSDK {
+  MiniAppSDK?: MiniAppSDK;
+}
+
 export default function MiniAppDetailPage({ app, stats, notifications, error }: AppDetailPageProps) {
   const router = useRouter();
   const { t } = useTranslation("host");
+  const { locale } = useI18n();
   const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "forum" | "news" | "secrets">("overview");
+  const [wallet, setWallet] = useState<WalletState>({ connected: false, address: "", provider: null });
+  const [networkLatency, setNetworkLatency] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
 
@@ -130,6 +155,143 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     pollInterval: 5000,
     enabled: Boolean(app?.app_id),
   });
+
+  // MiniApp launch logic
+  const federated = app ? parseFederatedEntryUrl(app.entry_url, app.app_id) : null;
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const sdkRef = useRef<MiniAppSDK | null>(null);
+
+  // Build iframe URL with language parameter
+  const iframeSrc = useMemo(() => {
+    if (!app) return "";
+    const supportedLocale = locale === "zh" ? "zh" : "en";
+    const separator = app.entry_url.includes("?") ? "&" : "?";
+    return `${app.entry_url}${separator}lang=${supportedLocale}`;
+  }, [app?.entry_url, locale]);
+
+  // Initialize SDK
+  useEffect(() => {
+    if (!app) return;
+    sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
+  }, [app?.app_id, app?.permissions]);
+
+  // Iframe bridge for SDK communication
+  useEffect(() => {
+    if (!app || federated) return;
+    if (typeof window === "undefined") return;
+
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const expectedOrigin = resolveIframeOrigin(app.entry_url);
+    if (!expectedOrigin) return;
+
+    const allowSameOriginInjection = expectedOrigin === window.location.origin;
+
+    const ensureSDK = () => {
+      if (!sdkRef.current) {
+        sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
+      }
+      return sdkRef.current;
+    };
+
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.source !== iframe.contentWindow) return;
+      if (event.origin !== expectedOrigin) return;
+
+      const data = event.data as Record<string, unknown> | null;
+      if (!data || typeof data !== "object") return;
+      if (data.type !== "neo_miniapp_sdk_request") return;
+
+      const id = String(data.id ?? "").trim();
+      if (!id) return;
+
+      const method = String(data.method ?? "").trim();
+      const params = Array.isArray(data.params) ? data.params : [];
+      const source = event.source as Window | null;
+      if (!source || typeof source.postMessage !== "function") return;
+
+      const respond = (ok: boolean, result?: unknown, error?: string) => {
+        source.postMessage(
+          {
+            type: "neo_miniapp_sdk_response",
+            id,
+            ok,
+            result,
+            error,
+          },
+          expectedOrigin,
+        );
+      };
+
+      try {
+        const sdk = ensureSDK();
+        if (!sdk) throw new Error("MiniAppSDK unavailable");
+        const result = await dispatchBridgeCall(sdk, method, params, app.permissions, app.app_id);
+        respond(true, result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "request failed";
+        respond(false, undefined, message);
+      }
+    };
+
+    const handleLoad = () => {
+      if (!allowSameOriginInjection) return;
+      const sdk = ensureSDK();
+      if (!sdk) return;
+      try {
+        if (iframe.contentWindow) {
+          (iframe.contentWindow as WindowWithMiniAppSDK).MiniAppSDK = sdk;
+          iframe.contentWindow.dispatchEvent(new Event("miniapp-sdk-ready"));
+        }
+      } catch {
+        // Ignore cross-origin access failures
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    iframe.addEventListener("load", handleLoad);
+    handleLoad();
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      iframe.removeEventListener("load", handleLoad);
+    };
+  }, [app?.app_id, iframeSrc, app?.permissions, federated, app?.entry_url]);
+
+  // Network latency monitoring
+  useEffect(() => {
+    const measureLatency = async () => {
+      try {
+        const start = performance.now();
+        await fetch("/api/health", { method: "HEAD" });
+        const end = performance.now();
+        setNetworkLatency(Math.round(end - start));
+      } catch (e) {
+        setNetworkLatency(null);
+      }
+    };
+    measureLatency();
+    const interval = setInterval(measureLatency, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Wallet connection
+  useEffect(() => {
+    const tryConnectWallet = async () => {
+      try {
+        const g = window as WindowWithNeoLine;
+        if (g?.NEOLineN3) {
+          const inst = new g.NEOLineN3.Init();
+          const acc = await inst.getAccount();
+          setWallet({ connected: true, address: acc.address, provider: "neoline" });
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    };
+    tryConnectWallet();
+  }, []);
 
   if (error || !app) {
     return (
@@ -149,14 +311,22 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     router.push("/miniapps");
   };
 
-  const handleLaunch = () => {
-    router.push(`/launch/${app.app_id}`);
-  };
+  const handleShare = useCallback(() => {
+    const url = `${window.location.origin}/miniapps/${app.app_id}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setToastMessage("Link copied!");
+        setTimeout(() => setToastMessage(null), 2000);
+      })
+      .catch((e) => logger.error("Failed to copy link", e));
+  }, [app.app_id]);
 
   const statCards = stats ? buildStatCards(stats, app.stats_display ?? undefined, t) : [];
 
-  return (
-    <div style={containerStyle}>
+  // Left panel: App details
+  const leftPanel = (
+    <div style={leftPanelStyle}>
       <AppDetailHeader app={app} stats={stats || undefined} onBack={handleBack} />
 
       <main style={mainStyle}>
@@ -240,15 +410,44 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           </div>
         </section>
       </main>
-
-      {/* Fixed Launch Button */}
-      <div style={launchBarStyle}>
-        <button style={launchButtonStyle} onClick={handleLaunch}>
-          {t("detail.launchApp")} →
-        </button>
-      </div>
     </div>
   );
+
+  // Right panel: MiniApp iframe
+  const rightPanel = (
+    <div style={rightPanelContainerStyle}>
+      <LaunchDock
+        appName={app.name}
+        appId={app.app_id}
+        wallet={wallet}
+        networkLatency={networkLatency}
+        onExit={handleBack}
+        onShare={handleShare}
+      />
+      {federated ? (
+        <div style={federatedStyle}>
+          <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
+        </div>
+      ) : (
+        <iframe
+          src={iframeSrc}
+          ref={iframeRef}
+          style={iframeStyle}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          title={`${app.name} MiniApp`}
+          allowFullScreen
+        />
+      )}
+      {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
+      <LiveChat
+        appId={app.app_id}
+        walletAddress={wallet.address}
+        userName={wallet.address ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}` : undefined}
+      />
+    </div>
+  );
+
+  return <SplitViewLayout leftPanel={leftPanel} rightPanel={rightPanel} leftWidth={420} />;
 }
 
 function OverviewTab({ app, t }: { app: MiniAppInfo; t: (key: string) => string }) {
@@ -307,6 +506,116 @@ function OverviewTab({ app, t }: { app: MiniAppInfo; t: (key: string) => string 
       </div>
     </div>
   );
+}
+
+// Helper functions for iframe bridge
+function resolveIframeOrigin(entryUrl: string): string | null {
+  const trimmed = String(entryUrl || "").trim();
+  if (!trimmed || trimmed.startsWith("mf://")) return null;
+  try {
+    return new URL(trimmed, window.location.origin).origin;
+  } catch {
+    return null;
+  }
+}
+
+function hasPermission(method: string, permissions: MiniAppInfo["permissions"]): boolean {
+  if (!permissions) return false;
+  switch (method) {
+    case "payments.payGAS":
+      return Boolean(permissions.payments);
+    case "governance.vote":
+      return Boolean(permissions.governance);
+    case "rng.requestRandom":
+      return Boolean(permissions.randomness);
+    case "datafeed.getPrice":
+      return Boolean(permissions.datafeed);
+    default:
+      return true;
+  }
+}
+
+function resolveScopedAppId(requested: unknown, appId: string): string {
+  const trimmed = String(requested ?? "").trim();
+  if (trimmed && trimmed !== appId) {
+    throw new Error("app_id mismatch");
+  }
+  return appId;
+}
+
+function normalizeListParams(raw: unknown, appId: string): Record<string, unknown> {
+  const base = raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
+  return { ...base, app_id: resolveScopedAppId(base.app_id, appId) };
+}
+
+async function dispatchBridgeCall(
+  sdk: MiniAppSDK,
+  method: string,
+  params: unknown[],
+  permissions: MiniAppInfo["permissions"],
+  appId: string,
+): Promise<unknown> {
+  if (!hasPermission(method, permissions)) {
+    throw new Error(`permission denied: ${method}`);
+  }
+
+  switch (method) {
+    case "wallet.getAddress":
+    case "getAddress": {
+      if (sdk.wallet?.getAddress) return sdk.wallet.getAddress();
+      if (sdk.getAddress) return sdk.getAddress();
+      throw new Error("wallet.getAddress not available");
+    }
+    case "wallet.invokeIntent": {
+      if (!sdk.wallet?.invokeIntent) throw new Error("wallet.invokeIntent not available");
+      const [requestId] = params;
+      return sdk.wallet.invokeIntent(String(requestId ?? ""));
+    }
+    case "payments.payGAS": {
+      if (!sdk.payments?.payGAS) throw new Error("payments.payGAS not available");
+      const [requestedAppId, amount, memo] = params;
+      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
+      const memoValue = memo === undefined || memo === null ? undefined : String(memo);
+      return sdk.payments.payGAS(scopedAppId, String(amount ?? ""), memoValue);
+    }
+    case "governance.vote": {
+      if (!sdk.governance?.vote) throw new Error("governance.vote not available");
+      const [requestedAppId, proposalId, neoAmount, support] = params;
+      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
+      const supportValue = typeof support === "boolean" ? support : undefined;
+      return sdk.governance.vote(scopedAppId, String(proposalId ?? ""), String(neoAmount ?? ""), supportValue);
+    }
+    case "rng.requestRandom": {
+      if (!sdk.rng?.requestRandom) throw new Error("rng.requestRandom not available");
+      const [requestedAppId] = params;
+      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
+      return sdk.rng.requestRandom(scopedAppId);
+    }
+    case "datafeed.getPrice": {
+      if (!sdk.datafeed?.getPrice) throw new Error("datafeed.getPrice not available");
+      const [symbol] = params;
+      return sdk.datafeed.getPrice(String(symbol ?? ""));
+    }
+    case "stats.getMyUsage": {
+      if (!sdk.stats?.getMyUsage) throw new Error("stats.getMyUsage not available");
+      const [requestedAppId, date] = params;
+      const resolvedAppId = resolveScopedAppId(requestedAppId, appId);
+      const dateValue = date === undefined || date === null ? undefined : String(date);
+      return sdk.stats.getMyUsage(resolvedAppId, dateValue);
+    }
+    case "events.list": {
+      if (!sdk.events?.list) throw new Error("events.list not available");
+      const [rawParams] = params;
+      return sdk.events.list(normalizeListParams(rawParams, appId));
+    }
+    case "transactions.list": {
+      if (!sdk.transactions?.list) throw new Error("transactions.list not available");
+      const [rawParams] = params;
+      return sdk.transactions.list(normalizeListParams(rawParams, appId));
+    }
+    default:
+      throw new Error(`unsupported method: ${method}`);
+  }
 }
 
 function formatPermission(key: string): string {
@@ -421,7 +730,18 @@ const containerStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: colors.bg,
   color: colors.text,
-  paddingBottom: 100,
+};
+
+const leftPanelStyle: React.CSSProperties = {
+  height: "100%",
+  overflow: "auto",
+  background: colors.bg,
+};
+
+const rightPanelContainerStyle: React.CSSProperties = {
+  position: "relative",
+  height: "100%",
+  background: "#000",
 };
 
 const errorContainerStyle: React.CSSProperties = {
@@ -529,29 +849,36 @@ const newsDisabledStyle: React.CSSProperties = {
   color: colors.textMuted,
 };
 
-const launchBarStyle: React.CSSProperties = {
-  position: "fixed",
-  bottom: 0,
+const iframeStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 48,
   left: 0,
-  right: 0,
-  background: colors.bgCard,
-  borderTop: `1px solid ${colors.border}`,
-  padding: "16px 24px",
-  display: "flex",
-  justifyContent: "center",
-  zIndex: 100,
+  width: "100%",
+  height: "calc(100% - 48px)",
+  border: "none",
 };
 
-const launchButtonStyle: React.CSSProperties = {
-  padding: "14px 48px",
-  borderRadius: 10,
-  border: "none",
-  background: colors.primary,
+const federatedStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 48,
+  left: 0,
+  width: "100%",
+  height: "calc(100% - 48px)",
+  overflow: "auto",
+};
+
+const toastStyle: React.CSSProperties = {
+  position: "fixed",
+  bottom: 24,
+  left: "50%",
+  transform: "translateX(-50%)",
+  background: "rgba(0, 255, 136, 0.9)",
   color: "#000",
-  fontSize: 16,
-  fontWeight: 700,
-  cursor: "pointer",
-  transition: "all 0.2s",
+  padding: "12px 24px",
+  borderRadius: 8,
+  fontWeight: 600,
+  fontSize: 14,
+  zIndex: 9999,
 };
 
 const overviewContainerStyle: React.CSSProperties = {
