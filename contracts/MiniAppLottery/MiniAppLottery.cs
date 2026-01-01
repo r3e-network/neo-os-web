@@ -234,11 +234,13 @@ namespace NeoMiniAppPlatform.Contracts
         {
             if (totalTickets == 0) return Admin();
 
-            byte[] randomBytes = (byte[])randomness;
+            // SHA256 entropy mixing for secure randomness
+            ByteString hash = CryptoLib.Sha256(randomness);
+            byte[] hashBytes = (byte[])hash;
             BigInteger winningTicket = 0;
-            for (int i = 0; i < randomBytes.Length && i < 8; i++)
+            for (int i = 0; i < 8; i++)
             {
-                winningTicket = winningTicket * 256 + randomBytes[i];
+                winningTicket = winningTicket * 256 + hashBytes[i];
             }
             winningTicket = winningTicket % totalTickets;
 

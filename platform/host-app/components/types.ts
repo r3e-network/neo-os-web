@@ -39,6 +39,8 @@ export type MiniAppInfo = {
     daily_gas_cap_per_user?: string;
     governance_cap?: string;
   } | null;
+  features?: string[];
+  created_at?: string;
 };
 
 export type MiniAppStats = {

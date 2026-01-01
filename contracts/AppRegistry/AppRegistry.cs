@@ -105,6 +105,12 @@ namespace NeoMiniAppPlatform.Contracts
         {
             if (contractHash == null || contractHash.Length == 0) return (ByteString)"";
             ExecutionEngine.Assert(contractHash.Length == 20, "invalid contract hash");
+
+            // Validate contract exists on-chain
+            UInt160 contractAddr = (UInt160)(byte[])contractHash;
+            var contract = ContractManagement.GetContract(contractAddr);
+            ExecutionEngine.Assert(contract != null, "contract does not exist");
+
             return contractHash;
         }
 

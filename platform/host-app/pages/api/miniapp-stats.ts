@@ -6,10 +6,16 @@
  * 1. simulation_txs - Main transaction records (paginated)
  * 2. service_requests - Service layer requests
  * 3. contract_events - On-chain contract events
+ *
+ * Performance: In-memory cache with 5-minute TTL
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+
+// Cache configuration
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let statsCache: { data: AppStats[]; timestamp: number } | null = null;
 
 interface AppStats {
   app_id: string;
@@ -125,6 +131,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ stats: [] });
   }
 
+  // Check cache first (skip if filtering by specific app_id)
+  if (!appIdFilter && statsCache && Date.now() - statsCache.timestamp < CACHE_TTL_MS) {
+    return res.status(200).json({ stats: statsCache.data, cached: true });
+  }
+
   try {
     const appStatsMap: Record<string, { users: Set<string>; txCount: number; volume: bigint; sources: Set<string> }> =
       {};
@@ -210,6 +221,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .sort((a, b) => b.total_transactions - a.total_transactions);
 
     const filteredStats = appIdFilter ? stats.filter((s) => s.app_id === appIdFilter) : stats;
+
+    // Update cache if not filtering
+    if (!appIdFilter) {
+      statsCache = { data: stats, timestamp: Date.now() };
+    }
+
     res.status(200).json({ stats: filteredStats });
   } catch (error) {
     console.error("MiniApp stats error:", error);

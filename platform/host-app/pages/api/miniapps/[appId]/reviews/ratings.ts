@@ -1,14 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { SocialRating } from "@/components/types";
-
-// In-memory store for demo (replace with Supabase in production)
-const ratingsStore: Map<string, Map<string, { value: number; review?: string }>> = new Map();
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
 
   if (!appId || typeof appId !== "string") {
     return res.status(400).json({ error: "Missing appId" });
+  }
+
+  if (!isSupabaseConfigured) {
+    return res.status(503).json({ error: "Database not configured" });
   }
 
   if (req.method === "GET") {
@@ -22,22 +24,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   return res.status(405).json({ error: "Method not allowed" });
 }
 
-function getRatings(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function getRatings(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const wallet = req.query.wallet as string | undefined;
-  const appRatings = ratingsStore.get(appId) || new Map();
+
+  // Fetch all ratings for this app
+  const { data: ratings, error } = await supabase
+    .from("miniapp_ratings")
+    .select("rating_value, review_text, wallet_address")
+    .eq("app_id", appId);
+
+  if (error) {
+    console.error("Failed to fetch ratings:", error);
+    return res.status(500).json({ error: "Failed to fetch ratings" });
+  }
 
   // Calculate distribution
   const distribution: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
-  let total = 0;
   let sum = 0;
 
-  appRatings.forEach((rating) => {
-    distribution[rating.value.toString()] = (distribution[rating.value.toString()] || 0) + 1;
-    sum += rating.value;
-    total++;
-  });
+  for (const r of ratings || []) {
+    const key = r.rating_value.toString();
+    distribution[key] = (distribution[key] || 0) + 1;
+    sum += r.rating_value;
+  }
 
+  const total = ratings?.length || 0;
   const avgRating = total > 0 ? sum / total : 0;
+
+  // Find user's rating if wallet provided
+  const userRating = wallet ? ratings?.find((r) => r.wallet_address === wallet) : undefined;
 
   const rating: SocialRating = {
     app_id: appId,
@@ -45,27 +60,37 @@ function getRatings(appId: string, req: NextApiRequest, res: NextApiResponse) {
     weighted_score: avgRating * Math.log10(total + 1),
     total_ratings: total,
     distribution,
-    user_rating:
-      wallet && appRatings.has(wallet)
-        ? { rating_value: appRatings.get(wallet)!.value, review_text: appRatings.get(wallet)!.review || null }
-        : undefined,
+    user_rating: userRating
+      ? { rating_value: userRating.rating_value, review_text: userRating.review_text }
+      : undefined,
   };
 
   return res.status(200).json({ rating });
 }
 
-function submitRating(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function submitRating(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const { wallet, value, review } = req.body;
 
   if (!wallet || typeof value !== "number" || value < 1 || value > 5) {
     return res.status(400).json({ error: "Invalid rating data" });
   }
 
-  if (!ratingsStore.has(appId)) {
-    ratingsStore.set(appId, new Map());
-  }
+  // Upsert rating (insert or update)
+  const { error } = await supabase.from("miniapp_ratings").upsert(
+    {
+      app_id: appId,
+      wallet_address: wallet,
+      rating_value: value,
+      review_text: review?.slice(0, 1000) || null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "app_id,wallet_address" },
+  );
 
-  ratingsStore.get(appId)!.set(wallet, { value, review: review?.slice(0, 1000) });
+  if (error) {
+    console.error("Failed to submit rating:", error);
+    return res.status(500).json({ error: "Failed to submit rating" });
+  }
 
   return res.status(201).json({ success: true });
 }

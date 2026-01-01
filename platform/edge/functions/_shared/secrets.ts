@@ -43,8 +43,25 @@ function normalizeMasterKey(raw: string): Uint8Array {
     if (decoded.length === 32) return decoded;
   }
 
-  // Backward-compatible: allow 32-char plaintext keys for dev.
-  if (trimmed.length === 32) return textEncoder.encode(trimmed);
+  // Backward-compatible: allow 32-char plaintext keys ONLY in development.
+  // SECURITY: Production environments MUST use hex-encoded keys.
+  if (trimmed.length === 32) {
+    const env = Deno.env.get("DENO_ENV") || Deno.env.get("NODE_ENV") || "production";
+    const isDev = env === "development" || env === "dev" || env === "local";
+
+    if (!isDev) {
+      throw new Error(
+        "SECRETS_MASTER_KEY: plaintext keys are not allowed in production. " +
+          "Use a 64-character hex-encoded key (e.g., openssl rand -hex 32)",
+      );
+    }
+
+    console.warn(
+      "[SECURITY WARNING] Using plaintext SECRETS_MASTER_KEY in development mode. " +
+        "This is insecure and must not be used in production.",
+    );
+    return textEncoder.encode(trimmed);
+  }
 
   throw new Error("SECRETS_MASTER_KEY must be 32 bytes (or 64 hex chars)");
 }
@@ -68,9 +85,7 @@ export async function encryptSecretValue(plaintext: string): Promise<string> {
   const nonce = crypto.getRandomValues(new Uint8Array(12));
   const data = textEncoder.encode(plaintext);
 
-  const encrypted = new Uint8Array(
-    await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, data),
-  );
+  const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, data));
 
   const out = new Uint8Array(nonce.length + encrypted.length);
   out.set(nonce, 0);
@@ -85,9 +100,7 @@ export async function decryptSecretValue(ciphertextBase64: string): Promise<stri
   const nonce = raw.slice(0, 12);
   const encrypted = raw.slice(12);
 
-  const decrypted = new Uint8Array(
-    await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, encrypted),
-  );
+  const decrypted = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, encrypted));
   return textDecoder.decode(decrypted);
 }
 

@@ -51,6 +51,40 @@ function detectSearchType(query: string): string {
   return "unknown";
 }
 
+/**
+ * Sanitize input to prevent SQL injection via Supabase REST API query parameters.
+ * Validates format and encodes special characters that could be used for injection.
+ */
+function sanitizeInput(input: string, type: "hash" | "address" | "contract"): string {
+  // Remove any whitespace
+  const trimmed = input.trim();
+
+  // Validate format based on type
+  switch (type) {
+    case "hash":
+      // Transaction hash: 0x followed by 64 hex characters
+      if (!/^0x[a-fA-F0-9]{64}$/.test(trimmed)) {
+        throw new Error("Invalid transaction hash format");
+      }
+      break;
+    case "address":
+      // Neo address: N followed by 33 base58 characters
+      if (!/^N[1-9A-HJ-NP-Za-km-z]{33}$/.test(trimmed)) {
+        throw new Error("Invalid address format");
+      }
+      break;
+    case "contract":
+      // Contract hash: 0x followed by 40 hex characters
+      if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
+        throw new Error("Invalid contract hash format");
+      }
+      break;
+  }
+
+  // URL encode to prevent injection of special characters like &, =, etc.
+  return encodeURIComponent(trimmed);
+}
+
 async function supabaseQuery(url: string, key: string, table: string, params: string) {
   const response = await fetch(`${url}/rest/v1/${table}?${params}`, {
     headers: {
@@ -62,13 +96,16 @@ async function supabaseQuery(url: string, key: string, table: string, params: st
 }
 
 async function searchTransaction(url: string, key: string, hash: string) {
-  const tx = await supabaseQuery(url, key, "indexer_transactions", `hash=eq.${hash}&limit=1`);
+  // Sanitize hash input to prevent injection
+  const sanitizedHash = sanitizeInput(hash, "hash");
+
+  const tx = await supabaseQuery(url, key, "indexer_transactions", `hash=eq.${sanitizedHash}&limit=1`);
   if (!tx || tx.length === 0) return { type: "transaction", found: false };
 
   const [traces, calls, syscalls] = await Promise.all([
-    supabaseQuery(url, key, "indexer_opcode_traces", `tx_hash=eq.${hash}&order=step_index`),
-    supabaseQuery(url, key, "indexer_contract_calls", `tx_hash=eq.${hash}&order=call_index`),
-    supabaseQuery(url, key, "indexer_syscalls", `tx_hash=eq.${hash}&order=call_index`),
+    supabaseQuery(url, key, "indexer_opcode_traces", `tx_hash=eq.${sanitizedHash}&order=step_index`),
+    supabaseQuery(url, key, "indexer_contract_calls", `tx_hash=eq.${sanitizedHash}&order=call_index`),
+    supabaseQuery(url, key, "indexer_syscalls", `tx_hash=eq.${sanitizedHash}&order=call_index`),
   ]);
 
   return {
@@ -79,22 +116,28 @@ async function searchTransaction(url: string, key: string, hash: string) {
 }
 
 async function searchAddress(url: string, key: string, address: string) {
+  // Sanitize address input to prevent injection
+  const sanitizedAddress = sanitizeInput(address, "address");
+
   const txs = await supabaseQuery(
     url,
     key,
     "indexer_address_txs",
-    `address=eq.${address}&order=block_time.desc&limit=50`,
+    `address=eq.${sanitizedAddress}&order=block_time.desc&limit=50`,
   );
   const count = txs?.length || 0;
   return { type: "address", found: count > 0, address, tx_count: count, transactions: txs || [] };
 }
 
 async function searchContract(url: string, key: string, contractHash: string) {
+  // Sanitize contract hash input to prevent injection
+  const sanitizedHash = sanitizeInput(contractHash, "contract");
+
   const calls = await supabaseQuery(
     url,
     key,
     "indexer_contract_calls",
-    `contract_hash=eq.${contractHash}&order=id.desc&limit=50`,
+    `contract_hash=eq.${sanitizedHash}&order=id.desc&limit=50`,
   );
   const count = calls?.length || 0;
   return { type: "contract", found: count > 0, contract_hash: contractHash, call_count: count, calls: calls || [] };

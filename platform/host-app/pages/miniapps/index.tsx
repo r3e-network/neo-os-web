@@ -80,6 +80,13 @@ export default function MiniAppsPage() {
   const [communityApps, setCommunityApps] = useState<MiniAppInfo[]>([]);
   const [apps, setApps] = useState<MiniAppInfo[]>(baseApps);
   const [statsMap, setStatsMap] = useState<StatsMap>({});
+  const [displayCount, setDisplayCount] = useState(12); // Pagination: show 12 initially
+  const PAGE_SIZE = 12;
+
+  // Reset pagination when search or sort changes
+  useEffect(() => {
+    setDisplayCount(PAGE_SIZE);
+  }, [searchQuery, sortBy]);
 
   useEffect(() => {
     setApps(
@@ -120,6 +127,7 @@ export default function MiniAppsPage() {
 
   const handleFilterChange = (sectionId: string, values: string[]) => {
     setFilters((prev) => ({ ...prev, [sectionId]: values }));
+    setDisplayCount(PAGE_SIZE); // Reset pagination on filter change
   };
 
   const { collectionsSet } = useCollections();
@@ -153,6 +161,14 @@ export default function MiniAppsPage() {
       result = result.filter((app) => filters.category.includes(app.category));
     }
 
+    // Features filter
+    if (filters.features?.length) {
+      result = result.filter((app) => {
+        const appFeatures = app.features || [];
+        return filters.features.some((f: string) => appFeatures.includes(f));
+      });
+    }
+
     // Sort
     result.sort((a, b) => {
       // Collected apps always come first
@@ -166,7 +182,9 @@ export default function MiniAppsPage() {
         case "transactions":
           return (b.stats?.transactions || 0) - (a.stats?.transactions || 0);
         case "recent":
-          return 0; // Would need created_at field
+          const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return bDate - aDate;
         case "trending":
         default:
           const aScore = (a.stats?.users || 0) + (a.stats?.transactions || 0);
@@ -279,7 +297,7 @@ export default function MiniAppsPage() {
 
             {viewMode === "list" ? (
               <div className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-                {filteredAndSortedApps.map((app) => (
+                {filteredAndSortedApps.slice(0, displayCount).map((app) => (
                   <MiniAppListItem key={app.app_id} app={app} />
                 ))}
                 {filteredAndSortedApps.length === 0 && (
@@ -287,7 +305,19 @@ export default function MiniAppsPage() {
                 )}
               </div>
             ) : (
-              <MiniAppGrid apps={filteredAndSortedApps} columns={3} />
+              <MiniAppGrid apps={filteredAndSortedApps.slice(0, displayCount)} columns={3} />
+            )}
+
+            {/* Load More Button */}
+            {displayCount < filteredAndSortedApps.length && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={() => setDisplayCount((prev) => prev + PAGE_SIZE)}
+                  className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  {t("miniapps.loadMore")} ({filteredAndSortedApps.length - displayCount} {t("miniapps.remaining")})
+                </button>
+              </div>
             )}
           </div>
         </main>

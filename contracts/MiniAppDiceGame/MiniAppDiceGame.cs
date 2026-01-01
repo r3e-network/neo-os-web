@@ -183,9 +183,11 @@ namespace NeoMiniAppPlatform.Contracts
                 return;
             }
 
+            // Parse RNG with SHA256 entropy mixing
             ExecutionEngine.Assert(result != null && result.Length > 0, "no rng data");
-            byte[] randomBytes = (byte[])result;
-            BigInteger rolled = (randomBytes[0] % 6) + 1;
+            ByteString hash = CryptoLib.Sha256((ByteString)result);
+            byte firstByte = ((byte[])hash)[0];
+            BigInteger rolled = (firstByte % 6) + 1;
             bool won = rolled == bet.ChosenNumber;
             BigInteger payout = won ? bet.Amount * 6 * (100 - PLATFORM_FEE_PERCENT) / 100 : 0;
 

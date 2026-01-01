@@ -88,6 +88,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             Transaction tx = Runtime.Transaction;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, tx.Sender);
+            Storage.Put(Storage.CurrentContext, PREFIX_UPDATER, tx.Sender);
             Storage.Put(Storage.CurrentContext, PREFIX_COUNTER, 0);
         }
 
@@ -363,7 +364,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             OnServiceFulfilled(requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
 
-            Contract.Call(req.CallbackContract, req.CallbackMethod, CallFlags.All,
+            Contract.Call(req.CallbackContract, req.CallbackMethod, CallFlags.ReadOnly,
                 requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
         }
 

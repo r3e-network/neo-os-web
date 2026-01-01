@@ -24,7 +24,6 @@ import {
   Image,
   Vote,
   Wrench,
-  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 

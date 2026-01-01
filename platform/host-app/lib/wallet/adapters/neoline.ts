@@ -13,6 +13,7 @@ import {
   WalletNotInstalledError,
   WalletConnectionError,
 } from "./base";
+import { logger } from "../../logger";
 
 /** NeoLine wallet provider interface */
 interface NeoLineProvider {
@@ -86,11 +87,11 @@ export class NeoLineAdapter implements WalletAdapter {
       try {
         // Pattern 1: Constructor style (older NeoLine versions)
         this.instance = new (provider.Init as unknown as new () => NeoLineInstance)();
-        console.log("[NeoLine] Initialized via constructor pattern");
+        logger.debug("[NeoLine] Initialized via constructor pattern");
       } catch {
         // Pattern 2: Async function style (newer NeoLine versions)
         this.instance = await provider.Init();
-        console.log("[NeoLine] Initialized via async pattern");
+        logger.debug("[NeoLine] Initialized via async pattern");
       }
 
       return this.instance;
@@ -124,9 +125,9 @@ export class NeoLineAdapter implements WalletAdapter {
     const instance = await this.getInstance();
 
     try {
-      console.log("[NeoLine] Fetching balance for address:", address);
+      logger.debug("[NeoLine] Fetching balance for address:", address);
       const balances = await instance.getBalance({ address });
-      console.log("[NeoLine] Raw balance response:", JSON.stringify(balances, null, 2));
+      logger.debug("[NeoLine] Raw balance response:", JSON.stringify(balances, null, 2));
 
       let neo = "0";
       let gas = "0";
@@ -142,12 +143,12 @@ export class NeoLineAdapter implements WalletAdapter {
         : (balances as { balance?: typeof balances })?.balance || [];
 
       if (!Array.isArray(balanceArray) || balanceArray.length === 0) {
-        console.warn("[NeoLine] No balances returned or empty array");
+        logger.warn("[NeoLine] No balances returned or empty array");
       }
 
       for (const b of balanceArray) {
         const contractNorm = normalizeContract(b.contract || "");
-        console.log("[NeoLine] Processing balance:", b.symbol, b.amount, "contract:", b.contract);
+        logger.debug("[NeoLine] Processing balance:", b.symbol, b.amount, "contract:", b.contract);
 
         if (contractNorm === neoNorm) neo = b.amount;
         if (contractNorm === gasNorm) gas = b.amount;
@@ -156,10 +157,10 @@ export class NeoLineAdapter implements WalletAdapter {
         if (b.symbol?.toUpperCase() === "GAS") gas = b.amount;
       }
 
-      console.log("[NeoLine] Final balance - NEO:", neo, "GAS:", gas);
+      logger.debug("[NeoLine] Final balance - NEO:", neo, "GAS:", gas);
       return { neo, gas };
     } catch (error) {
-      console.error("[NeoLine] Failed to get balance:", error);
+      logger.error("[NeoLine] Failed to get balance:", error);
       return { neo: "0", gas: "0" };
     }
   }

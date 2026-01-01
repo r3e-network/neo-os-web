@@ -241,6 +241,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(tx.Sender), "unauthorized");
 
             ExecutionEngine.Assert(target != null && target.IsValid, "invalid target");
+            ExecutionEngine.Assert(Runtime.CheckWitness(target), "target witness required");
             ExecutionEngine.Assert(method != null && method.Length > 0, "method required");
             ExecutionEngine.Assert(gasLimit > 0, "gasLimit must be > 0");
             ExecutionEngine.Assert(triggerType == "cron" || triggerType == "interval", "triggerType must be 'cron' or 'interval'");

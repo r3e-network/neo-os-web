@@ -14,6 +14,35 @@ function parseUserAPIKey(req: Request): string | undefined {
   return raw ? raw : undefined;
 }
 
+// API key verification cache with 5-minute TTL
+type CachedVerification = {
+  valid: boolean;
+  userId?: string;
+  apiKeyId?: string;
+  scopes?: string[];
+  expiresAt: number;
+};
+
+const apiKeyCache = new Map<string, CachedVerification>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCachedVerification(apiKey: string): CachedVerification | null {
+  const cached = apiKeyCache.get(apiKey);
+  if (!cached) return null;
+  if (Date.now() > cached.expiresAt) {
+    apiKeyCache.delete(apiKey);
+    return null;
+  }
+  return cached;
+}
+
+function setCachedVerification(apiKey: string, verification: Omit<CachedVerification, "expiresAt">): void {
+  apiKeyCache.set(apiKey, {
+    ...verification,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  });
+}
+
 export function supabaseClient() {
   const url = mustGetEnv("SUPABASE_URL");
   const anonKey = mustGetEnv("SUPABASE_ANON_KEY");
@@ -72,19 +101,37 @@ export async function requireAuth(req: Request): Promise<AuthContext | Response>
   const apiKey = parseUserAPIKey(req);
   if (!apiKey) return error(401, "missing Authorization or X-API-Key", "AUTH_REQUIRED", req);
 
+  // Check cache first
+  const cached = getCachedVerification(apiKey);
+  if (cached) {
+    if (!cached.valid || !cached.userId) {
+      return error(401, "invalid api key", "AUTH_INVALID", req);
+    }
+    return {
+      userId: cached.userId,
+      apiKeyId: cached.apiKeyId,
+      scopes: cached.scopes,
+      authType: "api_key",
+    };
+  }
+
+  // Cache miss - verify with database
   const supabase = supabaseServiceClient();
   const { data, error: verifyErr } = await supabase.rpc("verify_api_key", { input_key: apiKey });
-  if (verifyErr) return error(500, `failed to verify api key: ${verifyErr.message}`, "DB_ERROR", req);
+  if (verifyErr) return error(500, "failed to verify api key", "DB_ERROR", req);
 
   const row = Array.isArray(data) ? data[0] : data;
   const valid = Boolean(row?.valid);
-  if (!valid) return error(401, "invalid api key", "AUTH_INVALID", req);
-
   const userId = String(row?.user_id ?? "").trim();
-  if (!userId) return error(401, "invalid api key", "AUTH_INVALID", req);
-
   const scopes = Array.isArray(row?.scopes) ? (row?.scopes as string[]) : undefined;
   const apiKeyId = String(row?.key_id ?? "").trim() || undefined;
+
+  // Cache the result (both valid and invalid)
+  setCachedVerification(apiKey, { valid, userId: userId || undefined, apiKeyId, scopes });
+
+  if (!valid || !userId) {
+    return error(401, "invalid api key", "AUTH_INVALID", req);
+  }
 
   return { userId, apiKeyId, scopes, authType: "api_key" };
 }
@@ -99,7 +146,7 @@ export async function requirePrimaryWallet(userId: string, req?: Request): Promi
     .eq("verified", true)
     .limit(1);
 
-  if (walletsErr) return error(500, `failed to validate wallet binding: ${walletsErr.message}`, "DB_ERROR", req);
+  if (walletsErr) return error(500, "failed to validate wallet binding", "DB_ERROR", req);
   if (!data || data.length === 0) return error(428, "primary wallet binding required", "WALLET_REQUIRED", req);
 
   const address = String(data[0]?.address ?? "").trim();
@@ -122,6 +169,6 @@ export async function ensureUserRow(
     .select("id,nonce,address")
     .maybeSingle();
 
-  if (upsertErr) return error(500, `failed to ensure user: ${upsertErr.message}`, "DB_ERROR", req);
+  if (upsertErr) return error(500, "failed to ensure user", "DB_ERROR", req);
   return data ?? { id: auth.userId };
 }

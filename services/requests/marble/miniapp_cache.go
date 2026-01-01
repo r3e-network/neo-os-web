@@ -15,11 +15,7 @@ type miniAppCacheEntry struct {
 }
 
 func (s *Service) getMiniAppCached(key string) (*neorequestsupabase.MiniApp, bool, bool) {
-	if s == nil || s.miniAppCacheTTL <= 0 {
-		return nil, false, false
-	}
-	key = strings.TrimSpace(key)
-	if key == "" {
+	if s == nil || s.miniAppCacheTTL <= 0 || key == "" {
 		return nil, false, false
 	}
 
@@ -37,11 +33,7 @@ func (s *Service) getMiniAppCached(key string) (*neorequestsupabase.MiniApp, boo
 }
 
 func (s *Service) setMiniAppCache(key string, app *neorequestsupabase.MiniApp, notFound bool) {
-	if s == nil || s.miniAppCacheTTL <= 0 {
-		return
-	}
-	key = strings.TrimSpace(key)
-	if key == "" {
+	if s == nil || s.miniAppCacheTTL <= 0 || key == "" {
 		return
 	}
 	s.miniAppCacheMu.Lock()
@@ -54,11 +46,7 @@ func (s *Service) setMiniAppCache(key string, app *neorequestsupabase.MiniApp, n
 }
 
 func (s *Service) deleteMiniAppCache(key string) {
-	if s == nil {
-		return
-	}
-	key = strings.TrimSpace(key)
-	if key == "" {
+	if s == nil || key == "" {
 		return
 	}
 	s.miniAppCacheMu.Lock()

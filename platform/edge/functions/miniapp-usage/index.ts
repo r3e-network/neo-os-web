@@ -89,7 +89,7 @@ export async function handler(req: Request): Promise<Response> {
     ? data.map((row) => normalizeUsageRow(row as Record<string, unknown>, { app_id: "", usage_date: date }))
     : [];
 
-  return json({ usage, date }, req);
+  return json({ usage, date }, {}, req);
 }
 
 Deno.serve(handler);
