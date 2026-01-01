@@ -14,7 +14,7 @@ import (
 // SimulateLottery simulates the lottery workflow.
 // Business flow: BuyTickets -> InitiateDraw -> DrawWinner
 func (s *MiniAppSimulator) SimulateLottery(ctx context.Context) error {
-	appID := "builtin-lottery"
+	appID := "miniapp-lottery"
 	ticketCount := randomInt(1, 5)
 	amount := int64(ticketCount) * 10000000
 
@@ -79,7 +79,7 @@ func (s *MiniAppSimulator) SimulateLottery(ctx context.Context) error {
 // SimulateCoinFlip simulates the coin flip workflow.
 // Business flow: PlaceBet -> RequestRNG -> ResolveBet
 func (s *MiniAppSimulator) SimulateCoinFlip(ctx context.Context) error {
-	appID := "builtin-coin-flip"
+	appID := "miniapp-coin-flip"
 	amount := int64(5000000) // 0.05 GAS minimum
 	choice := randomInt(0, 1) == 1
 
@@ -129,7 +129,7 @@ func (s *MiniAppSimulator) SimulateCoinFlip(ctx context.Context) error {
 // SimulateDiceGame simulates the dice game workflow.
 // Business flow: PlaceBet -> RequestRNG -> RollDice
 func (s *MiniAppSimulator) SimulateDiceGame(ctx context.Context) error {
-	appID := "builtin-dice-game"
+	appID := "miniapp-dice-game"
 	amount := int64(8000000)
 	targetNumber := randomInt(1, 6)
 
@@ -180,7 +180,7 @@ func (s *MiniAppSimulator) SimulateDiceGame(ctx context.Context) error {
 // SimulateScratchCard simulates the scratch card workflow.
 // Business flow: BuyCard -> RequestRNG -> RevealCard
 func (s *MiniAppSimulator) SimulateScratchCard(ctx context.Context) error {
-	appID := "builtin-scratch-card"
+	appID := "miniapp-scratch-card"
 	cardType := int64(randomInt(1, 3))
 	amount := cardType * 2000000 // Cost scales with card type
 
@@ -231,7 +231,7 @@ func (s *MiniAppSimulator) SimulateScratchCard(ctx context.Context) error {
 // SimulateMegaMillions simulates the mega millions lottery workflow.
 // Business flow: BuyTicket -> InitiateDraw -> DrawCompleted
 func (s *MiniAppSimulator) SimulateMegaMillions(ctx context.Context) error {
-	appID := "builtin-mega-millions"
+	appID := "miniapp-mega-millions"
 	ticketCount := randomInt(1, 3)
 	amount := int64(ticketCount) * 20000000
 
@@ -292,7 +292,7 @@ func (s *MiniAppSimulator) SimulateMegaMillions(ctx context.Context) error {
 // SimulateGasSpin simulates the gas spin wheel workflow.
 // Business flow: PlaceSpin -> RequestRNG -> SpinResult
 func (s *MiniAppSimulator) SimulateGasSpin(ctx context.Context) error {
-	appID := "builtin-gas-spin"
+	appID := "miniapp-gas-spin"
 	amount := int64(5000000) // 0.05 GAS minimum
 
 	memo := fmt.Sprintf("spin:%d:%d", amount, time.Now().UnixNano())
@@ -343,7 +343,7 @@ func (s *MiniAppSimulator) SimulateGasSpin(ctx context.Context) error {
 // SimulateNeoCrash simulates the crash game workflow.
 // Business flow: PlaceBet -> WatchMultiplier -> CashOut (before crash)
 func (s *MiniAppSimulator) SimulateNeoCrash(ctx context.Context) error {
-	appID := "builtin-neo-crash"
+	appID := "miniapp-neo-crash"
 	amount := int64(randomInt(1, 10)) * 10000000 // 0.1-1 GAS
 
 	memo := fmt.Sprintf("crash:bet:%d:%d", amount, time.Now().UnixNano())
@@ -391,7 +391,7 @@ func (s *MiniAppSimulator) SimulateNeoCrash(ctx context.Context) error {
 // SimulateThroneOfGas simulates the king of the hill game.
 // Business flow: ClaimThrone -> CollectTax
 func (s *MiniAppSimulator) SimulateThroneOfGas(ctx context.Context) error {
-	appID := "builtin-throne-of-gas"
+	appID := "miniapp-throne-of-gas"
 	bid := int64(randomInt(11, 30)) * 10000000 // 1.1-3 GAS (must be > current price)
 
 	memo := fmt.Sprintf("throne:claim:%d:%d", bid, time.Now().UnixNano())
@@ -426,7 +426,7 @@ func (s *MiniAppSimulator) SimulateThroneOfGas(ctx context.Context) error {
 // SimulateDoomsdayClock simulates the FOMO3D style game.
 // Business flow: BuyKeys -> ExtendTimer -> WinPot (if last buyer)
 func (s *MiniAppSimulator) SimulateDoomsdayClock(ctx context.Context) error {
-	appID := "builtin-doomsday-clock"
+	appID := "miniapp-doomsday-clock"
 	keyCount := int64(randomInt(1, 5))
 	amount := keyCount * 100000000 // 1 GAS per key
 
@@ -463,7 +463,7 @@ func (s *MiniAppSimulator) SimulateDoomsdayClock(ctx context.Context) error {
 // SimulateSchrodingerNFT simulates the quantum pet box workflow.
 // Business flow: Adopt -> Observe (state collapse) -> Trade (blind box)
 func (s *MiniAppSimulator) SimulateSchrodingerNFT(ctx context.Context) error {
-	appID := "builtin-schrodinger-nft"
+	appID := "miniapp-schrodinger-nft"
 	adoptFee := int64(50000000) // 0.5 GAS to adopt
 	observeFee := int64(5000000) // 0.05 GAS to observe
 
@@ -546,7 +546,7 @@ func (s *MiniAppSimulator) SimulateSchrodingerNFT(ctx context.Context) error {
 // SimulateAlgoBattle simulates the code gladiator arena workflow.
 // Business flow: Upload script -> Match -> Battle (100 rounds in TEE)
 func (s *MiniAppSimulator) SimulateAlgoBattle(ctx context.Context) error {
-	appID := "builtin-algo-battle"
+	appID := "miniapp-algo-battle"
 	uploadFee := int64(10000000)  // 0.1 GAS to upload
 	matchFee := int64(50000000)   // 0.5 GAS to match
 

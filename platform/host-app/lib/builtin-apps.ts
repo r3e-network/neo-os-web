@@ -340,8 +340,30 @@ const DEFI_APPS: MiniAppInfo[] = [
   },
 ];
 
-// Social Apps (9)
+// Social Apps (11)
 const SOCIAL_APPS: MiniAppInfo[] = [
+  {
+    app_id: "miniapp-grantshare",
+    name: "GrantShare",
+    description:
+      "Create and fund community grants with transparent on-chain tracking. Support open-source projects, education initiatives, and community development.",
+    icon: "🎁",
+    category: "social",
+    entry_url: "/miniapps/grant-share/index.html",
+    status: "active",
+    permissions: { payments: true },
+  },
+  {
+    app_id: "miniapp-neochat",
+    name: "Neo Chat",
+    description:
+      "Decentralized messaging with wallet-based identity. Create rooms, send direct messages, and communicate securely with encrypted conversations.",
+    icon: "💬",
+    category: "social",
+    entry_url: "/miniapps/neo-chat/index.html",
+    status: "active",
+    permissions: { payments: true },
+  },
   {
     app_id: "miniapp-aisoulmate",
     name: "AI Soulmate",
@@ -682,8 +704,19 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
   },
 ];
 
-// Utility Apps (5)
+// Utility Apps (6)
 const UTILITY_APPS: MiniAppInfo[] = [
+  {
+    app_id: "miniapp-neons",
+    name: "Neo Name Service",
+    description:
+      "Register and manage human-readable .neo domain names for your wallet. Search availability, register domains, and manage your digital identity on Neo.",
+    icon: "🏷️",
+    category: "utility",
+    entry_url: "/miniapps/neo-ns/index.html",
+    status: "active",
+    permissions: { payments: true },
+  },
   {
     app_id: "miniapp-explorer",
     name: "Neo Explorer",

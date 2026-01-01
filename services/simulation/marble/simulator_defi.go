@@ -12,7 +12,7 @@ import (
 // SimulatePredictionMarket simulates the prediction market workflow.
 // Business flow: PlacePrediction -> RequestResolve
 func (s *MiniAppSimulator) SimulatePredictionMarket(ctx context.Context) error {
-	appID := "builtin-prediction-market"
+	appID := "miniapp-prediction-market"
 	amount := int64(20000000)
 	direction := randomInt(0, 1)
 
@@ -65,7 +65,7 @@ func (s *MiniAppSimulator) SimulatePredictionMarket(ctx context.Context) error {
 // SimulateFlashLoan simulates the flash loan workflow.
 // Business flow: RequestLoan -> Execute arbitrage -> Repay
 func (s *MiniAppSimulator) SimulateFlashLoan(ctx context.Context) error {
-	appID := "builtin-flashloan"
+	appID := "miniapp-flashloan"
 	amount := int64(100000000)
 
 	memo := fmt.Sprintf("flash:borrow:%d:%d", amount, time.Now().UnixNano())
@@ -109,7 +109,7 @@ func (s *MiniAppSimulator) SimulatePriceTicker(ctx context.Context) error {
 // SimulatePricePredict simulates binary price prediction.
 // Business flow: PlacePrediction -> RequestResolve
 func (s *MiniAppSimulator) SimulatePricePredict(ctx context.Context) error {
-	appID := "builtin-price-predict"
+	appID := "miniapp-price-predict"
 	amount := int64(10000000)
 	direction := randomInt(0, 1)
 
@@ -161,7 +161,7 @@ func (s *MiniAppSimulator) SimulatePricePredict(ctx context.Context) error {
 // SimulateTurboOptions simulates ultra-fast binary options.
 // Business flow: PlaceOption -> RequestResolve
 func (s *MiniAppSimulator) SimulateTurboOptions(ctx context.Context) error {
-	appID := "builtin-turbo-options"
+	appID := "miniapp-turbo-options"
 	amount := int64(50000000)
 	direction := randomInt(0, 1)
 
@@ -214,7 +214,7 @@ func (s *MiniAppSimulator) SimulateTurboOptions(ctx context.Context) error {
 // SimulateILGuard simulates impermanent loss protection.
 // Business flow: CreatePosition -> RequestMonitor -> ILCompensated
 func (s *MiniAppSimulator) SimulateILGuard(ctx context.Context) error {
-	appID := "builtin-il-guard"
+	appID := "miniapp-il-guard"
 	amount := int64(100000000) // 1 GAS minimum
 
 	memo := fmt.Sprintf("ilguard:%d", time.Now().UnixNano())
@@ -264,7 +264,7 @@ func (s *MiniAppSimulator) SimulateILGuard(ctx context.Context) error {
 // SimulateCandleWars simulates binary options on price direction.
 // Business flow: PlaceBet (green/red) -> ResolveRound
 func (s *MiniAppSimulator) SimulateCandleWars(ctx context.Context) error {
-	appID := "builtin-candle-wars"
+	appID := "miniapp-candle-wars"
 	amount := int64(randomInt(5, 50)) * 1000000 // 0.05-0.5 GAS
 	isGreen := randomInt(0, 1) == 1
 
@@ -306,7 +306,7 @@ func (s *MiniAppSimulator) SimulateCandleWars(ctx context.Context) error {
 // SimulateDutchAuction simulates reverse auction.
 // Business flow: Purchase at current price (price drops over time)
 func (s *MiniAppSimulator) SimulateDutchAuction(ctx context.Context) error {
-	appID := "builtin-dutch-auction"
+	appID := "miniapp-dutch-auction"
 	// Price between 50-100% of start price
 	price := int64(randomInt(50, 100)) * 10000000
 
@@ -341,7 +341,7 @@ func (s *MiniAppSimulator) SimulateDutchAuction(ctx context.Context) error {
 // SimulateParasite simulates DeFi staking with PvP attacks.
 // Business flow: Stake -> Attack others -> Steal rewards
 func (s *MiniAppSimulator) SimulateParasite(ctx context.Context) error {
-	appID := "builtin-the-parasite"
+	appID := "miniapp-the-parasite"
 	amount := int64(randomInt(10, 100)) * 10000000 // 1-10 GAS
 
 	memo := fmt.Sprintf("parasite:stake:%d:%d", amount, time.Now().UnixNano())
@@ -377,7 +377,7 @@ func (s *MiniAppSimulator) SimulateParasite(ctx context.Context) error {
 // SimulateNoLossLottery simulates stake-to-win lottery.
 // Business flow: Stake -> Enter draw -> Win yields (keep principal)
 func (s *MiniAppSimulator) SimulateNoLossLottery(ctx context.Context) error {
-	appID := "builtin-no-loss-lottery"
+	appID := "miniapp-no-loss-lottery"
 	amount := int64(randomInt(10, 50)) * 10000000 // 1-5 GAS
 
 	memo := fmt.Sprintf("noloss:stake:%d:%d", amount, time.Now().UnixNano())

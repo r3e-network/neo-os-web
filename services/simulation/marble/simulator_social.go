@@ -13,7 +13,7 @@ import (
 // SimulateSecretVote simulates privacy-preserving voting.
 // Business flow: CreateProposal -> SubmitVote -> RequestTally
 func (s *MiniAppSimulator) SimulateSecretVote(ctx context.Context) error {
-	appID := "builtin-secret-vote"
+	appID := "miniapp-secret-vote"
 	amount := int64(1000000)
 
 	memo := fmt.Sprintf("vote:%d", time.Now().UnixNano())
@@ -68,7 +68,7 @@ func (s *MiniAppSimulator) SimulateSecretVote(ctx context.Context) error {
 // SimulateSecretPoker simulates TEE Texas Hold'em.
 // Business flow: CreateTable -> JoinTable -> StartHand
 func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
-	appID := "builtin-secret-poker"
+	appID := "miniapp-secret-poker"
 	amount := int64(50000000)
 
 	memo := fmt.Sprintf("poker:%d", time.Now().UnixNano())
@@ -139,7 +139,7 @@ func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
 // SimulateMicroPredict simulates 60-second price predictions.
 // Business flow: PlacePrediction -> RequestResolve
 func (s *MiniAppSimulator) SimulateMicroPredict(ctx context.Context) error {
-	appID := "builtin-micro-predict"
+	appID := "miniapp-micro-predict"
 	amount := int64(10000000)
 
 	memo := fmt.Sprintf("micro:%d", time.Now().UnixNano())
@@ -191,7 +191,7 @@ func (s *MiniAppSimulator) SimulateMicroPredict(ctx context.Context) error {
 // SimulateRedEnvelope simulates social GAS red packets.
 // Business flow: CreateEnvelope -> Claim (multiple times)
 func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
-	appID := "builtin-red-envelope"
+	appID := "miniapp-red-envelope"
 	amount := int64(20000000)
 
 	memo := fmt.Sprintf("redenv:%d", time.Now().UnixNano())
@@ -258,7 +258,7 @@ func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
 // SimulateGasCircle simulates daily savings circle with lottery.
 // Business flow: CreateCircle -> JoinCircle -> MakeDeposit -> RequestPayout
 func (s *MiniAppSimulator) SimulateGasCircle(ctx context.Context) error {
-	appID := "builtin-gas-circle"
+	appID := "miniapp-gas-circle"
 	amount := int64(10000000)
 
 	memo := fmt.Sprintf("circle:%d", time.Now().UnixNano())
@@ -329,7 +329,7 @@ func (s *MiniAppSimulator) SimulateGasCircle(ctx context.Context) error {
 // SimulatePayToView simulates premium content unlocking.
 // Business flow: CreateContent -> Purchase -> ViewContent
 func (s *MiniAppSimulator) SimulatePayToView(ctx context.Context) error {
-	appID := "builtin-pay-to-view"
+	appID := "miniapp-pay-to-view"
 	price := int64(randomInt(1, 10)) * 10000000 // 0.1-1 GAS
 
 	// Randomly decide: create content (20%) or purchase (80%)
@@ -407,7 +407,7 @@ func (s *MiniAppSimulator) SimulatePayToView(ctx context.Context) error {
 // SimulateTimeCapsule simulates the TEE time capsule workflow.
 // Business flow: Bury (encrypt) -> Fish (random pickup) -> Reveal (time unlock)
 func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
-	appID := "builtin-time-capsule"
+	appID := "miniapp-time-capsule"
 	buryFee := int64(20000000)  // 0.2 GAS to bury
 	fishFee := int64(5000000)   // 0.05 GAS to fish
 
@@ -461,7 +461,7 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 
 // SimulateDevTipping simulates the EcoBoost developer tipping app.
 func (s *MiniAppSimulator) SimulateDevTipping(ctx context.Context) error {
-	appID := "builtin-dev-tipping"
+	appID := "miniapp-dev-tipping"
 	tipAmount := int64(randomInt(1, 10)) * 100000000 // 1-10 GAS
 
 	devID := randomInt(1, 8)
@@ -583,5 +583,96 @@ func (s *MiniAppSimulator) SimulateWhisperChain(ctx context.Context) error {
 		return fmt.Errorf("whisper chain: %w", err)
 	}
 	atomic.AddInt64(&s.whisperSends, 1)
+	return nil
+}
+
+// SimulateGrantShare simulates community grant funding.
+// Business flow: CreateGrant -> FundGrant -> WithdrawFunds
+func (s *MiniAppSimulator) SimulateGrantShare(ctx context.Context) error {
+	appID := "miniapp-grant-share"
+	amount := int64(50000000) // 0.5 GAS
+
+	// Randomly create or fund a grant
+	if randomInt(0, 4) == 0 {
+		// Create a new grant
+		memo := fmt.Sprintf("grant:create:%d", time.Now().UnixNano())
+		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("grant share create: %w", err)
+		}
+		atomic.AddInt64(&s.grantShareCreates, 1)
+	} else {
+		// Fund an existing grant
+		grantID := fmt.Sprintf("grant-%d", randomInt(1, 100))
+		memo := fmt.Sprintf("grant:fund:%s:%d", grantID, time.Now().UnixNano())
+		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("grant share fund: %w", err)
+		}
+		atomic.AddInt64(&s.grantShareFunds, 1)
+	}
+	return nil
+}
+
+// SimulateNeoChat simulates decentralized messaging.
+// Business flow: CreateRoom -> SendMessage -> JoinRoom
+func (s *MiniAppSimulator) SimulateNeoChat(ctx context.Context) error {
+	appID := "miniapp-neo-chat"
+	amount := int64(1000000) // 0.01 GAS
+
+	// Randomly create room or send message
+	if randomInt(0, 9) == 0 {
+		// Create a new room
+		memo := fmt.Sprintf("chat:room:create:%d", time.Now().UnixNano())
+		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("neo chat room: %w", err)
+		}
+		atomic.AddInt64(&s.neoChatRooms, 1)
+	} else {
+		// Send a message
+		roomID := fmt.Sprintf("room-%d", randomInt(1, 50))
+		memo := fmt.Sprintf("chat:msg:%s:%d", roomID, time.Now().UnixNano())
+		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("neo chat message: %w", err)
+		}
+		atomic.AddInt64(&s.neoChatMessages, 1)
+	}
+	return nil
+}
+
+// SimulateNeoNS simulates Neo Name Service domain registration.
+// Business flow: SearchDomain -> RegisterDomain -> RenewDomain
+func (s *MiniAppSimulator) SimulateNeoNS(ctx context.Context) error {
+	appID := "miniapp-neo-ns"
+	amount := int64(10000000) // 0.1 GAS base
+
+	// Randomly register or renew
+	if randomInt(0, 2) == 0 {
+		// Register a new domain
+		domainName := fmt.Sprintf("user%d.neo", randomInt(1000, 9999))
+		memo := fmt.Sprintf("nns:register:%s:%d", domainName, time.Now().UnixNano())
+		_, err := s.invoker.PayToApp(ctx, appID, amount*5, memo) // Registration costs more
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("neo ns register: %w", err)
+		}
+		atomic.AddInt64(&s.neoNSRegistrations, 1)
+	} else {
+		// Renew an existing domain
+		domainName := fmt.Sprintf("user%d.neo", randomInt(1, 500))
+		memo := fmt.Sprintf("nns:renew:%s:%d", domainName, time.Now().UnixNano())
+		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+		if err != nil {
+			atomic.AddInt64(&s.simulationErrors, 1)
+			return fmt.Errorf("neo ns renew: %w", err)
+		}
+		atomic.AddInt64(&s.neoNSRenewals, 1)
+	}
 	return nil
 }

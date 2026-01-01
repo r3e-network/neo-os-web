@@ -136,6 +136,14 @@ type MiniAppSimulator struct {
 	neoburgerStakes      int64
 	guardianPolicySets   int64
 
+	// Phase 10 stats (GrantShare, Neo Chat, Neo NS)
+	grantShareFunds    int64
+	grantShareCreates  int64
+	neoChatMessages    int64
+	neoChatRooms       int64
+	neoNSRegistrations int64
+	neoNSRenewals      int64
+
 	simulationErrors int64
 
 	missingUserAddressesLogged uint32
@@ -247,6 +255,11 @@ func (s *MiniAppSimulator) GetStats() map[string]interface{} {
 			"million_piece_map": map[string]int64{"buys": atomic.LoadInt64(&s.mapPieceBuys)},
 			"fog_puzzle":        map[string]int64{"reveals": atomic.LoadInt64(&s.fogPuzzleReveals)},
 			"crypto_riddle":     map[string]int64{"solves": atomic.LoadInt64(&s.riddleSolves)},
+		},
+		"phase10": map[string]interface{}{
+			"grant_share": map[string]int64{"funds": atomic.LoadInt64(&s.grantShareFunds), "creates": atomic.LoadInt64(&s.grantShareCreates)},
+			"neo_chat":    map[string]int64{"messages": atomic.LoadInt64(&s.neoChatMessages), "rooms": atomic.LoadInt64(&s.neoChatRooms)},
+			"neo_ns":      map[string]int64{"registrations": atomic.LoadInt64(&s.neoNSRegistrations), "renewals": atomic.LoadInt64(&s.neoNSRenewals)},
 		},
 		"errors": atomic.LoadInt64(&s.simulationErrors),
 	}

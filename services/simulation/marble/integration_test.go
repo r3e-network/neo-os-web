@@ -108,11 +108,11 @@ func TestSimulationStatisticsAccumulation(t *testing.T) {
 // TestMultipleAppSimulation tests simulation with multiple apps running concurrently.
 func TestMultipleAppSimulation(t *testing.T) {
 	apps := []string{
-		"builtin-lottery",
-		"builtin-coin-flip",
-		"builtin-dice-game",
-		"builtin-roulette",
-		"builtin-slots",
+		"miniapp-lottery",
+		"miniapp-coin-flip",
+		"miniapp-dice-game",
+		"miniapp-roulette",
+		"miniapp-slots",
 	}
 
 	s := &Service{

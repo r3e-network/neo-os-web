@@ -316,7 +316,7 @@ func TestContractInvoker_PayToApp_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	txHash, err := inv.PayToApp(ctx, "builtin-lottery", 1000000, "test-memo")
+	txHash, err := inv.PayToApp(ctx, "miniapp-lottery", 1000000, "test-memo")
 
 	require.NoError(t, err)
 	assert.Equal(t, "0xtest-tx-hash-transfer-with-data", txHash)
@@ -325,7 +325,7 @@ func TestContractInvoker_PayToApp_Success(t *testing.T) {
 	reqCalls := mockClient.getRequestAccountsCalls()
 	require.Len(t, reqCalls, 1)
 	assert.Equal(t, 1, reqCalls[0].Count)
-	assert.Equal(t, "payment-builtin-lottery", reqCalls[0].Purpose)
+	assert.Equal(t, "payment-miniapp-lottery", reqCalls[0].Purpose)
 
 	// Verify TransferWithData was called (direct GAS transfer with appId data)
 	transferCalls := mockClient.getTransferWithDataCalls()
@@ -333,7 +333,7 @@ func TestContractInvoker_PayToApp_Success(t *testing.T) {
 	assert.Equal(t, "test-account-1", transferCalls[0].AccountID)
 	assert.Equal(t, "0xpaymenthub", transferCalls[0].ToAddress)
 	assert.Equal(t, int64(1000000), transferCalls[0].Amount)
-	assert.Equal(t, "builtin-lottery", transferCalls[0].Data)
+	assert.Equal(t, "miniapp-lottery", transferCalls[0].Data)
 
 	// Verify stats updated
 	stats := inv.GetStats()
@@ -353,11 +353,11 @@ func TestContractInvoker_PayToApp_ReusesAccount(t *testing.T) {
 	ctx := context.Background()
 
 	// First call - should request account
-	_, err = inv.PayToApp(ctx, "builtin-lottery", 1000000, "memo1")
+	_, err = inv.PayToApp(ctx, "miniapp-lottery", 1000000, "memo1")
 	require.NoError(t, err)
 
 	// Second call - should reuse account
-	_, err = inv.PayToApp(ctx, "builtin-lottery", 2000000, "memo2")
+	_, err = inv.PayToApp(ctx, "miniapp-lottery", 2000000, "memo2")
 	require.NoError(t, err)
 
 	// Verify only one account was requested
@@ -382,18 +382,18 @@ func TestContractInvoker_PayToApp_DifferentAppsGetDifferentAccounts(t *testing.T
 	ctx := context.Background()
 
 	// Call for lottery
-	_, err = inv.PayToApp(ctx, "builtin-lottery", 1000000, "memo1")
+	_, err = inv.PayToApp(ctx, "miniapp-lottery", 1000000, "memo1")
 	require.NoError(t, err)
 
 	// Call for coin-flip
-	_, err = inv.PayToApp(ctx, "builtin-coin-flip", 2000000, "memo2")
+	_, err = inv.PayToApp(ctx, "miniapp-coin-flip", 2000000, "memo2")
 	require.NoError(t, err)
 
 	// Verify two accounts were requested (one per app)
 	reqCalls := mockClient.getRequestAccountsCalls()
 	assert.Len(t, reqCalls, 2)
-	assert.Equal(t, "payment-builtin-lottery", reqCalls[0].Purpose)
-	assert.Equal(t, "payment-builtin-coin-flip", reqCalls[1].Purpose)
+	assert.Equal(t, "payment-miniapp-lottery", reqCalls[0].Purpose)
+	assert.Equal(t, "payment-miniapp-coin-flip", reqCalls[1].Purpose)
 }
 
 func TestContractInvoker_PayToApp_RequestAccountError(t *testing.T) {
@@ -409,7 +409,7 @@ func TestContractInvoker_PayToApp_RequestAccountError(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	txHash, err := inv.PayToApp(ctx, "builtin-lottery", 1000000, "memo")
+	txHash, err := inv.PayToApp(ctx, "miniapp-lottery", 1000000, "memo")
 
 	assert.Error(t, err)
 	assert.Empty(t, txHash)
@@ -434,7 +434,7 @@ func TestContractInvoker_PayToApp_EmptyAccountsResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	txHash, err := inv.PayToApp(ctx, "builtin-lottery", 1000000, "memo")
+	txHash, err := inv.PayToApp(ctx, "miniapp-lottery", 1000000, "memo")
 
 	assert.Error(t, err)
 	assert.Empty(t, txHash)
@@ -454,7 +454,7 @@ func TestContractInvoker_PayToApp_InvokeError(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	txHash, err := inv.PayToApp(ctx, "builtin-lottery", 1000000, "memo")
+	txHash, err := inv.PayToApp(ctx, "miniapp-lottery", 1000000, "memo")
 
 	assert.Error(t, err)
 	assert.Empty(t, txHash)
