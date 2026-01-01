@@ -4,16 +4,16 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Wallet, Trophy, Zap, TrendingUp, Flame } from "lucide-react";
+import { Shield, Wallet, Trophy, Zap, TrendingUp, Flame, User } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
-import { useOAuthStore, oauthProviders } from "@/lib/oauth/store";
 import { useGamification } from "@/hooks/useGamification";
 import { BadgeGrid } from "@/components/features/gamification";
 import { SecretManagement, TokenManagement, AccountBackup, PasswordChange } from "@/components/features/account";
+import { useUser } from "@auth0/nextjs-auth0/client";
 
 export default function AccountPage() {
   const { address, connected } = useWalletStore();
-  const { accounts, loading, linkAccount, unlinkAccount } = useOAuthStore();
+  const { user, isLoading: auth0Loading } = useUser();
   const { stats, levelInfo, loading: statsLoading } = useGamification(address);
 
   return (
@@ -60,27 +60,37 @@ export default function AccountPage() {
               </CardContent>
             </Card>
 
-            {/* Social Bindings */}
+            {/* Auth0 Account */}
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-white">Social Connections</CardTitle>
-                <CardDescription>Bind your accounts for OAuth and extra rewards</CardDescription>
+                <CardTitle className="text-gray-900 dark:text-white">Account</CardTitle>
+                <CardDescription>Sign in with Google, Twitter, or GitHub</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {oauthProviders.map((provider) => {
-                  const account = accounts.find((a) => a.provider === provider.id);
-                  const isLoading = loading === provider.id;
-                  return (
-                    <OAuthBindingItem
-                      key={provider.id}
-                      provider={provider}
-                      account={account}
-                      isLoading={isLoading}
-                      onLink={() => linkAccount(provider.id)}
-                      onUnlink={() => unlinkAccount(provider.id)}
-                    />
-                  );
-                })}
+                {user ? (
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-dark-900 border border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-3">
+                      {user.picture ? (
+                        <img src={user.picture} alt="" className="w-10 h-10 rounded-full" />
+                      ) : (
+                        <User className="w-10 h-10 text-neo" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
+                        <p className="text-xs text-slate-500">{user.email}</p>
+                      </div>
+                    </div>
+                    <a href="/api/auth/logout">
+                      <Button variant="outline" size="sm" className="h-8 text-xs">
+                        Logout
+                      </Button>
+                    </a>
+                  </div>
+                ) : (
+                  <a href="/api/auth/login">
+                    <Button className="w-full bg-neo hover:bg-neo/90">Sign in with Auth0</Button>
+                  </a>
+                )}
               </CardContent>
             </Card>
 
