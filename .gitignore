@@ -126,3 +126,18 @@ SPRINT*_COMPLETION_REPORT.md
 
 # MiniApp simulations (not ready for commit)
 miniapps-uniapp/apps/*/simulation/
+
+# Mobile wallet build artifacts
+platform/mobile-wallet/build-tools/
+platform/mobile-wallet/platforms/
+platform/mobile-wallet/platform-tools/
+platform/mobile-wallet/licenses/
+platform/mobile-wallet/android/
+platform/mobile-wallet/ios/
+
+# Coverage reports
+**/coverage/
+
+# Lock files (use pnpm-lock.yaml instead)
+**/package-lock.json
+!package-lock.json
