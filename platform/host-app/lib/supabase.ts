@@ -6,10 +6,11 @@
  */
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { env } from "./env";
 import { logger } from "./logger";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -49,7 +50,7 @@ export const isSupabaseConfigured = isConfigured;
  * Service Role Client for server-side write operations
  * Only use in API routes, never expose to client
  */
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 export const supabaseAdmin: SupabaseClient | null = serviceRoleKey
   ? createClient(supabaseUrl || BUILD_FALLBACK_URL, serviceRoleKey, {

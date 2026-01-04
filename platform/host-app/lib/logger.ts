@@ -1,29 +1,40 @@
 /**
- * Simple logger utility for production-safe logging
- * In production, logs are suppressed unless explicitly enabled
+ * Structured logger using Pino
+ * Provides JSON logging in production, pretty printing in development
+ * Maintains backward compatibility with existing logger API
  */
 
-const isDev = process.env.NODE_ENV === "development";
-const isDebugEnabled = process.env.DEBUG === "true";
+import pino from "pino";
+import { env } from "./env";
 
+const isDev = env.NODE_ENV === "development";
+
+const pinoLogger = pino({
+  level: isDev ? "debug" : "info",
+  transport: isDev
+    ? {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "SYS:standard",
+          ignore: "pid,hostname",
+        },
+      }
+    : undefined,
+});
+
+// Wrapper to maintain backward compatibility with existing logger API
 export const logger = {
   debug: (message: string, ...args: unknown[]) => {
-    if (isDev || isDebugEnabled) {
-      console.log(`[DEBUG] ${message}`, ...args);
-    }
+    pinoLogger.debug({ args }, message);
   },
-
   info: (message: string, ...args: unknown[]) => {
-    if (isDev || isDebugEnabled) {
-      console.log(`[INFO] ${message}`, ...args);
-    }
+    pinoLogger.info({ args }, message);
   },
-
   warn: (message: string, ...args: unknown[]) => {
-    console.warn(`[WARN] ${message}`, ...args);
+    pinoLogger.warn({ args }, message);
   },
-
   error: (message: string, error?: unknown) => {
-    console.error(`[ERROR] ${message}`, error);
+    pinoLogger.error({ error }, message);
   },
 };

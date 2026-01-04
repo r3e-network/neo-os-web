@@ -1,7 +1,8 @@
 import type { NextApiRequest } from "next";
+import { env } from "./env";
 
 const DEFAULT_FETCH_TIMEOUT_MS = 5000; // 5 seconds for SSR
-const EDGE_RPC_ALLOWLIST = String(process.env.EDGE_RPC_ALLOWLIST || "").trim();
+const EDGE_RPC_ALLOWLIST = String(env.EDGE_RPC_ALLOWLIST || "").trim();
 
 function parseAllowlist(raw: string): { allowAll: boolean; entries: Set<string> } {
   if (!raw) return { allowAll: false, entries: new Set() };
@@ -14,7 +15,7 @@ function parseAllowlist(raw: string): { allowAll: boolean; entries: Set<string> 
 }
 
 export function getEdgeFunctionsBaseUrl(): string {
-  const raw = String(process.env.EDGE_BASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const raw = String(env.EDGE_BASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   if (!raw) return "";
   const base = raw.replace(/\/$/, "");
   if (base.endsWith("/functions/v1")) return base;
@@ -76,7 +77,7 @@ export function isEdgeRpcAllowed(fn: string): boolean {
   const { allowAll, entries } = parseAllowlist(EDGE_RPC_ALLOWLIST);
   if (allowAll) return true;
   if (entries.size === 0) {
-    return process.env.NODE_ENV !== "production";
+    return env.NODE_ENV !== "production";
   }
   return entries.has(fn);
 }
@@ -90,7 +91,7 @@ type RequestLike = {
  * Priority: NEXT_PUBLIC_API_URL env > request host header > error
  */
 export function resolveInternalBaseUrl(req?: RequestLike): string {
-  const envBase = String(process.env.NEXT_PUBLIC_API_URL || "").trim();
+  const envBase = String(env.NEXT_PUBLIC_API_URL || "").trim();
   if (envBase) return envBase;
 
   const host = req?.headers?.host;
