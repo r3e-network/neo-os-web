@@ -26,20 +26,12 @@ const APP_CATEGORIES: Record<string, string> = {
   "miniapp-secretpoker": "gaming",
   "miniapp-neocrash": "gaming",
   "miniapp-flashloan": "defi",
-  "miniapp-aitrader": "defi",
-  "miniapp-gridbot": "defi",
-  "miniapp-priceticker": "defi",
   "miniapp-neoburger": "defi",
   "miniapp-redenvelope": "social",
-  "miniapp-aisoulmate": "social",
   "miniapp-devtipping": "social",
-  "miniapp-secretvote": "governance",
   "miniapp-govbooster": "governance",
-  "miniapp-predictionmarket": "governance",
   "miniapp-canvas": "nft",
-  "miniapp-nftevolve": "nft",
   "miniapp-explorer": "utility",
-  "miniapp-zkbadge": "utility",
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

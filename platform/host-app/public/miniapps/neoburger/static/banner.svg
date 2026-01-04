@@ -1,11 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#10B981"/>
-      <stop offset="100%" style="stop-color:#059669"/>
-    </linearGradient>
-  </defs>
-  <rect width="800" height="200" fill="url(#bg)"/>
-  <text x="400" y="90" font-size="48" fill="#fff" font-weight="bold" text-anchor="middle" font-family="system-ui">NeoBurger</text>
-  <text x="400" y="130" font-size="20" fill="#A7F3D0" text-anchor="middle" font-family="system-ui">Stake NEO and Earn GAS Rewards</text>
-</svg>
+<svg width="1200" height="400" viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#1d4ed8;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+            </linearGradient>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.1"/>
+            </pattern>
+        </defs>
+        <rect width="1200" height="400" fill="url(#bg)" />
+        <rect width="1200" height="400" fill="url(#grid)" />
+        <circle cx="482" cy="198" r="180" fill="white" fill-opacity="0.07" /><circle cx="444" cy="284" r="84" fill="white" fill-opacity="0.15" /><circle cx="1119" cy="213" r="85" fill="white" fill-opacity="0.14" /><circle cx="233" cy="35" r="63" fill="white" fill-opacity="0.05" /><circle cx="994" cy="216" r="82" fill="white" fill-opacity="0.06" /><circle cx="1079" cy="65" r="92" fill="white" fill-opacity="0.14" /><circle cx="93" cy="172" r="51" fill="white" fill-opacity="0.09" /><circle cx="284" cy="349" r="131" fill="white" fill-opacity="0.12" /><circle cx="884" cy="234" r="156" fill="white" fill-opacity="0.05" /><circle cx="394" cy="208" r="184" fill="white" fill-opacity="0.13" />
+        
+        <!-- Big decorative icon on right -->
+        <g transform="translate(850, -50) scale(20)" stroke="white" stroke-width="1.5" fill="none" stroke-opacity="0.2">
+             <path d="M11.5 21a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H2v12h9.5z M22 21a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-7v9h7z M18 2a3 3 0 0 0-3 3v2h6V5a3 3 0 0 0-3-3z" />
+        </g>
+        
+        <!-- Smaller focused icon on left-center -->
+        <g transform="translate(100, 100) scale(8)" stroke="white" stroke-width="2" fill="none" filter="drop-shadow(3px 3px 2px rgba(0,0,0,0.3))">
+             <path d="M11.5 21a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H2v12h9.5z M22 21a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-7v9h7z M18 2a3 3 0 0 0-3 3v2h6V5a3 3 0 0 0-3-3z" />
+        </g>
+    </svg>

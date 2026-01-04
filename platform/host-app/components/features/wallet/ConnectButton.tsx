@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, User } from "lucide-react";
 import { useWalletStore, walletOptions, WalletProvider } from "@/lib/wallet/store";
+import { useUser } from "@auth0/nextjs-auth0/client";
+import { useTranslation } from "@/lib/i18n/react";
 
 export function ConnectButton() {
-  const { connected, address, balance, loading, error, connect, disconnect, refreshBalance, clearError } =
+  const { t } = useTranslation("common");
+  const { connected, address, balance, loading, error, connect, disconnect, refreshBalance, clearError, provider } =
     useWalletStore();
+  const { user } = useUser();
   const [showMenu, setShowMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -24,11 +28,12 @@ export function ConnectButton() {
   if (connected) {
     const gasBalance = balance?.gas ? parseFloat(balance.gas) : 0;
     const displayBalance = gasBalance > 0 ? gasBalance.toFixed(4) : "0.0000";
+    const isSocial = provider === "auth0";
 
     return (
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-4 py-2 border border-gray-200 dark:border-gray-700">
-          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <div className={`h-2 w-2 rounded-full ${isSocial ? "bg-blue-500" : "bg-green-500"}`} />
           <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {address.slice(0, 6)}...{address.slice(-4)}
           </span>
@@ -42,26 +47,32 @@ export function ConnectButton() {
             <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
           </button>
         </div>
-        <Button variant="ghost" size="sm" onClick={disconnect} className="text-gray-700 dark:text-gray-300">
-          Disconnect
-        </Button>
+        {!isSocial && (
+          <Button variant="ghost" size="sm" onClick={disconnect} className="text-gray-700 dark:text-gray-300">
+            {t("wallet.disconnect")}
+          </Button>
+        )}
       </div>
     );
   }
 
+  const isSocialAuthActive = !!user;
+
   return (
     <div className="relative">
       <Button
-        onClick={() => setShowMenu(!showMenu)}
-        disabled={loading}
-        className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2"
+        onClick={() => !isSocialAuthActive && setShowMenu(!showMenu)}
+        disabled={loading || isSocialAuthActive}
+        className={`${
+          isSocialAuthActive ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+        } text-white font-semibold px-6 py-2 transition-all`}
       >
-        {loading ? "Connecting..." : "Connect Wallet"}
+        {loading ? t("wallet.connecting") : isSocialAuthActive ? t("wallet.socialLinked") : t("wallet.connect")}
       </Button>
 
       {showMenu && (
         <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 shadow-xl z-50">
-          <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-1 mb-1">Select Wallet</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-1 mb-1">{t("wallet.selectWallet")}</div>
           {walletOptions.map((wallet) => (
             <button
               key={wallet.id}
@@ -86,7 +97,7 @@ export function ConnectButton() {
         <div className="absolute right-0 top-full mt-2 w-64 rounded-lg border border-red-200 bg-red-50 p-3">
           <p className="text-sm text-red-600">{error}</p>
           <button onClick={clearError} className="mt-2 text-xs text-red-500 underline">
-            Dismiss
+            {t("actions.dismiss")}
           </button>
         </div>
       )}

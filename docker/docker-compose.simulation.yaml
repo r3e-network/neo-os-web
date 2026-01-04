@@ -438,8 +438,8 @@ services:
       - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
       - SIMULATION_ENABLED=${SIMULATION_ENABLED:-true}
-      # All 64 MiniApps for simulation
-      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-builtin-lottery,builtin-coin-flip,builtin-dice-game,builtin-scratch-card,builtin-mega-millions,builtin-gas-spin,builtin-neo-crash,builtin-doomsday-clock,builtin-schrodinger-nft,builtin-algo-battle,builtin-quantum-swap,builtin-burn-league,builtin-puzzle-mining,builtin-fog-puzzle,builtin-crypto-riddle,builtin-scream-to-earn,builtin-prediction-market,builtin-flashloan,builtin-price-ticker,builtin-price-predict,builtin-turbo-options,builtin-il-guard,builtin-candle-wars,builtin-dutch-auction,builtin-the-parasite,builtin-no-loss-lottery,builtin-dead-switch,builtin-heritage-trust,builtin-compound-capsule,builtin-self-loan,builtin-dark-pool,builtin-melting-asset,builtin-unbreakable-vault,builtin-secret-vote,builtin-secret-poker,builtin-micro-predict,builtin-red-envelope,builtin-gas-circle,builtin-pay-to-view,builtin-time-capsule,builtin-ai-soulmate,builtin-dark-radio,builtin-zk-badge,builtin-graveyard,builtin-bounty-hunter,builtin-whisper-chain,builtin-dev-tipping,builtin-gov-booster,builtin-gov-merc,builtin-masquerade-dao,builtin-guardian-policy,builtin-ai-trader,builtin-grid-bot,builtin-nft-evolve,builtin-nft-chimera,builtin-bridge-guardian,builtin-fog-chess,builtin-garden-of-neo,builtin-on-chain-tarot,builtin-ex-files,builtin-breakup-contract,builtin-geo-spotlight,builtin-world-piano,builtin-million-piece-map,builtin-canvas,builtin-candidate-vote,builtin-neoburger}
+      # All 34 MiniApps for simulation (30 deleted apps removed)
+      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-builtin-lottery,builtin-coin-flip,builtin-dice-game,builtin-scratch-card,builtin-mega-millions,builtin-gas-spin,builtin-neo-crash,builtin-doomsday-clock,builtin-burn-league,builtin-puzzle-mining,builtin-fog-puzzle,builtin-crypto-riddle,builtin-flashloan,builtin-price-predict,builtin-turbo-options,builtin-heritage-trust,builtin-compound-capsule,builtin-self-loan,builtin-unbreakable-vault,builtin-secret-poker,builtin-micro-predict,builtin-red-envelope,builtin-gas-circle,builtin-time-capsule,builtin-graveyard,builtin-dev-tipping,builtin-gov-booster,builtin-gov-merc,builtin-masquerade-dao,builtin-guardian-policy,builtin-garden-of-neo,builtin-on-chain-tarot,builtin-ex-files,builtin-breakup-contract,builtin-million-piece-map,builtin-canvas,builtin-candidate-vote,builtin-neoburger}
       - SIMULATION_TX_INTERVAL_MIN_MS=${SIMULATION_TX_INTERVAL_MIN_MS:-15000}
       - SIMULATION_TX_INTERVAL_MAX_MS=${SIMULATION_TX_INTERVAL_MAX_MS:-15000}
       - SIMULATION_WORKERS_PER_APP=${SIMULATION_WORKERS_PER_APP:-1}
@@ -457,23 +457,15 @@ services:
       - CONTRACT_MINIAPP_SECRETPOKER_HASH=0xa27348cc0a79c776699a028244250b4f3d6bbe0c
       - CONTRACT_MINIAPP_FOGCHESS_HASH=0x23a44ca6643c104fbaa97daab65d5e53b3662b4a
       # DeFi MiniApp contracts
-      - CONTRACT_MINIAPP_PREDICTIONMARKET_HASH=0x64118096bd004a2bcb010f4371aba45121eca790
       - CONTRACT_MINIAPP_FLASHLOAN_HASH=0xee51e5b399f7727267b7d296ff34ec6bb9283131
-      - CONTRACT_MINIAPP_PRICETICKER_HASH=0x838bd5dd3d257a844fadddb5af2b9dac45e1d320
       - CONTRACT_MINIAPP_PRICEPREDICT_HASH=0x6317f97029b39f9211193085fe20dcf6500ec59d
       - CONTRACT_MINIAPP_MICROPREDICT_HASH=0x73264e59d8215e28485420bb33ba841ff6fb45f8
       - CONTRACT_MINIAPP_TURBOOPTIONS_HASH=0xbbe5a4d4272618b23b983c40e22d4b072e20f4bc
-      - CONTRACT_MINIAPP_ILGUARD_HASH=0xd3557ccbb2ced2254f5862fbc784cd97cf746872
-      - CONTRACT_MINIAPP_AITRADER_HASH=0xc3356f394897e36b3903ea81d87717da8db98809
-      - CONTRACT_MINIAPP_GRIDBOT_HASH=0x0d9cfc40ac2ab58de449950725af9637e0884b28
       # Social MiniApp contracts
       - CONTRACT_MINIAPP_REDENVELOPE_HASH=0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e
       - CONTRACT_MINIAPP_GASCIRCLE_HASH=0x7736c8d1ff918f94d26adc688dac4d4bc084bd39
-      - CONTRACT_MINIAPP_SECRETVOTE_HASH=0x7763ce957515f6acef6d093376977ac6c1cbc47d
-      - CONTRACT_MINIAPP_NFTEVOLVE_HASH=0xadd18a719d14d59c064244833cd2c812c79d6015
       # Governance MiniApp contracts
       - CONTRACT_MINIAPP_GOVBOOSTER_HASH=0xebabd9712f985afc0e5a4e24ed2fc4acb874796f
-      - CONTRACT_MINIAPP_BRIDGEGUARDIAN_HASH=0x2d03f3e4ff10e14ea94081e0c21e79e79c33f9e3
       - CONTRACT_MINIAPP_GUARDIANPOLICY_HASH=0x893a774957244b83a0efed1d42771fe1e424cfec
     depends_on:
       coordinator:

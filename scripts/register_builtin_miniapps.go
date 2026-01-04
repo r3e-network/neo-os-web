@@ -38,29 +38,15 @@ var builtinApps = []BuiltinApp{
 	{"builtin-secret-poker", "Secret Poker", "miniapps-uniapp/apps/secret-poker", []string{"wallet", "payments", "rng", "compute"}},
 	{"builtin-red-envelope", "Red Envelope", "miniapps-uniapp/apps/red-envelope", []string{"wallet", "payments", "rng"}},
 	{"builtin-gas-circle", "GAS Circle", "miniapps-uniapp/apps/gas-circle", []string{"wallet", "payments", "rng", "automation"}},
-	{"builtin-fog-chess", "Fog Chess", "miniapps-uniapp/apps/fog-chess", []string{"wallet", "payments", "rng", "compute"}},
 	{"builtin-scratch-card", "Scratch Card", "miniapps-uniapp/apps/scratch-card", []string{"wallet", "payments", "rng"}},
 	{"builtin-neo-crash", "Neo Crash", "miniapps-uniapp/apps/neo-crash", []string{"wallet", "payments", "rng"}},
 	// DeFi apps
-	{"builtin-prediction-market", "Prediction Market", "miniapps-uniapp/apps/prediction-market", []string{"wallet", "payments", "datafeed"}},
-	{"builtin-il-guard", "IL Guard", "miniapps-uniapp/apps/il-guard", []string{"wallet", "payments", "datafeed", "automation"}},
-	{"builtin-grid-bot", "Grid Bot", "miniapps-uniapp/apps/grid-bot", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
-	{"builtin-ai-trader", "AI Trader", "miniapps-uniapp/apps/ai-trader", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
 	{"builtin-flashloan", "Flash Loan", "miniapps-uniapp/apps/flashloan", []string{"wallet", "payments"}},
-	{"builtin-dark-pool", "Dark Pool", "miniapps-uniapp/apps/dark-pool", []string{"wallet", "payments", "compute"}},
-	{"builtin-dutch-auction", "Dutch Auction", "miniapps-uniapp/apps/dutch-auction", []string{"wallet", "payments"}},
 	// Governance apps
-	{"builtin-secret-vote", "Secret Vote", "miniapps-uniapp/apps/secret-vote", []string{"wallet", "payments", "governance"}},
 	{"builtin-gov-booster", "Gov Booster", "miniapps-uniapp/apps/gov-booster", []string{"wallet", "payments", "governance", "automation", "datafeed"}},
 	{"builtin-gov-merc", "Gov Merc", "miniapps-uniapp/apps/gov-merc", []string{"wallet", "payments", "governance"}},
-	// NFT apps
-	{"builtin-nft-evolve", "NFT Evolve", "miniapps-uniapp/apps/nft-evolve", []string{"wallet", "payments", "rng", "datafeed", "automation"}},
-	{"builtin-schrodinger-nft", "Schrodinger NFT", "miniapps-uniapp/apps/schrodinger-nft", []string{"wallet", "payments", "rng"}},
 	// Utility apps
-	{"builtin-bridge-guardian", "Bridge Guardian", "miniapps-uniapp/apps/bridge-guardian", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
 	{"builtin-guardian-policy", "Guardian Policy", "miniapps-uniapp/apps/guardian-policy", []string{"wallet", "payments", "compute"}},
-	{"builtin-price-ticker", "Price Ticker", "miniapps-uniapp/apps/price-ticker", []string{"wallet", "datafeed"}},
-	{"builtin-dead-switch", "Dead Switch", "miniapps-uniapp/apps/dead-switch", []string{"wallet", "payments", "automation"}},
 	{"builtin-heritage-trust", "Heritage Trust", "miniapps-uniapp/apps/heritage-trust", []string{"wallet", "payments", "automation"}},
 	{"builtin-time-capsule", "Time Capsule", "miniapps-uniapp/apps/time-capsule", []string{"wallet", "payments"}},
 }

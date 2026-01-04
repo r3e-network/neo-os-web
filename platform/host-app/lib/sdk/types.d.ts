@@ -7,6 +7,9 @@ export interface MiniAppSDKConfig {
 }
 
 export interface MiniAppSDK {
+  // Required methods for SDK validation
+  invoke?: (method: string, params?: Record<string, unknown>) => Promise<unknown>;
+  getConfig?: () => { appId: string; debug?: boolean };
   getAddress?: () => Promise<string | null>;
   wallet?: {
     getAddress?: () => Promise<string | null>;

@@ -87,12 +87,10 @@ func (s *Simulator) SimulateAllMiniApps() {
 		{"builtin-coin-flip", "Coin Flip", s.SimulateCoinFlip},
 		{"builtin-dice-game", "Dice Game", s.SimulateDiceGame},
 		{"builtin-scratch-card", "Scratch Card", s.SimulateScratchCard},
-		{"builtin-prediction-market", "Prediction Market", s.SimulatePrediction},
-		{"builtin-price-ticker", "Price Ticker", s.SimulatePriceTicker},
 		{"builtin-flashloan", "FlashLoan", s.SimulateFlashLoan},
-		{"builtin-gas-spin", "Gas Spin", s.SimulateGasSpin},
-		{"builtin-price-predict", "Price Predict", s.SimulatePricePredict},
-		{"builtin-secret-vote", "Secret Vote", s.SimulateSecretVote},
+		{"builtin-red-envelope", "Red Envelope", s.SimulateRedEnvelope},
+		{"builtin-gas-circle", "Gas Circle", s.SimulateGasCircle},
+		{"builtin-secret-poker", "Secret Poker", s.SimulateSecretPoker},
 	}
 
 	passed, failed := 0, 0
@@ -176,10 +174,11 @@ func (s *Simulator) SimulateScratchCard() error {
 	return nil
 }
 
-// SimulatePrediction tests prediction market workflow
-func (s *Simulator) SimulatePrediction() error {
-	result, err := s.rpc.InvokeFunction(s.contracts["PriceFeed"], "getLatest", []smartcontract.Parameter{
-		{Type: smartcontract.StringType, Value: "BTC/USD"},
+// SimulateRedEnvelope tests red envelope workflow
+func (s *Simulator) SimulateRedEnvelope() error {
+	appID := "builtin-red-envelope"
+	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
+		{Type: smartcontract.StringType, Value: appID},
 	}, nil)
 	if err != nil {
 		return err
@@ -187,14 +186,15 @@ func (s *Simulator) SimulatePrediction() error {
 	if result.State != "HALT" {
 		return fmt.Errorf("VM fault: %s", result.FaultException)
 	}
-	fmt.Printf("   ✓ PriceFeed available\n")
+	fmt.Printf("   ✓ Red Envelope app ready\n")
 	return nil
 }
 
-// SimulatePriceTicker tests price ticker workflow
-func (s *Simulator) SimulatePriceTicker() error {
-	result, err := s.rpc.InvokeFunction(s.contracts["PriceFeed"], "getLatest", []smartcontract.Parameter{
-		{Type: smartcontract.StringType, Value: "BTC/USD"},
+// SimulateGasCircle tests gas circle workflow
+func (s *Simulator) SimulateGasCircle() error {
+	appID := "builtin-gas-circle"
+	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
+		{Type: smartcontract.StringType, Value: appID},
 	}, nil)
 	if err != nil {
 		return err
@@ -202,7 +202,7 @@ func (s *Simulator) SimulatePriceTicker() error {
 	if result.State != "HALT" {
 		return fmt.Errorf("VM fault: %s", result.FaultException)
 	}
-	fmt.Printf("   ✓ Price feeds available\n")
+	fmt.Printf("   ✓ Gas Circle app ready\n")
 	return nil
 }
 
@@ -222,9 +222,9 @@ func (s *Simulator) SimulateFlashLoan() error {
 	return nil
 }
 
-// SimulateGasSpin tests gas spin workflow
-func (s *Simulator) SimulateGasSpin() error {
-	appID := "builtin-gas-spin"
+// SimulateSecretPoker tests secret poker workflow
+func (s *Simulator) SimulateSecretPoker() error {
+	appID := "builtin-secret-poker"
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)
@@ -234,36 +234,6 @@ func (s *Simulator) SimulateGasSpin() error {
 	if result.State != "HALT" {
 		return fmt.Errorf("VM fault: %s", result.FaultException)
 	}
-	fmt.Printf("   ✓ Gas Spin app ready\n")
-	return nil
-}
-
-// SimulatePricePredict tests price predict workflow
-func (s *Simulator) SimulatePricePredict() error {
-	result, err := s.rpc.InvokeFunction(s.contracts["PriceFeed"], "getLatest", []smartcontract.Parameter{
-		{Type: smartcontract.StringType, Value: "BTC/USD"},
-	}, nil)
-	if err != nil {
-		return err
-	}
-	if result.State != "HALT" {
-		return fmt.Errorf("VM fault: %s", result.FaultException)
-	}
-	fmt.Printf("   ✓ Price Predict ready\n")
-	return nil
-}
-
-// SimulateSecretVote tests secret vote workflow
-func (s *Simulator) SimulateSecretVote() error {
-	result, err := s.rpc.InvokeFunction(s.contracts["Governance"], "getStake", []smartcontract.Parameter{
-		{Type: smartcontract.Hash160Type, Value: s.account.ScriptHash()},
-	}, nil)
-	if err != nil {
-		return err
-	}
-	if result.State != "HALT" {
-		return fmt.Errorf("VM fault: %s", result.FaultException)
-	}
-	fmt.Printf("   ✓ Governance ready\n")
+	fmt.Printf("   ✓ Secret Poker app ready\n")
 	return nil
 }

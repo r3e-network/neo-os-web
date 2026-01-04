@@ -56,12 +56,19 @@ function buildCSP(nonce: string, allowFrameAncestors: boolean = false): string {
   }
   const scriptSrc = scriptSources.join(" ");
 
+  const styleSources = ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"];
+  const styleSrc = styleSources.join(" ");
+
+  const fontSources = ["'self'", "data:", "https://fonts.gstatic.com"];
+  const fontSrc = fontSources.join(" ");
+
   const csp = [
     "default-src 'self'",
     // Next.js uses inline scripts; nonce-based CSP keeps this strict without 'unsafe-inline'.
     `script-src ${scriptSrc}`,
-    "style-src 'self' 'unsafe-inline'",
+    `style-src ${styleSrc}`,
     "img-src 'self' data: https:",
+    `font-src ${fontSrc}`,
     `connect-src ${connectSrc}`,
     `frame-src ${frameSrc}`,
     // Allow miniapps to be embedded in same-origin iframes (for /launch pages)
@@ -75,9 +82,14 @@ function buildCSP(nonce: string, allowFrameAncestors: boolean = false): string {
 }
 
 export function middleware(req: NextRequest) {
-  // Skip CSP for Next.js internals and static assets.
+  // Skip CSP for Next.js internals, static assets, and miniapps static files.
   const pathname = req.nextUrl.pathname;
-  if (pathname.startsWith("/_next/") || pathname.startsWith("/favicon") || pathname.startsWith("/robots")) {
+  if (
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/robots") ||
+    pathname.startsWith("/miniapps/")
+  ) {
     return NextResponse.next();
   }
 

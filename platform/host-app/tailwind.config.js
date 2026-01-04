@@ -13,9 +13,25 @@ module.exports = {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      fontFamily: {
+        sans: ["Outfit", "system-ui", "sans-serif"],
+      },
       colors: {
         background: "#020617",
         foreground: "#f8fafc",
+        dark: {
+          50: "#f8fafc",
+          100: "#f1f5f9",
+          200: "#e2e8f0",
+          300: "#cbd5e1",
+          400: "#94a3b8",
+          500: "#64748b",
+          600: "#475569",
+          700: "#334155",
+          800: "#1e293b",
+          900: "#0f172a",
+          950: "#020617",
+        },
         neo: {
           DEFAULT: "#00E599",
           hover: "#00cc88",

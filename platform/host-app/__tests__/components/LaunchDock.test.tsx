@@ -4,6 +4,7 @@ import { LaunchDock, LaunchDockProps } from "../../components/LaunchDock";
 import { WalletState } from "../../components/types";
 
 describe("LaunchDock", () => {
+  const mockOnBack = jest.fn();
   const mockOnExit = jest.fn();
   const mockOnShare = jest.fn();
 
@@ -12,6 +13,7 @@ describe("LaunchDock", () => {
     appId: "test-app",
     wallet: { connected: false, address: "", provider: null },
     networkLatency: 50,
+    onBack: mockOnBack,
     onExit: mockOnExit,
     onShare: mockOnShare,
   };
@@ -228,7 +230,7 @@ describe("LaunchDock", () => {
       render(<LaunchDock {...baseProps} />);
 
       const buttons = screen.getAllByRole("button");
-      expect(buttons).toHaveLength(2);
+      expect(buttons).toHaveLength(3); // Back, Share, Exit
     });
   });
 
@@ -256,6 +258,7 @@ describe("LaunchDock", () => {
         appId: "new-app",
         wallet: { connected: true, address: "NewAddress123", provider: "o3" },
         networkLatency: 999,
+        onBack: jest.fn(),
         onExit: jest.fn(),
         onShare: jest.fn(),
       };

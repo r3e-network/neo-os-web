@@ -10,61 +10,6 @@ import (
 	neoaccountsclient "github.com/R3E-Network/service_layer/infrastructure/accountpool/client"
 )
 
-// SimulateSecretVote simulates privacy-preserving voting.
-// Business flow: CreateProposal -> SubmitVote -> RequestTally
-func (s *MiniAppSimulator) SimulateSecretVote(ctx context.Context) error {
-	appID := "miniapp-secret-vote"
-	amount := int64(1000000)
-
-	memo := fmt.Sprintf("vote:%d", time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("secret vote: %w", err)
-	}
-	atomic.AddInt64(&s.secretVoteCasts, 1)
-
-	// Invoke contract business logic if configured
-	if s.invoker.HasMiniAppContract(appID) {
-		voterAddress, ok := s.getRandomUserAddressOrWarn(appID, "submit vote")
-		if !ok {
-			return nil
-		}
-		proposalID := fmt.Sprintf("proposal-%d", time.Now().UnixNano())
-		encryptedVote := generateRandomBytes(32)
-
-		// Create proposal (every 10 votes)
-		if atomic.LoadInt64(&s.secretVoteCasts)%10 == 1 {
-			_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "CreateProposal", []neoaccountsclient.ContractParam{
-				{Type: "String", Value: proposalID},
-				{Type: "Hash160", Value: voterAddress},
-				{Type: "String", Value: "Simulation proposal"},
-				{Type: "Integer", Value: 3600000}, // 1 hour duration
-			})
-			if err != nil {
-				atomic.AddInt64(&s.simulationErrors, 1)
-				return fmt.Errorf("create proposal contract: %w", err)
-			}
-		}
-
-		// Submit vote
-		_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "SubmitVote", []neoaccountsclient.ContractParam{
-			{Type: "String", Value: proposalID},
-			{Type: "Hash160", Value: voterAddress},
-			{Type: "ByteArray", Value: hex.EncodeToString(encryptedVote)},
-		})
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("submit vote contract: %w", err)
-		}
-	}
-
-	if atomic.LoadInt64(&s.secretVoteCasts)%5 == 0 {
-		atomic.AddInt64(&s.secretVoteTallies, 1)
-	}
-	return nil
-}
-
 // SimulateSecretPoker simulates TEE Texas Hold'em.
 // Business flow: CreateTable -> JoinTable -> StartHand
 func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
@@ -326,84 +271,6 @@ func (s *MiniAppSimulator) SimulateGasCircle(ctx context.Context) error {
 	return nil
 }
 
-// SimulatePayToView simulates premium content unlocking.
-// Business flow: CreateContent -> Purchase -> ViewContent
-func (s *MiniAppSimulator) SimulatePayToView(ctx context.Context) error {
-	appID := "miniapp-pay-to-view"
-	price := int64(randomInt(1, 10)) * 10000000 // 0.1-1 GAS
-
-	// Randomly decide: create content (20%) or purchase (80%)
-	if randomInt(1, 5) == 1 {
-		// Create content
-		memo := fmt.Sprintf("ptv:create:%d", time.Now().UnixNano())
-		_, err := s.invoker.PayToApp(ctx, appID, 1000000, memo) // 0.01 GAS listing fee
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("pay to view create: %w", err)
-		}
-		atomic.AddInt64(&s.payToViewCreates, 1)
-
-		if s.invoker.HasMiniAppContract(appID) {
-			creatorAddress, ok := s.getRandomUserAddressOrWarn(appID, "create content")
-			if !ok {
-				return nil
-			}
-			contentID := fmt.Sprintf("content-%d", time.Now().UnixNano())
-			contentHash := hex.EncodeToString(generateRandomBytes(32))
-
-			_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "CreateContent", []neoaccountsclient.ContractParam{
-				{Type: "Hash160", Value: creatorAddress},
-				{Type: "String", Value: contentID},
-				{Type: "String", Value: contentHash},
-				{Type: "Integer", Value: price},
-			})
-			if err != nil {
-				atomic.AddInt64(&s.simulationErrors, 1)
-				return fmt.Errorf("create content contract: %w", err)
-			}
-		}
-	} else {
-		// Purchase content
-		memo := fmt.Sprintf("ptv:buy:%d", time.Now().UnixNano())
-		_, err := s.invoker.PayToApp(ctx, appID, price, memo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("pay to view purchase: %w", err)
-		}
-		atomic.AddInt64(&s.payToViewPurchases, 1)
-
-		if s.invoker.HasMiniAppContract(appID) {
-			buyerAddress, ok := s.getRandomUserAddressOrWarn(appID, "purchase content")
-			if !ok {
-				return nil
-			}
-			contentID := fmt.Sprintf("content-%d", randomInt(1, 100))
-
-			_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "Purchase", []neoaccountsclient.ContractParam{
-				{Type: "Hash160", Value: buyerAddress},
-				{Type: "String", Value: contentID},
-			})
-			if err != nil {
-				atomic.AddInt64(&s.simulationErrors, 1)
-				return fmt.Errorf("purchase content contract: %w", err)
-			}
-		}
-
-		// Creator receives 90% of payment
-		creatorAddress, ok := s.getRandomUserAddressOrWarn(appID, "creator payout")
-		if !ok {
-			return nil
-		}
-		creatorPayout := int64(float64(price) * 0.9)
-		_, err = s.invoker.PayoutToUser(ctx, appID, creatorAddress, creatorPayout, "ptv:payout")
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("pay to view payout: %w", err)
-		}
-	}
-	return nil
-}
-
 // SimulateTimeCapsule simulates the TEE time capsule workflow.
 // Business flow: Bury (encrypt) -> Fish (random pickup) -> Reveal (time unlock)
 func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
@@ -496,51 +363,6 @@ func (s *MiniAppSimulator) SimulateDevTipping(ctx context.Context) error {
 	return nil
 }
 
-// SimulateAISoulmate simulates AI companion interactions.
-func (s *MiniAppSimulator) SimulateAISoulmate(ctx context.Context) error {
-	appID := "miniapp-ai-soulmate"
-	amount := int64(50000000)
-
-	memo := fmt.Sprintf("soulmate:chat:%d", time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("ai soulmate: %w", err)
-	}
-	atomic.AddInt64(&s.aiSoulmateChats, 1)
-	return nil
-}
-
-// SimulateDarkRadio simulates anonymous broadcast.
-func (s *MiniAppSimulator) SimulateDarkRadio(ctx context.Context) error {
-	appID := "miniapp-dark-radio"
-	amount := int64(10000000)
-
-	memo := fmt.Sprintf("radio:broadcast:%d", time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("dark radio: %w", err)
-	}
-	atomic.AddInt64(&s.darkRadioBroadcasts, 1)
-	return nil
-}
-
-// SimulateZKBadge simulates privacy-preserving badge minting.
-func (s *MiniAppSimulator) SimulateZKBadge(ctx context.Context) error {
-	appID := "miniapp-zk-badge"
-	amount := int64(5000000)
-
-	memo := fmt.Sprintf("badge:mint:%d", time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("zk badge: %w", err)
-	}
-	atomic.AddInt64(&s.zkBadgeMints, 1)
-	return nil
-}
-
 // SimulateGraveyard simulates digital graveyard.
 func (s *MiniAppSimulator) SimulateGraveyard(ctx context.Context) error {
 	appID := "miniapp-graveyard"
@@ -553,36 +375,6 @@ func (s *MiniAppSimulator) SimulateGraveyard(ctx context.Context) error {
 		return fmt.Errorf("graveyard: %w", err)
 	}
 	atomic.AddInt64(&s.graveyardBurials, 1)
-	return nil
-}
-
-// SimulateBountyHunter simulates bounty marketplace.
-func (s *MiniAppSimulator) SimulateBountyHunter(ctx context.Context) error {
-	appID := "miniapp-bounty-hunter"
-	amount := int64(10000000)
-
-	memo := fmt.Sprintf("bounty:hunt:%d", time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("bounty hunter: %w", err)
-	}
-	atomic.AddInt64(&s.bountyHunts, 1)
-	return nil
-}
-
-// SimulateWhisperChain simulates anonymous messaging.
-func (s *MiniAppSimulator) SimulateWhisperChain(ctx context.Context) error {
-	appID := "miniapp-whisper-chain"
-	amount := int64(5000000)
-
-	memo := fmt.Sprintf("whisper:send:%d", time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
-	if err != nil {
-		atomic.AddInt64(&s.simulationErrors, 1)
-		return fmt.Errorf("whisper chain: %w", err)
-	}
-	atomic.AddInt64(&s.whisperSends, 1)
 	return nil
 }
 
@@ -612,36 +404,6 @@ func (s *MiniAppSimulator) SimulateGrantShare(ctx context.Context) error {
 			return fmt.Errorf("grant share fund: %w", err)
 		}
 		atomic.AddInt64(&s.grantShareFunds, 1)
-	}
-	return nil
-}
-
-// SimulateNeoChat simulates decentralized messaging.
-// Business flow: CreateRoom -> SendMessage -> JoinRoom
-func (s *MiniAppSimulator) SimulateNeoChat(ctx context.Context) error {
-	appID := "miniapp-neo-chat"
-	amount := int64(1000000) // 0.01 GAS
-
-	// Randomly create room or send message
-	if randomInt(0, 9) == 0 {
-		// Create a new room
-		memo := fmt.Sprintf("chat:room:create:%d", time.Now().UnixNano())
-		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("neo chat room: %w", err)
-		}
-		atomic.AddInt64(&s.neoChatRooms, 1)
-	} else {
-		// Send a message
-		roomID := fmt.Sprintf("room-%d", randomInt(1, 50))
-		memo := fmt.Sprintf("chat:msg:%s:%d", roomID, time.Now().UnixNano())
-		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
-		if err != nil {
-			atomic.AddInt64(&s.simulationErrors, 1)
-			return fmt.Errorf("neo chat message: %w", err)
-		}
-		atomic.AddInt64(&s.neoChatMessages, 1)
 	}
 	return nil
 }

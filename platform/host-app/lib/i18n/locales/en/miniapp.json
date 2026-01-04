@@ -1,4 +1,158 @@
 {
+  "apps": {
+    "lottery": {
+      "name": "Neo Lottery",
+      "description": "Experience fair lottery draws powered by VRF randomness. Buy tickets with GAS, compete for the prize pool, 100% on-chain transparent verification."
+    },
+    "coinflip": {
+      "name": "Coin Flip",
+      "description": "Classic 50/50 betting reimagined on blockchain. Flip a coin with cryptographically secure randomness for provably fair results."
+    },
+    "dicegame": {
+      "name": "Dice Game",
+      "description": "Roll the dice to test your luck! Choose your winning range, place your bet, and watch VRF-powered dice determine your fate."
+    },
+    "scratchcard": {
+      "name": "Scratch Card",
+      "description": "Digital scratch cards with instant wins. Scratch to reveal your prize, rewards sent instantly to your wallet."
+    },
+    "secretpoker": {
+      "name": "Secret Poker",
+      "description": "Privacy-preserving poker using zero-knowledge proofs. Your hand stays secret while ensuring fair gameplay."
+    },
+    "neocrash": {
+      "name": "Neo Crash",
+      "description": "Thrilling multiplier game. Watch the multiplier rise and cash out before it crashes!"
+    },
+    "redenvelope": {
+      "name": "Red Envelope",
+      "description": "Send lucky GAS red envelopes to friends. Create envelopes, share links, let friends grab the prizes!"
+    },
+    "secretvote": {
+      "name": "Secret Vote",
+      "description": "Private on-chain voting using zero-knowledge proofs. Your vote stays secret, results are verifiable."
+    },
+    "canvas": {
+      "name": "Collaborative Canvas",
+      "description": "On-chain collaborative pixel canvas. Every pixel is an NFT, create art together with users worldwide."
+    },
+    "flashloan": {
+      "name": "Flash Loan",
+      "description": "Uncollateralized instant lending. Borrow, use, and repay within a single transaction for arbitrage and liquidations."
+    },
+    "neoswap": {
+      "name": "Neo Swap",
+      "description": "Decentralized token exchange. Instantly swap tokens in the NEO ecosystem at the best prices."
+    },
+    "explorer": {
+      "name": "Block Explorer",
+      "description": "Explore the Neo blockchain. View transactions, blocks, addresses and smart contract details."
+    },
+    "candidatevote": {
+      "name": "Candidate Vote",
+      "description": "Vote for Neo consensus node candidates. Participate in network governance, support nodes you trust."
+    },
+    "neoburger": {
+      "name": "NeoBurger",
+      "description": "Neo staking aggregator. Stake NEO to get bNEO, auto-compound to maximize yields."
+    },
+    "fogchess": {
+      "name": "Fog Chess",
+      "description": "Strategic chess with fog of war mechanics. Only see pieces within your vision range."
+    },
+    "fogpuzzle": {
+      "name": "Fog Puzzle",
+      "description": "Solve puzzles shrouded in mystery. Reveal tiles strategically and race against time."
+    },
+    "cryptoriddle": {
+      "name": "Crypto Riddle",
+      "description": "Crack cryptographic riddles and brain teasers to unlock GAS rewards."
+    },
+    "millionpiecemap": {
+      "name": "Million Piece Map",
+      "description": "Own and customize pixels on a massive collaborative canvas."
+    },
+    "puzzlemining": {
+      "name": "Puzzle Mining",
+      "description": "Mine GAS by solving increasingly difficult puzzles."
+    },
+    "gascircle": {
+      "name": "Gas Circle",
+      "description": "Join community savings circles where members pool GAS and take turns."
+    },
+    "compoundcapsule": {
+      "name": "Compound Capsule",
+      "description": "Maximize yields with automatic compounding of your earnings."
+    },
+    "selfloan": {
+      "name": "Self Loan",
+      "description": "Borrow against your own collateral with zero liquidation risk."
+    },
+    "grantshare": {
+      "name": "GrantShare",
+      "description": "Create and fund community grants with transparent on-chain tracking."
+    },
+    "devtipping": {
+      "name": "Dev Tipping",
+      "description": "Support open-source developers directly with tips for their contributions."
+    },
+    "breakupcontract": {
+      "name": "Breakup Contract",
+      "description": "Create immutable relationship agreements on-chain with smart contract enforcement."
+    },
+    "exfiles": {
+      "name": "Ex Files",
+      "description": "A secure vault for shared memories with mutual consent controls."
+    },
+    "onchaintarot": {
+      "name": "On-Chain Tarot",
+      "description": "Receive mystical tarot readings powered by VRF randomness."
+    },
+    "timecapsule": {
+      "name": "Time Capsule",
+      "description": "Lock messages or assets that unlock at a future date."
+    },
+    "heritagetrust": {
+      "name": "Heritage Trust",
+      "description": "Create smart inheritance plans for automatic asset transfer."
+    },
+    "gardenofneo": {
+      "name": "Garden of Neo",
+      "description": "Cultivate virtual gardens where plants grow based on blockchain activity."
+    },
+    "graveyard": {
+      "name": "Graveyard",
+      "description": "Create permanent digital memorials as tombstone NFTs."
+    },
+    "govbooster": {
+      "name": "Gov Booster",
+      "description": "Amplify your governance power through staking and delegation."
+    },
+    "burnleague": {
+      "name": "Burn League",
+      "description": "Compete in token burning competitions to reduce supply."
+    },
+    "masqueradedao": {
+      "name": "Masquerade DAO",
+      "description": "Participate in governance wearing a digital mask anonymously."
+    },
+    "govmerc": {
+      "name": "Gov Merc",
+      "description": "Hire governance mercenaries or sell your voting power."
+    },
+    "neons": {
+      "name": "Neo Name Service",
+      "description": "Register human-readable .neo domain names for your wallet."
+    },
+    "guardianpolicy": {
+      "name": "Guardian Policy",
+      "description": "Define and enforce smart contract policies for your wallet."
+    },
+    "unbreakablevault": {
+      "name": "Unbreakable Vault",
+      "description": "Store valuable assets in a time-locked vault with multiple security layers."
+    }
+  },
   "common": {
     "play": "Play",
     "bet": "Bet",

@@ -5,11 +5,12 @@ import {
   NeoLineAdapter,
   O3Adapter,
   OneGateAdapter,
+  Auth0Adapter,
   WalletBalance,
   WalletNotInstalledError,
 } from "./adapters";
 
-export type WalletProvider = "neoline" | "o3" | "onegate";
+export type WalletProvider = "neoline" | "o3" | "onegate" | "auth0";
 
 interface WalletState {
   connected: boolean;
@@ -34,6 +35,7 @@ const adapters: Record<WalletProvider, WalletAdapter> = {
   neoline: new NeoLineAdapter(),
   o3: new O3Adapter(),
   onegate: new OneGateAdapter(),
+  auth0: new Auth0Adapter(),
 };
 
 export const useWalletStore = create<WalletStore>()(
@@ -111,6 +113,13 @@ export const useWalletStore = create<WalletStore>()(
       partialize: (state) => ({
         provider: state.provider,
       }),
+      // Clear auth0 provider on rehydration - auth0 requires fresh login
+      onRehydrateStorage: () => (state) => {
+        if (state?.provider === "auth0") {
+          console.log("[WalletStore] Clearing stale auth0 provider on rehydration");
+          state.provider = null;
+        }
+      },
     },
   ),
 );

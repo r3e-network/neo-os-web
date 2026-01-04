@@ -16,8 +16,15 @@ export default class MyDocument extends Document<Props> {
         <Head>
           <meta charSet="utf-8" />
           <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
-          <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-          <link rel="apple-touch-icon" href="/favicon.svg" />
+          <link rel="icon" href="/logo-icon.png" type="image/png" />
+          <link rel="apple-touch-icon" href="/logo-icon.png" />
+          {/* Google Fonts for beautiful typography */}
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link
+            href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Orbitron:wght@700;900&family=Playfair+Display:wght@700&family=Poppins:wght@600;700&family=Righteous&family=Space+Grotesk:wght@600;700&display=swap"
+            rel="stylesheet"
+          />
           {/* Security Headers - Additional layer beyond middleware */}
           <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
           {/* X-Frame-Options must be set via HTTP header, not meta tag */}

@@ -13,7 +13,10 @@ import type { AnyCardData } from "@/types/card-display";
 export interface MiniAppInfo {
   app_id: string;
   name: string;
+  // Self-contained i18n: each MiniApp provides its own translations
+  name_zh?: string;
   description: string;
+  description_zh?: string;
   icon: string;
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
   source?: "builtin" | "community" | "verified";
@@ -50,22 +53,15 @@ function formatNumber(num?: number): string {
 }
 
 export function MiniAppCard({ app }: { app: MiniAppInfo }) {
-  const { t } = useTranslation("host");
-  const { t: tm } = useTranslation("miniapp");
+  const { t, locale } = useTranslation("host");
   const showSourceBadge = app.source && app.source !== "builtin";
 
   // Get translated category name
   const categoryLabel = t(`categories.${app.category}`) || app.category;
 
-  // Get translated app name and description (fallback to original)
-  const appKey = app.app_id.replace("miniapp-", "").replace(/-/g, "");
-  const nameKey = `apps.${appKey}.name`;
-  const descKey = `apps.${appKey}.description`;
-  const translatedName = tm(nameKey);
-  const translatedDesc = tm(descKey);
-  // If translation returns the key itself, use original value
-  const appName = translatedName === nameKey ? app.name : translatedName;
-  const appDesc = translatedDesc === descKey ? app.description : translatedDesc;
+  // Self-contained i18n: use MiniApp's own translations based on locale
+  const appName = locale === "zh" && app.name_zh ? app.name_zh : app.name;
+  const appDesc = locale === "zh" && app.description_zh ? app.description_zh : app.description;
 
   return (
     <Link href={`/miniapps/${app.app_id}`} className="relative block">
@@ -77,13 +73,19 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
           </div>
         ) : (
           <div className="w-full h-48 relative">
-            <DynamicBanner category={app.category} icon={app.icon} appId={app.app_id} highlights={app.highlights} />
+            <DynamicBanner
+              category={app.category}
+              icon={app.icon}
+              appId={app.app_id}
+              appName={appName}
+              highlights={app.highlights}
+            />
             <CollectionStar appId={app.app_id} className="absolute top-2 right-2 z-10" />
           </div>
         )}
         <CardContent className="p-5 bg-white dark:bg-gray-900">
           <div className="flex items-center gap-3 mb-2">
-            <MiniAppLogo appId={app.app_id} category={app.category} size="md" />
+            <MiniAppLogo appId={app.app_id} category={app.category} size="md" iconUrl={app.icon} />
             <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate flex-1">{appName}</h3>
             <Badge className={categoryColors[app.category]} variant="secondary">
               {categoryLabel}

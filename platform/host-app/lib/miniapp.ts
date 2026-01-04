@@ -82,10 +82,16 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   const statsDisplay = normalizeStatsDisplay(obj.stats_display) ?? fallback?.stats_display;
   const status = normalizeStatus(obj.status, fallback?.status);
 
+  // Self-contained i18n fields
+  const nameZh = toString(obj.name_zh ?? fallback?.name_zh ?? "").trim() || undefined;
+  const descriptionZh = toString(obj.description_zh ?? fallback?.description_zh ?? "").trim() || undefined;
+
   return {
     app_id: appId,
     name,
+    name_zh: nameZh,
     description,
+    description_zh: descriptionZh,
     icon,
     category,
     entry_url: entryUrl,

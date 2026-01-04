@@ -32,8 +32,12 @@ function formatTimeAgo(date?: string): string {
 }
 
 export function MiniAppListItem({ app }: MiniAppListItemProps) {
-  const { t } = useTranslation("host");
+  const { t, locale } = useTranslation("host");
   const categoryLabel = t(`categories.${app.category}`) || app.category;
+
+  // Self-contained i18n: use MiniApp's own translations based on locale
+  const appName = locale === "zh" && app.name_zh ? app.name_zh : app.name;
+  const appDesc = locale === "zh" && app.description_zh ? app.description_zh : app.description;
 
   return (
     <Link
@@ -52,13 +56,13 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <h3 className="font-bold text-gray-900 dark:text-white truncate group-hover:text-neo dark:group-hover:text-neo transition-colors">
-                {app.name}
+                {appName}
               </h3>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
                 {categoryLabel}
               </Badge>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{app.description}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{appDesc}</p>
           </div>
 
           {/* Stats */}

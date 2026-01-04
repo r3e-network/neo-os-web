@@ -3,13 +3,14 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { Search, Moon, Sun, Menu, X, Globe } from "lucide-react";
+import { Search, Moon, Sun, Menu, X, Globe, User, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
 import { NotificationDropdown } from "@/components/features/notifications/NotificationDropdown";
+import { useUser } from "@auth0/nextjs-auth0/client";
 
 const ConnectButton = dynamic(() => import("@/components/features/wallet").then((m) => m.ConnectButton), {
   ssr: false,
@@ -27,6 +28,7 @@ export function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const { locale, setLocale, t } = useI18n();
   const { address: walletAddress } = useWalletStore();
+  const { user, isLoading: authLoading } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -77,11 +79,9 @@ export function Navbar() {
       <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
-              <span className="text-sm font-bold text-white">N</span>
-            </div>
-            <span className="text-lg font-semibold text-gray-900 dark:text-white">
+          <Link href="/" className="flex items-center gap-2 group">
+            <img src="/logo-icon.png" alt="NeoHub" className="h-8 w-8 transition-transform group-hover:scale-110" />
+            <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
               Neo<span className="text-emerald-500">Hub</span>
             </span>
           </Link>
@@ -141,6 +141,33 @@ export function Navbar() {
 
           {/* Notification Dropdown */}
           <NotificationDropdown />
+
+          {/* User Account / Login */}
+          {authLoading ? (
+            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+          ) : user ? (
+            <Link
+              href="/account"
+              className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title={user.name || "Account"}
+            >
+              {user.picture ? (
+                <img src={user.picture} alt="" className="w-7 h-7 rounded-full" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <User size={14} className="text-white" />
+                </div>
+              )}
+            </Link>
+          ) : (
+            <a
+              href="/api/auth/login"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-colors"
+            >
+              <LogIn size={16} />
+              <span className="hidden sm:inline">{t("actions.login") || "Login"}</span>
+            </a>
+          )}
 
           <ConnectButton />
 

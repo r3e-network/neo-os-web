@@ -26,9 +26,12 @@ var miniApps = []struct {
 	{"builtin-coin-flip"},
 	{"builtin-dice-game"},
 	{"builtin-scratch-card"},
-	{"builtin-prediction-market"},
 	{"builtin-flashloan"},
-	{"builtin-price-ticker"},
+	{"builtin-red-envelope"},
+	{"builtin-gas-circle"},
+	{"builtin-gov-booster"},
+	{"builtin-secret-poker"},
+	{"builtin-canvas"},
 }
 
 func main() {

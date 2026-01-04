@@ -1,8 +1,12 @@
-# Host App (Next.js)
+<p align="center">
+  <img src="public/logo.png" alt="NeoHub" width="128" />
+</p>
+
+# NeoHub Host App (Next.js)
 
 **Production URL: https://neomini.app**
 
-This **Next.js** host runs on **Vercel** and serves as the entry point for MiniApps.
+NeoHub is a **Next.js** host running on **Vercel** that serves as the entry point for MiniApps.
 
 Responsibilities:
 

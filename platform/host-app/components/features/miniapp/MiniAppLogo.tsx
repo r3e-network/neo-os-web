@@ -70,63 +70,35 @@ const APP_ICONS: Record<string, LucideIcon> = {
   "miniapp-scratchcard": CreditCard,
   "miniapp-secretpoker": Spade,
   "miniapp-neocrash": TrendingUp,
-  "miniapp-candlewars": CandlestickChart,
-  "miniapp-algobattle": Bot,
-  "miniapp-fogchess": Castle,
   "miniapp-fogpuzzle": Puzzle,
   "miniapp-cryptoriddle": HelpCircle,
-  "miniapp-worldpiano": Piano,
   "miniapp-millionpiecemap": Map,
   "miniapp-puzzlemining": Pickaxe,
-  "miniapp-screamtoearn": Mic,
   "miniapp-megamillions": Ticket,
   "miniapp-throneofgas": Castle,
 
   // DeFi
   "miniapp-flashloan": Zap,
-  "miniapp-aitrader": Brain,
-  "miniapp-gridbot": Grid3X3,
-  "miniapp-bridgeguardian": Shield,
   "miniapp-gascircle": CircleDot,
-  "miniapp-ilguard": ShieldCheck,
   "miniapp-compoundcapsule": Pill,
-  "miniapp-darkpool": Moon,
-  "miniapp-dutchauction": Gavel,
-  "miniapp-nolosslottery": Target,
-  "miniapp-quantumswap": Repeat,
   "miniapp-selfloan": Repeat,
-  "miniapp-priceticker": LineChart,
 
   // Social
-  "miniapp-aisoulmate": Heart,
   "miniapp-redenvelope": Gift,
-  "miniapp-darkradio": Radio,
   "miniapp-devtipping": HandCoins,
-  "miniapp-bountyhunter": Crosshair,
   "miniapp-breakupcontract": HeartCrack,
   "miniapp-exfiles": FolderHeart,
-  "miniapp-geospotlight": MapPin,
-  "miniapp-whisperchain": MessageCircle,
 
   // NFT
   "miniapp-canvas": Palette,
-  "miniapp-nftevolve": Sparkles,
-  "miniapp-nftchimera": Dna,
-  "miniapp-schrodingernft": Cat,
-  "miniapp-meltingasset": Snowflake,
   "miniapp-onchaintarot": Eye,
   "miniapp-timecapsule": Clock,
   "miniapp-heritagetrust": ScrollText,
   "miniapp-gardenofneo": Flower2,
   "miniapp-graveyard": Skull,
-  "miniapp-parasite": Bug,
-  "miniapp-paytoview": Eye,
-  "miniapp-deadswitch": Skull,
 
   // Governance
-  "miniapp-secretvote": Vote,
   "miniapp-govbooster": Rocket,
-  "miniapp-predictionmarket": BarChart3,
   "miniapp-burnleague": Flame,
   "miniapp-doomsdayclock": Timer,
   "miniapp-masqueradedao": Drama,
@@ -135,7 +107,6 @@ const APP_ICONS: Record<string, LucideIcon> = {
   // Utility
   "miniapp-guardianpolicy": ClipboardList,
   "miniapp-unbreakablevault": Lock,
-  "miniapp-zkbadge": Award,
 };
 
 // Category fallback icons
@@ -163,9 +134,10 @@ interface MiniAppLogoProps {
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
   size?: "sm" | "md" | "lg";
   className?: string;
+  iconUrl?: string;
 }
 
-export function MiniAppLogo({ appId, category, size = "md", className = "" }: MiniAppLogoProps) {
+export function MiniAppLogo({ appId, category, size = "md", className = "", iconUrl }: MiniAppLogoProps) {
   const Icon = APP_ICONS[appId] || CATEGORY_ICONS[category] || Puzzle;
   const gradient = CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.utility;
 
@@ -180,6 +152,43 @@ export function MiniAppLogo({ appId, category, size = "md", className = "" }: Mi
     md: 20,
     lg: 24,
   };
+
+  if (iconUrl) {
+    // If it's a relative path from manifest (starts with /static), resolve it relative to the app base
+    // However, the caller usually passes the full valid public URL.
+    // If we assume the host app handles the path logic, we just use it.
+    // NOTE: If the manifest says "/static/icon.png", the actual URL in the host app
+    // depends on where the miniapp is served. Usually /miniapps/<app-id>/static/icon.png
+
+    // Check if we need to fix the path or if it's already fully resolved
+    // For now, assume the caller passes a usable path, or we might need to handle it.
+    // But since MiniAppCard receives `app.icon`, we'll check that next.
+
+    return (
+      <div
+        className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl overflow-hidden shadow-lg border border-gray-100 dark:border-gray-800 ${className}`}
+      >
+        <img
+          src={iconUrl}
+          alt={appId}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            // Fallback to default if image load fails
+            e.currentTarget.style.display = "none";
+            e.currentTarget.parentElement?.classList.add(
+              "bg-gradient-to-br",
+              gradient.split(" ")[0],
+              gradient.split(" ")[1],
+            );
+          }}
+        />
+        {/* Fallback hidden by default, visible if img fails and we toggle classes? 
+            actually simpler: just return the Lucide icon if we want a robust fallback, 
+            but for now let's trust the customized iconUrl
+        */}
+      </div>
+    );
+  }
 
   return (
     <div

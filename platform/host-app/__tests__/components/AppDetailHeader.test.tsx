@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { AppDetailHeader } from "../../components/AppDetailHeader";
 import { MiniAppInfo, MiniAppStats } from "../../components/types";
@@ -26,51 +26,36 @@ const mockStats: MiniAppStats = {
 
 describe("AppDetailHeader", () => {
   it("renders app information correctly", () => {
-    const onBack = jest.fn();
-    render(<AppDetailHeader app={mockApp} stats={mockStats} onBack={onBack} />);
+    render(<AppDetailHeader app={mockApp} stats={mockStats} />);
 
     expect(screen.getByText("Test App")).toBeInTheDocument();
     expect(screen.getByText("🎮")).toBeInTheDocument();
     expect(screen.getByText("gaming")).toBeInTheDocument();
   });
 
-  it("calls onBack when back button is clicked", () => {
-    const onBack = jest.fn();
-    render(<AppDetailHeader app={mockApp} onBack={onBack} />);
-
-    const backButton = screen.getByRole("button", { name: /go back/i });
-    fireEvent.click(backButton);
-
-    expect(onBack).toHaveBeenCalledTimes(1);
-  });
-
   it("displays active status when stats have last_activity_at", () => {
-    const onBack = jest.fn();
-    render(<AppDetailHeader app={mockApp} stats={mockStats} onBack={onBack} />);
+    render(<AppDetailHeader app={mockApp} stats={mockStats} />);
 
     expect(screen.getByText(/active/i)).toBeInTheDocument();
   });
 
   it("displays inactive status when stats have no last_activity_at", () => {
-    const onBack = jest.fn();
     const inactiveStats = { ...mockStats, last_activity_at: null };
-    render(<AppDetailHeader app={mockApp} stats={inactiveStats} onBack={onBack} />);
+    render(<AppDetailHeader app={mockApp} stats={inactiveStats} />);
 
     expect(screen.getByText(/inactive/i)).toBeInTheDocument();
   });
 
   it("renders without stats", () => {
-    const onBack = jest.fn();
-    render(<AppDetailHeader app={mockApp} onBack={onBack} />);
+    render(<AppDetailHeader app={mockApp} />);
 
     expect(screen.getByText("Test App")).toBeInTheDocument();
     expect(screen.getByText(/inactive/i)).toBeInTheDocument();
   });
 
   it("renders category badge with correct text", () => {
-    const onBack = jest.fn();
     const defiApp = { ...mockApp, category: "defi" as const };
-    render(<AppDetailHeader app={defiApp} onBack={onBack} />);
+    render(<AppDetailHeader app={defiApp} />);
 
     expect(screen.getByText("defi")).toBeInTheDocument();
   });

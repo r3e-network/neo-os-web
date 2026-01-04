@@ -17,6 +17,8 @@
   "actions": {
     "connect": "Connect",
     "disconnect": "Disconnect",
+    "login": "Login",
+    "logout": "Logout",
     "submit": "Submit",
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -35,7 +37,8 @@
     "tryAgain": "Try Again",
     "back": "Back",
     "next": "Next",
-    "close": "Close"
+    "close": "Close",
+    "dismiss": "Dismiss"
   },
   "status": {
     "active": "Active",
@@ -76,9 +79,12 @@
   "wallet": {
     "wallet": "Wallet",
     "connect": "Connect Wallet",
-    "disconnect": "Disconnect Wallet",
+    "disconnect": "Disconnect",
     "connected": "Wallet Connected",
     "notConnected": "Wallet Not Connected",
+    "connecting": "Connecting...",
+    "socialLinked": "Social Linked",
+    "selectWallet": "Select Wallet",
     "insufficientBalance": "Insufficient Balance",
     "pleaseConnect": "Please connect your wallet to continue"
   },
@@ -110,5 +116,17 @@
     "switch": "Switch Language",
     "en": "English",
     "zh": "Chinese"
+  },
+  "footer": {
+    "platform": "Platform",
+    "resources": "Resources",
+    "community": "Community",
+    "sdkGuide": "SDK Guide",
+    "apiReference": "API Reference",
+    "rights": "All rights reserved.",
+    "tagline": "The future of decentralized applications on Neo N3.",
+    "github": "GitHub",
+    "discord": "Discord",
+    "twitter": "Twitter"
   }
 }

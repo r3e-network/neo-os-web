@@ -9,16 +9,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const url = buildEdgeUrl("miniapp-notifications", req.query);
   if (!url) {
-    return apiError.configError(res, "EDGE_BASE_URL not configured");
+    // Return empty notifications for local development when Edge is not configured
+    return res.status(200).json({ notifications: [] });
   }
 
-  const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req) });
-  let payload: unknown = null;
   try {
-    payload = await upstream.json();
-  } catch {
-    return apiError.gatewayError(res, "invalid upstream response");
-  }
+    const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req) });
 
-  res.status(upstream.status).json(payload);
+    // Fallback for local dev when Edge function returns 404
+    if (upstream.status === 404) {
+      return res.status(200).json({ notifications: [] });
+    }
+
+    let payload: unknown = null;
+    try {
+      payload = await upstream.json();
+    } catch {
+      return apiError.gatewayError(res, "invalid upstream response");
+    }
+    res.status(upstream.status).json(payload);
+  } catch {
+    // Fallback for local development when Edge function is unavailable
+    return res.status(200).json({ notifications: [] });
+  }
 }

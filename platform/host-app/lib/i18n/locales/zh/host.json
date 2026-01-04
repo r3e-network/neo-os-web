@@ -1,9 +1,14 @@
 {
   "hero": {
-    "title": "Neo 小程序平台",
-    "subtitle": "使用 TEE 安全技术构建和部署去中心化应用",
-    "exploreApps": "探索应用",
-    "launchApp": "启动应用"
+    "badge": "新一代小程序中心",
+    "title": "体验",
+    "titleHighlight": "NeoHub 生态系统",
+    "subtitle": "探索和使用去中心化小程序，涵盖游戏、DeFi 和社交。由硬件级安全、零知识证明和 Neo N3 的强大功能保护。",
+    "exploreApps": "探索小程序",
+    "howItWorks": "了解原理",
+    "sgxEnabled": "SGX 加持",
+    "teeTrusted": "TEE 可信",
+    "neoNative": "NEO 原生"
   },
   "features": {
     "title": "功能特性",
@@ -14,13 +19,142 @@
     "realTimeData": "实时数据",
     "realTimeDataDesc": "来自可信来源的实时价格和市场数据",
     "automatedTasks": "自动化任务",
-    "automatedTasksDesc": "调度和自动化链上操作"
+    "automatedTasksDesc": "调度和自动化链上操作",
+    "tee": {
+      "title": "机密 TEE",
+      "desc": "在 Intel SGX 安全区中运行私有逻辑，即使运营商也无法查看数据。"
+    },
+    "vrf": {
+      "title": "VRF 随机数",
+      "desc": "原生可验证随机数直接集成到共识层。"
+    },
+    "oracle": {
+      "title": "原生预言机",
+      "desc": "安全访问任何 Web2 数据，无需依赖第三方预言机网络。"
+    },
+    "storage": {
+      "title": "分布式存储",
+      "desc": "集成 NeoFS 用于去中心化元数据和资产存储。"
+    }
+  },
+  "landing": {
+    "architecture": {
+      "title": "三层硬件安全架构",
+      "subtitle": "您的安全是我们的首要任务。我们的架构使用物理硬件隔离来保护您的资产和数据安全。",
+      "rootTitle": "信任根",
+      "rootDesc": "为您的数字身份提供硬件级保护",
+      "osTitle": "安全操作系统",
+      "osDesc": "为每次交互提供高级隐私控制",
+      "appTitle": "应用保护层",
+      "appDesc": "为您使用的每个小程序提供隔离环境",
+      "teeTitle": "TEE 信任根",
+      "teeSpecs": "Intel SGX 安全区 • 密封 • 远程证明",
+      "osLayerTitle": "平台 / ServiceOS",
+      "osLayerSpecs": "能力 • 密钥 • 密钥管理 • 存储 • 网络",
+      "servicesTitle": "服务层",
+      "servicesSpecs": "预言机 • VRF • 密钥 • 数据源 • 自动化 • 混币器 • ..."
+    },
+    "services": {
+      "badge": "核心服务",
+      "title": "平台能力",
+      "subtitle": "集成功能让您的体验无缝且安全。",
+      "active": "活跃",
+      "requests": "请求",
+      "list": {
+        "verifiedData": {
+          "name": "验证数据",
+          "desc": "可靠的真实世界信息",
+          "requests": "120万+"
+        },
+        "fairPlay": {
+          "name": "公平游戏",
+          "desc": "保证诚实的随机性",
+          "requests": "50万+"
+        },
+        "personalVault": {
+          "name": "个人保险库",
+          "desc": "加密资产保护",
+          "requests": "210万+"
+        },
+        "liveInsights": {
+          "name": "实时洞察",
+          "desc": "实时市场分析",
+          "requests": "350万+"
+        },
+        "smartAlerts": {
+          "name": "智能提醒",
+          "desc": "自动事件通知",
+          "requests": "80万+"
+        },
+        "gasSupport": {
+          "name": "Gas 支持",
+          "desc": "低成本交易赞助",
+          "requests": "180万+"
+        },
+        "privacyShield": {
+          "name": "隐私盾",
+          "desc": "私密交易历史",
+          "requests": "15万+"
+        },
+        "bridgeHub": {
+          "name": "状态持久化",
+          "desc": "链上数据安全存储",
+          "requests": "20万+"
+        }
+      }
+    },
+    "security": {
+      "title": "为您的保护而构建",
+      "subtitle": "体验最安全的去中心化应用平台，您的数据和资产始终受到尖端技术的保护。",
+      "list": {
+        "privacy": {
+          "title": "全面隐私保护",
+          "desc": "您的数据和交互受到硬件隔离保护，确保您的隐私永不泄露。"
+        },
+        "storage": {
+          "title": "加密存储",
+          "desc": "使用银行级硬件加密安全存储您的个人设置和数字资产。"
+        },
+        "authenticity": {
+          "title": "真实性验证",
+          "desc": "您看到的每条信息都经过链上验证，保护您免受虚假信息和欺诈。"
+        },
+        "fairness": {
+          "title": "公平性保证",
+          "desc": "数学证明确保每场游戏和抽奖都是100%公平透明的。"
+        },
+        "automation": {
+          "title": "自动化便利",
+          "desc": "设置后即可忘记，安全自动化全天候为您处理区块链交互。"
+        },
+        "connectivity": {
+          "title": "通用连接性",
+          "desc": "访问专为整个 Neo 生态系统协同工作而设计的去中心化应用世界。"
+        }
+      }
+    },
+    "cta": {
+      "badge": "全部 14 项核心服务运行中",
+      "title": "加入",
+      "titleHighlight": "应用的未来",
+      "subtitle": "踏入去中心化可能性的世界。立即体验 NeoHub 的强大功能，使用我们安全、高性能的小程序套件。",
+      "startBuilding": "开始探索",
+      "readDocs": "了解原理",
+      "tryPlayground": "开发者入口"
+    }
+  },
+  "explore": {
+    "title": "探索 NeoHub 生态系统",
+    "subtitle": "发现 Neo N3 上最具创新性的小程序。由 TEE 驱动，链上验证。"
   },
   "stats": {
     "totalApps": "应用总数",
     "totalUsers": "用户总数",
-    "totalTransactions": "交易数",
-    "totalVolume": "总交易量"
+    "activeUsers": "活跃用户",
+    "totalTransactions": "总交易数",
+    "totalVolume": "总交易量",
+    "stakingApr": "质押年化",
+    "gasBurned": "GAS 销毁总量"
   },
   "categories": {
     "all": "全部",
@@ -36,22 +170,63 @@
     "noActivity": "暂无活动",
     "viewAll": "查看全部"
   },
+  "news": {
+    "latestNews": "最新动态"
+  },
   "account": {
-    "title": "我的账户",
+    "title": "个人设置",
+    "subtitle": "管理您的 Neo 身份和社交连接",
     "profile": "个人资料",
     "transactions": "交易记录",
-    "favorites": "收藏"
+    "favorites": "收藏",
+    "wallet": {
+      "title": "Neo 钱包",
+      "subtitle": "您的主要链上身份",
+      "connected": "已连接",
+      "disconnected": "未连接",
+      "address": "钱包地址",
+      "copy": "复制"
+    },
+    "auth": {
+      "title": "账户",
+      "subtitle": "使用 Google、Twitter 或 GitHub 登录",
+      "signIn": "使用 Auth0 登录",
+      "logout": "退出登录"
+    },
+    "reputation": {
+      "title": "声望",
+      "level": "等级",
+      "progress": "升级进度",
+      "rank": "排名",
+      "streak": "天连续"
+    },
+    "activity": {
+      "title": "活动",
+      "transactions": "交易数",
+      "votesCast": "投票数",
+      "appsUsed": "使用应用",
+      "xpEarned": "获得经验"
+    },
+    "security": {
+      "title": "安全提示",
+      "tip": "连接多个社交账户以确保您始终可以恢复账户访问权限。"
+    },
+    "notConnected": "未连接"
   },
   "miniapps": {
     "title": "小程序",
     "apps": "个应用",
     "noApps": "未找到小程序",
     "resultsFor": "搜索结果",
+    "sidebar": {
+      "categories": "分类"
+    },
     "sort": {
       "trending": "热门",
+      "recent": "最新",
+      "popular": "最受欢迎",
       "users": "用户最多",
-      "transactions": "最活跃",
-      "recent": "最新添加"
+      "transactions": "最活跃"
     },
     "filters": {
       "title": "筛选",
@@ -64,7 +239,9 @@
     "view": {
       "list": "列表视图",
       "grid": "卡片视图"
-    }
+    },
+    "loadMore": "加载更多",
+    "remaining": "剩余"
   },
   "reviews": {
     "title": "评价",
@@ -87,6 +264,7 @@
     "appNotFoundDesc": "请求的小程序不存在。",
     "backToMiniApps": "返回小程序列表",
     "launchApp": "启动应用",
+    "launching": "正在启动",
     "overview": "概览",
     "reviews": "评价",
     "forum": "论坛",
@@ -113,5 +291,638 @@
     "weeklyActive": "周活用户",
     "lastActive": "最后活跃",
     "activity": "活动"
+  },
+  "docs": {
+    "title": "文档",
+    "subtitle": "构建 NeoHub 应用所需的一切",
+    "searchPlaceholder": "搜索文档...",
+    "comingSoon": "内容即将推出",
+    "comingSoonDesc": "我们正在更新 {section} 部分的文档。",
+    "navNext": "下一节",
+    "navNextTopic": "查看下一主题",
+    "latestRelease": "最新版本: v2.4.0",
+    "sidebar": {
+      "gettingStarted": "快速入门",
+      "architecture": "架构",
+      "services": "服务",
+      "apiReference": "API 参考",
+      "sdks": "SDK 与工具"
+    },
+    "items": {
+      "intro": "简介",
+      "quickstart": "快速开始",
+      "auth": "身份认证",
+      "api-keys": "API 密钥",
+      "tee-root": "TEE 信任根",
+      "service-os": "ServiceOS 层",
+      "capabilities": "能力系统",
+      "security-model": "安全模型",
+      "security-tip": "安全提示",
+      "oracle": "预言机服务",
+      "vrf": "VRF 服务",
+      "secrets": "密钥服务",
+      "datafeeds": "数据源服务",
+      "automation": "自动化服务",
+      "gasbank": "GasBank 服务",
+      "mixer": "混币器服务",
+      "ccip": "CCIP 服务",
+      "rest-api": "REST API",
+      "websocket": "WebSocket API",
+      "errors": "错误代码",
+      "limits": "速率限制",
+      "js-sdk": "JavaScript SDK",
+      "go-sdk": "Go SDK",
+      "python-sdk": "Python SDK",
+      "cli": "CLI 工具"
+    },
+    "intro": {
+      "welcome": "欢迎来到 NeoHub，这是基于 Neo N3 构建的新一代小程序平台。NeoHub 为去中心化应用提供安全、高性能的执行环境，利用可信执行环境 (TEE) 为您的数据和密钥提供硬件级隔离保护。",
+      "secureTitle": "默认安全",
+      "secureDesc": "每个小程序都在隔离的安全区中运行，受 Intel SGX 保护。密钥永远不会离开硬件。",
+      "identityTitle": "统一身份",
+      "identityDesc": "社交登录和钱包连接无缝协作，提供流畅的用户体验。",
+      "whatIs": "什么是 NeoHub？",
+      "whatIsDesc": "NeoHub 不仅仅是一个市场；它是去中心化应用的全栈基础设施。它抽象了区块链交互的复杂性，同时为开发者提供开箱即用的强大服务，如基于硬件的随机数生成、安全数据预言机和自动化任务执行。",
+      "didYouKnow": "你知道吗？",
+      "didYouKnowDesc": "NeoHub 使用与顶级金融机构相同的安全标准，确保您的交易和私钥始终受到保护。"
+    },
+    "quickstart": {
+      "userTitle": "用户指南",
+      "devTitle": "开发者指南",
+      "userSteps": [
+        {
+          "title": "连接钱包",
+          "desc": "使用 NeoLine、O3 或 OneGate 在平台上验证身份。"
+        },
+        {
+          "title": "关联社交账号",
+          "desc": "连接 Google 或 X 以恢复账户并跨设备同步。"
+        },
+        {
+          "title": "探索小程序",
+          "desc": "从市场启动任何应用，无需安装。"
+        }
+      ],
+      "installSdk": "安装 NeoHub SDK 开始构建您自己的小程序。",
+      "initSdk": "在项目中初始化 SDK：",
+      "playgroundTitle": "试用交互式演练场",
+      "playgroundDesc": "无需编写任何代码即可体验我们 API 的最快方式。",
+      "launchPlayground": "启动演练场"
+    },
+    "auth": {
+      "subtitle": "NeoHub 上的安全入口和身份管理。",
+      "comparisonTitle": "社交登录 vs. 钱包",
+      "comparisonDesc": "NeoHub 提供独特的双重认证系统。用户可以通过社交媒体（Google、X、GitHub）方便地登录，但某些高安全性操作仍需要连接 Neo 钱包。",
+      "socialTitle": "社交认证",
+      "socialItems": ["通过 Auth0 轻松快速入门", "支持个人资料同步", "适合随意浏览应用"],
+      "walletTitle": "钱包认证",
+      "walletItems": ["直接链上身份", "签署交易必需", "完全控制数字资产"],
+      "tipDesc": "我们建议同时连接社交账号和钱包。这确保即使您丢失其中一个凭证，也能始终恢复对个人资料的访问。",
+      "table": {
+        "feature": "功能",
+        "rows": [
+          ["入门体验", "秒级 (Auth0)", "手动连接钱包"],
+          ["交易签名", "不支持", "支持 (硬件安全)"],
+          ["账户恢复", "邮件/社交账号", "助记词 (私钥)"],
+          ["大设备同步", "自动", "手动设置"]
+        ]
+      }
+    },
+    "apiKeys": {
+      "subtitle": "管理应用程序对 NeoHub 服务的访问。",
+      "createTitle": "创建密钥",
+      "createDesc": "要从我们的主应用程序外部使用 NeoHub 服务（例如在独立 Web 应用或后端中），您需要 API 密钥。您可以在账户设置中生成这些密钥。",
+      "warningTitle": "警告：保持密钥私密",
+      "warningDesc": "您的 API 密钥授予对平台功能和可能的服务资金的访问权限。切勿将其提交到版本控制或在公共论坛中分享。",
+      "usageTitle": "使用示例"
+    },
+    "securityModel": {
+      "subtitle": "NeoHub 上保护的理念和技术实现。",
+      "isolationTitle": "硬件隔离 (TEE)",
+      "isolationDesc": "我们安全的基石是**可信执行环境**。与传统云平台（操作系统管理员可以看到所有数据）不同，NeoHub 使用硬件安全区（Intel SGX），即使数据在 CPU 中处理时也保持加密。",
+      "zeroTitle": "零知识平台",
+      "zeroDesc": "我们无法看到您的密钥、私钥或安全函数的内部状态。",
+      "attestationTitle": "远程证明",
+      "attestationDesc": "平台上运行的每段代码都可以验证为预期的确切代码，没有任何篡改。",
+      "table": {
+        "title": "安全模型对比",
+        "level": "安全等级",
+        "traditional": "传统云平台",
+        "neohub": "NeoHub (TEE)",
+        "rows": [
+          ["数据隔离", "操作系统级 (共享内存)", "硬件级 (安全区)"],
+          ["管理员权限", "Root 用户可查看所有数据", "任何人无法查看数据"],
+          ["可验证性", "无 (信任宿主机)", "远程证明 (密码学证明)"],
+          ["加密方式", "软件加密", "硅级硬件强制加密"]
+        ]
+      }
+    },
+    "architecture": {
+      "subtitle": "{title} 架构基础的深入探讨。",
+      "schematic": "架构示意图",
+      "howItWorks": "工作原理",
+      "howItWorksDesc": "{title} 为整个平台提供基本的安全保证。通过利用硬件级隔离，我们确保即使主机被入侵，安全区内的数据仍然完全加密且不可访问。",
+      "integrity": "完整性",
+      "integrityDesc": "确保正在执行的代码与部署的代码完全一致，并有加密证明。",
+      "confidentiality": "机密性",
+      "confidentialityDesc": "数据仅对安全区内的授权代码可访问。不会泄露到主机操作系统。",
+      "appLayer": "应用层",
+      "osLayer": "平台层",
+      "hardwareLayer": "硬件层",
+      "teeRoot": {
+        "subtitle": "NeoHub 所有安全保证的硬件级锚点。",
+        "howItWorks": "在最底层，NeoHub 利用 Intel SGX (软件保护扩展) 创建称为安全区的私有内存区域。这些安全区与系统的其余部分隔离，包括操作系统和管理程序。CPU 硬件本身负责管理加密和访问控制。",
+        "integrity": "硬件级测量确保只有字节级授权的二进制文件才能加载到安全区中。",
+        "confidentiality": "安全区内的所有数据在 RAM 中都是加密的，仅在 CPU 封装内部变为明文。"
+      },
+      "serviceOS": {
+        "subtitle": "专为 TEE 环境优化的极简安全执行层。",
+        "howItWorks": "ServiceOS 是运行在安全区内的自定义硬化管理程序。它为小程序提供安全网络、加密存储和基于能力的访问控制等基本服务，同时保持极小的攻击面。",
+        "integrity": "ServiceOS 由 TEE Root 在每次启动序列中进行加密签名和验证。",
+        "confidentiality": "ServiceOS 内部的进程间通信使用硬件强制边界进行加密和隔离。"
+      },
+      "capabilities": {
+        "subtitle": "NeoHub 服务的细粒度权限管理。",
+        "howItWorks": "NeoHub 使用基于能力的安全模型。每个小程序不是被授予广泛权限，而是被授予访问预言机或 VRF 等平台服务的特定“能力”（授权令牌）。这确保了严格执行最小权限原则。",
+        "integrity": "能力令牌与小程序身份加密绑定，无法伪造或转让。",
+        "confidentiality": "授予的能力列表存储在安全区内部状态中，外部观察者无法看到。"
+      },
+      "layers": {
+        "title": "平台安全层级",
+        "rows": [
+          ["L1: 硬件层", "Intel SGX", "安全区隔离、内存加密"],
+          ["L2: 监管层", "ServiceOS", "加密存储、能力管理"],
+          ["L3: 服务层", "能力系统", "角色访问控制、API 配额"]
+        ]
+      }
+    },
+    "services": {
+      "subtitle": "了解如何在应用程序中利用我们的 {title} 服务。",
+      "overview": "概述",
+      "overviewDesc": "{title} 服务是 NeoHub 的核心组件，为每个小程序提供高可靠性数据流和可验证结果。它通过直接集成到 TEE 层，消除了对第三方预言机网络的需求。",
+      "implementation": "实现",
+      "realTime": "实时使用情况",
+      "realTimeDesc": "该服务在过去 24 小时内处理了超过 120 万个经过验证的请求，正常运行时间为 100%。"
+    },
+    "oracle": {
+      "subtitle": "安全的外部数据获取，支持密钥注入。",
+      "overview": "预言机服务 (NeoOracle) 使小程序能够安全地从任何 HTTP 端点获取外部数据，同时注入加密密钥。所有请求都在 Intel SGX 安全区内处理，确保您的 API 密钥和凭证永远不会离开硬件。",
+      "features": [
+        "URL 白名单安全强制",
+        "AES-GCM 加密密钥注入",
+        "可配置响应大小限制 (默认: 2MB)",
+        "超时管理 (默认: 20秒)",
+        "密钥管理集成"
+      ],
+      "parameters": [
+        {
+          "name": "url",
+          "type": "string",
+          "desc": "目标 HTTP/HTTPS 端点 URL。"
+        },
+        {
+          "name": "method",
+          "type": "string",
+          "desc": "HTTP 方法 (GET, POST等)"
+        },
+        {
+          "name": "headers",
+          "type": "object",
+          "desc": "请求中包含的自定义请求头。"
+        },
+        {
+          "name": "secretRefs",
+          "type": "string[]",
+          "desc": "要注入到请求头或请求体中的密钥列表。"
+        }
+      ],
+      "codeExample": "// 使用密钥注入获取外部数据\nconst result = await hub.oracle.fetch({\n  url: 'https://api.example.com/data',\n  headers: { 'Authorization': 'Bearer {{API_KEY}}' },\n  secretRefs: ['API_KEY']\n});\nconsole.log('数据:', result.data);",
+      "pricing": "服务费: 每次请求 10,000 GAS 单位"
+    },
+    "vrf": {
+      "subtitle": "加密安全的可验证随机数生成。",
+      "overview": "VRF 服务 (NeoVRF) 使用 ECDSA P-256 签名提供可证明公平的随机数。每个随机值都附带可在链上验证的加密证明，非常适合游戏、抽奖和任何需要无信任随机性的应用。",
+      "features": [
+        "ECDSA P-256 签名密钥派生",
+        "重放攻击保护 (10分钟窗口)",
+        "可选链上锚定 (RandomnessLog 合约)",
+        "公钥公开用于验证",
+        "证明哈希计算"
+      ],
+      "parameters": [
+        {
+          "name": "seed",
+          "type": "string",
+          "desc": "确保随机性唯一性的唯一值。"
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "desc": "最小值 (包含)。"
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "desc": "最大值 (包含)。"
+        }
+      ],
+      "codeExample": "// 请求可验证随机数\nconst { randomValue, proof } = await hub.vrf.random({\n  seed: 'unique-request-id',\n  min: 1,\n  max: 100\n});\n// 本地或链上验证结果\nconst isValid = await hub.vrf.verify(randomValue, proof);",
+      "pricing": "服务费: 每次请求 5,000 GAS 单位"
+    },
+    "secrets": {
+      "subtitle": "硬件级加密的安全凭证存储。",
+      "overview": "密钥服务为 API 密钥、私钥和令牌等敏感凭证提供加密存储。密钥被密封到 SGX 安全区，只能在 TEE 执行期间由授权的小程序解密。",
+      "features": ["AES-GCM 静态加密", "SGX 密封到安全区测量值", "按应用访问控制", "自动密钥轮换支持", "合规审计日志"],
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "desc": "密钥的唯一标识符。"
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "desc": "要存储的敏感值。"
+        },
+        {
+          "name": "allowedApps",
+          "type": "string[]",
+          "desc": "授权使用此密钥的应用 ID 列表。"
+        }
+      ],
+      "codeExample": "// 存储密钥\nawait hub.secrets.set('MY_API_KEY', 'sk-xxx...', {\n  description: 'OpenAI API 密钥',\n  allowedApps: ['my-app-id']\n});\n\n// 在 Oracle 请求中使用 (自动注入)\nconst data = await hub.oracle.fetch({\n  url: 'https://api.openai.com/v1/chat',\n  secretRefs: ['MY_API_KEY']\n});",
+      "pricing": "前 10 个密钥免费，之后每个密钥 1,000 GAS/月"
+    },
+    "datafeeds": {
+      "subtitle": "从多个来源聚合的实时价格数据。",
+      "overview": "数据源服务 (NeoFeeds) 通过从多个 HTTP 来源聚合并计算中位数来提供可靠的价格数据。数据由 TEE 签名并锚定到 PriceFeed 智能合约以进行链上验证。",
+      "features": [
+        "多源聚合与中位数计算",
+        "可选 Chainlink 集成 (通过 Arbitrum)",
+        "推送/自动更新模式",
+        "可配置更新间隔",
+        "带 TEE 证明的链上锚定"
+      ],
+      "parameters": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "desc": "资产对标识符 (如 BTC-USD)。"
+        },
+        {
+          "name": "interval",
+          "type": "number",
+          "desc": "最小更新间隔 (秒)。"
+        }
+      ],
+      "codeExample": "// 获取最新价格\nconst price = await hub.datafeeds.getPrice('BTC-USD');\nconsole.log(`BTC: $${price.value} 时间: ${price.timestamp}`);\n\n// 订阅更新\nhub.datafeeds.subscribe('ETH-USD', (update) => {\n  console.log(`ETH: $${update.value}`);\n});",
+      "pricing": "服务费: 每次更新 10,000 GAS 单位"
+    },
+    "automation": {
+      "subtitle": "基于触发器的任务调度和执行。",
+      "overview": "自动化服务 (NeoFlow) 支持计划和事件驱动的任务执行。基于时间 (cron)、间隔或价格阈值定义触发器，TEE 将自动执行您的任务并进行链上锚定。",
+      "features": [
+        "基于 Cron 的调度",
+        "基于间隔的触发器",
+        "与 PriceFeed 集成的价格触发器",
+        "通过 AutomationAnchor 合约链上锚定",
+        "任务状态管理 (启用/暂停/取消)"
+      ],
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "desc": "任务的描述性名称。"
+        },
+        {
+          "name": "trigger",
+          "type": "object",
+          "desc": "触发器定义 (cron, 价格等)。"
+        },
+        {
+          "name": "action",
+          "type": "object",
+          "desc": "要执行的操作 (HTTP, 智能合约调用)。"
+        }
+      ],
+      "codeExample": "// 创建每日任务\nconst task = await hub.automation.create({\n  name: '每日报告',\n  trigger: { type: 'cron', schedule: '0 9 * * *' },\n  action: { type: 'webhook', url: 'https://my-app.com/report' }\n});",
+      "pricing": "服务费: 每次执行 50,000 GAS 单位"
+    },
+    "gasbank": {
+      "subtitle": "预付费 GAS 账户，实现无缝服务使用。",
+      "overview": "GasBank 服务管理您的平台服务 GAS 余额。将 GAS 存入您的账户，服务将自动扣除费用，无需每笔交易单独批准。",
+      "features": ["Neo N3 链存款验证", "余额扣款/充值操作", "自动服务费扣除", "交易历史跟踪", "24小时存款过期"],
+      "parameters": [
+        {
+          "name": "amount",
+          "type": "number",
+          "desc": "充值/提现的 GAS 金额。"
+        },
+        {
+          "name": "txHash",
+          "type": "string",
+          "desc": "用于验证的 Neo N3 交易哈希。"
+        }
+      ],
+      "codeExample": "// 查询余额\nconst balance = await hub.gasbank.getBalance();\nconsole.log(`可用余额: ${balance.available} GAS`);\n\n// 充值 GAS\nconst deposit = await hub.gasbank.deposit({\n  amount: 100,\n  txHash: '0x...' \n});",
+      "pricing": "充值/提现无服务费"
+    },
+    "mixer": {
+      "subtitle": "隐私保护的交易混合服务。",
+      "overview": "混币器服务通过打破发送者和接收者之间的链上链接来提供交易隐私。使用在 TEE 内处理的零知识证明，您的交易历史保持机密。",
+      "features": ["零知识证明生成", "固定面额池", "延时提款", "TEE 证明验证", "合规友好的审计追踪"],
+      "parameters": [
+        {
+          "name": "amount",
+          "type": "number",
+          "desc": "混合金额 (必须匹配资金池面额)。"
+        },
+        {
+          "name": "pool",
+          "type": "string",
+          "desc": "混币池 ID。"
+        },
+        {
+          "name": "recipient",
+          "type": "string",
+          "desc": "提款的目标 Neo 地址。"
+        }
+      ],
+      "codeExample": "// 存入混币池\nconst note = await hub.mixer.deposit({ amount: 10, pool: 'GAS-10' });\n\n// 稍后使用 note 提款\nawait hub.mixer.withdraw({ note, recipient: 'NXxx...' });",
+      "pricing": "0.5% 混币费"
+    },
+    "ccip": {
+      "subtitle": "跨链互操作协议。",
+      "overview": "CCIP 服务支持安全的跨链通信和资产转移。通过 TEE 验证的消息传递在 Neo N3 和其他支持的链之间桥接资产。",
+      "features": [
+        "多链支持 (Ethereum, BSC, Polygon)",
+        "TEE 验证的消息传递",
+        "带证明验证的资产桥接",
+        "可配置确认阈值",
+        "紧急暂停机制"
+      ],
+      "parameters": [
+        {
+          "name": "asset",
+          "type": "string",
+          "desc": "要桥接的资产符号。"
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "desc": "桥接金额。"
+        },
+        {
+          "name": "targetChain",
+          "type": "string",
+          "desc": "目标区块链 ID。"
+        }
+      ],
+      "codeExample": "// 跨链桥接 GAS 到 Ethereum\nconst bridge = await hub.ccip.bridge({\n  asset: 'GAS',\n  amount: 50,\n  targetChain: 'ethereum',\n  recipient: '0x...'\n});",
+      "pricing": "0.1% 桥接费 + 目标链 gas"
+    }
+  },
+  "apiReference": {
+    "restApi": {
+      "subtitle": "NeoHub 所有服务的 RESTful API 端点。",
+      "baseUrl": "基础 URL: https://api.neohub.io/v1",
+      "authHeader": "Authorization: Bearer <API_KEY>",
+      "endpoints": {
+        "oracle": "POST /oracle/fetch - 获取外部数据",
+        "vrf": "POST /vrf/random - 生成随机数",
+        "secrets": "POST /secrets - 管理密钥",
+        "datafeeds": "GET /datafeeds/:symbol - 获取价格数据",
+        "automation": "POST /automation/triggers - 管理触发器",
+        "gasbank": "GET /gasbank/balance - 查询余额"
+      }
+    },
+    "websocket": {
+      "subtitle": "通过 WebSocket 进行实时数据流传输。",
+      "endpoint": "wss://ws.neohub.io/v1",
+      "channels": ["价格更新", "自动化事件", "交易状态"],
+      "example": "const ws = new WebSocket('wss://ws.neohub.io/v1');\nws.onopen = () => {\n  ws.send(JSON.stringify({ subscribe: 'price-updates', symbols: ['BTC-USD'] }));\n};\nws.onmessage = (e) => console.log('价格更新:', JSON.parse(e.data));"
+    },
+    "errors": {
+      "subtitle": "标准错误代码及其含义。",
+      "codes": {
+        "400": "错误请求 - 参数无效或缺少必填字段。",
+        "401": "未授权 - Authorization 请求头中 API 密钥无效或缺失。",
+        "403": "禁止访问 - 该 API 密钥无权访问所请求的服务。",
+        "404": "未找到 - 请求的资源或端点不存在。",
+        "429": "请求过多 - 超出速率限制。请稍后重试。",
+        "500": "内部错误 - NeoHub 服务器发生意外错误。"
+      }
+    },
+    "limits": {
+      "subtitle": "API 使用的速率限制和配额。",
+      "tiers": {
+        "free": "100 请求/分钟, 10,000 /月",
+        "pro": "1,000 请求/分钟, 1,000,000 /月",
+        "enterprise": "根据您的需求定制限制"
+      }
+    }
+  },
+  "sdks": {
+    "jsSDK": {
+      "subtitle": "NeoHub 官方 TypeScript/JavaScript SDK。",
+      "install": "npm install @neohub/sdk",
+      "features": [
+        "完整的 TypeScript 支持及详尽的类型定义",
+        "兼容浏览器和 Node.js 环境",
+        "支持指数退避的自动重试机制",
+        "WebSocket 实时订阅支持",
+        "集成式密钥管理"
+      ],
+      "methods": [
+        {
+          "name": "connect()",
+          "params": "void",
+          "returns": "Promise<void>"
+        },
+        {
+          "name": "oracle.fetch()",
+          "params": "FetchOptions",
+          "returns": "Promise<Response>"
+        },
+        {
+          "name": "vrf.random()",
+          "params": "VRFOptions",
+          "returns": "Promise<VRFResult>"
+        },
+        {
+          "name": "datafeeds.getPrice()",
+          "params": "string",
+          "returns": "Promise<Price>"
+        }
+      ],
+      "example": "import { NeoHub } from '@neohub/sdk';\n\nconst hub = new NeoHub({ apiKey: 'your-api-key' });\n\nconst price = await hub.datafeeds.getPrice('BTC-USD');\nconsole.log(`当前 BTC 价格: ${price.value}`);"
+    },
+    "goSDK": {
+      "subtitle": "面向高性能后端服务的官方 Go SDK。",
+      "install": "go get github.com/R3E-Network/neohub-go",
+      "features": [
+        "支持 Context 的操作，便于超时管理",
+        "符合 Gopher 习惯的惯用设计",
+        "高效的连接池管理",
+        "内置 Prometheus 指标导出",
+        "结构化 JSON 日志记录"
+      ],
+      "methods": [
+        {
+          "name": "NewClient()",
+          "params": "apiKey string",
+          "returns": "*Client"
+        },
+        {
+          "name": "Oracle.Fetch()",
+          "params": "ctx, opts",
+          "returns": "(Result, error)"
+        },
+        {
+          "name": "VRF.Random()",
+          "params": "ctx, seed",
+          "returns": "(Value, error)"
+        }
+      ],
+      "example": "import \"github.com/R3E-Network/neohub-go\"\n\nclient := neohub.NewClient(\"your-api-key\")\nprice, err := client.DataFeeds.GetPrice(ctx, \"BTC-USD\")\nif err != nil {\n    log.Fatal(err)\n}\nfmt.Printf(\"价格: %f\\n\", price.Value)"
+    },
+    "pythonSDK": {
+      "subtitle": "面向数据科学和自动化的官方 Python SDK。",
+      "install": "pip install neohub",
+      "features": [
+        "支持现代 Python 的 Async/await",
+        "直接集成 Pandas 以处理历史数据",
+        "支持 Jupyter notebook 的友好可视化",
+        "详尽的类型提示，优秀的 IDE 集成",
+        "全面的文档支持"
+      ],
+      "methods": [
+        {
+          "name": "NeoHub()",
+          "params": "api_key: str",
+          "returns": "NeoHub"
+        },
+        {
+          "name": "oracle.fetch()",
+          "params": "url: str",
+          "returns": "Awaitable[dict]"
+        },
+        {
+          "name": "datafeeds.get_price()",
+          "params": "symbol: str",
+          "returns": "Awaitable[float]"
+        }
+      ],
+      "example": "from neohub import NeoHub\nimport asyncio\n\nasync def main():\n    hub = NeoHub(api_key='your-api-key')\n    price = await hub.datafeeds.get_price('BTC-USD')\n    print(f\"BTC: {price.value}\")\n\nasyncio.run(main())"
+    },
+    "cli": {
+      "subtitle": "NeoHub 操作的命令行界面工具。",
+      "install": "npm install -g @neohub/cli",
+      "commands": [
+        "neohub login - 身份验证并登录您的平台账户",
+        "neohub deploy <path> - 将小程序部署到平台",
+        "neohub logs <app-id> - 查看应用的实时日志",
+        "neohub secrets set <key> <value> - 管理您的安全密钥凭证",
+        "neohub stats - 查看使用统计及计费信息"
+      ],
+      "example": "# 创建并部署您的第一个应用\nneohub init my-app\ncd my-app\nneohub deploy . --main index.js"
+    }
+  },
+  "developer": {
+    "title": "开发者门户",
+    "subtitle": "使用强大的 SDK 构建、测试和发布小程序。开箱即用 TEE、VRF 和预言机服务。",
+    "badge": "基于 Neo N3 构建",
+    "registerApp": "注册应用",
+    "quickStart": "快速开始",
+    "quickStartDesc": "几分钟内启动运行",
+    "installSdkComment": "# 安装 SDK",
+    "createAppComment": "# 创建第一个应用",
+    "submitYourApp": "提交应用",
+    "submitYourAppDesc": "发布到市场",
+    "readyToLaunch": "准备好发布了吗？提交您的小程序进行审核，触达数百万 Neo 用户。",
+    "readDocumentation": "阅读文档",
+    "submitMiniApp": "提交小程序",
+    "platformFeatures": "平台功能",
+    "features": {
+      "sdk": "SDK",
+      "sdkDesc": "用于构建小程序的 TypeScript SDK",
+      "tee": "TEE",
+      "teeDesc": "机密计算支持",
+      "vrf": "VRF",
+      "vrfDesc": "可验证随机函数",
+      "oracles": "预言机",
+      "oraclesDesc": "实时价格数据"
+    },
+    "reviewSteps": {
+      "securityReview": "自动安全审核",
+      "performanceTesting": "性能测试",
+      "marketplaceListing": "上架市场"
+    },
+    "form": {
+      "title": "提交小程序",
+      "subtitle": "填写您的应用详情",
+      "appName": "应用名称",
+      "appNamePlaceholder": "我的超赞小程序",
+      "description": "描述",
+      "descriptionPlaceholder": "描述您的应用功能...",
+      "icon": "图标 (emoji)",
+      "iconPlaceholder": "📦",
+      "category": "分类",
+      "entryUrl": "入口 URL",
+      "entryUrlPlaceholder": "https://your-app.com/miniapp",
+      "contractHash": "合约哈希",
+      "contractHashPlaceholder": "0x... (可选)",
+      "developerInfo": "开发者信息",
+      "developerName": "开发者名称",
+      "developerNamePlaceholder": "您的名称或团队名称",
+      "neoAddress": "Neo 地址",
+      "neoAddressPlaceholder": "NXxx...",
+      "required": "*",
+      "cancel": "取消",
+      "submit": "提交审核",
+      "submitting": "提交中...",
+      "success": "小程序 \"{name}\" 已提交审核！",
+      "error": "提交失败",
+      "networkError": "网络错误"
+    }
+  },
+  "statsPage": {
+    "title": "平台统计",
+    "subtitle": "实时分析和洞察",
+    "overview": "概览",
+    "topApps": "用户量排名前列的应用",
+    "monthlyActive": "月活跃用户",
+    "recentActivity": "最近活动",
+    "recentActivityDesc": "合约调用和状态变更的实时流",
+    "noEvents": "暂无最近事件",
+    "liveUpdates": "实时更新",
+    "fullLog": "完整日志",
+    "noData": "暂无历史数据",
+    "noAppData": "暂无应用数据",
+    "method": "方法",
+    "contract": "合约",
+    "gasUsed": "GAS 消耗",
+    "time": "时间"
+  },
+  "sidebar": {
+    "title": "技术信息",
+    "network": "网络",
+    "magic": "Magic",
+    "rpc": "RPC",
+    "wallet": "已连接钱包",
+    "address": "地址",
+    "provider": "提供商",
+    "neoBalance": "NEO 余额",
+    "gasBalance": "GAS 余额",
+    "noWallet": "未连接钱包",
+    "miniappContract": "小程序合约",
+    "appId": "应用 ID",
+    "contractHash": "合约哈希",
+    "noContract": "未部署合约",
+    "masterAccount": "主账户",
+    "platformContracts": "平台合约",
+    "requiredServices": "所需服务",
+    "viewWallet": "在浏览器中查看钱包",
+    "viewContract": "在浏览器中查看合约"
   }
 }

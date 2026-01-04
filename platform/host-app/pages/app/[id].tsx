@@ -106,7 +106,7 @@ export default function UnifiedAppPage({ app, stats, notifications, error }: Uni
           walletAddress={wallet.address}
         />
       }
-      rightPanel={<MiniAppViewer app={app} locale={locale} />}
+      centerPanel={<MiniAppViewer key={locale} app={app} locale={locale} />}
     />
   );
 }

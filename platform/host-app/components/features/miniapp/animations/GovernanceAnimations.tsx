@@ -4,61 +4,36 @@
 
 "use client";
 
-// Secret Vote - Ballot drop
-export function SecretVoteAnimation() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative">
-        <span className="text-5xl">🗳️</span>
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-2xl animate-ballot-drop">📝</span>
-      </div>
-    </div>
-  );
-}
-
-// Gov Booster - Boost rocket
+// Gov Booster - Rocket launch
 export function GovBoosterAnimation() {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative">
-        <span className="text-5xl animate-boost-launch">🚀</span>
-        <span className="absolute -bottom-4 text-2xl">🗳️</span>
+      <div className="animate-bounce">
+        <span className="text-5xl">🚀</span>
       </div>
     </div>
   );
 }
 
-// Prediction Market - Crystal ball
-export function PredictionMarketAnimation() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative">
-        <span className="text-6xl animate-crystal-glow">🔮</span>
-        <div className="absolute inset-0 bg-purple-400/30 rounded-full blur-xl animate-pulse" />
-      </div>
-    </div>
-  );
-}
-
-// Burn League - Fire blaze
+// Burn League - Fire flames
 export function BurnLeagueAnimation() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative">
-        <span className="text-6xl animate-fire-blaze">🔥</span>
-        <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl animate-bounce">🏆</span>
-      </div>
+    <div className="absolute inset-0 flex items-center justify-center gap-2">
+      {["🔥", "🔥", "🔥"].map((emoji, i) => (
+        <span key={i} className="text-4xl animate-pulse" style={{ animationDelay: `${i * 0.2}s` }}>
+          {emoji}
+        </span>
+      ))}
     </div>
   );
 }
 
-// Doomsday Clock - Clock tick
+// Doomsday Clock - Ticking clock
 export function DoomsdayClockAnimation() {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative">
-        <span className="text-6xl animate-clock-tick">⏰</span>
-        <span className="absolute -bottom-2 -right-2 text-2xl animate-pulse text-red-500">☢️</span>
+      <div className="animate-spin" style={{ animationDuration: "3s" }}>
+        <span className="text-5xl">⏰</span>
       </div>
     </div>
   );
@@ -68,21 +43,33 @@ export function DoomsdayClockAnimation() {
 export function MasqueradeDAOAnimation() {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative">
-        <span className="text-6xl animate-mask-reveal">🎭</span>
+      <div className="animate-pulse">
+        <span className="text-5xl">🎭</span>
       </div>
     </div>
   );
 }
 
-// Gov Merc - Handshake
+// Gov Merc - Swords clash
 export function GovMercAnimation() {
   return (
+    <div className="absolute inset-0 flex items-center justify-center gap-1">
+      <span className="text-4xl animate-bounce" style={{ animationDelay: "0s" }}>
+        ⚔️
+      </span>
+      <span className="text-4xl animate-bounce" style={{ animationDelay: "0.3s" }}>
+        🛡️
+      </span>
+    </div>
+  );
+}
+
+// Candidate Vote - Ballot box
+export function CandidateVoteAnimation() {
+  return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <div className="flex items-center gap-2">
-        <span className="text-4xl animate-shake-left">🏛️</span>
-        <span className="text-3xl animate-handshake">🤝</span>
-        <span className="text-4xl animate-shake-right">💰</span>
+      <div className="animate-bounce">
+        <span className="text-5xl">🗳️</span>
       </div>
     </div>
   );

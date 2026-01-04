@@ -54,20 +54,6 @@ const GAMING_HIGHLIGHTS: AppHighlightConfig[] = [
       { label: "Avg Crash", value: "2.1x", icon: "📈" },
     ],
   },
-  {
-    appId: "miniapp-candlewars",
-    highlights: [
-      { label: "Accuracy", value: "52%", icon: "🎯" },
-      { label: "Rounds", value: "8.5K", icon: "🕯️" },
-    ],
-  },
-  {
-    appId: "miniapp-fogchess",
-    highlights: [
-      { label: "Active", value: "156", icon: "♟️" },
-      { label: "Matches", value: "3.2K", icon: "🏆" },
-    ],
-  },
 ];
 
 // DeFi Apps Highlights
@@ -87,66 +73,10 @@ const DEFI_HIGHLIGHTS: AppHighlightConfig[] = [
     ],
   },
   {
-    appId: "miniapp-aitrader",
-    highlights: [
-      { label: "ROI", value: "+18.5%", icon: "🤖", trend: "up" },
-      { label: "Trades", value: "15K", icon: "📊" },
-    ],
-  },
-  {
-    appId: "miniapp-gridbot",
-    highlights: [
-      { label: "Profit", value: "+8.2%", icon: "📈", trend: "up" },
-      { label: "Active Bots", value: "342", icon: "🤖" },
-    ],
-  },
-  {
-    appId: "miniapp-bridgeguardian",
-    highlights: [
-      { label: "Bridged", value: "2.5M", icon: "🌉" },
-      { label: "Chains", value: "5", icon: "⛓️" },
-    ],
-  },
-  {
     appId: "miniapp-gascircle",
     highlights: [
       { label: "Pool", value: "125K GAS", icon: "⭕" },
       { label: "Members", value: "1.2K", icon: "👥" },
-    ],
-  },
-  {
-    appId: "miniapp-ilguard",
-    highlights: [
-      { label: "Protected", value: "850K", icon: "🛡️" },
-      { label: "Saved", value: "12K GAS", icon: "💰", trend: "up" },
-    ],
-  },
-  {
-    appId: "miniapp-darkpool",
-    highlights: [
-      { label: "Volume", value: "1.8M", icon: "🌑" },
-      { label: "Trades", value: "5.2K", icon: "🔒" },
-    ],
-  },
-  {
-    appId: "miniapp-nolosslottery",
-    highlights: [
-      { label: "TVL", value: "320K GAS", icon: "🎯" },
-      { label: "Winners", value: "156", icon: "🏆" },
-    ],
-  },
-  {
-    appId: "miniapp-priceticker",
-    highlights: [
-      { label: "NEO", value: "$12.45", icon: "📊", trend: "up" },
-      { label: "GAS", value: "$4.82", icon: "⛽", trend: "down" },
-    ],
-  },
-  {
-    appId: "builtin-prediction-market",
-    highlights: [
-      { label: "Markets", value: "48", icon: "🔮" },
-      { label: "Volume", value: "125K", icon: "💰" },
     ],
   },
 ];
@@ -161,24 +91,10 @@ const SOCIAL_HIGHLIGHTS: AppHighlightConfig[] = [
     ],
   },
   {
-    appId: "miniapp-secretvote",
-    highlights: [
-      { label: "Polls", value: "234", icon: "🗳️" },
-      { label: "Votes", value: "12K", icon: "✅" },
-    ],
-  },
-  {
     appId: "miniapp-devtipping",
     highlights: [
       { label: "Tips", value: "3.2K", icon: "💸" },
       { label: "Devs", value: "456", icon: "👨‍💻" },
-    ],
-  },
-  {
-    appId: "miniapp-aisoulmate",
-    highlights: [
-      { label: "Chats", value: "25K", icon: "💬" },
-      { label: "Users", value: "1.8K", icon: "💕" },
     ],
   },
   {
@@ -218,13 +134,6 @@ const GOVERNANCE_HIGHLIGHTS: AppHighlightConfig[] = [
 // NFT Apps Highlights
 const NFT_HIGHLIGHTS: AppHighlightConfig[] = [
   {
-    appId: "miniapp-nftevolve",
-    highlights: [
-      { label: "Evolved", value: "1.2K", icon: "🔄" },
-      { label: "Max Level", value: "10", icon: "⬆️" },
-    ],
-  },
-  {
     appId: "miniapp-canvas",
     highlights: [
       { label: "Pixels", value: "1M", icon: "🎨" },
@@ -241,15 +150,7 @@ const NFT_HIGHLIGHTS: AppHighlightConfig[] = [
 ];
 
 // Utility Apps Highlights
-const UTILITY_HIGHLIGHTS: AppHighlightConfig[] = [
-  {
-    appId: "miniapp-zkbadge",
-    highlights: [
-      { label: "Badges", value: "12K", icon: "🏅" },
-      { label: "Verified", value: "8.5K", icon: "✅" },
-    ],
-  },
-];
+const UTILITY_HIGHLIGHTS: AppHighlightConfig[] = [];
 
 // Combine all highlights into a lookup map
 const ALL_HIGHLIGHTS: AppHighlightConfig[] = [

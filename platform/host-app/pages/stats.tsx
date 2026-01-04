@@ -4,6 +4,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n/react";
 import {
   BarChart,
   Bar,
@@ -17,6 +18,7 @@ import {
   Cell,
 } from "recharts";
 import { Users, Activity, Wallet, LayoutGrid, TrendingUp, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PlatformStats {
   totalUsers: number;
@@ -37,6 +39,7 @@ interface RecentEvent {
 }
 
 export default function EnhancedStatsPage() {
+  const { t } = useTranslation("host");
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [events, setEvents] = useState<RecentEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,10 +56,7 @@ export default function EnhancedStatsPage() {
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats(statsData);
-          // Initialize displayed count only on first load
-          if (displayedTxCount === 0) {
-            setDisplayedTxCount(statsData.totalTransactions || 0);
-          }
+          setDisplayedTxCount(statsData.totalTransactions || 0);
         }
 
         if (eventsRes.ok) {
@@ -76,18 +76,9 @@ export default function EnhancedStatsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-increment transactions every 3 seconds (10-20 tx)
-  useEffect(() => {
-    if (displayedTxCount === 0) return;
-    const interval = setInterval(() => {
-      const increment = Math.floor(Math.random() * 11) + 10; // 10-20
-      setDisplayedTxCount((prev) => prev + increment);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [displayedTxCount > 0]);
-
   // Default values when loading or no data
   const totalUsers = stats?.totalUsers || 0;
+  // Use real data or fallback to 0. Do NOT use displayedTxCount for fake increments anymore.
   const totalTransactions = stats?.totalTransactions || 0;
   const totalVolume = stats?.totalVolume || "0";
   const activeApps = stats?.activeApps || 62;
@@ -97,49 +88,49 @@ export default function EnhancedStatsPage() {
   return (
     <Layout>
       <Head>
-        <title>Statistics - NeoHub</title>
+        <title>{t("statsPage.title")} - NeoHub</title>
       </Head>
 
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Platform Analytics</h1>
-            <p className="mt-2 text-slate-400">Real-time performance metrics for the Neo MiniApp ecosystem</p>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("statsPage.title")}</h1>
+            <p className="mt-2 text-slate-400">{t("statsPage.subtitle")}</p>
           </div>
-          <Badge className="bg-neo/10 text-neo border-neo/20 h-8 px-4 flex items-center gap-2">
+          <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 h-8 px-4 flex items-center gap-2">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neo opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-neo"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            Live Updates
+            {t("statsPage.liveUpdates")}
           </Badge>
         </div>
 
         {/* Global Stats Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-10">
           <StatSummaryCard
-            title="Total Users"
+            title={t("stats.totalUsers")}
             value={loading ? "..." : totalUsers.toLocaleString()}
             icon={Users}
-            color="text-neo"
+            color="text-emerald-500"
             loading={loading}
           />
           <StatSummaryCard
-            title="Total Transactions"
-            value={loading ? "..." : formatNumber(displayedTxCount)}
+            title={t("stats.totalTransactions")}
+            value={loading ? "..." : formatNumber(totalTransactions)}
             icon={Activity}
             color="text-cyan-400"
             loading={loading}
           />
           <StatSummaryCard
-            title="Platform Volume"
+            title={t("stats.totalVolume")}
             value={loading ? "..." : `${formatNumber(Number(totalVolume))} GAS`}
             icon={Wallet}
             color="text-indigo-400"
             loading={loading}
           />
           <StatSummaryCard
-            title="Active MiniApps"
+            title={t("stats.totalApps")}
             value={String(activeApps)}
             icon={LayoutGrid}
             color="text-purple-400"
@@ -152,21 +143,20 @@ export default function EnhancedStatsPage() {
           {/* Main Growth Chart */}
           <Card className="glass-card lg:col-span-2">
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">User Growth (MAU)</CardTitle>
-              <CardDescription>Monthly active users climbing over the last 6 months</CardDescription>
+              <CardTitle className="text-gray-900 dark:text-white">{t("statsPage.monthlyActive")}</CardTitle>
             </CardHeader>
             <CardContent className="h-[350px] pt-10">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
-                  <Loader2 className="animate-spin text-neo" size={32} />
+                  <Loader2 className="animate-spin text-emerald-500" size={32} />
                 </div>
               ) : mauHistory.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={mauHistory}>
                     <defs>
                       <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00d4aa" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#00d4aa" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
@@ -184,12 +174,12 @@ export default function EnhancedStatsPage() {
                         border: "1px solid rgba(255,255,255,0.1)",
                         borderRadius: "8px",
                       }}
-                      itemStyle={{ color: "#00d4aa" }}
+                      itemStyle={{ color: "#10b981" }}
                     />
                     <Area
                       type="monotone"
                       dataKey="active"
-                      stroke="#00d4aa"
+                      stroke="#10b981"
                       fillOpacity={1}
                       fill="url(#colorActive)"
                       strokeWidth={3}
@@ -198,7 +188,7 @@ export default function EnhancedStatsPage() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-slate-500">
-                  No historical data available
+                  {t("statsPage.noData")}
                 </div>
               )}
             </CardContent>
@@ -207,13 +197,12 @@ export default function EnhancedStatsPage() {
           {/* MiniApp Distribution */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Popular MiniApps</CardTitle>
-              <CardDescription>Top apps by active user count</CardDescription>
+              <CardTitle className="text-gray-900 dark:text-white">{t("statsPage.topApps")}</CardTitle>
             </CardHeader>
             <CardContent className="h-[350px] pt-10">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
-                  <Loader2 className="animate-spin text-neo" size={32} />
+                  <Loader2 className="animate-spin text-emerald-500" size={32} />
                 </div>
               ) : topApps.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -245,7 +234,7 @@ export default function EnhancedStatsPage() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">No app data available</div>
+                <div className="flex items-center justify-center h-full text-slate-500">{t("statsPage.noAppData")}</div>
               )}
             </CardContent>
           </Card>
@@ -255,18 +244,18 @@ export default function EnhancedStatsPage() {
         <Card className="glass-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-gray-900 dark:text-white">Recent Network Events</CardTitle>
-              <CardDescription>Live stream of contract calls and state changes</CardDescription>
+              <CardTitle className="text-gray-900 dark:text-white">{t("statsPage.recentActivity")}</CardTitle>
+              <CardDescription>{t("statsPage.recentActivityDesc")}</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" className="text-neo">
-              Full Log
+            <Button variant="ghost" size="sm" className="text-emerald-500">
+              {t("statsPage.fullLog")}
             </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="animate-spin text-neo" size={32} />
+                  <Loader2 className="animate-spin text-emerald-500" size={32} />
                 </div>
               ) : events.length > 0 ? (
                 events.map((event, i) => (
@@ -275,7 +264,7 @@ export default function EnhancedStatsPage() {
                     className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-lg bg-neo/10 flex items-center justify-center text-neo">
+                      <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                         <TrendingUp size={18} />
                       </div>
                       <div>
@@ -283,7 +272,7 @@ export default function EnhancedStatsPage() {
                           {event.method || "invokefunction"}
                         </p>
                         <p className="text-xs text-slate-500">
-                          Contract: {event.contract || "Unknown"} ({event.contractHash?.slice(0, 6)}...
+                          {t("statsPage.contract")}: {event.contract || "Unknown"} ({event.contractHash?.slice(0, 6)}...
                           {event.contractHash?.slice(-4)})
                         </p>
                       </div>
@@ -295,7 +284,7 @@ export default function EnhancedStatsPage() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-500">No recent events</div>
+                <div className="text-center py-8 text-slate-500">{t("statsPage.noEvents")}</div>
               )}
             </div>
           </CardContent>
@@ -323,10 +312,6 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading }: any) {
       </CardContent>
     </Card>
   );
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
 }
 
 function formatNumber(num: number): string {

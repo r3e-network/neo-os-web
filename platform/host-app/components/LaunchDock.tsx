@@ -1,157 +1,93 @@
-import React from "react";
+import { ArrowLeft, X, Share2, Globe, Wallet, Activity } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { WalletState } from "./types";
-import { colors } from "./styles";
 
 export type LaunchDockProps = {
   appName: string;
   appId: string;
   wallet: WalletState;
   networkLatency: number | null;
+  onBack: () => void;
   onExit: () => void;
   onShare: () => void;
 };
 
-export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onShare }: LaunchDockProps) {
+export function LaunchDock({ appName, appId, wallet, networkLatency, onBack, onExit, onShare }: LaunchDockProps) {
   // Network indicator color based on latency
-  const getNetworkStatus = (): { color: string; label: string } => {
-    if (networkLatency === null) return { color: "#ef4444", label: "Offline" };
-    if (networkLatency < 100) return { color: "#22c55e", label: "Good" };
-    if (networkLatency < 500) return { color: "#eab308", label: "Fair" };
-    return { color: "#ef4444", label: "Slow" };
+  const getNetworkStatus = () => {
+    if (networkLatency === null) return { color: "text-red-500", dot: "bg-red-500", label: "Offline" };
+    if (networkLatency < 100) return { color: "text-neo", dot: "bg-neo", label: "Good" };
+    if (networkLatency < 500) return { color: "text-yellow-500", dot: "bg-yellow-500", label: "Fair" };
+    return { color: "text-red-500", dot: "bg-red-500", label: "Slow" };
   };
 
   const networkStatus = getNetworkStatus();
 
   // Wallet display
   const walletDisplay = wallet.connected
-    ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
+    ? wallet.provider === "auth0"
+      ? "Social Account"
+      : `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
     : "Connect Wallet";
 
-  const walletDotColor = wallet.connected ? "#22c55e" : "#ef4444";
+  const walletDotColor = wallet.connected ? (wallet.provider === "auth0" ? "bg-blue-500" : "bg-neo") : "bg-red-500";
 
   return (
-    <div style={dockStyle}>
-      {/* Left: App Name */}
-      <div style={appNameStyle}>{appName}</div>
+    <div className="fixed top-0 left-0 right-0 h-14 bg-black/60 backdrop-blur-xl border-b border-white/5 flex items-center px-4 gap-4 z-[9999] shadow-2xl">
+      {/* Left: Back Button + App Name */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="p-2 mr-1 rounded-xl hover:bg-white/10 text-white/70 hover:text-white transition-all transition-colors active:scale-95"
+          title="Go back"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <div className="flex items-center gap-2">
+          <Globe size={14} className="text-neo/60" />
+          <div className="text-sm font-bold text-white tracking-tight truncate max-w-[120px] md:max-w-xs">{appName}</div>
+        </div>
+      </div>
 
       {/* Spacer */}
-      <div style={{ flex: 1 }} />
+      <div className="flex-1" />
 
       {/* Right section: Wallet, Network, Share, Exit */}
-      <div style={rightSectionStyle}>
+      <div className="flex items-center gap-2 md:gap-6">
         {/* Wallet Status */}
-        <div style={statusItemStyle}>
-          <div style={{ ...dotStyle, background: walletDotColor }} />
-          <span style={statusTextStyle}>{walletDisplay}</span>
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 hover:bg-white/10 transition-colors pointer-events-none">
+          <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", walletDotColor)} />
+          <span className="text-[11px] font-mono text-white/50 uppercase tracking-wider">{walletDisplay}</span>
         </div>
 
         {/* Network Indicator */}
-        <div style={statusItemStyle}>
-          <div style={{ ...dotStyle, background: networkStatus.color }} />
-          <span style={statusTextStyle}>{networkLatency !== null ? `${networkLatency}ms` : networkStatus.label}</span>
+        <div className="flex items-center gap-2 px-2 py-1 rounded-lg">
+          <Activity size={12} className={cn("opacity-60", networkStatus.color)} />
+          <span className="text-[10px] font-mono text-white/40 uppercase tracking-tighter">
+            {networkLatency !== null ? `${networkLatency}ms` : networkStatus.label}
+          </span>
         </div>
 
-        {/* Share Button */}
-        <button onClick={onShare} style={iconButtonStyle} title="Copy share link">
-          <ShareIcon />
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1 border-l border-white/10 pl-2 md:pl-6 ml-1 md:ml-0">
+          <button
+            onClick={onShare}
+            className="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-90"
+            title="Copy share link"
+          >
+            <Share2 size={18} />
+          </button>
 
-        {/* Exit Button */}
-        <button onClick={onExit} style={exitButtonStyle} title="Exit (ESC)">
-          <ExitIcon />
-        </button>
+          <button
+            onClick={onExit}
+            className="p-2 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90"
+            title="Exit (ESC)"
+          >
+            <X size={20} />
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-// SVG Icons (inline for simplicity)
-function ShareIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-    </svg>
-  );
-}
-
-function ExitIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-// Styles
-const dockStyle: React.CSSProperties = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  height: 48,
-  background: "rgba(10,10,10,0.95)",
-  backdropFilter: "blur(8px)",
-  display: "flex",
-  alignItems: "center",
-  padding: "0 16px",
-  gap: 16,
-  zIndex: 9999,
-  borderBottom: `1px solid ${colors.border}`,
-};
-
-const appNameStyle: React.CSSProperties = {
-  fontSize: 16,
-  fontWeight: 600,
-  color: colors.text,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  maxWidth: 200,
-};
-
-const rightSectionStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 16,
-};
-
-const statusItemStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-};
-
-const dotStyle: React.CSSProperties = {
-  width: 8,
-  height: 8,
-  borderRadius: "50%",
-};
-
-const statusTextStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: colors.textMuted,
-  fontFamily: "monospace",
-};
-
-const iconButtonStyle: React.CSSProperties = {
-  background: "transparent",
-  border: "none",
-  color: colors.textMuted,
-  cursor: "pointer",
-  padding: 8,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: 6,
-  transition: "all 0.2s",
-};
-
-const exitButtonStyle: React.CSSProperties = {
-  ...iconButtonStyle,
-  color: "#ef4444",
-};

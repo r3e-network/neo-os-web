@@ -33,7 +33,7 @@ type TranslationNamespace = "common" | "host" | "admin" | "miniapp";
 interface I18nContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: string, ns?: TranslationNamespace) => string;
+  t: (key: string, ns?: TranslationNamespace, options?: Record<string, string | number>) => string;
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -54,7 +54,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: string, ns: TranslationNamespace = "common"): string => {
+    (key: string, ns: TranslationNamespace = "common", options?: Record<string, string | number>): string => {
       const keys = key.split(".");
       let value: unknown = translations[locale][ns];
 
@@ -66,15 +66,23 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      return typeof value === "string" ? value : key;
+      if (typeof value === "string") {
+        let result = value;
+        if (options) {
+          Object.entries(options).forEach(([k, v]) => {
+            result = result.replace(new RegExp(`{${k}}`, "g"), String(v));
+          });
+        }
+        return result;
+      }
+
+      return key;
     },
     [locale],
   );
 
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
+  // Always provide context, but use default locale until mounted
+  // This ensures children re-render when locale changes after mount
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
 
@@ -87,7 +95,7 @@ export function useI18n() {
   if (!context) {
     return {
       locale: defaultLocale,
-      setLocale: () => {},
+      setLocale: () => { },
       t: defaultT,
     };
   }
@@ -96,6 +104,6 @@ export function useI18n() {
 
 export function useTranslation(ns: TranslationNamespace = "common") {
   const { t, locale, setLocale } = useI18n();
-  const translate = useCallback((key: string) => t(key, ns), [t, ns]);
+  const translate = useCallback((key: string, options?: Record<string, string | number>) => t(key, ns, options), [t, ns]);
   return { t: translate, locale, setLocale };
 }

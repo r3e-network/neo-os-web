@@ -6,6 +6,30 @@ import { createClient } from "@supabase/supabase-js";
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
 
 export default withApiAuthRequired(async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === "GET") {
+    try {
+      const session = await getSession(req, res);
+      if (!session?.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { data: existing } = await supabase
+        .from("encrypted_keys")
+        .select("address, public_key")
+        .eq("auth0_sub", session.user.sub)
+        .single();
+
+      if (!existing) {
+        return res.status(404).json({ error: "No Neo account found" });
+      }
+
+      return res.json({ address: existing.address, publicKey: existing.public_key });
+    } catch (error) {
+      console.error("Failed to fetch Neo account:", error);
+      return res.status(500).json({ error: "Failed to fetch account" });
+    }
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }

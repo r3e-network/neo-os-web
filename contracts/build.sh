@@ -110,13 +110,8 @@ MINIAPP_BETLIMITS_FILES=(
 GAMING_CONTRACTS=(
     "MiniAppCoinFlip"
     "MiniAppDiceGame"
-    "MiniAppGasSpin"
     "MiniAppScratchCard"
     "MiniAppLottery"
-    "MiniAppMicroPredict"
-    "MiniAppPricePredict"
-    "MiniAppTurboOptions"
-    "MiniAppCandleWars"
 )
 
 is_gaming_contract() {
@@ -204,19 +199,12 @@ miniapp_contracts_phase1=(
     "MiniAppCoinFlip:MiniAppCoinFlip"
     "MiniAppDiceGame:MiniAppDiceGame"
     "MiniAppScratchCard:MiniAppScratchCard"
-    "MiniAppMegaMillions:MiniAppMegaMillions"
 )
 
 # MiniApp contracts - Phase 2 (DeFi/Social)
 miniapp_contracts_phase2=(
-    "MiniAppPredictionMarket:MiniAppPredictionMarket"
     "MiniAppFlashLoan:MiniAppFlashLoan"
-    "MiniAppPriceTicker:MiniAppPriceTicker"
-    "MiniAppGasSpin:MiniAppGasSpin"
-    "MiniAppPricePredict:MiniAppPricePredict"
-    "MiniAppSecretVote:MiniAppSecretVote"
     "MiniAppSecretPoker:MiniAppSecretPoker"
-    "MiniAppMicroPredict:MiniAppMicroPredict"
     "MiniAppRedEnvelope:MiniAppRedEnvelope"
     "MiniAppGasCircle:MiniAppGasCircle"
     "MiniAppCanvas:MiniAppCanvas"
@@ -224,73 +212,40 @@ miniapp_contracts_phase2=(
 
 # MiniApp contracts - Phase 3 (Advanced)
 miniapp_contracts_phase3=(
-    "MiniAppFogChess:MiniAppFogChess"
     "MiniAppGovBooster:MiniAppGovBooster"
-    "MiniAppTurboOptions:MiniAppTurboOptions"
-    "MiniAppILGuard:MiniAppILGuard"
     "MiniAppGuardianPolicy:MiniAppGuardianPolicy"
 )
 
 # MiniApp contracts - Phase 4 (Long-Running)
 miniapp_contracts_phase4=(
-    "MiniAppAITrader:MiniAppAITrader"
-    "MiniAppGridBot:MiniAppGridBot"
-    "MiniAppNFTEvolve:MiniAppNFTEvolve"
-    "MiniAppBridgeGuardian:MiniAppBridgeGuardian"
 )
 
 # MiniApp contracts - Phase 5 (New Gaming/DeFi/Social)
 miniapp_contracts_phase5=(
     "MiniAppNeoCrash:MiniAppNeoCrash"
-    "MiniAppCandleWars:MiniAppCandleWars"
-    "MiniAppDutchAuction:MiniAppDutchAuction"
-    "MiniAppParasite:MiniAppParasite"
-    "MiniAppThroneOfGas:MiniAppThroneOfGas"
-    "MiniAppNoLossLottery:MiniAppNoLossLottery"
-    "MiniAppDoomsdayClock:MiniAppDoomsdayClock"
-    "MiniAppPayToView:MiniAppPayToView"
 )
 
 # MiniApp contracts - Phase 6 (TEE-Powered Creative Apps)
 miniapp_contracts_phase6=(
-    "MiniAppSchrodingerNFT:MiniAppSchrodingerNFT"
-    "MiniAppAlgoBattle:MiniAppAlgoBattle"
     "MiniAppTimeCapsule:MiniAppTimeCapsule"
-    "MiniAppGardenOfNeo:MiniAppGardenOfNeo"
     "MiniAppDevTipping:MiniAppDevTipping"
 )
 
 # MiniApp contracts - Phase 7 (Advanced DeFi & Social)
 miniapp_contracts_phase7=(
-    "MiniAppAISoulmate:MiniAppAISoulmate"
-    "MiniAppDeadSwitch:MiniAppDeadSwitch"
     "MiniAppHeritageTrust:MiniAppHeritageTrust"
-    "MiniAppDarkRadio:MiniAppDarkRadio"
-    "MiniAppZKBadge:MiniAppZKBadge"
     "MiniAppGraveyard:MiniAppGraveyard"
-    "MiniAppCompoundCapsule:MiniAppCompoundCapsule"
-    "MiniAppSelfLoan:MiniAppSelfLoan"
-    "MiniAppDarkPool:MiniAppDarkPool"
     "MiniAppBurnLeague:MiniAppBurnLeague"
     "MiniAppGovMerc:MiniAppGovMerc"
 )
 
 # MiniApp contracts - Phase 8 (Creative & Social)
 miniapp_contracts_phase8=(
-    "MiniAppQuantumSwap:MiniAppQuantumSwap"
     "MiniAppOnChainTarot:MiniAppOnChainTarot"
     "MiniAppExFiles:MiniAppExFiles"
-    "MiniAppScreamToEarn:MiniAppScreamToEarn"
     "MiniAppBreakupContract:MiniAppBreakupContract"
-    "MiniAppGeoSpotlight:MiniAppGeoSpotlight"
     "MiniAppPuzzleMining:MiniAppPuzzleMining"
-    "MiniAppNFTChimera:MiniAppNFTChimera"
-    "MiniAppWorldPiano:MiniAppWorldPiano"
-    "MiniAppBountyHunter:MiniAppBountyHunter"
-    "MiniAppMasqueradeDAO:MiniAppMasqueradeDAO"
-    "MiniAppMeltingAsset:MiniAppMeltingAsset"
     "MiniAppUnbreakableVault:MiniAppUnbreakableVault"
-    "MiniAppWhisperChain:MiniAppWhisperChain"
     "MiniAppMillionPieceMap:MiniAppMillionPieceMap"
     "MiniAppFogPuzzle:MiniAppFogPuzzle"
     "MiniAppCryptoRiddle:MiniAppCryptoRiddle"

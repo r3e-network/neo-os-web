@@ -29,7 +29,7 @@ type StatsMap = Record<string, { users?: number; transactions?: number; volume?:
 
 export default function MiniAppsPage() {
   const router = useRouter();
-  const { t } = useTranslation("host");
+  const { t, locale } = useTranslation("host");
   const rawSearchQuery = (router.query.q as string) || "";
   const searchQuery = sanitizeInput(rawSearchQuery);
 
@@ -305,7 +305,7 @@ export default function MiniAppsPage() {
                 )}
               </div>
             ) : (
-              <MiniAppGrid apps={filteredAndSortedApps.slice(0, displayCount)} columns={3} />
+              <MiniAppGrid key={locale} apps={filteredAndSortedApps.slice(0, displayCount)} columns={3} />
             )}
 
             {/* Load More Button */}

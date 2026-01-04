@@ -44,10 +44,6 @@
       "name": "Neo 兑换",
       "description": "去中心化代币兑换。即时交换 NEO 生态系统中的代币，享受最优价格。"
     },
-    "priceticker": {
-      "name": "价格行情",
-      "description": "实时加密货币价格追踪。查看 NEO、GAS 和其他代币的最新价格。"
-    },
     "explorer": {
       "name": "区块浏览器",
       "description": "探索 Neo 区块链。查看交易、区块、地址和智能合约详情。"
@@ -59,6 +55,102 @@
     "neoburger": {
       "name": "NeoBurger",
       "description": "Neo 质押聚合器。质押 NEO 获取 bNEO，自动复投最大化收益。"
+    },
+    "fogchess": {
+      "name": "迷雾象棋",
+      "description": "带有战争迷雾的策略象棋。只能看到视野范围内的棋子。"
+    },
+    "fogpuzzle": {
+      "name": "迷雾拼图",
+      "description": "解开笼罩在迷雾中的谜题。策略性地揭示方块，与时间赛跑。"
+    },
+    "cryptoriddle": {
+      "name": "加密谜题",
+      "description": "破解密码谜题和脑筋急转弯，解锁 GAS 奖励。"
+    },
+    "millionpiecemap": {
+      "name": "百万像素地图",
+      "description": "在大型协作画布上拥有和自定义像素。"
+    },
+    "puzzlemining": {
+      "name": "拼图挖矿",
+      "description": "通过解决越来越难的谜题来挖掘 GAS。"
+    },
+    "gascircle": {
+      "name": "GAS 互助圈",
+      "description": "加入社区储蓄圈，成员轮流获得资金池。"
+    },
+    "compoundcapsule": {
+      "name": "复利胶囊",
+      "description": "通过自动复投最大化您的收益。"
+    },
+    "selfloan": {
+      "name": "自助贷款",
+      "description": "用自己的抵押品借款，零清算风险。"
+    },
+    "grantshare": {
+      "name": "资助分享",
+      "description": "创建和资助社区资助项目，链上透明追踪。"
+    },
+    "devtipping": {
+      "name": "开发者打赏",
+      "description": "直接支持开源开发者，为他们的贡献打赏。"
+    },
+    "breakupcontract": {
+      "name": "分手合约",
+      "description": "在链上创建不可变的关系协议，智能合约执行。"
+    },
+    "exfiles": {
+      "name": "前任档案",
+      "description": "共享记忆的安全保险库，双方同意控制。"
+    },
+    "onchaintarot": {
+      "name": "链上塔罗",
+      "description": "接收由 VRF 随机数驱动的神秘塔罗牌占卜。"
+    },
+    "timecapsule": {
+      "name": "时间胶囊",
+      "description": "锁定消息或资产，在未来日期解锁。"
+    },
+    "heritagetrust": {
+      "name": "遗产信托",
+      "description": "创建智能继承计划，自动转移资产。"
+    },
+    "gardenofneo": {
+      "name": "Neo 花园",
+      "description": "培育虚拟花园，植物根据区块链活动生长。"
+    },
+    "graveyard": {
+      "name": "墓园",
+      "description": "创建永久的数字纪念碑作为墓碑 NFT。"
+    },
+    "govbooster": {
+      "name": "治理加速器",
+      "description": "通过质押和委托放大您的治理权力。"
+    },
+    "burnleague": {
+      "name": "销毁联盟",
+      "description": "参与代币销毁竞赛，减少供应量。"
+    },
+    "masqueradedao": {
+      "name": "假面 DAO",
+      "description": "戴着数字面具匿名参与治理。"
+    },
+    "govmerc": {
+      "name": "治理雇佣兵",
+      "description": "雇佣治理雇佣兵或出售您的投票权。"
+    },
+    "neons": {
+      "name": "Neo 域名服务",
+      "description": "为您的钱包注册人类可读的 .neo 域名。"
+    },
+    "guardianpolicy": {
+      "name": "守护策略",
+      "description": "为您的钱包定义和执行智能合约策略。"
+    },
+    "unbreakablevault": {
+      "name": "坚不可摧保险库",
+      "description": "在多层安全的时间锁定保险库中存储贵重资产。"
     }
   },
   "common": {

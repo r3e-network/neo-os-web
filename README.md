@@ -1,6 +1,9 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Neo MiniApp Platform" width="100%"/>
+  <img src="assets/logo-icon.png" alt="NeoHub Logo" width="160px"/>
 </p>
+
+<h1 align="center">NeoHub</h1>
+<p align="center"><b>The Neo N3 MiniApp Platform</b></p>
 
 <p align="center">
   <a href="https://neomini.app"><img src="https://img.shields.io/badge/Live-neomini.app-00E599?style=flat-square" alt="Live"/></a>
@@ -12,7 +15,7 @@
 
 ---
 
-# Neo MiniApp Platform
+# NeoHub
 
 A TEE-powered miniapp platform for Neo N3 that combines a user-facing **Gateway** (Supabase Edge) with enclave workloads (MarbleRun + EGo) for secure signing and confidential computation.
 
@@ -79,15 +82,15 @@ For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 Deployed on Neo N3 Testnet:
 
-| Contract            | Hash                                         | Description               |
-| ------------------- | -------------------------------------------- | ------------------------- |
-| PaymentHub          | `0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193` | GAS payment processing    |
-| Governance          | `0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05` | NEO staking and voting    |
-| PriceFeed           | `0xc5d9117d255054489d1cf59b2c1d188c01bc9954` | Oracle price data         |
-| RandomnessLog       | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` | VRF attestation anchoring |
-| AppRegistry         | `0x79d16bee03122e992bb80c478ad4ed405f33bc7f` | MiniApp registration      |
-| AutomationAnchor    | `0x1c888d699ce76b0824028af310d90c3c18adeab5` | Periodic task scheduling  |
-| ServiceLayerGateway | `0x27b79cf631eff4b520dd9d95cd1425ec33025a53` | Service request routing   |
+| Contract            | Address                              | Description               |
+| ------------------- | ------------------------------------ | ------------------------- |
+| PaymentHub          | `NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq` | GAS payment processing    |
+| Governance          | `NeEWK3vcVRWJDebyBCyLx6HSzJZSeYhXAt` | NEO staking and voting    |
+| PriceFeed           | `Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM` | Oracle price data         |
+| RandomnessLog       | `NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD` | VRF attestation anchoring |
+| AppRegistry         | `NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy` | MiniApp registration      |
+| AutomationAnchor    | `NNWqgxGnXGtfK7VHvEqbdSu3jq8Pu8xkvM` | Periodic task scheduling  |
+| ServiceLayerGateway | `NPXyVuEVfp47Abcwq6oTKmtwbJM6Yh965c` | Service request routing   |
 
 ## MiniApps (62 Apps)
 

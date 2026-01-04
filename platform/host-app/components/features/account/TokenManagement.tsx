@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Shield, Plus, Trash2, Copy, Check } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/react";
 
 interface Token {
   id: number;
@@ -23,19 +24,27 @@ interface TokenManagementProps {
 }
 
 export function TokenManagement({ walletAddress }: TokenManagementProps) {
+  const { t } = useTranslation("host");
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
-    loadTokens();
+    if (walletAddress) {
+      loadTokens();
+    } else {
+      setLoading(false);
+    }
   }, [walletAddress]);
 
   const loadTokens = async () => {
     try {
+      if (!walletAddress) return;
       const response = await fetch(`/api/tokens?walletAddress=${walletAddress}`);
-      const data = await response.json();
-      setTokens(data.tokens || []);
+      if (response.ok) {
+        const data = await response.json();
+        setTokens(data.tokens || []);
+      }
     } catch (error) {
       console.error("Failed to load tokens:", error);
     } finally {
@@ -58,6 +67,8 @@ export function TokenManagement({ walletAddress }: TokenManagementProps) {
     }
   };
 
+  if (!walletAddress) return null;
+
   return (
     <Card className="glass-card">
       <CardHeader>
@@ -65,13 +76,13 @@ export function TokenManagement({ walletAddress }: TokenManagementProps) {
           <div>
             <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
               <Shield size={20} className="text-neo" />
-              Developer Tokens
+              {t("account.tokens.title")}
             </CardTitle>
-            <CardDescription>API tokens for programmatic access</CardDescription>
+            <CardDescription>{t("account.tokens.subtitle")}</CardDescription>
           </div>
-          <Button size="sm" onClick={() => setShowCreateForm(true)} className="bg-neo hover:bg-neo/90">
+          <Button size="sm" onClick={() => setShowCreateForm(true)} className="bg-neo hover:bg-neo/90 text-dark-950 font-semibold">
             <Plus size={16} className="mr-1" />
-            Create Token
+            {t("account.tokens.generate")}
           </Button>
         </div>
       </CardHeader>
@@ -79,7 +90,7 @@ export function TokenManagement({ walletAddress }: TokenManagementProps) {
         {loading ? (
           <div className="text-center py-8 text-slate-400">Loading...</div>
         ) : tokens.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">No tokens yet</div>
+          <div className="text-center py-8 text-slate-400">{t("account.tokens.noTokens")}</div>
         ) : (
           <div className="space-y-3">
             {tokens.map((token) => (
@@ -113,7 +124,7 @@ function TokenItem({ token, onRevoke }: { token: Token; onRevoke: (id: number) =
   };
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-dark-900 border border-gray-200 dark:border-white/5">
+    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-dark-900/50 border border-gray-200 dark:border-white/5 transition-colors hover:bg-gray-100 dark:hover:bg-dark-900/80">
       <div className="flex-1">
         <p className="text-sm font-medium text-gray-900 dark:text-white">{token.name}</p>
         <div className="flex items-center gap-2 mt-1">
@@ -123,7 +134,7 @@ function TokenItem({ token, onRevoke }: { token: Token; onRevoke: (id: number) =
           </button>
         </div>
       </div>
-      <Button variant="ghost" size="sm" onClick={() => onRevoke(token.id)} className="text-red-400 hover:text-red-500">
+      <Button variant="ghost" size="sm" onClick={() => onRevoke(token.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10">
         <Trash2 size={16} />
       </Button>
     </div>
@@ -176,11 +187,11 @@ function CreateTokenForm({
 
   if (newToken) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 max-w-md w-full mx-4">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-md w-full border border-gray-200 dark:border-white/10 shadow-2xl">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Token Created</h3>
-          <p className="text-sm text-slate-400 mb-4">Copy this token now. You won't be able to see it again.</p>
-          <div className="p-3 bg-gray-100 dark:bg-dark-900 rounded-lg mb-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Copy this token now. You won't be able to see it again.</p>
+          <div className="p-3 bg-gray-100 dark:bg-dark-800 rounded-lg mb-4 border border-gray-200 dark:border-white/10">
             <code className="text-xs font-mono break-all text-gray-900 dark:text-white">{newToken}</code>
           </div>
           <Button
@@ -188,7 +199,7 @@ function CreateTokenForm({
               navigator.clipboard.writeText(newToken);
               onSuccess();
             }}
-            className="w-full"
+            className="w-full bg-neo text-dark-950 font-semibold hover:bg-neo/90"
           >
             Copy & Close
           </Button>
@@ -198,16 +209,22 @@ function CreateTokenForm({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 max-w-md w-full mx-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create Token</h3>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-md w-full border border-gray-200 dark:border-white/10 shadow-2xl">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Create Token</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm text-slate-400 mb-1 block">Token Name</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My API Token" required />
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5 block">Token Name</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="My API Token"
+              required
+              className="bg-white dark:bg-dark-800 border-gray-200 dark:border-white/10"
+            />
           </div>
           <div>
-            <label className="text-sm text-slate-400 mb-1 block">Expires In (days)</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5 block">Expires In (days)</label>
             <Input
               type="number"
               value={expiresInDays}
@@ -215,14 +232,15 @@ function CreateTokenForm({
               min="1"
               max="365"
               required
+              className="bg-white dark:bg-dark-800 border-gray-200 dark:border-white/10"
             />
           </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex gap-3 justify-end">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+          {error && <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-900/30">{error}</p>}
+          <div className="flex gap-3 justify-end mt-6">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading} className="dark:bg-transparent dark:border-white/20 dark:text-white">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="bg-neo text-dark-950 font-semibold hover:bg-neo/90">
               {loading ? "Creating..." : "Create"}
             </Button>
           </div>

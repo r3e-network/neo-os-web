@@ -19,10 +19,7 @@ const APP_CONTRACTS: Record<string, string> = {
   "miniapp-coinflip": CONTRACTS.coinFlip,
   "miniapp-dicegame": CONTRACTS.diceGame,
   "miniapp-neocrash": CONTRACTS.neoCrash,
-  "miniapp-secretvote": CONTRACTS.secretVote,
-  "miniapp-predictionmarket": CONTRACTS.predictionMarket,
   "miniapp-canvas": CONTRACTS.canvas,
-  "miniapp-priceticker": CONTRACTS.priceTicker,
 };
 
 // Countdown data (Lottery, Auctions)

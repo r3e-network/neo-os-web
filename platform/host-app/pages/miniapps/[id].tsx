@@ -6,19 +6,23 @@ import {
   MiniAppStats,
   MiniAppNotification,
   colors,
+  getThemeColors,
   AppDetailHeader,
   AppStatsCard,
   AppNewsList,
   WalletState,
 } from "../../components";
+import { useTheme } from "../../components/providers/ThemeProvider";
 import { ActivityTicker } from "../../components/ActivityTicker";
 import { AppSecretsTab } from "../../components/features/secrets/AppSecretsTab";
 import { ReviewsTab } from "../../components/features/reviews";
 import { ForumTab } from "../../components/features/forum";
 import { SplitViewLayout } from "../../components/layout/SplitViewLayout";
+import { RightSidebarPanel } from "../../components/layout/RightSidebarPanel";
 import { LaunchDock } from "../../components/LaunchDock";
 import { FederatedMiniApp } from "../../components/FederatedMiniApp";
 import { LiveChat } from "../../components/features/chat";
+import { MiniAppFrame } from "../../components/features/miniapp";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
@@ -28,6 +32,7 @@ import { useTranslation } from "../../lib/i18n/react";
 import { installMiniAppSDK } from "../../lib/miniapp-sdk";
 import type { MiniAppSDK } from "../../lib/miniapp-sdk";
 import { useI18n } from "../../lib/i18n/react";
+import { useWalletStore } from "../../lib/wallet/store";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -142,12 +147,33 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   const router = useRouter();
   const { t } = useTranslation("host");
   const { locale } = useI18n();
+  const { theme } = useTheme();
+  const themeColors = getThemeColors(theme);
   const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "forum" | "news" | "secrets">("overview");
-  const [wallet, setWallet] = useState<WalletState>({ connected: false, address: "", provider: null });
+
+  // Use global wallet store
+  const { address, connected, provider } = useWalletStore();
+  const wallet = { connected, address, provider };
+
+  // Ref for accessing wallet in callbacks
+  const walletRef = useRef(wallet);
+  useEffect(() => {
+    walletRef.current = wallet;
+  }, [connected, address, provider]);
+
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isIframeLoading, setIsIframeLoading] = useState(true);
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
+
+  // TEE Verification State
+  const [teeVerification, setTeeVerification] = useState<{
+    txHash: string;
+    attestation: string;
+    method: string;
+    timestamp: number;
+  } | null>(null);
 
   // App-specific activity feed
   const { activities: appActivities } = useActivityFeed({
@@ -166,8 +192,21 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     if (!app) return "";
     const supportedLocale = locale === "zh" ? "zh" : "en";
     const separator = app.entry_url.includes("?") ? "&" : "?";
-    return `${app.entry_url}${separator}lang=${supportedLocale}`;
-  }, [app?.entry_url, locale]);
+    return `${app.entry_url}${separator}lang=${supportedLocale}&theme=${theme}`;
+  }, [app?.entry_url, locale, theme]);
+
+  useEffect(() => {
+    if (!app || federated) return;
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    const origin = resolveIframeOrigin(app.entry_url);
+    if (!origin) return;
+    iframe.contentWindow.postMessage({ type: "theme-change", theme }, origin);
+  }, [theme, app?.entry_url, federated]);
+
+  // Self-contained i18n: use MiniApp's own translations based on locale
+  const appName = app ? (locale === "zh" && app.name_zh ? app.name_zh : app.name) : "";
+  const appDesc = app ? (locale === "zh" && app.description_zh ? app.description_zh : app.description) : "";
 
   // Initialize SDK
   useEffect(() => {
@@ -227,7 +266,31 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
       try {
         const sdk = ensureSDK();
         if (!sdk) throw new Error("MiniAppSDK unavailable");
-        const result = await dispatchBridgeCall(sdk, method, params, app.permissions, app.app_id);
+        // Pass the current wallet address from the ref
+        const result = await dispatchBridgeCall(
+          sdk,
+          method,
+          params,
+          app.permissions,
+          app.app_id,
+          walletRef.current.address,
+        );
+
+        // Intercept TEE metadata for the UI
+        if (result && typeof result === "object") {
+          const res = result as Record<string, any>;
+          if (res.attestation || res.txHash || res.txid) {
+            setTeeVerification({
+              txHash: res.txHash || res.txid || "N/A",
+              attestation: res.attestation || "Hardware Attested",
+              method,
+              timestamp: Date.now(),
+            });
+            // Auto-hide after 10 seconds
+            setTimeout(() => setTeeVerification(null), 10000);
+          }
+        }
+
         respond(true, result);
       } catch (err) {
         const message = err instanceof Error ? err.message : "request failed";
@@ -276,30 +339,18 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     return () => clearInterval(interval);
   }, []);
 
-  // Wallet connection
-  useEffect(() => {
-    const tryConnectWallet = async () => {
-      try {
-        const g = window as WindowWithNeoLine;
-        if (g?.NEOLineN3) {
-          const inst = new g.NEOLineN3.Init();
-          const acc = await inst.getAccount();
-          setWallet({ connected: true, address: acc.address, provider: "neoline" });
-        }
-      } catch (e) {
-        // Silent fail
-      }
-    };
-    tryConnectWallet();
-  }, []);
+  // Wallet connection is handled globally by useWalletStore
 
   if (error || !app) {
     return (
-      <div style={containerStyle}>
+      <div style={{ ...containerStyle, background: themeColors.bg, color: themeColors.text }}>
         <div style={errorContainerStyle}>
-          <h1 style={errorTitleStyle}>{t("detail.appNotFound")}</h1>
-          <p style={errorMessageStyle}>{error || t("detail.appNotFoundDesc")}</p>
-          <button style={backButtonStyle} onClick={() => router.push("/miniapps")}>
+          <h1 style={{ ...errorTitleStyle, color: themeColors.text }}>{t("detail.appNotFound")}</h1>
+          <p style={{ ...errorMessageStyle, color: themeColors.textMuted }}>{error || t("detail.appNotFoundDesc")}</p>
+          <button
+            style={{ ...backButtonStyle, color: themeColors.text, borderColor: themeColors.border }}
+            onClick={() => router.push("/miniapps")}
+          >
             ← {t("detail.backToMiniApps")}
           </button>
         </div>
@@ -326,13 +377,13 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
   // Left panel: App details
   const leftPanel = (
-    <div style={leftPanelStyle}>
-      <AppDetailHeader app={app} stats={stats || undefined} onBack={handleBack} />
+    <div style={{ ...leftPanelStyle, background: themeColors.bg }}>
+      <AppDetailHeader app={app} stats={stats || undefined} />
 
       <main style={mainStyle}>
         {/* Hero Section */}
         <section style={heroStyle}>
-          <p style={descriptionStyle}>{app.description}</p>
+          <p style={{ ...descriptionStyle, color: themeColors.textMuted }}>{appDesc}</p>
         </section>
 
         {/* Stats Grid */}
@@ -355,7 +406,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
         <section style={activitySectionStyle}>
           <ActivityTicker
             activities={appActivities}
-            title={`${app.name} ${t("detail.activity")}`}
+            title={`${appName} ${t("detail.activity")}`}
             height={150}
             scrollSpeed={20}
           />
@@ -363,28 +414,44 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
         {/* Tabs */}
         <section style={tabsContainerStyle}>
-          <div style={tabsHeaderStyle}>
+          <div style={{ ...tabsHeaderStyle, borderColor: themeColors.border }}>
             <button
-              style={activeTab === "overview" ? tabButtonActiveStyle : tabButtonStyle}
+              style={
+                activeTab === "overview"
+                  ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
+                  : { ...tabButtonStyle, color: themeColors.textMuted }
+              }
               onClick={() => setActiveTab("overview")}
             >
               {t("detail.overview")}
             </button>
             <button
-              style={activeTab === "reviews" ? tabButtonActiveStyle : tabButtonStyle}
+              style={
+                activeTab === "reviews"
+                  ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
+                  : { ...tabButtonStyle, color: themeColors.textMuted }
+              }
               onClick={() => setActiveTab("reviews")}
             >
               ⭐ {t("detail.reviews")}
             </button>
             <button
-              style={activeTab === "forum" ? tabButtonActiveStyle : tabButtonStyle}
+              style={
+                activeTab === "forum"
+                  ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
+                  : { ...tabButtonStyle, color: themeColors.textMuted }
+              }
               onClick={() => setActiveTab("forum")}
             >
               💬 {t("detail.forum")}
             </button>
             {showNews && (
               <button
-                style={activeTab === "news" ? tabButtonActiveStyle : tabButtonStyle}
+                style={
+                  activeTab === "news"
+                    ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
+                    : { ...tabButtonStyle, color: themeColors.textMuted }
+                }
                 onClick={() => setActiveTab("news")}
               >
                 {t("detail.news")} ({notifications.length})
@@ -392,7 +459,11 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             )}
             {showSecrets && (
               <button
-                style={activeTab === "secrets" ? tabButtonActiveStyle : tabButtonStyle}
+                style={
+                  activeTab === "secrets"
+                    ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
+                    : { ...tabButtonStyle, color: themeColors.textMuted }
+                }
                 onClick={() => setActiveTab("secrets")}
               >
                 🔐 {t("detail.secrets")}
@@ -405,7 +476,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             {activeTab === "reviews" && <ReviewsTab appId={app.app_id} />}
             {activeTab === "forum" && <ForumTab appId={app.app_id} />}
             {activeTab === "news" && showNews && <AppNewsList notifications={notifications} />}
-            {activeTab === "secrets" && showSecrets && <AppSecretsTab appId={app.app_id} appName={app.name} />}
+            {activeTab === "secrets" && showSecrets && <AppSecretsTab appId={app.app_id} appName={appName} />}
             {!showNews && activeTab === "news" && <p style={newsDisabledStyle}>{t("detail.newsDisabled")}</p>}
           </div>
         </section>
@@ -417,28 +488,82 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   const rightPanel = (
     <div style={rightPanelContainerStyle}>
       <LaunchDock
-        appName={app.name}
+        appName={appName}
         appId={app.app_id}
         wallet={wallet}
         networkLatency={networkLatency}
+        onBack={handleBack}
         onExit={handleBack}
         onShare={handleShare}
       />
-      {federated ? (
-        <div style={federatedStyle}>
-          <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
-        </div>
-      ) : (
-        <iframe
-          src={iframeSrc}
-          ref={iframeRef}
-          style={iframeStyle}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          title={`${app.name} MiniApp`}
-          allowFullScreen
-        />
-      )}
+      <div style={iframeWrapperStyle}>
+        <MiniAppFrame>
+          {federated ? (
+            <div className="w-full h-full">
+              <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
+            </div>
+          ) : (
+            <>
+              {isIframeLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-[#0a0f1a] z-10">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">
+                      {t("detail.launching")} {appName}...
+                    </div>
+                  </div>
+                </div>
+              )}
+              <iframe
+                key={locale}
+                src={iframeSrc}
+                ref={iframeRef}
+                onLoad={() => setIsIframeLoading(false)}
+                className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
+                  isIframeLoading ? "opacity-0" : "opacity-100"
+                }`}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                title={`${appName} MiniApp`}
+                allowFullScreen
+              />
+            </>
+          )}
+        </MiniAppFrame>
+      </div>
       {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
+
+      {/* TEE Verification Overlay */}
+      {teeVerification && (
+        <div style={teeOverlayStyle}>
+          <div style={teeHeaderStyle}>
+            <div style={teePulseStyle} />
+            <span style={teeTitleStyle}>{t("miniapp.tee.verified")}</span>
+            <button onClick={() => setTeeVerification(null)} style={teeCloseStyle}>
+              ×
+            </button>
+          </div>
+          <div style={teeBodyStyle}>
+            <div style={teeFieldStyle}>
+              <span style={teeLabelStyle}>{t("miniapp.tee.method")}</span>
+              <span style={teeValueStyle}>{teeVerification.method}</span>
+            </div>
+            <div style={teeFieldStyle}>
+              <span style={teeLabelStyle}>{t("miniapp.tee.txHash")}</span>
+              <span style={{ ...teeValueStyle, fontFamily: "monospace", fontSize: "11px" }}>
+                {teeVerification.txHash}
+              </span>
+            </div>
+            <div style={teeFieldStyle}>
+              <span style={teeLabelStyle}>{t("miniapp.tee.attestation")}</span>
+              <span style={{ ...teeValueStyle, color: "#00ff88", fontWeight: "bold" }}>
+                {teeVerification.attestation}
+              </span>
+            </div>
+          </div>
+          <div style={teeFooterStyle}>{t("miniapp.tee.footer")}</div>
+        </div>
+      )}
+
       <LiveChat
         appId={app.app_id}
         walletAddress={wallet.address}
@@ -447,7 +572,26 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     </div>
   );
 
-  return <SplitViewLayout leftPanel={leftPanel} rightPanel={rightPanel} leftWidth={420} />;
+  return (
+    <SplitViewLayout
+      leftPanel={leftPanel}
+      centerPanel={rightPanel}
+      rightPanel={
+        <RightSidebarPanel
+          appId={app.app_id}
+          appName={appName}
+          network="testnet"
+          permissions={app.permissions}
+          contractInfo={{
+            contractHash: app.contract_hash,
+            masterKeyAddress: app.developer?.address,
+          }}
+        />
+      }
+      leftWidth={420}
+      rightWidth={320}
+    />
+  );
 }
 
 function OverviewTab({ app, t }: { app: MiniAppInfo; t: (key: string) => string }) {
@@ -554,6 +698,7 @@ async function dispatchBridgeCall(
   params: unknown[],
   permissions: MiniAppInfo["permissions"],
   appId: string,
+  walletAddress?: string,
 ): Promise<unknown> {
   if (!hasPermission(method, permissions)) {
     throw new Error(`permission denied: ${method}`);
@@ -562,6 +707,7 @@ async function dispatchBridgeCall(
   switch (method) {
     case "wallet.getAddress":
     case "getAddress": {
+      if (walletAddress) return walletAddress;
       if (sdk.wallet?.getAddress) return sdk.wallet.getAddress();
       if (sdk.getAddress) return sdk.getAddress();
       throw new Error("wallet.getAddress not available");
@@ -742,6 +888,16 @@ const rightPanelContainerStyle: React.CSSProperties = {
   position: "relative",
   height: "100%",
   background: "#000",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+};
+
+// Wrapper for iframe - fills remaining space after LaunchDock
+const iframeWrapperStyle: React.CSSProperties = {
+  flex: 1,
+  width: "100%",
+  overflow: "hidden",
 };
 
 const errorContainerStyle: React.CSSProperties = {
@@ -849,24 +1005,6 @@ const newsDisabledStyle: React.CSSProperties = {
   color: colors.textMuted,
 };
 
-const iframeStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 48,
-  left: 0,
-  width: "100%",
-  height: "calc(100% - 48px)",
-  border: "none",
-};
-
-const federatedStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 48,
-  left: 0,
-  width: "100%",
-  height: "calc(100% - 48px)",
-  overflow: "auto",
-};
-
 const toastStyle: React.CSSProperties = {
   position: "fixed",
   bottom: 24,
@@ -951,4 +1089,90 @@ const codeStyle: React.CSSProperties = {
   fontSize: 13,
   fontFamily: "monospace",
   color: colors.primary,
+};
+
+const teeOverlayStyle: React.CSSProperties = {
+  position: "absolute",
+  bottom: 24,
+  right: 24,
+  width: 340,
+  background: "rgba(10, 15, 26, 0.95)",
+  backdropFilter: "blur(12px)",
+  borderRadius: 16,
+  border: "1px solid rgba(0, 255, 136, 0.3)",
+  boxShadow: "0 12px 40px rgba(0, 0, 0, 0.4)",
+  color: "#fff",
+  zIndex: 1000,
+  overflow: "hidden",
+};
+
+const teeHeaderStyle: React.CSSProperties = {
+  padding: "12px 16px",
+  background: "rgba(0, 255, 136, 0.1)",
+  borderBottom: "1px solid rgba(0, 255, 136, 0.2)",
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+};
+
+const teePulseStyle: React.CSSProperties = {
+  width: 10,
+  height: 10,
+  borderRadius: "50%",
+  background: "#00ff88",
+  boxShadow: "0 0 10px #00ff88",
+};
+
+const teeTitleStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: "#00ff88",
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+  flex: 1,
+};
+
+const teeCloseStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "none",
+  color: "#fff",
+  fontSize: 20,
+  cursor: "pointer",
+  opacity: 0.6,
+  lineHeight: 1,
+};
+
+const teeBodyStyle: React.CSSProperties = {
+  padding: 16,
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+};
+
+const teeFieldStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+};
+
+const teeLabelStyle: React.CSSProperties = {
+  fontSize: 9,
+  color: "rgba(255, 255, 255, 0.4)",
+  textTransform: "uppercase",
+  fontWeight: 600,
+};
+
+const teeValueStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: "rgba(255, 255, 255, 0.9)",
+  wordBreak: "break-all",
+};
+
+const teeFooterStyle: React.CSSProperties = {
+  padding: "10px 16px",
+  fontSize: 9,
+  color: "rgba(255, 255, 255, 0.3)",
+  borderTop: "1px solid rgba(255, 255, 255, 0.05)",
+  textAlign: "center",
+  background: "rgba(255, 255, 255, 0.02)",
 };

@@ -12,6 +12,8 @@ import { logger } from "../../lib/logger";
 import { resolveInternalBaseUrl } from "../../lib/edge";
 import { BUILTIN_APPS } from "../../lib/builtin-apps";
 import { useI18n } from "../../lib/i18n/react";
+import { useTheme } from "../../components/providers/ThemeProvider";
+import { MiniAppFrame } from "../../components/features/miniapp";
 
 /** NeoLine N3 wallet interface */
 interface NeoLineN3Wallet {
@@ -41,6 +43,7 @@ type LaunchPageProps = {
 export default function LaunchPage({ app }: LaunchPageProps) {
   const router = useRouter();
   const { locale } = useI18n();
+  const { theme } = useTheme();
   const [wallet, setWallet] = useState<WalletState>({ connected: false, address: "", provider: null });
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -48,13 +51,12 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sdkRef = useRef<MiniAppSDK | null>(null);
 
-  // Build iframe URL with language parameter
-  // Only support en/zh, fallback to en for unsupported languages
+  // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
     const supportedLocale = locale === "zh" ? "zh" : "en";
     const separator = app.entry_url.includes("?") ? "&" : "?";
-    return `${app.entry_url}${separator}lang=${supportedLocale}`;
-  }, [app.entry_url, locale]);
+    return `${app.entry_url}${separator}lang=${supportedLocale}&theme=${theme}`;
+  }, [app.entry_url, locale, theme]);
 
   useEffect(() => {
     sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
@@ -112,6 +114,15 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Sync theme changes to iframe via postMessage
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    const origin = resolveIframeOrigin(app.entry_url);
+    if (!origin) return;
+    iframe.contentWindow.postMessage({ type: "theme-change", theme }, origin);
+  }, [theme, app.entry_url]);
 
   useEffect(() => {
     if (federated) return;
@@ -201,6 +212,11 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     router.push(`/miniapps/${app.app_id}`);
   }, [router, app.app_id]);
 
+  const handleBack = useCallback(() => {
+    // Use browser history to go back
+    router.back();
+  }, [router]);
+
   const handleShare = useCallback(() => {
     const url = `${window.location.origin}/launch/${app.app_id}`;
     navigator.clipboard
@@ -222,23 +238,29 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         appId={app.app_id}
         wallet={wallet}
         networkLatency={networkLatency}
+        onBack={handleBack}
         onExit={handleExit}
         onShare={handleShare}
       />
-      {federated ? (
-        <div style={federatedStyle}>
-          <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
-        </div>
-      ) : (
-        <iframe
-          src={iframeSrc}
-          ref={iframeRef}
-          style={iframeStyle}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          title={`${app.name} MiniApp`}
-          allowFullScreen
-        />
-      )}
+      <div style={frameWrapperStyle}>
+        <MiniAppFrame>
+          {federated ? (
+            <div className="w-full h-full">
+              <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
+            </div>
+          ) : (
+            <iframe
+              key={locale}
+              src={iframeSrc}
+              ref={iframeRef}
+              className="w-full h-full border-0"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              title={`${app.name} MiniApp`}
+              allowFullScreen
+            />
+          )}
+        </MiniAppFrame>
+      </div>
       {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
 
       {/* LiveChat for MiniApp */}
@@ -397,6 +419,8 @@ export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (co
 };
 
 // Styles
+const LAUNCH_DOCK_HEIGHT = 56;
+
 const containerStyle: React.CSSProperties = {
   position: "fixed",
   inset: 0,
@@ -404,22 +428,13 @@ const containerStyle: React.CSSProperties = {
   overflow: "hidden",
 };
 
-const iframeStyle: React.CSSProperties = {
+const frameWrapperStyle: React.CSSProperties = {
   position: "absolute",
-  top: 48,
+  top: LAUNCH_DOCK_HEIGHT,
   left: 0,
-  width: "100vw",
-  height: "calc(100vh - 48px)",
-  border: "none",
-};
-
-const federatedStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 48,
-  left: 0,
-  width: "100vw",
-  height: "calc(100vh - 48px)",
-  overflow: "auto",
+  right: 0,
+  bottom: 0,
+  overflow: "hidden",
 };
 
 const toastStyle: React.CSSProperties = {
@@ -438,10 +453,10 @@ const toastStyle: React.CSSProperties = {
 
 const comingSoonStyle: React.CSSProperties = {
   position: "absolute",
-  top: 48,
+  top: LAUNCH_DOCK_HEIGHT,
   left: 0,
   width: "100vw",
-  height: "calc(100vh - 48px)",
+  height: `calc(100vh - ${LAUNCH_DOCK_HEIGHT}px)`,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

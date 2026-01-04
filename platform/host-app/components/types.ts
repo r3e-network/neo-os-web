@@ -11,6 +11,9 @@ export type MiniAppInfo = {
   app_id: string;
   name: string;
   description: string;
+  // Self-contained i18n: each MiniApp provides its own translations
+  name_zh?: string;
+  description_zh?: string;
   icon: string;
   category: MiniAppCategory;
   entry_url: string;
@@ -68,7 +71,7 @@ export type MiniAppNotification = {
 export type WalletState = {
   connected: boolean;
   address: string;
-  provider: "neoline" | "o3" | "onegate" | null;
+  provider: "neoline" | "o3" | "onegate" | "auth0" | null;
   balance?: { neo: string; gas: string };
 };
 

@@ -17,7 +17,7 @@ import (
 func TestAllMiniApps(t *testing.T) {
 	apps := AllMiniApps()
 
-	assert.Len(t, apps, 67) // Phase 1-9: 67 total MiniApps
+	assert.Len(t, apps, 37) // Phase 1-9: 37 total MiniApps (removed 30 deleted apps)
 
 	// Verify all expected apps are present
 	appIDs := make(map[string]bool)
@@ -31,75 +31,37 @@ func TestAllMiniApps(t *testing.T) {
 	assert.True(t, appIDs["miniapp-dice-game"])
 	assert.True(t, appIDs["miniapp-scratch-card"])
 	assert.True(t, appIDs["miniapp-mega-millions"])
-	assert.True(t, appIDs["miniapp-prediction-market"])
 	assert.True(t, appIDs["miniapp-flashloan"])
-	assert.True(t, appIDs["miniapp-price-ticker"])
 	assert.True(t, appIDs["miniapp-gas-spin"])
 	assert.True(t, appIDs["miniapp-price-predict"])
-	assert.True(t, appIDs["miniapp-secret-vote"])
 	// Phase 2 MiniApps
 	assert.True(t, appIDs["miniapp-secret-poker"])
 	assert.True(t, appIDs["miniapp-micro-predict"])
 	assert.True(t, appIDs["miniapp-red-envelope"])
 	assert.True(t, appIDs["miniapp-gas-circle"])
-	assert.True(t, appIDs["miniapp-fog-chess"])
 	assert.True(t, appIDs["miniapp-gov-booster"])
 	// Phase 3 MiniApps
 	assert.True(t, appIDs["miniapp-turbo-options"])
-	assert.True(t, appIDs["miniapp-il-guard"])
-	// Phase 4 MiniApps - Long-Running Processes
-	assert.True(t, appIDs["miniapp-ai-trader"])
-	assert.True(t, appIDs["miniapp-grid-bot"])
-	assert.True(t, appIDs["miniapp-nft-evolve"])
-	assert.True(t, appIDs["miniapp-bridge-guardian"])
 	// Phase 5 MiniApps - New deployed contracts
 	assert.True(t, appIDs["miniapp-neo-crash"])
-	assert.True(t, appIDs["miniapp-candle-wars"])
-	assert.True(t, appIDs["miniapp-dutch-auction"])
-	assert.True(t, appIDs["miniapp-the-parasite"])
 	assert.True(t, appIDs["miniapp-throne-of-gas"])
-	assert.True(t, appIDs["miniapp-no-loss-lottery"])
 	assert.True(t, appIDs["miniapp-doomsday-clock"])
-	assert.True(t, appIDs["miniapp-pay-to-view"])
 	// Phase 6 MiniApps - TEE-powered creative apps
-	assert.True(t, appIDs["miniapp-schrodinger-nft"])
-	assert.True(t, appIDs["miniapp-algo-battle"])
 	assert.True(t, appIDs["miniapp-time-capsule"])
-	assert.True(t, appIDs["miniapp-garden-of-neo"])
 	assert.True(t, appIDs["miniapp-dev-tipping"])
 	// Phase 7 MiniApps - Advanced DeFi & Social
-	assert.True(t, appIDs["miniapp-ai-soulmate"])
-	assert.True(t, appIDs["miniapp-dead-switch"])
 	assert.True(t, appIDs["miniapp-heritage-trust"])
-	assert.True(t, appIDs["miniapp-dark-radio"])
-	assert.True(t, appIDs["miniapp-zk-badge"])
 	assert.True(t, appIDs["miniapp-graveyard"])
 	assert.True(t, appIDs["miniapp-compound-capsule"])
 	assert.True(t, appIDs["miniapp-self-loan"])
-	assert.True(t, appIDs["miniapp-dark-pool"])
 	assert.True(t, appIDs["miniapp-burn-league"])
-	assert.True(t, appIDs["miniapp-gov-merc"])
 	// Phase 8 MiniApps - Creative & Social
-	assert.True(t, appIDs["miniapp-quantum-swap"])
-	assert.True(t, appIDs["miniapp-on-chain-tarot"])
-	assert.True(t, appIDs["miniapp-ex-files"])
-	assert.True(t, appIDs["miniapp-scream-to-earn"])
-	assert.True(t, appIDs["miniapp-breakup-contract"])
-	assert.True(t, appIDs["miniapp-geo-spotlight"])
 	assert.True(t, appIDs["miniapp-puzzle-mining"])
-	assert.True(t, appIDs["miniapp-nft-chimera"])
-	assert.True(t, appIDs["miniapp-world-piano"])
-	assert.True(t, appIDs["miniapp-bounty-hunter"])
-	assert.True(t, appIDs["miniapp-masquerade-dao"])
-	assert.True(t, appIDs["miniapp-melting-asset"])
 	assert.True(t, appIDs["miniapp-unbreakable-vault"])
-	assert.True(t, appIDs["miniapp-whisper-chain"])
 	assert.True(t, appIDs["miniapp-million-piece-map"])
-	assert.True(t, appIDs["miniapp-fog-puzzle"])
 	assert.True(t, appIDs["miniapp-crypto-riddle"])
 	// Phase 9 MiniApps - New Social & Utility
 	assert.True(t, appIDs["miniapp-grant-share"])
-	assert.True(t, appIDs["miniapp-neo-chat"])
 	assert.True(t, appIDs["miniapp-neo-ns"])
 }
 
@@ -132,13 +94,13 @@ func TestAllMiniApps_Categories(t *testing.T) {
 		}
 	}
 
-	// Phase 1-9 totals: gaming=17, defi=17, governance=3, social=20, advanced=6, creative=3, utility=1
-	assert.Equal(t, 17, gaming)
-	assert.Equal(t, 17, defi)
-	assert.Equal(t, 3, governance)
-	assert.Equal(t, 20, social) // +2 from Phase 9 (grant-share, neo-chat)
-	assert.Equal(t, 6, advanced)
-	assert.Equal(t, 3, creative) // nft-chimera, world-piano, million-piece-map
+	// Phase 1-9 totals after removing 30 deleted apps
+	assert.Equal(t, 9, gaming)
+	assert.Equal(t, 7, defi)
+	assert.Equal(t, 2, governance)
+	assert.Equal(t, 8, social)
+	assert.Equal(t, 1, advanced)
+	assert.Equal(t, 1, creative)
 	assert.Equal(t, 1, utility)  // neo-ns
 }
 
@@ -146,11 +108,7 @@ func TestAllMiniApps_BetAmounts(t *testing.T) {
 	apps := AllMiniApps()
 
 	for _, app := range apps {
-		if app.AppID == "miniapp-price-ticker" {
-			assert.Equal(t, int64(0), app.BetAmount, "price-ticker should have 0 bet amount")
-		} else {
-			assert.Greater(t, app.BetAmount, int64(0), "%s should have positive bet amount", app.AppID)
-		}
+		assert.Greater(t, app.BetAmount, int64(0), "%s should have positive bet amount", app.AppID)
 	}
 }
 
@@ -365,51 +323,6 @@ func TestMiniAppSimulator_SimulateScratchCard_PaymentError(t *testing.T) {
 }
 
 // =============================================================================
-// SimulatePredictionMarket Tests
-// =============================================================================
-
-func TestMiniAppSimulator_SimulatePredictionMarket_Success(t *testing.T) {
-	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
-
-	ctx := context.Background()
-	err := sim.SimulatePredictionMarket(ctx)
-
-	require.NoError(t, err)
-
-	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
-	payToAppCalls := mockInvoker.getPayToAppCalls()
-	require.GreaterOrEqual(t, len(payToAppCalls), 1)
-	assert.Equal(t, "miniapp-prediction-market", payToAppCalls[0].AppID)
-	assert.Equal(t, int64(20000000), payToAppCalls[0].Amount) // 0.2 GAS
-
-	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
-	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
-	require.GreaterOrEqual(t, len(miniAppCalls), 1)
-	assert.Equal(t, "miniapp-prediction-market", miniAppCalls[0].AppID)
-	assert.Equal(t, "PlacePrediction", miniAppCalls[0].Method)
-
-	// Verify stats updated
-	stats := sim.GetStats()
-	predictionStats := stats["defi"].(map[string]interface{})["prediction"].(map[string]int64)
-	assert.Equal(t, int64(1), predictionStats["bets"])
-	assert.LessOrEqual(t, predictionStats["resolves"], predictionStats["bets"])
-	assert.LessOrEqual(t, predictionStats["payouts"], predictionStats["resolves"])
-}
-
-func TestMiniAppSimulator_SimulatePredictionMarket_PaymentError(t *testing.T) {
-	mockInvoker := newMockContractInvoker()
-	mockInvoker.payToAppErr = errors.New("payment failed")
-	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
-
-	ctx := context.Background()
-	err := sim.SimulatePredictionMarket(ctx)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "place prediction")
-}
-
-// =============================================================================
 // SimulateFlashLoan Tests
 // =============================================================================
 
@@ -454,46 +367,6 @@ func TestMiniAppSimulator_SimulateFlashLoan_PaymentError(t *testing.T) {
 }
 
 // =============================================================================
-// SimulatePriceTicker Tests
-// =============================================================================
-
-func TestMiniAppSimulator_SimulatePriceTicker_Success(t *testing.T) {
-	mockInvoker := newMockContractInvoker()
-	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
-
-	ctx := context.Background()
-	err := sim.SimulatePriceTicker(ctx)
-
-	require.NoError(t, err)
-
-	// PriceTicker is read-only, no PayToApp call expected
-	payToAppCalls := mockInvoker.getPayToAppCalls()
-	assert.Len(t, payToAppCalls, 0)
-
-	// PriceTicker is read-only; no contract invocation expected
-	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
-	assert.Len(t, miniAppCalls, 0)
-
-	// Verify stats updated
-	stats := sim.GetStats()
-	priceStats := stats["defi"].(map[string]interface{})["price_ticker"].(map[string]int64)
-	assert.Equal(t, int64(1), priceStats["queries"])
-}
-
-func TestMiniAppSimulator_SimulatePriceTicker_ContractError(t *testing.T) {
-	mockInvoker := newMockContractInvoker()
-	mockInvoker.invokeMiniAppErr = errors.New("contract invocation failed")
-	sim := NewMiniAppSimulator(mockInvoker, []string{"NXtest1", "NXtest2", "NXtest3"})
-
-	ctx := context.Background()
-	err := sim.SimulatePriceTicker(ctx)
-
-	// PriceTicker is read-only and doesn't return errors for contract failures
-	// It just increments the query counter
-	require.NoError(t, err)
-}
-
-// =============================================================================
 // GetStats Tests
 // =============================================================================
 
@@ -529,52 +402,28 @@ func TestMiniAppSimulator_GetStats(t *testing.T) {
 	assert.Contains(t, gaming, "scratch_card")
 	assert.Contains(t, gaming, "gas_spin")
 
-	assert.Contains(t, defi, "prediction")
 	assert.Contains(t, defi, "flashloan")
-	assert.Contains(t, defi, "price_ticker")
 	assert.Contains(t, defi, "price_predict")
 
-	assert.Contains(t, social, "secret_vote")
 	assert.Contains(t, social, "secret_poker")
 
 	assert.Contains(t, other, "gov_booster")
-	assert.Contains(t, other, "fog_chess")
 
 	// Phase 7 stats
-	assert.Contains(t, phase7, "ai_soulmate")
-	assert.Contains(t, phase7, "dead_switch")
 	assert.Contains(t, phase7, "heritage_trust")
-	assert.Contains(t, phase7, "dark_radio")
-	assert.Contains(t, phase7, "zk_badge")
 	assert.Contains(t, phase7, "graveyard")
 	assert.Contains(t, phase7, "compound_capsule")
 	assert.Contains(t, phase7, "self_loan")
-	assert.Contains(t, phase7, "dark_pool")
 	assert.Contains(t, phase7, "burn_league")
-	assert.Contains(t, phase7, "gov_merc")
 
 	// Phase 8 stats
-	assert.Contains(t, phase8, "quantum_swap")
-	assert.Contains(t, phase8, "onchain_tarot")
-	assert.Contains(t, phase8, "ex_files")
-	assert.Contains(t, phase8, "scream_to_earn")
-	assert.Contains(t, phase8, "breakup_contract")
-	assert.Contains(t, phase8, "geo_spotlight")
 	assert.Contains(t, phase8, "puzzle_mining")
-	assert.Contains(t, phase8, "nft_chimera")
-	assert.Contains(t, phase8, "world_piano")
-	assert.Contains(t, phase8, "bounty_hunter")
-	assert.Contains(t, phase8, "masquerade_dao")
-	assert.Contains(t, phase8, "melting_asset")
 	assert.Contains(t, phase8, "unbreakable_vault")
-	assert.Contains(t, phase8, "whisper_chain")
 	assert.Contains(t, phase8, "million_piece_map")
-	assert.Contains(t, phase8, "fog_puzzle")
 	assert.Contains(t, phase8, "crypto_riddle")
 
 	// Phase 10 stats
 	assert.Contains(t, phase10, "grant_share")
-	assert.Contains(t, phase10, "neo_chat")
 	assert.Contains(t, phase10, "neo_ns")
 }
 
@@ -634,17 +483,13 @@ func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
 	_ = sim.SimulateCoinFlip(ctx)
 	_ = sim.SimulateDiceGame(ctx)
 	_ = sim.SimulateScratchCard(ctx)
-	_ = sim.SimulatePredictionMarket(ctx)
 	_ = sim.SimulateFlashLoan(ctx)
-	_ = sim.SimulatePriceTicker(ctx) // Read-only, no payment
 	_ = sim.SimulateGasSpin(ctx)
-	_ = sim.SimulatePricePredict(ctx)
-	_ = sim.SimulateSecretVote(ctx)
 
 	// Verify PayToApp was called for all payment-based MiniApps (USER ACTION)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
-	// Expected: lottery + coin-flip + dice + scratch + prediction + flashloan + gas-spin + price-predict + secret-vote = 9
-	assert.GreaterOrEqual(t, len(payToAppCalls), 9)
+	// Expected: lottery + coin-flip + dice + scratch + flashloan + gas-spin = 6
+	assert.GreaterOrEqual(t, len(payToAppCalls), 6)
 
 	// Verify all expected apps made payment calls
 	appPayments := make(map[string]int)
@@ -656,17 +501,12 @@ func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
 	assert.Greater(t, appPayments["miniapp-coin-flip"], 0)
 	assert.Greater(t, appPayments["miniapp-dice-game"], 0)
 	assert.Greater(t, appPayments["miniapp-scratch-card"], 0)
-	assert.Greater(t, appPayments["miniapp-prediction-market"], 0)
 	assert.Greater(t, appPayments["miniapp-flashloan"], 0)
 	assert.Greater(t, appPayments["miniapp-gas-spin"], 0)
-	assert.Greater(t, appPayments["miniapp-price-predict"], 0)
-	assert.Greater(t, appPayments["miniapp-secret-vote"], 0)
-	// price-ticker is read-only, no payment
-	assert.Equal(t, 0, appPayments["miniapp-price-ticker"])
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
-	assert.GreaterOrEqual(t, len(miniAppCalls), 9)
+	assert.GreaterOrEqual(t, len(miniAppCalls), 6)
 
 	invokeCounts := make(map[string]int)
 	for _, call := range miniAppCalls {
@@ -677,12 +517,8 @@ func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
 	assert.Greater(t, invokeCounts["miniapp-coin-flip"], 0)
 	assert.Greater(t, invokeCounts["miniapp-dice-game"], 0)
 	assert.Greater(t, invokeCounts["miniapp-scratch-card"], 0)
-	assert.Greater(t, invokeCounts["miniapp-prediction-market"], 0)
 	assert.Greater(t, invokeCounts["miniapp-flashloan"], 0)
 	assert.Greater(t, invokeCounts["miniapp-gas-spin"], 0)
-	assert.Greater(t, invokeCounts["miniapp-price-predict"], 0)
-	assert.Greater(t, invokeCounts["miniapp-secret-vote"], 0)
-	assert.Equal(t, 0, invokeCounts["miniapp-price-ticker"])
 }
 
 func TestMiniAppSimulator_VerifyMasterAccountUsage(t *testing.T) {

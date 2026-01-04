@@ -1,26 +1,159 @@
 {
   "hero": {
-    "title": "Neo MiniApp Platform",
-    "subtitle": "Build and deploy decentralized applications with TEE-powered security",
-    "exploreApps": "Explore Apps",
-    "launchApp": "Launch App"
+    "badge": "Next-Generation MiniApp Hub",
+    "title": "Experience the",
+    "titleHighlight": "NeoHub Ecosystem",
+    "subtitle": "Discover and use decentralized MiniApps for gaming, DeFi, and social. Protected by hardware-grade security, Zero-Knowledge Proofs, and the power of Neo N3.",
+    "exploreApps": "Explore MiniApps",
+    "howItWorks": "How it Works",
+    "sgxEnabled": "SGX-ENABLED",
+    "teeTrusted": "TEE-TRUSTED",
+    "neoNative": "NEO-NATIVE"
+  },
+  "landing": {
+    "architecture": {
+      "title": "Three-Layer Hardware Security",
+      "subtitle": "Your safety is our priority. Our architecture uses physical hardware isolation to keep your assets and data secure.",
+      "rootTitle": "Root of Trust",
+      "rootDesc": "Hardware-level protection for your digital identity",
+      "osTitle": "Secure Operating System",
+      "osDesc": "Advanced privacy controls for every interaction",
+      "appTitle": "App Protection Layer",
+      "appDesc": "Isolated environments for every MiniApp you use",
+      "teeTitle": "TEE Trust Root",
+      "teeSpecs": "Intel SGX Enclave • Sealing • Attestation",
+      "osLayerTitle": "Platform / ServiceOS",
+      "osLayerSpecs": "Capabilities • Secrets • Keys • Storage • Network",
+      "servicesTitle": "Services Layer",
+      "servicesSpecs": "Oracle • VRF • Secrets • DataFeeds • Automation • Mixer • ..."
+    },
+    "services": {
+      "badge": "Core Services",
+      "title": "Platform Capabilities",
+      "subtitle": "Integrated features that make your experience seamless and secure.",
+      "active": "Active",
+      "requests": "requests",
+      "list": {
+        "verifiedData": {
+          "name": "Verified Data",
+          "desc": "Reliable real-world information",
+          "requests": "1.2M+"
+        },
+        "fairPlay": {
+          "name": "Fair Play",
+          "desc": "Guaranteed honest randomness",
+          "requests": "500K+"
+        },
+        "personalVault": {
+          "name": "Personal Vault",
+          "desc": "Encrypted asset protection",
+          "requests": "2.1M+"
+        },
+        "liveInsights": {
+          "name": "Live Insights",
+          "desc": "Real-time market analytics",
+          "requests": "3.5M+"
+        },
+        "smartAlerts": {
+          "name": "Smart Alerts",
+          "desc": "Automatic event notifications",
+          "requests": "800K+"
+        },
+        "gasSupport": {
+          "name": "Gas Support",
+          "desc": "Low-cost transaction sponsorship",
+          "requests": "1.8M+"
+        },
+        "privacyShield": {
+          "name": "Privacy Shield",
+          "desc": "Private transactional history",
+          "requests": "150K+"
+        },
+        "bridgeHub": {
+          "name": "State Persistence",
+          "desc": "Secure on-chain data storage",
+          "requests": "200K+"
+        }
+      }
+    },
+    "security": {
+      "title": "Built for Your Protection",
+      "subtitle": "Experience the most secure platform for decentralized apps, where your data and assets are always protected by cutting-edge technology.",
+      "list": {
+        "privacy": {
+          "title": "Total Personal Privacy",
+          "desc": "Your data and interactions are protected by hardware isolation, ensuring your privacy is never compromised."
+        },
+        "storage": {
+          "title": "Encrypted Storage",
+          "desc": "Securely store your personal settings and digital assets with bank-grade hardware encryption."
+        },
+        "authenticity": {
+          "title": "Verified Authenticity",
+          "desc": "Every piece of information you see is verified on-chain, protecting you from misinformation and fraud."
+        },
+        "fairness": {
+          "title": "Guaranteed Fairness",
+          "desc": "Mathematical proofs ensure that every game and drawing is 100% fair and transparent."
+        },
+        "automation": {
+          "title": "Automated Convenience",
+          "desc": "Set and forget your blockchain interactions with secure automation that works for you 24/7."
+        },
+        "connectivity": {
+          "title": "Universal Connectivity",
+          "desc": "Access a world of decentralized apps designed to work together across the entire Neo ecosystem."
+        }
+      }
+    },
+    "cta": {
+      "badge": "All 14 Core Services Running",
+      "title": "Join the",
+      "titleHighlight": "Future of Apps",
+      "subtitle": "Step into a world of decentralized possibilities. Experience the power of NeoHub today with our suite of secure, high-performance MiniApps.",
+      "startBuilding": "Start Exploring",
+      "readDocs": "How it Works",
+      "tryPlayground": "For Developers"
+    }
   },
   "features": {
     "title": "Features",
-    "secureCompute": "Secure Compute",
-    "secureComputeDesc": "TEE-powered confidential computing for sensitive operations",
-    "verifiableRandom": "Verifiable Random",
-    "verifiableRandomDesc": "Provably fair randomness for gaming and lotteries",
-    "realTimeData": "Real-Time Data",
-    "realTimeDataDesc": "Live price feeds and market data from trusted sources",
-    "automatedTasks": "Automated Tasks",
-    "automatedTasksDesc": "Schedule and automate on-chain operations"
+    "subtitle": "Neo N3 provides the ultimate developer experience and user security for the next generation of web3 applications.",
+    "tee": {
+      "title": "Confidential TEE",
+      "desc": "Run private logic in Intel SGX enclaves where even operators can't see the data."
+    },
+    "vrf": {
+      "title": "VRF Randomness",
+      "desc": "Native verifiable randomness integrated directly into the consensus layer."
+    },
+    "oracle": {
+      "title": "Native Oracles",
+      "desc": "Access any web2 data securely without depending on third-party oracle networks."
+    },
+    "storage": {
+      "title": "Distributed Storage",
+      "desc": "Integrated NeoFS for decentralized metadata and asset storage."
+    }
+  },
+  "cta": {
+    "title": "Ready to build the future?",
+    "subtitle": "Our SDK makes it incredibly easy to port your existing web apps to the Neo ecosystem. Get started with our comprehensive documentation and templates.",
+    "getStarted": "Get Started",
+    "viewSource": "View Source"
   },
   "stats": {
     "totalApps": "Total Apps",
     "totalUsers": "Total Users",
-    "totalTransactions": "Transactions",
-    "totalVolume": "Total Volume"
+    "activeUsers": "Active Users",
+    "totalTransactions": "Total Transactions",
+    "totalVolume": "Total Volume",
+    "stakingApr": "Staking APR",
+    "gasBurned": "Total GAS Burned"
+  },
+  "explore": {
+    "title": "Explore NeoHub Ecosystem",
+    "subtitle": "Discover the most innovative MiniApps built on Neo N3. Powered by TEE and verified on-chain."
   },
   "categories": {
     "all": "All",
@@ -36,22 +169,110 @@
     "noActivity": "No recent activity",
     "viewAll": "View All"
   },
+  "news": {
+    "latestNews": "Latest News"
+  },
   "account": {
-    "title": "My Account",
+    "title": "Profile Settings",
+    "subtitle": "Manage your Neo identity and social connections",
     "profile": "Profile",
     "transactions": "Transactions",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "wallet": {
+      "title": "Neo Wallet",
+      "subtitle": "Your primary on-chain identity",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "address": "Wallet Address",
+      "copy": "Copy"
+    },
+    "auth": {
+      "title": "Account",
+      "subtitle": "Sign in with Google, Twitter, or GitHub",
+      "signIn": "Sign in with Auth0",
+      "logout": "Logout",
+      "connectedAccounts": "Connected Accounts",
+      "google": "Google",
+      "github": "GitHub",
+      "twitter": "X (Twitter)",
+      "email": "Email Settings",
+      "connect": "Connect",
+      "connected": "Connected",
+      "disconnect": "Disconnect"
+    },
+    "reputation": {
+      "title": "Reputation",
+      "level": "Lv.",
+      "progress": "Progress to Lv.",
+      "rank": "Rank",
+      "streak": "day streak"
+    },
+    "activity": {
+      "title": "Activity",
+      "transactions": "Transactions",
+      "votesCast": "Votes Cast",
+      "appsUsed": "Apps Used",
+      "xpEarned": "XP Earned"
+    },
+    "security": {
+      "title": "Security Tip",
+      "tip": "Connect multiple socials to ensure you can always recover your account access."
+    },
+    "notConnected": "Not connected",
+    "disconnect": "Disconnect",
+    "connect": "Connect",
+    "secrets": {
+      "title": "Secrets",
+      "subtitle": "Manage encrypted secrets for MiniApp development",
+      "add": "Add Secret",
+      "name": "Secret Name",
+      "value": "Secret Value",
+      "description": "Description (optional)",
+      "password": "Your Password",
+      "create": "Create Secret",
+      "creating": "Creating...",
+      "deleteConfirm": "Delete this secret? This action cannot be undone.",
+      "btnCancel": "Cancel",
+      "btnCreate": "Create",
+      "noSecrets": "No secrets yet",
+      "loading": "Loading..."
+    },
+    "tokens": {
+      "title": "API Tokens",
+      "subtitle": "Manage access tokens for NeoHub API",
+      "generate": "Generate",
+      "revoke": "Revoke",
+      "noTokens": "No tokens active"
+    },
+    "backup": {
+      "title": "Account Backup",
+      "subtitle": "Download your encrypted account data",
+      "download": "Download Backup",
+      "lastBackup": "Last backup:"
+    },
+    "password": {
+      "title": "Change Password",
+      "subtitle": "Update your account password",
+      "current": "Current Password",
+      "new": "New Password",
+      "confirm": "Confirm New Password",
+      "update": "Update Password"
+    }
   },
   "miniapps": {
     "title": "MiniApps",
     "apps": "apps",
     "noApps": "No MiniApps found",
     "resultsFor": "Results for",
+    "sidebar": {
+      "categories": "Categories"
+    },
     "sort": {
       "trending": "Trending",
+      "recent": "Most Recent",
+      "popular": "Most Popular",
       "users": "Most Users",
-      "transactions": "Most Active",
-      "recent": "Recently Added"
+      "transactions": "Most Active"
     },
     "filters": {
       "title": "Filters",
@@ -64,7 +285,9 @@
     "view": {
       "list": "List view",
       "grid": "Card view"
-    }
+    },
+    "loadMore": "Load More",
+    "remaining": "remaining"
   },
   "reviews": {
     "title": "Reviews",
@@ -87,6 +310,7 @@
     "appNotFoundDesc": "The requested MiniApp does not exist.",
     "backToMiniApps": "Back to MiniApps",
     "launchApp": "Launch App",
+    "launching": "Launching",
     "overview": "Overview",
     "reviews": "Reviews",
     "forum": "Forum",
@@ -113,5 +337,673 @@
     "weeklyActive": "Weekly Active",
     "lastActive": "Last Active",
     "activity": "Activity"
+  },
+  "docs": {
+    "title": "Documentation",
+    "subtitle": "Everything you need to build on NeoHub",
+    "searchPlaceholder": "Search documentation...",
+    "comingSoon": "Content coming soon",
+    "comingSoonDesc": "We are currently updating our documentation for the {section} section.",
+    "navNext": "Next Section",
+    "navNextTopic": "View Next Topic",
+    "latestRelease": "Latest Release: v2.4.0",
+    "sidebar": {
+      "gettingStarted": "Getting Started",
+      "architecture": "Architecture",
+      "services": "Services",
+      "apiReference": "API Reference",
+      "sdks": "SDKs & Tools"
+    },
+    "items": {
+      "intro": "Introduction",
+      "quickstart": "Quick Start",
+      "auth": "Authentication",
+      "api-keys": "API Keys",
+      "tee-root": "TEE Trust Root",
+      "service-os": "ServiceOS Layer",
+      "capabilities": "Capabilities System",
+      "security-model": "Security Model",
+      "security-tip": "Security Tip",
+      "oracle": "Oracle Service",
+      "vrf": "VRF Service",
+      "secrets": "Secrets Service",
+      "datafeeds": "DataFeeds Service",
+      "automation": "Automation Service",
+      "gasbank": "GasBank Service",
+      "mixer": "Mixer Service",
+      "ccip": "CCIP Service",
+      "rest-api": "REST API",
+      "websocket": "WebSocket API",
+      "errors": "Error Codes",
+      "limits": "Rate Limits",
+      "js-sdk": "JavaScript SDK",
+      "go-sdk": "Go SDK",
+      "python-sdk": "Python SDK",
+      "cli": "CLI Tool"
+    },
+    "intro": {
+      "welcome": "Welcome to NeoHub, the next-generation MiniApp platform built on Neo N3. NeoHub provides a secure, high-performance execution environment for decentralized applications, leveraging Trusted Execution Environments (TEE) to provide hardware-level isolation for your data and secrets.",
+      "secureTitle": "Secure by Default",
+      "secureDesc": "Every MiniApp runs in an isolated enclave, protected by Intel SGX. Secrets never leave the hardware.",
+      "identityTitle": "Unified Identity",
+      "identityDesc": "Social login and wallet connectivity work together seamlessly to provide a frictionless user experience.",
+      "whatIs": "What is NeoHub?",
+      "whatIsDesc": "NeoHub is more than just a marketplace; it's a full-stack infrastructure for decentralized apps. It abstracts away the complexities of blockchain interaction while providing developers with powerful services out-of-the-box, such as hardware-based random number generation, secure data oracles, and automated task execution.",
+      "didYouKnow": "Did you know?",
+      "didYouKnowDesc": "NeoHub uses the same security standards as top-tier financial institutions to ensure your transactions and private keys are always protected."
+    },
+    "quickstart": {
+      "userTitle": "For Users",
+      "devTitle": "For Developers",
+      "userSteps": [
+        {
+          "title": "Connect Your Wallet",
+          "desc": "Use NeoLine, O3, or OneGate to identify yourself on the platform."
+        },
+        {
+          "title": "Link Your Socials",
+          "desc": "Connect Google or X to recover your account and sync across devices."
+        },
+        {
+          "title": "Explore MiniApps",
+          "desc": "Launch any app from our marketplace with zero installation required."
+        }
+      ],
+      "installSdk": "Install the NeoHub SDK to begin building your own MiniApps.",
+      "initSdk": "Initialize the SDK in your project:",
+      "playgroundTitle": "Try the Interactive Playground",
+      "playgroundDesc": "The fastest way to experiment with our APIs without writing a single line of code.",
+      "launchPlayground": "Launch Playground"
+    },
+    "auth": {
+      "subtitle": "Secure entry and identity management on NeoHub.",
+      "comparisonTitle": "Social Login vs. Wallet",
+      "comparisonDesc": "NeoHub provides a unique dual-authentication system. While users can log in via social media (Google, X, GitHub) for convenience, certain high-security actions still require a connected Neo wallet.",
+      "socialTitle": "Social Auth",
+      "socialItems": [
+        "Easy onboarding via Auth0",
+        "Enables profile synchronization",
+        "Perfect for casually exploring apps"
+      ],
+      "walletTitle": "Wallet Auth",
+      "walletItems": [
+        "Direct on-chain identity",
+        "Required for signing transactions",
+        "Full control over digital assets"
+      ],
+      "tipDesc": "We recommend connecting both a social account and a wallet. This ensures you can always recover access to your profile even if you lose access to one of your credentials.",
+      "table": {
+        "feature": "Feature",
+        "rows": [
+          ["Onboarding", "Seconds (Auth0)", "Manual Wallet Connect"],
+          ["Transaction Signing", "No", "Yes (Hardware Security)"],
+          ["Account Recovery", "Email/Social", "Seed Phrase (Private Key)"],
+          ["Cross-Device Sync", "Automatic", "Manual Setup"]
+        ]
+      }
+    },
+    "apiKeys": {
+      "subtitle": "Managing access to NeoHub services for your applications.",
+      "createTitle": "Creating a Key",
+      "createDesc": "To use NeoHub services from outside our host application (e.g., in a standalone web app or backend), you'll need an API Key. You can generate these in your Account Settings.",
+      "warningTitle": "Warning: Keep Keys Private",
+      "warningDesc": "Your API keys grant access to your platform features and potentially your service funds. Never commit them to version control or share them in public forums.",
+      "usageTitle": "Usage Example"
+    },
+    "securityModel": {
+      "subtitle": "The philosophy and technical implementation of protection on NeoHub.",
+      "isolationTitle": "Hardware Isolation (TEE)",
+      "isolationDesc": "The cornerstone of our security is the **Trusted Execution Environment**. Unlike traditional cloud platforms where the OS admin can see all data, NeoHub uses hardware enclaves (Intel SGX) that encrypt data even while it's being processed in the CPU.",
+      "zeroTitle": "Zero-Knowledge Platform",
+      "zeroDesc": "We cannot see your secrets, private keys, or the internal state of your secure functions.",
+      "attestationTitle": "Remote Attestation",
+      "attestationDesc": "Every piece of code running on the platform can be verified to be the exact code intended, with no tampering.",
+      "table": {
+        "title": "Security Model Comparison",
+        "level": "Security Level",
+        "traditional": "Traditional Cloud",
+        "neohub": "NeoHub (TEE)",
+        "rows": [
+          ["Data Isolation", "OS-level (Shared Memory)", "Hardware-level (Enclave)"],
+          ["Admin Access", "Root can see all data", "Nobody can see data"],
+          ["Verifiability", "None (Trust the host)", "Remote Attestation (Proof)"],
+          ["Encryption", "Software-based", "Silicon-enforced"]
+        ]
+      }
+    },
+    "architecture": {
+      "subtitle": "Deep dive into the architectural foundations of the {title}.",
+      "schematic": "Architectural Schematic",
+      "howItWorks": "How it Works",
+      "howItWorksDesc": "The {title} provides the fundamental security guarantees for the entire platform. By utilizing hardware-level isolation, we ensure that even if the host machine is compromised, the data inside the enclave remains completely encrypted and inaccessible.",
+      "integrity": "Integrity",
+      "integrityDesc": "Ensures that the code being executed is exactly what was deployed, with cryptographic proofs.",
+      "confidentiality": "Confidentiality",
+      "confidentialityDesc": "Data is only accessible to authorized code within the secure enclave. No leakage to the host OS.",
+      "appLayer": "Application Layer",
+      "osLayer": "Platform Layer",
+      "hardwareLayer": "Hardware Layer",
+      "teeRoot": {
+        "subtitle": "The hardware-based anchor for all security guarantees on NeoHub.",
+        "howItWorks": "At the lowest level, NeoHub leverages Intel SGX (Software Guard Extensions) to create private regions of memory called enclaves. These enclaves are isolated from the rest of the system, including the operating system and hypervisor. The CPU hardware itself manages the encryption and access control.",
+        "integrity": "Hardware-level measurements ensure that only the exact, byte-for-byte authorized binary can be loaded into the enclave.",
+        "confidentiality": "All data inside the enclave is encrypted while in RAM, only becoming plaintext inside the CPU package itself."
+      },
+      "serviceOS": {
+        "subtitle": "A minimal, secure execution layer optimized for TEE environments.",
+        "howItWorks": "The ServiceOS is a custom-built, hardened supervisor that runs inside the enclave. It provides essential services like secure networking, encrypted storage, and capability-based access control to MiniApps while maintaining a minimal attack surface.",
+        "integrity": "The ServiceOS is cryptographically signed and verified by the TEE Root during every boot sequence.",
+        "confidentiality": "Inter-process communication within the ServiceOS is encrypted and isolated using hardware-enforced boundaries."
+      },
+      "capabilities": {
+        "subtitle": "Fine-grained permission management for NeoHub services.",
+        "howItWorks": "NeoHub uses a capability-based security model. Instead of broad permissions, each MiniApp is granted specific 'capabilities' (tokens of authority) to access platform services like the Oracle or VRF. This ensures the principle of least privilege is strictly enforced.",
+        "integrity": "Capability tokens are cryptographically bound to the MiniApp identity and cannot be forged or transferred.",
+        "confidentiality": "The list of granted capabilities is stored within the secure enclave state, invisible to external observers."
+      },
+      "layers": {
+        "title": "Platform Security Layers",
+        "rows": [
+          ["L1: Hardware", "Intel SGX", "Enclave Isolation, Memory Encryption"],
+          ["L2: Supervisor", "ServiceOS", "Encrypted Storage, Capability Management"],
+          ["L3: Service", "Capability System", "Role-Based Access, API Quotas"]
+        ]
+      }
+    },
+    "services": {
+      "subtitle": "Learn how to leverage our {title} service in your applications.",
+      "overview": "Overview",
+      "overviewDesc": "The {title} service is a core component of NeoHub, providing high-reliability data streams and verifiable results for every MiniApp. It eliminates the need for third-party oracle networks by integrating directly into the TEE layer.",
+      "implementation": "Implementation",
+      "realTime": "Real-time usage",
+      "realTimeDesc": "This service has processed over 1.2M verified requests in the last 24 hours with 100% uptime."
+    },
+    "oracle": {
+      "subtitle": "Secure external data fetching with secret injection capabilities.",
+      "overview": "The Oracle Service (NeoOracle) enables MiniApps to securely fetch external data from any HTTP endpoint while injecting encrypted secrets. All requests are processed within Intel SGX enclaves, ensuring your API keys and credentials never leave the hardware.",
+      "features": [
+        "URL allowlist enforcement for security",
+        "AES-GCM encrypted secret injection",
+        "Configurable response size limits (default: 2MB)",
+        "Timeout management (default: 20 seconds)",
+        "Secret provider integration"
+      ],
+      "parameters": [
+        {
+          "name": "url",
+          "type": "string",
+          "desc": "The target HTTP/HTTPS endpoint URL."
+        },
+        {
+          "name": "method",
+          "type": "string",
+          "desc": "HTTP method (GET, POST, etc.)"
+        },
+        {
+          "name": "headers",
+          "type": "object",
+          "desc": "Custom headers to include in the request."
+        },
+        {
+          "name": "secretRefs",
+          "type": "string[]",
+          "desc": "List of secret keys to be injected into headers/body."
+        }
+      ],
+      "codeExample": "// Fetch external data with secret injection\nconst result = await hub.oracle.fetch({\n  url: 'https://api.example.com/data',\n  headers: { 'Authorization': 'Bearer {{API_KEY}}' },\n  secretRefs: ['API_KEY']\n});\nconsole.log('Data:', result.data);",
+      "pricing": "10,000 GAS units per request"
+    },
+    "vrf": {
+      "subtitle": "Cryptographically secure verifiable random number generation.",
+      "overview": "The VRF Service (NeoVRF) provides provably fair random numbers using ECDSA P-256 signing. Each random value comes with a cryptographic proof that can be verified on-chain, making it perfect for gaming, lotteries, and any application requiring trustless randomness.",
+      "features": [
+        "ECDSA P-256 signing key derivation",
+        "Replay attack protection (10-minute window)",
+        "Optional on-chain anchoring via RandomnessLog contract",
+        "Public key exposure for verification",
+        "Attestation hash computation"
+      ],
+      "parameters": [
+        {
+          "name": "seed",
+          "type": "string",
+          "desc": "A unique value to ensure randomness uniqueness."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "desc": "Minimum value (inclusive)."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "desc": "Maximum value (inclusive)."
+        }
+      ],
+      "codeExample": "// Request verifiable random number\nconst { randomValue, proof } = await hub.vrf.random({\n  seed: 'unique-request-id',\n  min: 1,\n  max: 100\n});\n// Verify result locally or on-chain\nconst isValid = await hub.vrf.verify(randomValue, proof);",
+      "pricing": "5,000 GAS units per request"
+    },
+    "secrets": {
+      "subtitle": "Secure credential storage with hardware-level encryption.",
+      "overview": "The Secrets Service provides encrypted storage for sensitive credentials like API keys, private keys, and tokens. Secrets are sealed to the SGX enclave and can only be decrypted by authorized MiniApps during TEE execution.",
+      "features": [
+        "AES-GCM encryption at rest",
+        "SGX sealing to enclave measurements",
+        "Per-app access control",
+        "Automatic secret rotation support",
+        "Audit logging for compliance"
+      ],
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "desc": "Unique identifier for the secret."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "desc": "The sensitive value to store."
+        },
+        {
+          "name": "allowedApps",
+          "type": "string[]",
+          "desc": "IDs of apps authorized to use this secret."
+        }
+      ],
+      "codeExample": "// Store a secret\nawait hub.secrets.set('MY_API_KEY', 'sk-xxx...', {\n  description: 'OpenAI API Key',\n  allowedApps: ['my-app-id']\n});\n\n// Use in Oracle request (auto-injected)\nconst data = await hub.oracle.fetch({\n  url: 'https://api.openai.com/v1/chat',\n  secretRefs: ['MY_API_KEY']\n});",
+      "pricing": "Free for up to 10 secrets, then 1,000 GAS/month per secret"
+    },
+    "datafeeds": {
+      "subtitle": "Real-time price feeds aggregated from multiple sources.",
+      "overview": "The DataFeeds Service (NeoFeeds) provides reliable price data by aggregating from multiple HTTP sources and computing the median. Data is signed by the TEE and anchored to the PriceFeed smart contract for on-chain verification.",
+      "features": [
+        "Multi-source aggregation with median computation",
+        "Optional Chainlink integration via Arbitrum",
+        "Push/Auto-Update pattern",
+        "Configurable update intervals",
+        "On-chain anchoring with TEE attestation"
+      ],
+      "parameters": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "desc": "Asset pair identifier (e.g., BTC-USD)."
+        },
+        {
+          "name": "interval",
+          "type": "number",
+          "desc": "Minimum update interval in seconds."
+        }
+      ],
+      "codeExample": "// Get latest price\nconst price = await hub.datafeeds.getPrice('BTC-USD');\nconsole.log(`BTC: $${price.value} at ${price.timestamp}`);\n\n// Subscribe to updates\nhub.datafeeds.subscribe('ETH-USD', (update) => {\n  console.log(`ETH: $${update.value}`);\n});",
+      "pricing": "10,000 GAS units per update"
+    },
+    "automation": {
+      "subtitle": "Trigger-based task scheduling and execution.",
+      "overview": "The Automation Service (NeoFlow) enables scheduled and event-driven task execution. Define triggers based on time (cron), intervals, or price thresholds, and the TEE will execute your tasks automatically with on-chain anchoring.",
+      "features": [
+        "Cron-based scheduling",
+        "Interval-based triggers",
+        "Price-based triggers with PriceFeed integration",
+        "On-chain anchoring via AutomationAnchor contract",
+        "Task state management (enabled/paused/cancelled)"
+      ],
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "desc": "Descriptive name for the task."
+        },
+        {
+          "name": "trigger",
+          "type": "object",
+          "desc": "Trigger definition (cron, price, etc.)"
+        },
+        {
+          "name": "action",
+          "type": "object",
+          "desc": "The action to perform (HTTP, Smart Contract call)."
+        }
+      ],
+      "codeExample": "// Create a daily task\nconst task = await hub.automation.create({\n  name: 'Daily Report',\n  trigger: { type: 'cron', schedule: '0 9 * * *' },\n  action: { type: 'webhook', url: 'https://my-app.com/report' }\n});",
+      "pricing": "50,000 GAS units per execution"
+    },
+    "gasbank": {
+      "subtitle": "Prepaid GAS account for seamless service usage.",
+      "overview": "The GasBank Service manages your GAS balance for platform services. Deposit GAS to your account and services will automatically deduct fees, eliminating the need for per-transaction approvals.",
+      "features": [
+        "Deposit verification from Neo N3 chain",
+        "Balance credit/debit operations",
+        "Automatic service fee deduction",
+        "Transaction history tracking",
+        "24-hour deposit expiration"
+      ],
+      "parameters": [
+        {
+          "name": "amount",
+          "type": "number",
+          "desc": "Amount of GAS to deposit/withdraw."
+        },
+        {
+          "name": "txHash",
+          "type": "string",
+          "desc": "Neo N3 transaction hash for verification."
+        }
+      ],
+      "codeExample": "// Check balance\nconst balance = await hub.gasbank.getBalance();\nconsole.log(`Available: ${balance.available} GAS`);\n\n// Deposit GAS\nconst deposit = await hub.gasbank.deposit({\n  amount: 100,\n  txHash: '0x...' \n});",
+      "pricing": "No service fee for deposits/withdrawals"
+    },
+    "mixer": {
+      "subtitle": "Privacy-preserving transaction mixing service.",
+      "overview": "The Mixer Service provides transaction privacy by breaking the on-chain link between sender and receiver. Using zero-knowledge proofs processed within the TEE, your transaction history remains confidential.",
+      "features": [
+        "Zero-knowledge proof generation",
+        "Fixed denomination pools",
+        "Time-delayed withdrawals",
+        "TEE-based proof verification",
+        "Compliance-friendly audit trails"
+      ],
+      "parameters": [
+        {
+          "name": "amount",
+          "type": "number",
+          "desc": "Amount to mix (must match pool denomination)."
+        },
+        {
+          "name": "pool",
+          "type": "string",
+          "desc": "The mixing pool ID."
+        },
+        {
+          "name": "recipient",
+          "type": "string",
+          "desc": "Target Neo address for withdrawal."
+        }
+      ],
+      "codeExample": "// Deposit to mixer pool\nconst note = await hub.mixer.deposit({ amount: 10, pool: 'GAS-10' });\n\n// Withdraw later with note\nawait hub.mixer.withdraw({ note, recipient: 'NXxx...' });",
+      "pricing": "0.5% mixing fee"
+    },
+    "ccip": {
+      "subtitle": "Cross-chain interoperability protocol.",
+      "overview": "The CCIP Service enables secure cross-chain communication and asset transfers. Bridge assets between Neo N3 and other supported chains with TEE-verified message passing.",
+      "features": [
+        "Multi-chain support (Ethereum, BSC, Polygon)",
+        "TEE-verified message passing",
+        "Asset bridging with proof verification",
+        "Configurable confirmation thresholds",
+        "Emergency pause mechanism"
+      ],
+      "parameters": [
+        {
+          "name": "asset",
+          "type": "string",
+          "desc": "Asset symbol to bridge."
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "desc": "Amount to bridge."
+        },
+        {
+          "name": "targetChain",
+          "type": "string",
+          "desc": "ID of the target blockchain."
+        }
+      ],
+      "codeExample": "// Bridge GAS to Ethereum\nconst bridge = await hub.ccip.bridge({\n  asset: 'GAS',\n  amount: 50,\n  targetChain: 'ethereum',\n  recipient: '0x...'\n});",
+      "pricing": "0.1% bridge fee + target chain gas"
+    }
+  },
+  "apiReference": {
+    "restApi": {
+      "subtitle": "RESTful API endpoints for all NeoHub services.",
+      "baseUrl": "Base URL: https://api.neohub.io/v1",
+      "authHeader": "Authorization: Bearer <API_KEY>",
+      "endpoints": {
+        "oracle": "POST /oracle/fetch - Fetch external data",
+        "vrf": "POST /vrf/random - Generate random number",
+        "secrets": "POST /secrets - Manage secrets",
+        "datafeeds": "GET /datafeeds/:symbol - Get price data",
+        "automation": "POST /automation/triggers - Manage triggers",
+        "gasbank": "GET /gasbank/balance - Check balance"
+      }
+    },
+    "websocket": {
+      "subtitle": "Real-time data streaming via WebSocket.",
+      "endpoint": "wss://ws.neohub.io/v1",
+      "channels": ["price-updates", "automation-events", "transaction-status"],
+      "example": "const ws = new WebSocket('wss://ws.neohub.io/v1');\nws.onopen = () => {\n  ws.send(JSON.stringify({ subscribe: 'price-updates', symbols: ['BTC-USD'] }));\n};\nws.onmessage = (e) => console.log('Price Update:', JSON.parse(e.data));"
+    },
+    "errors": {
+      "subtitle": "Standard error codes and their meanings.",
+      "codes": {
+        "400": "Bad Request - Invalid parameters or missing required fields.",
+        "401": "Unauthorized - Invalid or missing API key in Authorization header.",
+        "403": "Forbidden - The API key does not have permission for the requested service.",
+        "404": "Not Found - The requested resource or endpoint does not exist.",
+        "429": "Too Many Requests - Rate limit exceeded. Please wait before retrying.",
+        "500": "Internal Error - An unexpected error occurred on the NeoHub server."
+      }
+    },
+    "limits": {
+      "subtitle": "Rate limits and quotas for API usage.",
+      "tiers": {
+        "free": "100 requests / minute, 10,000 / month",
+        "pro": "1,000 requests / minute, 1,000,000 / month",
+        "enterprise": "Custom limits tailored to your needs"
+      }
+    }
+  },
+  "sdks": {
+    "jsSDK": {
+      "subtitle": "Official TypeScript/JavaScript SDK for NeoHub.",
+      "install": "npm install @neohub/sdk",
+      "features": [
+        "Full TypeScript support with comprehensive typings",
+        "Browser and Node.js compatible",
+        "Automatic retry with exponential backoff",
+        "WebSocket real-time subscriptions",
+        "Integrated secret management"
+      ],
+      "methods": [
+        {
+          "name": "connect()",
+          "params": "void",
+          "returns": "Promise<void>"
+        },
+        {
+          "name": "oracle.fetch()",
+          "params": "FetchOptions",
+          "returns": "Promise<Response>"
+        },
+        {
+          "name": "vrf.random()",
+          "params": "VRFOptions",
+          "returns": "Promise<VRFResult>"
+        },
+        {
+          "name": "datafeeds.getPrice()",
+          "params": "string",
+          "returns": "Promise<Price>"
+        }
+      ],
+      "example": "import { NeoHub } from '@neohub/sdk';\n\nconst hub = new NeoHub({ apiKey: 'your-api-key' });\n\nconst price = await hub.datafeeds.getPrice('BTC-USD');\nconsole.log(`Current BTC Price: ${price.value}`);"
+    },
+    "goSDK": {
+      "subtitle": "Official Go SDK for high-performance backend services.",
+      "install": "go get github.com/R3E-Network/neohub-go",
+      "features": [
+        "Context-aware operations for timeout management",
+        "Gopher-friendly idiomatic design",
+        "Efficient connection pooling",
+        "Built-in Prometheus metrics export",
+        "Structured JSON logging"
+      ],
+      "methods": [
+        {
+          "name": "NewClient()",
+          "params": "apiKey string",
+          "returns": "*Client"
+        },
+        {
+          "name": "Oracle.Fetch()",
+          "params": "ctx, opts",
+          "returns": "(Result, error)"
+        },
+        {
+          "name": "VRF.Random()",
+          "params": "ctx, seed",
+          "returns": "(Value, error)"
+        }
+      ],
+      "example": "import \"github.com/R3E-Network/neohub-go\"\n\nclient := neohub.NewClient(\"your-api-key\")\nprice, err := client.DataFeeds.GetPrice(ctx, \"BTC-USD\")\nif err != nil {\n    log.Fatal(err)\n}\nfmt.Printf(\"Price: %f\\n\", price.Value)"
+    },
+    "pythonSDK": {
+      "subtitle": "Official Python SDK for data science and automation.",
+      "install": "pip install neohub",
+      "features": [
+        "Async/await support for modern Python",
+        "Direct Pandas integration for historical data",
+        "Jupyter notebook friendly visualization support",
+        "Type hints for excellent IDE integration",
+        "Comprehensive documentation"
+      ],
+      "methods": [
+        {
+          "name": "NeoHub()",
+          "params": "api_key: str",
+          "returns": "NeoHub"
+        },
+        {
+          "name": "oracle.fetch()",
+          "params": "url: str",
+          "returns": "Awaitable[dict]"
+        },
+        {
+          "name": "datafeeds.get_price()",
+          "params": "symbol: str",
+          "returns": "Awaitable[float]"
+        }
+      ],
+      "example": "from neohub import NeoHub\nimport asyncio\n\nasync def main():\n    hub = NeoHub(api_key='your-api-key')\n    price = await hub.datafeeds.get_price('BTC-USD')\n    print(f\"BTC: {price.value}\")\n\nasyncio.run(main())"
+    },
+    "cli": {
+      "subtitle": "Command-line interface for NeoHub operations.",
+      "install": "npm install -g @neohub/cli",
+      "commands": [
+        "neohub login - Authenticate with your platform account",
+        "neohub deploy <path> - Deploy a MiniApp to the platform",
+        "neohub logs <app-id> - View real-time logs for your app",
+        "neohub secrets set <key> <value> - Manage your secure credentials",
+        "neohub stats - View usage statistics and billing"
+      ],
+      "example": "# Create and deploy your first app\nneohub init my-app\ncd my-app\nneohub deploy . --main index.js"
+    }
+  },
+  "miniapp": {
+    "tee": {
+      "verified": "Trusted Execution Verified",
+      "method": "Method",
+      "txHash": "Tx Hash",
+      "attestation": "Attestation",
+      "footer": "Hardware-grade security confirmed by Intel SGX Enclave"
+    }
+  },
+  "developer": {
+    "title": "Developer Portal",
+    "subtitle": "Build, test, and publish MiniApps with our powerful SDK. Access TEE, VRF, and Oracle services out of the box.",
+    "badge": "Build on Neo N3",
+    "registerApp": "Register Your App",
+    "quickStart": "Quick Start",
+    "quickStartDesc": "Get up and running in minutes",
+    "installSdkComment": "# Install the SDK",
+    "createAppComment": "# Create your first app",
+    "submitYourApp": "Submit Your App",
+    "submitYourAppDesc": "Publish to the marketplace",
+    "readyToLaunch": "Ready to launch? Submit your MiniApp for review and reach millions of Neo users.",
+    "readDocumentation": "Read Documentation",
+    "submitMiniApp": "Submit MiniApp",
+    "platformFeatures": "Platform Features",
+    "features": {
+      "sdk": "SDK",
+      "sdkDesc": "TypeScript SDK for building MiniApps",
+      "tee": "TEE",
+      "teeDesc": "Confidential computing support",
+      "vrf": "VRF",
+      "vrfDesc": "Verifiable random functions",
+      "oracles": "Oracles",
+      "oraclesDesc": "Real-time price feeds"
+    },
+    "reviewSteps": {
+      "securityReview": "Automated security review",
+      "performanceTesting": "Performance testing",
+      "marketplaceListing": "Listing in marketplace"
+    },
+    "form": {
+      "title": "Submit MiniApp",
+      "subtitle": "Fill in your app details",
+      "appName": "App Name",
+      "appNamePlaceholder": "My Awesome MiniApp",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe what your app does...",
+      "icon": "Icon (emoji)",
+      "iconPlaceholder": "📦",
+      "category": "Category",
+      "entryUrl": "Entry URL",
+      "entryUrlPlaceholder": "https://your-app.com/miniapp",
+      "contractHash": "Contract Hash",
+      "contractHashPlaceholder": "0x... (optional)",
+      "developerInfo": "Developer Information",
+      "developerName": "Developer Name",
+      "developerNamePlaceholder": "Your name or team",
+      "neoAddress": "Neo Address",
+      "neoAddressPlaceholder": "NXxx...",
+      "required": "*",
+      "cancel": "Cancel",
+      "submit": "Submit for Review",
+      "submitting": "Submitting...",
+      "success": "MiniApp \"{name}\" submitted for review!",
+      "error": "Submission failed",
+      "networkError": "Network error"
+    }
+  },
+  "statsPage": {
+    "title": "Platform Statistics",
+    "subtitle": "Real-time analytics and insights",
+    "overview": "Overview",
+    "topApps": "Top Apps by Users",
+    "monthlyActive": "Monthly Active Users",
+    "recentActivity": "Recent Activity",
+    "recentActivityDesc": "Live stream of contract calls and state changes",
+    "noEvents": "No recent events",
+    "liveUpdates": "Live Updates",
+    "fullLog": "Full Log",
+    "noData": "No historical data available",
+    "noAppData": "No app data available",
+    "method": "Method",
+    "contract": "Contract",
+    "gasUsed": "GAS Used",
+    "time": "Time"
+  },
+  "sidebar": {
+    "title": "Technical Info",
+    "network": "Network",
+    "magic": "Magic",
+    "rpc": "RPC",
+    "wallet": "Connected Wallet",
+    "address": "Address",
+    "provider": "Provider",
+    "neoBalance": "NEO Balance",
+    "gasBalance": "GAS Balance",
+    "noWallet": "No wallet connected",
+    "miniappContract": "MiniApp Contract",
+    "appId": "App ID",
+    "contractHash": "Contract Hash",
+    "noContract": "No contract deployed",
+    "masterAccount": "Master Account",
+    "platformContracts": "Platform Contracts",
+    "requiredServices": "Required Services",
+    "viewWallet": "View Wallet on Explorer",
+    "viewContract": "View Contract on Explorer"
   }
 }

@@ -4,18 +4,6 @@
 
 "use client";
 
-// Candidate Vote - Vote check
-export function CandidateVoteAnimation() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative">
-        <span className="text-5xl">🗳️</span>
-        <span className="absolute -top-2 -right-2 text-3xl animate-check-mark">✅</span>
-      </div>
-    </div>
-  );
-}
-
 // Explorer - Magnify search
 export function ExplorerAnimation() {
   return (

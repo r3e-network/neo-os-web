@@ -88,7 +88,7 @@ export function NewsSection() {
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-4">
         <Newspaper size={20} className="text-gray-700 dark:text-gray-300" />
-        <h3 className="font-bold text-gray-900 dark:text-white">Latest News</h3>
+        <h3 className="font-bold text-gray-900 dark:text-white">{t("news.latestNews")}</h3>
       </div>
 
       {news.map((item) => {

@@ -5,6 +5,7 @@ import { QueryProvider } from "@/lib/query";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthWalletSync } from "@/components/auth/AuthWalletSync";
 import "@/styles/globals.css";
 
 // Check if Auth0 is configured (client-side safe check)
@@ -25,6 +26,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <I18nProvider>
           <QueryProvider>
             <ThemeProvider>
+              <AuthWalletSync />
               <Component {...pageProps} />
             </ThemeProvider>
           </QueryProvider>
