@@ -93,4 +93,4 @@ TEE-routed:
 - `datafeed-price`: read proxy to `neofeeds` (future: cache/SSE/WebSocket).
 - `oracle-query`: allowlisted HTTP fetch via `neooracle` (optional secret injection).
 - `compute-execute`, `compute-jobs`, `compute-job`: host-gated proxy for `neocompute` script execution and job inspection.
-- `automation-*`: trigger CRUD/lifecycle/execution inspection via `neoflow` (host-gated; webhook execution is configured in the service).
+- `automation-*`: **DEPRECATED** - Automation has been migrated to PostgreSQL-based system in host-app (`/api/automation/*`).

@@ -7,13 +7,14 @@ import { LiveChat } from "../../components/features/chat";
 import { WalletState, MiniAppInfo } from "../../components/types";
 import { installMiniAppSDK } from "../../lib/miniapp-sdk";
 import type { MiniAppSDK } from "../../lib/miniapp-sdk";
-import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
+import { buildMiniAppEntryUrl, coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { logger } from "../../lib/logger";
 import { resolveInternalBaseUrl } from "../../lib/edge";
 import { BUILTIN_APPS } from "../../lib/builtin-apps";
 import { useI18n } from "../../lib/i18n/react";
 import { useTheme } from "../../components/providers/ThemeProvider";
 import { MiniAppFrame } from "../../components/features/miniapp";
+import { injectMiniAppViewportStyles } from "../../lib/miniapp-iframe";
 
 /** NeoLine N3 wallet interface */
 interface NeoLineN3Wallet {
@@ -54,8 +55,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
     const supportedLocale = locale === "zh" ? "zh" : "en";
-    const separator = app.entry_url.includes("?") ? "&" : "?";
-    return `${app.entry_url}${separator}lang=${supportedLocale}&theme=${theme}`;
+    return buildMiniAppEntryUrl(app.entry_url, { lang: supportedLocale, theme, embedded: "1" });
   }, [app.entry_url, locale, theme]);
 
   useEffect(() => {
@@ -185,6 +185,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
     const handleLoad = () => {
       if (!allowSameOriginInjection) return;
+      injectMiniAppViewportStyles(iframe);
       const sdk = ensureSDK();
       if (!sdk) return;
       try {
@@ -245,7 +246,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       <div style={frameWrapperStyle}>
         <MiniAppFrame>
           {federated ? (
-            <div className="w-full h-full">
+            <div className="w-full h-full overflow-y-auto overflow-x-hidden">
               <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
             </div>
           ) : (

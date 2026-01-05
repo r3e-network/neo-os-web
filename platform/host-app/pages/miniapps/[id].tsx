@@ -24,12 +24,13 @@ import { FederatedMiniApp } from "../../components/FederatedMiniApp";
 import { LiveChat } from "../../components/features/chat";
 import { MiniAppFrame } from "../../components/features/miniapp";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
-import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
+import { buildMiniAppEntryUrl, coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { getBuiltinApp } from "../../lib/builtin-apps";
 import { logger } from "../../lib/logger";
 import { useTranslation } from "../../lib/i18n/react";
 import { installMiniAppSDK } from "../../lib/miniapp-sdk";
+import { injectMiniAppViewportStyles } from "../../lib/miniapp-iframe";
 import type { MiniAppSDK } from "../../lib/miniapp-sdk";
 import { useI18n } from "../../lib/i18n/react";
 import { useWalletStore } from "../../lib/wallet/store";
@@ -191,8 +192,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   const iframeSrc = useMemo(() => {
     if (!app) return "";
     const supportedLocale = locale === "zh" ? "zh" : "en";
-    const separator = app.entry_url.includes("?") ? "&" : "?";
-    return `${app.entry_url}${separator}lang=${supportedLocale}&theme=${theme}`;
+    return buildMiniAppEntryUrl(app.entry_url, { lang: supportedLocale, theme, embedded: "1" });
   }, [app?.entry_url, locale, theme]);
 
   useEffect(() => {
@@ -300,6 +300,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
     const handleLoad = () => {
       if (!allowSameOriginInjection) return;
+      injectMiniAppViewportStyles(iframe);
       const sdk = ensureSDK();
       if (!sdk) return;
       try {
@@ -499,7 +500,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
       <div style={iframeWrapperStyle}>
         <MiniAppFrame>
           {federated ? (
-            <div className="w-full h-full">
+            <div className="w-full h-full overflow-y-auto overflow-x-hidden">
               <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
             </div>
           ) : (
@@ -588,8 +589,8 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           }}
         />
       }
-      leftWidth={420}
-      rightWidth={320}
+      leftWidth={380}
+      rightWidth={520}
     />
   );
 }
@@ -635,15 +636,10 @@ function OverviewTab({ app, t }: { app: MiniAppInfo; t: (key: string) => string 
       )}
 
       <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>{t("detail.contractDetails")}</h3>
+        <h3 style={sectionTitleStyle}>{t("detail.appInfo")}</h3>
         <p style={infoTextStyle}>
           {t("detail.appId")}: <code style={codeStyle}>{app.app_id}</code>
         </p>
-        {app.contract_hash && (
-          <p style={infoTextStyle}>
-            {t("detail.contractHash")}: <code style={codeStyle}>{app.contract_hash}</code>
-          </p>
-        )}
         <p style={infoTextStyle}>
           {t("detail.entryUrl")}: <code style={codeStyle}>{app.entry_url}</code>
         </p>
@@ -887,7 +883,7 @@ const leftPanelStyle: React.CSSProperties = {
 const rightPanelContainerStyle: React.CSSProperties = {
   position: "relative",
   height: "100%",
-  background: "#000",
+  background: "transparent",
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
@@ -897,6 +893,7 @@ const rightPanelContainerStyle: React.CSSProperties = {
 const iframeWrapperStyle: React.CSSProperties = {
   flex: 1,
   width: "100%",
+  minHeight: 0,
   overflow: "hidden",
 };
 

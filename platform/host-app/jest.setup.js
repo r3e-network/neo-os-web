@@ -1,5 +1,9 @@
 require("@testing-library/jest-dom");
 
+jest.mock("@t3-oss/env-nextjs", () => ({
+  createEnv: (config) => config.runtimeEnv,
+}));
+
 // Mock Next.js router
 jest.mock("next/router", () => ({
   useRouter: jest.fn(() => ({

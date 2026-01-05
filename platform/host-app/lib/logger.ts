@@ -5,22 +5,16 @@
  */
 
 import pino from "pino";
-import { env } from "./env";
 
-const isDev = env.NODE_ENV === "development";
+// Use process.env directly to avoid server-side env import on client
+const isDev = process.env.NODE_ENV === "development";
 
+// pino-pretty transport only works on server side
 const pinoLogger = pino({
   level: isDev ? "debug" : "info",
-  transport: isDev
-    ? {
-        target: "pino-pretty",
-        options: {
-          colorize: true,
-          translateTime: "SYS:standard",
-          ignore: "pid,hostname",
-        },
-      }
-    : undefined,
+  browser: {
+    asObject: true,
+  },
 });
 
 // Wrapper to maintain backward compatibility with existing logger API

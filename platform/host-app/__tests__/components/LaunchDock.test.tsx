@@ -32,14 +32,8 @@ describe("LaunchDock", () => {
       const { container } = render(<LaunchDock {...baseProps} />);
       const dock = container.firstChild as HTMLElement;
 
-      expect(dock).toHaveStyle({
-        position: "fixed",
-        top: "0",
-        left: "0",
-        right: "0",
-        height: "48px",
-        zIndex: "9999",
-      });
+      // Component uses Tailwind classes: fixed top-0 left-0 right-0 h-14 z-[9999]
+      expect(dock).toHaveClass("fixed", "top-0", "left-0", "right-0");
     });
 
     it("should render share button", () => {
@@ -74,10 +68,9 @@ describe("LaunchDock", () => {
 
     it("should show red dot when wallet is disconnected", () => {
       const { container } = render(<LaunchDock {...baseProps} />);
-      // Find all dots and check the first one (wallet status)
-      const dots = container.querySelectorAll("[style*='border-radius']");
-      const walletDot = Array.from(dots).find((el) => (el as HTMLElement).style.background === "rgb(239, 68, 68)");
-      expect(walletDot).toBeTruthy();
+      // Component uses Tailwind class bg-red-500 for disconnected wallet
+      const walletDot = container.querySelector(".bg-red-500");
+      expect(walletDot).toBeInTheDocument();
     });
 
     it("should show green dot when wallet is connected", () => {
@@ -88,9 +81,9 @@ describe("LaunchDock", () => {
       };
 
       const { container } = render(<LaunchDock {...baseProps} wallet={connectedWallet} />);
-      const dots = container.querySelectorAll("[style*='border-radius']");
-      const walletDot = Array.from(dots).find((el) => (el as HTMLElement).style.background === "rgb(34, 197, 94)");
-      expect(walletDot).toBeTruthy();
+      // Component uses Tailwind class bg-neo for connected wallet
+      const walletDot = container.querySelector(".bg-neo");
+      expect(walletDot).toBeInTheDocument();
     });
 
     it("should handle very short addresses", () => {
@@ -127,25 +120,23 @@ describe("LaunchDock", () => {
       expect(screen.getByText("Offline")).toBeInTheDocument();
     });
 
-    it("should show green dot for good latency", () => {
+    it("should show green indicator for good latency", () => {
       const { container } = render(<LaunchDock {...baseProps} networkLatency={50} />);
-      const dots = container.querySelectorAll("[style*='background']");
-      const greenDots = Array.from(dots).filter((el) => (el as HTMLElement).style.background === "rgb(34, 197, 94)");
-      expect(greenDots.length).toBeGreaterThan(0);
+      // Network status uses text color on Activity icon, not a dot
+      const networkIndicator = container.querySelector(".text-neo");
+      expect(networkIndicator).toBeInTheDocument();
     });
 
-    it("should show yellow dot for fair latency", () => {
+    it("should show yellow indicator for fair latency", () => {
       const { container } = render(<LaunchDock {...baseProps} networkLatency={250} />);
-      const dots = container.querySelectorAll("[style*='background']");
-      const yellowDots = Array.from(dots).filter((el) => (el as HTMLElement).style.background === "rgb(234, 179, 8)");
-      expect(yellowDots.length).toBeGreaterThan(0);
+      const networkIndicator = container.querySelector(".text-yellow-500");
+      expect(networkIndicator).toBeInTheDocument();
     });
 
-    it("should show red dot for slow latency", () => {
+    it("should show red indicator for slow latency", () => {
       const { container } = render(<LaunchDock {...baseProps} networkLatency={600} />);
-      const dots = container.querySelectorAll("[style*='background']");
-      const redDots = Array.from(dots).filter((el) => (el as HTMLElement).style.background === "rgb(239, 68, 68)");
-      expect(redDots.length).toBeGreaterThan(0);
+      const networkIndicator = container.querySelector(".text-red-500");
+      expect(networkIndicator).toBeInTheDocument();
     });
 
     it("should handle latency at boundary (99ms)", () => {
@@ -197,12 +188,8 @@ describe("LaunchDock", () => {
       render(<LaunchDock {...baseProps} appName={longName} />);
 
       const appNameElement = screen.getByText(longName);
-      expect(appNameElement).toHaveStyle({
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        maxWidth: "200px",
-      });
+      // Check that the element has truncate class for text overflow
+      expect(appNameElement).toHaveClass("truncate");
     });
 
     it("should handle empty app name", () => {

@@ -6,6 +6,7 @@ type MiniAppPermissions = {
   governance?: boolean;
   randomness?: boolean;
   datafeed?: boolean;
+  automation?: boolean;
 };
 
 type InstallOptions = {
@@ -82,6 +83,7 @@ function permissionsKey(permissions?: MiniAppPermissions): string {
     `governance:${permissions.governance ? 1 : 0}`,
     `randomness:${permissions.randomness ? 1 : 0}`,
     `datafeed:${permissions.datafeed ? 1 : 0}`,
+    `automation:${permissions.automation ? 1 : 0}`,
   ].join("|");
 }
 
@@ -185,6 +187,86 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
       list: async (params: Record<string, unknown>) => {
         const resolved = resolveAppId(params?.app_id as string | undefined, appId);
         return sdk.transactions!.list!({ ...params, app_id: resolved });
+      },
+    },
+    automation: {
+      register: async (
+        taskName: string,
+        taskType: string,
+        payload?: Record<string, unknown>,
+        schedule?: { intervalSeconds?: number; maxRuns?: number },
+      ) => {
+        requirePermission(permissions, "automation");
+        const resolved = appId;
+        if (!resolved) throw new Error("app_id required");
+        const res = await fetch("/api/automation/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appId: resolved, taskName, taskType, payload, schedule }),
+        });
+        return res.json();
+      },
+      unregister: async (taskName: string) => {
+        requirePermission(permissions, "automation");
+        const resolved = appId;
+        if (!resolved) throw new Error("app_id required");
+        const res = await fetch("/api/automation/unregister", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appId: resolved, taskName }),
+        });
+        return res.json();
+      },
+      status: async (taskName: string) => {
+        const resolved = appId;
+        if (!resolved) throw new Error("app_id required");
+        const res = await fetch(`/api/automation/status?appId=${resolved}&taskName=${taskName}`);
+        return res.json();
+      },
+      list: async () => {
+        const resolved = appId;
+        const url = resolved ? `/api/automation/list?appId=${resolved}` : "/api/automation/list";
+        const res = await fetch(url);
+        return res.json();
+      },
+      update: async (
+        taskId: string,
+        payload?: Record<string, unknown>,
+        schedule?: { intervalSeconds?: number; cron?: string; maxRuns?: number },
+      ) => {
+        requirePermission(permissions, "automation");
+        const res = await fetch("/api/automation/update", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId, payload, schedule }),
+        });
+        return res.json();
+      },
+      enable: async (taskId: string) => {
+        requirePermission(permissions, "automation");
+        const res = await fetch("/api/automation/enable", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId }),
+        });
+        return res.json();
+      },
+      disable: async (taskId: string) => {
+        requirePermission(permissions, "automation");
+        const res = await fetch("/api/automation/disable", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId }),
+        });
+        return res.json();
+      },
+      logs: async (taskId?: string, limit = 50) => {
+        const params = new URLSearchParams();
+        if (taskId) params.set("taskId", taskId);
+        if (appId) params.set("appId", appId);
+        params.set("limit", String(limit));
+        const res = await fetch(`/api/automation/logs?${params}`);
+        return res.json();
       },
     },
   };

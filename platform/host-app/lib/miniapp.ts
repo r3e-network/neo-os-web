@@ -127,3 +127,21 @@ export function parseFederatedEntryUrl(entryUrl: string, fallbackAppId: string):
     return { remote: "builtin", appId: fallbackAppId };
   }
 }
+
+export function buildMiniAppEntryUrl(entryUrl: string, params: Record<string, string>): string {
+  const raw = toString(entryUrl).trim();
+  if (!raw) return raw;
+
+  const [base, hash] = raw.split("#");
+  const [path, query] = base.split("?");
+  const searchParams = new URLSearchParams(query ?? "");
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (!key) return;
+    searchParams.set(key, String(value));
+  });
+
+  const queryString = searchParams.toString();
+  const assembled = queryString ? `${path}?${queryString}` : path;
+  return hash ? `${assembled}#${hash}` : assembled;
+}

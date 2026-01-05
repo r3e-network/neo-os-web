@@ -4,11 +4,10 @@ import type {
   APIKeysListResponse,
   AppRegisterResponse,
   AppUpdateManifestResponse,
-  AutomationDeleteResponse,
-  AutomationExecution,
-  AutomationStatusResponse,
-  AutomationTrigger,
-  AutomationTriggerRequest,
+  AutomationTask,
+  AutomationLog,
+  RegisterTaskRequest,
+  RegisterTaskResponse,
   EventsListParams,
   EventsListResponse,
   GasBankAccountResponse,
@@ -385,54 +384,58 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
       },
     },
     automation: {
-      async listTriggers(): Promise<AutomationTrigger[]> {
-        return requestHostJSON<AutomationTrigger[]>(cfg, "/automation-triggers", { method: "GET" });
-      },
-      async createTrigger(params: AutomationTriggerRequest): Promise<AutomationTrigger> {
-        return requestHostJSON<AutomationTrigger>(cfg, "/automation-triggers", {
+      // === New PostgreSQL-based API (recommended) ===
+      async register(request: RegisterTaskRequest): Promise<RegisterTaskResponse> {
+        return requestHostJSON<RegisterTaskResponse>(cfg, "/api/automation/register", {
           method: "POST",
-          body: JSON.stringify(params),
+          body: JSON.stringify(request),
         });
       },
-      async getTrigger(id: string): Promise<AutomationTrigger> {
-        return requestHostJSON<AutomationTrigger>(cfg, `/automation-trigger?id=${encodeURIComponent(id)}`, {
-          method: "GET",
-        });
-      },
-      async updateTrigger(id: string, params: AutomationTriggerRequest): Promise<AutomationTrigger> {
-        return requestHostJSON<AutomationTrigger>(cfg, "/automation-trigger-update", {
+      async unregister(appId: string, taskName: string): Promise<{ success: boolean }> {
+        return requestHostJSON<{ success: boolean }>(cfg, "/api/automation/unregister", {
           method: "POST",
-          body: JSON.stringify({ id, ...params }),
+          body: JSON.stringify({ appId, taskName }),
         });
       },
-      async deleteTrigger(id: string): Promise<AutomationDeleteResponse> {
-        return requestHostJSON<AutomationDeleteResponse>(cfg, "/automation-trigger-delete", {
+      async list(appId?: string): Promise<{ tasks: AutomationTask[] }> {
+        const url = appId ? `/api/automation/list?appId=${encodeURIComponent(appId)}` : "/api/automation/list";
+        return requestHostJSON<{ tasks: AutomationTask[] }>(cfg, url, { method: "GET" });
+      },
+      async status(appId: string, taskName: string): Promise<{ task: AutomationTask | null }> {
+        return requestHostJSON<{ task: AutomationTask | null }>(
+          cfg,
+          `/api/automation/status?appId=${encodeURIComponent(appId)}&taskName=${encodeURIComponent(taskName)}`,
+          { method: "GET" },
+        );
+      },
+      async update(
+        taskId: string,
+        payload?: Record<string, unknown>,
+        schedule?: { intervalSeconds?: number; cron?: string; maxRuns?: number },
+      ): Promise<{ success: boolean }> {
+        return requestHostJSON<{ success: boolean }>(cfg, "/api/automation/update", {
+          method: "PUT",
+          body: JSON.stringify({ taskId, payload, schedule }),
+        });
+      },
+      async enable(taskId: string): Promise<{ success: boolean; status: string }> {
+        return requestHostJSON<{ success: boolean; status: string }>(cfg, "/api/automation/enable", {
           method: "POST",
-          body: JSON.stringify({ id }),
+          body: JSON.stringify({ taskId }),
         });
       },
-      async enableTrigger(id: string): Promise<AutomationStatusResponse> {
-        return requestHostJSON<AutomationStatusResponse>(cfg, "/automation-trigger-enable", {
+      async disable(taskId: string): Promise<{ success: boolean; status: string }> {
+        return requestHostJSON<{ success: boolean; status: string }>(cfg, "/api/automation/disable", {
           method: "POST",
-          body: JSON.stringify({ id }),
+          body: JSON.stringify({ taskId }),
         });
       },
-      async disableTrigger(id: string): Promise<AutomationStatusResponse> {
-        return requestHostJSON<AutomationStatusResponse>(cfg, "/automation-trigger-disable", {
-          method: "POST",
-          body: JSON.stringify({ id }),
-        });
-      },
-      async resumeTrigger(id: string): Promise<AutomationStatusResponse> {
-        return requestHostJSON<AutomationStatusResponse>(cfg, "/automation-trigger-resume", {
-          method: "POST",
-          body: JSON.stringify({ id }),
-        });
-      },
-      async listExecutions(id: string, limit?: number): Promise<AutomationExecution[]> {
-        const qs = new URLSearchParams({ id });
-        if (typeof limit === "number" && Number.isFinite(limit)) qs.set("limit", String(limit));
-        return requestHostJSON<AutomationExecution[]>(cfg, `/automation-trigger-executions?${qs.toString()}`, {
+      async logs(taskId?: string, appId?: string, limit = 50): Promise<{ logs: AutomationLog[] }> {
+        const qs = new URLSearchParams();
+        if (taskId) qs.set("taskId", taskId);
+        if (appId) qs.set("appId", appId);
+        qs.set("limit", String(limit));
+        return requestHostJSON<{ logs: AutomationLog[] }>(cfg, `/api/automation/logs?${qs.toString()}`, {
           method: "GET",
         });
       },

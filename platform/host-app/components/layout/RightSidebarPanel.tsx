@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useWalletStore } from "../../lib/wallet/store";
 import { useTranslation } from "../../lib/i18n/react";
 import { useTheme } from "../providers/ThemeProvider";
@@ -77,6 +77,11 @@ const PLATFORM_SERVICES = {
       name: "Price Feed",
       description: "Real-time price oracle",
     },
+    AutomationService: {
+      address: "/api/automation",
+      name: "Automation Service",
+      description: "Edge Function scheduled tasks",
+    },
   },
   mainnet: {
     PaymentHub: {
@@ -98,6 +103,11 @@ const PLATFORM_SERVICES = {
       address: "Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM",
       name: "Price Feed",
       description: "Real-time price oracle",
+    },
+    AutomationService: {
+      address: "/api/automation",
+      name: "Automation Service",
+      description: "Edge Function scheduled tasks",
     },
   },
 };
@@ -122,6 +132,7 @@ interface MiniAppPermissions {
   randomness?: boolean;
   datafeed?: boolean;
   confidential?: boolean;
+  automation?: boolean;
 }
 
 // Map permissions to platform service keys
@@ -129,6 +140,7 @@ const PERMISSION_TO_SERVICE: Record<string, keyof typeof PLATFORM_SERVICES.testn
   payments: "PaymentHub",
   randomness: "RandomnessOracle",
   datafeed: "PriceFeed",
+  automation: "AutomationService",
 };
 
 interface RightSidebarPanelProps {
@@ -142,6 +154,77 @@ interface RightSidebarPanelProps {
 function truncateAddress(address: string, start = 6, end = 4): string {
   if (!address || address.length <= start + end) return address;
   return `${address.slice(0, start)}...${address.slice(-end)}`;
+}
+
+// Base58 alphabet for Neo
+const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+// Known script hash to address mappings (pre-computed for common contracts)
+const KNOWN_ADDRESSES: Record<string, string> = {
+  // Add known contract addresses here as needed
+};
+
+// Convert script hash (0x...) to Neo N3 address using proper Base58Check
+async function scriptHashToAddressAsync(scriptHash: string): Promise<string> {
+  try {
+    // Check known addresses first
+    const normalized = scriptHash.toLowerCase();
+    if (KNOWN_ADDRESSES[normalized]) return KNOWN_ADDRESSES[normalized];
+
+    // Remove 0x prefix if present
+    let hash = scriptHash.startsWith("0x") ? scriptHash.slice(2) : scriptHash;
+    if (hash.length !== 40) return scriptHash; // Invalid hash length
+
+    // Reverse byte order (little-endian to big-endian)
+    const reversed = hash.match(/.{2}/g)?.reverse().join("") || hash;
+
+    // Add Neo N3 address version byte (0x35 = 53)
+    const withVersion = "35" + reversed;
+
+    // Convert hex to bytes
+    const bytes: number[] = [];
+    for (let i = 0; i < withVersion.length; i += 2) {
+      bytes.push(parseInt(withVersion.substr(i, 2), 16));
+    }
+
+    // Double SHA256 for checksum using Web Crypto API
+    const data = new Uint8Array(bytes);
+    const hash1 = await crypto.subtle.digest("SHA-256", data);
+    const hash2 = await crypto.subtle.digest("SHA-256", hash1);
+    const checksumBytes = Array.from(new Uint8Array(hash2)).slice(0, 4);
+
+    // Append checksum
+    const dataWithChecksum = [...bytes, ...checksumBytes];
+
+    // Base58 encode
+    let num = BigInt(0);
+    for (const byte of dataWithChecksum) {
+      num = num * BigInt(256) + BigInt(byte);
+    }
+
+    let encoded = "";
+    while (num > 0) {
+      const remainder = Number(num % BigInt(58));
+      encoded = BASE58_ALPHABET[remainder] + encoded;
+      num = num / BigInt(58);
+    }
+
+    // Add leading '1's for leading zero bytes
+    for (const byte of dataWithChecksum) {
+      if (byte === 0) encoded = "1" + encoded;
+      else break;
+    }
+
+    return encoded || scriptHash;
+  } catch {
+    return scriptHash;
+  }
+}
+
+// Synchronous version that returns script hash initially (for SSR compatibility)
+function scriptHashToAddress(scriptHash: string): string {
+  // Return truncated hash format for initial render
+  return scriptHash;
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -165,6 +248,14 @@ export function RightSidebarPanel({
   const { theme } = useTheme();
   const themeColors = getThemeColors(theme);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [contractAddress, setContractAddress] = useState<string | null>(null);
+
+  // Convert contract hash to address asynchronously
+  useEffect(() => {
+    if (contractInfo?.contractHash) {
+      scriptHashToAddressAsync(contractInfo.contractHash).then(setContractAddress);
+    }
+  }, [contractInfo?.contractHash]);
 
   // Filter platform services based on MiniApp's declared permissions
   const requiredServices = Object.entries(PLATFORM_SERVICES[network]).filter(([key]) => {
@@ -213,7 +304,7 @@ export function RightSidebarPanel({
         />
         <InfoRow
           label={t("sidebar.masterAccount")}
-          value={truncateAddress(networkConfig.masterAccountAddress, 8, 6)}
+          value={networkConfig.masterAccountAddress}
           fullValue={networkConfig.masterAccountAddress}
           onCopy={() => handleCopy(networkConfig.masterAccountAddress, "platformMasterAccount")}
           copied={copiedField === "platformMasterAccount"}
@@ -228,7 +319,7 @@ export function RightSidebarPanel({
           <>
             <InfoRow
               label={t("sidebar.address")}
-              value={truncateAddress(address, 8, 6)}
+              value={address}
               fullValue={address}
               onCopy={() => handleCopy(address, "wallet")}
               copied={copiedField === "wallet"}
@@ -258,22 +349,33 @@ export function RightSidebarPanel({
       <Section title={t("sidebar.miniappContract")} icon="📜" themeColors={themeColors}>
         <InfoRow label={t("sidebar.appId")} value={appId} themeColors={themeColors} />
         {contractInfo?.contractHash ? (
-          <InfoRow
-            label={t("sidebar.contractHash")}
-            value={truncateAddress(contractInfo.contractHash, 10, 8)}
-            fullValue={contractInfo.contractHash}
-            onCopy={() => handleCopy(contractInfo.contractHash!, "contract")}
-            copied={copiedField === "contract"}
-            link={`${explorerBase}/contract/${contractInfo.contractHash}`}
-            themeColors={themeColors}
-          />
+          <>
+            <InfoRow
+              label={t("sidebar.contractAddress")}
+              value={contractAddress || "Loading..."}
+              fullValue={contractAddress || contractInfo.contractHash}
+              onCopy={() => handleCopy(contractAddress || contractInfo.contractHash!, "contractAddr")}
+              copied={copiedField === "contractAddr"}
+              link={`${explorerBase}/contract/${contractInfo.contractHash}`}
+              themeColors={themeColors}
+            />
+            <InfoRow
+              label={t("sidebar.scriptHash")}
+              value={contractInfo.contractHash}
+              fullValue={contractInfo.contractHash}
+              onCopy={() => handleCopy(contractInfo.contractHash!, "contract")}
+              copied={copiedField === "contract"}
+              themeColors={themeColors}
+              muted
+            />
+          </>
         ) : (
           <InfoRow label={t("sidebar.contractHash")} value={t("sidebar.noContract")} muted themeColors={themeColors} />
         )}
         {contractInfo?.masterKeyAddress && (
           <InfoRow
             label={t("sidebar.masterKey")}
-            value={truncateAddress(contractInfo.masterKeyAddress, 8, 6)}
+            value={contractInfo.masterKeyAddress}
             fullValue={contractInfo.masterKeyAddress}
             onCopy={() => handleCopy(contractInfo.masterKeyAddress!, "masterKey")}
             copied={copiedField === "masterKey"}
@@ -289,11 +391,11 @@ export function RightSidebarPanel({
           <InfoRow
             key={key}
             label={contract.name}
-            value={truncateAddress(contract.address, 10, 8)}
+            value={contract.address}
             fullValue={contract.address}
             onCopy={() => handleCopy(contract.address, `core-${key}`)}
             copied={copiedField === `core-${key}`}
-            link={`${explorerBase}/contract/${contract.address}`}
+            link={`${explorerBase}/address/${contract.address}`}
             themeColors={themeColors}
           />
         ))}
@@ -306,11 +408,11 @@ export function RightSidebarPanel({
             <InfoRow
               key={key}
               label={service.name}
-              value={truncateAddress(service.address, 10, 8)}
+              value={service.address}
               fullValue={service.address}
               onCopy={() => handleCopy(service.address, key)}
               copied={copiedField === key}
-              link={`${explorerBase}/contract/${service.address}`}
+              link={`${explorerBase}/address/${service.address}`}
               themeColors={themeColors}
             />
           ))}
@@ -318,11 +420,11 @@ export function RightSidebarPanel({
             <InfoRow
               key={`custom-${idx}`}
               label={service.name}
-              value={truncateAddress(service.address, 10, 8)}
+              value={service.address}
               fullValue={service.address}
               onCopy={() => handleCopy(service.address, `service-${idx}`)}
               copied={copiedField === `service-${idx}`}
-              link={`${explorerBase}/contract/${service.address}`}
+              link={`${explorerBase}/address/${service.address}`}
               themeColors={themeColors}
             />
           ))}

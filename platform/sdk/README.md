@@ -79,27 +79,37 @@ console.log(job.job_id, job.status);
 
 ## Automation (Host-only)
 
-NeoFlow manages user triggers (currently cron + webhook execution in the service).
+PostgreSQL-based automation with Vercel Cron for scheduled task execution.
 
 ```ts
 const host = createHostSDK({
-  edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
+  edgeBaseUrl: "https://your-host-app.vercel.app",
   getAPIKey: async () => "<host-api-key>",
 });
 
-const trigger = await host.automation.createTrigger({
-  name: "Every 5 minutes",
-  trigger_type: "cron",
-  schedule: "*/5 * * * *",
-  action: {
-    type: "webhook",
-    url: "https://hooks.miniapps.com/callback",
+// Register a scheduled task
+const result = await host.automation.register({
+  appId: "my-miniapp",
+  taskName: "daily-price-check",
+  taskType: "scheduled",
+  payload: {
+    action: "call-api",
+    url: "https://api.example.com/price-check",
     method: "POST",
   },
+  schedule: { intervalSeconds: 86400 }, // Daily
 });
 
-const executions = await host.automation.listExecutions(trigger.id, 25);
-console.log(trigger.enabled, executions.length);
+// List tasks
+const { tasks } = await host.automation.list("my-miniapp");
+
+// Enable/disable tasks
+await host.automation.enable(result.taskId);
+await host.automation.disable(result.taskId);
+
+// Get execution logs
+const { logs } = await host.automation.logs(result.taskId);
+console.log(tasks.length, logs.length);
 ```
 
 ## Wallet Binding (OAuth-first onboarding)

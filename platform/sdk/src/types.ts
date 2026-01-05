@@ -203,40 +203,59 @@ export type ComputeJob = {
   signature?: string;
 };
 
-export type AutomationTriggerRequest = {
-  name: string;
-  trigger_type: string;
-  schedule?: string;
-  condition?: unknown;
-  action: unknown;
-};
+// Automation Types (PostgreSQL-based)
+export type AutomationTaskType = "scheduled" | "conditional" | "subscription";
+export type AutomationTaskStatus = "active" | "paused" | "completed" | "failed";
 
-export type AutomationTrigger = {
+export type AutomationTask = {
   id: string;
-  user_id?: string;
-  name: string;
-  trigger_type: string;
-  schedule?: string;
-  condition?: unknown;
-  action?: unknown;
-  enabled: boolean;
-  last_execution?: string;
-  next_execution?: string;
+  app_id: string;
+  task_type: AutomationTaskType;
+  task_name: string;
+  payload: Record<string, unknown>;
+  status: AutomationTaskStatus;
   created_at: string;
+  updated_at: string;
 };
 
-export type AutomationExecution = {
+export type AutomationSchedule = {
   id: string;
-  trigger_id: string;
-  executed_at: string;
-  success: boolean;
-  error?: string;
-  action_type?: string;
-  action_payload?: unknown;
+  task_id: string;
+  cron_expression?: string;
+  interval_seconds?: number;
+  next_run_at?: string;
+  last_run_at?: string;
+  run_count: number;
+  max_runs?: number;
 };
 
-export type AutomationDeleteResponse = { status: "ok" };
-export type AutomationStatusResponse = { status: string };
+export type AutomationLog = {
+  id: string;
+  task_id: string;
+  status: string;
+  result?: Record<string, unknown>;
+  error?: string;
+  duration_ms?: number;
+  executed_at: string;
+};
+
+export type RegisterTaskRequest = {
+  appId: string;
+  taskName: string;
+  taskType: AutomationTaskType;
+  payload?: Record<string, unknown>;
+  schedule?: {
+    cron?: string;
+    intervalSeconds?: number;
+    maxRuns?: number;
+  };
+};
+
+export type RegisterTaskResponse = {
+  success: boolean;
+  taskId?: string;
+  error?: string;
+};
 
 // Usage
 export type MiniAppUsage = {
@@ -373,15 +392,18 @@ export interface HostSDK {
     getJob(id: string): Promise<ComputeJob>;
   };
   automation: {
-    listTriggers(): Promise<AutomationTrigger[]>;
-    createTrigger(params: AutomationTriggerRequest): Promise<AutomationTrigger>;
-    getTrigger(id: string): Promise<AutomationTrigger>;
-    updateTrigger(id: string, params: AutomationTriggerRequest): Promise<AutomationTrigger>;
-    deleteTrigger(id: string): Promise<AutomationDeleteResponse>;
-    enableTrigger(id: string): Promise<AutomationStatusResponse>;
-    disableTrigger(id: string): Promise<AutomationStatusResponse>;
-    resumeTrigger(id: string): Promise<AutomationStatusResponse>;
-    listExecutions(id: string, limit?: number): Promise<AutomationExecution[]>;
+    register(request: RegisterTaskRequest): Promise<RegisterTaskResponse>;
+    unregister(appId: string, taskName: string): Promise<{ success: boolean }>;
+    list(appId?: string): Promise<{ tasks: AutomationTask[] }>;
+    status(appId: string, taskName: string): Promise<{ task: AutomationTask | null }>;
+    update(
+      taskId: string,
+      payload?: Record<string, unknown>,
+      schedule?: { intervalSeconds?: number; cron?: string; maxRuns?: number },
+    ): Promise<{ success: boolean }>;
+    enable(taskId: string): Promise<{ success: boolean; status: string }>;
+    disable(taskId: string): Promise<{ success: boolean; status: string }>;
+    logs(taskId?: string, appId?: string, limit?: number): Promise<{ logs: AutomationLog[] }>;
   };
   secrets: {
     list(): Promise<SecretsListResponse>;

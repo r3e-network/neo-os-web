@@ -32,7 +32,6 @@ const EDGE_BASE_URL = requireEnv("EDGE_BASE_URL");
 const AUTH_TOKEN = requireEnv("SUPABASE_AUTH_JWT");
 const HOST_API_KEY = requireEnv("HOST_API_KEY");
 const MINIAPP_APP_ID = requireEnv("MINIAPP_APP_ID");
-const AUTOMATION_WEBHOOK_URL = requireEnv("AUTOMATION_WEBHOOK_URL");
 const SECRET_NAME = requireEnv("SECRET_NAME");
 const SECRET_VALUE = requireEnv("SECRET_VALUE");
 
@@ -273,35 +272,39 @@ async function secretsManagement(hostSdk: HostSDK): Promise<void> {
 }
 
 // =============================================================================
-// Workflow 10: Host SDK - Automation Triggers
+// Workflow 10: Host SDK - Automation Tasks
 // =============================================================================
 
-async function automationTriggers(hostSdk: HostSDK): Promise<void> {
+async function automationTasks(hostSdk: HostSDK): Promise<void> {
   try {
-    // Create a time-based trigger
-    console.log("Creating automation trigger...");
-    const trigger = await hostSdk.automation.createTrigger({
-      name: "Daily Price Check",
-      trigger_type: "schedule",
-      schedule: "0 0 * * *", // Daily at midnight
-      action: {
-        type: "webhook",
-        url: AUTOMATION_WEBHOOK_URL,
+    // Register a scheduled task
+    console.log("Registering automation task...");
+    const result = await hostSdk.automation.register({
+      appId: MINIAPP_APP_ID,
+      taskName: "daily-price-check",
+      taskType: "scheduled",
+      payload: {
+        action: "call-api",
+        url: "https://api.example.com/price-check",
+        method: "POST",
       },
+      schedule: { intervalSeconds: 86400 }, // Daily
     });
-    console.log("Trigger created:", trigger.id);
+    console.log("Task registered:", result.taskId);
 
-    // List triggers
-    const triggers = await hostSdk.automation.listTriggers();
-    console.log(`Found ${triggers.length} triggers`);
+    // List tasks
+    const { tasks } = await hostSdk.automation.list(MINIAPP_APP_ID);
+    console.log(`Found ${tasks.length} tasks`);
 
-    // Enable/disable trigger
-    await hostSdk.automation.enableTrigger(trigger.id);
-    console.log("Trigger enabled");
+    // Enable/disable task
+    if (result.taskId) {
+      await hostSdk.automation.enable(result.taskId);
+      console.log("Task enabled");
 
-    // Get execution history
-    const executions = await hostSdk.automation.listExecutions(trigger.id, 10);
-    console.log(`Found ${executions.length} executions`);
+      // Get execution logs
+      const { logs } = await hostSdk.automation.logs(result.taskId);
+      console.log(`Found ${logs.length} execution logs`);
+    }
   } catch (error) {
     console.error("Automation operation failed:", error);
     throw error;
@@ -354,6 +357,6 @@ export {
   getPriceData,
   gasBankOperations,
   secretsManagement,
-  automationTriggers,
+  automationTasks,
   completeMiniAppFlow,
 };

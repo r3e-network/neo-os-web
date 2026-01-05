@@ -4,6 +4,12 @@ import { useRouter } from "next/router";
 import LaunchPage, { getServerSideProps } from "../../pages/launch/[id]";
 import { MiniAppInfo } from "../../components/types";
 import { installMiniAppSDK } from "../../lib/miniapp-sdk";
+import { logger } from "../../lib/logger";
+
+jest.mock("../../components/providers/ThemeProvider", () => ({
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  useTheme: () => ({ theme: "dark" }),
+}));
 
 // Mock next/router
 jest.mock("next/router", () => ({
@@ -23,6 +29,15 @@ jest.mock("../../components/LaunchDock", () => ({
 
 jest.mock("../../lib/miniapp-sdk", () => ({
   installMiniAppSDK: jest.fn(),
+}));
+
+jest.mock("../../lib/logger", () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
 }));
 
 const mockApp: MiniAppInfo = {
@@ -140,20 +155,17 @@ describe("LaunchPage", () => {
       await renderLaunchPage();
       const iframe = document.querySelector("iframe");
       expect(iframe).toBeInTheDocument();
-      expect(iframe?.src).toBe("https://example.com/app?lang=en");
+      expect(iframe?.src).toBe("https://example.com/app?lang=en&theme=dark&embedded=1");
       expect(iframe?.getAttribute("sandbox")).toBe("allow-scripts allow-same-origin allow-forms allow-popups");
       expect(iframe?.title).toBe("Test App MiniApp");
     });
 
-    it("should render iframe with fullscreen styles", async () => {
+    it("should render iframe sized by the frame container", async () => {
       await renderLaunchPage();
       const iframe = document.querySelector("iframe");
-      expect(iframe).toHaveStyle({
-        position: "absolute",
-        top: "48px",
-        width: "100vw",
-        height: "calc(100vh - 48px)",
-      });
+      expect(iframe).toHaveClass("w-full");
+      expect(iframe).toHaveClass("h-full");
+      expect(iframe).toHaveClass("border-0");
     });
   });
 
@@ -276,8 +288,8 @@ describe("LaunchPage", () => {
     });
 
     it("should handle clipboard write failure", async () => {
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
       (navigator.clipboard.writeText as jest.Mock).mockRejectedValueOnce(new Error("Clipboard denied"));
+      const loggerErrorSpy = logger.error as jest.Mock;
 
       await renderLaunchPage();
 
@@ -285,10 +297,8 @@ describe("LaunchPage", () => {
       fireEvent.click(shareButton);
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith("[ERROR] Failed to copy link", expect.any(Error));
+        expect(loggerErrorSpy).toHaveBeenCalledWith("Failed to copy link", expect.any(Error));
       });
-
-      consoleErrorSpy.mockRestore();
     });
   });
 

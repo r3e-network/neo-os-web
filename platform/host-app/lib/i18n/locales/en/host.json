@@ -319,6 +319,7 @@
     "permissions": "Permissions",
     "limits": "Limits",
     "contractDetails": "Contract Details",
+    "appInfo": "App Info",
     "appId": "App ID",
     "contractHash": "Contract Hash",
     "entryUrl": "Entry URL",
@@ -640,7 +641,7 @@
     },
     "automation": {
       "subtitle": "Trigger-based task scheduling and execution.",
-      "overview": "The Automation Service (NeoFlow) enables scheduled and event-driven task execution. Define triggers based on time (cron), intervals, or price thresholds, and the TEE will execute your tasks automatically with on-chain anchoring.",
+      "overview": "The Automation Service enables scheduled and event-driven task execution via PostgreSQL-based task management with Vercel Cron. Define triggers based on time intervals or schedules, and tasks will execute automatically.",
       "features": [
         "Cron-based scheduling",
         "Interval-based triggers",
@@ -998,12 +999,563 @@
     "noWallet": "No wallet connected",
     "miniappContract": "MiniApp Contract",
     "appId": "App ID",
+    "contractAddress": "Contract Address",
+    "scriptHash": "Script Hash",
     "contractHash": "Contract Hash",
     "noContract": "No contract deployed",
+    "masterKey": "Master Key",
     "masterAccount": "Master Account",
     "platformContracts": "Platform Contracts",
     "requiredServices": "Required Services",
     "viewWallet": "View Wallet on Explorer",
     "viewContract": "View Contract on Explorer"
+  },
+  "miniapps": {
+    "lottery": {
+      "features": [
+        "Provably fair draws using VRF randomness",
+        "Multiple ticket purchases per round",
+        "Automatic prize distribution to winners",
+        "Transparent on-chain verification"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Select the number of tickets to purchase",
+        "Confirm the GAS payment transaction",
+        "Wait for the draw - winners are selected automatically",
+        "Prizes are sent directly to winning wallets"
+      ],
+      "tips": "Buy multiple tickets to increase your chances. Check the jackpot size before participating."
+    },
+    "coinflip": {
+      "features": [
+        "Classic 50/50 odds betting",
+        "Instant results with VRF randomness",
+        "Double your GAS on correct prediction",
+        "Cryptographically secure outcomes"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Choose Heads or Tails",
+        "Enter your bet amount in GAS",
+        "Confirm the transaction",
+        "Result is revealed instantly - winnings auto-deposited"
+      ],
+      "tips": "Start with small bets to understand the game mechanics."
+    },
+    "dicegame": {
+      "features": [
+        "Customizable winning range selection",
+        "Variable payout multipliers",
+        "VRF-powered fair dice rolls",
+        "Real-time result verification"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Set your winning range (e.g., 1-50 out of 100)",
+        "Enter your bet amount",
+        "Confirm the transaction",
+        "Watch the dice roll - payouts based on your odds"
+      ],
+      "tips": "Wider ranges have lower payouts but higher win probability."
+    },
+    "scratchcard": {
+      "features": [
+        "Instant prize reveals",
+        "Multiple card tiers available",
+        "Guaranteed fair outcomes",
+        "Immediate prize distribution"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Select a scratch card tier",
+        "Purchase the card with GAS",
+        "Scratch to reveal your prize",
+        "Winnings are instantly credited"
+      ],
+      "tips": "Higher tier cards have bigger potential prizes."
+    },
+    "secretpoker": {
+      "features": [
+        "Zero-knowledge proof card privacy",
+        "Texas Hold'em gameplay",
+        "Cheat-proof card dealing",
+        "Multi-player tables"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Join or create a poker table",
+        "Buy-in with GAS",
+        "Play standard Texas Hold'em rules",
+        "Winnings distributed at showdown"
+      ],
+      "tips": "Your cards remain private until showdown thanks to ZK proofs."
+    },
+    "neocrash": {
+      "features": [
+        "Real-time multiplier growth",
+        "Cash out anytime before crash",
+        "Provably fair crash points",
+        "Instant payout on cash out"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Place your bet before round starts",
+        "Watch the multiplier climb",
+        "Click 'Cash Out' before it crashes",
+        "Miss the crash and lose your bet"
+      ],
+      "tips": "Set auto cash-out for consistent strategy."
+    },
+    "cryptoriddle": {
+      "features": [
+        "Daily cryptographic puzzles",
+        "GAS rewards for solutions",
+        "Difficulty tiers available",
+        "Leaderboard rankings"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Select a riddle difficulty",
+        "Read the puzzle carefully",
+        "Submit your answer",
+        "Correct answers earn GAS rewards"
+      ],
+      "tips": "Harder riddles offer bigger rewards."
+    },
+    "millionpiecemap": {
+      "features": [
+        "Own pixels on shared canvas",
+        "Customize your pixel colors",
+        "Permanent blockchain storage",
+        "Trade pixels with others"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Browse the pixel map",
+        "Select available pixels to purchase",
+        "Pay with GAS to claim ownership",
+        "Customize your pixel colors anytime"
+      ],
+      "tips": "Prime locations near popular areas are more valuable."
+    },
+    "neoswap": {
+      "features": ["Instant token swaps", "Best rate aggregation", "Low slippage trading", "Multiple token pairs"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Select tokens to swap (from/to)",
+        "Enter the amount",
+        "Review the exchange rate",
+        "Confirm the swap transaction"
+      ],
+      "tips": "Check slippage settings for large trades."
+    },
+    "flashloan": {
+      "features": [
+        "Zero-collateral borrowing",
+        "Single-transaction loans",
+        "Arbitrage opportunities",
+        "Advanced DeFi strategies"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Specify loan amount and token",
+        "Define your arbitrage strategy",
+        "Execute the flash loan",
+        "Repay within same transaction"
+      ],
+      "tips": "Flash loans must be repaid in the same transaction or they revert."
+    },
+    "compoundcapsule": {
+      "features": [
+        "Auto-compounding yields",
+        "Multiple asset support",
+        "Optimized gas efficiency",
+        "Real-time APY tracking"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Select asset to deposit",
+        "Enter deposit amount",
+        "Confirm the deposit",
+        "Watch your yields compound automatically"
+      ],
+      "tips": "Longer deposits benefit more from compounding."
+    },
+    "selfloan": {
+      "features": [
+        "Borrow against your own collateral",
+        "No liquidation risk",
+        "Flexible repayment terms",
+        "Maintain asset exposure"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Deposit collateral (NEO or GAS)",
+        "Specify loan amount",
+        "Receive borrowed tokens",
+        "Repay anytime to unlock collateral"
+      ],
+      "tips": "Self-loans let you access liquidity without selling your assets."
+    },
+    "neoburger": {
+      "features": ["Liquid NEO staking", "Receive bNEO tokens", "Earn GAS rewards", "Use bNEO in DeFi"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Enter NEO amount to stake",
+        "Receive bNEO tokens 1:1",
+        "Earn GAS rewards automatically",
+        "Unstake anytime by returning bNEO"
+      ],
+      "tips": "bNEO can be used in other DeFi protocols while earning rewards."
+    },
+    "gassponsor": {
+      "features": [
+        "Sponsor transactions for others",
+        "Set sponsorship limits",
+        "Track sponsored usage",
+        "Whitelist addresses"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Deposit GAS into sponsor pool",
+        "Configure sponsorship rules",
+        "Share your sponsor code",
+        "Recipients use your GAS for fees"
+      ],
+      "tips": "Great for onboarding new users who don't have GAS yet."
+    },
+    "grantshare": {
+      "features": [
+        "Create funding pools",
+        "Community voting on grants",
+        "Transparent fund distribution",
+        "Milestone-based releases"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Browse active grant proposals",
+        "Vote on proposals you support",
+        "Or submit your own proposal",
+        "Approved grants receive funding"
+      ],
+      "tips": "Detailed proposals with clear milestones get more votes."
+    },
+    "redenvelope": {
+      "features": [
+        "Send crypto gifts",
+        "Random or equal distribution",
+        "Set recipient limits",
+        "Festive themed envelopes"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Create a new red envelope",
+        "Deposit GAS amount",
+        "Set number of recipients",
+        "Share the claim link"
+      ],
+      "tips": "Random distribution adds excitement to group gifts."
+    },
+    "devtipping": {
+      "features": [
+        "Tip developers directly",
+        "Support open source projects",
+        "Track your contributions",
+        "Developer leaderboards"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Find a developer or project",
+        "Enter tip amount in GAS",
+        "Add an optional message",
+        "Confirm the tip transaction"
+      ],
+      "tips": "Regular small tips help sustain open source development."
+    },
+    "breakupcontract": {
+      "features": [
+        "Create binding agreements",
+        "Escrow funds until conditions met",
+        "Automatic penalty enforcement",
+        "Dispute resolution"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Define contract terms",
+        "Both parties sign",
+        "Deposit escrow funds",
+        "Contract executes based on conditions"
+      ],
+      "tips": "Clear terms prevent disputes later."
+    },
+    "canvas": {
+      "features": ["Collaborative pixel art", "Real-time updates", "Color palette selection", "Artwork preservation"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Select a color from palette",
+        "Click on canvas to place pixel",
+        "Pay small GAS fee per pixel",
+        "Watch the community artwork evolve"
+      ],
+      "tips": "Coordinate with others to create larger artworks."
+    },
+    "onchaintarot": {
+      "features": [
+        "VRF-powered card draws",
+        "Traditional tarot interpretations",
+        "Daily readings available",
+        "Reading history saved"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Select reading type (single/spread)",
+        "Pay the reading fee",
+        "Cards are drawn using VRF",
+        "View your personalized interpretation"
+      ],
+      "tips": "Daily readings provide consistent guidance."
+    },
+    "timecapsule": {
+      "features": ["Lock messages for future", "Time-based unlocking", "Attach crypto gifts", "Immutable storage"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Write your message",
+        "Set unlock date",
+        "Optionally attach GAS",
+        "Seal the capsule"
+      ],
+      "tips": "Perfect for future self-reminders or gifts."
+    },
+    "heritagetrust": {
+      "features": [
+        "Digital inheritance planning",
+        "Dead man's switch",
+        "Multiple beneficiaries",
+        "Conditional releases"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Define beneficiaries",
+        "Set inheritance conditions",
+        "Deposit assets",
+        "Confirm activity periodically"
+      ],
+      "tips": "Regular check-ins prevent accidental triggers."
+    },
+    "gardenofneo": {
+      "features": ["Virtual plant growing", "Daily care rewards", "Rare plant breeding", "Garden trading"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Plant your first seed",
+        "Water daily to earn rewards",
+        "Harvest mature plants",
+        "Trade or breed rare varieties"
+      ],
+      "tips": "Consistent daily care yields the best rewards."
+    },
+    "graveyard": {
+      "features": ["Memorial NFT creation", "Permanent tributes", "Community remembrance", "Digital legacy"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Create a memorial entry",
+        "Add photos and messages",
+        "Mint as permanent NFT",
+        "Share with community"
+      ],
+      "tips": "Memorials are permanent and cannot be deleted."
+    },
+    "govbooster": {
+      "features": ["Amplify voting power", "Delegate votes", "Track governance activity", "Proposal notifications"],
+      "steps": [
+        "Connect your Neo wallet",
+        "View active proposals",
+        "Boost your voting power",
+        "Cast your vote",
+        "Track proposal outcomes"
+      ],
+      "tips": "Boosted votes have more influence on outcomes."
+    },
+    "burnleague": {
+      "features": ["Competitive token burning", "Leaderboard rankings", "Seasonal competitions", "Burn rewards"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Join current burn season",
+        "Burn tokens to earn points",
+        "Climb the leaderboard",
+        "Win seasonal rewards"
+      ],
+      "tips": "Strategic timing can maximize your ranking."
+    },
+    "doomsdayclock": {
+      "features": [
+        "Community countdown timer",
+        "Stake to delay doomsday",
+        "Winner takes pool",
+        "Tension-building gameplay"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "View current countdown",
+        "Stake GAS to push back clock",
+        "Last staker before zero wins",
+        "Pool distributed to winner"
+      ],
+      "tips": "Watch the clock closely near zero."
+    },
+    "masqueradedao": {
+      "features": ["Anonymous voting", "ZK-proof identity", "Private proposals", "Sybil-resistant"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Generate anonymous identity",
+        "Browse masked proposals",
+        "Vote anonymously",
+        "Results revealed after voting ends"
+      ],
+      "tips": "Your vote is private but verifiable."
+    },
+    "govmerc": {
+      "features": [
+        "Governance mercenary services",
+        "Vote delegation marketplace",
+        "Earn from unused votes",
+        "Transparent pricing"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "List your votes for hire",
+        "Set your price per vote",
+        "Accept delegation requests",
+        "Earn GAS for your votes"
+      ],
+      "tips": "Higher reputation earns better rates."
+    },
+    "candidatevote": {
+      "features": ["Council candidate voting", "Stake-weighted votes", "Candidate profiles", "Election tracking"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Browse candidate profiles",
+        "Review their platforms",
+        "Cast your vote",
+        "Track election results"
+      ],
+      "tips": "Research candidates before voting."
+    },
+    "councilgovernance": {
+      "features": [
+        "Council proposal management",
+        "Multi-sig execution",
+        "Transparent voting records",
+        "Proposal discussions"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "View active council proposals",
+        "Read proposal details",
+        "Vote if you're a council member",
+        "Track execution status"
+      ],
+      "tips": "Only council members can vote on proposals."
+    },
+    "neons": {
+      "features": ["Neo Name Service domains", "Human-readable addresses", "Domain trading", "Subdomain management"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Search for available names",
+        "Register your domain",
+        "Link to your wallet address",
+        "Manage subdomains"
+      ],
+      "tips": "Short names are more valuable."
+    },
+    "explorer": {
+      "features": ["Transaction lookup", "Block exploration", "Contract inspection", "Address tracking"],
+      "steps": [
+        "Enter transaction hash, block, or address",
+        "View detailed information",
+        "Explore linked transactions",
+        "Track address activity",
+        "Inspect contract code"
+      ],
+      "tips": "Bookmark addresses you want to monitor."
+    },
+    "guardianpolicy": {
+      "features": ["Multi-sig wallet setup", "Spending limits", "Recovery options", "Guardian management"],
+      "steps": [
+        "Connect your Neo wallet",
+        "Add guardian addresses",
+        "Set approval thresholds",
+        "Configure spending limits",
+        "Activate protection"
+      ],
+      "tips": "Choose trusted guardians for recovery."
+    },
+    "unbreakablevault": {
+      "features": [
+        "Maximum security storage",
+        "Time-locked withdrawals",
+        "Multi-layer protection",
+        "Emergency recovery"
+      ],
+      "steps": [
+        "Connect your Neo wallet",
+        "Create a new vault",
+        "Set time-lock duration",
+        "Deposit assets",
+        "Withdrawals require waiting period"
+      ],
+      "tips": "Longer time-locks provide better security against hacks."
+    }
+  },
+  "download": {
+    "badge": "Get Started",
+    "title": "Download a Neo Wallet",
+    "subtitle": "Connect to NeoHub and interact with MiniApps using a secure Neo N3 wallet. Choose from our recommended wallets below.",
+    "recommended": "Recommended",
+    "features": "Key Features",
+    "availableOn": "Available On",
+    "visitWebsite": "Visit Website",
+    "featureLabels": {
+      "dapp_browser": "DApp Browser",
+      "nft_support": "NFT Support",
+      "multi_chain": "Multi-Chain",
+      "swap": "Token Swap",
+      "staking": "Staking",
+      "portfolio": "Portfolio",
+      "multi_wallet": "Multi-Wallet",
+      "hardware_support": "Hardware Wallet",
+      "governance": "Governance"
+    },
+    "wallets": {
+      "neoline": {
+        "description": "The most popular Neo wallet with full DApp support"
+      },
+      "o3": {
+        "description": "Feature-rich wallet with built-in swap and staking"
+      },
+      "onegate": {
+        "description": "Advanced wallet with hardware wallet integration"
+      }
+    },
+    "benefits": {
+      "security": {
+        "title": "Secure & Private",
+        "description": "Your keys stay on your device. No third party can access your funds."
+      },
+      "instant": {
+        "title": "Instant Access",
+        "description": "Connect once and interact with all MiniApps seamlessly."
+      },
+      "multiplatform": {
+        "title": "Use Anywhere",
+        "description": "Available on Chrome, iOS, and Android devices."
+      }
+    },
+    "help": {
+      "title": "Need Help?",
+      "description": "Check our documentation or join the community for support.",
+      "docs": "View Documentation",
+      "community": "Join Community"
+    }
   }
 }

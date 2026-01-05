@@ -6,8 +6,9 @@ import { MiniAppLogo } from "./MiniAppLogo";
 import { Loader2, ShieldCheck, Zap, Lock } from "lucide-react";
 import { MiniAppInfo } from "../../types";
 import { FederatedMiniApp } from "../../FederatedMiniApp";
-import { parseFederatedEntryUrl } from "../../../lib/miniapp";
+import { buildMiniAppEntryUrl, parseFederatedEntryUrl } from "../../../lib/miniapp";
 import { installMiniAppSDK } from "../../../lib/miniapp-sdk";
+import { injectMiniAppViewportStyles } from "../../../lib/miniapp-iframe";
 import type { MiniAppSDK } from "../../../lib/miniapp-sdk";
 import { useTheme } from "../../providers/ThemeProvider";
 import { MiniAppFrame } from "./MiniAppFrame";
@@ -155,8 +156,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
     const supportedLocale = locale === "zh" ? "zh" : "en";
-    const separator = app.entry_url.includes("?") ? "&" : "?";
-    return `${app.entry_url}${separator}lang=${supportedLocale}&theme=${theme}`;
+    return buildMiniAppEntryUrl(app.entry_url, { lang: supportedLocale, theme, embedded: "1" });
   }, [app.entry_url, locale, theme]);
 
   useEffect(() => {
@@ -244,6 +244,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
       setTimeout(() => setIsLoaded(true), 1500);
 
       if (!allowSameOriginInjection) return;
+      injectMiniAppViewportStyles(iframe);
       const sdk = ensureSDK();
       if (!sdk) return;
       try {
@@ -258,6 +259,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
 
     window.addEventListener("message", handleMessage);
     iframe.addEventListener("load", handleLoad);
+    handleLoad();
 
     return () => {
       window.removeEventListener("message", handleMessage);
@@ -266,7 +268,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
   }, [app.app_id, app.entry_url, app.permissions, federated]);
 
   return (
-    <div className="w-full h-full overflow-hidden bg-black">
+    <div className="w-full h-full min-h-0 min-w-0 overflow-hidden bg-black">
       <MiniAppFrame>
         <AnimatePresence>
           {!isLoaded && <MiniAppLoader app={app} />}
@@ -282,7 +284,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
           className="w-full h-full"
         >
           {federated ? (
-            <div className="w-full h-full">
+            <div className="w-full h-full overflow-y-auto overflow-x-hidden">
               <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
             </div>
           ) : (

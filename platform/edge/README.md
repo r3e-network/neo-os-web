@@ -43,12 +43,7 @@ See `platform/edge/functions/`:
 - `compute-job`: gets a compute job via `neocompute` (`/jobs/{id}`) (host-gated; uses `?id=`).
 - `datafeed-price`: read proxy to `neofeeds` (symbols like `BTC-USD` or `BTC` which defaults to `BTC-USD`).
 - `oracle-query`: forwards allowlisted HTTP fetch requests to `neooracle` (optional secret injection).
-- `automation-triggers`: list/create automation triggers via `neoflow` (host-gated).
-- `automation-trigger`: get a trigger via `neoflow` (host-gated; uses `?id=`).
-- `automation-trigger-update`: update a trigger via `neoflow` (host-gated; uses POST in Edge).
-- `automation-trigger-delete`: delete a trigger via `neoflow` (host-gated; uses POST in Edge).
-- `automation-trigger-enable`, `automation-trigger-disable`, `automation-trigger-resume`: lifecycle controls.
-- `automation-trigger-executions`: list executions (audit log).
+- `automation-*`: **DEPRECATED** - Automation has been migrated to PostgreSQL-based system in host-app (`/api/automation/*`).
 
 Supabase deploys functions under:
 

@@ -1,3 +1,4 @@
+import React from "react";
 import { ArrowLeft, X, Share2, Globe, Wallet, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WalletState } from "./types";
@@ -45,7 +46,9 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onBack, onE
         </button>
         <div className="flex items-center gap-2">
           <Globe size={14} className="text-neo/60" />
-          <div className="text-sm font-bold text-white tracking-tight truncate max-w-[120px] md:max-w-xs">{appName}</div>
+          <div className="text-sm font-bold text-white tracking-tight truncate max-w-[120px] md:max-w-xs">
+            {appName}
+          </div>
         </div>
       </div>
 
@@ -90,4 +93,3 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onBack, onE
     </div>
   );
 }
-

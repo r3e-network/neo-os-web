@@ -2,7 +2,15 @@ export { createHostSDK, createMiniAppSDK } from "./client.js";
 export { createAdminSDK, AdminSDK } from "./admin.js";
 
 // Core types
-export type { ContractParam, InvocationIntent, MiniAppSDK, MiniAppSDKConfig, HostSDK, MiniAppUsage, MiniAppUsageResponse } from "./types.js";
+export type {
+  ContractParam,
+  InvocationIntent,
+  MiniAppSDK,
+  MiniAppSDKConfig,
+  HostSDK,
+  MiniAppUsage,
+  MiniAppUsageResponse,
+} from "./types.js";
 
 // Admin types
 export type {
@@ -59,11 +67,13 @@ export type { ComputeExecuteRequest, ComputeJob } from "./types.js";
 
 // Automation types
 export type {
-  AutomationTriggerRequest,
-  AutomationTrigger,
-  AutomationExecution,
-  AutomationDeleteResponse,
-  AutomationStatusResponse,
+  AutomationTaskType,
+  AutomationTaskStatus,
+  AutomationTask,
+  AutomationSchedule,
+  AutomationLog,
+  RegisterTaskRequest,
+  RegisterTaskResponse,
 } from "./types.js";
 
 // Events types

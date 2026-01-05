@@ -1,4 +1,10 @@
 {
   "framework": "nextjs",
-  "buildCommand": "rm -rf .next && npm run build"
+  "buildCommand": "rm -rf .next && npm run build",
+  "crons": [
+    {
+      "path": "/api/cron/automation-executor",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

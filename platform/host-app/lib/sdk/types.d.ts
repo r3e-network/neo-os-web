@@ -48,4 +48,23 @@ export interface MiniAppSDK {
   transactions?: {
     list?: (params: Record<string, unknown>) => Promise<{ transactions: unknown[] }>;
   };
+  automation?: {
+    register?: (
+      taskName: string,
+      taskType: string,
+      payload?: Record<string, unknown>,
+      schedule?: { intervalSeconds?: number; maxRuns?: number },
+    ) => Promise<{ success: boolean; taskId?: string; error?: string }>;
+    unregister?: (taskName: string) => Promise<{ success: boolean }>;
+    status?: (taskName: string) => Promise<Record<string, unknown>>;
+    list?: () => Promise<{ tasks: unknown[] }>;
+    update?: (
+      taskId: string,
+      payload?: Record<string, unknown>,
+      schedule?: { intervalSeconds?: number; cron?: string; maxRuns?: number },
+    ) => Promise<{ success: boolean }>;
+    enable?: (taskId: string) => Promise<{ success: boolean; status: string }>;
+    disable?: (taskId: string) => Promise<{ success: boolean; status: string }>;
+    logs?: (taskId?: string, limit?: number) => Promise<{ logs: unknown[] }>;
+  };
 }

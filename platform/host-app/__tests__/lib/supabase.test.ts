@@ -30,15 +30,13 @@ describe("Supabase Client", () => {
     expect(supabase).toBeDefined();
   });
 
-  it("warns when environment variables are missing", () => {
-    const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+  it("sets isSupabaseConfigured to false when environment variables are missing", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "";
 
     jest.resetModules();
-    require("../../lib/supabase");
+    const { isSupabaseConfigured } = require("../../lib/supabase");
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Supabase environment variables not configured"));
-    consoleSpy.mockRestore();
+    expect(isSupabaseConfigured).toBe(false);
   });
 });

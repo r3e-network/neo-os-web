@@ -1,7 +1,8 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { FederatedMiniApp as FederatedMiniAppRenderer } from "../components/FederatedMiniApp";
+import { MiniAppFrame } from "../components/features/miniapp";
 import { installMiniAppSDK } from "../lib/miniapp-sdk";
 import { coerceMiniAppInfo } from "../lib/miniapp";
 
@@ -49,21 +50,31 @@ export default function FederatedMiniApp() {
         <title>Federated MiniApp Host</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      <main style={{ padding: 24, fontFamily: "system-ui, sans-serif", maxWidth: 960 }}>
-        <h1 style={{ margin: "0 0 12px" }}>Federated MiniApp Host</h1>
-        <p style={{ margin: "0 0 12px", fontSize: 14 }}>
-          Built-in MiniApps can be served as Module Federation remotes. This page loads the <code>builtin/App</code>{" "}
-          module from the configured remote.
-        </p>
-        <div style={{ marginBottom: 12, fontSize: 12 }}>
-          <div>
-            <strong>Expected remote:</strong> <code>{remote || "builtin"}</code> exposing <code>./App</code>
+      <main style={pageStyle}>
+        <header style={headerStyle}>
+          <div style={headerInnerStyle}>
+            <h1 style={titleStyle}>Federated MiniApp Host</h1>
+            <p style={subtitleStyle}>
+              Built-in MiniApps can be served as Module Federation remotes. This page loads the <code>builtin/App</code>{" "}
+              module from the configured remote.
+            </p>
+            <div style={metaStyle}>
+              <div>
+                <strong>Expected remote:</strong> <code>{remote || "builtin"}</code> exposing <code>./App</code>
+              </div>
+              <div>
+                <strong>NEXT_PUBLIC_MF_REMOTES:</strong> <code>{remotes || "not set"}</code>
+              </div>
+            </div>
           </div>
-          <div>
-            <strong>NEXT_PUBLIC_MF_REMOTES:</strong> <code>{remotes || "not set"}</code>
-          </div>
-        </div>
-        <FederatedMiniAppRenderer appId={appId} view={view} remote={remote} />
+        </header>
+        <section style={frameAreaStyle}>
+          <MiniAppFrame>
+            <div className="w-full h-full overflow-y-auto overflow-x-hidden">
+              <FederatedMiniAppRenderer appId={appId} view={view} remote={remote} />
+            </div>
+          </MiniAppFrame>
+        </section>
       </main>
     </>
   );
@@ -72,4 +83,47 @@ export default function FederatedMiniApp() {
 // Disable static generation - requires client-side router
 export const getServerSideProps = async () => {
   return { props: {} };
+};
+
+const pageStyle: CSSProperties = {
+  height: "100vh",
+  display: "flex",
+  flexDirection: "column",
+  background: "#000",
+  color: "#e5e5e5",
+  fontFamily: "system-ui, sans-serif",
+};
+
+const headerStyle: CSSProperties = {
+  padding: 24,
+  borderBottom: "1px solid #1f1f1f",
+  background: "#0a0a0a",
+};
+
+const headerInnerStyle: CSSProperties = {
+  maxWidth: 960,
+  margin: "0 auto",
+};
+
+const titleStyle: CSSProperties = {
+  margin: "0 0 12px",
+};
+
+const subtitleStyle: CSSProperties = {
+  margin: "0 0 12px",
+  fontSize: 14,
+  color: "#b3b3b3",
+};
+
+const metaStyle: CSSProperties = {
+  marginBottom: 0,
+  fontSize: 12,
+  color: "#9ca3af",
+};
+
+const frameAreaStyle: CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+  padding: 24,
+  background: "#000",
 };

@@ -4,6 +4,12 @@ import "@testing-library/jest-dom";
 import { AppDetailHeader } from "../../components/AppDetailHeader";
 import { MiniAppInfo, MiniAppStats } from "../../components/types";
 
+// Mock ThemeProvider to avoid "useTheme must be used within ThemeProvider" error
+jest.mock("../../components/providers/ThemeProvider", () => ({
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  useTheme: () => ({ theme: "dark", setTheme: jest.fn() }),
+}));
+
 const mockApp: MiniAppInfo = {
   app_id: "test-app",
   name: "Test App",
