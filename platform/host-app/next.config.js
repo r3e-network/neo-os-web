@@ -1,3 +1,5 @@
+const { withSentryConfig } = require("@sentry/nextjs");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -9,7 +11,6 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Allow miniapps to be embedded in iframes (same-origin only for /launch pages)
         source: "/miniapps/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
@@ -18,7 +19,6 @@ const nextConfig = {
         ],
       },
       {
-        // Block iframe embedding for all other pages
         source: "/((?!miniapps).*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
@@ -30,4 +30,18 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+const sentryWebpackPluginOptions = {
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+};
+
+const sentryOptions = {
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+};
+
+module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions, sentryOptions)
+  : nextConfig;
