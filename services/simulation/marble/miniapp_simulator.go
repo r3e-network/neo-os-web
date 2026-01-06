@@ -135,6 +135,8 @@ type MiniAppSimulator struct {
 	candidateVotes       int64
 	neoburgerStakes      int64
 	guardianPolicySets   int64
+	dailyCheckins        int64
+	dailyCheckinClaims   int64
 
 	// Phase 10 stats (GrantShare, Neo Chat, Neo NS)
 	grantShareFunds    int64
@@ -257,9 +259,10 @@ func (s *MiniAppSimulator) GetStats() map[string]interface{} {
 			"crypto_riddle":     map[string]int64{"solves": atomic.LoadInt64(&s.riddleSolves)},
 		},
 		"phase10": map[string]interface{}{
-			"grant_share": map[string]int64{"funds": atomic.LoadInt64(&s.grantShareFunds), "creates": atomic.LoadInt64(&s.grantShareCreates)},
-			"neo_chat":    map[string]int64{"messages": atomic.LoadInt64(&s.neoChatMessages), "rooms": atomic.LoadInt64(&s.neoChatRooms)},
-			"neo_ns":      map[string]int64{"registrations": atomic.LoadInt64(&s.neoNSRegistrations), "renewals": atomic.LoadInt64(&s.neoNSRenewals)},
+			"grant_share":    map[string]int64{"funds": atomic.LoadInt64(&s.grantShareFunds), "creates": atomic.LoadInt64(&s.grantShareCreates)},
+			"neo_chat":       map[string]int64{"messages": atomic.LoadInt64(&s.neoChatMessages), "rooms": atomic.LoadInt64(&s.neoChatRooms)},
+			"neo_ns":         map[string]int64{"registrations": atomic.LoadInt64(&s.neoNSRegistrations), "renewals": atomic.LoadInt64(&s.neoNSRenewals)},
+			"daily_checkin":  map[string]int64{"checkins": atomic.LoadInt64(&s.dailyCheckins), "claims": atomic.LoadInt64(&s.dailyCheckinClaims)},
 		},
 		"errors": atomic.LoadInt64(&s.simulationErrors),
 	}

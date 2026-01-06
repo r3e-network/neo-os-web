@@ -12,6 +12,7 @@ import {
   Castle,
   Puzzle,
   HelpCircle,
+  Landmark,
   Piano,
   Map,
   Pickaxe,
@@ -58,6 +59,7 @@ import {
   ClipboardList,
   Lock,
   Award,
+  CalendarCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -69,7 +71,7 @@ const APP_ICONS: Record<string, LucideIcon> = {
   "miniapp-dicegame": Dice5,
   "miniapp-scratchcard": CreditCard,
   "miniapp-secretpoker": Spade,
-  "miniapp-neocrash": TrendingUp,
+  "miniapp-neo-crash": TrendingUp,
   "miniapp-fogpuzzle": Puzzle,
   "miniapp-cryptoriddle": HelpCircle,
   "miniapp-millionpiecemap": Map,
@@ -80,33 +82,35 @@ const APP_ICONS: Record<string, LucideIcon> = {
   // DeFi
   "miniapp-flashloan": Zap,
   "miniapp-gascircle": CircleDot,
-  "miniapp-compoundcapsule": Pill,
-  "miniapp-selfloan": Repeat,
+  "miniapp-compound-capsule": Pill,
+  "miniapp-self-loan": Repeat,
+  "miniapp-neo-treasury": Landmark,
 
   // Social
   "miniapp-redenvelope": Gift,
-  "miniapp-devtipping": HandCoins,
+  "miniapp-dev-tipping": HandCoins,
   "miniapp-breakupcontract": HeartCrack,
   "miniapp-exfiles": FolderHeart,
 
   // NFT
   "miniapp-canvas": Palette,
   "miniapp-onchaintarot": Eye,
-  "miniapp-timecapsule": Clock,
-  "miniapp-heritagetrust": ScrollText,
-  "miniapp-gardenofneo": Flower2,
+  "miniapp-time-capsule": Clock,
+  "miniapp-heritage-trust": ScrollText,
+  "miniapp-garden-of-neo": Flower2,
   "miniapp-graveyard": Skull,
 
   // Governance
   "miniapp-govbooster": Rocket,
-  "miniapp-burnleague": Flame,
-  "miniapp-doomsdayclock": Timer,
+  "miniapp-burn-league": Flame,
+  "miniapp-doomsday-clock": Timer,
   "miniapp-masqueradedao": Drama,
-  "miniapp-govmerc": Swords,
+  "miniapp-gov-merc": Swords,
 
   // Utility
   "miniapp-guardianpolicy": ClipboardList,
   "miniapp-unbreakablevault": Lock,
+  "miniapp-dailycheckin": CalendarCheck,
 };
 
 // Category fallback icons
@@ -119,14 +123,14 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   utility: ClipboardList,
 };
 
-// Category gradient colors for logo background
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  gaming: "from-purple-500 to-indigo-600",
-  defi: "from-cyan-500 to-blue-600",
-  social: "from-pink-500 to-rose-600",
-  governance: "from-emerald-500 to-teal-600",
-  utility: "from-slate-500 to-gray-600",
-  nft: "from-teal-500 to-emerald-600",
+// Category solid colors for logo background
+const CATEGORY_COLORS: Record<string, string> = {
+  gaming: "bg-brutal-yellow text-black",
+  defi: "bg-neo text-black",
+  social: "bg-brutal-pink text-black",
+  governance: "bg-brutal-blue text-white",
+  utility: "bg-electric-purple text-white",
+  nft: "bg-brutal-lime text-black",
 };
 
 interface MiniAppLogoProps {
@@ -137,64 +141,43 @@ interface MiniAppLogoProps {
   iconUrl?: string;
 }
 
+import { useState } from "react";
+
 export function MiniAppLogo({ appId, category, size = "md", className = "", iconUrl }: MiniAppLogoProps) {
+  const [imageError, setImageError] = useState(false);
   const Icon = APP_ICONS[appId] || CATEGORY_ICONS[category] || Puzzle;
-  const gradient = CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.utility;
+  const bgColor = CATEGORY_COLORS[category] || CATEGORY_COLORS.utility;
 
   const sizeClasses = {
     sm: "w-8 h-8",
-    md: "w-10 h-10",
-    lg: "w-12 h-12",
+    md: "w-11 h-11",
+    lg: "w-14 h-14",
   };
 
   const iconSizes = {
-    sm: 16,
-    md: 20,
-    lg: 24,
+    sm: 18,
+    md: 24,
+    lg: 32,
   };
 
-  if (iconUrl) {
-    // If it's a relative path from manifest (starts with /static), resolve it relative to the app base
-    // However, the caller usually passes the full valid public URL.
-    // If we assume the host app handles the path logic, we just use it.
-    // NOTE: If the manifest says "/static/icon.png", the actual URL in the host app
-    // depends on where the miniapp is served. Usually /miniapps/<app-id>/static/icon.png
+  const containerClasses = `flex-shrink-0 ${sizeClasses[size]} rounded-none border-2 border-black dark:border-white shadow-brutal-xs flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:rotate-3 ${className}`;
 
-    // Check if we need to fix the path or if it's already fully resolved
-    // For now, assume the caller passes a usable path, or we might need to handle it.
-    // But since MiniAppCard receives `app.icon`, we'll check that next.
-
+  if (iconUrl && !imageError) {
     return (
-      <div
-        className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl overflow-hidden shadow-lg border border-gray-100 dark:border-gray-800 ${className}`}
-      >
+      <div className={`${containerClasses} bg-white`}>
         <img
           src={iconUrl}
           alt={appId}
           className="w-full h-full object-cover"
-          onError={(e) => {
-            // Fallback to default if image load fails
-            e.currentTarget.style.display = "none";
-            e.currentTarget.parentElement?.classList.add(
-              "bg-gradient-to-br",
-              gradient.split(" ")[0],
-              gradient.split(" ")[1],
-            );
-          }}
+          onError={() => setImageError(true)}
         />
-        {/* Fallback hidden by default, visible if img fails and we toggle classes? 
-            actually simpler: just return the Lucide icon if we want a robust fallback, 
-            but for now let's trust the customized iconUrl
-        */}
       </div>
     );
   }
 
   return (
-    <div
-      className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg ${className}`}
-    >
-      <Icon size={iconSizes[size]} className="text-white" strokeWidth={2} />
+    <div className={`${containerClasses} ${bgColor}`}>
+      <Icon size={iconSizes[size]} className="text-current" strokeWidth={2.5} />
     </div>
   );
 }

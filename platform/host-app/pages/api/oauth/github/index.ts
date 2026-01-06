@@ -1,13 +1,29 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "demo-client-id";
+const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const REDIRECT_URI = process.env.NEXTAUTH_URL
   ? `${process.env.NEXTAUTH_URL}/api/oauth/github/callback`
   : "http://localhost:3000/api/oauth/github/callback";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Require OAuth credentials
+  if (!GITHUB_CLIENT_ID) {
+    return res.status(503).json({ error: "GitHub OAuth not configured" });
+  }
+
+  // Get wallet address from query param
+  const walletAddress = req.query.wallet_address as string;
+  if (!walletAddress) {
+    return res.status(400).json({ error: "wallet_address required" });
+  }
+
   const state = generateState();
-  res.setHeader("Set-Cookie", `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`);
+
+  // Set cookies for state and wallet address
+  res.setHeader("Set-Cookie", [
+    `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
+    `oauth_wallet_address=${walletAddress}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
+  ]);
 
   const authUrl =
     `https://github.com/login/oauth/authorize?` +

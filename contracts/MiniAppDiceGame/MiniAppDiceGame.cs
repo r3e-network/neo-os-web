@@ -97,16 +97,21 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Places a dice bet and requests RNG.
         /// </summary>
-        public static BigInteger PlaceBet(UInt160 player, BigInteger chosenNumber, BigInteger amount)
+        public static BigInteger PlaceBet(UInt160 player, BigInteger chosenNumber, BigInteger amount, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
             ExecutionEngine.Assert(chosenNumber >= 1 && chosenNumber <= 6, "choose 1-6");
             ExecutionEngine.Assert(amount >= MIN_BET, "min bet 0.05 GAS");
             ExecutionEngine.Assert(amount <= MAX_BET, "max bet 20 GAS (anti-Martingale)");
 
             // Anti-Martingale: Validate bet limits
             ValidateBetLimits(player, amount);
+
+            UInt160 gateway = Gateway();
+            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
+            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+
+            ValidatePaymentReceipt(APP_ID, player, amount, receiptId);
 
             BigInteger betId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_BET_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_BET_ID, betId);

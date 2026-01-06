@@ -17,7 +17,7 @@ namespace NeoMiniAppPlatform.Contracts
 
     /// <summary>
     /// Council Governance MiniApp - Decentralized governance for council members.
-    /// Only candidates from CandidateVote contract can create and vote on proposals.
+    /// Only top 21 committee members can create and vote on proposals.
     /// Supports text proposals and policy parameter change proposals.
     /// </summary>
     [DisplayName("MiniAppCouncilGovernance")]
@@ -378,13 +378,15 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static bool IsCandidate(UInt160 address)
         {
-            UInt160 candidateContract = CandidateContract();
-            if (candidateContract == null || !candidateContract.IsValid) return false;
+            if (address == null || !address.IsValid) return false;
 
-            // Check if address has voting weight in current epoch
-            BigInteger weight = (BigInteger)Contract.Call(candidateContract, "GetVoterWeight", CallFlags.ReadOnly,
-                address, Contract.Call(candidateContract, "CurrentEpoch", CallFlags.ReadOnly));
-            return weight > 0;
+            // Committee size is 21; only committee members can vote.
+            ECPoint[] committee = NEO.GetCommittee();
+            foreach (ECPoint member in committee)
+            {
+                if (Contract.CreateStandardAccount(member) == address) return true;
+            }
+            return false;
         }
 
         [Safe]

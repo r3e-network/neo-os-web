@@ -214,6 +214,8 @@ miniapp_contracts_phase2=(
 miniapp_contracts_phase3=(
     "MiniAppGovBooster:MiniAppGovBooster"
     "MiniAppGuardianPolicy:MiniAppGuardianPolicy"
+    "MiniAppCandidateVote:MiniAppCandidateVote"
+    "MiniAppCouncilGovernance:MiniAppCouncilGovernance"
 )
 
 # MiniApp contracts - Phase 4 (Long-Running)
@@ -229,6 +231,7 @@ miniapp_contracts_phase5=(
 miniapp_contracts_phase6=(
     "MiniAppTimeCapsule:MiniAppTimeCapsule"
     "MiniAppDevTipping:MiniAppDevTipping"
+    "MiniAppDailyCheckin:MiniAppDailyCheckin"
 )
 
 # MiniApp contracts - Phase 7 (Advanced DeFi & Social)

@@ -61,7 +61,7 @@
       "permissions": { "payments": true, "randomness": true }
     },
     {
-      "app_id": "miniapp-neocrash",
+      "app_id": "miniapp-neo-crash",
       "name": "Neo Crash",
       "name_zh": "Neo 崩盘",
       "description": "Watch the multiplier climb and cash out before it crashes! This adrenaline-pumping game tests your nerve with real-time multipliers and instant payouts.",
@@ -122,7 +122,7 @@
       "permissions": { "payments": true }
     },
     {
-      "app_id": "miniapp-compoundcapsule",
+      "app_id": "miniapp-compound-capsule",
       "name": "Compound Capsule",
       "name_zh": "复利胶囊",
       "description": "Maximize your yields with automatic compounding. Deposit once and watch your earnings grow exponentially as rewards are reinvested continuously.",
@@ -134,7 +134,7 @@
       "permissions": { "payments": true, "automation": true }
     },
     {
-      "app_id": "miniapp-selfloan",
+      "app_id": "miniapp-self-loan",
       "name": "Self Loan",
       "name_zh": "自助贷款",
       "description": "Borrow against your own collateral with zero liquidation risk. Lock your assets, borrow up to 50%, and repay on your own schedule.",
@@ -193,7 +193,7 @@
       "permissions": { "payments": true, "randomness": true }
     },
     {
-      "app_id": "miniapp-devtipping",
+      "app_id": "miniapp-dev-tipping",
       "name": "Dev Tipping",
       "name_zh": "开发者打赏",
       "description": "Support open-source developers directly! Tip contributors for their work on GitHub repos, Stack Overflow answers, or any valuable code contribution.",
@@ -243,7 +243,7 @@
       "permissions": { "payments": true, "randomness": true }
     },
     {
-      "app_id": "miniapp-timecapsule",
+      "app_id": "miniapp-time-capsule",
       "name": "Time Capsule",
       "name_zh": "时间胶囊",
       "description": "Lock messages, media, or assets in blockchain time capsules that unlock at a future date. Create digital legacies, schedule surprises, or preserve memories for future generations.",
@@ -255,7 +255,7 @@
       "permissions": { "payments": true, "automation": true }
     },
     {
-      "app_id": "miniapp-heritagetrust",
+      "app_id": "miniapp-heritage-trust",
       "name": "Heritage Trust",
       "name_zh": "遗产信托",
       "description": "Create smart inheritance plans that automatically transfer your digital assets to beneficiaries. Set conditions, add trustees, and ensure your crypto legacy passes on securely.",
@@ -267,7 +267,7 @@
       "permissions": { "payments": true, "automation": true }
     },
     {
-      "app_id": "miniapp-gardenofneo",
+      "app_id": "miniapp-garden-of-neo",
       "name": "Garden of Neo",
       "name_zh": "Neo 花园",
       "description": "Cultivate your own virtual garden where plants grow based on your blockchain activity. Rare seeds, seasonal events, and cross-pollination create unique botanical NFTs.",
@@ -305,7 +305,7 @@
       "permissions": { "governance": true, "payments": true }
     },
     {
-      "app_id": "miniapp-burnleague",
+      "app_id": "miniapp-burn-league",
       "name": "Burn League",
       "name_zh": "销毁联盟",
       "description": "Compete in token burning competitions where communities race to reduce supply. Climb leaderboards, earn burn badges, and prove your commitment to deflation.",
@@ -317,7 +317,7 @@
       "permissions": { "payments": true }
     },
     {
-      "app_id": "miniapp-doomsdayclock",
+      "app_id": "miniapp-doomsday-clock",
       "name": "Doomsday Clock",
       "name_zh": "末日时钟",
       "description": "A community-controlled countdown that resets when people contribute. If it hits zero, locked funds redistribute. Keep the clock alive or watch it all burn.",
@@ -341,7 +341,7 @@
       "permissions": { "governance": true }
     },
     {
-      "app_id": "miniapp-govmerc",
+      "app_id": "miniapp-gov-merc",
       "name": "Gov Merc",
       "name_zh": "治理雇佣兵",
       "description": "Hire governance mercenaries to vote on your behalf or sell your voting power to the highest bidder. A marketplace for delegation and influence in the DAO ecosystem.",
@@ -426,12 +426,24 @@
       "app_id": "miniapp-neo-treasury",
       "name": "Neo Treasury",
       "name_zh": "Neo 国库",
-      "description": "Track Neo Foundation and Ecosystem Fund balances in real-time. View NEO and GAS holdings across treasury wallets with live price data from CoinGecko.",
-      "description_zh": "实时追踪 Neo 基金会和生态基金余额。查看国库钱包中的 NEO 和 GAS 持有量及实时价格。",
+      "description": "Track Neo co-founders Da Hongfei and Erik Zhang's wallet holdings in real-time. View NEO and GAS balances across 44 treasury addresses with live price data.",
+      "description_zh": "实时追踪 Neo 联合创始人达鸿飞和张铮文的钱包持有量。查看 44 个国库地址的 NEO 和 GAS 余额及实时价格。",
       "icon": "/miniapps/neo-treasury/static/icon.svg",
       "entry_url": "/miniapps/neo-treasury/index.html",
       "status": "active",
       "permissions": { "datafeed": true }
+    },
+    {
+      "app_id": "miniapp-dailycheckin",
+      "name": "Daily Check-in",
+      "name_zh": "每日签到",
+      "description": "Check in daily to build your streak and earn GAS rewards. Complete 7 consecutive days for 1 GAS, then earn 1.5 GAS for every additional 7 days. Miss a day and start over!",
+      "description_zh": "每日签到累积连续天数赚取 GAS 奖励。连续7天获得1 GAS，之后每7天额外获得1.5 GAS。错过一天重新开始！",
+      "icon": "/miniapps/daily-checkin/static/icon.svg",
+      "entry_url": "/miniapps/daily-checkin/index.html",
+      "status": "active",
+      "contract_hash": "0x5a3f580fc14cd5f4d7746306eec7e2b44727ae2c",
+      "permissions": { "payments": true }
     }
   ]
 }

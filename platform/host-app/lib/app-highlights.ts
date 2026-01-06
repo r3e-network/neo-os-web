@@ -48,7 +48,7 @@ const GAMING_HIGHLIGHTS: AppHighlightConfig[] = [
     ],
   },
   {
-    appId: "miniapp-neocrash",
+    appId: "miniapp-neo-crash",
     highlights: [
       { label: "Max Multi", value: "1000x", icon: "🚀" },
       { label: "Avg Crash", value: "2.1x", icon: "📈" },
@@ -91,14 +91,14 @@ const SOCIAL_HIGHLIGHTS: AppHighlightConfig[] = [
     ],
   },
   {
-    appId: "miniapp-devtipping",
+    appId: "miniapp-dev-tipping",
     highlights: [
       { label: "Tips", value: "3.2K", icon: "💸" },
       { label: "Devs", value: "456", icon: "👨‍💻" },
     ],
   },
   {
-    appId: "miniapp-timecapsule",
+    appId: "miniapp-time-capsule",
     highlights: [
       { label: "Capsules", value: "892", icon: "⏳" },
       { label: "Unlocked", value: "234", icon: "🔓" },
@@ -141,7 +141,7 @@ const NFT_HIGHLIGHTS: AppHighlightConfig[] = [
     ],
   },
   {
-    appId: "miniapp-gardenofneo",
+    appId: "miniapp-garden-of-neo",
     highlights: [
       { label: "Plants", value: "5.6K", icon: "🌱" },
       { label: "Gardeners", value: "890", icon: "🌸" },

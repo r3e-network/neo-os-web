@@ -18,35 +18,35 @@ export function HeroSection() {
 
             <div className="mx-auto max-w-7xl px-4 text-center">
                 <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-bold uppercase tracking-wider border border-emerald-500/20 mb-8 backdrop-blur-sm">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-neo text-black text-xs font-black uppercase tracking-widest border-2 border-black shadow-brutal-xs mb-10 rotate-[-1deg]">
+                        <div className="w-2.5 h-2.5 bg-black animate-pulse" />
                         {t("hero.badge")}
                     </div>
 
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white mb-8 tracking-tight leading-[1.1]">
+                    <h1 className="text-6xl md:text-8xl lg:text-9xl font-black text-black dark:text-white mb-10 tracking-tighter leading-[0.9] uppercase italic">
                         {t("hero.title")} <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-neo via-emerald-400 to-indigo-500">
+                        <span className="text-neo bg-black px-4 py-2 border-4 border-black inline-block mt-4 rotate-1 shadow-brutal-md">
                             {t("hero.titleHighlight")}
                         </span>
                     </h1>
 
-                    <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
+                    <p className="text-xl md:text-2xl text-black/60 dark:text-white/60 max-w-3xl mx-auto mb-16 leading-tight font-black uppercase tracking-tight">
                         {t("hero.subtitle")}
                     </p>
 
-                    <div className="flex flex-wrap items-center justify-center gap-5">
+                    <div className="flex flex-wrap items-center justify-center gap-8">
                         <Link href="#explore">
-                            <Button size="lg" className="bg-neo hover:bg-neo/90 text-dark-950 font-bold px-10 h-16 rounded-2xl shadow-2xl shadow-neo/30 transition-all hover:scale-105">
-                                {t("hero.exploreApps")} <Rocket className="ml-2" size={20} />
+                            <Button size="lg" className="bg-neo hover:bg-neo/90 text-black font-black px-12 h-20 rounded-none border-4 border-black shadow-brutal-lg transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-brutal-md text-xl uppercase italic">
+                                {t("hero.exploreApps")} <Rocket className="ml-3" size={24} strokeWidth={3} />
                             </Button>
                         </Link>
                         <Link href="/docs">
-                            <Button variant="outline" size="lg" className="border-gray-300 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm text-gray-900 dark:text-white font-bold px-10 h-16 rounded-2xl hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
-                                {t("hero.howItWorks")} <FileText className="ml-2" size={20} />
+                            <Button variant="outline" size="lg" className="border-4 border-black bg-white text-black font-black px-12 h-20 rounded-none shadow-brutal-lg hover:bg-gray-100 transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-brutal-md text-xl uppercase italic">
+                                {t("hero.howItWorks")} <FileText className="ml-3" size={24} strokeWidth={3} />
                             </Button>
                         </Link>
                     </div>

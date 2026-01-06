@@ -18,6 +18,7 @@ type EventListener struct {
 	client         *Client
 	contractHashes map[string]bool // Multiple contracts to monitor
 	handlers       map[string][]EventHandler
+	anyHandlers    []EventHandler
 	txHandlers     []TxHandler
 	pollInterval   time.Duration
 	lastBlock      uint64
@@ -128,9 +129,22 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 
 // On registers an event handler.
 func (l *EventListener) On(eventName string, handler EventHandler) {
+	if l == nil || handler == nil {
+		return
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.handlers[eventName] = append(l.handlers[eventName], handler)
+}
+
+// OnAny registers a handler for all contract events.
+func (l *EventListener) OnAny(handler EventHandler) {
+	if l == nil || handler == nil {
+		return
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.anyHandlers = append(l.anyHandlers, handler)
 }
 
 // OnTransaction registers a transaction-level handler.
@@ -313,10 +327,23 @@ func (l *EventListener) processTransaction(
 
 			// Call handlers
 			l.mu.RLock()
-			handlers := l.handlers[notif.EventName]
+			handlers := append([]EventHandler(nil), l.handlers[notif.EventName]...)
+			anyHandlers := append([]EventHandler(nil), l.anyHandlers...)
 			l.mu.RUnlock()
 
 			for _, handler := range handlers {
+				h := handler
+				l.runHandler(ctx, map[string]interface{}{
+					"event":     event.EventName,
+					"contract":  event.Contract,
+					"tx_hash":   event.TxHash,
+					"block_idx": event.BlockIndex,
+				}, "event handler failed", func() error {
+					return h(event)
+				})
+			}
+
+			for _, handler := range anyHandlers {
 				h := handler
 				l.runHandler(ctx, map[string]interface{}{
 					"event":     event.EventName,

@@ -81,7 +81,7 @@ export default function EnhancedStatsPage() {
   // Use real data or fallback to 0. Do NOT use displayedTxCount for fake increments anymore.
   const totalTransactions = stats?.totalTransactions || 0;
   const totalVolume = stats?.totalVolume || "0";
-  const activeApps = stats?.activeApps || 62;
+  const activeApps = stats?.activeApps || 0;
   const topApps = stats?.topApps || [];
   const mauHistory = stats?.mauHistory || [];
 
@@ -187,9 +187,7 @@ export default function EnhancedStatsPage() {
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">
-                  {t("statsPage.noData")}
-                </div>
+                <div className="flex items-center justify-center h-full text-slate-500">{t("statsPage.noData")}</div>
               )}
             </CardContent>
           </Card>

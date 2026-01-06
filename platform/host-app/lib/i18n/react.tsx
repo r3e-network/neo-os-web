@@ -12,20 +12,10 @@ import zhCommon from "./locales/zh/common.json";
 import zhHost from "./locales/zh/host.json";
 import zhAdmin from "./locales/zh/admin.json";
 import zhMiniapp from "./locales/zh/miniapp.json";
-import jaCommon from "./locales/ja/common.json";
-import jaHost from "./locales/ja/host.json";
-import jaAdmin from "./locales/ja/admin.json";
-import jaMiniapp from "./locales/ja/miniapp.json";
-import koCommon from "./locales/ko/common.json";
-import koHost from "./locales/ko/host.json";
-import koAdmin from "./locales/ko/admin.json";
-import koMiniapp from "./locales/ko/miniapp.json";
 
 const translations = {
   en: { common: enCommon, host: enHost, admin: enAdmin, miniapp: enMiniapp },
   zh: { common: zhCommon, host: zhHost, admin: zhAdmin, miniapp: zhMiniapp },
-  ja: { common: jaCommon, host: jaHost, admin: jaAdmin, miniapp: jaMiniapp },
-  ko: { common: koCommon, host: koHost, admin: koAdmin, miniapp: koMiniapp },
 };
 
 type TranslationNamespace = "common" | "host" | "admin" | "miniapp";
@@ -95,7 +85,7 @@ export function useI18n() {
   if (!context) {
     return {
       locale: defaultLocale,
-      setLocale: () => { },
+      setLocale: () => {},
       t: defaultT,
     };
   }
@@ -104,6 +94,9 @@ export function useI18n() {
 
 export function useTranslation(ns: TranslationNamespace = "common") {
   const { t, locale, setLocale } = useI18n();
-  const translate = useCallback((key: string, options?: Record<string, string | number>) => t(key, ns, options), [t, ns]);
+  const translate = useCallback(
+    (key: string, options?: Record<string, string | number>) => t(key, ns, options),
+    [t, ns],
+  );
   return { t: translate, locale, setLocale };
 }

@@ -5,6 +5,8 @@
 /** @typedef {Object} MiniAppSDKConfig
  * @property {string} [baseUrl]
  * @property {string} [appId]
+ * @property {string|null} [contractHash]
+ * @property {"testnet"|"mainnet"} [network]
  * @property {() => Promise<string|undefined>} [getAuthToken]
  * @property {() => Promise<string|undefined>} [getAPIKey]
  */

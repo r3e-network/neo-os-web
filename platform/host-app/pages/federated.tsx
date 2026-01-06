@@ -30,7 +30,11 @@ export default function FederatedMiniApp() {
               : [];
         const info = coerceMiniAppInfo(list[0]);
         if (!mounted) return;
-        installMiniAppSDK({ appId: info?.app_id ?? appId, permissions: info?.permissions });
+        installMiniAppSDK({
+          appId: info?.app_id ?? appId,
+          contractHash: info?.contract_hash ?? null,
+          permissions: info?.permissions,
+        });
       } catch {
         if (!mounted) return;
         installMiniAppSDK({ appId });

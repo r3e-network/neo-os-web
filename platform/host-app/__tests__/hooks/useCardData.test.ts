@@ -39,7 +39,7 @@ describe("getCardData", () => {
   });
 
   it("returns card data for crash game app", () => {
-    const data = getCardData("miniapp-neocrash");
+    const data = getCardData("miniapp-neo-crash");
     expect(data).toBeDefined();
     expect(data?.type).toBe("live_multiplier");
   });
@@ -51,7 +51,7 @@ describe("getCardDataBatch", () => {
   });
 
   it("returns data for multiple apps", () => {
-    const result = getCardDataBatch(["miniapp-lottery", "miniapp-neocrash"]);
+    const result = getCardDataBatch(["miniapp-lottery", "miniapp-neo-crash"]);
     expect(Object.keys(result).length).toBe(2);
   });
 
@@ -84,7 +84,7 @@ describe("useCardData", () => {
   });
 
   it("fetches multiplier data for crash app", async () => {
-    const { result } = renderHook(() => useCardData("miniapp-neocrash"));
+    const { result } = renderHook(() => useCardData("miniapp-neo-crash"));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

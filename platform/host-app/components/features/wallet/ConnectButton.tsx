@@ -32,8 +32,8 @@ export function ConnectButton() {
 
     return (
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-4 py-2 border border-gray-200 dark:border-gray-700">
-          <div className={`h-2 w-2 rounded-full ${isSocial ? "bg-blue-500" : "bg-green-500"}`} />
+        <div className="flex items-center gap-2 bg-white dark:bg-black px-4 py-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+          <div className={`h-2 w-2 rounded-full ${isSocial ? "bg-blue-500" : "bg-[#00E599]"}`} />
           <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {address.slice(0, 6)}...{address.slice(-4)}
           </span>
@@ -63,9 +63,10 @@ export function ConnectButton() {
       <Button
         onClick={() => !isSocialAuthActive && setShowMenu(!showMenu)}
         disabled={loading || isSocialAuthActive}
-        className={`${
-          isSocialAuthActive ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
-        } text-white font-semibold px-6 py-2 transition-all`}
+        className={`${isSocialAuthActive
+            ? "bg-gray-400 cursor-not-allowed border-2 border-transparent"
+            : "bg-[#00E599] text-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          } font-bold px-6 py-2 transition-all rounded-none uppercase tracking-wide`}
       >
         {loading ? t("wallet.connecting") : isSocialAuthActive ? t("wallet.socialLinked") : t("wallet.connect")}
       </Button>

@@ -139,7 +139,7 @@ namespace NeoMiniAppPlatform.Contracts
             return tableId;
         }
 
-        public static BigInteger JoinTable(BigInteger tableId, UInt160 player)
+        public static BigInteger JoinTable(BigInteger tableId, UInt160 player, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
@@ -148,6 +148,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(table.Creator != null, "table not found");
             ExecutionEngine.Assert(table.Active, "table inactive");
             ExecutionEngine.Assert(table.PlayerCount < MAX_PLAYERS, "table full");
+
+            ValidatePaymentReceipt(APP_ID, player, table.BuyIn, receiptId);
 
             BigInteger seat = table.PlayerCount + 1;
             table.PlayerCount = seat;
@@ -264,17 +266,11 @@ namespace NeoMiniAppPlatform.Contracts
                 object[] handResult = (object[])StdLib.Deserialize(result);
                 hand.Winner = (UInt160)handResult[0];
                 hand.Pot = (BigInteger)handResult[1];
-
-                // SECURITY FIX: Actually transfer GAS pot to winner
-                if (hand.Winner != UInt160.Zero && hand.Pot > 0)
-                {
-                    bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, hand.Winner, hand.Pot);
-                    ExecutionEngine.Assert(transferred, "pot transfer failed");
-                }
             }
 
             StoreHand(handId, hand);
 
+            // Payout is handled off-chain using PaymentHub receipts.
             OnHandResult(hand.TableId, handId, hand.Winner, hand.Pot);
         }
 

@@ -653,6 +653,7 @@ function ServiceDetail({ id, t }: { id: string; t: any }) {
   const subtitle = t(`docs.${id}.subtitle`, { defaultValue: "" });
   const overview = t(`docs.${id}.overview`, { defaultValue: "" });
   const features = t(`docs.${id}.features`, { returnObjects: true, defaultValue: [] });
+  const parameters = t(`docs.${id}.parameters`, { returnObjects: true, defaultValue: [] });
   const codeExample = t(`docs.${id}.codeExample`, { defaultValue: "" });
   const pricing = t(`docs.${id}.pricing`, { defaultValue: "" });
 
@@ -677,6 +678,33 @@ function ServiceDetail({ id, t }: { id: string; t: any }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Parameters Table */}
+      {Array.isArray(parameters) && parameters.length > 0 && (
+        <div className="my-10">
+          <h2 className="text-2xl font-bold mb-6">Parameters</h2>
+          <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-white/5 not-prose">
+            <table className="w-full text-left border-collapse bg-white dark:bg-dark-900/20">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.name")}</th>
+                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.type")}</th>
+                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.description")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parameters.map((param: any, idx: number) => (
+                  <tr key={idx} className="border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                    <td className="py-3 px-4 text-sm font-mono text-neo">{param.name}</td>
+                    <td className="py-3 px-4 text-xs text-slate-500 font-mono">{param.type}</td>
+                    <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">{param.desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -747,28 +775,55 @@ function APIReferenceDetail({ id, t }: { id: string; t: any }) {
             <p className="text-slate-400 text-sm">{t("apiReference.restApi.authHeader")}</p>
           </div>
 
-          <h3 className="text-xl font-bold mb-4">Common Headers</h3>
+          <h3 className="text-xl font-bold mb-4">{t("apiReference.restApi.commonHeaders.title", { defaultValue: "Common Headers" })}</h3>
           <ComparisonTable
-            headers={["Header", "Required", "Description"]}
+            headers={[
+              t("docs.tableHeaders.header", { defaultValue: "Header" }),
+              t("docs.tableHeaders.required", { defaultValue: "Required" }),
+              t("docs.tableHeaders.description", { defaultValue: "Description" })
+            ]}
             rows={[
-              ["Authorization", "Yes", "Bearer <API_KEY>"],
-              ["Content-Type", "Yes", "application/json"],
-              ["X-Neo-Network", "No", "testnet | mainnet (default: mainnet)"]
+              ["Authorization", "Yes", t("apiReference.restApi.commonHeaders.auth")],
+              ["Content-Type", "Yes", t("apiReference.restApi.commonHeaders.contentType", { defaultValue: "application/json" })],
+              ["X-Neo-Network", "No", t("apiReference.restApi.commonHeaders.networkDesc")]
             ]}
           />
 
           <h2 className="text-2xl font-bold mt-12 mb-6">Endpoints</h2>
-          <div className="space-y-4 not-prose">
-            {Object.entries(t("apiReference.restApi.endpoints", { returnObjects: true }) as Record<string, string>).map(
-              ([k, v]) => (
-                <div
-                  key={k}
-                  className="p-4 rounded-xl bg-gray-50 dark:bg-dark-900/50 border border-gray-100 dark:border-white/5"
-                >
-                  <code className="text-neo text-sm">{v}</code>
-                </div>
-              ),
-            )}
+          <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-white/5 not-prose">
+            <table className="w-full text-left border-collapse bg-white dark:bg-dark-900/20">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    {t("docs.tableHeaders.method", { defaultValue: "Method" })}
+                  </th>
+                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    {t("docs.tableHeaders.endpoint", { defaultValue: "Endpoint" })}
+                  </th>
+                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    {t("docs.tableHeaders.description", { defaultValue: "Description" })}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(t("apiReference.restApi.endpoints", { returnObjects: true }) as Record<string, string>).map(
+                  ([k, v], idx) => {
+                    const match = v.match(/^(\w+)\s+([^\s]+)\s+-\s+(.+)$/);
+                    const method = match ? match[1] : "";
+                    const url = match ? match[2] : v;
+                    const desc = match ? match[3] : "";
+
+                    return (
+                      <tr key={k} className="border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                        <td className="py-3 px-4 text-sm font-mono font-bold text-neo">{method}</td>
+                        <td className="py-3 px-4 text-sm font-mono text-slate-600 dark:text-slate-300">{url}</td>
+                        <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">{desc}</td>
+                      </tr>
+                    );
+                  }
+                )}
+              </tbody>
+            </table>
           </div>
         </>
       )}
@@ -799,7 +854,7 @@ function APIReferenceDetail({ id, t }: { id: string; t: any }) {
 
       {id === "limits" && (
         <ComparisonTable
-          headers={["Tier", "Limit"]}
+          headers={[t("docs.tableHeaders.tier", { defaultValue: "Tier" }), t("docs.tableHeaders.limit", { defaultValue: "Limit" })]}
           rows={Object.entries(t("apiReference.limits.tiers", { returnObjects: true }) as Record<string, string>)}
         />
       )}
@@ -864,9 +919,9 @@ function SDKDetail({ id, t }: { id: string; t: any }) {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/5">
-                  <th className="py-3 px-4 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Method</th>
-                  <th className="py-3 px-4 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Parameters</th>
-                  <th className="py-3 px-4 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Returns</th>
+                  <th className="py-3 px-4 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.method")}</th>
+                  <th className="py-3 px-4 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.parameters")}</th>
+                  <th className="py-3 px-4 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.returns")}</th>
                 </tr>
               </thead>
               <tbody>

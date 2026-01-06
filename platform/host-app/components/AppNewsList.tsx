@@ -8,24 +8,11 @@ type Props = {
 };
 
 export function AppNewsList({ notifications, loading }: Props) {
-  if (loading) {
-    return (
-      <div style={containerStyle}>
-        <p style={loadingTextStyle}>Loading notifications...</p>
-      </div>
-    );
-  }
-
-  if (notifications.length === 0) {
-    return (
-      <div style={containerStyle}>
-        <p style={emptyTextStyle}>No notifications yet</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8 text-center text-xs font-black uppercase opacity-50 bg-gray-50 border-2 border-black animate-pulse">Loading updates...</div>;
+  if (notifications.length === 0) return <div className="p-8 text-center text-xs font-black uppercase opacity-50 border-2 border-black border-dashed">No recent updates</div>;
 
   return (
-    <div style={containerStyle}>
+    <div className="flex flex-col gap-4">
       {notifications.map((notification) => (
         <NotificationItem key={notification.id} notification={notification} />
       ))}
@@ -36,51 +23,40 @@ export function AppNewsList({ notifications, loading }: Props) {
 function NotificationItem({ notification }: { notification: MiniAppNotification }) {
   const getTypeIcon = (type: string) => {
     const icons: Record<string, string> = {
-      achievement: "🏆",
-      update: "🔔",
-      warning: "⚠️",
-      info: "ℹ️",
-      success: "✅",
-      event: "📅",
-      announcement: "📣",
-      alert: "⚠️",
-      milestone: "🏁",
-      promo: "🎁",
+      achievement: "🏆", update: "🔔", warning: "⚠️", info: "ℹ️",
+      success: "✅", event: "📅", announcement: "📣", alert: "⚠️"
     };
     return icons[type.toLowerCase()] || "📢";
   };
 
   const getTimeAgo = (timestamp: string) => {
-    const now = new Date();
-    const created = new Date(timestamp);
-    const diffMs = now.getTime() - created.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h`;
+    return `${Math.floor(hours / 24)}d`;
   };
 
   return (
-    <div style={itemStyle}>
-      <div style={iconContainerStyle}>{getTypeIcon(notification.notification_type)}</div>
-      <div style={contentStyle}>
-        <div style={headerStyle}>
-          <h4 style={titleStyle}>{notification.title}</h4>
-          <span style={timeStyle}>{getTimeAgo(notification.created_at)}</span>
+    <div className="flex gap-4 p-4 bg-white dark:bg-black border-4 border-black dark:border-white shadow-brutal-sm group hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
+      <div className="w-12 h-12 flex items-center justify-center bg-neo border-2 border-black shadow-brutal-xs flex-shrink-0 text-xl rotate-3">
+        {getTypeIcon(notification.notification_type)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-start mb-1">
+          <h4 className="font-black uppercase text-sm tracking-tight truncate pr-4">{notification.title}</h4>
+          <span className="text-[10px] font-black uppercase opacity-50">{getTimeAgo(notification.created_at)}</span>
         </div>
-        <p style={descriptionStyle}>{notification.content}</p>
+        <p className="text-xs font-bold text-gray-600 dark:text-gray-400 leading-normal mb-2">{notification.content}</p>
         {notification.tx_hash && (
           <a
             href={`https://dora.coz.io/transaction/neo3/${notification.tx_hash}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={txLinkStyle}
+            className="inline-block text-[10px] font-black uppercase bg-black text-neo px-2 py-1 border border-black hover:bg-neo hover:text-black transition-colors"
           >
-            View Transaction →
+            Proof of Work →
           </a>
         )}
       </div>

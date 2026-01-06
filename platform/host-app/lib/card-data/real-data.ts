@@ -18,7 +18,7 @@ const APP_CONTRACTS: Record<string, string> = {
   "miniapp-lottery": CONTRACTS.lottery,
   "miniapp-coinflip": CONTRACTS.coinFlip,
   "miniapp-dicegame": CONTRACTS.diceGame,
-  "miniapp-neocrash": CONTRACTS.neoCrash,
+  "miniapp-neo-crash": CONTRACTS.neoCrash,
   "miniapp-canvas": CONTRACTS.canvas,
 };
 

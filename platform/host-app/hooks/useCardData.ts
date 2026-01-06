@@ -10,11 +10,11 @@ import { getCountdownData, getMultiplierData, getStatsData, getVotingData } from
 const APP_CARD_TYPES: Record<string, CardDisplayType> = {
   // Countdown type (lottery, auctions)
   "miniapp-lottery": "live_countdown",
-  "miniapp-doomsdayclock": "live_countdown",
-  "miniapp-timecapsule": "live_countdown",
+  "miniapp-doomsday-clock": "live_countdown",
+  "miniapp-time-capsule": "live_countdown",
 
   // Multiplier type (crash games)
-  "miniapp-neocrash": "live_multiplier",
+  "miniapp-neo-crash": "live_multiplier",
 
   // Canvas type
   "miniapp-canvas": "live_canvas",
@@ -22,11 +22,11 @@ const APP_CARD_TYPES: Record<string, CardDisplayType> = {
 
   // Stats type (red envelope, tipping)
   "miniapp-redenvelope": "live_stats",
-  "miniapp-devtipping": "live_stats",
+  "miniapp-dev-tipping": "live_stats",
 
   // Voting type (governance)
   "miniapp-govbooster": "live_voting",
-  "miniapp-govmerc": "live_voting",
+  "miniapp-gov-merc": "live_voting",
   "miniapp-masqueradedao": "live_voting",
 
   // Price type (trading, DeFi)

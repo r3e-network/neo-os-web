@@ -1,12 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-// OAuth configuration (use environment variables in production)
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "demo-client-id";
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const REDIRECT_URI = process.env.NEXTAUTH_URL
   ? `${process.env.NEXTAUTH_URL}/api/oauth/google/callback`
   : "http://localhost:3000/api/oauth/google/callback";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Require OAuth credentials
+  if (!GOOGLE_CLIENT_ID) {
+    return res.status(503).json({ error: "Google OAuth not configured" });
+  }
+
   const scope = encodeURIComponent("email profile");
   const state = generateState();
 

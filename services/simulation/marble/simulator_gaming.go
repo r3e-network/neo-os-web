@@ -507,7 +507,7 @@ func (s *MiniAppSimulator) SimulateFogPuzzle(ctx context.Context) error {
 
 // SimulateCryptoRiddle simulates password red envelope.
 func (s *MiniAppSimulator) SimulateCryptoRiddle(ctx context.Context) error {
-	appID := "miniapp-crypto-riddle"
+	appID := "miniapp-cryptoriddle"
 	amount := int64(10000000)
 
 	memo := fmt.Sprintf("riddle:solve:%d", time.Now().UnixNano())

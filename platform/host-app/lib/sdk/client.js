@@ -3,12 +3,6 @@
  * Implements bridge methods using NeoLine N3 provider
  */
 
-// Simple cache for token prices to avoid rate limits
-const priceCache = {
-  GAS: { price: "0", timestamp: 0 },
-  NEO: { price: "0", timestamp: 0 }
-};
-
 async function getNeoLine() {
   if (typeof window === "undefined") return null;
   // Retry mechanism for wallet injection
@@ -25,59 +19,74 @@ async function getNeoLine() {
   return new window.NEOLineN3.Init();
 }
 
-/**
- * Fetch real token price from public API
- */
-async function fetchTokenPrice(symbol) {
-  const s = symbol.toUpperCase();
-  const now = Date.now();
+const intentCache = new Map();
+const RPC_ENDPOINTS = {
+  testnet: "https://testnet1.neo.coz.io:443",
+  mainnet: "https://mainnet1.neo.coz.io:443",
+};
+let rpcRequestId = 0;
 
-  // Return cached if fresh (1 minute)
-  if (priceCache[s] && (now - priceCache[s].timestamp < 60000)) {
-    return { price: priceCache[s].price, symbol: s };
-  }
-
-  try {
-    // Mapping for CoinGecko API
-    const ids = {
-      'GAS': 'gas',
-      'NEO': 'neo'
-    };
-
-    if (ids[s]) {
-      const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids[s]}&vs_currencies=usd`);
-      if (response.ok) {
-        const data = await response.json();
-        const price = data[ids[s]]?.usd;
-        if (price) {
-          const priceStr = String(price);
-          priceCache[s] = { price: priceStr, timestamp: now };
-          return { price: priceStr, symbol: s };
-        }
-      }
-    }
-  } catch (e) {
-    console.warn("Failed to fetch price:", e);
-  }
-
-  // Fallback to cache even if expired, or default "0"
-  return { price: priceCache[s]?.price || "0", symbol: s };
+function resolveNetwork(config) {
+  return config?.network === "mainnet" ? "mainnet" : "testnet";
 }
 
-/**
- * Generate cryptographically strong random values
- */
-function generateSecureRandomness() {
-  const array = new Uint8Array(32);
-  if (window.crypto && window.crypto.getRandomValues) {
-    window.crypto.getRandomValues(array);
-  } else {
-    // Fallback for older environments (unlikely in modern web)
-    for (let i = 0; i < 32; i++) {
-      array[i] = Math.floor(Math.random() * 256);
+async function rpcCall(method, params, network) {
+  const endpoint = RPC_ENDPOINTS[network] || RPC_ENDPOINTS.testnet;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: ++rpcRequestId,
+      method,
+      params,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`RPC request failed: ${response.status}`);
+  }
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(`RPC error: ${data.error.message}`);
+  }
+  return data.result;
+}
+
+async function getApplicationLog(txid, network) {
+  return rpcCall("getapplicationlog", [txid], network);
+}
+
+function extractReceiptIdFromLog(log) {
+  const execution = log?.executions?.[0];
+  const notifications = execution?.notifications || [];
+  for (const notification of notifications) {
+    const eventName = notification?.eventname || notification?.eventName || notification?.name;
+    if (eventName !== "PaymentReceived") continue;
+    const state = notification?.state;
+    const values = Array.isArray(state?.value) ? state.value : Array.isArray(state) ? state : [];
+    const first = values[0];
+    if (first?.type === "Integer" && first?.value !== undefined) {
+      return String(first.value);
+    }
+    if (first?.value !== undefined) {
+      return String(first.value);
     }
   }
-  return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  return null;
+}
+
+async function waitForReceipt(txid, network, attempts = 10, delayMs = 1200) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const log = await getApplicationLog(txid, network);
+      const receiptId = extractReceiptIdFromLog(log);
+      if (receiptId) return receiptId;
+    } catch (e) {
+      if (i === attempts - 1) throw e;
+    }
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return null;
 }
 
 /**
@@ -88,12 +97,90 @@ function generateSecureRandomness() {
 export function createMiniAppSDK(config) {
   const baseUrl = config?.edgeBaseUrl || config?.baseUrl || "/api/rpc";
   const appId = config?.appId || "";
+  const contractHash = config?.contractHash || null;
+  const network = resolveNetwork(config);
+
+  async function resolveAuthHeaders() {
+    const headers = {};
+    if (config?.getAuthToken) {
+      const token = await config.getAuthToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+    }
+    if (!headers.Authorization && config?.getAPIKey) {
+      const apiKey = await config.getAPIKey();
+      if (apiKey) headers["X-API-Key"] = apiKey;
+    }
+    return headers;
+  }
+
+  async function callEdge(fn, { method = "POST", params = null, query = null } = {}) {
+    const base = baseUrl.replace(/\/$/, "");
+    const url = new URL(`${base}/${fn}`, window.location.origin);
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        url.searchParams.set(key, String(value));
+      });
+    }
+
+    const headers = {
+      "Content-Type": "application/json",
+      ...(await resolveAuthHeaders()),
+    };
+
+    const res = await fetch(url.toString(), {
+      method,
+      headers,
+      body: params && method !== "GET" ? JSON.stringify(params) : undefined,
+      credentials: "include",
+    });
+
+    const contentType = res.headers.get("content-type") || "";
+    const payload = contentType.includes("application/json") ? await res.json() : await res.text();
+    if (!res.ok) {
+      const message = payload?.error?.message || payload?.message || payload || "Request failed";
+      throw new Error(message);
+    }
+    return payload;
+  }
+
+  async function invokeWithWallet(invocation) {
+    const n3 = await getNeoLine();
+    if (!n3) throw new Error("Wallet provider not connected");
+    return n3.invoke({
+      scriptHash: invocation.contract_hash,
+      operation: invocation.method,
+      args: invocation.params || [],
+      broadcastOverride: false,
+    });
+  }
+
+  async function payGasWithReceipt(targetAppId, amount, memo) {
+    const response = await callEdge("pay-gas", {
+      params: {
+        app_id: targetAppId,
+        amount_gas: amount,
+        memo: memo || undefined,
+      },
+    });
+    if (!(response?.request_id && response?.invocation)) {
+      return response;
+    }
+
+    intentCache.set(response.request_id, response.invocation);
+    const tx = await invokeWithWallet(response.invocation);
+    const txid = tx?.txid || tx?.txHash || null;
+    if (!txid) return response;
+
+    const receiptId = await waitForReceipt(txid, network).catch(() => null);
+    return { ...response, txid, receipt_id: receiptId };
+  }
 
   return {
     // Generic invoke method for bridge calls
     invoke: async (method, params) => {
       // Validate inputs
-      if (!method || typeof method !== 'string') {
+      if (!method || typeof method !== "string") {
         throw new Error("Invalid method");
       }
 
@@ -116,12 +203,18 @@ export function createMiniAppSDK(config) {
         }
       }
 
-      // Pass through other methods if needed or return null
-      return null;
+      if (method === "invokeRead" && params) {
+        const contract = params.contract || contractHash;
+        if (!contract) throw new Error("contract hash required");
+        return rpcCall("invokefunction", [contract, params.method, params.args || []], params.network || network);
+      }
+
+      throw new Error(`Unsupported invoke method: ${method}`);
     },
 
     getConfig: () => ({
       appId,
+      contractHash,
       debug: false,
     }),
 
@@ -140,125 +233,124 @@ export function createMiniAppSDK(config) {
         return address;
       },
       invokeIntent: async (requestId) => {
-        const n3 = await getNeoLine();
-        if (!n3) throw new Error("Wallet provider not connected");
-
-        // Intent handling would typically involve routing to specific wallet flows
-        // Here we acknowledge the intent and return a transaction hash placeholder
-        // or trigger a generic sign if applicable.
-        // For functionality correctness, we ensure connectivity.
-        await n3.getAccount();
-
-        return {
-          txHash: generateSecureRandomness().substring(0, 64),
-          status: "success",
-          attestation: `TEE_ATTEST_INTENT_${generateSecureRandomness().substring(0, 16)}`
-        };
+        const invocation = intentCache.get(requestId);
+        if (!invocation) throw new Error("Unknown intent request_id");
+        return invokeWithWallet(invocation);
       },
     },
 
     payments: {
       payGAS: async (targetAppId, amount, memo) => {
-        const n3 = await getNeoLine();
-        if (!n3) throw new Error("Wallet provider not connected");
-
-        let toAddress = targetAppId;
-        const account = await n3.getAccount();
-        const selfAddress = account.address;
-
-        // PRODUCTION SAFEGUARD:
-        // MiniApps use abstract IDs (e.g., 'miniapp-dicegame').
-        // Without an on-chain Registry Contract deployed, we cannot resolve these to ScriptHashes.
-        // To ensure the User Experience is functional (the Payment Flow works),
-        // we detect these IDs and defaults to a self-transfer loopback.
-        // This validates:
-        // 1. The Wallet Connection works
-        // 2. The User has funds
-        // 3. The Transaction is signed and broadcasted
-        // 4. The App receives a confirmation
-        if (toAddress && !toAddress.startsWith("N") && toAddress.startsWith("miniapp-")) {
-          console.info(`[NeoHub] Dev Mode: resolving ${toAddress} to self`);
-          toAddress = selfAddress;
-        }
-
-        try {
-          const result = await n3.send({
-            fromAddress: selfAddress,
-            toAddress: toAddress,
-            asset: "GAS",
-            amount: amount,
-            fee: "0",
-            broadcastOverride: false
-          });
-          // Attach hardware attestation for payment channel
-          return {
-            ...result,
-            attestation: `TEE_ATTEST_PAY_${generateSecureRandomness().substring(0, 16)}`
-          };
-        } catch (e) {
-          // Properly propagate wallet errors (User Rejected, Insufficient Funds, etc.)
-          throw e;
-        }
+        return payGasWithReceipt(targetAppId, amount, memo);
+      },
+      payGASAndInvoke: async (targetAppId, amount, memo) => {
+        return payGasWithReceipt(targetAppId, amount, memo);
       },
     },
 
     governance: {
-      vote: async (candidateAddress, amount) => {
-        const n3 = await getNeoLine();
-        if (!n3) throw new Error("Wallet provider not connected");
+      vote: async (targetAppId, proposalId, neoAmount, support = true) => {
+        const response = await callEdge("vote-neo", {
+          params: {
+            app_id: targetAppId,
+            proposal_id: proposalId,
+            neo_amount: neoAmount,
+            support,
+          },
+        });
+        if (response?.request_id && response?.invocation) {
+          intentCache.set(response.request_id, response.invocation);
+        }
+        return response;
+      },
+      voteAndInvoke: async (targetAppId, proposalId, neoAmount, support = true) => {
+        const response = await callEdge("vote-neo", {
+          params: {
+            app_id: targetAppId,
+            proposal_id: proposalId,
+            neo_amount: neoAmount,
+            support,
+          },
+        });
+        if (response?.request_id && response?.invocation) {
+          intentCache.set(response.request_id, response.invocation);
+          const tx = await invokeWithWallet(response.invocation);
+          return { ...response, txid: tx?.txid || tx?.txHash || null };
+        }
+        return response;
+      },
+      getCandidates: async () => {
+        const candidates = await rpcCall("getcandidates", [], network);
+        const committee = await rpcCall("getcommittee", [], network).catch(() => []);
+        const blockHeight = await rpcCall("getblockcount", [], network).catch(() => 0);
+        const committeeSet = new Set(Array.isArray(committee) ? committee : []);
+        const list = Array.isArray(candidates)
+          ? candidates.map((row) => ({
+              address: row?.candidate || row?.address || "",
+              publicKey: row?.publickey || row?.publicKey || row?.candidate || "",
+              name: row?.name || undefined,
+              votes: String(row?.votes ?? "0"),
+              active: committeeSet.has(row?.candidate || row?.address || ""),
+            }))
+          : [];
+        const totalVotes = list.reduce((sum, row) => sum + (Number(row.votes) || 0), 0);
 
-        // Perform a real invocation check 
-        // We act like a vote by verifying account access
-        await n3.getAccount();
-
-        // Return a structural valid response with TEE attestation
         return {
-          txHash: generateSecureRandomness().substring(0, 64),
-          block: Date.now(),
-          status: "confirmed",
-          attestation: `TEE_ATTEST_GOV_${generateSecureRandomness().substring(0, 16)}`
+          candidates: list,
+          totalVotes: String(totalVotes),
+          blockHeight: typeof blockHeight === "number" ? blockHeight : 0,
         };
       },
     },
 
     rng: {
-      requestRandom: async () => {
-        // Generate Cryptographically Strong Pseudo-Randomness (CSPRNG)
-        // ensuring fairness for client-side execution in absence of Oracle node
-        const randomness = generateSecureRandomness();
-
-        return {
-          requestId: crypto.randomUUID ? crypto.randomUUID() : `req-${Date.now()}`,
-          randomness: randomness,
-          attestation: `TEE_ATTEST_RNG_${generateSecureRandomness().substring(0, 16)}`
-        };
+      requestRandom: async (targetAppId) => {
+        return callEdge("rng-request", {
+          params: { app_id: targetAppId },
+        });
       },
     },
 
     datafeed: {
       getPrice: async (symbol) => {
-        const result = await fetchTokenPrice(symbol);
-        return {
-          ...result,
-          attestation: `TEE_ATTEST_ORACLE_${generateSecureRandomness().substring(0, 16)}`
-        };
+        return callEdge("datafeed-price", {
+          method: "GET",
+          query: { symbol },
+        });
+      },
+      getPrices: async () => {
+        // Fetch NEO/GAS prices from global price API
+        const res = await fetch("/api/price");
+        if (!res.ok) throw new Error("Failed to fetch prices");
+        return res.json();
       },
     },
 
     stats: {
-      getMyUsage: async () => ({
-        // Return empty stats object structure
-        daily_txs: 0,
-        total_gas: "0"
-      }),
+      getMyUsage: async (targetAppId, date) => {
+        return callEdge("miniapp-usage", {
+          method: "GET",
+          query: { app_id: targetAppId || appId || undefined, date },
+        });
+      },
     },
 
     events: {
-      list: async () => ({ events: [] }),
+      list: async (params = {}) => {
+        return callEdge("events-list", {
+          method: "GET",
+          query: params,
+        });
+      },
     },
 
     transactions: {
-      list: async () => ({ transactions: [] }),
+      list: async (params = {}) => {
+        return callEdge("transactions-list", {
+          method: "GET",
+          query: params,
+        });
+      },
     },
   };
 }

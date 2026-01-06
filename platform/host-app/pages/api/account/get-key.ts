@@ -1,9 +1,11 @@
 /**
  * API: Get decrypted private key for signing
  * POST /api/account/get-key
+ * SECURITY: Requires Auth0 session and validates user owns the wallet
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
+import { getSession } from "@auth0/nextjs-auth0";
 import { decryptNeoAccount } from "@/lib/auth0/neo-account";
 import { supabase } from "@/lib/supabase";
 
@@ -13,10 +15,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // SECURITY: Validate Auth0 session
+    const session = await getSession(req, res);
+    if (!session?.user) {
+      return res.status(401).json({ error: "Unauthorized - Auth0 session required" });
+    }
+
+    const auth0Sub = session.user.sub;
     const { walletAddress, password } = req.body;
 
     if (!walletAddress || !password) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // SECURITY: Verify user owns this wallet via neo_accounts table
+    const { data: neoAccount, error: neoError } = await supabase
+      .from("neo_accounts")
+      .select("address")
+      .eq("auth0_sub", auth0Sub)
+      .eq("address", walletAddress)
+      .single();
+
+    if (neoError || !neoAccount) {
+      return res.status(403).json({ error: "Forbidden - wallet not owned by user" });
     }
 
     // Get encrypted key from database

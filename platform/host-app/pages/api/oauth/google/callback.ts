@@ -1,12 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "demo-client-id";
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "demo-secret";
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = process.env.NEXTAUTH_URL
   ? `${process.env.NEXTAUTH_URL}/api/oauth/google/callback`
   : "http://localhost:3000/api/oauth/google/callback";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Require OAuth credentials
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return sendError(res, "Google OAuth not configured");
+  }
+
   const { code, state, error } = req.query;
 
   if (error) {

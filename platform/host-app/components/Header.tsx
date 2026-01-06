@@ -1,6 +1,5 @@
 import React from "react";
 import { WalletState } from "./types";
-import { colors } from "./styles";
 
 type Props = {
   wallet: WalletState;
@@ -9,58 +8,21 @@ type Props = {
 
 export function Header({ wallet, onConnect }: Props) {
   return (
-    <header style={headerStyle}>
-      <div style={logoStyle}>
-        <div style={logoIcon}>N</div>
-        <span>Neo MiniApps</span>
+    <header className="sticky top-0 z-[100] flex justify-between items-center px-6 py-4 bg-white dark:bg-black border-b-4 border-black dark:border-white shadow-brutal-md">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-neo border-2 border-black flex items-center justify-center font-black text-white text-xl shadow-brutal-sm rotate-[-3deg]">
+          N
+        </div>
+        <span className="text-xl font-black uppercase tracking-tighter">
+          Neo <span className="text-neo">MiniApps</span>
+        </span>
       </div>
-      <button onClick={onConnect} style={walletBtn}>
+      <button
+        onClick={onConnect}
+        className="brutal-btn px-6 py-2"
+      >
         {wallet.connected ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}` : "Connect Wallet"}
       </button>
     </header>
   );
 }
-
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "16px 24px",
-  borderBottom: `1px solid ${colors.border}`,
-  background: "rgba(5,8,16,0.9)",
-  backdropFilter: "blur(20px)",
-  position: "sticky",
-  top: 0,
-  zIndex: 100,
-};
-
-const logoStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  fontSize: 20,
-  fontWeight: 700,
-  color: colors.text,
-};
-
-const logoIcon: React.CSSProperties = {
-  width: 36,
-  height: 36,
-  borderRadius: 10,
-  background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryDark})`,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontWeight: 800,
-  color: "#fff",
-};
-
-const walletBtn: React.CSSProperties = {
-  padding: "10px 20px",
-  borderRadius: 10,
-  border: "none",
-  background: colors.primary,
-  color: "#000",
-  fontWeight: 600,
-  cursor: "pointer",
-};

@@ -1,9 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { createClient } from "@supabase/supabase-js";
 
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "demo-client-id";
-const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "demo-secret";
+const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
+const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Require OAuth credentials
+  if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
+    return sendError(res, "GitHub OAuth not configured");
+  }
+
   const { code, state, error } = req.query;
 
   if (error) {
@@ -17,6 +25,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!code) {
     return sendError(res, "Missing authorization code");
+  }
+
+  // Get wallet address from cookie (set during OAuth initiation)
+  const walletAddress = req.cookies.oauth_wallet_address;
+  if (!walletAddress) {
+    return sendError(res, "Missing wallet address context");
   }
 
   try {
@@ -52,14 +66,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const emails = await emailRes.json();
     const primaryEmail = emails.find((e: { primary: boolean }) => e.primary)?.email;
 
-    return sendSuccess(res, {
-      provider: "github",
+    const accountData = {
+      provider: "github" as const,
       id: String(user.id),
       email: primaryEmail || user.email,
       name: user.name || user.login,
       avatar: user.avatar_url,
       linkedAt: new Date().toISOString(),
-    });
+    };
+
+    // Persist to database
+    await supabase.from("oauth_accounts").upsert(
+      {
+        wallet_address: walletAddress,
+        provider: "github",
+        provider_user_id: String(user.id),
+        email: accountData.email,
+        name: accountData.name,
+        avatar: accountData.avatar,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token || null,
+        linked_at: accountData.linkedAt,
+        last_used_at: new Date().toISOString(),
+      },
+      { onConflict: "wallet_address,provider" },
+    );
+
+    return sendSuccess(res, accountData);
   } catch (err) {
     return sendError(res, err instanceof Error ? err.message : "OAuth failed");
   }

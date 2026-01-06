@@ -7,6 +7,18 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { getNeoBurgerStats } from "../../../lib/neoburger";
+import miniappsData from "../../../data/miniapps.json";
+
+// Calculate total apps from miniapps.json
+function getTotalAppsCount(): number {
+  let count = 0;
+  for (const category of Object.values(miniappsData)) {
+    if (Array.isArray(category)) {
+      count += category.length;
+    }
+  }
+  return count;
+}
 
 interface PlatformStats {
   totalUsers: number;
@@ -56,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         totalVolume: platformData.total_volume_gas || "0",
         totalGasBurned: platformData.total_gas_burned || "0",
         stakingApr,
-        activeApps: platformData.active_apps || 0,
+        activeApps: getTotalAppsCount(),
         topApps: [],
         dataSource: "database",
       };
@@ -83,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           totalVolume: totals.volume.toFixed(2),
           totalGasBurned: "0",
           stakingApr,
-          activeApps: aggregateData.length,
+          activeApps: getTotalAppsCount(),
           topApps: [],
           dataSource: "miniapp_stats",
         };

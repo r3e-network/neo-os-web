@@ -86,7 +86,10 @@
     "socialLinked": "社交账号已关联",
     "selectWallet": "选择钱包",
     "insufficientBalance": "余额不足",
-    "pleaseConnect": "请连接钱包以继续"
+    "pleaseConnect": "请连接钱包以继续",
+    "connectRequired": "需要连接",
+    "connectDescription": "连接钱包或使用社交账号登录以继续。",
+    "loginWithSocial": "使用社交账号登录"
   },
   "errors": {
     "occurred": "发生错误",

@@ -11,15 +11,17 @@ export function NotificationCard({ notification }: Props) {
   const timeAgo = getTimeAgo(notification.created_at);
 
   return (
-    <div style={cardStyle}>
-      <div style={headerRow}>
-        <span style={typeTag}>
+    <div className="brutal-card p-4 bg-white dark:bg-black group hover:rotate-1 transition-transform">
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-brutal-blue text-white border border-black shadow-brutal-xs">
           {type.icon} {type.label}
         </span>
-        <span style={timeStyle}>{timeAgo}</span>
+        <span className="text-[10px] font-black uppercase opacity-40">{timeAgo}</span>
       </div>
-      <h4 style={titleStyle}>{notification.title}</h4>
-      <p style={contentStyle}>{notification.content}</p>
+      <h4 className="text-sm font-black uppercase mb-1 tracking-tight">{notification.title}</h4>
+      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+        {notification.content}
+      </p>
     </div>
   );
 }

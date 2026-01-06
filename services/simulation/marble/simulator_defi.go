@@ -94,7 +94,7 @@ func (s *MiniAppSimulator) SimulateSelfLoan(ctx context.Context) error {
 
 // SimulateUnbreakableVault simulates time-locked vault.
 func (s *MiniAppSimulator) SimulateUnbreakableVault(ctx context.Context) error {
-	appID := "miniapp-unbreakable-vault"
+	appID := "miniapp-unbreakablevault"
 	amount := int64(50000000)
 
 	memo := fmt.Sprintf("vault:lock:%d", time.Now().UnixNano())

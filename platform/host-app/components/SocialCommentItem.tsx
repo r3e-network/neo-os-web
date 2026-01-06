@@ -34,48 +34,52 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
   const maxDepth = 3;
 
   return (
-    <div className={`${depth > 0 ? "ml-6 border-l-2 border-gray-200 dark:border-gray-700 pl-4" : ""}`}>
-      <div className="py-3">
+    <div className={`${depth > 0 ? "ml-6 border-l-4 border-black dark:border-white pl-6 my-2" : ""}`}>
+      <div className="py-4 border-b-2 border-black/10 dark:border-white/10 group">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-3 mb-2">
           {comment.is_developer_reply && (
-            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded">
-              Developer
+            <span className="px-2 py-0.5 bg-neo text-black text-[10px] font-black uppercase border border-black shadow-brutal-xs rotate-[-2deg]">
+              Core Dev
             </span>
           )}
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="text-[10px] font-black uppercase opacity-40 tracking-widest">
             {new Date(comment.created_at).toLocaleDateString()}
           </span>
         </div>
 
         {/* Content */}
-        <p className="text-gray-800 dark:text-gray-200 mb-2">{comment.content}</p>
+        <p className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-3 leading-relaxed">{comment.content}</p>
 
         {/* Actions */}
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-6">
           <button
             onClick={() => onVote(comment.id, "upvote")}
-            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+            className="flex items-center gap-1.5 text-[11px] font-black uppercase text-gray-500 hover:text-neo transition-colors"
           >
-            ▲ {comment.upvotes}
+            <span className="bg-black text-white px-1 border border-black group-hover:bg-neo group-hover:text-black">▲</span> {comment.upvotes}
           </button>
           <button
             onClick={() => onVote(comment.id, "downvote")}
-            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+            className="flex items-center gap-1.5 text-[11px] font-black uppercase text-gray-500 hover:text-brutal-red transition-colors"
           >
-            ▼ {comment.downvotes}
+            <span className="bg-black text-white px-1 border border-black group-hover:bg-brutal-red group-hover:text-black">▼</span> {comment.downvotes}
           </button>
           {depth < maxDepth && (
             <button
               onClick={() => setShowReplyForm(!showReplyForm)}
-              className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+              className="text-[11px] font-black uppercase text-gray-500 hover:text-black dark:hover:text-white underline decoration-2 underline-offset-4"
             >
               Reply
             </button>
           )}
           {comment.reply_count > 0 && replies.length === 0 && (
-            <button onClick={handleLoadReplies} className="text-blue-600 dark:text-blue-400" disabled={loadingReplies}>
-              {loadingReplies ? "Loading..." : `${comment.reply_count} replies`}
+            <button
+              onClick={handleLoadReplies}
+              className="text-[11px] font-black uppercase text-neo bg-black px-2 py-0.5 border border-black hover:bg-neo hover:text-black transition-all"
+              disabled={loadingReplies}
+            >
+              {loadingReplies ? "Connecting..." : `${comment.reply_count} Nested Threads`}
             </button>
           )}
         </div>
@@ -83,43 +87,45 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
 
       {/* Reply Form */}
       {showReplyForm && (
-        <div className="ml-6 mb-3">
+        <div className="mt-4 mb-6 p-4 bg-brutal-yellow/10 border-4 border-black dark:border-white shadow-brutal-sm rotate-1">
           <textarea
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
-            placeholder="Write a reply..."
-            className="w-full border border-gray-300 dark:border-gray-600 rounded p-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            placeholder="Contribute to the consensus..."
+            className="w-full border-2 border-black dark:border-white p-3 text-sm font-bold bg-white dark:bg-black text-gray-900 dark:text-gray-100 placeholder:opacity-30"
             rows={2}
             maxLength={2000}
           />
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-3 mt-4">
             <button
               onClick={handleSubmitReply}
-              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+              className="px-4 py-2 bg-neo text-black border-2 border-black font-black uppercase text-xs shadow-brutal-xs hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
             >
-              Submit
+              Broadcast
             </button>
             <button
               onClick={() => setShowReplyForm(false)}
-              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-700 dark:text-gray-300"
+              className="px-4 py-2 bg-white text-black border-2 border-black font-black uppercase text-xs shadow-brutal-xs hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
             >
-              Cancel
+              Abort
             </button>
           </div>
         </div>
       )}
 
       {/* Nested Replies */}
-      {replies.map((reply) => (
-        <CommentItem
-          key={reply.id}
-          comment={reply}
-          onVote={onVote}
-          onReply={onReply}
-          onLoadReplies={onLoadReplies}
-          depth={depth + 1}
-        />
-      ))}
+      <div className="mt-2">
+        {replies.map((reply) => (
+          <CommentItem
+            key={reply.id}
+            comment={reply}
+            onVote={onVote}
+            onReply={onReply}
+            onLoadReplies={onLoadReplies}
+            depth={depth + 1}
+          />
+        ))}
+      </div>
     </div>
   );
 };

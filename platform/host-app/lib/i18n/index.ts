@@ -3,15 +3,13 @@
  * Supports both React (Next.js) and vanilla JS applications
  */
 
-export type Locale = "en" | "zh" | "ja" | "ko";
+export type Locale = "en" | "zh";
 export const defaultLocale: Locale = "en";
-export const locales: Locale[] = ["en", "zh", "ja", "ko"];
+export const locales: Locale[] = ["en", "zh"];
 
 export const localeNames: Record<Locale, string> = {
   en: "English",
   zh: "中文",
-  ja: "日本語",
-  ko: "한국어",
 };
 
 // Storage key for persisting locale preference

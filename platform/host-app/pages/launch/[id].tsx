@@ -59,8 +59,12 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   }, [app.entry_url, locale, theme]);
 
   useEffect(() => {
-    sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
-  }, [app.app_id, app.permissions]);
+    sdkRef.current = installMiniAppSDK({
+      appId: app.app_id,
+      contractHash: app.contract_hash ?? null,
+      permissions: app.permissions,
+    });
+  }, [app.app_id, app.contract_hash, app.permissions]);
 
   // Network latency monitoring
   useEffect(() => {
@@ -138,7 +142,11 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
     const ensureSDK = () => {
       if (!sdkRef.current) {
-        sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
+        sdkRef.current = installMiniAppSDK({
+          appId: app.app_id,
+          contractHash: app.contract_hash ?? null,
+          permissions: app.permissions,
+        });
       }
       return sdkRef.current;
     };

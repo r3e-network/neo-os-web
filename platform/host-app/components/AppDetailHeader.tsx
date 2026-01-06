@@ -1,11 +1,8 @@
 import React from "react";
 import { MiniAppInfo, MiniAppStats } from "./types";
-import { colors, getThemeColors } from "./styles";
 import { useI18n } from "@/lib/i18n/react";
-import { useTheme } from "./providers/ThemeProvider";
 import { MiniAppLogo } from "./features/miniapp/MiniAppLogo";
 
-// Check if icon is a URL/path (not an emoji)
 function isIconUrl(icon: string): boolean {
   if (!icon) return false;
   return icon.startsWith("/") || icon.startsWith("http") || icon.endsWith(".svg") || icon.endsWith(".png");
@@ -18,103 +15,51 @@ type Props = {
 
 export function AppDetailHeader({ app, stats }: Props) {
   const { locale } = useI18n();
-  const { theme } = useTheme();
-  const themeColors = getThemeColors(theme);
-
-  // Self-contained i18n: use MiniApp's own translations based on locale
   const appName = locale === "zh" && app.name_zh ? app.name_zh : app.name;
 
   let statusBadge = stats?.last_activity_at ? "Active" : "Inactive";
-  let statusColor = stats?.last_activity_at ? themeColors.primary : themeColors.textMuted;
+  let statusColorClass = stats?.last_activity_at ? "text-neo" : "text-gray-400";
+
   if (app.status === "active") {
     statusBadge = "Online";
-    statusColor = themeColors.primary;
+    statusColorClass = "text-neo";
   } else if (app.status === "disabled") {
     statusBadge = "Maintenance";
-    statusColor = "#10b981"; // emerald-500 (Neo Green style)
+    statusColorClass = "text-brutal-yellow";
   } else if (app.status === "pending") {
     statusBadge = "Pending";
-    statusColor = themeColors.textMuted;
+    statusColorClass = "text-gray-400";
   }
 
   return (
-    <header style={{ ...headerStyle, background: themeColors.bgCard, borderColor: themeColors.border }}>
-      <div style={headerContentStyle}>
-        <div style={iconContainerStyle}>
+    <header className="pt-28 pb-10 px-8 bg-white dark:bg-black border-b-4 border-black dark:border-white shadow-brutal-lg relative z-10 overflow-hidden">
+      {/* Texture Pattern Background */}
+      <div className="absolute top-0 right-0 w-64 h-64 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)] bg-[size:16px_16px] -rotate-12 translate-x-16 -translate-y-16 pointer-events-none" />
+
+      <div className="flex items-center gap-8 relative">
+        <div className="w-28 h-28 bg-neo border-4 border-black flex items-center justify-center shadow-brutal-md rotate-[-3deg] hover:rotate-0 transition-transform flex-shrink-0">
           {isIconUrl(app.icon) ? (
             <MiniAppLogo appId={app.app_id} category={app.category} size="lg" iconUrl={app.icon} />
           ) : (
-            <span style={emojiStyle}>{app.icon}</span>
+            <span className="text-6xl">{app.icon}</span>
           )}
         </div>
-        <div style={infoStyle}>
-          <h1 style={{ ...titleStyle, color: themeColors.text }}>{appName}</h1>
-          <div style={metaRowStyle}>
-            <span style={{ ...categoryBadgeStyle, color: themeColors.primary }}>{app.category}</span>
-            <span style={{ ...statusBadgeStyle, color: statusColor }}>● {statusBadge}</span>
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <span className="px-3 py-1 bg-brutal-yellow text-black border-2 border-black font-black uppercase text-[10px] shadow-brutal-xs rotate-[-1deg]">
+              {app.category}
+            </span>
+            <span className={`px-3 py-1 border-2 border-black font-black uppercase text-[10px] shadow-brutal-xs rotate-[1deg] flex items-center gap-2 ${statusBadge === "Online" ? "bg-neo text-black" : "bg-gray-200 text-gray-500"
+              }`}>
+              <span className={`w-2 h-2 border border-black ${statusBadge === "Online" ? "bg-black animate-pulse" : "bg-gray-400"}`} />
+              {statusBadge}
+            </span>
           </div>
+          <h1 className="text-5xl md:text-6xl font-black uppercase tracking-tighter italic text-black dark:text-white leading-[0.9] drop-shadow-[4px_4px_0_rgba(0,0,0,0.2)]">
+            {appName}
+          </h1>
         </div>
       </div>
     </header>
   );
 }
-
-const headerStyle: React.CSSProperties = {
-  padding: "80px 32px 24px 32px",
-  borderBottom: `1px solid ${colors.border}`,
-  background: colors.bgCard,
-};
-
-const headerContentStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 20,
-  alignItems: "center",
-};
-
-const iconContainerStyle: React.CSSProperties = {
-  fontSize: 64,
-  width: 80,
-  height: 80,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "rgba(0,212,170,0.1)",
-  borderRadius: 16,
-};
-
-const infoStyle: React.CSSProperties = {
-  flex: 1,
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: 28,
-  fontWeight: 700,
-  margin: "0 0 8px 0",
-  color: colors.text,
-};
-
-const metaRowStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 12,
-  alignItems: "center",
-};
-
-const categoryBadgeStyle: React.CSSProperties = {
-  fontSize: 12,
-  padding: "4px 12px",
-  borderRadius: 6,
-  background: "rgba(0,212,170,0.15)",
-  color: colors.primary,
-  textTransform: "uppercase",
-  fontWeight: 600,
-};
-
-const statusBadgeStyle: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 500,
-};
-
-const emojiStyle: React.CSSProperties = {
-  fontSize: 48,
-  lineHeight: 1,
-};

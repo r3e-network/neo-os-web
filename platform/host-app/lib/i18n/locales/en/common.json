@@ -86,7 +86,10 @@
     "socialLinked": "Social Linked",
     "selectWallet": "Select Wallet",
     "insufficientBalance": "Insufficient Balance",
-    "pleaseConnect": "Please connect your wallet to continue"
+    "pleaseConnect": "Please connect your wallet to continue",
+    "connectRequired": "Connection Required",
+    "connectDescription": "Connect your wallet or login with a social account to continue.",
+    "loginWithSocial": "Login with Social Account"
   },
   "errors": {
     "occurred": "An error occurred",

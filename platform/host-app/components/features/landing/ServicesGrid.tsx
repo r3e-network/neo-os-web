@@ -24,39 +24,39 @@ export function ServicesGrid() {
           <p className="text-slate-400">{t("landing.services.subtitle")}</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {SERVICES.map((service, idx) => {
             const Icon = service.icon;
             return (
               <div
                 key={idx}
-                className="group p-6 rounded-2xl bg-white dark:bg-dark-900/40 border border-gray-200 dark:border-white/5 hover:border-neo/30 transition-all hover:shadow-xl hover:shadow-neo/5"
+                className="group p-8 rounded-none bg-white dark:bg-black border-4 border-black dark:border-white shadow-brutal-md hover:shadow-brutal-lg hover:-translate-x-1 hover:-translate-y-1 transition-all"
               >
                 {/* Icon */}
                 <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${service.color} bg-current/10`}
+                  className={`w-16 h-16 rounded-none flex items-center justify-center mb-6 border-4 border-black ${service.color.replace('text-', 'bg-').split(' ')[0]} bg-opacity-100 rotate-3 group-hover:rotate-0 transition-transform`}
                 >
-                  <Icon size={24} className={service.color} />
+                  <Icon size={32} className="text-black" strokeWidth={3} />
                 </div>
 
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-neo transition-colors">
+                <div className="flex flex-col mb-4">
+                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 uppercase tracking-tighter italic">
                     {t(`landing.services.list.${service.key}.name`)}
                   </h3>
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-neo text-black text-[10px] font-black uppercase tracking-wider border-2 border-black inline-block self-start">
+                    <div className="w-1.5 h-1.5 bg-black animate-pulse" />
                     {t("landing.services.active")}
                   </div>
                 </div>
 
-                <p className="text-sm text-slate-400 mb-4">{t(`landing.services.list.${service.key}.desc`)}</p>
+                <p className="text-sm font-bold text-black/60 dark:text-white/60 mb-8 leading-snug">{t(`landing.services.list.${service.key}.desc`)}</p>
 
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="text-xs font-medium text-slate-500">
+                <div className="flex items-center justify-between mt-auto border-t-2 border-black/10 pt-4">
+                  <span className="text-[10px] font-black uppercase text-black/40">
                     {t(`landing.services.list.${service.key}.requests`)} {t("landing.services.requests")}
                   </span>
-                  <button className="p-2 rounded-lg bg-gray-100 dark:bg-white/5 text-slate-400 group-hover:text-neo group-hover:bg-neo/10 transition-all">
-                    <ArrowRight size={16} />
+                  <button className="p-3 bg-black text-white border-2 border-black hover:bg-neo hover:text-black transition-all">
+                    <ArrowRight size={20} strokeWidth={3} />
                   </button>
                 </div>
               </div>

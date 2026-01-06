@@ -51,6 +51,20 @@
   }
 }
 
+@layer utilities {
+  .brutal-card {
+    @apply bg-white dark:bg-[#1a1a1a] border-2 border-black dark:border-white shadow-brutal-md hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all duration-200;
+  }
+
+  .brutal-btn {
+    @apply bg-neo border-2 border-black dark:border-white shadow-brutal-sm hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brutal-md active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all duration-100 font-bold uppercase tracking-wider;
+  }
+
+  .brutal-input {
+    @apply bg-white dark:bg-[#262626] border-2 border-black dark:border-white shadow-brutal-sm focus:shadow-brutal-md focus:translate-x-[-1px] focus:translate-y-[-1px] transition-all duration-200 outline-none;
+  }
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

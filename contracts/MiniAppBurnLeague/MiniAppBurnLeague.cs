@@ -46,6 +46,10 @@ namespace NeoMiniAppPlatform.Contracts
             (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_BURNED);
 
         [Safe]
+        public static BigInteger RewardPool() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_REWARD_POOL);
+
+        [Safe]
         public static BigInteger GetUserBurned(UInt160 user)
         {
             byte[] key = Helper.Concat(PREFIX_USER_BURNED, user);

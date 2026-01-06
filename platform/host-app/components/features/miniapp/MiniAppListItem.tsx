@@ -42,40 +42,40 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
   return (
     <Link
       href={`/miniapps/${app.app_id}`}
-      className="group block border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+      className="group block border-b-4 border-black dark:border-white bg-white dark:bg-black hover:bg-brutal-yellow transition-colors duration-200"
     >
-      <div className="flex items-center gap-4 px-4 py-3">
+      <div className="flex items-center gap-6 px-6 py-4">
         {/* Logo */}
-        <div className="shrink-0">
+        <div className="shrink-0 group-hover:scale-110 transition-transform duration-200">
           <MiniAppLogo appId={app.app_id} category={app.category} size="sm" />
         </div>
 
         {/* Content Grid */}
-        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-center">
+        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-6 items-center">
           {/* Main Info */}
           <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <h3 className="font-bold text-gray-900 dark:text-white truncate group-hover:text-neo dark:group-hover:text-neo transition-colors">
+            <div className="flex items-center gap-3 mb-1">
+              <h3 className="font-black text-black dark:text-white uppercase tracking-tighter italic group-hover:text-black transition-colors text-lg">
                 {appName}
               </h3>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+              <Badge variant="secondary" className="text-[9px] font-black uppercase px-2 py-0 border border-black shadow-brutal-xs bg-white text-black group-hover:bg-black group-hover:text-white transition-colors rounded-none h-5">
                 {categoryLabel}
               </Badge>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{appDesc}</p>
+            <p className="text-xs font-bold text-gray-600 dark:text-gray-300 truncate tracking-tight group-hover:text-black">{appDesc}</p>
           </div>
 
           {/* Stats */}
-          <div className="hidden sm:flex items-center gap-6 text-xs text-gray-500 dark:text-gray-400 font-mono">
-            <div className="flex items-center gap-1.5" title="Users">
-              <Globe size={14} className="text-gray-400" />
+          <div className="hidden sm:flex items-center gap-8 text-[11px] font-black uppercase text-black dark:text-white">
+            <div className="flex items-center gap-2" title="Active Users">
+              <Globe size={16} strokeWidth={2.5} className="text-black dark:text-white" />
               <span>{formatNumber(app.stats?.users)}</span>
             </div>
-            <div className="flex items-center gap-1.5" title="Transactions">
-              <Zap size={14} className="text-gray-400" />
+            <div className="flex items-center gap-2" title="Transactions">
+              <Zap size={16} strokeWidth={2.5} className="text-black dark:text-white" />
               <span>{formatNumber(app.stats?.transactions)}</span>
             </div>
-            <div className="flex items-center gap-1 w-20 justify-end text-gray-400" title="Updated">
+            <div className="flex items-center gap-2 w-24 justify-end italic opacity-60 group-hover:opacity-100 group-hover:text-black" title="Updated">
               <span>{formatTimeAgo()}</span>
             </div>
           </div>

@@ -29,42 +29,21 @@ export function NewsSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch news from API or use mock data
-    const mockNews: NewsItem[] = [
-      {
-        id: "1",
-        title: "Neo N3 Testnet Phase II Now Live",
-        summary: "Experience the latest features including enhanced TEE support and improved oracle integration.",
-        category: "announcement",
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "2",
-        title: "New MiniApps: Candidate Vote & NeoBurger",
-        summary: "Two new MiniApps have been deployed to the platform. Try them out now!",
-        category: "update",
-        timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "3",
-        title: "Community Hackathon Starting Soon",
-        summary: "Join our upcoming hackathon with 50,000 GAS in prizes. Registration opens next week.",
-        category: "event",
-        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "4",
-        title: "Flash Loan MiniApp Trending",
-        summary: "Flash Loan has reached 1,000+ users this week. Check out the most popular DeFi app.",
-        category: "trending",
-        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ];
-
-    setTimeout(() => {
-      setNews(mockNews);
-      setLoading(false);
-    }, 500);
+    // Fetch news from API
+    async function fetchNews() {
+      try {
+        const res = await fetch("/api/news");
+        if (res.ok) {
+          const data = await res.json();
+          setNews(data.news || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch news:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchNews();
   }, []);
 
   const formatTimeAgo = (timestamp: string) => {

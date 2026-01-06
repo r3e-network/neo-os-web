@@ -2,6 +2,8 @@ export interface MiniAppSDKConfig {
   baseUrl?: string;
   edgeBaseUrl?: string;
   appId?: string;
+  contractHash?: string | null;
+  network?: "testnet" | "mainnet";
   getAuthToken?: () => Promise<string | undefined>;
   getAPIKey?: () => Promise<string | undefined>;
 }
@@ -9,15 +11,15 @@ export interface MiniAppSDKConfig {
 export interface MiniAppSDK {
   // Required methods for SDK validation
   invoke?: (method: string, params?: Record<string, unknown>) => Promise<unknown>;
-  getConfig?: () => { appId: string; debug?: boolean };
+  getConfig?: () => { appId: string; contractHash?: string | null; debug?: boolean };
   getAddress?: () => Promise<string | null>;
   wallet?: {
     getAddress?: () => Promise<string | null>;
     invokeIntent?: (requestId: string) => Promise<unknown>;
   };
   payments?: {
-    payGAS?: (appId: string, amount: string, memo?: string) => Promise<{ txHash: string | null }>;
-    payGASAndInvoke?: (appId: string, amount: string, memo?: string) => Promise<{ txHash: string | null }>;
+    payGAS?: (appId: string, amount: string, memo?: string) => Promise<Record<string, unknown>>;
+    payGASAndInvoke?: (appId: string, amount: string, memo?: string) => Promise<Record<string, unknown>>;
   };
   governance?: {
     vote?: (
@@ -25,13 +27,14 @@ export interface MiniAppSDK {
       proposalId: string,
       neoAmount: string,
       support?: boolean,
-    ) => Promise<{ txHash: string | null }>;
+    ) => Promise<Record<string, unknown>>;
     voteAndInvoke?: (
       appId: string,
       proposalId: string,
       neoAmount: string,
       support?: boolean,
-    ) => Promise<{ txHash: string | null }>;
+    ) => Promise<Record<string, unknown>>;
+    getCandidates?: () => Promise<Record<string, unknown>>;
   };
   rng?: {
     requestRandom?: (appId: string) => Promise<{ requestId: string | null }>;

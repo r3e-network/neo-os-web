@@ -27,37 +27,7 @@ type RemoteContainer = {
   __initialized?: boolean;
 };
 
-class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: Error }> {
-  state: { error?: Error } = {};
-
-  static getDerivedStateFromError(error: Error) {
-    return { error };
-  }
-
-  render() {
-    if (!this.state.error) return this.props.children;
-
-    return (
-      <div style={errorStyle}>
-        <div style={errorTitleStyle}>Failed to load federated MiniApp</div>
-        <div style={errorTextStyle}>{this.state.error.message}</div>
-      </div>
-    );
-  }
-}
-
-function NotConfiguredMessage() {
-  return (
-    <div style={noticeStyle}>
-      <h3 style={noticeTitleStyle}>Module Federation Not Configured</h3>
-      <p style={noticeTextStyle}>
-        Set <code>NEXT_PUBLIC_MF_REMOTES</code> to enable federated MiniApps.
-      </p>
-    </div>
-  );
-}
-
-function FederatedLoader({ remote, appId, view }: Props) {
+const FederatedLoader = ({ remote, appId, view }: Props) => {
   const [LoadedComponent, setLoadedComponent] = useState<React.ComponentType<Props> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,22 +38,16 @@ function FederatedLoader({ remote, appId, view }: Props) {
     if (!remoteName) {
       setError("Federated remote not specified");
       setLoading(false);
-      return () => {
-        mounted = false;
-      };
+      return () => { mounted = false; };
     }
 
     const loadModule = async () => {
       try {
         const remoteConfig = resolveRemote(remoteName);
-        if (!remoteConfig) {
-          throw new Error(`Remote "${remoteName}" not configured`);
-        }
+        if (!remoteConfig) throw new Error(`Remote "${remoteName}" not configured`);
         const mod = await loadFederatedModule(remoteConfig, "App");
         if (mounted) {
-          const component =
-            (mod as { default?: React.ComponentType<Props>; App?: React.ComponentType<Props> }).default ??
-            (mod as { App?: React.ComponentType<Props> }).App;
+          const component = (mod as any).default ?? (mod as any).App;
           setLoadedComponent(() => component ?? null);
           setLoading(false);
         }
@@ -96,28 +60,33 @@ function FederatedLoader({ remote, appId, view }: Props) {
     };
 
     loadModule();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [remote]);
 
-  if (loading) return <p style={loadingStyle}>Loading federated MiniApp…</p>;
+  if (loading) return <div className="p-8 text-center text-xs font-black uppercase opacity-50 bg-gray-50 dark:bg-gray-900 border-2 border-black dark:border-white animate-pulse">Loading federated module...</div>;
   if (error) {
     return (
-      <div style={errorStyle}>
-        <div style={errorTitleStyle}>Failed to load federated MiniApp</div>
-        <div style={errorTextStyle}>{error}</div>
+      <div className="brutal-card p-6 bg-brutal-red text-white max-w-md">
+        <div className="text-sm font-black uppercase mb-2">Federation Error</div>
+        <div className="text-xs bg-black/20 p-3 border border-white/20 font-mono">{error}</div>
       </div>
     );
   }
 
-  if (!LoadedComponent) return <p style={loadingStyle}>Module not available</p>;
+  if (!LoadedComponent) return <div className="p-8 text-center text-xs font-black uppercase opacity-50 border-2 border-black border-dashed">Module unavailable</div>;
   return <LoadedComponent appId={appId} view={view} remote={remote} />;
-}
+};
 
 export function FederatedMiniApp(props: Props) {
-  if (!hasRemotes) return <NotConfiguredMessage />;
+  if (!hasRemotes) return (
+    <div className="brutal-card p-8 text-center max-w-md mx-auto">
+      <h3 className="text-lg font-black uppercase mb-4">Module Federation Required</h3>
+      <p className="text-sm font-bold text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+        Set <code className="bg-black text-neo px-2 py-1">NEXT_PUBLIC_MF_REMOTES</code> to enable third-party MiniApp integration.
+      </p>
+      <div className="w-12 h-12 bg-brutal-yellow border-2 border-black mx-auto rotate-12 shadow-brutal-sm flex items-center justify-center font-black">!</div>
+    </div>
+  );
   return (
     <RemoteErrorBoundary>
       <FederatedLoader {...props} />
@@ -125,48 +94,19 @@ export function FederatedMiniApp(props: Props) {
   );
 }
 
-const errorStyle: React.CSSProperties = {
-  padding: 12,
-  border: "1px solid #f2c6c6",
-  borderRadius: 8,
-  background: "#fff6f6",
-  maxWidth: 480,
-};
-
-const errorTitleStyle: React.CSSProperties = {
-  fontWeight: 600,
-  marginBottom: 6,
-};
-
-const errorTextStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: "#8a2c2c",
-};
-
-const noticeStyle: React.CSSProperties = {
-  padding: 24,
-  border: "1px solid #e0e0e0",
-  borderRadius: 8,
-  background: "#f5f5f5",
-  textAlign: "center",
-  maxWidth: 480,
-};
-
-const noticeTitleStyle: React.CSSProperties = {
-  margin: "0 0 12px",
-  color: "#666",
-};
-
-const noticeTextStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 14,
-  color: "#888",
-};
-
-const loadingStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: "#ccc",
-};
+class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: Error }> {
+  state: { error?: Error } = {};
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="brutal-card p-6 bg-brutal-red text-white max-w-md">
+        <div className="text-sm font-black uppercase mb-2">Critical Federation Failure</div>
+        <div className="text-xs bg-black/20 p-3 border border-white/20 font-mono">{this.state.error.message}</div>
+      </div>
+    );
+  }
+}
 
 function resolveRemote(remoteName: string): RemoteConfig | null {
   const remotes = parseRemotes(process.env.NEXT_PUBLIC_MF_REMOTES || "");

@@ -11,6 +11,8 @@ type MiniAppPermissions = {
 
 type InstallOptions = {
   appId?: string;
+  contractHash?: string | null;
+  network?: "testnet" | "mainnet";
   permissions?: MiniAppPermissions;
   authToken?: string;
   apiKey?: string;
@@ -67,13 +69,15 @@ function buildConfig(options?: InstallOptions): MiniAppSDKConfig {
   return {
     edgeBaseUrl: resolveEdgeBaseUrl(),
     appId: options?.appId,
+    contractHash: options?.contractHash ?? null,
+    network: options?.network,
     getAuthToken: resolveAuthToken(options),
     getAPIKey: resolveAPIKey(options),
   };
 }
 
 function configKey(config: MiniAppSDKConfig): string {
-  return `${config.edgeBaseUrl}::${config.appId || ""}`;
+  return `${config.edgeBaseUrl}::${config.appId || ""}::${config.contractHash || ""}::${config.network || ""}`;
 }
 
 function permissionsKey(permissions?: MiniAppPermissions): string {

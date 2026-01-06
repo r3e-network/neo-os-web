@@ -42,7 +42,7 @@ func AllMiniApps() []MiniAppConfig {
 		{AppID: "miniapp-gas-circle", Name: "Gas Circle", Category: "social", Interval: 10 * time.Second, BetAmount: 10000000, Description: "Daily savings circle with lottery"},
 		{AppID: "miniapp-time-capsule", Name: "TEE Time Capsule", Category: "social", Interval: 10 * time.Second, BetAmount: 20000000, Description: "Encrypted messages unlocked by time or price"},
 		// Governance & Advanced
-		{AppID: "miniapp-gov-booster", Name: "Gov Booster", Category: "governance", Interval: 15 * time.Second, BetAmount: 1000000, Description: "bNEO governance optimization"},
+		{AppID: "miniapp-govbooster", Name: "Gov Booster", Category: "governance", Interval: 15 * time.Second, BetAmount: 1000000, Description: "bNEO governance optimization"},
 		{AppID: "miniapp-dev-tipping", Name: "EcoBoost", Category: "social", Interval: 5 * time.Second, BetAmount: 100000000, Description: "Support the builders who power the ecosystem"},
 		// Phase 7 - Advanced DeFi & Social
 		{AppID: "miniapp-heritage-trust", Name: "Heritage Trust", Category: "defi", Interval: 20 * time.Second, BetAmount: 100000000, Description: "Living trust DAO with auto-inheritance"},
@@ -52,12 +52,13 @@ func AllMiniApps() []MiniAppConfig {
 		{AppID: "miniapp-burn-league", Name: "Burn League", Category: "gaming", Interval: 8 * time.Second, BetAmount: 20000000, Description: "Burn-to-earn deflationary rewards"},
 		// Phase 8 - Creative & Social
 		{AppID: "miniapp-puzzle-mining", Name: "Puzzle Mining", Category: "gaming", Interval: 10 * time.Second, BetAmount: 5000000, Description: "Solve puzzles to mine rewards"},
-		{AppID: "miniapp-unbreakable-vault", Name: "Unbreakable Vault", Category: "defi", Interval: 15 * time.Second, BetAmount: 50000000, Description: "Time-locked vault with conditions"},
+		{AppID: "miniapp-unbreakablevault", Name: "Unbreakable Vault", Category: "defi", Interval: 15 * time.Second, BetAmount: 50000000, Description: "Time-locked vault with conditions"},
 		{AppID: "miniapp-million-piece-map", Name: "Million Piece Map", Category: "creative", Interval: 10 * time.Second, BetAmount: 1000000, Description: "Collaborative pixel map ownership"},
-		{AppID: "miniapp-crypto-riddle", Name: "Crypto Riddle", Category: "gaming", Interval: 8 * time.Second, BetAmount: 10000000, Description: "Password red envelope hunter"},
+		{AppID: "miniapp-cryptoriddle", Name: "Crypto Riddle", Category: "gaming", Interval: 8 * time.Second, BetAmount: 10000000, Description: "Password red envelope hunter"},
 		// Phase 9 - New MiniApps (3)
 		{AppID: "miniapp-grant-share", Name: "GrantShare", Category: "social", Interval: 10 * time.Second, BetAmount: 50000000, Description: "Community grant funding platform"},
 		{AppID: "miniapp-neo-ns", Name: "Neo Name Service", Category: "utility", Interval: 15 * time.Second, BetAmount: 10000000, Description: "Register and manage .neo domain names"},
+		{AppID: "miniapp-dailycheckin", Name: "Daily Check-in", Category: "utility", Interval: 5 * time.Second, BetAmount: 100000, Description: "Daily check-in for streak rewards"},
 	}
 }
 

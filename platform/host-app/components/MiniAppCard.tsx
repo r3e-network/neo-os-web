@@ -1,6 +1,5 @@
 import React from "react";
 import { MiniAppInfo, MiniAppStats } from "./types";
-import { colors } from "./styles";
 
 type Props = {
   app: MiniAppInfo;
@@ -10,72 +9,39 @@ type Props = {
 
 export function MiniAppCard({ app, stats, onClick }: Props) {
   return (
-    <div onClick={onClick} style={cardStyle}>
-      <div style={iconStyle}>{app.icon}</div>
-      <div style={contentStyle}>
-        <h3 style={titleStyle}>{app.name}</h3>
-        <p style={descStyle}>{app.description}</p>
+    <div
+      onClick={onClick}
+      className="brutal-card p-5 cursor-pointer flex flex-col relative group overflow-hidden"
+    >
+      <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">
+        {app.icon}
+      </div>
+      <div className="flex-1">
+        <h3 className="text-lg font-black mb-2 uppercase tracking-tight">
+          {app.name}
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+          {app.description}
+        </p>
+
         {stats && (
-          <div style={statsRow}>
-            <span>📊 {stats.total_transactions} txs</span>
-            <span>👥 {stats.total_users} users</span>
+          <div className="flex gap-4 mt-4 font-mono text-[10px] font-bold uppercase tracking-wider text-neo dark:text-neo">
+            <span className="bg-black/5 dark:bg-white/5 px-2 py-1 rounded border border-black/10 dark:border-white/10">
+              📊 {stats.total_transactions} TXS
+            </span>
+            <span className="bg-black/5 dark:bg-white/5 px-2 py-1 rounded border border-black/10 dark:border-white/10">
+              👥 {stats.total_users} USERS
+            </span>
           </div>
         )}
       </div>
-      <span style={categoryBadge}>{app.category}</span>
+
+      <span className="absolute top-3 right-3 text-[10px] font-black px-2 py-1 bg-brutal-yellow text-black border-2 border-black uppercase tracking-tighter">
+        {app.category}
+      </span>
+
+      {/* Decorative corner element */}
+      <div className="absolute -bottom-4 -right-4 w-8 h-8 bg-neo/10 rotate-45 group-hover:bg-neo/20 transition-colors" />
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  background: colors.bgCard,
-  borderRadius: 16,
-  padding: 20,
-  cursor: "pointer",
-  border: `1px solid ${colors.border}`,
-  transition: "all 0.2s",
-  position: "relative",
-};
-
-const iconStyle: React.CSSProperties = {
-  fontSize: 40,
-  marginBottom: 12,
-};
-
-const contentStyle: React.CSSProperties = {
-  flex: 1,
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: 18,
-  fontWeight: 600,
-  margin: "0 0 8px 0",
-  color: colors.text,
-};
-
-const descStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: colors.textMuted,
-  margin: 0,
-  lineHeight: 1.5,
-};
-
-const statsRow: React.CSSProperties = {
-  display: "flex",
-  gap: 16,
-  marginTop: 12,
-  fontSize: 12,
-  color: colors.primary,
-};
-
-const categoryBadge: React.CSSProperties = {
-  position: "absolute",
-  top: 12,
-  right: 12,
-  fontSize: 11,
-  padding: "4px 8px",
-  borderRadius: 6,
-  background: "rgba(0,212,170,0.15)",
-  color: colors.primary,
-  textTransform: "uppercase",
-};

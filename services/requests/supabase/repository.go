@@ -280,7 +280,13 @@ func (r *Repository) CreateContractEvent(ctx context.Context, event *ContractEve
 	if event.TxHash == "" || event.ContractHash == "" || event.EventName == "" {
 		return fmt.Errorf("contract event missing required fields")
 	}
-	return database.GenericCreate(r.base, ctx, contractEventsTable, event, nil)
+	if err := database.GenericCreate(r.base, ctx, contractEventsTable, event, nil); err != nil {
+		if isDuplicateError(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // HasProcessedEvent checks if the event was already processed.

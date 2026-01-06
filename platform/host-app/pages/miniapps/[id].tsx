@@ -75,11 +75,11 @@ function createStatCardBuilders(
     total_transactions: (stats) =>
       stats.total_transactions != null
         ? {
-            title: t("detail.totalTxs"),
-            value: stats.total_transactions.toLocaleString(),
-            icon: "📊",
-            trend: "neutral",
-          }
+          title: t("detail.totalTxs"),
+          value: stats.total_transactions.toLocaleString(),
+          icon: "📊",
+          trend: "neutral",
+        }
         : null,
     total_users: (stats) =>
       stats.total_users != null
@@ -100,20 +100,20 @@ function createStatCardBuilders(
     daily_active_users: (stats) =>
       stats.daily_active_users != null
         ? {
-            title: t("detail.dailyActiveUsers"),
-            value: stats.daily_active_users.toLocaleString(),
-            icon: "👥",
-            trend: "up",
-          }
+          title: t("detail.dailyActiveUsers"),
+          value: stats.daily_active_users.toLocaleString(),
+          icon: "👥",
+          trend: "up",
+        }
         : null,
     weekly_active_users: (stats) =>
       stats.weekly_active_users != null
         ? {
-            title: t("detail.weeklyActive"),
-            value: stats.weekly_active_users.toLocaleString(),
-            icon: "📈",
-            trend: "up",
-          }
+          title: t("detail.weeklyActive"),
+          value: stats.weekly_active_users.toLocaleString(),
+          icon: "📈",
+          trend: "up",
+        }
         : null,
     last_activity_at: (stats) => ({
       title: t("detail.lastActive"),
@@ -211,8 +211,12 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   // Initialize SDK
   useEffect(() => {
     if (!app) return;
-    sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
-  }, [app?.app_id, app?.permissions]);
+    sdkRef.current = installMiniAppSDK({
+      appId: app.app_id,
+      contractHash: app.contract_hash ?? null,
+      permissions: app.permissions,
+    });
+  }, [app?.app_id, app?.contract_hash, app?.permissions]);
 
   // Iframe bridge for SDK communication
   useEffect(() => {
@@ -229,7 +233,11 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
     const ensureSDK = () => {
       if (!sdkRef.current) {
-        sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
+        sdkRef.current = installMiniAppSDK({
+          appId: app.app_id,
+          contractHash: app.contract_hash ?? null,
+          permissions: app.permissions,
+        });
       }
       return sdkRef.current;
     };
@@ -506,11 +514,15 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           ) : (
             <>
               {isIframeLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-[#0a0f1a] z-10">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">
-                      {t("detail.launching")} {appName}...
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-brutal-yellow z-10 overflow-hidden">
+                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)] bg-[size:16px_16px]" />
+                  <div className="relative z-10 flex flex-col items-center p-6 bg-white border-4 border-black shadow-[8px_8px_0_#000]">
+                    <div className="w-12 h-12 border-4 border-black border-t-neo animate-spin mb-4" />
+                    <div className="text-xl font-black uppercase text-black tracking-tighter">
+                      {t("detail.launching")}
+                    </div>
+                    <div className="text-sm font-bold uppercase text-gray-500 mt-1">
+                      {appName}...
                     </div>
                   </div>
                 </div>
@@ -520,9 +532,8 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
                 src={iframeSrc}
                 ref={iframeRef}
                 onLoad={() => setIsIframeLoading(false)}
-                className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
-                  isIframeLoading ? "opacity-0" : "opacity-100"
-                }`}
+                className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${isIframeLoading ? "opacity-0" : "opacity-100"
+                  }`}
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 title={`${appName} MiniApp`}
                 allowFullScreen

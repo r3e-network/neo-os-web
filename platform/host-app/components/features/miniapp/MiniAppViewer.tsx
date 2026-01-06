@@ -23,16 +23,16 @@ interface WindowWithMiniAppSDK {
 }
 
 /**
- * MiniAppLoader - Modern tech loading screen
+ * MiniAppLoader - Neo Brutalist styling
  */
 function MiniAppLoader({ app }: { app: MiniAppInfo }) {
   const [msgIndex, setMsgIndex] = React.useState(0);
   const loadingMessages = [
-    "Initializing secure sandbox...",
-    "Injecting verified SDK...",
-    "Connecting to RPC nodes...",
-    "Optimizing graphics performance...",
-    "App container ready.",
+    "INITIALIZING SANDBOX",
+    "VERIFYING SDK INTEGRITY",
+    "CONNECTING RPC NODES",
+    "OPTIMIZING GRAPHICS",
+    "CONTAINER READY",
   ];
 
   useEffect(() => {
@@ -47,79 +47,80 @@ function MiniAppLoader({ app }: { app: MiniAppInfo }) {
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-950/80 backdrop-blur-md overflow-hidden"
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-brutal-yellow overflow-hidden"
     >
-      {/* Tech Grid Background */}
-      <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+      {/* Brutalist Pattern Background */}
+      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)] bg-[size:16px_16px]" />
 
-      {/* Main Glass Card */}
+      {/* Main Card */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="relative z-10 flex flex-col items-center p-8 rounded-3xl bg-white/[0.03] border border-white/5 shadow-2xl max-w-sm w-full mx-4"
+        className="relative z-10 flex flex-col items-center p-8 bg-white border-4 border-black shadow-[8px_8px_0_#000] max-w-sm w-full mx-4"
       >
-        {/* Animated Orbs */}
-        <div className="absolute -top-12 -left-12 w-24 h-24 bg-neo/20 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-electric-purple/20 rounded-full blur-3xl animate-pulse-slow" />
+        {/* Decorative Corner Squares */}
+        <div className="absolute top-2 left-2 w-3 h-3 bg-black" />
+        <div className="absolute top-2 right-2 w-3 h-3 bg-black" />
+        <div className="absolute bottom-2 left-2 w-3 h-3 bg-black" />
+        <div className="absolute bottom-2 right-2 w-3 h-3 bg-black" />
 
         {/* Logo Container */}
         <motion.div
           animate={{
-            scale: [1, 1.05, 1],
             rotate: [0, 5, -5, 0],
           }}
           transition={{
-            duration: 4,
+            duration: 0.5,
             repeat: Infinity,
+            repeatDelay: 2,
             ease: "easeInOut",
           }}
-          className="relative mb-6"
+          className="relative mb-8 mt-2"
         >
-          <div className="absolute inset-0 bg-neo/40 rounded-2xl blur-xl animate-pulse" />
+          <div className="absolute inset-0 bg-black translate-x-1 translate-y-1" />
           <MiniAppLogo
             appId={app.app_id}
             category={app.category}
             size="lg"
             iconUrl={app.icon}
-            className="relative scale-150 rotate-3 shadow-2xl"
+            className="relative border-2 border-black z-10"
           />
         </motion.div>
 
         {/* Text Details */}
-        <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">{app.name}</h2>
-        <div className="flex items-center space-x-2 text-white/40 text-sm mb-8 font-medium">
-          <ShieldCheck size={14} className="text-neo" />
-          <span>Verified Sandbox</span>
-          <span className="w-1 h-1 bg-white/20 rounded-full" />
-          <span>v1.0.0</span>
+        <h2 className="text-3xl font-black text-black mb-1 tracking-tighter uppercase italic text-center leading-none">
+          {app.name}
+        </h2>
+
+        <div className="flex items-center gap-2 text-black text-xs font-bold uppercase mb-8 border-2 border-black px-3 py-1 bg-neo shadow-[2px_2px_0_#000]">
+          <ShieldCheck size={14} className="text-black" strokeWidth={3} />
+          <span>Verified Sandbox v1.0</span>
         </div>
 
-        {/* Tech Progress Bar */}
-        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden mb-4 border border-white/5">
+        {/* Hard Progress Bar */}
+        <div className="w-full h-4 border-2 border-black bg-white mb-4 p-0.5 shadow-[2px_2px_0_#000]">
           <motion.div
             initial={{ width: "0%" }}
             animate={{ width: "100%" }}
             transition={{ duration: 4, ease: "linear" }}
-            className="h-full bg-gradient-to-r from-neo to-electric-purple relative"
-          >
-            <div className="absolute top-0 right-0 h-full w-8 bg-white/40 blur-md translate-x-1" />
-          </motion.div>
+            className="h-full bg-black"
+          />
         </div>
 
         {/* Dynamic Status Messages */}
-        <div className="flex items-center space-x-3 h-6">
+        <div className="h-6 flex items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={msgIndex}
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className="flex items-center space-x-2 text-xs font-mono text-neo/80 uppercase tracking-widest"
+              className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider"
             >
               {msgIndex === loadingMessages.length - 1 ? (
-                <Zap size={12} className="text-neo animate-pulse" />
+                <Zap size={14} className="text-black fill-yellow-400" strokeWidth={2} />
               ) : (
-                <Loader2 size={12} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin text-black" strokeWidth={3} />
               )}
               <span>{loadingMessages[msgIndex]}</span>
             </motion.div>
@@ -127,15 +128,15 @@ function MiniAppLoader({ app }: { app: MiniAppInfo }) {
         </div>
       </motion.div>
 
-      {/* Security Tags */}
-      <div className="absolute bottom-12 flex space-x-6 opacity-30 text-[10px] font-mono tracking-tighter uppercase">
-        <div className="flex items-center space-x-1 text-white">
-          <Lock size={10} />
-          <span>Isolated Environment</span>
+      {/* Footer Tags */}
+      <div className="absolute bottom-12 flex gap-8">
+        <div className="flex items-center gap-2 bg-white border-2 border-black px-3 py-1 shadow-[4px_4px_0_#000] rotate-[-2deg]">
+          <Lock size={12} strokeWidth={3} />
+          <span className="text-[10px] font-black uppercase">Isolated Env</span>
         </div>
-        <div className="flex items-center space-x-1 text-white">
-          <Zap size={10} />
-          <span>Direct RPC Edge Access</span>
+        <div className="flex items-center gap-2 bg-white border-2 border-black px-3 py-1 shadow-[4px_4px_0_#000] rotate-[2deg]">
+          <Zap size={12} strokeWidth={3} />
+          <span className="text-[10px] font-black uppercase">Direct RPC</span>
         </div>
       </div>
     </motion.div>
@@ -172,9 +173,10 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
   useEffect(() => {
     sdkRef.current = installMiniAppSDK({
       appId: app.app_id,
+      contractHash: app.contract_hash ?? null,
       permissions: app.permissions,
     });
-  }, [app.app_id, app.permissions]);
+  }, [app.app_id, app.contract_hash, app.permissions]);
 
   // Setup message bridge for iframe communication
   useEffect(() => {
@@ -198,6 +200,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
       if (!sdkRef.current) {
         sdkRef.current = installMiniAppSDK({
           appId: app.app_id,
+          contractHash: app.contract_hash ?? null,
           permissions: app.permissions,
         });
       }

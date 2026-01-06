@@ -45,6 +45,25 @@ module.exports = {
           DEFAULT: "rgba(15, 23, 42, 0.6)",
           foreground: "#f8fafc",
         },
+        brutal: {
+          border: "#000000",
+          yellow: "#ffde59",
+          pink: "#ff6b9d",
+          blue: "#4ecdc4",
+          orange: "#ff8c42",
+          red: "#ff4757",
+          lime: "#a8e6cf",
+        },
+      },
+      boxShadow: {
+        "brutal-sm": "3px 3px 0px 0px rgba(0,0,0,1)",
+        "brutal-md": "5px 5px 0px 0px rgba(0,0,0,1)",
+        "brutal-lg": "8px 8px 0px 0px rgba(0,0,0,1)",
+        "brutal-neo": "5px 5px 0px 0px #00E599",
+        "brutal-purple": "5px 5px 0px 0px #7000FF",
+      },
+      borderWidth: {
+        "3": "3px",
       },
       backgroundImage: {
         "glass-gradient": "linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%)",

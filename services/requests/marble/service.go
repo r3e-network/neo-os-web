@@ -409,6 +409,9 @@ func (s *Service) registerHandlers() {
 	s.eventListener.On("PaymentReceived", func(event *chain.ContractEvent) error {
 		return s.handlePaymentReceivedEvent(context.Background(), event)
 	})
+	s.eventListener.OnAny(func(event *chain.ContractEvent) error {
+		return s.handleMiniAppContractEvent(context.Background(), event)
+	})
 	if s.onchainTxUsage {
 		s.eventListener.OnTransaction(func(event *chain.TransactionEvent) error {
 			return s.handleMiniAppTxEvent(context.Background(), event)

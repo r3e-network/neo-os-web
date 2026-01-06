@@ -16,12 +16,15 @@ interface OAuthState {
   accounts: OAuthAccount[];
   loading: OAuthProvider | null;
   error: string | null;
+  initialized: boolean;
 }
 
 interface OAuthActions {
-  linkAccount: (provider: OAuthProvider) => Promise<void>;
-  unlinkAccount: (provider: OAuthProvider) => void;
+  linkAccount: (provider: OAuthProvider, walletAddress: string) => Promise<void>;
+  unlinkAccount: (provider: OAuthProvider, walletAddress: string) => Promise<void>;
+  loadAccounts: (walletAddress: string) => Promise<void>;
   clearError: () => void;
+  reset: () => void;
 }
 
 type OAuthStore = OAuthState & OAuthActions;
@@ -32,19 +35,31 @@ export const useOAuthStore = create<OAuthStore>()(
       accounts: [],
       loading: null,
       error: null,
+      initialized: false,
 
-      linkAccount: async (provider: OAuthProvider) => {
+      loadAccounts: async (walletAddress: string) => {
+        try {
+          const res = await fetch(`/api/oauth/accounts?wallet_address=${walletAddress}`);
+          if (res.ok) {
+            const data = await res.json();
+            set({ accounts: data.accounts || [], initialized: true });
+          }
+        } catch {
+          set({ initialized: true });
+        }
+      },
+
+      linkAccount: async (provider: OAuthProvider, walletAddress: string) => {
         set({ loading: provider, error: null });
 
         try {
-          // Open OAuth popup
           const width = 500;
           const height = 600;
           const left = window.screenX + (window.outerWidth - width) / 2;
           const top = window.screenY + (window.outerHeight - height) / 2;
 
           const popup = window.open(
-            `/api/oauth/${provider}`,
+            `/api/oauth/${provider}?wallet_address=${walletAddress}`,
             `oauth-${provider}`,
             `width=${width},height=${height},left=${left},top=${top}`,
           );
@@ -53,36 +68,34 @@ export const useOAuthStore = create<OAuthStore>()(
             throw new Error("Popup blocked. Please allow popups.");
           }
 
-          // Wait for OAuth callback
           const account = await waitForOAuthCallback(popup, provider);
-
           const { accounts } = get();
           const filtered = accounts.filter((a) => a.provider !== provider);
 
-          set({
-            accounts: [...filtered, account],
-            loading: null,
-          });
+          set({ accounts: [...filtered, account], loading: null });
         } catch (err) {
-          set({
-            loading: null,
-            error: err instanceof Error ? err.message : "OAuth failed",
-          });
+          set({ loading: null, error: err instanceof Error ? err.message : "OAuth failed" });
         }
       },
 
-      unlinkAccount: (provider: OAuthProvider) => {
-        const { accounts } = get();
-        set({
-          accounts: accounts.filter((a) => a.provider !== provider),
-        });
+      unlinkAccount: async (provider: OAuthProvider, walletAddress: string) => {
+        try {
+          await fetch(`/api/oauth/unlink`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ provider, wallet_address: walletAddress }),
+          });
+          const { accounts } = get();
+          set({ accounts: accounts.filter((a) => a.provider !== provider) });
+        } catch {
+          // Silent fail
+        }
       },
 
       clearError: () => set({ error: null }),
+      reset: () => set({ accounts: [], initialized: false, error: null }),
     }),
-    {
-      name: "oauth-accounts",
-    },
+    { name: "oauth-accounts" },
   ),
 );
 

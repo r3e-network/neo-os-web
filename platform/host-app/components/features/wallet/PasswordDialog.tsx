@@ -11,7 +11,7 @@ import { Lock, AlertCircle } from "lucide-react";
 interface PasswordDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (password: string) => Promise<void>;
+  onSubmit: (password: string, remember: boolean) => Promise<void>;
   title?: string;
   description?: string;
 }
@@ -24,6 +24,7 @@ export function PasswordDialog({
   description = "Enter your account password to sign this transaction",
 }: PasswordDialogProps) {
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,8 +34,9 @@ export function PasswordDialog({
     setLoading(true);
 
     try {
-      await onSubmit(password);
+      await onSubmit(password, remember);
       setPassword("");
+      setRemember(false);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid password");
@@ -65,6 +67,19 @@ export function PasswordDialog({
               autoFocus
               className="w-full"
             />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="remember"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-neo focus:ring-neo accent-[#00E599]"
+            />
+            <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer select-none">
+              Remember for 30 minutes
+            </label>
           </div>
 
           {error && (

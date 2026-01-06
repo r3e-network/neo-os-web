@@ -602,12 +602,13 @@ func loadMiniAppContractsFromEnv() map[string]string {
 		"FLASHLOAN":         "miniapp-flashloan",
 		"REDENVELOPE":       "miniapp-red-envelope",
 		"GASCIRCLE":         "miniapp-gas-circle",
-		"GOVBOOSTER":        "miniapp-gov-booster",
-		"GUARDIANPOLICY":    "miniapp-guardian-policy",
+		"GOVBOOSTER":        "miniapp-govbooster",
+		"GUARDIANPOLICY":    "miniapp-guardianpolicy",
 		"NEOCRASH":          "miniapp-neo-crash",
 		"TIMECAPSULE":       "miniapp-time-capsule",
 		"GARDENOFNEO":       "miniapp-garden-of-neo",
 		"DEVTIPPING":        "miniapp-dev-tipping",
+		"DAILYCHECKIN":      "miniapp-dailycheckin",
 	}
 
 	for envSuffix, appID := range miniAppEnvMapping {

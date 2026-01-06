@@ -772,14 +772,14 @@ func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 		"miniapp-doomsday-clock": s.miniAppSimulator.SimulateDoomsdayClock,
 		"miniapp-puzzle-mining":  s.miniAppSimulator.SimulatePuzzleMining,
 		"miniapp-fog-puzzle":     s.miniAppSimulator.SimulateFogPuzzle,
-		"miniapp-crypto-riddle":  s.miniAppSimulator.SimulateCryptoRiddle,
+		"miniapp-cryptoriddle":  s.miniAppSimulator.SimulateCryptoRiddle,
 
 		// DeFi MiniApps
 		"miniapp-flashloan":         s.miniAppSimulator.SimulateFlashLoan,
 		"miniapp-heritage-trust":    s.miniAppSimulator.SimulateHeritageTrust,
 		"miniapp-compound-capsule":  s.miniAppSimulator.SimulateCompoundCapsule,
 		"miniapp-self-loan":         s.miniAppSimulator.SimulateSelfLoan,
-		"miniapp-unbreakable-vault": s.miniAppSimulator.SimulateUnbreakableVault,
+		"miniapp-unbreakablevault": s.miniAppSimulator.SimulateUnbreakableVault,
 
 		// Social MiniApps
 		"miniapp-secret-poker":  s.miniAppSimulator.SimulateSecretPoker,
@@ -791,10 +791,10 @@ func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 		"miniapp-dev-tipping":   s.miniAppSimulator.SimulateDevTipping,
 
 		// Governance & NFT MiniApps
-		"miniapp-gov-booster":       s.miniAppSimulator.SimulateGovBooster,
+		"miniapp-govbooster":       s.miniAppSimulator.SimulateGovBooster,
 		"miniapp-gov-merc":          s.miniAppSimulator.SimulateGovMerc,
-		"miniapp-masquerade-dao":    s.miniAppSimulator.SimulateMasqueradeDAO,
-		"miniapp-guardian-policy":   s.miniAppSimulator.SimulateGuardianPolicy,
+		"miniapp-masqueradedao":    s.miniAppSimulator.SimulateMasqueradeDAO,
+		"miniapp-guardianpolicy":   s.miniAppSimulator.SimulateGuardianPolicy,
 		"miniapp-garden-of-neo":     s.miniAppSimulator.SimulateGardenOfNeo,
 		"miniapp-on-chain-tarot":    s.miniAppSimulator.SimulateOnChainTarot,
 		"miniapp-ex-files":          s.miniAppSimulator.SimulateExFiles,
@@ -805,8 +805,9 @@ func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 		"miniapp-neoburger":         s.miniAppSimulator.SimulateNeoburger,
 
 		// Phase 10 MiniApps
-		"miniapp-grant-share": s.miniAppSimulator.SimulateGrantShare,
-		"miniapp-neo-ns":      s.miniAppSimulator.SimulateNeoNS,
+		"miniapp-grant-share":   s.miniAppSimulator.SimulateGrantShare,
+		"miniapp-neo-ns":        s.miniAppSimulator.SimulateNeoNS,
+		"miniapp-dailycheckin":  s.miniAppSimulator.SimulateDailyCheckin,
 	}
 
 	apps := normalizeMiniAppIDs(s.miniApps)

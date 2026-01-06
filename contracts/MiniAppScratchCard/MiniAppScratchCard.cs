@@ -96,16 +96,21 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region User-Facing Methods
 
-        public static BigInteger BuyCard(UInt160 player, BigInteger cardType, BigInteger cost)
+        public static BigInteger BuyCard(UInt160 player, BigInteger cardType, BigInteger cost, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
             ExecutionEngine.Assert(cardType >= 1 && cardType <= 5, "invalid card type");
             ExecutionEngine.Assert(cost >= MIN_BET, "min cost 0.05 GAS");
             ExecutionEngine.Assert(cost <= MAX_BET, "max cost 50 GAS (anti-Martingale)");
 
             // Anti-Martingale protection
             ValidateBetLimits(player, cost);
+
+            UInt160 gateway = Gateway();
+            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
+            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+
+            ValidatePaymentReceipt(APP_ID, player, cost, receiptId);
 
             BigInteger cardId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_CARD_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_CARD_ID, cardId);

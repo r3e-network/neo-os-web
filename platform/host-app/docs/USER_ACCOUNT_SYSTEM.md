@@ -38,12 +38,10 @@ Comprehensive user account system implemented for /home/neo/git/service_layer/pl
 
 ### Database Schema:
 
-**supabase/migrations/017_oauth_accounts.sql**
+**supabase/migrations/20250101000002_hostapp_schema.sql**
 
 - `oauth_accounts` - OAuth provider bindings
 - `encrypted_keys` - Encrypted private keys with salt/IV
-- `user_secrets` - Encrypted secrets for MiniApp development
-- `developer_tokens` - API tokens with scopes and expiration
 
 ## Task 4.2: Professional Account Page ✅
 
@@ -231,7 +229,7 @@ platform/host-app/
 │           └── [id].ts
 ├── supabase/
 │   └── migrations/
-│       └── 017_oauth_accounts.sql
+│       └── 20250101000002_hostapp_schema.sql
 └── docs/
     └── TERMINOLOGY.md
 ```
@@ -246,7 +244,7 @@ platform/host-app/
     - Set secure session secrets
 
 2. **Database Migration**
-    - Run migration: `017_oauth_accounts.sql`
+    - Run migration: `20250101000002_hostapp_schema.sql`
     - Verify RLS policies
     - Test data isolation
 

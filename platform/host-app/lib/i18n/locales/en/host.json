@@ -119,6 +119,14 @@
   "features": {
     "title": "Features",
     "subtitle": "Neo N3 provides the ultimate developer experience and user security for the next generation of web3 applications.",
+    "secureCompute": "Secure Compute",
+    "secureComputeDesc": "TEE-powered confidential computing for sensitive operations",
+    "verifiableRandom": "Verifiable Random",
+    "verifiableRandomDesc": "Provably fair randomness for gaming and lotteries",
+    "realTimeData": "Real-Time Data",
+    "realTimeDataDesc": "Live price and market data from trusted sources",
+    "automatedTasks": "Automated Tasks",
+    "automatedTasksDesc": "Schedule and automate on-chain operations",
     "tee": {
       "title": "Confidential TEE",
       "desc": "Run private logic in Intel SGX enclaves where even operators can't see the data."
@@ -340,6 +348,19 @@
     "activity": "Activity"
   },
   "docs": {
+    "tableHeaders": {
+      "name": "Name",
+      "type": "Type",
+      "description": "Description",
+      "required": "Required",
+      "header": "Header",
+      "tier": "Tier",
+      "limit": "Limit",
+      "method": "Method",
+      "parameters": "Parameters",
+      "returns": "Returns",
+      "endpoint": "Endpoint"
+    },
     "title": "Documentation",
     "subtitle": "Everything you need to build on NeoHub",
     "searchPlaceholder": "Search documentation...",
@@ -436,10 +457,26 @@
       "table": {
         "feature": "Feature",
         "rows": [
-          ["Onboarding", "Seconds (Auth0)", "Manual Wallet Connect"],
-          ["Transaction Signing", "No", "Yes (Hardware Security)"],
-          ["Account Recovery", "Email/Social", "Seed Phrase (Private Key)"],
-          ["Cross-Device Sync", "Automatic", "Manual Setup"]
+          [
+            "Onboarding",
+            "Seconds (Auth0)",
+            "Manual Wallet Connect"
+          ],
+          [
+            "Transaction Signing",
+            "No",
+            "Yes (Hardware Security)"
+          ],
+          [
+            "Account Recovery",
+            "Email/Social",
+            "Seed Phrase (Private Key)"
+          ],
+          [
+            "Cross-Device Sync",
+            "Automatic",
+            "Manual Setup"
+          ]
         ]
       }
     },
@@ -465,10 +502,26 @@
         "traditional": "Traditional Cloud",
         "neohub": "NeoHub (TEE)",
         "rows": [
-          ["Data Isolation", "OS-level (Shared Memory)", "Hardware-level (Enclave)"],
-          ["Admin Access", "Root can see all data", "Nobody can see data"],
-          ["Verifiability", "None (Trust the host)", "Remote Attestation (Proof)"],
-          ["Encryption", "Software-based", "Silicon-enforced"]
+          [
+            "Data Isolation",
+            "OS-level (Shared Memory)",
+            "Hardware-level (Enclave)"
+          ],
+          [
+            "Admin Access",
+            "Root can see all data",
+            "Nobody can see data"
+          ],
+          [
+            "Verifiability",
+            "None (Trust the host)",
+            "Remote Attestation (Proof)"
+          ],
+          [
+            "Encryption",
+            "Software-based",
+            "Silicon-enforced"
+          ]
         ]
       }
     },
@@ -505,9 +558,21 @@
       "layers": {
         "title": "Platform Security Layers",
         "rows": [
-          ["L1: Hardware", "Intel SGX", "Enclave Isolation, Memory Encryption"],
-          ["L2: Supervisor", "ServiceOS", "Encrypted Storage, Capability Management"],
-          ["L3: Service", "Capability System", "Role-Based Access, API Quotas"]
+          [
+            "L1: Hardware",
+            "Intel SGX",
+            "Enclave Isolation, Memory Encryption"
+          ],
+          [
+            "L2: Supervisor",
+            "ServiceOS",
+            "Encrypted Storage, Capability Management"
+          ],
+          [
+            "L3: Service",
+            "Capability System",
+            "Role-Based Access, API Quotas"
+          ]
         ]
       }
     },
@@ -760,6 +825,12 @@
       "subtitle": "RESTful API endpoints for all NeoHub services.",
       "baseUrl": "Base URL: https://api.neohub.io/v1",
       "authHeader": "Authorization: Bearer <API_KEY>",
+      "commonHeaders": {
+        "title": "Common Headers",
+        "auth": "Bearer <API_KEY>",
+        "contentType": "application/json",
+        "networkDesc": "testnet | mainnet (default: mainnet)"
+      },
       "endpoints": {
         "oracle": "POST /oracle/fetch - Fetch external data",
         "vrf": "POST /vrf/random - Generate random number",
@@ -772,7 +843,11 @@
     "websocket": {
       "subtitle": "Real-time data streaming via WebSocket.",
       "endpoint": "wss://ws.neohub.io/v1",
-      "channels": ["price-updates", "automation-events", "transaction-status"],
+      "channels": [
+        "price-updates",
+        "automation-events",
+        "transaction-status"
+      ],
       "example": "const ws = new WebSocket('wss://ws.neohub.io/v1');\nws.onopen = () => {\n  ws.send(JSON.stringify({ subscribe: 'price-updates', symbols: ['BTC-USD'] }));\n};\nws.onmessage = (e) => console.log('Price Update:', JSON.parse(e.data));"
     },
     "errors": {
@@ -1010,7 +1085,7 @@
     "viewWallet": "View Wallet on Explorer",
     "viewContract": "View Contract on Explorer"
   },
-  "miniapps": {
+  "appDetails": {
     "lottery": {
       "features": [
         "Provably fair draws using VRF randomness",
@@ -1140,7 +1215,12 @@
       "tips": "Prime locations near popular areas are more valuable."
     },
     "neoswap": {
-      "features": ["Instant token swaps", "Best rate aggregation", "Low slippage trading", "Multiple token pairs"],
+      "features": [
+        "Instant token swaps",
+        "Best rate aggregation",
+        "Low slippage trading",
+        "Multiple token pairs"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Select tokens to swap (from/to)",
@@ -1199,7 +1279,12 @@
       "tips": "Self-loans let you access liquidity without selling your assets."
     },
     "neoburger": {
-      "features": ["Liquid NEO staking", "Receive bNEO tokens", "Earn GAS rewards", "Use bNEO in DeFi"],
+      "features": [
+        "Liquid NEO staking",
+        "Receive bNEO tokens",
+        "Earn GAS rewards",
+        "Use bNEO in DeFi"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Enter NEO amount to stake",
@@ -1290,7 +1375,12 @@
       "tips": "Clear terms prevent disputes later."
     },
     "canvas": {
-      "features": ["Collaborative pixel art", "Real-time updates", "Color palette selection", "Artwork preservation"],
+      "features": [
+        "Collaborative pixel art",
+        "Real-time updates",
+        "Color palette selection",
+        "Artwork preservation"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Select a color from palette",
@@ -1317,7 +1407,12 @@
       "tips": "Daily readings provide consistent guidance."
     },
     "timecapsule": {
-      "features": ["Lock messages for future", "Time-based unlocking", "Attach crypto gifts", "Immutable storage"],
+      "features": [
+        "Lock messages for future",
+        "Time-based unlocking",
+        "Attach crypto gifts",
+        "Immutable storage"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Write your message",
@@ -1344,7 +1439,12 @@
       "tips": "Regular check-ins prevent accidental triggers."
     },
     "gardenofneo": {
-      "features": ["Virtual plant growing", "Daily care rewards", "Rare plant breeding", "Garden trading"],
+      "features": [
+        "Virtual plant growing",
+        "Daily care rewards",
+        "Rare plant breeding",
+        "Garden trading"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Plant your first seed",
@@ -1355,7 +1455,12 @@
       "tips": "Consistent daily care yields the best rewards."
     },
     "graveyard": {
-      "features": ["Memorial NFT creation", "Permanent tributes", "Community remembrance", "Digital legacy"],
+      "features": [
+        "Memorial NFT creation",
+        "Permanent tributes",
+        "Community remembrance",
+        "Digital legacy"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Create a memorial entry",
@@ -1366,7 +1471,12 @@
       "tips": "Memorials are permanent and cannot be deleted."
     },
     "govbooster": {
-      "features": ["Amplify voting power", "Delegate votes", "Track governance activity", "Proposal notifications"],
+      "features": [
+        "Amplify voting power",
+        "Delegate votes",
+        "Track governance activity",
+        "Proposal notifications"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "View active proposals",
@@ -1377,7 +1487,12 @@
       "tips": "Boosted votes have more influence on outcomes."
     },
     "burnleague": {
-      "features": ["Competitive token burning", "Leaderboard rankings", "Seasonal competitions", "Burn rewards"],
+      "features": [
+        "Competitive token burning",
+        "Leaderboard rankings",
+        "Seasonal competitions",
+        "Burn rewards"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Join current burn season",
@@ -1404,7 +1519,12 @@
       "tips": "Watch the clock closely near zero."
     },
     "masqueradedao": {
-      "features": ["Anonymous voting", "ZK-proof identity", "Private proposals", "Sybil-resistant"],
+      "features": [
+        "Anonymous voting",
+        "ZK-proof identity",
+        "Private proposals",
+        "Sybil-resistant"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Generate anonymous identity",
@@ -1431,7 +1551,12 @@
       "tips": "Higher reputation earns better rates."
     },
     "candidatevote": {
-      "features": ["Council candidate voting", "Stake-weighted votes", "Candidate profiles", "Election tracking"],
+      "features": [
+        "Council candidate voting",
+        "Stake-weighted votes",
+        "Candidate profiles",
+        "Election tracking"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Browse candidate profiles",
@@ -1458,7 +1583,12 @@
       "tips": "Only council members can vote on proposals."
     },
     "neons": {
-      "features": ["Neo Name Service domains", "Human-readable addresses", "Domain trading", "Subdomain management"],
+      "features": [
+        "Neo Name Service domains",
+        "Human-readable addresses",
+        "Domain trading",
+        "Subdomain management"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Search for available names",
@@ -1469,7 +1599,12 @@
       "tips": "Short names are more valuable."
     },
     "explorer": {
-      "features": ["Transaction lookup", "Block exploration", "Contract inspection", "Address tracking"],
+      "features": [
+        "Transaction lookup",
+        "Block exploration",
+        "Contract inspection",
+        "Address tracking"
+      ],
       "steps": [
         "Enter transaction hash, block, or address",
         "View detailed information",
@@ -1480,7 +1615,12 @@
       "tips": "Bookmark addresses you want to monitor."
     },
     "guardianpolicy": {
-      "features": ["Multi-sig wallet setup", "Spending limits", "Recovery options", "Guardian management"],
+      "features": [
+        "Multi-sig wallet setup",
+        "Spending limits",
+        "Recovery options",
+        "Guardian management"
+      ],
       "steps": [
         "Connect your Neo wallet",
         "Add guardian addresses",

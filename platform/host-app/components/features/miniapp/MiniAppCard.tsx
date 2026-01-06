@@ -9,6 +9,7 @@ import { MiniAppLogo } from "./MiniAppLogo";
 import { CollectionStar } from "./CollectionStar";
 import { useTranslation } from "@/lib/i18n/react";
 import type { AnyCardData } from "@/types/card-display";
+import { Users, Activity, Coins } from "lucide-react";
 
 export interface MiniAppInfo {
   app_id: string;
@@ -30,18 +31,18 @@ export interface MiniAppInfo {
 }
 
 const categoryColors = {
-  gaming: "bg-purple-100 text-purple-800",
-  defi: "bg-blue-100 text-blue-800",
-  social: "bg-pink-100 text-pink-800",
-  governance: "bg-emerald-100 text-emerald-800",
-  utility: "bg-gray-100 text-gray-800",
-  nft: "bg-teal-100 text-teal-800",
+  gaming: "bg-brutal-yellow text-black border-black",
+  defi: "bg-neo text-black border-black",
+  social: "bg-brutal-pink text-black border-black",
+  governance: "bg-brutal-blue text-white border-black",
+  utility: "bg-electric-purple text-white border-black",
+  nft: "bg-brutal-lime text-black border-black",
 };
 
 const sourceColors = {
   builtin: "",
-  community: "bg-teal-100 text-teal-800 border-teal-300",
-  verified: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  community: "bg-brutal-orange text-black border-black",
+  verified: "bg-neo text-black border-black",
 };
 
 // Format number with K/M suffix
@@ -64,54 +65,62 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
   const appDesc = locale === "zh" && app.description_zh ? app.description_zh : app.description;
 
   return (
-    <Link href={`/miniapps/${app.app_id}`} className="relative block">
-      <Card className="group cursor-pointer transition-all duration-300 ease-out hover:shadow-xl hover:-translate-y-1 hover:z-50 overflow-hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-md relative">
+    <Link href={`/miniapps/${app.app_id}`} className="relative block group">
+      <Card className="h-full overflow-hidden bg-white dark:bg-black border-4 border-black dark:border-white shadow-brutal-md transition-all duration-300 hover:-translate-y-2 hover:-translate-x-2 hover:shadow-brutal-lg rounded-none z-10 hover:z-20">
         {app.cardData ? (
-          <div className="w-full h-48 relative">
-            <CardRenderer data={app.cardData} className="h-full" />
-            <CollectionStar appId={app.app_id} className="absolute top-2 right-2 z-10" />
+          <div className="w-full h-52 relative overflow-hidden border-b-4 border-black dark:border-white">
+            <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 animate-pulse-slow" />
+            <CardRenderer data={app.cardData} className="h-full relative z-10" />
+            <CollectionStar appId={app.app_id} className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         ) : (
-          <div className="w-full h-48 relative">
-            <DynamicBanner
-              category={app.category}
-              icon={app.icon}
-              appId={app.app_id}
-              appName={appName}
-              highlights={app.highlights}
-            />
-            <CollectionStar appId={app.app_id} className="absolute top-2 right-2 z-10" />
+          <div className="w-full h-52 relative overflow-hidden border-b-4 border-black dark:border-white">
+            <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110">
+              <DynamicBanner
+                category={app.category}
+                icon={app.icon}
+                appId={app.app_id}
+                appName={appName}
+                highlights={app.highlights}
+              />
+            </div>
+            <CollectionStar appId={app.app_id} className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         )}
-        <CardContent className="p-5 bg-white dark:bg-gray-900">
-          <div className="flex items-center gap-3 mb-2">
-            <MiniAppLogo appId={app.app_id} category={app.category} size="md" iconUrl={app.icon} />
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate flex-1">{appName}</h3>
-            <Badge className={categoryColors[app.category]} variant="secondary">
-              {categoryLabel}
-            </Badge>
-            {showSourceBadge && (
-              <Badge className={sourceColors[app.source!]} variant="outline">
-                {app.source === "community" ? "🌐 Community" : "✓ Verified"}
-              </Badge>
-            )}
+        <CardContent className="p-6 bg-white dark:bg-black/40 flex flex-col h-[calc(100%-13rem)]">
+          <div className="flex items-start gap-4 mb-4">
+            <MiniAppLogo appId={app.app_id} category={app.category} size="md" iconUrl={app.icon} className="shrink-0" />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-black text-xl text-black dark:text-white truncate leading-none mb-2 uppercase tracking-tighter italic">{appName}</h3>
+              <div className="flex flex-wrap gap-2">
+                <Badge className={`text-[10px] font-black uppercase border-2 px-2 py-0.5 rounded-none shadow-brutal-xs ${categoryColors[app.category]}`} variant="secondary">
+                  {categoryLabel}
+                </Badge>
+                {showSourceBadge && (
+                  <Badge className={`text-[10px] font-black uppercase border-2 px-2 py-0.5 rounded-none shadow-brutal-xs ${sourceColors[app.source!]}`} variant="secondary">
+                    {app.source === "community" ? "Community" : "Verified"}
+                  </Badge>
+                )}
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 group-hover:line-clamp-none leading-relaxed mb-3 transition-all duration-300">
+
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4 flex-1">
             {appDesc}
           </p>
 
           {/* Stats Section */}
-          <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
-            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <span>👥</span>
+          <div className="flex items-center justify-between pt-4 border-t-2 border-black dark:border-white mt-auto">
+            <div className="flex items-center gap-1.5 text-xs font-black uppercase text-black dark:text-white" title="Active Users">
+              <Users size={16} className="text-black dark:text-white" strokeWidth={3} />
               <span>{formatNumber(app.stats?.users)}</span>
             </div>
-            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <span>📊</span>
-              <span>{formatNumber(app.stats?.transactions)} txs</span>
+            <div className="flex items-center gap-1.5 text-xs font-black uppercase text-black dark:text-white" title="Transactions">
+              <Activity size={16} className="text-black dark:text-white" strokeWidth={3} />
+              <span>{formatNumber(app.stats?.transactions)}</span>
             </div>
-            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <span>💰</span>
+            <div className="flex items-center gap-1.5 text-xs font-black uppercase text-black dark:text-white" title="Volume">
+              <Coins size={16} className="text-black dark:text-white" strokeWidth={3} />
               <span>{app.stats?.volume || "0 GAS"}</span>
             </div>
           </div>

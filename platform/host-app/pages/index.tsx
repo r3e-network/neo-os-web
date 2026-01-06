@@ -4,7 +4,8 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { StatsBar } from "@/components/features/stats";
 import { MiniAppCard, MiniAppListItem } from "@/components/features/miniapp";
-import { NewsSection } from "@/components/features/news";
+import { ActivityTicker } from "@/components/ActivityTicker";
+import { useActivityFeed } from "@/hooks/useActivityFeed";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { useTranslation } from "@/lib/i18n/react";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,9 @@ export default function LandingPage() {
   const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [displayedTxCount, setDisplayedTxCount] = useState(0);
+
+  // Real-time global activity feed
+  const { activities } = useActivityFeed({ maxItems: 20 });
 
   // Fetch real stats from API
   useEffect(() => {
@@ -204,20 +208,20 @@ export default function LandingPage() {
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg cursor-pointer transition-all",
+                          "w-full flex items-center justify-between px-4 py-3 text-sm font-black uppercase border-2 transition-all cursor-pointer",
                           isActive
-                            ? "bg-neo/10 text-neo font-medium"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/5",
+                            ? "bg-neo border-black text-black shadow-brutal-sm -translate-x-1 -translate-y-1"
+                            : "border-transparent text-gray-500 hover:border-black/10 hover:bg-gray-100 dark:hover:bg-white/5",
                         )}
                       >
                         <span className="flex items-center gap-2">
-                          <Icon size={16} />
+                          <Icon size={16} strokeWidth={2.5} />
                           {cat.label}
                         </span>
                         <span
                           className={cn(
-                            "text-xs px-2 py-0.5 rounded-full",
-                            isActive ? "bg-neo/20 text-neo" : "bg-gray-200 dark:bg-white/10 text-gray-500",
+                            "text-[10px] px-2 py-0.5 border-2",
+                            isActive ? "bg-black text-neo border-black" : "bg-gray-200 dark:bg-white/10 text-gray-500 border-transparent",
                           )}
                         >
                           {cat.count}
@@ -228,7 +232,11 @@ export default function LandingPage() {
                 </div>
               </div>
               <div>
-                <NewsSection />
+                <h3 className="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-4 px-2">
+                  <Zap size={18} />
+                  {t("activity.live")}
+                </h3>
+                <ActivityTicker activities={activities} title={t("activity.global") || "GLOBAL FEED"} height={400} />
               </div>
             </aside>
 
@@ -241,10 +249,10 @@ export default function LandingPage() {
                       variant={sortBy === sort ? "outline" : "ghost"}
                       onClick={() => setSortBy(sort as any)}
                       className={cn(
-                        "h-9 rounded-full text-xs font-semibold px-4",
+                        "h-auto rounded-none text-[10px] font-black uppercase px-6 py-2 border-2 shadow-brutal-xs transition-all active:shadow-none active:translate-x-1 active:translate-y-1",
                         sortBy === sort
-                          ? "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 shadow-sm"
-                          : "text-gray-500 hover:text-gray-900 dark:hover:text-white",
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-black border-black hover:bg-neo",
                       )}
                     >
                       {t(`miniapps.sort.${sort}`)}
@@ -252,28 +260,28 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
-                  <div className="bg-gray-100 dark:bg-dark-900 rounded-xl p-1 flex items-center border border-gray-200 dark:border-white/5 shadow-inner">
+                  <div className="bg-white dark:bg-black p-1 flex items-center border-4 border-black dark:border-white shadow-brutal-xs">
                     <button
                       onClick={() => setViewMode("grid")}
                       className={cn(
-                        "p-2 rounded-lg transition-all",
+                        "p-2 rounded-none transition-all",
                         viewMode === "grid"
-                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
-                          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",
+                          ? "bg-black text-white"
+                          : "text-black dark:text-white hover:bg-neo",
                       )}
                     >
-                      <LayoutGrid size={18} />
+                      <LayoutGrid size={18} strokeWidth={3} />
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
                       className={cn(
-                        "p-2 rounded-lg transition-all",
+                        "p-2 rounded-none transition-all",
                         viewMode === "list"
-                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
-                          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",
+                          ? "bg-black text-white"
+                          : "text-black dark:text-white hover:bg-neo",
                       )}
                     >
-                      <List size={18} />
+                      <List size={18} strokeWidth={3} />
                     </button>
                   </div>
                 </div>

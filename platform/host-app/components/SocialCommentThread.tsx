@@ -50,22 +50,22 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
   const displayError = error?.message || localError;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Comments ({comments.length})</h3>
+    <div className="bg-white dark:bg-black border-4 border-black dark:border-white shadow-brutal-md">
+      <div className="p-4 border-b-4 border-black dark:border-white bg-neo text-black">
+        <h3 className="text-lg font-black uppercase tracking-tighter italic">Consensus Feed ({comments.length})</h3>
       </div>
 
       {/* Error Display */}
       {displayError && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+        <div className="p-4 bg-brutal-red text-white border-b-4 border-black">
           <div className="flex items-center justify-between">
-            <span className="text-red-700 dark:text-red-400 text-sm">{displayError}</span>
+            <span className="text-sm font-black uppercase">{displayError}</span>
             <button
               onClick={() => {
                 setLocalError(null);
                 onClearError?.();
               }}
-              className="text-red-500 hover:text-red-700 dark:hover:text-red-300 text-sm"
+              className="bg-black text-white px-3 py-1 border-2 border-white text-xs font-black uppercase shadow-brutal-xs"
             >
               Dismiss
             </button>
@@ -75,35 +75,35 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
 
       {/* New Comment Form */}
       {canComment && (
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b-4 border-black dark:border-white bg-gray-50 dark:bg-gray-900">
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Write a comment..."
-            className="w-full border border-gray-300 dark:border-gray-600 rounded p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+            placeholder="Share your perspective with the network..."
+            className="w-full border-4 border-black dark:border-white p-4 bg-white dark:bg-black text-gray-900 dark:text-gray-100 font-bold placeholder:opacity-30 focus:shadow-brutal-sm transition-shadow"
             rows={3}
             maxLength={2000}
           />
           <button
             onClick={handleSubmit}
             disabled={submitting || !newComment.trim()}
-            className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
+            className="mt-4 px-6 py-3 bg-black text-white border-4 border-black font-black uppercase italic shadow-brutal-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none disabled:opacity-50 transition-all"
           >
-            {submitting ? "Posting..." : "Post Comment"}
+            {submitting ? "Processing..." : "Commit Comment"}
           </button>
         </div>
       )}
 
       {!canComment && (
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
-          Connect wallet to leave comments
+        <div className="p-6 border-b-4 border-black dark:border-white bg-brutal-yellow text-black font-black uppercase text-center text-sm shadow-inner">
+          Authentication Required to Commmit Comments
         </div>
       )}
 
       {/* Comments List */}
-      <div className="divide-y divide-gray-200 dark:divide-gray-700">
+      <div className="divide-y-4 divide-black dark:divide-white">
         {comments.map((comment) => (
-          <div key={comment.id} className="px-4">
+          <div key={comment.id} className="px-6 py-4">
             <CommentItem comment={comment} onVote={onVote} onReply={onReply} onLoadReplies={onLoadReplies} />
           </div>
         ))}
@@ -111,14 +111,22 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
 
       {/* Load More */}
       {hasMore && (
-        <div className="p-4 text-center border-t border-gray-200 dark:border-gray-700">
-          <button onClick={onLoadMore} disabled={loading} className="text-blue-600 dark:text-blue-400 hover:underline">
-            {loading ? "Loading..." : "Load more comments"}
+        <div className="p-6 text-center border-t-4 border-black dark:border-white bg-gray-100 dark:bg-gray-800">
+          <button
+            onClick={onLoadMore}
+            disabled={loading}
+            className="text-sm font-black uppercase underline decoration-4 underline-offset-8 hover:text-neo transition-colors"
+          >
+            {loading ? "Decrypting More Data..." : "Retrieve Earlier Threads"}
           </button>
         </div>
       )}
 
-      {comments.length === 0 && <div className="p-8 text-center text-gray-500 dark:text-gray-400">No comments yet</div>}
+      {comments.length === 0 && (
+        <div className="p-12 text-center text-xs font-black uppercase opacity-30 border-t-4 border-black border-dashed">
+          The void is silent. Start the conversation.
+        </div>
+      )}
     </div>
   );
 };

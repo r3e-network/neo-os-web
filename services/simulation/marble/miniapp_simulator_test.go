@@ -39,7 +39,7 @@ func TestAllMiniApps(t *testing.T) {
 	assert.True(t, appIDs["miniapp-micro-predict"])
 	assert.True(t, appIDs["miniapp-red-envelope"])
 	assert.True(t, appIDs["miniapp-gas-circle"])
-	assert.True(t, appIDs["miniapp-gov-booster"])
+	assert.True(t, appIDs["miniapp-govbooster"])
 	// Phase 3 MiniApps
 	assert.True(t, appIDs["miniapp-turbo-options"])
 	// Phase 5 MiniApps - New deployed contracts
@@ -57,9 +57,9 @@ func TestAllMiniApps(t *testing.T) {
 	assert.True(t, appIDs["miniapp-burn-league"])
 	// Phase 8 MiniApps - Creative & Social
 	assert.True(t, appIDs["miniapp-puzzle-mining"])
-	assert.True(t, appIDs["miniapp-unbreakable-vault"])
+	assert.True(t, appIDs["miniapp-unbreakablevault"])
 	assert.True(t, appIDs["miniapp-million-piece-map"])
-	assert.True(t, appIDs["miniapp-crypto-riddle"])
+	assert.True(t, appIDs["miniapp-cryptoriddle"])
 	// Phase 9 MiniApps - New Social & Utility
 	assert.True(t, appIDs["miniapp-grant-share"])
 	assert.True(t, appIDs["miniapp-neo-ns"])

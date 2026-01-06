@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/lib/i18n/react";
@@ -149,31 +149,40 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {wallet.links.chrome && (
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2" asChild>
-                <a href={wallet.links.chrome} target="_blank" rel="noopener noreferrer">
-                  <Chrome className="h-4 w-4" />
-                  Chrome
-                  <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
-                </a>
-              </Button>
+              <a
+                href={wallet.links.chrome}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full justify-start gap-2")}
+              >
+                <Chrome className="h-4 w-4" />
+                Chrome
+                <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+              </a>
             )}
             {wallet.links.ios && (
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2" asChild>
-                <a href={wallet.links.ios} target="_blank" rel="noopener noreferrer">
-                  <Apple className="h-4 w-4" />
-                  iOS
-                  <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
-                </a>
-              </Button>
+              <a
+                href={wallet.links.ios}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full justify-start gap-2")}
+              >
+                <Apple className="h-4 w-4" />
+                iOS
+                <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+              </a>
             )}
             {wallet.links.android && (
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2" asChild>
-                <a href={wallet.links.android} target="_blank" rel="noopener noreferrer">
-                  <Smartphone className="h-4 w-4" />
-                  Android
-                  <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
-                </a>
-              </Button>
+              <a
+                href={wallet.links.android}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full justify-start gap-2")}
+              >
+                <Smartphone className="h-4 w-4" />
+                Android
+                <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+              </a>
             )}
           </div>
         </div>
@@ -271,15 +280,18 @@ export default function DownloadPage() {
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t("download.help.title")}</h2>
           <p className="text-slate-500 dark:text-slate-400 mb-4">{t("download.help.description")}</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button variant="outline" asChild>
-              <Link href="/docs">{t("download.help.docs")}</Link>
-            </Button>
-            <Button variant="ghost" asChild>
-              <a href="https://discord.gg/neo" target="_blank" rel="noopener noreferrer">
-                {t("download.help.community")}
-                <ExternalLink className="h-3 w-3 ml-2" />
-              </a>
-            </Button>
+            <Link href="/docs" className={buttonVariants({ variant: "outline" })}>
+              {t("download.help.docs")}
+            </Link>
+            <a
+              href="https://discord.gg/neo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: "ghost" })}
+            >
+              {t("download.help.community")}
+              <ExternalLink className="h-3 w-3 ml-2" />
+            </a>
           </div>
         </div>
       </div>
