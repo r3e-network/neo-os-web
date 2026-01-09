@@ -31,24 +31,25 @@ type BuiltinApp struct {
 }
 
 var builtinApps = []BuiltinApp{
-	// Gaming apps
-	{"builtin-lottery", "Lottery", "miniapps-uniapp/apps/lottery", []string{"wallet", "payments", "rng"}},
-	{"builtin-coin-flip", "Coin Flip", "miniapps-uniapp/apps/coin-flip", []string{"wallet", "payments", "rng"}},
-	{"builtin-dice-game", "Dice Game", "miniapps-uniapp/apps/dice-game", []string{"wallet", "payments", "rng"}},
-	{"builtin-secret-poker", "Secret Poker", "miniapps-uniapp/apps/secret-poker", []string{"wallet", "payments", "rng", "compute"}},
-	{"builtin-red-envelope", "Red Envelope", "miniapps-uniapp/apps/red-envelope", []string{"wallet", "payments", "rng"}},
-	{"builtin-gas-circle", "GAS Circle", "miniapps-uniapp/apps/gas-circle", []string{"wallet", "payments", "rng", "automation"}},
-	{"builtin-scratch-card", "Scratch Card", "miniapps-uniapp/apps/scratch-card", []string{"wallet", "payments", "rng"}},
-	{"builtin-neo-crash", "Neo Crash", "miniapps-uniapp/apps/neo-crash", []string{"wallet", "payments", "rng"}},
+	// Gaming apps - using miniapp- prefix as standard
+	{"miniapp-lottery", "Lottery", "miniapps-uniapp/apps/lottery", []string{"wallet", "payments", "rng"}},
+	{"miniapp-coin-flip", "Coin Flip", "miniapps-uniapp/apps/coin-flip", []string{"wallet", "payments", "rng"}},
+	{"miniapp-dice-game", "Dice Game", "miniapps-uniapp/apps/dice-game", []string{"wallet", "payments", "rng"}},
+	{"miniapp-secret-poker", "Secret Poker", "miniapps-uniapp/apps/secret-poker", []string{"wallet", "payments", "rng", "compute"}},
+	{"miniapp-red-envelope", "Red Envelope", "miniapps-uniapp/apps/red-envelope", []string{"wallet", "payments", "rng"}},
+	{"miniapp-gas-circle", "GAS Circle", "miniapps-uniapp/apps/gas-circle", []string{"wallet", "payments", "rng", "automation"}},
+	{"miniapp-scratch-card", "Scratch Card", "miniapps-uniapp/apps/scratch-card", []string{"wallet", "payments", "rng"}},
+	{"miniapp-neo-crash", "Neo Crash", "miniapps-uniapp/apps/neo-crash", []string{"wallet", "payments", "rng"}},
 	// DeFi apps
-	{"builtin-flashloan", "Flash Loan", "miniapps-uniapp/apps/flashloan", []string{"wallet", "payments"}},
+	{"miniapp-flashloan", "Flash Loan", "miniapps-uniapp/apps/flashloan", []string{"wallet", "payments"}},
 	// Governance apps
-	{"builtin-gov-booster", "Gov Booster", "miniapps-uniapp/apps/gov-booster", []string{"wallet", "payments", "governance", "automation", "datafeed"}},
-	{"builtin-gov-merc", "Gov Merc", "miniapps-uniapp/apps/gov-merc", []string{"wallet", "payments", "governance"}},
+	{"miniapp-gov-booster", "Gov Booster", "miniapps-uniapp/apps/gov-booster", []string{"wallet", "payments", "governance", "automation", "datafeed"}},
+	{"miniapp-gov-merc", "Gov Merc", "miniapps-uniapp/apps/gov-merc", []string{"wallet", "payments", "governance"}},
 	// Utility apps
-	{"builtin-guardian-policy", "Guardian Policy", "miniapps-uniapp/apps/guardian-policy", []string{"wallet", "payments", "compute"}},
-	{"builtin-heritage-trust", "Heritage Trust", "miniapps-uniapp/apps/heritage-trust", []string{"wallet", "payments", "automation"}},
-	{"builtin-time-capsule", "Time Capsule", "miniapps-uniapp/apps/time-capsule", []string{"wallet", "payments"}},
+	{"miniapp-guardian-policy", "Guardian Policy", "miniapps-uniapp/apps/guardian-policy", []string{"wallet", "payments", "compute"}},
+	{"miniapp-heritage-trust", "Heritage Trust", "miniapps-uniapp/apps/heritage-trust", []string{"wallet", "payments", "automation"}},
+	{"miniapp-time-capsule", "Time Capsule", "miniapps-uniapp/apps/time-capsule", []string{"wallet", "payments"}},
+	{"miniapp-dev-tipping", "EcoBoost", "miniapps-uniapp/apps/dev-tipping", []string{"wallet", "payments"}},
 }
 
 func main() {

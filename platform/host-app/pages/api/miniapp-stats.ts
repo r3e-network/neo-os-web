@@ -6,6 +6,7 @@
  * 1. simulation_txs - Main transaction records (paginated)
  * 2. service_requests - Service layer requests
  * 3. contract_events - On-chain contract events
+ * 4. miniapp_stats_summary - Incremental statistics like view_count
  *
  * Performance: In-memory cache with 5-minute TTL
  */
@@ -22,23 +23,17 @@ interface AppStats {
   total_users: number;
   total_transactions: number;
   total_gas_used: string;
+  view_count: number;
   data_sources: string[]; // Track which tables contributed data
 }
 
 /**
  * Normalize app_id from database format to frontend format
- * Database: builtin-lottery, builtin-coin-flip, builtin-dice-game
- * Frontend: miniapp-lottery, miniapp-coinflip, miniapp-dicegame
  */
 function normalizeAppId(dbAppId: string): string {
   if (!dbAppId.startsWith("builtin-")) return dbAppId;
-
-  // Remove "builtin-" prefix and convert to frontend format
   const name = dbAppId.replace("builtin-", "");
-
-  // Map database names to frontend app_id format
   const nameMap: Record<string, string> = {
-    // Gaming
     lottery: "miniapp-lottery",
     "coin-flip": "miniapp-coinflip",
     "dice-game": "miniapp-dicegame",
@@ -51,7 +46,6 @@ function normalizeAppId(dbAppId: string): string {
     "garden-of-neo": "miniapp-garden-of-neo",
     "gas-spin": "miniapp-gasspin",
     "mega-millions": "miniapp-megamillions",
-    // DeFi
     flashloan: "miniapp-flashloan",
     "price-predict": "miniapp-pricepredict",
     "self-loan": "miniapp-self-loan",
@@ -60,7 +54,6 @@ function normalizeAppId(dbAppId: string): string {
     "micro-predict": "miniapp-micropredict",
     "heritage-trust": "miniapp-heritage-trust",
     "unbreakable-vault": "miniapp-unbreakablevault",
-    // Social
     "red-envelope": "miniapp-redenvelope",
     "gas-circle": "miniapp-gascircle",
     "dev-tipping": "miniapp-dev-tipping",
@@ -68,7 +61,6 @@ function normalizeAppId(dbAppId: string): string {
     "breakup-contract": "miniapp-breakupcontract",
     "ex-files": "miniapp-exfiles",
     graveyard: "miniapp-graveyard",
-    // Governance & NFT
     "gov-booster": "miniapp-govbooster",
     "gov-merc": "miniapp-gov-merc",
     "masquerade-dao": "miniapp-masqueradedao",
@@ -78,124 +70,78 @@ function normalizeAppId(dbAppId: string): string {
     "million-piece-map": "miniapp-millionpiecemap",
     canvas: "miniapp-canvas",
     "puzzle-mining": "miniapp-puzzlemining",
-    // Special apps
     "candidate-vote": "miniapp-candidate-vote",
     neoburger: "miniapp-neoburger",
     "neo-swap": "miniapp-neo-swap",
     explorer: "miniapp-explorer",
     "throne-of-gas": "miniapp-throneofgas",
+    "hall-of-fame": "miniapp-hall-of-fame",
+    "neo-ns": "miniapp-neo-ns",
+    "neo-treasury": "miniapp-neo-treasury",
+    "daily-checkin": "miniapp-daily-checkin",
   };
-
   return nameMap[name] || `miniapp-${name.replace(/-/g, "")}`;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  // Optional filter by app_id
+  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
   const appIdFilter = req.query.app_id as string | undefined;
 
-  if (!isSupabaseConfigured) {
-    return res.status(200).json({ stats: [] });
-  }
-
-  // Check cache first (skip if filtering by specific app_id)
+  if (!isSupabaseConfigured) return res.status(200).json({ stats: [] });
   if (!appIdFilter && statsCache && Date.now() - statsCache.timestamp < CACHE_TTL_MS) {
     return res.status(200).json({ stats: statsCache.data, cached: true });
   }
 
   try {
-    const appStatsMap: Record<string, { users: Set<string>; txCount: number; volume: bigint; sources: Set<string> }> =
-      {};
+    const appStatsMap: Record<string, { users: Set<string>; txCount: number; volume: bigint; views: number; sources: Set<string> }> = {};
 
-    // Helper to ensure app entry exists
     const ensureApp = (appId: string) => {
       if (!appStatsMap[appId]) {
-        appStatsMap[appId] = { users: new Set(), txCount: 0, volume: BigInt(0), sources: new Set() };
+        appStatsMap[appId] = { users: new Set(), txCount: 0, volume: BigInt(0), views: 0, sources: new Set() };
       }
     };
 
-    // 1. Get stats from simulation_txs (paginated)
+    // 1. Get transaction stats from simulation_txs (paginated)
     let offset = 0;
-    const pageSize = 10000;
-    while (true) {
-      const { data: simTxs } = await supabase
-        .from("simulation_txs")
-        .select("app_id, account_address, amount")
-        .not("app_id", "is", null)
-        .range(offset, offset + pageSize - 1);
-
+    const pageSize = 5000;
+    while (offset < 20000) { // Safety limit for dev
+      const { data: simTxs } = await supabase.from("simulation_txs").select("app_id, account_address, amount").not("app_id", "is", null).range(offset, offset + pageSize - 1);
       if (!simTxs || simTxs.length === 0) break;
-
       for (const tx of simTxs) {
         if (!tx.app_id) continue;
         ensureApp(tx.app_id);
         appStatsMap[tx.app_id].txCount++;
         appStatsMap[tx.app_id].sources.add("simulation_txs");
         if (tx.account_address) appStatsMap[tx.app_id].users.add(tx.account_address);
-        if (tx.amount) {
-          try {
-            appStatsMap[tx.app_id].volume += BigInt(String(tx.amount));
-          } catch {
-            // Skip invalid
-          }
-        }
+        if (tx.amount) { try { appStatsMap[tx.app_id].volume += BigInt(String(tx.amount)); } catch { } }
       }
-
       if (simTxs.length < pageSize) break;
       offset += pageSize;
     }
 
-    // 2. Get stats from service_requests
-    const { data: serviceReqs } = await supabase
-      .from("service_requests")
-      .select("app_id, requester")
-      .not("app_id", "is", null);
-
-    if (serviceReqs) {
-      for (const req of serviceReqs) {
-        if (!req.app_id) continue;
-        ensureApp(req.app_id);
-        appStatsMap[req.app_id].txCount++;
-        appStatsMap[req.app_id].sources.add("service_requests");
-        if (req.requester) appStatsMap[req.app_id].users.add(req.requester);
+    // 2. Get views from summary table
+    const { data: summaryData } = await supabase.from("miniapp_stats_summary").select("app_id, view_count, total_transactions, total_unique_users");
+    if (summaryData) {
+      for (const row of summaryData) {
+        ensureApp(row.app_id);
+        appStatsMap[row.app_id].views = row.view_count || 0;
+        appStatsMap[row.app_id].txCount += (row.total_transactions || 0);
+        appStatsMap[row.app_id].sources.add("stats_summary");
       }
     }
 
-    // 3. Get stats from contract_events
-    const { data: events } = await supabase.from("contract_events").select("app_id, data").not("app_id", "is", null);
-
-    if (events) {
-      for (const evt of events) {
-        if (!evt.app_id) continue;
-        ensureApp(evt.app_id);
-        appStatsMap[evt.app_id].txCount++;
-        appStatsMap[evt.app_id].sources.add("contract_events");
-        const data = evt.data as Record<string, unknown> | null;
-        if (data?.sender) appStatsMap[evt.app_id].users.add(String(data.sender));
-        if (data?.from) appStatsMap[evt.app_id].users.add(String(data.from));
-      }
-    }
-
-    // Convert to array with normalized app_ids
-    const stats: AppStats[] = Object.entries(appStatsMap)
-      .map(([appId, data]) => ({
-        app_id: normalizeAppId(appId),
-        total_users: data.users.size,
-        total_transactions: data.txCount,
-        total_gas_used: (Number(data.volume) / 100000000).toFixed(2),
-        data_sources: Array.from(data.sources),
-      }))
-      .sort((a, b) => b.total_transactions - a.total_transactions);
+    // 3. Convert to normalized array
+    const stats: AppStats[] = Object.entries(appStatsMap).map(([appId, data]) => ({
+      app_id: normalizeAppId(appId),
+      total_users: data.users.size,
+      total_transactions: data.txCount,
+      total_gas_used: (Number(data.volume) / 100000000).toFixed(2),
+      view_count: data.views,
+      data_sources: Array.from(data.sources),
+    })).sort((a, b) => b.total_transactions - a.total_transactions);
 
     const filteredStats = appIdFilter ? stats.filter((s) => s.app_id === appIdFilter) : stats;
-
-    // Update cache if not filtering
-    if (!appIdFilter) {
-      statsCache = { data: stats, timestamp: Date.now() };
-    }
+    if (!appIdFilter) statsCache = { data: stats, timestamp: Date.now() };
 
     res.status(200).json({ stats: filteredStats });
   } catch (error) {

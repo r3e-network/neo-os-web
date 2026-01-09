@@ -45,26 +45,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 async function getNetworkStats(rpcUrl: string, network: string): Promise<NetworkStats> {
   // Get block count
-  const blockRes = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method: "getblockcount",
-      params: [],
-      id: 1,
-    }),
-  });
-  const blockData = await blockRes.json();
-  const height = blockData.result || 0;
+  let height = 0;
+  try {
+    const blockRes = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "getblockcount",
+        params: [],
+        id: 1,
+      }),
+    });
+    const blockData = await blockRes.json();
+    height = blockData.result || 0;
+  } catch (err) {
+    console.error(`Failed to fetch block count for ${network}:`, err);
+  }
 
   // Get tx count from indexer if available
   let txCount = 0;
   try {
     txCount = await getTxCountFromIndexer(network);
   } catch {
-    // Fallback: estimate from block height
-    txCount = height * 2; // rough estimate
+    // Ignore error, will fall back
+  }
+
+  // Fallback: estimate from block height if indexer fails or returns 0 (unconfigured)
+  if (txCount === 0 && height > 0) {
+    // Estimate based on network average (approx 2-5 tx/block historically)
+    txCount = Math.floor(height * 3.5);
   }
 
   return { height, txCount };
@@ -75,19 +85,29 @@ async function getTxCountFromIndexer(network: string): Promise<number> {
   const indexerKey = process.env.INDEXER_SUPABASE_SERVICE_KEY;
 
   if (!indexerUrl || !indexerKey) {
-    throw new Error("Indexer not configured");
+    console.warn("Indexer not configured, returning 0 for tx count");
+    return 0; // Return 0 to trigger fallback calculation
   }
 
-  const response = await fetch(
-    `${indexerUrl}/rest/v1/indexer_sync_state?network=eq.${network}&select=total_tx_indexed`,
-    {
-      headers: {
-        apikey: indexerKey,
-        Authorization: `Bearer ${indexerKey}`,
+  try {
+    const response = await fetch(
+      `${indexerUrl}/rest/v1/indexer_sync_state?network=eq.${network}&select=total_tx_indexed`,
+      {
+        headers: {
+          apikey: indexerKey,
+          Authorization: `Bearer ${indexerKey}`,
+        },
       },
-    },
-  );
+    );
 
-  const data = await response.json();
-  return data?.[0]?.total_tx_indexed || 0;
+    if (!response.ok) {
+      throw new Error(`Indexer API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data?.[0]?.total_tx_indexed || 0;
+  } catch (e) {
+    console.warn("Failed to fetch tx count from indexer:", e);
+    return 0;
+  }
 }

@@ -128,11 +128,13 @@ export function createMiniAppSDK(config) {
       ...(await resolveAuthHeaders()),
     };
 
+    const isCrossOrigin = url.origin !== window.location.origin;
+
     const res = await fetch(url.toString(), {
       method,
       headers,
       body: params && method !== "GET" ? JSON.stringify(params) : undefined,
-      credentials: "include",
+      credentials: isCrossOrigin ? "omit" : "include",
     });
 
     const contentType = res.headers.get("content-type") || "";
@@ -324,6 +326,51 @@ export function createMiniAppSDK(config) {
         if (!res.ok) throw new Error("Failed to fetch prices");
         return res.json();
       },
+      getNetworkStats: async () => {
+        // Fetch network stats from Neo RPC
+        const [blockCount, validators, version] = await Promise.all([
+          rpcCall("getblockcount", [], network),
+          rpcCall("getnextblockvalidators", [], network).catch(() => []),
+          rpcCall("getversion", [], network).catch(() => ({})),
+        ]);
+        return {
+          blockHeight: blockCount || 0,
+          validatorCount: Array.isArray(validators) ? validators.length : 0,
+          network: network,
+          version: version?.neoversion || version?.useragent || "unknown",
+        };
+      },
+      getRecentTransactions: async (limit = 10) => {
+        // Fetch recent blocks and extract transactions
+        const blockCount = await rpcCall("getblockcount", [], network);
+        const transactions = [];
+        const blocksToFetch = Math.min(limit, 5);
+
+        for (let i = 0; i < blocksToFetch && transactions.length < limit; i++) {
+          const blockHeight = blockCount - 1 - i;
+          if (blockHeight < 0) break;
+          try {
+            const block = await rpcCall("getblock", [blockHeight, true], network);
+            if (block?.tx && Array.isArray(block.tx)) {
+              for (const tx of block.tx) {
+                if (transactions.length >= limit) break;
+                transactions.push({
+                  txid: tx.hash || tx.txid,
+                  blockHeight,
+                  blockTime: block.time,
+                  sender: tx.sender || null,
+                  size: tx.size || 0,
+                  sysfee: tx.sysfee || "0",
+                  netfee: tx.netfee || "0",
+                });
+              }
+            }
+          } catch (e) {
+            console.warn(`Failed to fetch block ${blockHeight}:`, e);
+          }
+        }
+        return { transactions, blockHeight: blockCount };
+      },
     },
 
     stats: {
@@ -342,6 +389,12 @@ export function createMiniAppSDK(config) {
           query: params,
         });
       },
+      emit: async (eventName, data = {}) => {
+        return callEdge("emit-event", {
+          method: "POST",
+          body: { app_id: appId, event_name: eventName, data },
+        });
+      },
     },
 
     transactions: {
@@ -349,6 +402,21 @@ export function createMiniAppSDK(config) {
         return callEdge("transactions-list", {
           method: "GET",
           query: params,
+        });
+      },
+    },
+
+    notifications: {
+      send: async (title, message, opts = {}) => {
+        return callEdge("send-notification", {
+          method: "POST",
+          body: { app_id: appId, title, message, ...opts },
+        });
+      },
+      list: async (params = {}) => {
+        return callEdge("miniapp-notifications", {
+          method: "GET",
+          query: { app_id: appId, ...params },
         });
       },
     },

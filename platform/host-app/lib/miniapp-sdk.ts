@@ -1,5 +1,6 @@
 import { createMiniAppSDK } from "./sdk/client.js";
 import type { MiniAppSDK, MiniAppSDKConfig } from "./sdk/types.js";
+import { setRpcUrlOverride } from "./chain/rpc-client";
 
 type MiniAppPermissions = {
   payments?: boolean;
@@ -308,3 +309,11 @@ export function installMiniAppSDK(options?: InstallOptions): MiniAppSDK | null {
 }
 
 export type { MiniAppSDK };
+
+/**
+ * Sync network configuration from wallet store to RPC client
+ * Call this when network config changes
+ */
+export function syncNetworkConfig(rpcUrl: string | null): void {
+  setRpcUrlOverride(rpcUrl);
+}

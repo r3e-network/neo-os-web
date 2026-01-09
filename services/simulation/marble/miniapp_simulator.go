@@ -6,10 +6,14 @@ import (
 	"sync/atomic"
 )
 
+// TxRecordFunc is a callback function to record transactions to the database.
+type TxRecordFunc func(appID, accountAddress, txType string, amount int64, status, txHash string) error
+
 // MiniAppSimulator simulates all MiniApp workflows.
 type MiniAppSimulator struct {
 	invoker       ContractInvokerInterface
 	userAddresses []string
+	recordTx      TxRecordFunc
 
 	// Gaming stats
 	lotteryTickets      int64
@@ -152,10 +156,11 @@ type MiniAppSimulator struct {
 }
 
 // NewMiniAppSimulator creates a new MiniApp simulator.
-func NewMiniAppSimulator(invoker ContractInvokerInterface, userAddresses []string) *MiniAppSimulator {
+func NewMiniAppSimulator(invoker ContractInvokerInterface, userAddresses []string, recordTx TxRecordFunc) *MiniAppSimulator {
 	return &MiniAppSimulator{
 		invoker:       invoker,
 		userAddresses: userAddresses,
+		recordTx:      recordTx,
 	}
 }
 
@@ -177,6 +182,17 @@ func (s *MiniAppSimulator) getRandomUserAddressOrWarn(appID, action string) (str
 		return "", false
 	}
 	return address, true
+}
+
+// recordPayment records a payment transaction to the database.
+func (s *MiniAppSimulator) recordPayment(appID, txHash string, amount int64) {
+	if s.recordTx == nil {
+		return
+	}
+	userAddr := s.getRandomUserAddress()
+	if err := s.recordTx(appID, userAddr, "payment", amount, "confirmed", txHash); err != nil {
+		fmt.Printf("neosimulation: failed to record tx for %s: %v\n", appID, err)
+	}
 }
 
 // GetStats returns current simulation statistics.

@@ -48,6 +48,46 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger TotalCapsules() =>
             (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_CAPSULE_ID);
+
+        [Safe]
+        public static UInt160 GetOwner(BigInteger capsuleId)
+        {
+            byte[] key = Helper.Concat(PREFIX_CAPSULE_OWNER, (ByteString)capsuleId.ToByteArray());
+            return (UInt160)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static BigInteger GetPrincipal(BigInteger capsuleId)
+        {
+            byte[] key = Helper.Concat(PREFIX_CAPSULE_PRINCIPAL, (ByteString)capsuleId.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static BigInteger GetUnlockTime(BigInteger capsuleId)
+        {
+            byte[] key = Helper.Concat(PREFIX_CAPSULE_UNLOCK, (ByteString)capsuleId.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static BigInteger GetCompound(BigInteger capsuleId)
+        {
+            byte[] key = Helper.Concat(PREFIX_CAPSULE_COMPOUND, (ByteString)capsuleId.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static Map<string, object> GetCapsule(BigInteger capsuleId)
+        {
+            Map<string, object> capsule = new Map<string, object>();
+            capsule["id"] = capsuleId;
+            capsule["owner"] = GetOwner(capsuleId);
+            capsule["principal"] = GetPrincipal(capsuleId);
+            capsule["unlockTime"] = GetUnlockTime(capsuleId);
+            capsule["compound"] = GetCompound(capsuleId);
+            return capsule;
+        }
         #endregion
 
         #region Lifecycle

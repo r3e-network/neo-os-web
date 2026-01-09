@@ -28,6 +28,7 @@ const mockStats: MiniAppStats = {
   daily_active_users: 20,
   weekly_active_users: 35,
   last_activity_at: "2025-12-26T10:00:00Z",
+  view_count: 350,
 };
 
 describe("AppDetailHeader", () => {

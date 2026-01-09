@@ -259,6 +259,12 @@ func (s *Service) handleTransferWithData(w http.ResponseWriter, r *http.Request)
 
 	txHash, err := s.TransferWithData(r.Context(), input.ServiceID, input.AccountID, input.ToAddress, input.Amount, input.Data)
 	if err != nil {
+		s.Logger().WithContext(r.Context()).WithError(err).WithFields(map[string]interface{}{
+			"account_id": input.AccountID,
+			"to_address": input.ToAddress,
+			"amount":     input.Amount,
+			"data":       input.Data,
+		}).Error("transfer with data failed")
 		httputil.InternalError(w, err.Error())
 		return
 	}

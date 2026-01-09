@@ -83,14 +83,14 @@ func (s *Simulator) SimulateAllMiniApps() {
 		name string
 		fn   func() error
 	}{
-		{"builtin-lottery", "Neo Lottery", s.SimulateLottery},
-		{"builtin-coin-flip", "Coin Flip", s.SimulateCoinFlip},
-		{"builtin-dice-game", "Dice Game", s.SimulateDiceGame},
-		{"builtin-scratch-card", "Scratch Card", s.SimulateScratchCard},
-		{"builtin-flashloan", "FlashLoan", s.SimulateFlashLoan},
-		{"builtin-red-envelope", "Red Envelope", s.SimulateRedEnvelope},
-		{"builtin-gas-circle", "Gas Circle", s.SimulateGasCircle},
-		{"builtin-secret-poker", "Secret Poker", s.SimulateSecretPoker},
+		{"miniapp-lottery", "Neo Lottery", s.SimulateLottery},
+		{"miniapp-coin-flip", "Coin Flip", s.SimulateCoinFlip},
+		{"miniapp-dice-game", "Dice Game", s.SimulateDiceGame},
+		{"miniapp-scratch-card", "Scratch Card", s.SimulateScratchCard},
+		{"miniapp-flashloan", "FlashLoan", s.SimulateFlashLoan},
+		{"miniapp-red-envelope", "Red Envelope", s.SimulateRedEnvelope},
+		{"miniapp-gas-circle", "Gas Circle", s.SimulateGasCircle},
+		{"miniapp-secret-poker", "Secret Poker", s.SimulateSecretPoker},
 	}
 
 	passed, failed := 0, 0
@@ -110,7 +110,7 @@ func (s *Simulator) SimulateAllMiniApps() {
 
 // SimulateLottery tests lottery ticket purchase workflow
 func (s *Simulator) SimulateLottery() error {
-	appID := "builtin-lottery"
+	appID := "miniapp-lottery"
 	fmt.Printf("   Checking PaymentHub.GetApp(%s)...\n", appID)
 
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
@@ -128,7 +128,7 @@ func (s *Simulator) SimulateLottery() error {
 
 // SimulateCoinFlip tests coin flip game workflow
 func (s *Simulator) SimulateCoinFlip() error {
-	appID := "builtin-coin-flip"
+	appID := "miniapp-coin-flip"
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)
@@ -144,7 +144,7 @@ func (s *Simulator) SimulateCoinFlip() error {
 
 // SimulateDiceGame tests dice game workflow
 func (s *Simulator) SimulateDiceGame() error {
-	appID := "builtin-dice-game"
+	appID := "miniapp-dice-game"
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)
@@ -160,7 +160,7 @@ func (s *Simulator) SimulateDiceGame() error {
 
 // SimulateScratchCard tests scratch card workflow
 func (s *Simulator) SimulateScratchCard() error {
-	appID := "builtin-scratch-card"
+	appID := "miniapp-scratch-card"
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)
@@ -176,7 +176,7 @@ func (s *Simulator) SimulateScratchCard() error {
 
 // SimulateRedEnvelope tests red envelope workflow
 func (s *Simulator) SimulateRedEnvelope() error {
-	appID := "builtin-red-envelope"
+	appID := "miniapp-red-envelope"
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)
@@ -192,7 +192,7 @@ func (s *Simulator) SimulateRedEnvelope() error {
 
 // SimulateGasCircle tests gas circle workflow
 func (s *Simulator) SimulateGasCircle() error {
-	appID := "builtin-gas-circle"
+	appID := "miniapp-gas-circle"
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)
@@ -208,7 +208,7 @@ func (s *Simulator) SimulateGasCircle() error {
 
 // SimulateFlashLoan tests flashloan workflow
 func (s *Simulator) SimulateFlashLoan() error {
-	appID := "builtin-flashloan"
+	appID := "miniapp-flashloan"
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)
@@ -224,7 +224,7 @@ func (s *Simulator) SimulateFlashLoan() error {
 
 // SimulateSecretPoker tests secret poker workflow
 func (s *Simulator) SimulateSecretPoker() error {
-	appID := "builtin-secret-poker"
+	appID := "miniapp-secret-poker"
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)

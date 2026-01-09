@@ -1,6 +1,7 @@
 import { ComponentType, useCallback, useEffect, useMemo, useState } from "react";
 
 import styles from "./BuiltinApp.module.css";
+import { GrantSharesPanel } from "./GrantShares";
 
 type PayIntent = {
   request_id: string;
@@ -822,6 +823,13 @@ const builtinDefinitions: BuiltinDefinition[] = [
     name: "Price Ticker",
     summary: "Live oracle prices with signed datafeed responses.",
     component: PriceTickerPanel,
+  },
+  {
+    id: "builtin-grantshares",
+    view: "grantshares",
+    name: "GrantShares",
+    summary: "View and track GrantShares DAO proposals.",
+    component: GrantSharesPanel,
   },
   {
     id: "builtin-coin-flip",

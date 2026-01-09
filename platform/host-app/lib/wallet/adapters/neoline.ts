@@ -138,13 +138,20 @@ export class NeoLineAdapter implements WalletAdapter {
       const gasNorm = normalizeContract(GAS_CONTRACT);
 
       // Handle multiple possible response formats from NeoLine
+      // NeoLine N3 returns: { [address]: [{ contract, symbol, amount }] }
+      // or directly: [{ contract, symbol, amount }]
       let balanceArray: Array<{ contract: string; symbol: string; amount: string }> = [];
 
       if (Array.isArray(balances)) {
         balanceArray = balances;
       } else if (balances && typeof balances === "object") {
+        // NeoLine N3 format: { [address]: [...] }
+        const addressKey = Object.keys(balances).find((k) => k.startsWith("N"));
+        if (addressKey && Array.isArray((balances as any)[addressKey])) {
+          balanceArray = (balances as any)[addressKey];
+        }
         // Try different nested structures
-        if (Array.isArray((balances as any).balance)) {
+        else if (Array.isArray((balances as any).balance)) {
           balanceArray = (balances as any).balance;
         } else if (Array.isArray((balances as any).balances)) {
           balanceArray = (balances as any).balances;
@@ -154,7 +161,11 @@ export class NeoLineAdapter implements WalletAdapter {
       }
 
       if (!Array.isArray(balanceArray) || balanceArray.length === 0) {
-        logger.warn("[NeoLine] No balances returned or empty array, response structure:", typeof balances);
+        logger.warn(
+          "[NeoLine] No balances returned or empty array, response structure:",
+          typeof balances,
+          JSON.stringify(balances),
+        );
         // Return zero balances but don't throw error
         return { neo: "0", gas: "0" };
       }
@@ -162,11 +173,13 @@ export class NeoLineAdapter implements WalletAdapter {
       for (const b of balanceArray) {
         if (!b || typeof b !== "object") continue;
 
-        const contractNorm = normalizeContract(b.contract || "");
+        // Handle both 'contract' and 'asset_hash' field names
+        const contractField = b.contract || (b as any).asset_hash || (b as any).assetHash || "";
+        const contractNorm = normalizeContract(contractField);
         const symbol = (b.symbol || "").toUpperCase();
-        const amount = b.amount || "0";
+        const amount = b.amount || (b as any).balance || "0";
 
-        logger.debug("[NeoLine] Processing balance:", symbol, amount, "contract:", b.contract);
+        logger.debug("[NeoLine] Processing balance:", symbol, amount, "contract:", contractField);
 
         // Match by contract hash (most reliable)
         if (contractNorm === neoNorm) {

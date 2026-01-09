@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { getAppIcon } from "./AppIcons";
 
 // Highlight data structure for live stats overlay
@@ -53,32 +53,42 @@ const CATEGORY_STYLES: Record<string, { bg: string; text: string; fontFamily: st
   },
 };
 
-// Fallback solid colors if Tailwind classes miss
-const SOLID_COLORS = [
-  "#FFDE59", // Yellow
-  "#00E599", // Neo Green
-  "#FF90E8", // Pink
-  "#2C3E50", // Dark Blue
-  "#00D4AA", // Teal
-  "#EF4444", // Red
-  "#9333EA", // Purple
-  "#F97316", // Orange
-];
-
-function getUniqueColor(appId: string): string {
-  let hash = 0;
-  for (let i = 0; i < appId.length; i++) {
-    const char = appId.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return SOLID_COLORS[Math.abs(hash) % SOLID_COLORS.length];
-}
-
 export function DynamicBanner({ category, appId, appName, highlights }: DynamicBannerProps) {
   const categoryStyle = CATEGORY_STYLES[category] || CATEGORY_STYLES.utility;
   const bgColor = categoryStyle.bg;
   const IconComponent = getAppIcon(appId);
+
+  // Countdown State (Only for Daily Check-in)
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    if (appId !== "miniapp-dailycheckin") return;
+
+    const updateTimer = () => {
+      const now = new Date();
+      // Calculate next UTC midnight
+      const nextMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
+      const diff = nextMidnight.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeLeft("00:00:00");
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeLeft(
+        `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
+      );
+    };
+
+    updateTimer(); // Initial call
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [appId]);
 
   return (
     <div className={`relative h-full overflow-hidden ${bgColor} border-b-4 border-black`}>
@@ -102,8 +112,19 @@ export function DynamicBanner({ category, appId, appName, highlights }: DynamicB
         </div>
       )}
 
-      {/* Live Data Highlights Overlay - Sticker Style */}
-      {highlights && highlights.length > 0 && (
+      {/* Special Countdown for Daily Check-in */}
+      {appId === "miniapp-dailycheckin" && timeLeft && (
+        <div className="absolute bottom-4 right-4 z-20 transform rotate-[-2deg] transition-transform group-hover:rotate-0 hover:scale-110 duration-200">
+          <div className="bg-black border-2 border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.5)] p-2 min-w-[110px] text-center">
+            <div className="text-xl font-black text-neo leading-none tracking-widest font-mono">{timeLeft}</div>
+            <div className="text-[9px] font-bold uppercase text-white mt-1">Next Reset</div>
+          </div>
+        </div>
+      )}
+
+      {/* Standard Live Data Highlights Overlay - Sticker Style (Hidden if Checkin App to avoid clutter, or maybe stacked?) */}
+      {/* Currently replacing highlights for checkin app to prioritize the timer */}
+      {appId !== "miniapp-dailycheckin" && highlights && highlights.length > 0 && (
         <div className="absolute bottom-4 right-4 z-20 transform rotate-[-2deg] transition-transform group-hover:rotate-0 hover:scale-110 duration-200">
           <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-2 min-w-[100px] text-center">
             <div className="text-xl font-black text-black leading-none">{highlights[0].value}</div>

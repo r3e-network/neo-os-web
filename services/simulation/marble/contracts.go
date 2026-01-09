@@ -441,6 +441,11 @@ func (inv *ContractInvoker) PayToApp(ctx context.Context, appID string, amount i
 	resp, err := inv.poolClient.TransferWithData(ctx, accountID, "0x"+inv.paymentHubHash, amount, appID)
 	if err != nil {
 		atomic.AddInt64(&inv.contractErrors, 1)
+		// Reset balance to 0 on failure to trigger re-funding on next attempt
+		// This handles cases where chain balance is depleted but memory balance is stale
+		inv.mu.Lock()
+		inv.accountBalances[accountID] = 0
+		inv.mu.Unlock()
 		return "", fmt.Errorf("transfer GAS to PaymentHub: %w", err)
 	}
 
@@ -471,6 +476,10 @@ func (inv *ContractInvoker) PayoutToUser(ctx context.Context, appID string, user
 	resp, err := inv.poolClient.Transfer(ctx, accountID, userAddress, amount, "")
 	if err != nil {
 		atomic.AddInt64(&inv.contractErrors, 1)
+		// Reset balance to 0 on failure to trigger re-funding on next attempt
+		inv.mu.Lock()
+		inv.accountBalances[accountID] = 0
+		inv.mu.Unlock()
 		return "", fmt.Errorf("transfer payout: %w", err)
 	}
 

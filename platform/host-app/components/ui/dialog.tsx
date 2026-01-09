@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 interface DialogProps {
   open: boolean;
@@ -13,8 +14,8 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
-      <div className="relative">{children}</div>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
+      <div className="relative z-50">{children}</div>
     </div>
   );
 }
@@ -24,9 +25,9 @@ interface DialogContentProps {
   className?: string;
 }
 
-export function DialogContent({ children, className = "" }: DialogContentProps) {
+export function DialogContent({ children, className }: DialogContentProps) {
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl ${className}`}>
+    <div className={cn("bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl", className)}>
       {children}
     </div>
   );
@@ -37,8 +38,8 @@ interface DialogHeaderProps {
   className?: string;
 }
 
-export function DialogHeader({ children, className = "" }: DialogHeaderProps) {
-  return <div className={`mb-4 ${className}`}>{children}</div>;
+export function DialogHeader({ children, className }: DialogHeaderProps) {
+  return <div className={cn("mb-4", className)}>{children}</div>;
 }
 
 interface DialogTitleProps {
@@ -46,14 +47,15 @@ interface DialogTitleProps {
   className?: string;
 }
 
-export function DialogTitle({ children, className = "" }: DialogTitleProps) {
-  return <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${className}`}>{children}</h3>;
+export function DialogTitle({ children, className }: DialogTitleProps) {
+  return <h3 className={cn("text-lg font-semibold text-gray-900 dark:text-white", className)}>{children}</h3>;
 }
 
 interface DialogDescriptionProps {
   children: ReactNode;
+  className?: string;
 }
 
-export function DialogDescription({ children }: DialogDescriptionProps) {
-  return <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{children}</p>;
+export function DialogDescription({ children, className }: DialogDescriptionProps) {
+  return <p className={cn("text-sm text-gray-600 dark:text-gray-300 mt-1", className)}>{children}</p>;
 }

@@ -1,6 +1,5 @@
 export const corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, x-api-key, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, x-api-key, content-type",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
 };
 
@@ -21,16 +20,32 @@ export function withCors(headers: HeadersInit = {}, req?: Request): Headers {
   }
   const allowed = parseAllowedOrigins();
   if (!allowed) {
+    // No CORS origins configured - allow all
     out.set("Access-Control-Allow-Origin", "*");
   } else {
     const origin = (req?.headers.get("Origin") ?? "").trim();
     if (origin && allowed.includes(origin)) {
       out.set("Access-Control-Allow-Origin", origin);
+      out.set("Access-Control-Allow-Credentials", "true");
       const vary = out.get("Vary");
       if (!vary) {
         out.set("Vary", "Origin");
-      } else if (!vary.split(",").map((v) => v.trim().toLowerCase()).includes("origin")) {
+      } else if (
+        !vary
+          .split(",")
+          .map((v) => v.trim().toLowerCase())
+          .includes("origin")
+      ) {
         out.set("Vary", `${vary}, Origin`);
+      }
+    } else if (origin) {
+      // Origin not in allowed list - still set header for proper CORS error
+      // In development, allow localhost origins
+      const isDev = origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:");
+      if (isDev) {
+        out.set("Access-Control-Allow-Origin", origin);
+        out.set("Access-Control-Allow-Credentials", "true");
+        out.set("Vary", "Origin");
       }
     }
   }

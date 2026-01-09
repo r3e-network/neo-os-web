@@ -12,8 +12,10 @@ export default class MyDocument extends Document<Props> {
   render() {
     const nonce = this.props.nonce;
     return (
-      <Html lang="en">
+      <Html lang="en" className="dark">
         <Head>
+          {/* Theme initialization script - must run before React hydrates */}
+          <script src="/theme-init.js" />
           <meta charSet="utf-8" />
           <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
           <link rel="icon" href="/logo-icon.png" type="image/png" />

@@ -2,6 +2,26 @@
  * Browser-compatible cryptographic utilities using Web Crypto API
  */
 
+import { wallet } from "@cityofzion/neon-js";
+
+export interface NeoAccountBrowser {
+  address: string;
+  publicKey: string;
+  privateKey: string;
+}
+
+/**
+ * Generate Neo account in browser
+ */
+export function generateNeoAccountBrowser(): NeoAccountBrowser {
+  const account = new wallet.Account();
+  return {
+    address: account.address,
+    publicKey: account.publicKey,
+    privateKey: account.privateKey,
+  };
+}
+
 export interface BrowserEncryptionResult {
   encryptedData: string;
   salt: string;

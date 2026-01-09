@@ -1,7 +1,7 @@
 import Head from "next/head";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
-import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown } from "lucide-react";
+import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown, Rocket } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { MiniAppGrid, MiniAppListItem, FilterSidebar } from "@/components/features/miniapp";
 import type { MiniAppInfo } from "@/components/types";
@@ -25,7 +25,7 @@ const baseApps: MiniAppInfo[] = BUILTIN_APPS.map((app) => ({
   source: "builtin" as const,
 }));
 
-type StatsMap = Record<string, { users?: number; transactions?: number; volume?: string }>;
+type StatsMap = Record<string, { users?: number; transactions?: number; volume?: string; views?: number }>;
 
 export default function MiniAppsPage() {
   const router = useRouter();
@@ -81,12 +81,142 @@ export default function MiniAppsPage() {
   const [apps, setApps] = useState<MiniAppInfo[]>(baseApps);
   const [statsMap, setStatsMap] = useState<StatsMap>({});
   const [displayCount, setDisplayCount] = useState(12); // Pagination: show 12 initially
+  const [isUrlInitialized, setIsUrlInitialized] = useState(false);
+  const [isDataReady, setIsDataReady] = useState(false);
   const PAGE_SIZE = 12;
+  const scrollRestoredRef = useRef(false);
 
-  // Reset pagination when search or sort changes
+  // Initialize state from URL on first load
+  useEffect(() => {
+    if (!router.isReady || isUrlInitialized) return;
+
+    const { category, features, sort, view } = router.query;
+
+    const newFilters: Record<string, string[]> = {};
+    if (category) {
+      newFilters.category = Array.isArray(category) ? category : [category];
+    }
+    if (features) {
+      newFilters.features = Array.isArray(features) ? features : [features];
+    }
+
+    if (Object.keys(newFilters).length > 0) {
+      setFilters(newFilters);
+    }
+
+    const sortValue = Array.isArray(sort) ? sort[0] : sort;
+    if (
+      sortValue &&
+      (sortValue === "trending" || sortValue === "users" || sortValue === "transactions" || sortValue === "recent")
+    ) {
+      setSortBy(sortValue as SortOption);
+    }
+
+    const viewValue = Array.isArray(view) ? view[0] : view;
+    if (viewValue && (viewValue === "grid" || viewValue === "list")) {
+      setViewMode(viewValue as ViewMode);
+    }
+
+    setIsUrlInitialized(true);
+  }, [router.isReady, isUrlInitialized, router.query]);
+
+  // Sync state to URL when filters, sortBy, or viewMode change
+  useEffect(() => {
+    if (!router.isReady || !isUrlInitialized) return;
+
+    const newQuery: Record<string, string | string[] | undefined> = { ...router.query };
+
+    // Update filters
+    if (filters.category?.length) {
+      newQuery.category = filters.category;
+    } else {
+      delete newQuery.category;
+    }
+
+    if (filters.features?.length) {
+      newQuery.features = filters.features;
+    } else {
+      delete newQuery.features;
+    }
+
+    // Update sort
+    if (sortBy !== "trending") {
+      newQuery.sort = sortBy;
+    } else {
+      delete newQuery.sort;
+    }
+
+    // Update view
+    if (viewMode !== "grid") {
+      newQuery.view = viewMode;
+    } else {
+      delete newQuery.view;
+    }
+
+    router.replace(
+      {
+        pathname: router.pathname,
+        query: newQuery,
+      },
+      undefined,
+      { shallow: true, scroll: false },
+    );
+  }, [filters, sortBy, viewMode, isUrlInitialized, router.isReady, router.pathname]);
+
+  // Reset pagination only when search changes
   useEffect(() => {
     setDisplayCount(PAGE_SIZE);
-  }, [searchQuery, sortBy]);
+  }, [searchQuery]);
+
+  // Restore pagination state on mount to support scroll restoration
+  useEffect(() => {
+    const savedCount = sessionStorage.getItem("miniapps-display-count");
+    if (savedCount) {
+      const count = parseInt(savedCount, 10);
+      if (count > PAGE_SIZE) {
+        setDisplayCount(count);
+      }
+    }
+  }, []);
+
+  // Persist pagination state
+  useEffect(() => {
+    sessionStorage.setItem("miniapps-display-count", displayCount.toString());
+  }, [displayCount]);
+
+  // Save scroll position before navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      sessionStorage.setItem("miniapps-scroll-position", window.scrollY.toString());
+    };
+
+    // Save on route change
+    router.events.on("routeChangeStart", handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      router.events.off("routeChangeStart", handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [router.events]);
+
+  // Restore scroll position after data is ready
+  useEffect(() => {
+    if (!isDataReady || scrollRestoredRef.current) return;
+
+    const savedPosition = sessionStorage.getItem("miniapps-scroll-position");
+    if (savedPosition) {
+      const position = parseInt(savedPosition, 10);
+      if (position > 0) {
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+          window.scrollTo(0, position);
+          scrollRestoredRef.current = true;
+        });
+      }
+    }
+    scrollRestoredRef.current = true;
+  }, [isDataReady]);
 
   useEffect(() => {
     setApps(
@@ -99,23 +229,43 @@ export default function MiniAppsPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/miniapp-stats")
+    // Try to restore cached stats first
+    const cachedStats = sessionStorage.getItem("miniapps-stats-cache");
+    if (cachedStats) {
+      try {
+        const parsed = JSON.parse(cachedStats);
+        if (parsed && typeof parsed === "object") {
+          setStatsMap(parsed);
+          setIsDataReady(true);
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    // Fetch fresh stats from card-stats API (same as homepage)
+    fetch("/api/miniapps/card-stats")
       .then((res) => res.json())
       .then((data) => {
-        const statsList = Array.isArray(data?.stats) ? data.stats : Array.isArray(data) ? data : [];
+        const statsObj = data?.stats || {};
         const map: StatsMap = {};
-        for (const s of statsList) {
-          if (s?.app_id) {
-            map[s.app_id] = {
-              users: s.total_users || s.daily_active_users || 0,
-              transactions: s.total_transactions || 0,
-              volume: s.total_gas_used ? `${Number(s.total_gas_used).toFixed(1)} GAS` : "0 GAS",
-            };
-          }
+        for (const [appId, s] of Object.entries(statsObj)) {
+          const stat = s as { users?: number; transactions?: number; views?: number };
+          map[appId] = {
+            users: stat.users || 0,
+            transactions: stat.transactions || 0,
+            views: stat.views || 0,
+          };
         }
         setStatsMap(map);
+        setIsDataReady(true);
+        // Cache stats for navigation
+        sessionStorage.setItem("miniapps-stats-cache", JSON.stringify(map));
       })
-      .catch(() => setStatsMap({}));
+      .catch(() => {
+        setStatsMap({});
+        setIsDataReady(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -127,7 +277,6 @@ export default function MiniAppsPage() {
 
   const handleFilterChange = (sectionId: string, values: string[]) => {
     setFilters((prev) => ({ ...prev, [sectionId]: values }));
-    setDisplayCount(PAGE_SIZE); // Reset pagination on filter change
   };
 
   const { collectionsSet } = useCollections();
@@ -204,104 +353,124 @@ export default function MiniAppsPage() {
         <title>MiniApps - NeoHub</title>
       </Head>
 
-      <div className="flex min-h-[calc(100vh-3.5rem)]">
+      <div className="flex min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-[#050505] relative">
+        {/* E-Robo Water Wave Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] animate-water-wave opacity-20">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,rgba(159,157,243,0.06)_0%,transparent_70%)]" />
+          </div>
+        </div>
+
         {/* Sidebar */}
         <FilterSidebar sections={filterSections} selected={filters} onChange={handleFilterChange} />
 
         {/* Main Content */}
-        <main className="flex-1 bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 w-0 relative z-10">
           {/* Header */}
-          <div className="sticky top-14 z-40 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-6 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{t("miniapps.title")}</h1>
+          <div className="sticky top-16 z-40 bg-white/80 dark:bg-[#050505]/90 backdrop-blur-xl border-b border-gray-200 dark:border-erobo-purple/10 px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-neo/10 flex items-center justify-center">
+                <Rocket size={24} className="text-neo" strokeWidth={2} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("miniapps.title")}</h1>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   {filteredAndSortedApps.length} {t("miniapps.apps")}
                 </span>
               </div>
+            </div>
 
-              <div className="flex items-center gap-3">
-                {/* Sort Dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSortMenu(!showSortMenu)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <currentSort.icon size={14} />
-                    {currentSort.label}
-                    <ChevronDown size={14} />
-                  </button>
+            <div className="flex items-center gap-4">
+              {/* Sort Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowSortMenu(!showSortMenu)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
+                >
+                  <currentSort.icon size={16} strokeWidth={2} />
+                  {currentSort.label}
+                  <ChevronDown
+                    size={16}
+                    strokeWidth={2}
+                    className={cn("transition-transform text-gray-400", showSortMenu && "rotate-180")}
+                  />
+                </button>
 
-                  {showSortMenu && (
-                    <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50">
-                      {sortOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => {
-                            setSortBy(option.value);
-                            setShowSortMenu(false);
-                          }}
-                          className={cn(
-                            "flex items-center gap-2 w-full px-3 py-2 text-sm text-left",
-                            sortBy === option.value
-                              ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
-                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800",
-                          )}
-                        >
-                          <option.icon size={14} />
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
+                {showSortMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#111] border border-gray-200 dark:border-erobo-purple/20 rounded-xl shadow-lg py-1 z-50">
+                    {sortOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setShowSortMenu(false);
+                        }}
+                        className={cn(
+                          "flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors text-left",
+                          sortBy === option.value
+                            ? "bg-neo/10 text-neo"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white",
+                        )}
+                      >
+                        <option.icon size={16} strokeWidth={2} />
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* View Toggle */}
+              <div className="flex items-center border border-gray-200 dark:border-erobo-purple/20 rounded-lg bg-white dark:bg-white/5 overflow-hidden">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "p-2 transition-all",
+                    viewMode === "list"
+                      ? "bg-neo/10 text-neo"
+                      : "text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/10",
                   )}
-                </div>
-
-                {/* View Toggle */}
-                <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={cn(
-                      "p-2 transition-colors",
-                      viewMode === "list"
-                        ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
-                    )}
-                    title="List view"
-                  >
-                    <List size={18} />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("grid")}
-                    className={cn(
-                      "p-2 transition-colors",
-                      viewMode === "grid"
-                        ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
-                    )}
-                    title="Card view"
-                  >
-                    <LayoutGrid size={18} />
-                  </button>
-                </div>
+                  title="List view"
+                >
+                  <List size={18} strokeWidth={2} />
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={cn(
+                    "p-2 transition-all",
+                    viewMode === "grid"
+                      ? "bg-neo/10 text-neo"
+                      : "text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/10",
+                  )}
+                  title="Card view"
+                >
+                  <LayoutGrid size={18} strokeWidth={2} />
+                </button>
               </div>
             </div>
           </div>
 
           {/* Apps List/Grid */}
-          <div className="p-6">
+          <div className="p-8">
             {searchQuery && (
-              <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                {t("miniapps.resultsFor")} "<span className="text-gray-900 dark:text-white">{searchQuery}</span>"
+              <p className="mb-6 text-base text-gray-500 dark:text-gray-400">
+                {t("miniapps.resultsFor")} "
+                <span className="text-gray-900 dark:text-white font-medium bg-neo/10 px-1.5 py-0.5 rounded">
+                  {searchQuery}
+                </span>
+                "
               </p>
             )}
 
             {viewMode === "list" ? (
-              <div className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <div className="space-y-3">
                 {filteredAndSortedApps.slice(0, displayCount).map((app) => (
                   <MiniAppListItem key={app.app_id} app={app} />
                 ))}
                 {filteredAndSortedApps.length === 0 && (
-                  <div className="py-12 text-center text-gray-500 dark:text-gray-400">{t("miniapps.noApps")}</div>
+                  <div className="py-16 text-center text-gray-500 dark:text-gray-400 text-base">
+                    {t("miniapps.noApps")}
+                  </div>
                 )}
               </div>
             ) : (
@@ -310,10 +479,10 @@ export default function MiniAppsPage() {
 
             {/* Load More Button */}
             {displayCount < filteredAndSortedApps.length && (
-              <div className="mt-8 text-center">
+              <div className="mt-12 text-center">
                 <button
                   onClick={() => setDisplayCount((prev) => prev + PAGE_SIZE)}
-                  className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-white/5 border border-gray-200 dark:border-erobo-purple/20 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 hover:border-erobo-purple/40 hover:shadow-[0_0_20px_rgba(159,157,243,0.2)] transition-all"
                 >
                   {t("miniapps.loadMore")} ({filteredAndSortedApps.length - displayCount} {t("miniapps.remaining")})
                 </button>

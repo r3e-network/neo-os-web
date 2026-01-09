@@ -6,6 +6,10 @@
 .PHONY: all build test clean docker frontend deploy help contracts-build test-contracts export-miniapps export-supabase-functions check-git
 .PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
 .PHONY: edge-check edge-dev
+.PHONY: miniapps-build miniapps-dev miniapps-test miniapps-clean
+.PHONY: sdk-build sdk-typecheck
+.PHONY: run stop install install-all test-all clean-all-deep
+.PHONY: host-app-dev host-app-build host-app-test host-app-clean
 
 # Variables
 CMD_BINARIES := marble create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
@@ -211,6 +215,69 @@ edge-dev: ## Run local Edge dev server (requires deno)
 	cd platform/edge && deno task dev
 
 # =============================================================================
+# MiniApps (uni-app)
+# =============================================================================
+
+miniapps-build: ## Build all MiniApps
+	@echo "Building all MiniApps..."
+	cd miniapps-uniapp && pnpm run build:all
+
+miniapps-dev: ## Start MiniApps development server
+	@echo "Starting MiniApps dev server..."
+	cd miniapps-uniapp && pnpm run dev
+
+miniapps-test: ## Run MiniApps tests
+	@echo "Running MiniApps tests..."
+	cd miniapps-uniapp && pnpm run test:run
+
+miniapps-test-watch: ## Run MiniApps tests in watch mode
+	cd miniapps-uniapp && pnpm run test
+
+miniapps-test-coverage: ## Run MiniApps tests with coverage
+	cd miniapps-uniapp && pnpm run test:coverage
+
+miniapps-clean: ## Clean MiniApps build artifacts
+	@echo "Cleaning MiniApps..."
+	rm -rf miniapps-uniapp/apps/*/dist
+	rm -rf platform/host-app/public/miniapps/*/static
+
+miniapps-generate: ## Generate MiniApp templates
+	cd miniapps-uniapp && node scripts/generate-templates.js
+
+# =============================================================================
+# Platform SDK
+# =============================================================================
+
+sdk-build: ## Build Platform SDK
+	@echo "Building Platform SDK..."
+	cd platform/sdk && npm run build
+
+sdk-typecheck: ## Typecheck Platform SDK
+	cd platform/sdk && npm run typecheck
+
+# =============================================================================
+# Host App (Next.js)
+# =============================================================================
+
+host-app-dev: frontend-dev ## Alias for frontend-dev
+
+host-app-build: frontend-build ## Alias for frontend-build
+
+host-app-test: ## Run Host App tests
+	@echo "Running Host App tests..."
+	cd platform/host-app && npm run test
+
+host-app-test-watch: ## Run Host App tests in watch mode
+	cd platform/host-app && npm run test:watch
+
+host-app-test-coverage: ## Run Host App tests with coverage
+	cd platform/host-app && npm run test:coverage
+
+host-app-clean: ## Clean Host App build artifacts
+	rm -rf platform/host-app/.next
+	rm -rf platform/host-app/node_modules/.cache
+
+# =============================================================================
 # Local Dev Stack (k3s)
 # =============================================================================
 
@@ -333,3 +400,81 @@ help: ## Show this help
 	@echo "Neo Service Layer - Available Commands:"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+# =============================================================================
+# Unified Commands (Whole Project)
+# =============================================================================
+
+run: ## Run the full development stack (host-app + docker services)
+	@echo "Starting full development stack..."
+	@$(MAKE) docker-up &
+	@sleep 3
+	@$(MAKE) frontend-dev
+
+stop: ## Stop all running services and processes
+	@echo "Stopping all services..."
+	@pkill -f "next dev" 2>/dev/null || true
+	@pkill -f "next-server" 2>/dev/null || true
+	@pkill -f "vitest" 2>/dev/null || true
+	@pkill -f "esbuild" 2>/dev/null || true
+	@$(DOCKER_COMPOSE) down 2>/dev/null || true
+	@echo "All services stopped"
+
+install: ## Install all dependencies
+	@echo "Installing all dependencies..."
+	@echo "→ Go modules..."
+	go mod download
+	@echo "→ Host App (npm)..."
+	cd platform/host-app && npm install
+	@echo "→ MiniApps (pnpm)..."
+	cd miniapps-uniapp && pnpm install
+	@echo "→ SDK (npm)..."
+	cd platform/sdk && npm install
+	@echo "All dependencies installed"
+
+install-all: install ## Alias for install
+
+test-all: ## Run all tests (Go + Host App + MiniApps)
+	@echo "Running all tests..."
+	@echo "→ Go tests..."
+	go test -v ./...
+	@echo "→ Host App tests..."
+	cd platform/host-app && npm run test
+	@echo "→ MiniApps tests..."
+	cd miniapps-uniapp && pnpm run test:run
+	@echo "All tests complete"
+
+build-all: ## Build all components
+	@echo "Building all components..."
+	@$(MAKE) build
+	@$(MAKE) sdk-build
+	@$(MAKE) frontend-build
+	@$(MAKE) miniapps-build
+	@echo "All components built"
+
+clean-all-deep: ## Deep clean everything (build artifacts, node_modules, Docker)
+	@echo "Deep cleaning everything..."
+	@$(MAKE) clean
+	@$(MAKE) miniapps-clean
+	@$(MAKE) host-app-clean
+	rm -rf platform/sdk/dist
+	rm -rf node_modules
+	rm -rf platform/host-app/node_modules
+	rm -rf platform/sdk/node_modules
+	rm -rf miniapps-uniapp/node_modules
+	rm -rf miniapps-uniapp/apps/*/node_modules
+	$(DOCKER_COMPOSE) down -v --rmi local 2>/dev/null || true
+	docker system prune -f 2>/dev/null || true
+	@echo "Deep clean complete"
+
+status: ## Show status of all services
+	@echo "=== Service Status ==="
+	@echo ""
+	@echo "Docker containers:"
+	@$(DOCKER_COMPOSE) ps 2>/dev/null || echo "  (Docker not running)"
+	@echo ""
+	@echo "Node processes:"
+	@pgrep -af "next" 2>/dev/null | head -5 || echo "  (No Next.js processes)"
+	@echo ""
+	@echo "Go binaries:"
+	@ls -la bin/ 2>/dev/null || echo "  (No binaries built)"

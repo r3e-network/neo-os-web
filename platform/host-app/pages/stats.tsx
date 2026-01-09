@@ -91,23 +91,30 @@ export default function EnhancedStatsPage() {
         <title>{t("statsPage.title")} - NeoHub</title>
       </Head>
 
-      <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+      <div className="relative mx-auto max-w-7xl px-4 py-12">
+        {/* E-Robo Water Wave Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] animate-water-wave opacity-30">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,rgba(159,157,243,0.08)_0%,transparent_70%)]" />
+          </div>
+        </div>
+
+        <div className="relative flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("statsPage.title")}</h1>
-            <p className="mt-2 text-slate-400">{t("statsPage.subtitle")}</p>
+            <p className="mt-2 text-gray-500 dark:text-gray-400">{t("statsPage.subtitle")}</p>
           </div>
-          <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 h-8 px-4 flex items-center gap-2">
+          <Badge className="bg-neo/10 text-neo border border-neo/20 h-8 px-4 flex items-center gap-2 rounded-full">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neo opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-neo"></span>
             </span>
             {t("statsPage.liveUpdates")}
           </Badge>
         </div>
 
         {/* Global Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-10">
+        <div className="relative grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-10">
           <StatSummaryCard
             title={t("stats.totalUsers")}
             value={loading ? "..." : totalUsers.toLocaleString()}
@@ -139,9 +146,9 @@ export default function EnhancedStatsPage() {
         </div>
 
         {/* Charts Section */}
-        <div className="grid gap-6 lg:grid-cols-3 mb-10">
+        <div className="relative grid gap-6 lg:grid-cols-3 mb-10">
           {/* Main Growth Chart */}
-          <Card className="glass-card lg:col-span-2">
+          <Card className="erobo-card bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-gray-200 dark:border-erobo-purple/20 shadow-lg rounded-2xl lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-gray-900 dark:text-white">{t("statsPage.monthlyActive")}</CardTitle>
             </CardHeader>
@@ -193,7 +200,7 @@ export default function EnhancedStatsPage() {
           </Card>
 
           {/* MiniApp Distribution */}
-          <Card className="glass-card">
+          <Card className="erobo-card bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-gray-200 dark:border-erobo-purple/20 shadow-lg rounded-2xl">
             <CardHeader>
               <CardTitle className="text-gray-900 dark:text-white">{t("statsPage.topApps")}</CardTitle>
             </CardHeader>
@@ -239,7 +246,7 @@ export default function EnhancedStatsPage() {
         </div>
 
         {/* Transaction History */}
-        <Card className="glass-card">
+        <Card className="relative erobo-card bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-gray-200 dark:border-erobo-purple/20 shadow-lg rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-gray-900 dark:text-white">{t("statsPage.recentActivity")}</CardTitle>
@@ -259,25 +266,25 @@ export default function EnhancedStatsPage() {
                 events.map((event, i) => (
                   <div
                     key={event.id || i}
-                    className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5"
+                    className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-erobo-purple/10 hover:border-erobo-purple/40 transition-all"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                        <TrendingUp size={18} />
+                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-erobo-purple/20 to-erobo-purple-dark/20 flex items-center justify-center text-erobo-purple">
+                        <TrendingUp size={18} strokeWidth={2} />
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
                           {event.method || "invokefunction"}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {t("statsPage.contract")}: {event.contract || "Unknown"} ({event.contractHash?.slice(0, 6)}...
                           {event.contractHash?.slice(-4)})
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-mono text-slate-300">{event.gasUsed || "0"} GAS</p>
-                      <p className="text-[10px] text-slate-500">{formatTimeAgo(event.timestamp)}</p>
+                      <p className="text-sm font-mono text-gray-700 dark:text-gray-200">{event.gasUsed || "0"} GAS</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatTimeAgo(event.timestamp)}</p>
                     </div>
                   </div>
                 ))
@@ -294,17 +301,17 @@ export default function EnhancedStatsPage() {
 
 function StatSummaryCard({ title, value, icon: Icon, color, loading }: any) {
   return (
-    <Card className="glass-card">
+    <Card className="erobo-card bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-gray-200 dark:border-erobo-purple/20 shadow-lg rounded-2xl transition-all hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(159,157,243,0.3)] hover:border-erobo-purple/40">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-400">{title}</p>
-            <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1 tracking-tight">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{title}</p>
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
               {loading ? <Loader2 className="animate-spin" size={24} /> : value}
             </h3>
           </div>
-          <div className={cn("p-3 rounded-xl bg-white/5", color)}>
-            <Icon size={24} />
+          <div className="p-3 rounded-xl bg-gradient-to-br from-erobo-purple/10 to-erobo-purple-dark/10 dark:from-erobo-purple/20 dark:to-erobo-purple-dark/20 border border-erobo-purple/20">
+            <Icon size={24} className={color} strokeWidth={2} />
           </div>
         </div>
       </CardContent>

@@ -33,21 +33,25 @@ var miniApps = []struct {
 	Category    string
 	Description string
 }{
-	// Gaming (3)
-	{"builtin-lottery", "Neo Lottery", "gaming", "Decentralized lottery with provably fair randomness"},
-	{"builtin-coin-flip", "Neo Coin Flip", "gaming", "50/50 coin flip game"},
-	{"builtin-dice-game", "Neo Dice", "gaming", "Roll dice and win up to 6x"},
-	{"builtin-scratch-card", "Neo Scratch Cards", "gaming", "Instant win scratch cards"},
-	// DeFi (2)
-	{"builtin-flashloan", "Neo FlashLoan", "defi", "Instant borrow and repay"},
-	// Social (2)
-	{"builtin-red-envelope", "Red Envelope", "social", "WeChat-style lucky red packets"},
-	{"builtin-gas-circle", "Gas Circle", "social", "Daily savings circle with lottery"},
+	// Gaming (5)
+	{"miniapp-lottery", "Neo Lottery", "gaming", "Decentralized lottery with provably fair randomness"},
+	{"miniapp-coin-flip", "Neo Coin Flip", "gaming", "50/50 coin flip game"},
+	{"miniapp-dice-game", "Neo Dice", "gaming", "Roll dice and win up to 6x"},
+	{"miniapp-scratch-card", "Neo Scratch Cards", "gaming", "Instant win scratch cards"},
+	{"miniapp-neo-crash", "Neo Crash", "gaming", "Crash game - cash out before it crashes"},
+	// DeFi (1)
+	{"miniapp-flashloan", "Neo FlashLoan", "defi", "Instant borrow and repay"},
+	// Social (4)
+	{"miniapp-red-envelope", "Red Envelope", "social", "WeChat-style lucky red packets"},
+	{"miniapp-gas-circle", "Gas Circle", "social", "Daily savings circle with lottery"},
+	{"miniapp-time-capsule", "Time Capsule", "social", "Encrypted messages unlocked by time or price"},
+	{"miniapp-dev-tipping", "EcoBoost", "social", "Support the builders who power the ecosystem"},
 	// Governance (1)
-	{"builtin-gov-booster", "Gov Booster", "governance", "bNEO governance optimization"},
-	// Advanced (2)
-	{"builtin-secret-poker", "Secret Poker", "social", "TEE Texas Hold'em"},
-	{"builtin-canvas", "Canvas", "advanced", "Collaborative drawing canvas"},
+	{"miniapp-gov-booster", "Gov Booster", "governance", "bNEO governance optimization"},
+	// Utility (1)
+	{"miniapp-guardian-policy", "Guardian Policy", "utility", "Guardian policy management"},
+	// Advanced (1)
+	{"miniapp-secret-poker", "Secret Poker", "social", "TEE Texas Hold'em"},
 }
 
 func main() {

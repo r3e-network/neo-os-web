@@ -19,7 +19,7 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
 
       const { data: existing } = await supabase
         .from("encrypted_keys")
-        .select("address, public_key, encrypted_key, salt, iv, tag, iterations")
+        .select("address, public_key, encrypted_private_key, encryption_salt, key_derivation_params")
         .eq("auth0_sub", session.user.sub)
         .single();
 
@@ -27,15 +27,16 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
         return res.status(404).json({ error: "No Neo account found" });
       }
 
+      const params = existing.key_derivation_params || {};
       return res.json({
         address: existing.address,
         publicKey: existing.public_key,
         encryptedKey: {
-          encryptedData: existing.encrypted_key,
-          salt: existing.salt,
-          iv: existing.iv,
-          tag: existing.tag,
-          iterations: existing.iterations,
+          encryptedData: existing.encrypted_private_key,
+          salt: existing.encryption_salt,
+          iv: params.iv,
+          tag: params.tag,
+          iterations: params.iterations,
         },
       });
     } catch (error) {
@@ -82,13 +83,12 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
     // Store pre-encrypted key (encryption happened in browser)
     const { error: insertError } = await supabase.from("encrypted_keys").insert({
       auth0_sub: session.user.sub,
+      wallet_address: address,
       address: address,
       public_key: publicKey,
-      encrypted_key: encryptedData,
-      salt: salt,
-      iv: iv,
-      tag: tag,
-      iterations: iterations,
+      encrypted_private_key: encryptedData,
+      encryption_salt: salt,
+      key_derivation_params: { iv, tag, iterations },
     });
 
     if (insertError) {

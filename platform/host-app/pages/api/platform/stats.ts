@@ -75,9 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       // Fallback: Aggregate from miniapp_stats table
       console.log("platform_stats not available, aggregating from miniapp_stats");
-      const { data: aggregateData } = await supabase
-        .from("miniapp_stats")
-        .select("total_unique_users, total_transactions, total_volume_gas");
+      const { data: aggregateData } = await supabase.from("miniapp_stats").select("*");
 
       if (aggregateData && aggregateData.length > 0) {
         const totals = aggregateData.reduce(
@@ -85,15 +83,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             users: acc.users + (row.total_unique_users || 0),
             txs: acc.txs + (row.total_transactions || 0),
             volume: acc.volume + parseFloat(row.total_volume_gas || "0"),
+            gasBurned: acc.gasBurned + parseFloat(row.total_gas_used || row.total_volume_gas || "0"),
           }),
-          { users: 0, txs: 0, volume: 0 },
+          { users: 0, txs: 0, volume: 0, gasBurned: 0 },
         );
 
         stats = {
           totalUsers: totals.users,
           totalTransactions: totals.txs,
           totalVolume: totals.volume.toFixed(2),
-          totalGasBurned: "0",
+          totalGasBurned: totals.gasBurned.toFixed(2),
           stakingApr,
           activeApps: getTotalAppsCount(),
           topApps: [],

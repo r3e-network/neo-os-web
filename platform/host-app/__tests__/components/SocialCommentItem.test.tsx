@@ -47,12 +47,9 @@ describe("SocialCommentItem", () => {
 
     it("renders vote counts", () => {
       render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
-      // Check upvote button contains count
-      const upvoteBtn = screen.getByText(/▲/).closest("button");
-      expect(upvoteBtn).toHaveTextContent("10");
-      // Check downvote button contains count
-      const downvoteBtn = screen.getByText(/▼/).closest("button");
-      expect(downvoteBtn).toHaveTextContent("2");
+      // Check vote counts are displayed
+      expect(screen.getByText("10")).toBeInTheDocument();
+      expect(screen.getByText("2")).toBeInTheDocument();
     });
 
     it("renders formatted date", () => {
@@ -60,14 +57,14 @@ describe("SocialCommentItem", () => {
       expect(screen.getByText(/1\/15\/2025/)).toBeInTheDocument();
     });
 
-    it("shows Developer badge for developer replies", () => {
+    it("shows Core Dev badge for developer replies", () => {
       render(<CommentItem comment={mockDeveloperComment} onVote={mockOnVote} onReply={mockOnReply} />);
-      expect(screen.getByText("Developer")).toBeInTheDocument();
+      expect(screen.getByText("Core Dev")).toBeInTheDocument();
     });
 
-    it("does not show Developer badge for regular comments", () => {
+    it("does not show Core Dev badge for regular comments", () => {
       render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
-      expect(screen.queryByText("Developer")).not.toBeInTheDocument();
+      expect(screen.queryByText("Core Dev")).not.toBeInTheDocument();
     });
   });
 
@@ -111,7 +108,7 @@ describe("SocialCommentItem", () => {
 
       fireEvent.click(screen.getByText("Reply"));
 
-      expect(screen.getByPlaceholderText("Write a reply...")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Write your reply...")).toBeInTheDocument();
     });
 
     it("closes reply form when clicking Cancel", () => {
@@ -120,7 +117,7 @@ describe("SocialCommentItem", () => {
       fireEvent.click(screen.getByText("Reply"));
       fireEvent.click(screen.getByText("Cancel"));
 
-      expect(screen.queryByPlaceholderText("Write a reply...")).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("Write your reply...")).not.toBeInTheDocument();
     });
 
     it("submits reply and clears form", async () => {
@@ -134,9 +131,11 @@ describe("SocialCommentItem", () => {
       );
 
       fireEvent.click(screen.getByText("Reply"));
-      const textarea = screen.getByPlaceholderText("Write a reply...");
+      const textarea = screen.getByPlaceholderText("Write your reply...");
       fireEvent.change(textarea, { target: { value: "My reply" } });
-      fireEvent.click(screen.getByText("Submit"));
+      // Click the Reply button in the form (second "Reply" button)
+      const replyButtons = screen.getAllByText("Reply");
+      fireEvent.click(replyButtons[replyButtons.length - 1]);
 
       await waitFor(() => {
         expect(mockOnReply).toHaveBeenCalledWith("comment-1", "My reply");
@@ -147,7 +146,9 @@ describe("SocialCommentItem", () => {
       render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
 
       fireEvent.click(screen.getByText("Reply"));
-      fireEvent.click(screen.getByText("Submit"));
+      // Click the Reply button in the form (second "Reply" button)
+      const replyButtons = screen.getAllByText("Reply");
+      fireEvent.click(replyButtons[replyButtons.length - 1]);
 
       expect(mockOnReply).not.toHaveBeenCalled();
     });

@@ -17,8 +17,9 @@ module.exports = {
         sans: ["Outfit", "system-ui", "sans-serif"],
       },
       colors: {
-        background: "#020617",
-        foreground: "#f8fafc",
+        /* Use CSS variables for theme-aware colors */
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
         dark: {
           50: "#f8fafc",
           100: "#f1f5f9",
@@ -42,31 +43,42 @@ module.exports = {
           glow: "rgba(112, 0, 255, 0.4)",
         },
         card: {
-          DEFAULT: "rgba(15, 23, 42, 0.6)",
-          foreground: "#f8fafc",
+          /* Light: white with subtle transparency, Dark: dark glass */
+          DEFAULT: "rgba(255, 255, 255, 0.9)",
+          dark: "rgba(10, 15, 30, 0.6)",
+          foreground: "hsl(var(--foreground))",
         },
         brutal: {
-          border: "#000000",
-          yellow: "#ffde59",
-          pink: "#ff6b9d",
-          blue: "#4ecdc4",
-          orange: "#ff8c42",
-          red: "#ff4757",
-          lime: "#a8e6cf",
+          border: "rgba(255, 255, 255, 0.1)",
+          yellow: "#FDE047",
+          pink: "#F472B6",
+          blue: "#22D3EE",
+          orange: "#FB923C",
+          red: "#EF4444",
+          lime: "#A3E635",
+        },
+        // E-Robo Style Colors
+        erobo: {
+          purple: "#9f9df3",
+          "purple-dark": "#7b79d1",
         },
       },
       boxShadow: {
-        "brutal-sm": "3px 3px 0px 0px rgba(0,0,0,1)",
-        "brutal-md": "5px 5px 0px 0px rgba(0,0,0,1)",
-        "brutal-lg": "8px 8px 0px 0px rgba(0,0,0,1)",
-        "brutal-neo": "5px 5px 0px 0px #00E599",
-        "brutal-purple": "5px 5px 0px 0px #7000FF",
+        "brutal-sm": "0 2px 10px rgba(0,0,0,0.2)",
+        "brutal-md": "0 8px 30px rgba(0,0,0,0.3)",
+        "brutal-lg": "0 20px 40px rgba(0,0,0,0.4)",
+        "brutal-neo": "0 0 25px rgba(0, 229, 153, 0.4), 0 0 10px rgba(0, 229, 153, 0.2)",
+        "brutal-purple": "0 0 25px rgba(112, 0, 255, 0.4), 0 0 10px rgba(112, 0, 255, 0.2)",
+        // Dark mode variants (Mapped to soft deep shadows + subtle border glow)
+        "brutal-sm-dark": "0 2px 10px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05)",
+        "brutal-md-dark": "0 8px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)",
+        "brutal-lg-dark": "0 25px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1)",
       },
       borderWidth: {
-        "3": "3px",
+        3: "1px",
       },
       backgroundImage: {
-        "glass-gradient": "linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%)",
+        "glass-gradient": "linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)",
         "neo-purple-grad": "linear-gradient(135deg, #00E599 0%, #7000FF 100%)",
       },
       borderRadius: {
@@ -120,6 +132,11 @@ module.exports = {
         "shield-pulse": "shield-pulse 2s ease-in-out infinite",
         "capsule-grow": "capsule-grow 2s ease-in-out infinite",
         ripple: "ripple 2s ease-out infinite",
+        // E-Robo Water Wave Animations
+        "water-wave": "water-wave 12s ease-in-out infinite",
+        "water-wave-reverse": "water-wave-reverse 15s ease-in-out infinite",
+        "concentric-ripple": "concentric-ripple 2s ease-out infinite",
+        "ripple-expand": "ripple-expand 0.8s ease-out forwards",
         "price-drop": "price-drop 1.5s ease-in-out infinite",
         orbit: "orbit 3s linear infinite",
         "orbit-reverse": "orbit 3s linear infinite reverse",
@@ -378,6 +395,26 @@ module.exports = {
         "capsule-bury": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(10px)" },
+        },
+        // E-Robo Water Wave Keyframes
+        "water-wave": {
+          "0%": { transform: "translateX(0) translateY(0)" },
+          "50%": { transform: "translateX(-25px) translateY(10px)" },
+          "100%": { transform: "translateX(0) translateY(0)" },
+        },
+        "water-wave-reverse": {
+          "0%": { transform: "translateX(0) translateY(0)" },
+          "50%": { transform: "translateX(25px) translateY(-10px)" },
+          "100%": { transform: "translateX(0) translateY(0)" },
+        },
+        "concentric-ripple": {
+          "0%": { transform: "scale(0)", opacity: "0.5" },
+          "50%": { opacity: "0.3" },
+          "100%": { transform: "scale(3)", opacity: "0" },
+        },
+        "ripple-expand": {
+          "0%": { transform: "scale(0)", opacity: "0.6" },
+          "100%": { transform: "scale(4)", opacity: "0" },
         },
       },
     },

@@ -11,6 +11,7 @@ import { installMiniAppSDK } from "../../../lib/miniapp-sdk";
 import { injectMiniAppViewportStyles } from "../../../lib/miniapp-iframe";
 import type { MiniAppSDK } from "../../../lib/miniapp-sdk";
 import { useTheme } from "../../providers/ThemeProvider";
+import { useWalletStore } from "../../../lib/wallet/store";
 import { MiniAppFrame } from "./MiniAppFrame";
 
 interface MiniAppViewerProps {
@@ -47,22 +48,22 @@ function MiniAppLoader({ app }: { app: MiniAppInfo }) {
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-brutal-yellow overflow-hidden"
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-brutal-yellow dark:bg-[#050505] overflow-hidden"
     >
       {/* Brutalist Pattern Background */}
-      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)] bg-[size:16px_16px]" />
+      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)] dark:bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]" />
 
       {/* Main Card */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="relative z-10 flex flex-col items-center p-8 bg-white border-4 border-black shadow-[8px_8px_0_#000] max-w-sm w-full mx-4"
+        className="relative z-10 flex flex-col items-center p-8 bg-white dark:bg-[#111] border-4 border-black dark:border-white shadow-[8px_8px_0_#000] dark:shadow-[8px_8px_0_#fff] max-w-sm w-full mx-4"
       >
         {/* Decorative Corner Squares */}
-        <div className="absolute top-2 left-2 w-3 h-3 bg-black" />
-        <div className="absolute top-2 right-2 w-3 h-3 bg-black" />
-        <div className="absolute bottom-2 left-2 w-3 h-3 bg-black" />
-        <div className="absolute bottom-2 right-2 w-3 h-3 bg-black" />
+        <div className="absolute top-2 left-2 w-3 h-3 bg-black dark:bg-white" />
+        <div className="absolute top-2 right-2 w-3 h-3 bg-black dark:bg-white" />
+        <div className="absolute bottom-2 left-2 w-3 h-3 bg-black dark:bg-white" />
+        <div className="absolute bottom-2 right-2 w-3 h-3 bg-black dark:bg-white" />
 
         {/* Logo Container */}
         <motion.div
@@ -77,33 +78,33 @@ function MiniAppLoader({ app }: { app: MiniAppInfo }) {
           }}
           className="relative mb-8 mt-2"
         >
-          <div className="absolute inset-0 bg-black translate-x-1 translate-y-1" />
+          <div className="absolute inset-0 bg-black dark:bg-white translate-x-1 translate-y-1" />
           <MiniAppLogo
             appId={app.app_id}
             category={app.category}
             size="lg"
             iconUrl={app.icon}
-            className="relative border-2 border-black z-10"
+            className="relative border-2 border-black dark:border-white z-10"
           />
         </motion.div>
 
         {/* Text Details */}
-        <h2 className="text-3xl font-black text-black mb-1 tracking-tighter uppercase italic text-center leading-none">
+        <h2 className="text-3xl font-black text-black dark:text-white mb-1 tracking-tighter uppercase italic text-center leading-none">
           {app.name}
         </h2>
 
-        <div className="flex items-center gap-2 text-black text-xs font-bold uppercase mb-8 border-2 border-black px-3 py-1 bg-neo shadow-[2px_2px_0_#000]">
+        <div className="flex items-center gap-2 text-black text-xs font-bold uppercase mb-8 border-2 border-black dark:border-white px-3 py-1 bg-neo shadow-[2px_2px_0_#000] dark:shadow-[2px_2px_0_#fff]">
           <ShieldCheck size={14} className="text-black" strokeWidth={3} />
           <span>Verified Sandbox v1.0</span>
         </div>
 
         {/* Hard Progress Bar */}
-        <div className="w-full h-4 border-2 border-black bg-white mb-4 p-0.5 shadow-[2px_2px_0_#000]">
+        <div className="w-full h-4 border-2 border-black dark:border-white bg-white dark:bg-black mb-4 p-0.5 shadow-[2px_2px_0_#000] dark:shadow-[2px_2px_0_#fff]">
           <motion.div
             initial={{ width: "0%" }}
             animate={{ width: "100%" }}
             transition={{ duration: 4, ease: "linear" }}
-            className="h-full bg-black"
+            className="h-full bg-black dark:bg-white"
           />
         </div>
 
@@ -115,12 +116,12 @@ function MiniAppLoader({ app }: { app: MiniAppInfo }) {
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider"
+              className="flex items-center gap-2 text-xs font-black text-black dark:text-white uppercase tracking-wider"
             >
               {msgIndex === loadingMessages.length - 1 ? (
-                <Zap size={14} className="text-black fill-yellow-400" strokeWidth={2} />
+                <Zap size={14} className="text-black dark:text-white fill-yellow-400" strokeWidth={2} />
               ) : (
-                <Loader2 size={14} className="animate-spin text-black" strokeWidth={3} />
+                <Loader2 size={14} className="animate-spin text-black dark:text-white" strokeWidth={3} />
               )}
               <span>{loadingMessages[msgIndex]}</span>
             </motion.div>
@@ -130,13 +131,13 @@ function MiniAppLoader({ app }: { app: MiniAppInfo }) {
 
       {/* Footer Tags */}
       <div className="absolute bottom-12 flex gap-8">
-        <div className="flex items-center gap-2 bg-white border-2 border-black px-3 py-1 shadow-[4px_4px_0_#000] rotate-[-2deg]">
-          <Lock size={12} strokeWidth={3} />
-          <span className="text-[10px] font-black uppercase">Isolated Env</span>
+        <div className="flex items-center gap-2 bg-white dark:bg-black border-2 border-black dark:border-white px-3 py-1 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_#fff] rotate-[-2deg]">
+          <Lock size={12} strokeWidth={3} className="text-black dark:text-white" />
+          <span className="text-[10px] font-black uppercase text-black dark:text-white">Isolated Env</span>
         </div>
-        <div className="flex items-center gap-2 bg-white border-2 border-black px-3 py-1 shadow-[4px_4px_0_#000] rotate-[2deg]">
-          <Zap size={12} strokeWidth={3} />
-          <span className="text-[10px] font-black uppercase">Direct RPC</span>
+        <div className="flex items-center gap-2 bg-white dark:bg-black border-2 border-black dark:border-white px-3 py-1 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_#fff] rotate-[2deg]">
+          <Zap size={12} strokeWidth={3} className="text-black dark:text-white" />
+          <span className="text-[10px] font-black uppercase text-black dark:text-white">Direct RPC</span>
         </div>
       </div>
     </motion.div>
@@ -169,13 +170,82 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
     iframe.contentWindow.postMessage({ type: "theme-change", theme }, origin);
   }, [theme, app.entry_url, federated]);
 
+  // Sync wallet state to iframe when it changes
+  useEffect(() => {
+    if (federated) return;
+    // CRITICAL: Only sync after iframe is loaded and ready
+    if (!isLoaded) return;
+
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    const origin = resolveIframeOrigin(app.entry_url);
+    if (!origin) return;
+
+    // Helper to send wallet state
+    const sendWalletState = (state: {
+      connected: boolean;
+      address: string | null;
+      balance: { neo: string; gas: string } | null;
+    }) => {
+      iframe.contentWindow?.postMessage(
+        {
+          type: "neo_wallet_state_change",
+          connected: state.connected,
+          address: state.address,
+          balance: state.balance,
+        },
+        origin,
+      );
+    };
+
+    // Subscribe to wallet store changes
+    const unsubscribe = useWalletStore.subscribe(sendWalletState);
+
+    // Send initial wallet state immediately when iframe is ready
+    const currentState = useWalletStore.getState();
+    sendWalletState(currentState);
+
+    // Also send after a short delay to ensure MiniApp listener is ready
+    const delayedSend = setTimeout(() => {
+      const state = useWalletStore.getState();
+      sendWalletState(state);
+    }, 500);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(delayedSend);
+    };
+  }, [app.entry_url, federated, isLoaded]);
+
   // Initialize SDK
   useEffect(() => {
-    sdkRef.current = installMiniAppSDK({
+    const sdk = installMiniAppSDK({
       appId: app.app_id,
       contractHash: app.contract_hash ?? null,
       permissions: app.permissions,
     });
+
+    if (sdk && sdk.wallet) {
+      // Patch SDK for Federated Apps sharing the window
+      const baseGetAddress = sdk.wallet.getAddress;
+      sdk.wallet.getAddress = async () => {
+        const { connected, address } = useWalletStore.getState();
+        if (connected && address) return address;
+        if (baseGetAddress) return baseGetAddress();
+        throw new Error("Wallet not connected");
+      };
+
+      const baseGetAddressRoot = sdk.getAddress;
+      if (baseGetAddressRoot) {
+        sdk.getAddress = async () => {
+          const { connected, address } = useWalletStore.getState();
+          if (connected && address) return address;
+          return baseGetAddressRoot();
+        };
+      }
+    }
+
+    sdkRef.current = sdk;
   }, [app.app_id, app.contract_hash, app.permissions]);
 
   // Setup message bridge for iframe communication
@@ -273,9 +343,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
   return (
     <div className="w-full h-full min-h-0 min-w-0 overflow-hidden bg-black">
       <MiniAppFrame>
-        <AnimatePresence>
-          {!isLoaded && <MiniAppLoader app={app} />}
-        </AnimatePresence>
+        <AnimatePresence>{!isLoaded && <MiniAppLoader app={app} />}</AnimatePresence>
 
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
@@ -288,7 +356,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
         >
           {federated ? (
             <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-              <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
+              <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} theme={theme} />
             </div>
           ) : (
             <iframe
@@ -358,9 +426,12 @@ async function dispatchBridgeCall(
     throw new Error(`permission denied: ${method}`);
   }
 
+  const wallet = useWalletStore.getState();
+
   switch (method) {
     case "wallet.getAddress":
     case "getAddress": {
+      if (wallet.connected && wallet.address) return wallet.address;
       if (sdk.wallet?.getAddress) return sdk.wallet.getAddress();
       if (sdk.getAddress) return sdk.getAddress();
       throw new Error("wallet.getAddress not available");

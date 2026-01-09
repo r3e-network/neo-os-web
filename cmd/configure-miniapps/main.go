@@ -16,15 +16,15 @@ import (
 )
 
 var miniApps = []string{
-	"builtin-lottery",
-	"builtin-coin-flip",
-	"builtin-dice-game",
-	"builtin-scratch-card",
-	"builtin-flashloan",
-	"builtin-red-envelope",
-	"builtin-gas-circle",
-	"builtin-gov-booster",
-	"builtin-secret-poker",
+	"miniapp-lottery",
+	"miniapp-coin-flip",
+	"miniapp-dice-game",
+	"miniapp-scratch-card",
+	"miniapp-flashloan",
+	"miniapp-red-envelope",
+	"miniapp-gas-circle",
+	"miniapp-gov-booster",
+	"miniapp-secret-poker",
 	"builtin-canvas",
 }
 

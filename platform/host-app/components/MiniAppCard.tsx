@@ -1,5 +1,6 @@
 import React from "react";
 import { MiniAppInfo, MiniAppStats } from "./types";
+import { Badge } from "@/components/ui/badge";
 
 type Props = {
   app: MiniAppInfo;
@@ -11,37 +12,43 @@ export function MiniAppCard({ app, stats, onClick }: Props) {
   return (
     <div
       onClick={onClick}
-      className="brutal-card p-5 cursor-pointer flex flex-col relative group overflow-hidden"
+      className="h-full group relative flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-neo/40 cursor-pointer p-5"
     >
-      <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">
-        {app.icon}
+      <div className="flex items-start justify-between mb-4">
+        <div className="text-4xl group-hover:scale-110 transition-transform duration-300 drop-shadow-sm">
+          {app.icon}
+        </div>
+        <Badge className="uppercase tracking-wide text-[10px] font-bold px-2 py-0.5 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-transparent rounded-full">
+          {app.category}
+        </Badge>
       </div>
+
       <div className="flex-1">
-        <h3 className="text-lg font-black mb-2 uppercase tracking-tight">
+        <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-white group-hover:text-neo transition-colors">
           {app.name}
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-          {app.description}
-        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{app.description}</p>
 
         {stats && (
-          <div className="flex gap-4 mt-4 font-mono text-[10px] font-bold uppercase tracking-wider text-neo dark:text-neo">
-            <span className="bg-black/5 dark:bg-white/5 px-2 py-1 rounded border border-black/10 dark:border-white/10">
+          <div className="flex gap-2 mt-4">
+            <Badge
+              variant="outline"
+              className="text-[10px] font-mono font-medium text-gray-500 border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20"
+            >
               📊 {stats.total_transactions} TXS
-            </span>
-            <span className="bg-black/5 dark:bg-white/5 px-2 py-1 rounded border border-black/10 dark:border-white/10">
+            </Badge>
+            <Badge
+              variant="outline"
+              className="text-[10px] font-mono font-medium text-gray-500 border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20"
+            >
               👥 {stats.total_users} USERS
-            </span>
+            </Badge>
           </div>
         )}
       </div>
 
-      <span className="absolute top-3 right-3 text-[10px] font-black px-2 py-1 bg-brutal-yellow text-black border-2 border-black uppercase tracking-tighter">
-        {app.category}
-      </span>
-
-      {/* Decorative corner element */}
-      <div className="absolute -bottom-4 -right-4 w-8 h-8 bg-neo/10 rotate-45 group-hover:bg-neo/20 transition-colors" />
+      {/* Decorative effect */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-neo/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </div>
   );
 }

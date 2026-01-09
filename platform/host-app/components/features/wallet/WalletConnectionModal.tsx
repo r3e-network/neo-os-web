@@ -1,11 +1,6 @@
-/**
- * Wallet Connection Modal
- * Prompts user to connect wallet or login with social account
- */
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Wallet, User, ExternalLink } from "lucide-react";
+import { Wallet, User, ExternalLink, X } from "lucide-react";
 import { useWalletStore, walletOptions, WalletProvider } from "@/lib/wallet/store";
 import { useTranslation } from "@/lib/i18n/react";
 
@@ -18,7 +13,7 @@ interface WalletConnectionModalProps {
 
 export function WalletConnectionModal({ open, onClose, title, description }: WalletConnectionModalProps) {
   const { t } = useTranslation("common");
-  const { connect, loading, error, clearError } = useWalletStore();
+  const { connect, connected, address, loading, error, clearError } = useWalletStore();
 
   const handleConnect = async (provider: WalletProvider) => {
     await connect(provider);
@@ -30,74 +25,101 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wallet size={20} className="text-[#00E599]" />
+      <DialogContent className="sm:max-w-md bg-white dark:bg-[#050505] border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden p-0 gap-0">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
+            <div className="p-2 bg-neo/10 rounded-full text-neo">
+              <Wallet size={20} />
+            </div>
             {title || t("wallet.connectRequired")}
           </DialogTitle>
-          <DialogDescription>{description || t("wallet.connectDescription")}</DialogDescription>
+          <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            {description || t("wallet.connectDescription")}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="p-6 pt-2 space-y-6">
           {/* Wallet Options */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t("wallet.selectWallet")}</p>
-            {walletOptions.map((wallet) => (
-              <button
-                key={wallet.id}
-                onClick={() => handleConnect(wallet.id)}
-                disabled={loading}
-                className="flex w-full items-center gap-3 rounded-lg border-2 border-black px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
-              >
-                <img
-                  src={wallet.icon}
-                  alt={wallet.name}
-                  className="w-6 h-6 rounded"
-                  onError={(e) => {
-                    e.currentTarget.src = "/wallet-default.svg";
-                  }}
-                />
-                <span className="font-bold">{wallet.name}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-gray-900 px-2 text-gray-500">{t("common.or")}</span>
+          <div className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              {t("wallet.selectWallet")}
+            </p>
+            <div className="grid gap-3">
+              {walletOptions.map((wallet) => (
+                <button
+                  key={wallet.id}
+                  onClick={() => handleConnect(wallet.id)}
+                  disabled={loading}
+                  className="flex w-full items-center gap-3 rounded-xl border border-gray-200 dark:border-white/10 px-4 py-3.5 text-left bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 hover:border-gray-300 dark:hover:border-white/20 transition-all duration-200 shadow-sm hover:shadow-md group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 p-1 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <img
+                      src={wallet.icon}
+                      alt={wallet.name}
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = "/wallet-default.svg";
+                      }}
+                    />
+                  </div>
+                  <span className="font-bold text-gray-900 dark:text-white group-hover:text-neo transition-colors">{wallet.name}</span>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Social Login */}
+          {/* Divider - only show if wallet not connected */}
+          {!connected && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-100 dark:border-white/5" />
+              </div>
+              <div className="relative flex justify-center text-xs font-medium uppercase tracking-widest">
+                <span className="bg-white dark:bg-[#050505] px-2 text-gray-400">{t("common.or")}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Social Login - disabled when wallet is connected */}
           <Button
             onClick={handleSocialLogin}
             variant="outline"
-            className="w-full flex items-center gap-2"
-            disabled={loading}
+            className={`w-full flex items-center justify-center gap-2 rounded-xl h-12 border transition-all duration-300 ${connected
+                ? "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 hover:text-neo dark:hover:text-neo shadow-sm hover:shadow-md"
+              }`}
+            disabled={loading || connected}
           >
             <User size={18} />
-            {t("wallet.loginWithSocial")}
-            <ExternalLink size={14} className="ml-auto opacity-50" />
+            <span className="font-bold text-sm tracking-wide uppercase">
+              {connected ? t("wallet.socialDisabledWhenConnected") : t("wallet.loginWithSocial")}
+            </span>
+            {!connected && <ExternalLink size={14} className="ml-auto opacity-50" />}
           </Button>
 
           {/* Error Display */}
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-              <p className="text-sm text-red-600">{error}</p>
-              <button onClick={clearError} className="mt-2 text-xs text-red-500 underline">
-                {t("actions.dismiss")}
-              </button>
+            <div className="rounded-lg border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-900/10 p-3 flex items-start gap-3">
+              <div className="text-red-500 mt-0.5"><div className="w-1.5 h-1.5 rounded-full bg-current" /></div>
+              <div className="flex-1">
+                <p className="text-sm text-red-600 dark:text-red-400 font-medium leading-tight">{error}</p>
+                <button
+                  onClick={clearError}
+                  className="mt-1.5 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-300 font-bold uppercase tracking-wide"
+                >
+                  {t("actions.dismiss")}
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end">
-          <Button variant="ghost" onClick={onClose}>
+        <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5 flex justify-end">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="hover:bg-gray-200/50 dark:hover:bg-white/10 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white font-medium"
+          >
             {t("actions.cancel")}
           </Button>
         </div>

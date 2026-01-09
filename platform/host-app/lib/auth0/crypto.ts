@@ -81,8 +81,8 @@ export function decryptPrivateKey(
 export function validatePassword(password: string): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
-  if (password.length < 12) {
-    errors.push("Password must be at least 12 characters");
+  if (password.length < 8) {
+    errors.push("Password must be at least 8 characters");
   }
   if (!/[A-Z]/.test(password)) {
     errors.push("Password must contain uppercase letter");

@@ -160,24 +160,22 @@ export function MiniAppLogo({ appId, category, size = "md", className = "", icon
     lg: 32,
   };
 
-  const containerClasses = `flex-shrink-0 ${sizeClasses[size]} rounded-none border-2 border-black dark:border-white shadow-brutal-xs flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:rotate-3 ${className}`;
+  // E-Robo style: Use rounded-full for circular icons with gradient background
+  const containerClasses = `flex-shrink-0 ${sizeClasses[size]} rounded-full border-2 border-erobo-purple/30 dark:border-erobo-purple/20 shadow-[0_0_15px_rgba(159,157,243,0.2)] flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(159,157,243,0.4)] ${className}`;
 
   if (iconUrl && !imageError) {
     return (
-      <div className={`${containerClasses} bg-white`}>
-        <img
-          src={iconUrl}
-          alt={appId}
-          className="w-full h-full object-cover"
-          onError={() => setImageError(true)}
-        />
+      <div
+        className={`${containerClasses} bg-gradient-to-br from-erobo-purple/10 to-erobo-purple-dark/10 dark:from-erobo-purple/20 dark:to-erobo-purple-dark/20`}
+      >
+        <img src={iconUrl} alt={appId} className="w-[70%] h-[70%] object-contain" onError={() => setImageError(true)} />
       </div>
     );
   }
 
   return (
-    <div className={`${containerClasses} ${bgColor}`}>
-      <Icon size={iconSizes[size]} className="text-current" strokeWidth={2.5} />
+    <div className={`${containerClasses} bg-gradient-to-br ${bgColor}`}>
+      <Icon size={iconSizes[size]} className="text-current drop-shadow-sm" strokeWidth={2.5} />
     </div>
   );
 }

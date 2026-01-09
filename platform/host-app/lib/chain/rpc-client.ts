@@ -1,6 +1,7 @@
 /**
  * Neo N3 RPC Client
  * Direct communication with Neo blockchain nodes
+ * Supports custom RPC URLs for social account users
  */
 
 export interface RpcRequest {
@@ -32,17 +33,35 @@ export type StackItem =
   | { type: "Map"; value: { key: StackItem; value: StackItem }[] }
   | { type: "Any"; value: null };
 
-const RPC_ENDPOINTS = {
+export const DEFAULT_RPC_ENDPOINTS = {
   testnet: "https://testnet1.neo.coz.io:443",
   mainnet: "https://mainnet1.neo.coz.io:443",
 } as const;
 
-export type Network = keyof typeof RPC_ENDPOINTS;
+export type Network = keyof typeof DEFAULT_RPC_ENDPOINTS;
 
 let requestId = 0;
 
+/** Custom RPC URL override (set by wallet store) */
+let customRpcUrlOverride: string | null = null;
+
+/** Set custom RPC URL override */
+export function setRpcUrlOverride(url: string | null): void {
+  customRpcUrlOverride = url;
+}
+
+/** Get current RPC URL override */
+export function getRpcUrlOverride(): string | null {
+  return customRpcUrlOverride;
+}
+
+/** Get effective RPC endpoint */
+export function getEffectiveRpcUrl(network: Network): string {
+  return customRpcUrlOverride || DEFAULT_RPC_ENDPOINTS[network];
+}
+
 export async function rpcCall<T>(method: string, params: unknown[], network: Network = "testnet"): Promise<T> {
-  const endpoint = RPC_ENDPOINTS[network];
+  const endpoint = getEffectiveRpcUrl(network);
   const request: RpcRequest = {
     jsonrpc: "2.0",
     id: ++requestId,

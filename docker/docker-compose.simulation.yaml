@@ -96,6 +96,7 @@ services:
       # NeoFlow delegates all on-chain writes to txproxy (single allowlist gate).
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     depends_on:
       - coordinator
     restart: unless-stopped
@@ -242,8 +243,12 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_started
+      globalsigner:
+        condition: service_healthy
     restart: unless-stopped
 
   # =============================================================================
@@ -322,6 +327,7 @@ services:
       - NEOREQUESTS_APPREGISTRY_CACHE_SECONDS
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     depends_on:
       - coordinator
     restart: unless-stopped
@@ -438,10 +444,10 @@ services:
       - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
       - SIMULATION_ENABLED=${SIMULATION_ENABLED:-true}
-      # All 34 MiniApps for simulation (30 deleted apps removed)
-      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-builtin-lottery,builtin-coin-flip,builtin-dice-game,builtin-scratch-card,builtin-mega-millions,builtin-gas-spin,builtin-neo-crash,builtin-doomsday-clock,builtin-burn-league,builtin-puzzle-mining,builtin-fog-puzzle,builtin-crypto-riddle,builtin-flashloan,builtin-price-predict,builtin-turbo-options,builtin-heritage-trust,builtin-compound-capsule,builtin-self-loan,builtin-unbreakable-vault,builtin-secret-poker,builtin-micro-predict,builtin-red-envelope,builtin-gas-circle,builtin-time-capsule,builtin-graveyard,builtin-dev-tipping,builtin-gov-booster,builtin-gov-merc,builtin-masquerade-dao,builtin-guardian-policy,builtin-garden-of-neo,builtin-on-chain-tarot,builtin-ex-files,builtin-breakup-contract,builtin-million-piece-map,builtin-canvas,builtin-candidate-vote,builtin-neoburger}
-      - SIMULATION_TX_INTERVAL_MIN_MS=${SIMULATION_TX_INTERVAL_MIN_MS:-15000}
-      - SIMULATION_TX_INTERVAL_MAX_MS=${SIMULATION_TX_INTERVAL_MAX_MS:-15000}
+      # Core 7 MiniApps for simulation - only apps configured in PaymentHub contract
+      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-miniapp-lottery,miniapp-coin-flip,miniapp-dice-game,miniapp-scratch-card,miniapp-red-envelope,miniapp-time-capsule,miniapp-neo-crash}
+      - SIMULATION_TX_INTERVAL_MIN_MS=${SIMULATION_TX_INTERVAL_MIN_MS:-30000}
+      - SIMULATION_TX_INTERVAL_MAX_MS=${SIMULATION_TX_INTERVAL_MAX_MS:-60000}
       - SIMULATION_WORKERS_PER_APP=${SIMULATION_WORKERS_PER_APP:-1}
       # Contract hashes for MiniApp workflow simulation
       - CONTRACT_PRICEFEED_HASH=0xc5d9117d255054489d1cf59b2c1d188c01bc9954

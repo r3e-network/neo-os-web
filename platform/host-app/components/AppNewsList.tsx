@@ -1,6 +1,5 @@
 import React from "react";
 import { MiniAppNotification } from "./types";
-import { colors } from "./styles";
 
 type Props = {
   notifications: MiniAppNotification[];
@@ -8,8 +7,8 @@ type Props = {
 };
 
 export function AppNewsList({ notifications, loading }: Props) {
-  if (loading) return <div className="p-8 text-center text-xs font-black uppercase opacity-50 bg-gray-50 border-2 border-black animate-pulse">Loading updates...</div>;
-  if (notifications.length === 0) return <div className="p-8 text-center text-xs font-black uppercase opacity-50 border-2 border-black border-dashed">No recent updates</div>;
+  if (loading) return <div className="p-8 text-center text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse bg-gray-50/50 dark:bg-white/5 rounded-2xl">Loading updates...</div>;
+  if (notifications.length === 0) return <div className="p-8 text-center text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-dashed border-gray-200 dark:border-white/10">No recent updates</div>;
 
   return (
     <div className="flex flex-col gap-4">
@@ -39,107 +38,27 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
   };
 
   return (
-    <div className="flex gap-4 p-4 bg-white dark:bg-black border-4 border-black dark:border-white shadow-brutal-sm group hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
-      <div className="w-12 h-12 flex items-center justify-center bg-neo border-2 border-black shadow-brutal-xs flex-shrink-0 text-xl rotate-3">
+    <div className="flex gap-4 p-5 bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/10 transition-colors group">
+      <div className="w-12 h-12 flex items-center justify-center bg-gray-100 dark:bg-white/10 rounded-full text-xl flex-shrink-0 group-hover:scale-110 transition-transform">
         {getTypeIcon(notification.notification_type)}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-start mb-1">
-          <h4 className="font-black uppercase text-sm tracking-tight truncate pr-4">{notification.title}</h4>
-          <span className="text-[10px] font-black uppercase opacity-50">{getTimeAgo(notification.created_at)}</span>
+          <h4 className="font-bold text-gray-900 dark:text-white text-sm tracking-tight truncate pr-4">{notification.title}</h4>
+          <span className="text-[10px] font-semibold text-gray-400 uppercase">{getTimeAgo(notification.created_at)}</span>
         </div>
-        <p className="text-xs font-bold text-gray-600 dark:text-gray-400 leading-normal mb-2">{notification.content}</p>
+        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed mb-3">{notification.content}</p>
         {notification.tx_hash && (
           <a
             href={`https://dora.coz.io/transaction/neo3/${notification.tx_hash}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block text-[10px] font-black uppercase bg-black text-neo px-2 py-1 border border-black hover:bg-neo hover:text-black transition-colors"
+            className="inline-flex items-center gap-1 text-[10px] font-bold uppercase bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 px-2.5 py-1 rounded-full hover:bg-neo hover:text-black transition-colors"
           >
-            Proof of Work →
+            Proof &rarr;
           </a>
         )}
       </div>
     </div>
   );
 }
-
-const containerStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 16,
-};
-
-const loadingTextStyle: React.CSSProperties = {
-  color: colors.textMuted,
-  fontSize: 14,
-  textAlign: "center",
-  padding: 32,
-};
-
-const emptyTextStyle: React.CSSProperties = {
-  color: colors.textMuted,
-  fontSize: 14,
-  textAlign: "center",
-  padding: 32,
-};
-
-const itemStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 12,
-  padding: 16,
-  background: colors.bgCard,
-  borderRadius: 12,
-  border: `1px solid ${colors.border}`,
-};
-
-const iconContainerStyle: React.CSSProperties = {
-  fontSize: 24,
-  width: 40,
-  height: 40,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "rgba(0,212,170,0.1)",
-  borderRadius: 8,
-  flexShrink: 0,
-};
-
-const contentStyle: React.CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-};
-
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 4,
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: 15,
-  fontWeight: 600,
-  color: colors.text,
-  margin: 0,
-};
-
-const timeStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: colors.textMuted,
-};
-
-const descriptionStyle: React.CSSProperties = {
-  fontSize: 13,
-  color: colors.textMuted,
-  margin: 0,
-  lineHeight: 1.5,
-};
-
-const txLinkStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: colors.primary,
-  textDecoration: "none",
-  display: "inline-block",
-  marginTop: 8,
-};

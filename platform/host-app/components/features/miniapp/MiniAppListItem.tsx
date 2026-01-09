@@ -41,41 +41,57 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
 
   return (
     <Link
-      href={`/miniapps/${app.app_id}`}
-      className="group block border-b-4 border-black dark:border-white bg-white dark:bg-black hover:bg-brutal-yellow transition-colors duration-200"
+      href={{
+        pathname: `/miniapps/${app.app_id}`,
+        query: typeof window !== "undefined" ? window.location.search.substring(1) : "",
+      }}
+      className="block bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[20px] hover:bg-white/5 dark:hover:bg-white/[0.08] hover:border-[rgba(159,157,243,0.4)] transition-all duration-300 hover:shadow-[0_0_20px_rgba(159,157,243,0.2)] hover:-translate-y-1 group mb-3"
     >
       <div className="flex items-center gap-6 px-6 py-4">
         {/* Logo */}
-        <div className="shrink-0 group-hover:scale-110 transition-transform duration-200">
-          <MiniAppLogo appId={app.app_id} category={app.category} size="sm" />
-        </div>
+        <MiniAppLogo appId={app.app_id} category={app.category} size="sm" />
 
         {/* Content Grid */}
         <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-6 items-center">
           {/* Main Info */}
           <div className="min-w-0">
             <div className="flex items-center gap-3 mb-1">
-              <h3 className="font-black text-black dark:text-white uppercase tracking-tighter italic group-hover:text-black transition-colors text-lg">
+              <h3 className="font-bold text-gray-900 dark:text-white text-lg group-hover:text-neo transition-colors">
                 {appName}
               </h3>
-              <Badge variant="secondary" className="text-[9px] font-black uppercase px-2 py-0 border border-black shadow-brutal-xs bg-white text-black group-hover:bg-black group-hover:text-white transition-colors rounded-none h-5">
+              <Badge
+                variant="secondary"
+                className="text-[10px] font-medium uppercase px-2.5 py-0.5 rounded-full border border-gray-300 dark:border-white/10 bg-gray-200 dark:bg-white/5 backdrop-blur-md text-gray-700 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-white transition-colors h-5"
+              >
                 {categoryLabel}
               </Badge>
             </div>
-            <p className="text-xs font-bold text-gray-600 dark:text-gray-300 truncate tracking-tight group-hover:text-black">{appDesc}</p>
+            <p className="text-sm font-light text-gray-500 dark:text-gray-400 truncate tracking-wide group-hover:text-gray-700 dark:group-hover:text-gray-300">
+              {appDesc}
+            </p>
           </div>
 
           {/* Stats */}
-          <div className="hidden sm:flex items-center gap-8 text-[11px] font-black uppercase text-black dark:text-white">
-            <div className="flex items-center gap-2" title="Active Users">
-              <Globe size={16} strokeWidth={2.5} className="text-black dark:text-white" />
+          <div className="hidden sm:flex items-center gap-8 text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 group-hover:text-neo transition-colors" title="Active Users">
+              <Globe size={16} strokeWidth={2.5} className="text-neo/70 group-hover:text-neo transition-colors" />
               <span>{formatNumber(app.stats?.users)}</span>
             </div>
-            <div className="flex items-center gap-2" title="Transactions">
-              <Zap size={16} strokeWidth={2.5} className="text-black dark:text-white" />
+            <div
+              className="flex items-center gap-2 group-hover:text-electric-purple transition-colors"
+              title="Transactions"
+            >
+              <Zap
+                size={16}
+                strokeWidth={2.5}
+                className="text-electric-purple/70 group-hover:text-electric-purple transition-colors"
+              />
               <span>{formatNumber(app.stats?.transactions)}</span>
             </div>
-            <div className="flex items-center gap-2 w-24 justify-end italic opacity-60 group-hover:opacity-100 group-hover:text-black" title="Updated">
+            <div
+              className="flex items-center gap-2 w-24 justify-end font-medium opacity-60 group-hover:opacity-100 transition-opacity"
+              title="Updated"
+            >
               <span>{formatTimeAgo()}</span>
             </div>
           </div>

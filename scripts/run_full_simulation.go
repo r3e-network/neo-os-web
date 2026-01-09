@@ -353,12 +353,12 @@ func getRandomAppID() string {
 		"builtin-gas-spin",      // Lucky wheel with VRF
 		"builtin-price-predict", // Binary options with datafeed
 		"builtin-secret-vote",   // Privacy governance voting
-		"builtin-lottery",
-		"builtin-coin-flip",
-		"builtin-dice-game",
-		"builtin-secret-poker",  // TEE Texas Hold'em
+		"miniapp-lottery",
+		"miniapp-coin-flip",
+		"miniapp-dice-game",
+		"miniapp-secret-poker",  // TEE Texas Hold'em
 		"builtin-micro-predict", // High-freq 60s prediction
-		"builtin-red-envelope",  // Social GAS packets
+		"miniapp-red-envelope",  // Social GAS packets
 	}
 	return apps[mrand.Intn(len(apps))]
 }
@@ -643,7 +643,7 @@ func (s *Simulation) storeTx(txHash, txType, appID, account, contract, method st
 		"amount":          amount,
 		"status":          status,
 	}
-	go s.postToSupabase("simulation_transactions", payload)
+	go s.postToSupabase("simulation_txs", payload)
 }
 
 // storeEvent stores a contract event in Supabase (matches actual contract_events table schema)

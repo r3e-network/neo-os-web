@@ -89,7 +89,8 @@
     "pleaseConnect": "请连接钱包以继续",
     "connectRequired": "需要连接",
     "connectDescription": "连接钱包或使用社交账号登录以继续。",
-    "loginWithSocial": "使用社交账号登录"
+    "loginWithSocial": "使用社交账号登录",
+    "socialDisabledWhenConnected": "社交登录已禁用（钱包已连接）"
   },
   "errors": {
     "occurred": "发生错误",
@@ -131,5 +132,13 @@
     "github": "GitHub",
     "discord": "Discord",
     "twitter": "Twitter"
+  },
+  "network": {
+    "testnet": "测试网",
+    "mainnet": "主网",
+    "selectNetwork": "选择网络",
+    "rpcSettings": "RPC 设置",
+    "rpcDescription": "配置自定义 RPC 端点。留空使用默认值。",
+    "controlledByWallet": "网络由钱包控制"
   }
 }

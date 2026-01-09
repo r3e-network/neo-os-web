@@ -5,77 +5,99 @@
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "neoflow": {
       "SignerID": "39e6afcff3bcf16f96e269eded072ad0c308ba9c05635a4c1d1c7cf95354bff4",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "neocompute": {
       "SignerID": "a0df9ca5ac309135056bda2cba925c5fdf86ebba29b4f57c2b051063b3b69b41",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "neovrf": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "neoaccounts": {
       "SignerID": "ca015eb0538d3d0232ca24299d4cd8df49d163f436860841b2f1442458484b13",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "neooracle": {
       "SignerID": "5f99b3647a376d0e8703db54340796f8476f3ab978aa7fd9b6945699e5f4b925",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "neorequests": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "globalsigner": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "txproxy": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "neogasbank": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     },
     "neosimulation": {
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,
       "Debug": false,
-      "AcceptedTCBStatuses": ["UpToDate"]
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
     }
   },
   "Secrets": {
@@ -125,7 +147,9 @@
       "Package": "neofeeds",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neofeeds",
           "SERVICE_TYPE": "neofeeds",
@@ -141,7 +165,9 @@
       "Package": "neoflow",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neoflow",
           "SERVICE_TYPE": "neoflow",
@@ -156,7 +182,9 @@
       "Package": "neocompute",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neocompute",
           "SERVICE_TYPE": "neocompute",
@@ -173,7 +201,9 @@
       "Package": "neovrf",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neovrf",
           "SERVICE_TYPE": "neovrf",
@@ -189,7 +219,9 @@
       "Package": "neoaccounts",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neoaccounts",
           "SERVICE_TYPE": "neoaccounts",
@@ -206,7 +238,9 @@
       "Package": "neooracle",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neooracle",
           "SERVICE_TYPE": "neooracle",
@@ -223,7 +257,9 @@
       "Package": "neorequests",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neorequests",
           "SERVICE_TYPE": "neorequests",
@@ -238,7 +274,9 @@
       "Package": "globalsigner",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "globalsigner",
           "SERVICE_TYPE": "globalsigner",
@@ -254,7 +292,9 @@
       "Package": "txproxy",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "txproxy",
           "SERVICE_TYPE": "txproxy",
@@ -269,7 +309,9 @@
       "Package": "neogasbank",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neogasbank",
           "SERVICE_TYPE": "neogasbank",
@@ -284,7 +326,9 @@
       "Package": "neosimulation",
       "MaxActivations": 100,
       "Parameters": {
-        "Argv": ["./service"],
+        "Argv": [
+          "./service"
+        ],
         "Env": {
           "EDG_MARBLE_TYPE": "neosimulation",
           "SERVICE_TYPE": "neosimulation",
@@ -351,7 +395,8 @@
           "CONTRACT_MINIAPP_HERITAGETRUST_HASH": "0xd59eea851cd8e5dd57efe80646ff53fa274600f8",
           "CONTRACT_MINIAPP_TIMECAPSULE_HASH": "0x119763e1402d7190728191d83c95c5b8e995abcd",
           "CONTRACT_MINIAPP_UNBREAKABLEVAULT_HASH": "0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4",
-          "CONTRACT_MINIAPP_ZKBADGE_HASH": "0x70915211c56fe3323b22043d3073765a7b633d3f"
+          "CONTRACT_MINIAPP_ZKBADGE_HASH": "0x70915211c56fe3323b22043d3073765a7b633d3f",
+          "SIMULATION_MINIAPPS": "{{ env \"SIMULATION_MINIAPPS\" }}"
         }
       }
     }

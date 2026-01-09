@@ -15,6 +15,22 @@ import {
 import { PasswordCache } from "./password-cache";
 
 export type WalletProvider = "neoline" | "o3" | "onegate" | "auth0";
+export type NetworkType = "testnet" | "mainnet";
+
+/** Default RPC endpoints */
+export const DEFAULT_RPC_URLS: Record<NetworkType, string> = {
+  testnet: "https://testnet1.neo.coz.io:443",
+  mainnet: "https://mainnet1.neo.coz.io:443",
+};
+
+/** Network configuration for social accounts */
+export interface NetworkConfig {
+  network: NetworkType;
+  customRpcUrls: {
+    testnet: string | null;
+    mainnet: string | null;
+  };
+}
 
 interface WalletState {
   connected: boolean;
@@ -24,6 +40,9 @@ interface WalletState {
   balance: WalletBalance | null;
   loading: boolean;
   error: string | null;
+
+  // Network configuration (for social accounts)
+  networkConfig: NetworkConfig;
 
   // Password prompt state
   passwordCallback: {
@@ -41,6 +60,11 @@ interface WalletActions {
   // High-level actions
   signMessage: (message: string) => Promise<SignedMessage>;
   invoke: (params: InvokeParams) => Promise<TransactionResult>;
+
+  // Network configuration (for social accounts)
+  setNetwork: (network: NetworkType) => void;
+  setCustomRpcUrl: (network: NetworkType, url: string | null) => void;
+  getActiveRpcUrl: () => string;
 
   // UI callbacks
   submitPassword: (password: string) => void;
@@ -68,6 +92,13 @@ export const useWalletStore = create<WalletStore>()(
       loading: false,
       error: null,
       passwordCallback: null,
+      networkConfig: {
+        network: "testnet" as NetworkType,
+        customRpcUrls: {
+          testnet: null,
+          mainnet: null,
+        },
+      },
 
       // Actions
       connect: async (provider: WalletProvider) => {
@@ -186,12 +217,38 @@ export const useWalletStore = create<WalletStore>()(
       cancelPasswordRequest: () => {
         const cb = get().passwordCallback;
         if (cb) cb.reject(new Error("User cancelled password request"));
-      }
+      },
+
+      // Network configuration actions
+      setNetwork: (network: NetworkType) => {
+        set((state) => ({
+          networkConfig: { ...state.networkConfig, network },
+        }));
+      },
+
+      setCustomRpcUrl: (network: NetworkType, url: string | null) => {
+        set((state) => ({
+          networkConfig: {
+            ...state.networkConfig,
+            customRpcUrls: {
+              ...state.networkConfig.customRpcUrls,
+              [network]: url,
+            },
+          },
+        }));
+      },
+
+      getActiveRpcUrl: () => {
+        const { networkConfig } = get();
+        const customUrl = networkConfig.customRpcUrls[networkConfig.network];
+        return customUrl || DEFAULT_RPC_URLS[networkConfig.network];
+      },
     }),
     {
       name: "neo-wallet",
       partialize: (state) => ({
         provider: state.provider,
+        networkConfig: state.networkConfig,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.provider === "auth0") {
@@ -215,3 +272,16 @@ export const walletOptions = [
   { id: "o3" as const, name: "O3", icon: "https://o3.network/favicon.ico" },
   { id: "onegate" as const, name: "OneGate", icon: "https://onegate.space/favicon.ico" },
 ];
+
+/** Get current active RPC URL based on network config */
+export function getActiveRpcUrl(): string {
+  const state = useWalletStore.getState();
+  const { network, customRpcUrls } = state.networkConfig;
+  return customRpcUrls[network] || DEFAULT_RPC_URLS[network];
+}
+
+/** Check if user can configure network (social accounts only) */
+export function canConfigureNetwork(): boolean {
+  const provider = useWalletStore.getState().provider;
+  return provider === "auth0";
+}

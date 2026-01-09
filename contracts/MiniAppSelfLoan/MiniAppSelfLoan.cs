@@ -61,6 +61,39 @@ namespace NeoMiniAppPlatform.Contracts
             byte[] key = Helper.Concat(PREFIX_LOAN_DEBT, (ByteString)loanId.ToByteArray());
             return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
+
+        [Safe]
+        public static UInt160 GetBorrower(BigInteger loanId)
+        {
+            byte[] key = Helper.Concat(PREFIX_LOAN_BORROWER, (ByteString)loanId.ToByteArray());
+            return (UInt160)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static BigInteger GetCollateral(BigInteger loanId)
+        {
+            byte[] key = Helper.Concat(PREFIX_LOAN_COLLATERAL, (ByteString)loanId.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static bool IsActive(BigInteger loanId)
+        {
+            byte[] key = Helper.Concat(PREFIX_LOAN_ACTIVE, (ByteString)loanId.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
+        }
+
+        [Safe]
+        public static Map<string, object> GetLoan(BigInteger loanId)
+        {
+            Map<string, object> loan = new Map<string, object>();
+            loan["id"] = loanId;
+            loan["borrower"] = GetBorrower(loanId);
+            loan["collateral"] = GetCollateral(loanId);
+            loan["debt"] = GetDebt(loanId);
+            loan["active"] = IsActive(loanId);
+            return loan;
+        }
         #endregion
 
         #region Lifecycle

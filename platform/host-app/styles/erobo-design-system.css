@@ -1,0 +1,98 @@
+/**
+ * E-Robo Design System for Neo MiniApp Platform
+ *
+ * Inspired by E-Robo-Wallet Flutter UI
+ * Features: Glassmorphism, Soft gradients, Smooth animations
+ */
+
+/* ============================================
+   1. COLOR TOKENS
+   ============================================ */
+
+:root {
+  /* Primary Neo Colors */
+  --neo-primary: #00e599;
+  --neo-primary-light: #33ebad;
+  --neo-primary-dark: #00cc88;
+  --neo-primary-glow: rgba(0, 229, 153, 0.4);
+
+  /* E-Robo Purple Accent */
+  --erobo-purple: #9f9df3;
+  --erobo-purple-light: #b8b6f7;
+  --erobo-purple-dark: #7b79d1;
+  --erobo-purple-glow: rgba(159, 157, 243, 0.4);
+
+  /* Gradient Definitions */
+  --gradient-neo: linear-gradient(135deg, #00e599 0%, #7000ff 100%);
+  --gradient-erobo: linear-gradient(135deg, #9f9df3 0%, #7b79d1 100%);
+  --gradient-glass-light: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+  --gradient-glass-dark: linear-gradient(135deg, rgba(20, 20, 30, 0.8) 0%, rgba(10, 10, 20, 0.9) 100%);
+
+  /* Surface Colors - Light Mode */
+  --surface-primary: #ffffff;
+  --surface-secondary: #f8f9fc;
+  --surface-tertiary: #f0f2f7;
+  --surface-elevated: rgba(255, 255, 255, 0.95);
+
+  /* Text Colors - Light Mode */
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a6a;
+  --text-tertiary: #8a8aa0;
+  --text-inverse: #ffffff;
+
+  /* Border & Divider */
+  --border-light: rgba(0, 0, 0, 0.08);
+  --border-medium: rgba(0, 0, 0, 0.12);
+  --divider: rgba(0, 0, 0, 0.06);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+  --shadow-glow-neo: 0 0 30px rgba(0, 229, 153, 0.3);
+  --shadow-glow-purple: 0 0 30px rgba(159, 157, 243, 0.3);
+
+  /* Spacing Scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Animation Timing */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Dark Mode Overrides */
+.dark {
+  --surface-primary: #0a0a14;
+  --surface-secondary: #12121e;
+  --surface-tertiary: #1a1a2e;
+  --surface-elevated: rgba(20, 20, 35, 0.95);
+
+  --text-primary: #f0f0f5;
+  --text-secondary: #a0a0b5;
+  --text-tertiary: #606075;
+  --text-inverse: #1a1a2e;
+
+  --border-light: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.1);
+  --divider: rgba(255, 255, 255, 0.04);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+}

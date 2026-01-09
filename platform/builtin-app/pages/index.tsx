@@ -8,6 +8,7 @@ function BuiltinHostPage() {
   const router = useRouter();
   const appId = typeof router.query.app === "string" ? router.query.app : undefined;
   const view = typeof router.query.view === "string" ? router.query.view : undefined;
+  const theme = typeof router.query.theme === "string" ? router.query.theme : "dark";
 
   return (
     <>
@@ -15,7 +16,7 @@ function BuiltinHostPage() {
         <title>Neo Built-in MiniApps</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      <BuiltinApp appId={appId} view={view} />
+      <BuiltinApp appId={appId} view={view} theme={theme} />
     </>
   );
 }

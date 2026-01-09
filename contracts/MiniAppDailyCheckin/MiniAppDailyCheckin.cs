@@ -17,7 +17,7 @@ namespace NeoMiniAppPlatform.Contracts
     /// Daily Check-in MiniApp Contract.
     ///
     /// GAME MECHANICS:
-    /// - Users check in once every 24 hours (rolling window)
+    /// - Users check in once per UTC day (global 24h cycle, resets at UTC 00:00)
     /// - Build consecutive day streaks to earn GAS rewards
     /// - Day 7: 1 GAS, Day 14+: +1.5 GAS every 7 days (cumulative)
     /// - Miss a day = streak resets to 0, but highest streak is recorded
@@ -29,6 +29,10 @@ namespace NeoMiniAppPlatform.Contracts
     /// - Day 21: 1.5 GAS (cumulative: 4.0)
     /// - Day 28: 1.5 GAS (cumulative: 5.5)
     /// - And so on...
+    ///
+    /// UTC DAY CALCULATION:
+    /// - currentDay = Runtime.Time / 86400 (seconds since epoch / seconds per day)
+    /// - All users share the same countdown to next UTC midnight
     /// </summary>
     [DisplayName("MiniAppDailyCheckin")]
     [ManifestExtra("Author", "R3E Network")]
@@ -167,6 +171,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Performs daily check-in for a user.
         /// SECURITY: Requires valid receipt from miniapp payment flow.
+        /// UTC DAY: Uses global UTC day number instead of per-user rolling window.
         /// </summary>
         public static void CheckIn(UInt160 user, BigInteger receiptId)
         {
@@ -175,32 +180,33 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAddress(user);
             ValidateAndUseReceipt(receiptId);
 
-            BigInteger currentTime = Runtime.Time;
-            BigInteger lastCheckin = GetUserLastCheckin(user);
+            // Calculate current UTC day number (seconds since epoch / seconds per day)
+            BigInteger currentDay = Runtime.Time / TWENTY_FOUR_HOURS;
+            BigInteger lastCheckinDay = GetUserLastCheckin(user);
             BigInteger currentStreak = GetUserStreak(user);
             BigInteger highestStreak = GetUserHighestStreak(user);
             BigInteger userCheckins = GetUserCheckins(user);
 
             // Check if this is a new user
-            bool isNewUser = lastCheckin == 0;
+            bool isNewUser = lastCheckinDay == 0;
 
-            // Check if streak should reset (more than 48 hours since last check-in)
-            if (!isNewUser && currentTime > lastCheckin + (TWENTY_FOUR_HOURS * 2))
-            {
-                // Streak broken - reset
-                if (currentStreak > highestStreak)
-                {
-                    highestStreak = currentStreak;
-                    SetUserHighestStreak(user, highestStreak);
-                }
-                OnStreakReset(user, currentStreak, highestStreak);
-                currentStreak = 0;
-            }
-
-            // Check if enough time has passed (at least 24 hours)
             if (!isNewUser)
             {
-                ExecutionEngine.Assert(currentTime >= lastCheckin + TWENTY_FOUR_HOURS, "too early");
+                // Must be a new UTC day to check in
+                ExecutionEngine.Assert(currentDay > lastCheckinDay, "already checked in today");
+
+                // Check if streak should reset (missed more than 1 day)
+                if (currentDay > lastCheckinDay + 1)
+                {
+                    // Streak broken - reset
+                    if (currentStreak > highestStreak)
+                    {
+                        highestStreak = currentStreak;
+                        SetUserHighestStreak(user, highestStreak);
+                    }
+                    OnStreakReset(user, currentStreak, highestStreak);
+                    currentStreak = 0;
+                }
             }
 
             // Increment streak
@@ -214,9 +220,9 @@ namespace NeoMiniAppPlatform.Contracts
                 SetUserUnclaimed(user, unclaimed + reward);
             }
 
-            // Update user stats
+            // Update user stats (store day number, not timestamp)
             SetUserStreak(user, currentStreak);
-            SetUserLastCheckin(user, currentTime);
+            SetUserLastCheckin(user, currentDay);
             SetUserCheckins(user, userCheckins + 1);
 
             // Update highest streak if needed
@@ -232,8 +238,8 @@ namespace NeoMiniAppPlatform.Contracts
             }
             IncrementTotalCheckins();
 
-            // Calculate next eligible time
-            BigInteger nextEligible = currentTime + TWENTY_FOUR_HOURS;
+            // Calculate next eligible timestamp (next UTC midnight)
+            BigInteger nextEligible = (currentDay + 1) * TWENTY_FOUR_HOURS;
 
             OnCheckedIn(user, currentStreak, reward, nextEligible);
         }

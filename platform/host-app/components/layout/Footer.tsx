@@ -23,27 +23,30 @@ export function Footer() {
   const { t } = useTranslation("common");
 
   return (
-    <footer className="relative border-t-4 border-black bg-white pt-16 pb-12 overflow-hidden">
-      {/* Brutalist Pattern Background */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)] bg-[size:16px_16px]" />
+    <footer className="relative border-t border-gray-200 dark:border-white/5 bg-white dark:bg-[#050505] pt-16 pb-12 overflow-hidden">
+      {/* Glass Background Elements */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-neo/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-electric-purple/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative mx-auto max-w-7xl px-6 z-10">
         <div className="grid grid-cols-2 gap-12 md:grid-cols-4 mb-16">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <div className="inline-flex items-center gap-3 bg-black p-3 border-2 border-black shadow-[4px_4px_0_#00E599] -rotate-1 mb-6 hover:rotate-0 transition-transform">
-              <img src="/logo-icon.png" alt="NeoHub" className="h-8 w-8" />
-              <span className="text-xl font-black text-white uppercase tracking-tighter">NeoHub</span>
+            <div className="inline-flex items-center gap-3 mb-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-neo/50 blur-lg rounded-full opacity-50" />
+                <img src="/logo-icon.png" alt="NeoHub" className="relative h-8 w-8" />
+              </div>
+              <span className="text-xl font-bold text-black dark:text-white tracking-tight">Neo<span className="text-[#00E599]">Hub</span></span>
             </div>
-            <p className="text-sm font-bold text-black border-l-4 border-neo pl-4 uppercase leading-relaxed max-w-xs">
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
               {t("footer.tagline")}
             </p>
           </div>
 
           {/* Platform Links */}
           <div>
-            <h3 className="text-lg font-black text-black uppercase mb-6 flex items-center gap-2">
-              <span className="w-4 h-4 bg-neo border-2 border-black" />
+            <h3 className="text-sm font-bold text-black dark:text-white uppercase mb-6 tracking-wider">
               {t("footer.platform")}
             </h3>
             <ul className="space-y-3">
@@ -51,7 +54,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="inline-block text-sm font-bold text-black uppercase hover:bg-neo hover:px-2 hover:-ml-2 transition-all border border-transparent hover:border-black"
+                    className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-neo transition-colors"
                   >
                     {t(link.labelKey)}
                   </Link>
@@ -62,8 +65,7 @@ export function Footer() {
 
           {/* Resources Links */}
           <div>
-            <h3 className="text-lg font-black text-black uppercase mb-6 flex items-center gap-2">
-              <span className="w-4 h-4 bg-brutal-yellow border-2 border-black" />
+            <h3 className="text-sm font-bold text-black dark:text-white uppercase mb-6 tracking-wider">
               {t("footer.resources")}
             </h3>
             <ul className="space-y-3">
@@ -71,7 +73,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="inline-block text-sm font-bold text-black uppercase hover:bg-brutal-yellow hover:px-2 hover:-ml-2 transition-all border border-transparent hover:border-black"
+                    className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-neo transition-colors"
                   >
                     {t(link.labelKey)}
                   </Link>
@@ -82,8 +84,7 @@ export function Footer() {
 
           {/* Community Links */}
           <div>
-            <h3 className="text-lg font-black text-black uppercase mb-6 flex items-center gap-2">
-              <span className="w-4 h-4 bg-brutal-red border-2 border-black" />
+            <h3 className="text-sm font-bold text-black dark:text-white uppercase mb-6 tracking-wider">
               {t("footer.community")}
             </h3>
             <ul className="space-y-3">
@@ -93,7 +94,7 @@ export function Footer() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block text-sm font-bold text-black uppercase hover:bg-brutal-red hover:text-white hover:px-2 hover:-ml-2 transition-all border border-transparent hover:border-black"
+                    className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-neo transition-colors"
                   >
                     {t(link.labelKey)}
                   </a>
@@ -104,14 +105,10 @@ export function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t-4 border-black pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm font-black text-black/50 uppercase">
+        <div className="border-t border-gray-200 dark:border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm font-medium text-gray-400 dark:text-gray-500">
             © {new Date().getFullYear()} R3E Network. {t("footer.rights")}
           </p>
-          <div className="flex gap-4">
-            {/* Decorative element or links could go here */}
-            <div className="h-4 w-32 bg-[repeating-linear-gradient(45deg,#000,#000_2px,transparent_2px,transparent_8px)] opacity-20" />
-          </div>
         </div>
       </div>
     </footer>

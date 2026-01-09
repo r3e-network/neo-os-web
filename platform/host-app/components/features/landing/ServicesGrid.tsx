@@ -6,57 +6,66 @@ export function ServicesGrid() {
   const { t } = useTranslation("host");
 
   const SERVICES = [
-    { key: "verifiedData", icon: ShieldCheck, color: "text-blue-500" },
-    { key: "fairPlay", icon: Dices, color: "text-purple-500" },
-    { key: "personalVault", icon: Lock, color: "text-amber-500" },
-    { key: "liveInsights", icon: LineChart, color: "text-emerald-500" },
-    { key: "smartAlerts", icon: BellRing, color: "text-rose-500" },
-    { key: "gasSupport", icon: Fuel, color: "text-cyan-500" },
-    { key: "privacyShield", icon: EyeOff, color: "text-indigo-500" },
-    { key: "bridgeHub", icon: Database, color: "text-teal-500" },
+    { key: "verifiedData", icon: ShieldCheck, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+    { key: "fairPlay", icon: Dices, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
+    { key: "personalVault", icon: Lock, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+    { key: "liveInsights", icon: LineChart, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+    { key: "smartAlerts", icon: BellRing, color: "text-rose-400 bg-rose-500/10 border-rose-500/20" },
+    { key: "gasSupport", icon: Fuel, color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
+    { key: "privacyShield", icon: EyeOff, color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20" },
+    { key: "bridgeHub", icon: Database, color: "text-teal-400 bg-teal-500/10 border-teal-500/20" },
   ];
 
   return (
-    <section className="py-24 px-4 bg-gray-50 dark:bg-dark-950/40">
-      <div className="mx-auto max-w-7xl">
+    <section className="py-24 px-4 bg-background relative overflow-hidden">
+      {/* Ambient Glow */}
+      <div className="absolute top-1/2 right-0 w-[800px] h-[800px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
+
+      <div className="mx-auto max-w-7xl relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-4">{t("landing.services.title")}</h2>
-          <p className="text-slate-400">{t("landing.services.subtitle")}</p>
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+            {t("landing.services.title")}
+          </h2>
+          <p className="text-gray-600 dark:text-white/60 max-w-2xl mx-auto">{t("landing.services.subtitle")}</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {SERVICES.map((service, idx) => {
             const Icon = service.icon;
             return (
               <div
                 key={idx}
-                className="group p-8 rounded-none bg-white dark:bg-black border-4 border-black dark:border-white shadow-brutal-md hover:shadow-brutal-lg hover:-translate-x-1 hover:-translate-y-1 transition-all"
+                className="group p-6 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-lg transition-all hover:-translate-y-2 hover:border-gray-300 dark:hover:border-white/20 hover:shadow-xl hover:shadow-neo/5 flex flex-col h-full"
               >
                 {/* Icon */}
                 <div
-                  className={`w-16 h-16 rounded-none flex items-center justify-center mb-6 border-4 border-black ${service.color.replace('text-', 'bg-').split(' ')[0]} bg-opacity-100 rotate-3 group-hover:rotate-0 transition-transform`}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center mb-6 border ${service.color} shadow-[0_0_15px_rgba(255,255,255,0.05)] group-hover:scale-110 transition-transform`}
                 >
-                  <Icon size={32} className="text-black" strokeWidth={3} />
+                  <Icon size={28} strokeWidth={2} />
                 </div>
 
-                <div className="flex flex-col mb-4">
-                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 uppercase tracking-tighter italic">
-                    {t(`landing.services.list.${service.key}.name`)}
-                  </h3>
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-neo text-black text-[10px] font-black uppercase tracking-wider border-2 border-black inline-block self-start">
-                    <div className="w-1.5 h-1.5 bg-black animate-pulse" />
+                <div className="flex flex-col mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                      {t(`landing.services.list.${service.key}.name`)}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-neo/10 text-neo text-[10px] font-bold uppercase tracking-wider border border-neo/20 rounded-full self-start">
+                    <div className="w-1.5 h-1.5 bg-neo rounded-full animate-pulse shadow-[0_0_5px_#00E599]" />
                     {t("landing.services.active")}
                   </div>
                 </div>
 
-                <p className="text-sm font-bold text-black/60 dark:text-white/60 mb-8 leading-snug">{t(`landing.services.list.${service.key}.desc`)}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-white/50 mb-8 leading-relaxed flex-grow">
+                  {t(`landing.services.list.${service.key}.desc`)}
+                </p>
 
-                <div className="flex items-center justify-between mt-auto border-t-2 border-black/10 pt-4">
-                  <span className="text-[10px] font-black uppercase text-black/40">
+                <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-200 dark:border-white/5">
+                  <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-white/30 tracking-wider">
                     {t(`landing.services.list.${service.key}.requests`)} {t("landing.services.requests")}
                   </span>
-                  <button className="p-3 bg-black text-white border-2 border-black hover:bg-neo hover:text-black transition-all">
-                    <ArrowRight size={20} strokeWidth={3} />
+                  <button className="p-2 rounded-full bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white border border-gray-200 dark:border-white/10 hover:bg-gray-200 dark:hover:bg-white/10 hover:scale-110 hover:border-gray-300 dark:hover:border-white/20 transition-all">
+                    <ArrowRight size={16} strokeWidth={2.5} />
                   </button>
                 </div>
               </div>

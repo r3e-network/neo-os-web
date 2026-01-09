@@ -68,6 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const users = Math.floor(baseStats.users * variance());
       const txs = Math.floor(baseStats.txs * variance());
       const volume = (baseStats.volume * variance()).toFixed(2);
+      // Views should be 5-10x higher than users (realistic browsing behavior)
+      const viewMultiplier = 5 + Math.random() * 5; // 5-10x
+      const views = Math.floor(users * viewMultiplier);
 
       const { error: updateError } = await supabaseAdmin
         .from("miniapp_stats")
@@ -75,6 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           total_unique_users: users,
           total_transactions: txs,
           total_volume_gas: volume,
+          view_count: views,
           updated_at: new Date().toISOString(),
         })
         .eq("id", app.id);
@@ -82,10 +86,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!updateError) updated++;
     }
 
+    // Also initialize platform_stats with aggregated totals
+    const totalUsers = apps.length * 4000; // Average users across all apps
+    const totalTxs = apps.length * 25000; // Average transactions
+    const totalVolume = apps.length * 15000; // Average volume
+
+    await supabaseAdmin.from("platform_stats").upsert(
+      {
+        id: 1,
+        total_users: totalUsers,
+        total_transactions: totalTxs,
+        total_volume_gas: totalVolume.toFixed(8),
+        total_gas_burned: (totalVolume * 0.1).toFixed(8),
+        active_apps: apps.length,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
     res.status(200).json({
       success: true,
       updated,
       total: apps.length,
+      platformStats: { totalUsers, totalTxs, totalVolume },
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

@@ -61,8 +61,8 @@ const DEFI_HIGHLIGHTS: AppHighlightConfig[] = [
   {
     appId: "miniapp-neoburger",
     highlights: [
-      { label: "APR", value: "12.5%", icon: "📈", trend: "up" },
-      { label: "Staked", value: "1.2M NEO", icon: "🍔" },
+      { label: "APR", value: "~19%", icon: "📈", trend: "up" },
+      { label: "Staked", value: "1.6M NEO", icon: "🍔" },
     ],
   },
   {

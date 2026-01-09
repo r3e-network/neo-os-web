@@ -7,9 +7,14 @@ import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthWalletSync } from "@/components/auth/AuthWalletSync";
 import { WalletDialogProvider } from "@/components/providers/WalletDialogProvider";
+import { WalletAutoReconnect } from "@/components/auth/WalletAutoReconnect";
 import "@/styles/globals.css";
 
-export default function App({ Component, pageProps }: AppProps) {
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
+
+export default function App({ Component, pageProps, router }: AppProps) {
+  useScrollRestoration(router);
+
   return (
     <ErrorBoundary>
       <UserProvider>
@@ -18,6 +23,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <ThemeProvider>
               <WalletDialogProvider>
                 <AuthWalletSync />
+                <WalletAutoReconnect />
                 <Component {...pageProps} />
               </WalletDialogProvider>
             </ThemeProvider>

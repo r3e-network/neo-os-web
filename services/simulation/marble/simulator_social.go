@@ -140,12 +140,13 @@ func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
 	amount := int64(20000000)
 
 	memo := fmt.Sprintf("redenv:%d", time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	txHash, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("red envelope: %w", err)
 	}
 	atomic.AddInt64(&s.redEnvelopeSends, 1)
+	s.recordPayment(appID, txHash, amount)
 
 	// Invoke contract business logic if configured
 	if s.invoker.HasMiniAppContract(appID) {
@@ -284,12 +285,13 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 	if action <= 4 {
 		// Bury a new time capsule
 		memo := fmt.Sprintf("capsule:bury:%d", time.Now().UnixNano())
-		_, err := s.invoker.PayToApp(ctx, appID, buryFee, memo)
+		txHash, err := s.invoker.PayToApp(ctx, appID, buryFee, memo)
 		if err != nil {
 			atomic.AddInt64(&s.simulationErrors, 1)
 			return fmt.Errorf("time capsule bury: %w", err)
 		}
 		atomic.AddInt64(&s.timeCapsuleBuries, 1)
+		s.recordPayment(appID, txHash, buryFee)
 
 		if s.invoker.HasMiniAppContract(appID) {
 			ownerAddress, ok := s.getRandomUserAddressOrWarn(appID, "bury capsule")
@@ -313,12 +315,13 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 	} else if action <= 8 {
 		// Fish for a random public capsule
 		memo := fmt.Sprintf("capsule:fish:%d", time.Now().UnixNano())
-		_, err := s.invoker.PayToApp(ctx, appID, fishFee, memo)
+		txHash, err := s.invoker.PayToApp(ctx, appID, fishFee, memo)
 		if err != nil {
 			atomic.AddInt64(&s.simulationErrors, 1)
 			return fmt.Errorf("time capsule fish: %w", err)
 		}
 		atomic.AddInt64(&s.timeCapsuleFishes, 1)
+		s.recordPayment(appID, txHash, fishFee)
 	} else {
 		// Reveal an unlocked capsule
 		atomic.AddInt64(&s.timeCapsuleReveals, 1)

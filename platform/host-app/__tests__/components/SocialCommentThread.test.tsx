@@ -62,7 +62,7 @@ describe("SocialCommentThread", () => {
   describe("Basic Rendering", () => {
     it("renders comment count in header", () => {
       render(<SocialCommentThread {...defaultProps} />);
-      expect(screen.getByText("Comments (2)")).toBeInTheDocument();
+      expect(screen.getByText("Consensus Feed (2)")).toBeInTheDocument();
     });
 
     it("renders all comments", () => {
@@ -73,26 +73,26 @@ describe("SocialCommentThread", () => {
 
     it("shows empty state when no comments", () => {
       render(<SocialCommentThread {...defaultProps} comments={[]} />);
-      expect(screen.getByText("No comments yet")).toBeInTheDocument();
+      expect(screen.getByText("No comments yet. Be the first to share your thoughts.")).toBeInTheDocument();
     });
   });
 
   describe("Comment Form", () => {
     it("shows comment form when canComment is true", () => {
       render(<SocialCommentThread {...defaultProps} />);
-      expect(screen.getByPlaceholderText("Write a comment...")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Share your perspective with the network...")).toBeInTheDocument();
     });
 
     it("hides comment form when canComment is false", () => {
       render(<SocialCommentThread {...defaultProps} canComment={false} />);
-      expect(screen.queryByPlaceholderText("Write a comment...")).not.toBeInTheDocument();
-      expect(screen.getByText("Connect wallet to leave comments")).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("Share your perspective with the network...")).not.toBeInTheDocument();
+      expect(screen.getByText("Please connect your wallet to join the conversation.")).toBeInTheDocument();
     });
 
     it("submits comment when clicking Post Comment", async () => {
       render(<SocialCommentThread {...defaultProps} />);
 
-      const textarea = screen.getByPlaceholderText("Write a comment...");
+      const textarea = screen.getByPlaceholderText("Share your perspective with the network...");
       fireEvent.change(textarea, { target: { value: "New comment" } });
       fireEvent.click(screen.getByText("Post Comment"));
 
@@ -104,7 +104,7 @@ describe("SocialCommentThread", () => {
     it("clears textarea after successful submit", async () => {
       render(<SocialCommentThread {...defaultProps} />);
 
-      const textarea = screen.getByPlaceholderText("Write a comment...") as HTMLTextAreaElement;
+      const textarea = screen.getByPlaceholderText("Share your perspective with the network...") as HTMLTextAreaElement;
       fireEvent.change(textarea, { target: { value: "New comment" } });
       fireEvent.click(screen.getByText("Post Comment"));
 
@@ -123,18 +123,18 @@ describe("SocialCommentThread", () => {
   describe("Load More", () => {
     it("shows Load More button when hasMore is true", () => {
       render(<SocialCommentThread {...defaultProps} hasMore={true} onLoadMore={mockOnLoadMore} />);
-      expect(screen.getByText("Load more comments")).toBeInTheDocument();
+      expect(screen.getByText("Load Older Comments")).toBeInTheDocument();
     });
 
     it("hides Load More button when hasMore is false", () => {
       render(<SocialCommentThread {...defaultProps} hasMore={false} />);
-      expect(screen.queryByText("Load more comments")).not.toBeInTheDocument();
+      expect(screen.queryByText("Load Older Comments")).not.toBeInTheDocument();
     });
 
     it("calls onLoadMore when clicking Load More", async () => {
       render(<SocialCommentThread {...defaultProps} hasMore={true} onLoadMore={mockOnLoadMore} />);
 
-      fireEvent.click(screen.getByText("Load more comments"));
+      fireEvent.click(screen.getByText("Load Older Comments"));
 
       await waitFor(() => {
         expect(mockOnLoadMore).toHaveBeenCalled();

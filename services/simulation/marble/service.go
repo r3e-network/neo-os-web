@@ -8,6 +8,7 @@ package neosimulation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -102,20 +103,20 @@ func New(cfg Config) (*Service, error) {
 		accountPoolURL = "https://neoaccounts:8085" // Default service mesh URL
 	}
 
-	// Get MiniApps list
-	miniApps := normalizeMiniAppIDs(cfg.MiniApps)
-	if len(miniApps) == 0 {
-		miniAppsEnv := strings.TrimSpace(os.Getenv("SIMULATION_MINIAPPS"))
-		if miniAppsEnv != "" {
-			miniApps = normalizeMiniAppIDs(strings.Split(miniAppsEnv, ","))
-		}
+	// Get MiniApps list - environment variable takes precedence
+	miniAppsEnv := strings.TrimSpace(os.Getenv("SIMULATION_MINIAPPS"))
+	var miniApps []string
+	if miniAppsEnv != "" {
+		miniApps = normalizeMiniAppIDs(strings.Split(miniAppsEnv, ","))
+		fmt.Printf("neosimulation: loaded %d MiniApps from SIMULATION_MINIAPPS env: %v\n", len(miniApps), miniApps)
+	} else if len(cfg.MiniApps) > 0 {
+		miniApps = normalizeMiniAppIDs(cfg.MiniApps)
+		fmt.Printf("neosimulation: loaded %d MiniApps from config: %v\n", len(miniApps), miniApps)
 	}
 	if len(miniApps) == 0 {
-		allApps := AllMiniApps()
-		miniApps = make([]string, 0, len(allApps))
-		for _, app := range allApps {
-			miniApps = append(miniApps, app.AppID)
-		}
+		// Use DefaultMiniApps (only apps configured in PaymentHub contract)
+		miniApps = normalizeMiniAppIDs(DefaultMiniApps)
+		fmt.Printf("neosimulation: using default %d MiniApps (PaymentHub configured): %v\n", len(miniApps), miniApps)
 	}
 
 	// Get interval configuration
@@ -198,8 +199,49 @@ func New(cfg Config) (*Service, error) {
 	// Initialize MiniApp simulator if contract invoker is available
 	var miniAppSimulator *MiniAppSimulator
 	if contractInvoker != nil {
-		// Use empty user addresses - will be populated from pool accounts
-		miniAppSimulator = NewMiniAppSimulator(contractInvoker, []string{})
+		// Fetch real user addresses from database (200 addresses for realistic user distribution)
+		userAddresses := fetchUserAddressesFromDB(db, 200)
+		fmt.Printf("neosimulation: loaded %d real user addresses from database\n", len(userAddresses))
+
+		// Create recordTx callback that writes to simulation_txs
+		var recordTxFn TxRecordFunc
+		if db != nil {
+			recordTxFn = func(appID, accountAddress, txType string, amount int64, status, txHash string) error {
+				tx := &SimulationTx{
+					AppID:          appID,
+					AccountAddress: accountAddress,
+					TxType:         txType,
+					Amount:         amount,
+					Status:         status,
+					TxHash:         txHash,
+					CreatedAt:      time.Now(),
+				}
+				repo, ok := db.(*database.Repository)
+				if !ok {
+					return fmt.Errorf("database is not *database.Repository")
+				}
+				type SimulationTxDB struct {
+					AppID          string    `json:"app_id"`
+					AccountAddress string    `json:"account_address"`
+					TxType         string    `json:"tx_type"`
+					Amount         int64     `json:"amount"`
+					Status         string    `json:"status"`
+					TxHash         string    `json:"tx_hash,omitempty"`
+					CreatedAt      time.Time `json:"created_at"`
+				}
+				record := SimulationTxDB{
+					AppID:          tx.AppID,
+					AccountAddress: tx.AccountAddress,
+					TxType:         tx.TxType,
+					Amount:         tx.Amount,
+					Status:         tx.Status,
+					TxHash:         tx.TxHash,
+					CreatedAt:      tx.CreatedAt,
+				}
+				return database.GenericCreate(repo, context.Background(), "simulation_txs", &record, nil)
+			}
+		}
+		miniAppSimulator = NewMiniAppSimulator(contractInvoker, userAddresses, recordTxFn)
 		fmt.Println("neosimulation: MiniApp simulator initialized for all 35 apps")
 	}
 
@@ -792,9 +834,11 @@ func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 
 		// Governance & NFT MiniApps
 		"miniapp-govbooster":       s.miniAppSimulator.SimulateGovBooster,
+		"miniapp-gov-booster":      s.miniAppSimulator.SimulateGovBooster, // alias with hyphen
 		"miniapp-gov-merc":          s.miniAppSimulator.SimulateGovMerc,
 		"miniapp-masqueradedao":    s.miniAppSimulator.SimulateMasqueradeDAO,
 		"miniapp-guardianpolicy":   s.miniAppSimulator.SimulateGuardianPolicy,
+		"miniapp-guardian-policy":  s.miniAppSimulator.SimulateGuardianPolicy, // alias with hyphen
 		"miniapp-garden-of-neo":     s.miniAppSimulator.SimulateGardenOfNeo,
 		"miniapp-on-chain-tarot":    s.miniAppSimulator.SimulateOnChainTarot,
 		"miniapp-ex-files":          s.miniAppSimulator.SimulateExFiles,
@@ -1121,4 +1165,51 @@ func (s *Service) fundAutomationTask(ctx context.Context, contractHash string, t
 	}).Debug("automation task funding transaction submitted")
 
 	return nil
+}
+
+// fetchUserAddressesFromDB fetches real account addresses directly from the database.
+// This ensures realistic user distribution where total_users << total_transactions.
+// Uses real Neo N3 addresses stored in Supabase account_pool table.
+func fetchUserAddressesFromDB(db database.RepositoryInterface, maxCount int) []string {
+	if db == nil {
+		fmt.Println("neosimulation: database is nil, cannot fetch user addresses")
+		return nil
+	}
+
+	repo, ok := db.(*database.Repository)
+	if !ok {
+		fmt.Println("neosimulation: database is not *database.Repository")
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Query account_pool table directly for addresses (limit to maxCount)
+	type AccountAddress struct {
+		Address string `json:"address"`
+	}
+
+	query := fmt.Sprintf("select=address&limit=%d", maxCount)
+	data, err := repo.Request(ctx, "GET", "pool_accounts", nil, query)
+	if err != nil {
+		fmt.Printf("neosimulation: failed to query pool_accounts: %v\n", err)
+		return nil
+	}
+
+	var accounts []AccountAddress
+	if err := json.Unmarshal(data, &accounts); err != nil {
+		fmt.Printf("neosimulation: failed to unmarshal accounts: %v\n", err)
+		return nil
+	}
+
+	addresses := make([]string, 0, len(accounts))
+	for _, acc := range accounts {
+		if acc.Address != "" {
+			addresses = append(addresses, acc.Address)
+		}
+	}
+
+	fmt.Printf("neosimulation: fetched %d real user addresses from database\n", len(addresses))
+	return addresses
 }

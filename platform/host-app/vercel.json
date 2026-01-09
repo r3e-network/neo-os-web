@@ -5,6 +5,10 @@
     {
       "path": "/api/cron/automation-executor",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-platform-stats",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

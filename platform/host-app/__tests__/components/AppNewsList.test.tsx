@@ -30,13 +30,13 @@ describe("AppNewsList", () => {
   it("renders loading state", () => {
     render(<AppNewsList notifications={[]} loading={true} />);
 
-    expect(screen.getByText("Loading notifications...")).toBeInTheDocument();
+    expect(screen.getByText("Loading updates...")).toBeInTheDocument();
   });
 
   it("renders empty state when no notifications", () => {
     render(<AppNewsList notifications={[]} />);
 
-    expect(screen.getByText("No notifications yet")).toBeInTheDocument();
+    expect(screen.getByText("No recent updates")).toBeInTheDocument();
   });
 
   it("renders list of notifications", () => {
@@ -102,7 +102,7 @@ describe("AppNewsList", () => {
   it("renders transaction link when tx_hash is provided", () => {
     render(<AppNewsList notifications={mockNotifications} />);
 
-    const txLink = screen.getByText("View Transaction →");
+    const txLink = screen.getByText("Proof →");
     expect(txLink).toBeInTheDocument();
     expect(txLink).toHaveAttribute("href", "https://dora.coz.io/transaction/neo3/0x123abc");
     expect(txLink).toHaveAttribute("target", "_blank");
@@ -139,7 +139,7 @@ describe("AppNewsList", () => {
     ];
     render(<AppNewsList notifications={recentNotif} />);
 
-    expect(screen.getByText("Just now")).toBeInTheDocument();
+    expect(screen.getByText("0m")).toBeInTheDocument();
   });
 
   it("displays time ago in minutes", () => {
@@ -156,7 +156,7 @@ describe("AppNewsList", () => {
     ];
     render(<AppNewsList notifications={minutesAgoNotif} />);
 
-    expect(screen.getByText("15m ago")).toBeInTheDocument();
+    expect(screen.getByText("15m")).toBeInTheDocument();
   });
 
   it("displays time ago in hours", () => {
@@ -173,7 +173,7 @@ describe("AppNewsList", () => {
     ];
     render(<AppNewsList notifications={hoursAgoNotif} />);
 
-    expect(screen.getByText("3h ago")).toBeInTheDocument();
+    expect(screen.getByText("3h")).toBeInTheDocument();
   });
 
   it("displays time ago in days", () => {
@@ -190,7 +190,7 @@ describe("AppNewsList", () => {
     ];
     render(<AppNewsList notifications={daysAgoNotif} />);
 
-    expect(screen.getByText("2d ago")).toBeInTheDocument();
+    expect(screen.getByText("2d")).toBeInTheDocument();
   });
 
   it("handles multiple notifications correctly", () => {

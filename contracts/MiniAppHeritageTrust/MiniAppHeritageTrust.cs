@@ -73,6 +73,40 @@ namespace NeoMiniAppPlatform.Contracts
             byte[] key = Helper.Concat(PREFIX_TRUST_ACTIVE, (ByteString)trustId.ToByteArray());
             return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }
+
+        [Safe]
+        public static UInt160 GetOwner(BigInteger trustId)
+        {
+            byte[] key = Helper.Concat(PREFIX_TRUST_OWNER, (ByteString)trustId.ToByteArray());
+            return (UInt160)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static UInt160 GetHeir(BigInteger trustId)
+        {
+            byte[] key = Helper.Concat(PREFIX_TRUST_HEIR, (ByteString)trustId.ToByteArray());
+            return (UInt160)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static BigInteger GetDeadline(BigInteger trustId)
+        {
+            byte[] key = Helper.Concat(PREFIX_TRUST_DEADLINE, (ByteString)trustId.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static Map<string, object> GetTrust(BigInteger trustId)
+        {
+            Map<string, object> trust = new Map<string, object>();
+            trust["id"] = trustId;
+            trust["owner"] = GetOwner(trustId);
+            trust["heir"] = GetHeir(trustId);
+            trust["principal"] = GetPrincipal(trustId);
+            trust["deadline"] = GetDeadline(trustId);
+            trust["active"] = IsActive(trustId);
+            return trust;
+        }
         #endregion
 
         #region Lifecycle

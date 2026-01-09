@@ -13,13 +13,14 @@ const PLATFORM_ADDRESS = process.env.NEO_TESTNET_ADDRESS || "NLtL2v28d7TyMEaXcPq
 
 interface SyncResult {
   timestamp: string;
-  supabase_total: number;
+  total_transactions: number;
+  total_volume_gas: string;
+  unique_users: number;
   tables: {
     simulation_txs: number;
     service_requests: number;
     contract_events: number;
   };
-  unique_users: number;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -58,7 +59,15 @@ async function syncPlatformStats(): Promise<SyncResult> {
     contract_events: eventsRes.count || 0,
   };
 
-  const supabase_total = tables.simulation_txs + tables.service_requests + tables.contract_events;
+  const totalTransactions = tables.simulation_txs + tables.service_requests + tables.contract_events;
+
+  // Aggregate GAS volume from simulation_txs (amount is in 8 decimals)
+  const { data: volumeData } = await supabase.from("simulation_txs").select("amount").not("amount", "is", null);
+
+  let totalVolumeGas = 0;
+  if (volumeData) {
+    totalVolumeGas = volumeData.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0) / 100000000;
+  }
 
   // Count unique users
   const uniqueUsers = new Set<string>();
@@ -67,7 +76,7 @@ async function syncPlatformStats(): Promise<SyncResult> {
     .from("simulation_txs")
     .select("account_address")
     .not("account_address", "is", null)
-    .limit(10000);
+    .limit(50000);
 
   if (simUsers) {
     simUsers.forEach((u) => u.account_address && uniqueUsers.add(u.account_address));
@@ -77,28 +86,31 @@ async function syncPlatformStats(): Promise<SyncResult> {
     .from("service_requests")
     .select("requester")
     .not("requester", "is", null)
-    .limit(10000);
+    .limit(50000);
 
   if (reqUsers) {
     reqUsers.forEach((u) => u.requester && uniqueUsers.add(u.requester));
   }
 
-  // Store sync result
-  await supabase.from("platform_stats_sync").upsert(
+  // Update platform_stats table (the table that stats API reads from)
+  await supabase.from("platform_stats").upsert(
     {
       id: 1,
-      address: PLATFORM_ADDRESS,
-      supabase_total,
-      unique_users: uniqueUsers.size,
-      last_synced: new Date().toISOString(),
+      total_users: uniqueUsers.size,
+      total_transactions: totalTransactions,
+      total_volume_gas: totalVolumeGas.toFixed(8),
+      total_gas_burned: totalVolumeGas.toFixed(8),
+      active_apps: 39,
+      updated_at: new Date().toISOString(),
     },
     { onConflict: "id" },
   );
 
   return {
     timestamp: new Date().toISOString(),
-    supabase_total,
-    tables,
+    total_transactions: totalTransactions,
+    total_volume_gas: totalVolumeGas.toFixed(2),
     unique_users: uniqueUsers.size,
+    tables,
   };
 }

@@ -36,7 +36,7 @@ describe("SocialRatingWidget", () => {
     it("renders total ratings count", () => {
       render(<SocialRatingWidget rating={mockRating} canRate={false} />);
 
-      expect(screen.getByText("150 ratings")).toBeInTheDocument();
+      expect(screen.getByText("150 VERIFIED RATINGS")).toBeInTheDocument();
     });
 
     it("renders star icons in summary", () => {
@@ -53,7 +53,7 @@ describe("SocialRatingWidget", () => {
       const { container } = render(<SocialRatingWidget rating={mockRating} canRate={false} />);
 
       // Check distribution section exists with 5 rows
-      const distributionRows = container.querySelectorAll(".space-y-1 > div");
+      const distributionRows = container.querySelectorAll(".space-y-3 > div");
       expect(distributionRows.length).toBe(5);
     });
 
@@ -71,70 +71,70 @@ describe("SocialRatingWidget", () => {
     it("shows message when user cannot rate", () => {
       render(<SocialRatingWidget rating={mockRating} canRate={false} />);
 
-      expect(screen.getByText("Connect wallet to leave a rating")).toBeInTheDocument();
+      expect(screen.getByText("Connect wallet to rate")).toBeInTheDocument();
     });
 
     it("does not show rate button when canRate is false", () => {
       render(<SocialRatingWidget rating={mockRating} canRate={false} />);
 
-      expect(screen.queryByText("Rate this app")).not.toBeInTheDocument();
+      expect(screen.queryByText("Write a Review")).not.toBeInTheDocument();
     });
   });
 
   describe("User Can Rate - New Rating", () => {
-    it("shows 'Rate this app' button when canRate is true", () => {
+    it("shows 'Write a Review' button when canRate is true", () => {
       render(<SocialRatingWidget rating={mockRating} canRate={true} />);
 
-      expect(screen.getByText("Rate this app")).toBeInTheDocument();
+      expect(screen.getByText("Write a Review")).toBeInTheDocument();
     });
 
     it("opens rating form when clicking rate button", () => {
       render(<SocialRatingWidget rating={mockRating} canRate={true} />);
 
-      fireEvent.click(screen.getByText("Rate this app"));
+      fireEvent.click(screen.getByText("Write a Review"));
 
-      expect(screen.getByPlaceholderText("Write a review (optional)")).toBeInTheDocument();
-      expect(screen.getByText("Submit")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Share your experience...")).toBeInTheDocument();
+      expect(screen.getByText("Post Review")).toBeInTheDocument();
       expect(screen.getByText("Cancel")).toBeInTheDocument();
     });
 
     it("closes rating form when clicking cancel", () => {
       render(<SocialRatingWidget rating={mockRating} canRate={true} />);
 
-      fireEvent.click(screen.getByText("Rate this app"));
+      fireEvent.click(screen.getByText("Write a Review"));
       fireEvent.click(screen.getByText("Cancel"));
 
-      expect(screen.queryByPlaceholderText("Write a review (optional)")).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("Share your experience...")).not.toBeInTheDocument();
     });
 
     it("selects star rating when clicking star", () => {
       const { container } = render(<SocialRatingWidget rating={mockRating} canRate={true} />);
 
-      fireEvent.click(screen.getByText("Rate this app"));
+      fireEvent.click(screen.getByText("Write a Review"));
 
-      // Click on the 4th star in the rating form
+      // Click on the 4th star in the rating form (stars in the editing section)
       const formStars = container.querySelectorAll(".border-t svg");
       fireEvent.click(formStars[3]);
 
-      // Star should be filled (yellow)
+      // Star should be filled (yellow-400)
       expect(formStars[3]).toHaveClass("text-yellow-400");
     });
 
     it("submits rating when clicking Submit", async () => {
-      const mockOnSubmit = jest.fn().mockResolvedValue(undefined);
+      const mockOnSubmit = jest.fn().mockResolvedValue(true);
       const { container } = render(<SocialRatingWidget rating={mockRating} canRate={true} onSubmit={mockOnSubmit} />);
 
-      fireEvent.click(screen.getByText("Rate this app"));
+      fireEvent.click(screen.getByText("Write a Review"));
 
       // Select 4 stars
       const formStars = container.querySelectorAll(".border-t svg");
       fireEvent.click(formStars[3]);
 
       // Add review text
-      const textarea = screen.getByPlaceholderText("Write a review (optional)");
+      const textarea = screen.getByPlaceholderText("Share your experience...");
       fireEvent.change(textarea, { target: { value: "Great app!" } });
 
-      fireEvent.click(screen.getByText("Submit"));
+      fireEvent.click(screen.getByText("Post Review"));
 
       await waitFor(() => {
         expect(mockOnSubmit).toHaveBeenCalledWith(4, "Great app!");
@@ -145,27 +145,27 @@ describe("SocialRatingWidget", () => {
       const mockOnSubmit = jest.fn();
       render(<SocialRatingWidget rating={mockRating} canRate={true} onSubmit={mockOnSubmit} />);
 
-      fireEvent.click(screen.getByText("Rate this app"));
-      fireEvent.click(screen.getByText("Submit"));
+      fireEvent.click(screen.getByText("Write a Review"));
+      fireEvent.click(screen.getByText("Post Review"));
 
       expect(mockOnSubmit).not.toHaveBeenCalled();
     });
   });
 
   describe("User Can Rate - Edit Existing Rating", () => {
-    it("shows 'Edit your rating' when user has existing rating", () => {
+    it("shows 'Edit Review' when user has existing rating", () => {
       render(<SocialRatingWidget rating={mockRatingWithUserRating} canRate={true} />);
 
-      expect(screen.getByText("Edit your rating")).toBeInTheDocument();
+      expect(screen.getByText("Edit Review")).toBeInTheDocument();
     });
 
     it("pre-fills form with existing rating", () => {
       const { container } = render(<SocialRatingWidget rating={mockRatingWithUserRating} canRate={true} />);
 
-      fireEvent.click(screen.getByText("Edit your rating"));
+      fireEvent.click(screen.getByText("Edit Review"));
 
       // Check textarea has existing review
-      const textarea = screen.getByPlaceholderText("Write a review (optional)") as HTMLTextAreaElement;
+      const textarea = screen.getByPlaceholderText("Share your experience...") as HTMLTextAreaElement;
       expect(textarea.value).toBe("Great app!");
     });
   });

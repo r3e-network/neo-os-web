@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_ASPECT_RATIO = 430 / 932;
+const DEFAULT_ASPECT_RATIO = 516 / 932;
 
 type MiniAppFrameProps = {
   children: React.ReactNode;

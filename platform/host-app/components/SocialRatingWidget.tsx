@@ -15,7 +15,7 @@ const StarIcon: React.FC<{ filled: boolean; onClick?: () => void; onMouseEnter?:
     onClick={onClick}
     onMouseEnter={onMouseEnter}
     onMouseLeave={onMouseLeave}
-    className={`w-7 h-7 cursor-pointer transition-transform hover:scale-110 active:scale-90 ${filled ? "text-brutal-yellow" : "text-gray-300"} drop-shadow-[2px_2px_0_rgba(0,0,0,1)]`}
+    className={`w-6 h-6 cursor-pointer transition-transform hover:scale-110 active:scale-90 ${filled ? "text-yellow-400" : "text-gray-200 dark:text-gray-700"} ${onClick ? "hover:text-yellow-500" : ""}`}
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -51,26 +51,26 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
   const displayError = error?.message || localError;
 
   return (
-    <div className="brutal-card p-6">
-      {/* Error Display */}
+    <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 p-6 rounded-2xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-neo/5 rounded-full blur-2xl pointer-events-none -mr-10 -mt-10" />
+
       {displayError && (
-        <div className="mb-4 p-4 bg-brutal-red border-2 border-black shadow-brutal-sm flex items-center justify-between">
-          <span className="text-white text-xs font-black uppercase">{displayError}</span>
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg flex items-center justify-between">
+          <span className="text-red-700 dark:text-red-400 text-xs font-bold uppercase">{displayError}</span>
           <button
             onClick={() => {
               setLocalError(null);
               onClearError?.();
             }}
-            className="text-white font-black hover:scale-110 active:scale-95 transition-transform px-2"
+            className="text-red-500 hover:text-red-700 px-2 transition-colors"
           >
             ×
           </button>
         </div>
       )}
 
-      {/* Rating Summary */}
       <div className="flex items-center gap-6 mb-6">
-        <div className="text-6xl font-black bg-black text-white px-4 py-2 border-2 border-black rotate-[-2deg] shadow-brutal-sm">
+        <div className="text-5xl font-bold text-gray-900 dark:text-white">
           {rating.avg_rating.toFixed(1)}
         </div>
         <div>
@@ -79,35 +79,33 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
               <StarIcon key={i} filled={i <= Math.round(rating.avg_rating)} />
             ))}
           </div>
-          <div className="text-xs font-black uppercase tracking-widest text-black/40 dark:text-white/40">
+          <div className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
             {rating.total_ratings} VERIFIED RATINGS
           </div>
         </div>
       </div>
 
-      {/* Distribution */}
-      <div className="space-y-2 mb-6 bg-gray-50 dark:bg-gray-900 p-4 border-2 border-black dark:border-white">
+      <div className="space-y-3 mb-6">
         {[5, 4, 3, 2, 1].map((star) => {
           const count = rating.distribution[star.toString()] || 0;
           const pct = rating.total_ratings > 0 ? (count / rating.total_ratings) * 100 : 0;
           return (
-            <div key={star} className="flex items-center gap-3 text-xs font-black uppercase">
-              <span className="w-4">{star}★</span>
-              <div className="flex-1 bg-white dark:bg-black border-2 border-black dark:border-white h-3 p-[1px]">
-                <div className="bg-neo h-full border-r border-black" style={{ width: `${pct}%` }} />
+            <div key={star} className="flex items-center gap-3 text-xs font-medium text-gray-500 dark:text-gray-400">
+              <span className="w-3">{star}★</span>
+              <div className="flex-1 bg-gray-100 dark:bg-white/10 h-2 rounded-full overflow-hidden">
+                <div className="bg-neo h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
               </div>
-              <span className="w-10 text-right opacity-50">{count}</span>
+              <span className="w-8 text-right opacity-60">{count}</span>
             </div>
           );
         })}
       </div>
 
-      {/* User Rating */}
-      <div className="border-t-4 border-black dark:border-white pt-6">
+      <div className="border-t border-gray-100 dark:border-white/10 pt-6">
         {canRate ? (
           isEditing ? (
             <div className="space-y-4">
-              <div className="flex gap-2 p-2 bg-gray-100 dark:bg-gray-800 border-2 border-black dark:border-white w-fit">
+              <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <StarIcon
                     key={i}
@@ -121,37 +119,37 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
               <textarea
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
-                placeholder="BRUTALLY HONEST REVIEW..."
-                className="brutal-input w-full p-4 text-sm font-bold min-h-[120px]"
+                placeholder="Share your experience..."
+                className="w-full p-3 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-neo/20 focus:border-neo transition-all outline-none min-h-[100px] text-gray-900 dark:text-white placeholder-gray-400"
                 maxLength={1000}
               />
               <div className="flex gap-3">
                 <button
                   onClick={handleSubmit}
                   disabled={loading || selectedValue === 0}
-                  className="brutal-btn px-6 py-2 flex-1 disabled:opacity-50"
+                  className="px-6 py-2.5 bg-neo text-black font-bold rounded-lg hover:bg-neo-dark transition-colors flex-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(0,229,153,0.3)] hover:shadow-[0_0_20px_rgba(0,229,153,0.4)]"
                 >
-                  {loading ? "SUBMITTING..." : "POST REVIEW"}
+                  {loading ? "Submitting..." : "Post Review"}
                 </button>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="p-2 border-2 border-black dark:border-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-black uppercase text-xs px-4"
+                  className="px-4 py-2.5 text-xs font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors uppercase"
                 >
-                  CANCEL
+                  Cancel
                 </button>
               </div>
             </div>
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="brutal-btn w-full py-3"
+              className="w-full py-3 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border border-gray-200 dark:border-white/10"
             >
-              {rating.user_rating ? "REVISE YOUR REVIEW" : "WRITE A REVIEW"}
+              {rating.user_rating ? "Edit Review" : "Write a Review"}
             </button>
           )
         ) : (
-          <div className="bg-brutal-yellow p-4 border-2 border-black shadow-brutal-sm text-center text-xs font-black uppercase">
-            CONNECT WALLET TO RATE
+          <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-center text-xs font-bold text-gray-500 uppercase">
+            Connect wallet to rate
           </div>
         )}
       </div>

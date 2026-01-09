@@ -84,6 +84,40 @@ namespace NeoMiniAppPlatform.Contracts
             byte[] key = Helper.Concat(PREFIX_CAPSULE_REVEALED, (ByteString)capsuleId.ToByteArray());
             return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }
+
+        [Safe]
+        public static UInt160 GetOwner(BigInteger capsuleId)
+        {
+            byte[] key = Helper.Concat(PREFIX_CAPSULE_OWNER, (ByteString)capsuleId.ToByteArray());
+            return (UInt160)Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static string GetContentHash(BigInteger capsuleId)
+        {
+            byte[] key = Helper.Concat(PREFIX_CAPSULE_HASH, (ByteString)capsuleId.ToByteArray());
+            return Storage.Get(Storage.CurrentContext, key);
+        }
+
+        [Safe]
+        public static bool IsPublic(BigInteger capsuleId)
+        {
+            byte[] key = Helper.Concat(PREFIX_CAPSULE_PUBLIC, (ByteString)capsuleId.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
+        }
+
+        [Safe]
+        public static Map<string, object> GetCapsule(BigInteger capsuleId)
+        {
+            Map<string, object> capsule = new Map<string, object>();
+            capsule["id"] = capsuleId;
+            capsule["owner"] = GetOwner(capsuleId);
+            capsule["contentHash"] = GetContentHash(capsuleId);
+            capsule["unlockTime"] = UnlockTime(capsuleId);
+            capsule["isPublic"] = IsPublic(capsuleId);
+            capsule["isRevealed"] = IsRevealed(capsuleId);
+            return capsule;
+        }
         #endregion
 
         #region Lifecycle

@@ -17,7 +17,7 @@ export function SplitViewLayout({
   leftPanel,
   centerPanel,
   rightPanel,
-  leftWidth = 380,
+  leftWidth = 420,
   rightWidth = 520,
   mobileBreakpoint = 1024,
 }: SplitViewLayoutProps) {
@@ -40,7 +40,7 @@ export function SplitViewLayout({
       <div
         className="hidden lg:flex h-screen items-stretch gap-3 p-3"
         style={{
-          background:
+          backgroundImage:
             theme === "dark"
               ? `linear-gradient(-45deg, #0a0f1a, #0f1729, #0a1a1a, #0f0f1f, #0a0f1a)`
               : `linear-gradient(-45deg, #1e3a5f, #2d3a6d, #1a4a5a, #3d3a6d, #1e3a5f)`,

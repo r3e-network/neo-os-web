@@ -50,9 +50,9 @@ describe("LaunchDock", () => {
   });
 
   describe("Wallet Status Display", () => {
-    it("should display 'Connect Wallet' when wallet is not connected", () => {
+    it("should display 'No Wallet' when wallet is not connected", () => {
       render(<LaunchDock {...baseProps} />);
-      expect(screen.getByText("Connect Wallet")).toBeInTheDocument();
+      expect(screen.getByText("No Wallet")).toBeInTheDocument();
     });
 
     it("should display truncated address when wallet is connected", () => {

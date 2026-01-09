@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { StatsBar } from "@/components/features/stats";
@@ -27,12 +28,13 @@ import { motion } from "framer-motion";
 import { HeroSection } from "@/components/features/landing/HeroSection";
 import { ArchitectureSection } from "@/components/features/landing/ArchitectureSection";
 import { ServicesGrid } from "@/components/features/landing/ServicesGrid";
+import { NNTNewsFeed } from "@/components/features/news";
 import { SecurityFeatures } from "@/components/features/landing/SecurityFeatures";
 import { CTABuilding } from "@/components/features/landing/CTABuilding";
 
 // Interface for stats from API
 interface AppStats {
-  [appId: string]: { users: number; transactions: number };
+  [appId: string]: { users: number; transactions: number; views: number };
 }
 
 interface PlatformStats {
@@ -64,6 +66,63 @@ export default function LandingPage() {
   const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [displayedTxCount, setDisplayedTxCount] = useState(0);
+  const [isUrlInitialized, setIsUrlInitialized] = useState(false);
+  const router = useRouter();
+
+  // Initialize state from URL on first load
+  useEffect(() => {
+    if (!router.isReady || isUrlInitialized) return;
+
+    const { category, sort, view } = router.query;
+
+    if (category && typeof category === "string") {
+      setSelectedCategory(category);
+    }
+
+    if (sort && (sort === "trending" || sort === "recent" || sort === "popular")) {
+      setSortBy(sort as any);
+    }
+
+    if (view && (view === "grid" || view === "list")) {
+      setViewMode(view as any);
+    }
+
+    setIsUrlInitialized(true);
+  }, [router.isReady, isUrlInitialized, router.query]);
+
+  // Sync state to URL
+  useEffect(() => {
+    if (!router.isReady || !isUrlInitialized) return;
+
+    const newQuery: Record<string, string> = { ...(router.query as any) };
+
+    if (selectedCategory !== "all") {
+      newQuery.category = selectedCategory;
+    } else {
+      delete newQuery.category;
+    }
+
+    if (sortBy !== "trending") {
+      newQuery.sort = sortBy;
+    } else {
+      delete newQuery.sort;
+    }
+
+    if (viewMode !== "grid") {
+      newQuery.view = viewMode;
+    } else {
+      delete newQuery.view;
+    }
+
+    router.replace(
+      {
+        pathname: router.pathname,
+        query: newQuery,
+      },
+      undefined,
+      { shallow: true },
+    );
+  }, [selectedCategory, sortBy, viewMode, isUrlInitialized, router.isReady, router.pathname]);
 
   // Real-time global activity feed
   const { activities } = useActivityFeed({ maxItems: 20 });
@@ -72,17 +131,21 @@ export default function LandingPage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch("/api/platform/stats");
-        if (res.ok) {
-          const data: PlatformStats = await res.json();
+        // Fetch platform stats and per-app stats in parallel
+        const [platformRes, cardStatsRes] = await Promise.all([
+          fetch("/api/platform/stats"),
+          fetch("/api/miniapps/card-stats"),
+        ]);
+
+        if (platformRes.ok) {
+          const data: PlatformStats = await platformRes.json();
           setPlatformStats(data);
-          setAppStats({
-            _platform: {
-              users: data.totalUsers || 0,
-              transactions: data.totalTransactions || 0,
-            },
-          });
           setDisplayedTxCount(data.totalTransactions || 0);
+        }
+
+        if (cardStatsRes.ok) {
+          const { stats } = await cardStatsRes.json();
+          setAppStats(stats || {});
         }
       } catch (err) {
         console.error("Failed to fetch stats:", err);
@@ -96,7 +159,7 @@ export default function LandingPage() {
   const appsWithStats = useMemo(() => {
     return BUILTIN_APPS.map((app) => ({
       ...app,
-      stats: appStats[app.app_id] || { users: 0, transactions: 0 },
+      stats: appStats[app.app_id] || { users: 0, transactions: 0, views: 0 },
     }));
   }, [appStats]);
 
@@ -133,12 +196,11 @@ export default function LandingPage() {
   }, [selectedCategory, sortBy, appsWithStats]);
 
   const totalStats = useMemo(() => {
-    const platformStats = appStats._platform;
     return {
-      users: platformStats?.users || 0,
-      transactions: platformStats?.transactions || 0,
+      users: platformStats?.totalUsers || 0,
+      transactions: platformStats?.totalTransactions || 0,
     };
-  }, [appStats]);
+  }, [platformStats]);
 
   return (
     <Layout>
@@ -185,18 +247,24 @@ export default function LandingPage() {
       <ArchitectureSection />
 
       {/* 4. MiniApp Explorer Grid */}
-      <section id="explore" className="py-24 px-4 bg-gray-50 dark:bg-dark-950/20 min-h-screen">
-        <div className="mx-auto max-w-[1600px]">
+      <section id="explore" className="py-24 px-4 bg-background min-h-screen relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-neo/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="mx-auto max-w-[1600px] relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-4">{t("explore.title")}</h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">{t("explore.subtitle")}</p>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+              {t("explore.title")}
+            </h2>
+            <p className="text-gray-600 dark:text-white/60 max-w-2xl mx-auto">{t("explore.subtitle")}</p>
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8">
             <aside className="hidden lg:block w-72 shrink-0 space-y-8">
               <div>
                 <h3 className="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-4 px-2">
-                  <Filter size={18} />
+                  <Filter size={18} className="text-neo" />
                   {t("miniapps.sidebar.categories")}
                 </h3>
                 <div className="space-y-1">
@@ -208,10 +276,10 @@ export default function LandingPage() {
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
                         className={cn(
-                          "w-full flex items-center justify-between px-4 py-3 text-sm font-black uppercase border-2 transition-all cursor-pointer",
+                          "w-full flex items-center justify-between px-4 py-3 text-sm font-bold uppercase transition-all cursor-pointer rounded-lg border",
                           isActive
-                            ? "bg-neo border-black text-black shadow-brutal-sm -translate-x-1 -translate-y-1"
-                            : "border-transparent text-gray-500 hover:border-black/10 hover:bg-gray-100 dark:hover:bg-white/5",
+                            ? "bg-neo/10 border-neo/30 text-neo shadow-[0_0_15px_rgba(0,229,153,0.1)]"
+                            : "border-transparent text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5",
                         )}
                       >
                         <span className="flex items-center gap-2">
@@ -220,8 +288,10 @@ export default function LandingPage() {
                         </span>
                         <span
                           className={cn(
-                            "text-[10px] px-2 py-0.5 border-2",
-                            isActive ? "bg-black text-neo border-black" : "bg-gray-200 dark:bg-white/10 text-gray-500 border-transparent",
+                            "text-[10px] px-2 py-0.5 rounded-full border",
+                            isActive
+                              ? "bg-neo/20 text-neo border-neo/30"
+                              : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 border-gray-200 dark:border-white/10",
                           )}
                         >
                           {cat.count}
@@ -233,10 +303,14 @@ export default function LandingPage() {
               </div>
               <div>
                 <h3 className="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-4 px-2">
-                  <Zap size={18} />
+                  <Zap size={18} className="text-yellow-400" />
                   {t("activity.live")}
                 </h3>
                 <ActivityTicker activities={activities} title={t("activity.global") || "GLOBAL FEED"} height={400} />
+              </div>
+              {/* Neo News Today Feed */}
+              <div className="mt-6">
+                <NNTNewsFeed limit={5} />
               </div>
             </aside>
 
@@ -246,13 +320,13 @@ export default function LandingPage() {
                   {["trending", "recent", "popular"].map((sort) => (
                     <Button
                       key={sort}
-                      variant={sortBy === sort ? "outline" : "ghost"}
+                      variant="ghost"
                       onClick={() => setSortBy(sort as any)}
                       className={cn(
-                        "h-auto rounded-none text-[10px] font-black uppercase px-6 py-2 border-2 shadow-brutal-xs transition-all active:shadow-none active:translate-x-1 active:translate-y-1",
+                        "h-auto rounded-full text-[10px] font-bold uppercase px-6 py-2 border transition-all hover:bg-gray-100 dark:hover:bg-white/5",
                         sortBy === sort
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-black hover:bg-neo",
+                          ? "bg-gray-100 dark:bg-white/10 border-gray-300 dark:border-white/20 text-gray-900 dark:text-white shadow-sm dark:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                          : "border-transparent text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white",
                       )}
                     >
                       {t(`miniapps.sort.${sort}`)}
@@ -260,28 +334,28 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
-                  <div className="bg-white dark:bg-black p-1 flex items-center border-4 border-black dark:border-white shadow-brutal-xs">
+                  <div className="bg-gray-100 dark:bg-white/5 p-1 flex items-center border border-gray-200 dark:border-white/10 rounded-lg backdrop-blur-md">
                     <button
                       onClick={() => setViewMode("grid")}
                       className={cn(
-                        "p-2 rounded-none transition-all",
+                        "p-2 rounded-md transition-all",
                         viewMode === "grid"
-                          ? "bg-black text-white"
-                          : "text-black dark:text-white hover:bg-neo",
+                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5",
                       )}
                     >
-                      <LayoutGrid size={18} strokeWidth={3} />
+                      <LayoutGrid size={18} strokeWidth={2.5} />
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
                       className={cn(
-                        "p-2 rounded-none transition-all",
+                        "p-2 rounded-md transition-all",
                         viewMode === "list"
-                          ? "bg-black text-white"
-                          : "text-black dark:text-white hover:bg-neo",
+                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5",
                       )}
                     >
-                      <List size={18} strokeWidth={3} />
+                      <List size={18} strokeWidth={2.5} />
                     </button>
                   </div>
                 </div>
@@ -306,7 +380,7 @@ export default function LandingPage() {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="col-span-full text-center py-20 text-gray-500">{t("miniapps.noApps")}</div>
+                  <div className="col-span-full text-center py-20 text-white/40">{t("miniapps.noApps")}</div>
                 )}
               </div>
             </div>

@@ -33,7 +33,8 @@ import { installMiniAppSDK } from "../../lib/miniapp-sdk";
 import { injectMiniAppViewportStyles } from "../../lib/miniapp-iframe";
 import type { MiniAppSDK } from "../../lib/miniapp-sdk";
 import { useI18n } from "../../lib/i18n/react";
-import { useWalletStore } from "../../lib/wallet/store";
+import { useWalletStore, getWalletAdapter } from "../../lib/wallet/store";
+import { useMiniAppStats } from "../../lib/query";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -59,7 +60,7 @@ type RequestLike = {
   headers?: Record<string, string | string[] | undefined>;
 };
 
-const DEFAULT_STATS_DISPLAY = ["total_transactions", "daily_active_users", "total_gas_used", "weekly_active_users"];
+const DEFAULT_STATS_DISPLAY = ["total_transactions", "view_count", "total_gas_used", "daily_active_users"];
 
 const STAT_KEY_ALIASES: Record<string, string> = {
   tx_count: "total_transactions",
@@ -75,11 +76,11 @@ function createStatCardBuilders(
     total_transactions: (stats) =>
       stats.total_transactions != null
         ? {
-          title: t("detail.totalTxs"),
-          value: stats.total_transactions.toLocaleString(),
-          icon: "📊",
-          trend: "neutral",
-        }
+            title: t("detail.totalTxs"),
+            value: stats.total_transactions.toLocaleString(),
+            icon: "📊",
+            trend: "neutral",
+          }
         : null,
     total_users: (stats) =>
       stats.total_users != null
@@ -100,21 +101,27 @@ function createStatCardBuilders(
     daily_active_users: (stats) =>
       stats.daily_active_users != null
         ? {
-          title: t("detail.dailyActiveUsers"),
-          value: stats.daily_active_users.toLocaleString(),
-          icon: "👥",
-          trend: "up",
-        }
+            title: t("detail.dailyActiveUsers"),
+            value: stats.daily_active_users.toLocaleString(),
+            icon: "👥",
+            trend: "up",
+          }
         : null,
     weekly_active_users: (stats) =>
       stats.weekly_active_users != null
         ? {
-          title: t("detail.weeklyActive"),
-          value: stats.weekly_active_users.toLocaleString(),
-          icon: "📈",
-          trend: "up",
-        }
+            title: t("detail.weeklyActive"),
+            value: stats.weekly_active_users.toLocaleString(),
+            icon: "📈",
+            trend: "up",
+          }
         : null,
+    view_count: (stats) => ({
+      title: t("detail.views"),
+      value: (stats.view_count || 0).toLocaleString(),
+      icon: "👁️",
+      trend: "neutral",
+    }),
     last_activity_at: (stats) => ({
       title: t("detail.lastActive"),
       value: formatLastActive(stats.last_activity_at),
@@ -144,13 +151,20 @@ interface WindowWithMiniAppSDK {
   MiniAppSDK?: MiniAppSDK;
 }
 
-export default function MiniAppDetailPage({ app, stats, notifications, error }: AppDetailPageProps) {
+export default function MiniAppDetailPage({ app, stats: ssrStats, notifications, error }: AppDetailPageProps) {
   const router = useRouter();
   const { t } = useTranslation("host");
   const { locale } = useI18n();
   const { theme } = useTheme();
   const themeColors = getThemeColors(theme);
   const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "forum" | "news" | "secrets">("overview");
+
+  // Use cached stats with SSR data as initial value (prevents reload on navigation)
+  const { data: cachedStats } = useMiniAppStats(app?.app_id || "", {
+    initialData: ssrStats,
+    enabled: !!app?.app_id,
+  });
+  const stats = cachedStats ?? ssrStats;
 
   // Use global wallet store
   const { address, connected, provider } = useWalletStore();
@@ -207,6 +221,12 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   // Self-contained i18n: use MiniApp's own translations based on locale
   const appName = app ? (locale === "zh" && app.name_zh ? app.name_zh : app.name) : "";
   const appDesc = app ? (locale === "zh" && app.description_zh ? app.description_zh : app.description) : "";
+
+  // Track view count on page load
+  useEffect(() => {
+    if (!app?.app_id) return;
+    fetch(`/api/miniapps/${app.app_id}/view`, { method: "POST" }).catch(() => {});
+  }, [app?.app_id]);
 
   // Initialize SDK
   useEffect(() => {
@@ -336,7 +356,16 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     const measureLatency = async () => {
       try {
         const start = performance.now();
-        await fetch("/api/health", { method: "HEAD" });
+
+        const adapter = getWalletAdapter();
+        if (connected && address && adapter) {
+          // Use wallet balance check as a ping to the blockchain node
+          await adapter.getBalance(address);
+        } else {
+          // Fallback to internal health check
+          await fetch("/api/health", { method: "HEAD" });
+        }
+
         const end = performance.now();
         setNetworkLatency(Math.round(end - start));
       } catch (e) {
@@ -346,7 +375,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     measureLatency();
     const interval = setInterval(measureLatency, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [connected, address]);
 
   // Wallet connection is handled globally by useWalletStore
 
@@ -368,7 +397,11 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   }
 
   const handleBack = () => {
-    router.push("/miniapps");
+    if (typeof window !== "undefined" && window.history.length > 2) {
+      router.back();
+    } else {
+      router.push("/miniapps");
+    }
   };
 
   const handleShare = useCallback(() => {
@@ -514,16 +547,29 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           ) : (
             <>
               {isIframeLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-brutal-yellow z-10 overflow-hidden">
-                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)] bg-[size:16px_16px]" />
-                  <div className="relative z-10 flex flex-col items-center p-6 bg-white border-4 border-black shadow-[8px_8px_0_#000]">
-                    <div className="w-12 h-12 border-4 border-black border-t-neo animate-spin mb-4" />
-                    <div className="text-xl font-black uppercase text-black tracking-tighter">
-                      {t("detail.launching")}
-                    </div>
-                    <div className="text-sm font-bold uppercase text-gray-500 mt-1">
-                      {appName}...
-                    </div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background z-10 overflow-hidden">
+                  {/* E-Robo Water Wave Background */}
+                  <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] bg-[radial-gradient(ellipse_at_center,rgba(159,157,243,0.15)_0%,transparent_50%)] animate-[water-wave_12s_ease-in-out_infinite]" />
+                    <div className="absolute w-[250%] h-[250%] top-[-75%] left-[-75%] bg-[radial-gradient(ellipse_at_center,rgba(0,229,153,0.08)_0%,transparent_60%)] animate-[water-wave-reverse_15s_ease-in-out_infinite]" />
+                  </div>
+                  {/* Concentric ripple rings */}
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="absolute rounded-full border-2 border-erobo-purple/30 animate-[concentric-ripple_2s_ease-out_infinite]"
+                      style={{
+                        animationDelay: `${i * 0.4}s`,
+                        width: 100 + i * 80,
+                        height: 100 + i * 80,
+                      }}
+                    />
+                  ))}
+                  {/* Center loading indicator */}
+                  <div className="relative z-10 flex flex-col items-center p-8 rounded-[20px] bg-gradient-to-br from-[rgba(159,157,243,0.15)] to-[rgba(123,121,209,0.08)] backdrop-blur-[50px] border border-[rgba(159,157,243,0.25)] shadow-[0_0_30px_rgba(159,157,243,0.15)]">
+                    <div className="w-16 h-16 rounded-full border-4 border-erobo-purple/30 border-t-erobo-purple animate-spin mb-4 shadow-[0_0_20px_rgba(159,157,243,0.4)]" />
+                    <div className="text-xl font-bold text-white tracking-tight">{t("detail.launching")}</div>
+                    <div className="text-sm font-medium text-white/60 mt-1">{appName}</div>
                   </div>
                 </div>
               )}
@@ -532,8 +578,9 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
                 src={iframeSrc}
                 ref={iframeRef}
                 onLoad={() => setIsIframeLoading(false)}
-                className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${isIframeLoading ? "opacity-0" : "opacity-100"
-                  }`}
+                className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
+                  isIframeLoading ? "opacity-0" : "opacity-100"
+                }`}
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 title={`${appName} MiniApp`}
                 allowFullScreen
@@ -600,7 +647,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           }}
         />
       }
-      leftWidth={380}
+      leftWidth={450}
       rightWidth={520}
     />
   );

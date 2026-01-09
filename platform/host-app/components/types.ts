@@ -22,7 +22,7 @@ export type MiniAppInfo = {
   stats_display?: string[] | null;
   status?: "active" | "disabled" | "pending" | null;
   source?: MiniAppSource;
-  stats?: { users?: number; transactions?: number };
+  stats?: { users?: number; transactions?: number; views?: number };
   highlights?: HighlightData[];
   cardData?: AnyCardData;
   developer?: {
@@ -55,6 +55,7 @@ export type MiniAppStats = {
   total_gas_earned?: string;
   daily_active_users: number;
   weekly_active_users: number;
+  view_count: number;
   last_activity_at: string | null;
 };
 

@@ -25,7 +25,7 @@ const (
 	defaultRPC        = "https://testnet1.neo.coz.io:443"
 	defaultPaymentHub = "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
 	gasContractHashLE = "d2a4cff31913016155e38e474a2c06d08be276cf"
-	defaultAppID      = "builtin-lottery"
+	defaultAppID      = "miniapp-lottery"
 	defaultAmount     = int64(100000) // 0.001 GAS (GAS has 8 decimals)
 	txWaitTimeout     = 2 * time.Minute
 )

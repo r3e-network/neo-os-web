@@ -232,6 +232,12 @@ func (s *Service) TransferWithData(ctx context.Context, serviceID, accountID, to
 	}
 	s.mu.RUnlock()
 
+	// Note: We don't validate database balance here because:
+	// 1. Chain balance is the source of truth
+	// 2. Database balance sync is complex and error-prone
+	// 3. TransferGAS will fail with clear error if balance insufficient
+	// The chain transaction will naturally fail if balance is insufficient.
+
 	// Derive pool account private key and build a neo-go wallet account.
 	priv, err := s.getPrivateKey(accountID)
 	if err != nil {

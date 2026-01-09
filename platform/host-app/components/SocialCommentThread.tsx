@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { SocialComment, VoteType } from "./types";
 import CommentItem from "./SocialCommentItem";
+import { MessageSquare, AlertCircle } from "lucide-react";
 
 interface CommentThreadProps {
   appId: string;
@@ -50,22 +51,26 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
   const displayError = error?.message || localError;
 
   return (
-    <div className="bg-white dark:bg-black border-4 border-black dark:border-white shadow-brutal-md">
-      <div className="p-4 border-b-4 border-black dark:border-white bg-neo text-black">
-        <h3 className="text-lg font-black uppercase tracking-tighter italic">Consensus Feed ({comments.length})</h3>
+    <div className="bg-white/80 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-sm rounded-2xl overflow-hidden">
+      <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 flex items-center gap-2">
+        <MessageSquare size={18} className="text-gray-500" />
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">Consensus Feed ({comments.length})</h3>
       </div>
 
       {/* Error Display */}
       {displayError && (
-        <div className="p-4 bg-brutal-red text-white border-b-4 border-black">
+        <div className="p-4 bg-red-50 dark:bg-red-500/10 border-b border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-black uppercase">{displayError}</span>
+            <span className="text-sm font-medium flex items-center gap-2">
+              <AlertCircle size={16} />
+              {displayError}
+            </span>
             <button
               onClick={() => {
                 setLocalError(null);
                 onClearError?.();
               }}
-              className="bg-black text-white px-3 py-1 border-2 border-white text-xs font-black uppercase shadow-brutal-xs"
+              className="text-xs font-bold hover:underline"
             >
               Dismiss
             </button>
@@ -75,35 +80,37 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
 
       {/* New Comment Form */}
       {canComment && (
-        <div className="p-6 border-b-4 border-black dark:border-white bg-gray-50 dark:bg-gray-900">
+        <div className="p-6 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-transparent">
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Share your perspective with the network..."
-            className="w-full border-4 border-black dark:border-white p-4 bg-white dark:bg-black text-gray-900 dark:text-gray-100 font-bold placeholder:opacity-30 focus:shadow-brutal-sm transition-shadow"
+            className="w-full p-4 bg-gray-50 dark:bg-black/20 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-neo/20 focus:border-neo outline-none transition-all placeholder-gray-400 min-h-[100px]"
             rows={3}
             maxLength={2000}
           />
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || !newComment.trim()}
-            className="mt-4 px-6 py-3 bg-black text-white border-4 border-black font-black uppercase italic shadow-brutal-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none disabled:opacity-50 transition-all"
-          >
-            {submitting ? "Processing..." : "Commit Comment"}
-          </button>
+          <div className="flex justify-end mt-3">
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !newComment.trim()}
+              className="px-6 py-2 bg-neo text-black font-bold text-sm rounded-lg hover:bg-neo-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+            >
+              {submitting ? "Posting..." : "Post Comment"}
+            </button>
+          </div>
         </div>
       )}
 
       {!canComment && (
-        <div className="p-6 border-b-4 border-black dark:border-white bg-brutal-yellow text-black font-black uppercase text-center text-sm shadow-inner">
-          Authentication Required to Commmit Comments
+        <div className="p-6 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-medium text-center text-sm">
+          Please connect your wallet to join the conversation.
         </div>
       )}
 
       {/* Comments List */}
-      <div className="divide-y-4 divide-black dark:divide-white">
+      <div className="divide-y divide-gray-100 dark:divide-white/5">
         {comments.map((comment) => (
-          <div key={comment.id} className="px-6 py-4">
+          <div key={comment.id} className="px-6 py-2">
             <CommentItem comment={comment} onVote={onVote} onReply={onReply} onLoadReplies={onLoadReplies} />
           </div>
         ))}
@@ -111,20 +118,20 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
 
       {/* Load More */}
       {hasMore && (
-        <div className="p-6 text-center border-t-4 border-black dark:border-white bg-gray-100 dark:bg-gray-800">
+        <div className="p-4 text-center border-t border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/5">
           <button
             onClick={onLoadMore}
             disabled={loading}
-            className="text-sm font-black uppercase underline decoration-4 underline-offset-8 hover:text-neo transition-colors"
+            className="text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-neo transition-colors"
           >
-            {loading ? "Decrypting More Data..." : "Retrieve Earlier Threads"}
+            {loading ? "Loading..." : "Load Older Comments"}
           </button>
         </div>
       )}
 
       {comments.length === 0 && (
-        <div className="p-12 text-center text-xs font-black uppercase opacity-30 border-t-4 border-black border-dashed">
-          The void is silent. Start the conversation.
+        <div className="p-12 text-center text-sm text-gray-400 dark:text-gray-600 font-medium">
+          No comments yet. Be the first to share your thoughts.
         </div>
       )}
     </div>

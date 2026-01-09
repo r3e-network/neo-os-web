@@ -176,10 +176,10 @@ func loadContracts() map[string]util.Uint160 {
 
 func getMiniApps() []MiniAppConfig {
 	return []MiniAppConfig{
-		{"builtin-lottery", "Lottery", 10000000, 10 * time.Second},        // 0.1 GAS
-		{"builtin-coin-flip", "CoinFlip", 5000000, 8 * time.Second},       // 0.05 GAS
-		{"builtin-dice-game", "DiceGame", 5000000, 8 * time.Second},       // 0.05 GAS
-		{"builtin-scratch-card", "ScratchCard", 10000000, 15 * time.Second}, // 0.1 GAS
+		{"miniapp-lottery", "Lottery", 10000000, 10 * time.Second},        // 0.1 GAS
+		{"miniapp-coin-flip", "CoinFlip", 5000000, 8 * time.Second},       // 0.05 GAS
+		{"miniapp-dice-game", "DiceGame", 5000000, 8 * time.Second},       // 0.05 GAS
+		{"miniapp-scratch-card", "ScratchCard", 10000000, 15 * time.Second}, // 0.1 GAS
 		{"builtin-gas-spin", "GasSpin", 5000000, 12 * time.Second},        // 0.05 GAS
 		{"builtin-price-predict", "PricePredict", 10000000, 20 * time.Second}, // 0.1 GAS
 	}

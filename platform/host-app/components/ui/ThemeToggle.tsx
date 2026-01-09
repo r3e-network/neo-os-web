@@ -1,31 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Moon, Sun, Monitor } from "lucide-react";
-import { Theme, applyTheme, getStoredTheme } from "@/lib/theme";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "../providers/ThemeProvider";
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("system");
-
-  useEffect(() => {
-    setTheme(getStoredTheme());
-  }, []);
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
-  const icons = { light: Sun, dark: Moon, system: Monitor };
-  const Icon = icons[theme];
-
-  const cycle = () => {
-    const next: Theme = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
-    setTheme(next);
-  };
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <button onClick={cycle} className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800" title={`Theme: ${theme}`}>
-      <Icon size={20} />
+    <button
+      onClick={toggleTheme}
+      className="p-2.5 rounded-full bg-white dark:bg-white/10 text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-100 dark:hover:bg-white/20 transition-all active:scale-95 border border-gray-200 dark:border-white/10"
+      title={`Theme: ${theme}`}
+    >
+      {theme === "dark" ? <Sun size={20} strokeWidth={2.5} /> : <Moon size={20} strokeWidth={2.5} />}
     </button>
   );
 }

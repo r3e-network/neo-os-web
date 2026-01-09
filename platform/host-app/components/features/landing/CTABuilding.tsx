@@ -5,52 +5,66 @@ import { Rocket, FileText, Play } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/react";
 
 export function CTABuilding() {
-    const { t } = useTranslation("host");
+  const { t } = useTranslation("host");
 
-    return (
-        <section className="py-32 px-4 relative overflow-hidden bg-[#ffde59]">
-            {/* Background decoration - Neo Grid */}
-            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+  return (
+    <section className="py-32 px-4 relative overflow-hidden bg-background">
+      {/* Ambient Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-neo/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.03)_1px,transparent_0)] bg-[size:32px_32px] opacity-20 pointer-events-none" />
 
-            <div className="mx-auto max-w-5xl text-center relative z-10">
-                <div className="inline-flex items-center gap-3 px-6 py-2 bg-black text-white border-4 border-black text-sm font-black uppercase tracking-tighter mb-10 shadow-brutal-xs -rotate-2">
-                    <div className="w-3 h-3 bg-[#00E599] animate-pulse" />
-                    {t("landing.cta.badge")}
-                </div>
+      <div className="mx-auto max-w-5xl text-center relative z-10">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-neo/10 text-neo text-xs font-bold uppercase tracking-widest border border-neo/20 rounded-full mb-10 shadow-[0_0_15px_rgba(0,229,153,0.3)] backdrop-blur-md">
+          <div className="w-2 h-2 bg-neo rounded-full animate-pulse shadow-[0_0_10px_#00E599]" />
+          {t("landing.cta.badge")}
+        </div>
 
-                <h2 className="text-6xl md:text-8xl font-black text-black mb-10 tracking-tighter leading-none uppercase italic">
-                    {t("landing.cta.title")} <br />
-                    <span className="bg-black text-[#00E599] px-4 py-2 inline-block mt-2 shadow-brutal-md -rotate-1">
-                        {t("landing.cta.titleHighlight")}
-                    </span>
-                </h2>
+        <h2 className="text-6xl md:text-8xl font-bold text-gray-900 dark:text-white mb-10 tracking-tight leading-[1.1]">
+          {t("landing.cta.title")} <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-neo to-blue-500 inline-block mt-2 drop-shadow-2xl">
+            {t("landing.cta.titleHighlight")}
+          </span>
+        </h2>
 
-                <p className="text-2xl text-black max-w-3xl mx-auto mb-16 leading-none font-black uppercase tracking-tight">
-                    {t("landing.cta.subtitle")}
-                </p>
+        <p className="text-xl md:text-2xl text-gray-600 dark:text-white/60 max-w-3xl mx-auto mb-16 leading-relaxed font-medium">
+          {t("landing.cta.subtitle")}
+        </p>
 
-                <div className="flex flex-wrap items-center justify-center gap-6">
-                    <Link href="#explore">
-                        <Button size="lg" className="bg-[#00E599] hover:bg-[#00E599]/90 text-black font-black px-12 h-20 border-4 border-black rounded-none shadow-brutal-lg transition-all active:shadow-none active:translate-x-1 active:translate-y-1 text-xl uppercase italic">
-                            {t("landing.cta.startBuilding")} <Rocket className="ml-3" size={24} strokeWidth={3} />
-                        </Button>
-                    </Link>
-                    <Link href="/docs">
-                        <Button variant="outline" size="lg" className="bg-white text-black border-4 border-black font-black px-12 h-20 rounded-none shadow-brutal-lg hover:bg-white/90 transition-all active:shadow-none active:translate-x-1 active:translate-y-1 text-xl uppercase italic">
-                            {t("landing.cta.readDocs")} <FileText className="ml-3" size={24} strokeWidth={3} />
-                        </Button>
-                    </Link>
-                    <Link href="/developer">
-                        <Button variant="ghost" size="lg" className="text-black font-black px-12 h-20 rounded-none hover:bg-black hover:text-white transition-all text-xl uppercase italic group">
-                            {t("landing.cta.tryPlayground")} <Play className="ml-3 group-hover:translate-x-2 transition-transform shadow-brutal-xs" size={24} strokeWidth={3} fill="currentColor" />
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            {/* Corner Decorations */}
-            <div className="absolute top-0 left-0 w-32 h-32 border-r-8 border-b-8 border-black -translate-x-16 -translate-y-16 rotate-45" />
-            <div className="absolute bottom-0 right-0 w-32 h-32 border-l-8 border-t-8 border-black translate-x-16 translate-y-16 rotate-45" />
-        </section>
-    );
+        <div className="flex flex-wrap items-center justify-center gap-6">
+          <Link href="#explore">
+            <Button
+              size="lg"
+              className="bg-neo hover:bg-neo/90 text-black font-bold px-10 h-16 rounded-full border border-neo/50 shadow-[0_0_20px_rgba(0,229,153,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(0,229,153,0.6)] text-lg"
+            >
+              {t("landing.cta.startBuilding")} <Rocket className="ml-2" size={20} strokeWidth={2.5} />
+            </Button>
+          </Link>
+          <Link href="/docs">
+            <Button
+              variant="outline"
+              size="lg"
+              className="border border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white font-bold px-10 h-16 rounded-full backdrop-blur-md hover:bg-gray-200 dark:hover:bg-white/10 transition-all hover:scale-105 text-lg"
+            >
+              {t("landing.cta.readDocs")} <FileText className="ml-2" size={20} strokeWidth={2.5} />
+            </Button>
+          </Link>
+          <Link href="/developer">
+            <Button
+              variant="ghost"
+              size="lg"
+              className="text-gray-900 dark:text-white font-bold px-10 h-16 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-all text-lg group"
+            >
+              {t("landing.cta.tryPlayground")}{" "}
+              <Play
+                className="ml-2 group-hover:translate-x-1 transition-transform"
+                size={20}
+                strokeWidth={2.5}
+                fill="currentColor"
+              />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
 }

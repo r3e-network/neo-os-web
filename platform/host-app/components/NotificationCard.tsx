@@ -1,6 +1,5 @@
 import React from "react";
 import { MiniAppNotification } from "./types";
-import { colors } from "./styles";
 
 type Props = {
   notification: MiniAppNotification;
@@ -11,15 +10,15 @@ export function NotificationCard({ notification }: Props) {
   const timeAgo = getTimeAgo(notification.created_at);
 
   return (
-    <div className="brutal-card p-4 bg-white dark:bg-black group hover:rotate-1 transition-transform">
+    <div className="p-4 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
       <div className="flex justify-between items-center mb-3">
-        <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-brutal-blue text-white border border-black shadow-brutal-xs">
+        <span className="text-[10px] font-bold uppercase px-2.5 py-1 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 rounded-full border border-gray-200 dark:border-white/5 flex items-center gap-1.5">
           {type.icon} {type.label}
         </span>
-        <span className="text-[10px] font-black uppercase opacity-40">{timeAgo}</span>
+        <span className="text-[10px] font-semibold uppercase text-gray-400 dark:text-gray-500 tracking-wide">{timeAgo}</span>
       </div>
-      <h4 className="text-sm font-black uppercase mb-1 tracking-tight">{notification.title}</h4>
-      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+      <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-1.5 tracking-tight">{notification.title}</h4>
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
         {notification.content}
       </p>
     </div>
@@ -53,43 +52,3 @@ function getTimeAgo(dateStr: string): string {
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
 }
-
-const cardStyle: React.CSSProperties = {
-  background: colors.bgCard,
-  borderRadius: 12,
-  padding: 16,
-  border: `1px solid ${colors.border}`,
-};
-
-const headerRow: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginBottom: 8,
-};
-
-const typeTag: React.CSSProperties = {
-  fontSize: 11,
-  padding: "2px 6px",
-  borderRadius: 4,
-  background: "rgba(52,152,219,0.2)",
-  color: colors.accent,
-};
-
-const timeStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: colors.textMuted,
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 600,
-  margin: "0 0 4px 0",
-  color: colors.text,
-};
-
-const contentStyle: React.CSSProperties = {
-  fontSize: 13,
-  color: colors.textMuted,
-  margin: 0,
-  lineHeight: 1.4,
-};

@@ -20,23 +20,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     if (req.method === "POST") {
-      // Increment view count
-      const { data, error } = await supabaseAdmin.rpc("increment_view_count", {
+      // Increment view count using RPC function
+      const { data, error } = await supabaseAdmin.rpc("increment_miniapp_view_count", {
         p_app_id: appId,
       });
 
       if (error) {
         // Fallback: manual increment if RPC doesn't exist
         const { data: current } = await supabaseAdmin
-          .from("miniapp_stats")
-          .select("view_count")
+          .from("miniapp_stats_summary")
+          .select("view_count, total_unique_users, total_transactions")
           .eq("app_id", appId)
           .single();
 
         const newCount = (current?.view_count || 0) + 1;
 
         // Use upsert to create record if it doesn't exist
-        await supabaseAdmin.from("miniapp_stats").upsert(
+        await supabaseAdmin.from("miniapp_stats_summary").upsert(
           {
             app_id: appId,
             view_count: newCount,
@@ -54,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === "GET") {
       const { data, error } = await supabaseAdmin
-        .from("miniapp_stats")
+        .from("miniapp_stats_summary")
         .select("view_count")
         .eq("app_id", appId)
         .single();

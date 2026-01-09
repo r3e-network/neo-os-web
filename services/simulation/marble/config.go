@@ -20,6 +20,18 @@ const (
 	DefaultMaxAmount = 100000000 // 1 GAS
 )
 
+// DefaultMiniApps is the list of MiniApps configured in PaymentHub contract.
+// Only these apps can receive payments via PaymentHub.pay().
+var DefaultMiniApps = []string{
+	"miniapp-lottery",
+	"miniapp-coin-flip",
+	"miniapp-dice-game",
+	"miniapp-scratch-card",
+	"miniapp-red-envelope",
+	"miniapp-time-capsule",
+	"miniapp-neo-crash",
+}
+
 // Config holds simulation service configuration.
 type Config struct {
 	Marble           interface{} // *marble.Marble

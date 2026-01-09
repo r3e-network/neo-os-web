@@ -19,12 +19,13 @@ func (s *MiniAppSimulator) SimulateLottery(ctx context.Context) error {
 	amount := int64(ticketCount) * 10000000
 
 	memo := fmt.Sprintf("lottery:round:%d:tickets:%d:%d", atomic.LoadInt64(&s.lotteryDraws)+1, ticketCount, time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	txHash, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("buy tickets: %w", err)
 	}
 	atomic.AddInt64(&s.lotteryTickets, int64(ticketCount))
+	s.recordPayment(appID, txHash, amount)
 
 	// Invoke contract business logic if configured
 	if s.invoker.HasMiniAppContract(appID) {
@@ -84,12 +85,13 @@ func (s *MiniAppSimulator) SimulateCoinFlip(ctx context.Context) error {
 	choice := randomInt(0, 1) == 1
 
 	memo := fmt.Sprintf("coinflip:%d:%d", amount, time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	txHash, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("place bet: %w", err)
 	}
 	atomic.AddInt64(&s.coinFlipBets, 1)
+	s.recordPayment(appID, txHash, amount)
 
 	// Invoke contract business logic if configured
 	if s.invoker.HasMiniAppContract(appID) {
@@ -134,12 +136,13 @@ func (s *MiniAppSimulator) SimulateDiceGame(ctx context.Context) error {
 	targetNumber := randomInt(1, 6)
 
 	memo := fmt.Sprintf("dice:%d:%d:%d", targetNumber, amount, time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	txHash, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("place dice bet: %w", err)
 	}
 	atomic.AddInt64(&s.diceGameBets, 1)
+	s.recordPayment(appID, txHash, amount)
 
 	// Invoke contract business logic if configured
 	if s.invoker.HasMiniAppContract(appID) {
@@ -185,12 +188,13 @@ func (s *MiniAppSimulator) SimulateScratchCard(ctx context.Context) error {
 	amount := cardType * 2000000 // Cost scales with card type
 
 	memo := fmt.Sprintf("scratch:%d:%d", amount, time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	txHash, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("buy scratch card: %w", err)
 	}
 	atomic.AddInt64(&s.scratchCardBuys, 1)
+	s.recordPayment(appID, txHash, amount)
 
 	// Invoke contract business logic if configured
 	if s.invoker.HasMiniAppContract(appID) {
@@ -347,12 +351,13 @@ func (s *MiniAppSimulator) SimulateNeoCrash(ctx context.Context) error {
 	amount := int64(randomInt(1, 10)) * 10000000 // 0.1-1 GAS
 
 	memo := fmt.Sprintf("crash:bet:%d:%d", amount, time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
+	txHash, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("crash bet: %w", err)
 	}
 	atomic.AddInt64(&s.neoCrashBets, 1)
+	s.recordPayment(appID, txHash, amount)
 
 	if s.invoker.HasMiniAppContract(appID) {
 		playerAddress, ok := s.getRandomUserAddressOrWarn(appID, "place bet")

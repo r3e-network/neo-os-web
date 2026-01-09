@@ -89,7 +89,8 @@
     "pleaseConnect": "Please connect your wallet to continue",
     "connectRequired": "Connection Required",
     "connectDescription": "Connect your wallet or login with a social account to continue.",
-    "loginWithSocial": "Login with Social Account"
+    "loginWithSocial": "Login with Social Account",
+    "socialDisabledWhenConnected": "Social login disabled (wallet connected)"
   },
   "errors": {
     "occurred": "An error occurred",
@@ -131,5 +132,13 @@
     "github": "GitHub",
     "discord": "Discord",
     "twitter": "Twitter"
+  },
+  "network": {
+    "testnet": "Testnet",
+    "mainnet": "Mainnet",
+    "selectNetwork": "Select Network",
+    "rpcSettings": "RPC Settings",
+    "rpcDescription": "Configure custom RPC endpoints. Leave empty to use default.",
+    "controlledByWallet": "Network controlled by wallet"
   }
 }

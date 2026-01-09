@@ -27,11 +27,17 @@ type Client struct {
 	httpClient *http.Client
 	networkID  uint32
 
-	// Persistent actor for concurrent transaction support
-	persistentRPC   *rpcclient.Client
-	persistentActor *actor.Actor
-	actorAccount    *wallet.Account
-	actorMu         sync.Mutex
+	// Per-account actor cache for concurrent multi-account transaction support
+	// Key: account script hash hex string
+	actorCache map[string]*actorEntry
+	actorMu    sync.Mutex
+}
+
+// actorEntry holds an actor and its RPC client for cleanup
+type actorEntry struct {
+	rpcClient *rpcclient.Client
+	actor     *actor.Actor
+	account   *wallet.Account
 }
 
 // Config holds client configuration.
@@ -75,6 +81,7 @@ func NewClient(cfg Config) (*Client, error) {
 		rpcURL:     normalizedURL,
 		httpClient: httpClient,
 		networkID:  cfg.NetworkID,
+		actorCache: make(map[string]*actorEntry),
 	}, nil
 }
 
@@ -251,62 +258,61 @@ func (c *Client) TransferGASWithData(ctx context.Context, account *wallet.Accoun
 	return txHash, nil
 }
 
-// getOrCreateActor returns the persistent actor, creating it if necessary.
+// getOrCreateActor returns a cached actor for the account, creating it if necessary.
+// Each account gets its own actor to support concurrent multi-account transactions.
 func (c *Client) getOrCreateActor(ctx context.Context, account *wallet.Account) (*actor.Actor, error) {
 	c.actorMu.Lock()
 	defer c.actorMu.Unlock()
 
-	// Check if we need to create or recreate the persistent actor
-	needNewActor := c.persistentActor == nil ||
-		c.actorAccount == nil ||
-		c.actorAccount.ScriptHash() != account.ScriptHash()
+	// Use account script hash as cache key
+	key := account.ScriptHash().StringLE()
 
-	if needNewActor {
-		// Close existing RPC client if any
-		if c.persistentRPC != nil {
-			c.persistentRPC.Close()
-			c.persistentRPC = nil
-			c.persistentActor = nil
-		}
-
-		timeout := 30 * time.Second
-		if c.httpClient != nil && c.httpClient.Timeout > 0 {
-			timeout = c.httpClient.Timeout
-		}
-
-		// Create a new rpcclient connection
-		rpcClient, err := rpcclient.New(ctx, c.rpcURL, rpcclient.Options{
-			RequestTimeout: timeout,
-			DialTimeout:    timeout,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("create rpc client: %w", err)
-		}
-
-		// Create actor for signing transactions
-		act, err := actor.NewSimple(rpcClient, account)
-		if err != nil {
-			rpcClient.Close()
-			return nil, fmt.Errorf("create actor: %w", err)
-		}
-
-		c.persistentRPC = rpcClient
-		c.persistentActor = act
-		c.actorAccount = account
+	// Check if we already have an actor for this account
+	if entry, ok := c.actorCache[key]; ok {
+		return entry.actor, nil
 	}
 
-	return c.persistentActor, nil
+	// Create a new actor for this account
+	timeout := 30 * time.Second
+	if c.httpClient != nil && c.httpClient.Timeout > 0 {
+		timeout = c.httpClient.Timeout
+	}
+
+	// Create a new rpcclient connection for this account
+	rpcClient, err := rpcclient.New(ctx, c.rpcURL, rpcclient.Options{
+		RequestTimeout: timeout,
+		DialTimeout:    timeout,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create rpc client: %w", err)
+	}
+
+	// Create actor for signing transactions
+	act, err := actor.NewSimple(rpcClient, account)
+	if err != nil {
+		rpcClient.Close()
+		return nil, fmt.Errorf("create actor: %w", err)
+	}
+
+	// Cache the actor
+	c.actorCache[key] = &actorEntry{
+		rpcClient: rpcClient,
+		actor:     act,
+		account:   account,
+	}
+
+	return act, nil
 }
 
-// resetActor clears the persistent actor so it gets recreated on next call.
+// resetActor clears all cached actors so they get recreated on next call.
 func (c *Client) resetActor() {
 	c.actorMu.Lock()
 	defer c.actorMu.Unlock()
 
-	if c.persistentRPC != nil {
-		c.persistentRPC.Close()
+	for key, entry := range c.actorCache {
+		if entry.rpcClient != nil {
+			entry.rpcClient.Close()
+		}
+		delete(c.actorCache, key)
 	}
-	c.persistentRPC = nil
-	c.persistentActor = nil
-	c.actorAccount = nil
 }
