@@ -115,6 +115,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static void ValidateAppId(string appId)
         {
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
+            ExecutionEngine.Assert(appId.Length <= 64, "app id too long");
+            ExecutionEngine.Assert(appId.IndexOf(":") < 0, "invalid app id: colon not allowed");
+            ExecutionEngine.Assert(appId.IndexOf("/") < 0, "invalid app id: slash not allowed");
         }
 
         #endregion
@@ -223,6 +226,8 @@ namespace NeoMiniAppPlatform.Contracts
 
         /// <summary>
         /// Unregister an app. Only owner can unregister.
+        /// Note: App data in PREFIX_APP_DATA is NOT deleted for audit purposes.
+        /// Use ClearAppData() before unregistering if data cleanup is needed.
         /// </summary>
         public static void UnregisterApp(string appId)
         {
@@ -232,6 +237,18 @@ namespace NeoMiniAppPlatform.Contracts
             AppOwnerMap().Delete(appId);
             AppAdminMap().Delete(appId);
             OnAppUnregistered(appId);
+        }
+
+        /// <summary>
+        /// Transfer app ownership to a new address. Only current owner can transfer.
+        /// </summary>
+        public static void TransferOwnership(string appId, UInt160 newOwner)
+        {
+            ValidateNotPaused();
+            ValidateAppOwner(appId);
+            ExecutionEngine.Assert(newOwner != null && newOwner.IsValid, "invalid new owner");
+
+            AppOwnerMap().Put(appId, newOwner);
         }
 
         /// <summary>

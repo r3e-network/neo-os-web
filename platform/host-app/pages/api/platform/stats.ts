@@ -27,7 +27,7 @@ interface PlatformStats {
   totalGasBurned: string;
   stakingApr: string;
   activeApps: number;
-  topApps: { name: string; users: number; color: string }[];
+  topApps: { name: string; transactions: number; color: string }[];
   dataSource?: string;
 }
 
@@ -78,12 +78,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data: aggregateData } = await supabase.from("miniapp_stats").select("*");
 
       if (aggregateData && aggregateData.length > 0) {
+        const safeParseFloat = (val: string | null | undefined): number => {
+          const num = parseFloat(val || "0");
+          return Number.isNaN(num) ? 0 : num;
+        };
+
         const totals = aggregateData.reduce(
           (acc, row) => ({
             users: acc.users + (row.total_unique_users || 0),
             txs: acc.txs + (row.total_transactions || 0),
-            volume: acc.volume + parseFloat(row.total_volume_gas || "0"),
-            gasBurned: acc.gasBurned + parseFloat(row.total_gas_used || row.total_volume_gas || "0"),
+            volume: acc.volume + safeParseFloat(row.total_volume_gas),
+            gasBurned: acc.gasBurned + safeParseFloat(row.total_gas_used || row.total_volume_gas),
           }),
           { users: 0, txs: 0, volume: 0, gasBurned: 0 },
         );
@@ -111,11 +116,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .order("total_transactions", { ascending: false })
       .limit(5);
 
-    const colors = ["#00d4aa", "#3498db", "#9b59b6", "#f1c40f", "#e67e22"];
+    const colors = ["#9f9df3", "#f7aac7", "#f8d7c2", "#d8f2e2", "#d9ecff"];
     if (topAppsData) {
       stats.topApps = topAppsData.map((app, i) => ({
         name: app.app_id.replace("miniapp-", "").replace(/-/g, " "),
-        users: app.total_transactions || 0,
+        transactions: app.total_transactions || 0,
         color: colors[i % colors.length],
       }));
     }
