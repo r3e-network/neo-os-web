@@ -1,4 +1,4 @@
-import React, { Component, ReactNode, useEffect, useState, useRef } from "react";
+import React, { Component, ReactNode, useEffect, useState } from "react";
 import { AlertCircle, Loader2, Info } from "lucide-react";
 
 type Props = {
@@ -40,7 +40,9 @@ const FederatedLoader = ({ remote, appId, view, theme }: Props) => {
     if (!remoteName) {
       setError("Federated remote not specified");
       setLoading(false);
-      return () => { mounted = false; };
+      return () => {
+        mounted = false;
+      };
     }
 
     const loadModule = async () => {
@@ -62,15 +64,18 @@ const FederatedLoader = ({ remote, appId, view, theme }: Props) => {
     };
 
     loadModule();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [remote]);
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center p-12 gap-3 text-gray-400">
-      <Loader2 size={32} className="animate-spin text-neo" />
-      <span className="text-xs font-bold uppercase tracking-widest opacity-70">Loading Module...</span>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center p-12 gap-3 text-gray-400">
+        <Loader2 size={32} className="animate-spin text-neo" />
+        <span className="text-xs font-bold uppercase tracking-widest opacity-70">Loading Module...</span>
+      </div>
+    );
 
   if (error) {
     return (
@@ -86,28 +91,34 @@ const FederatedLoader = ({ remote, appId, view, theme }: Props) => {
     );
   }
 
-  if (!LoadedComponent) return (
-    <div className="flex flex-col items-center justify-center p-12 gap-3 text-gray-400 border border-dashed border-gray-200 dark:border-white/10 rounded-2xl">
-      <Info size={32} />
-      <span className="text-xs font-bold uppercase tracking-widest opacity-70">Module Unavailable</span>
-    </div>
-  );
+  if (!LoadedComponent)
+    return (
+      <div className="flex flex-col items-center justify-center p-12 gap-3 text-gray-400 border border-dashed border-gray-200 dark:border-white/10 rounded-2xl">
+        <Info size={32} />
+        <span className="text-xs font-bold uppercase tracking-widest opacity-70">Module Unavailable</span>
+      </div>
+    );
 
   return <LoadedComponent appId={appId} view={view} remote={remote} theme={theme} />;
 };
 
 export function FederatedMiniApp(props: Props) {
-  if (!hasRemotes) return (
-    <div className="p-8 text-center max-w-md mx-auto bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl shadow-sm backdrop-blur-sm">
-      <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600 dark:text-amber-400">
-        <AlertCircle size={24} />
+  if (!hasRemotes)
+    return (
+      <div className="p-8 text-center max-w-md mx-auto bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl shadow-sm backdrop-blur-sm">
+        <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600 dark:text-amber-400">
+          <AlertCircle size={24} />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Module Federation Required</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+          Set{" "}
+          <code className="bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded text-neo font-mono text-xs border border-gray-200 dark:border-white/10">
+            NEXT_PUBLIC_MF_REMOTES
+          </code>{" "}
+          to enable integrations.
+        </p>
       </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Module Federation Required</h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
-        Set <code className="bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded text-neo font-mono text-xs border border-gray-200 dark:border-white/10">NEXT_PUBLIC_MF_REMOTES</code> to enable integrations.
-      </p>
-    </div>
-  );
+    );
   return (
     <RemoteErrorBoundary>
       <FederatedLoader {...props} />
@@ -117,7 +128,9 @@ export function FederatedMiniApp(props: Props) {
 
 class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: Error }> {
   state: { error?: Error } = {};
-  static getDerivedStateFromError(error: Error) { return { error }; }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
   render() {
     if (!this.state.error) return this.props.children;
     return (
@@ -126,7 +139,9 @@ class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: E
           <AlertCircle size={24} />
         </div>
         <div className="text-sm font-bold text-gray-900 dark:text-white uppercase mb-2">Critical Failure</div>
-        <div className="text-xs bg-white dark:bg-black/20 p-3 rounded-lg font-mono text-red-600 dark:text-red-300 break-all">{this.state.error.message}</div>
+        <div className="text-xs bg-white dark:bg-black/20 p-3 rounded-lg font-mono text-red-600 dark:text-red-300 break-all">
+          {this.state.error.message}
+        </div>
       </div>
     );
   }
