@@ -2,6 +2,14 @@ import { supabaseServiceClient } from "./supabase.ts";
 import { error } from "./response.ts";
 import { normalizeHexBytes } from "./hex.ts";
 
+/**
+ * Escape SQL LIKE/ILIKE wildcards to prevent unintended pattern matching.
+ * Escapes: % -> \%, _ -> \_, \ -> \\
+ */
+function escapeLikePattern(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
 export type EventsQueryParams = {
   app_id?: string;
   event_name?: string;
@@ -145,7 +153,9 @@ export async function queryTransactions(
     const appId = String(params.app_id).trim();
     if (!appId) return error(400, "app_id cannot be empty", "INVALID_PARAM", req);
     // Filter by request_id pattern (assumes request_id contains app_id)
-    query = query.ilike("request_id", `%${appId}%`);
+    // Escape SQL wildcards to prevent unintended pattern matching
+    const escapedAppId = escapeLikePattern(appId);
+    query = query.ilike("request_id", `%${escapedAppId}%`);
   }
 
   if (afterId) {
