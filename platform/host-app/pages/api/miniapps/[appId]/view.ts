@@ -14,8 +14,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "appId is required" });
   }
 
+  // Graceful degradation: return 0 if database not configured
   if (!isSupabaseConfigured || !supabaseAdmin) {
-    return res.status(500).json({ error: "Database not configured" });
+    return res.status(200).json({ view_count: 0, cached: true });
   }
 
   try {
