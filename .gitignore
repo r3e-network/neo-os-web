@@ -110,8 +110,8 @@ k8s/secrets.yaml
 *.sql.gz
 *.dump
 
-# Server binary
-server
+# Server binary (root level only, not platform/host-app/server/)
+/server
 marble-runner
 /marble
 /gateway
