@@ -1,0 +1,45 @@
+{
+  "$schema": "./neo-manifest.schema.json",
+  "app_id": "miniapp-example",
+  "name": "Example Multi-Chain App",
+  "name_zh": "示例多链应用",
+  "description": "A multi-chain miniapp example",
+  "description_zh": "多链小程序示例",
+  "category": "defi",
+  "status": "active",
+  "supported_chains": ["neo-n3-mainnet", "neo-n3-testnet", "neox-mainnet", "neox-testnet"],
+  "contracts": {
+    "neo-n3-mainnet": {
+      "chain_id": "neo-n3-mainnet",
+      "contract_address": "0x1234567890abcdef1234567890abcdef12345678",
+      "is_primary": true
+    },
+    "neo-n3-testnet": {
+      "chain_id": "neo-n3-testnet",
+      "contract_address": "0xabcdef1234567890abcdef1234567890abcdef12"
+    },
+    "neox-mainnet": {
+      "chain_id": "neox-mainnet",
+      "contract_address": "0x1234567890123456789012345678901234567890",
+      "abi": "contracts/example.abi.json"
+    },
+    "neox-testnet": {
+      "chain_id": "neox-testnet",
+      "contract_address": "0x0987654321098765432109876543210987654321",
+      "abi": "contracts/example.abi.json"
+    }
+  },
+  "permissions": {
+    "payments": true,
+    "governance": false,
+    "randomness": true,
+    "datafeed": true,
+    "automation": false,
+    "cross_chain": true
+  },
+  "metadata": {
+    "version": "2.0.0",
+    "author": "Neo Team",
+    "website": "https://neo.org"
+  }
+}

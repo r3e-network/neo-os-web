@@ -8,28 +8,19 @@
       "description_zh": "经典 50/50 投注在区块链上重新演绎。抛硬币，使用加密安全随机数确保每次公平结果，即时翻倍您的 GAS。",
       "icon": "/miniapps/coin-flip/static/icon.svg",
       "entry_url": "/miniapps/coin-flip/index.html",
+      "category": "gaming",
       "status": "active",
-      "contract_hash": "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
+      "contract_hash": null,
       "permissions": {
         "payments": true,
-        "randomness": true
-      }
-    },
-    {
-      "app_id": "miniapp-lottery",
-      "name": "Lottery",
-      "name_zh": "Neo 彩票",
-      "description": "Experience the thrill of provably fair lottery draws powered by VRF randomness. Buy tickets with GAS and compete for massive jackpots with 100% transparent on-chain verification.",
-      "description_zh": "体验由 VRF 随机数驱动的公平彩票抽奖。使用 GAS 购买彩票，竞争巨额奖池，100% 链上透明验证。",
-      "icon": "/miniapps/lottery/static/icon.svg",
-      "entry_url": "/miniapps/lottery/index.html",
-      "status": "active",
-      "contract_hash": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
-      "permissions": {
-        "payments": true,
+        "governance": false,
         "randomness": true,
-        "automation": true
-      }
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-millionpiecemap",
@@ -39,98 +30,175 @@
       "description_zh": "在大型协作画布上拥有和自定义像素。",
       "icon": "/miniapps/million-piece-map/static/icon.svg",
       "entry_url": "/miniapps/million-piece-map/index.html",
+      "category": "gaming",
       "status": "active",
-      "contract_hash": "0xdf787aaf8a70dd2612521de69f12c7bf5a8d0d6d",
+      "contract_hash": "0xf4ab0fa6f245427482cb5c693a5f40baf6d58c71",
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
+    },
+    {
+      "app_id": "miniapp-lottery",
+      "name": "Neo Lottery",
+      "name_zh": "Neo 彩票",
+      "description": "Experience the thrill of provably fair lottery draws powered by VRF randomness. Buy tickets with GAS and compete for massive jackpots with 100% transparent on-chain verification.",
+      "description_zh": "体验由 VRF 随机数驱动的公平彩票抽奖。使用 GAS 购买彩票，竞争巨额奖池，100% 链上透明验证。",
+      "icon": "/miniapps/lottery/static/icon.svg",
+      "entry_url": "/miniapps/lottery/index.html",
+      "category": "gaming",
+      "status": "active",
+      "contract_hash": null,
+      "permissions": {
+        "payments": true,
+        "governance": false,
+        "randomness": true,
+        "datafeed": false,
+        "automation": true
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     }
   ],
   "defi": [
     {
-      "app_id": "miniapp-compoundcapsule",
+      "app_id": "miniapp-compound-capsule",
       "name": "Compound Capsule",
       "name_zh": "复利胶囊",
       "description": "Maximize your yields with automatic compounding. Deposit once and watch your earnings grow exponentially as rewards are reinvested continuously.",
       "description_zh": "通过自动复投最大化您的收益。",
       "icon": "/miniapps/compound-capsule/static/icon.svg",
       "entry_url": "/miniapps/compound-capsule/index.html",
+      "category": "defi",
       "status": "active",
-      "contract_hash": "0xba302bebace6c2bd0f610228b56bd3d3de07dbd7",
+      "contract_hash": "0x20397862ba24b84103a745ec2ed1f581126674dc",
       "permissions": {
         "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
         "automation": true
-      }
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-flashloan",
-      "name": "Flashloan",
+      "name": "Flash Loan",
       "name_zh": "闪电贷",
       "description": "Access instant uncollateralized loans that must be repaid within a single transaction. Perfect for arbitrage, liquidations, and complex DeFi strategies.",
       "description_zh": "无抵押即时借贷。在单笔交易内借入、使用、归还，实现套利和清算。",
       "icon": "/miniapps/flashloan/static/icon.svg",
       "entry_url": "/miniapps/flashloan/index.html",
+      "category": "defi",
       "status": "active",
-      "contract_hash": "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
+      "contract_hash": null,
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-gassponsor",
+      "app_id": "miniapp-gas-sponsor",
       "name": "Gas Sponsor",
       "name_zh": "GAS 赞助",
       "description": "Sponsor GAS fees for other users or get your transactions sponsored. Enable gasless transactions for your dApp users with a decentralized gas sponsorship marketplace.",
       "description_zh": "为其他用户赞助 GAS 费用或获得交易赞助。通过去中心化的 GAS 赞助市场为您的 dApp 用户启用无 GAS 交易。",
       "icon": "/miniapps/gas-sponsor/static/icon.svg",
       "entry_url": "/miniapps/gas-sponsor/index.html",
+      "category": "defi",
       "status": "active",
       "contract_hash": null,
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-neoswap",
+      "app_id": "miniapp-neo-swap",
       "name": "Neo Swap",
       "name_zh": "Neo 兑换",
       "description": "Swap NEO and GAS instantly via Flamingo DEX. Simple interface for quick token exchanges with real-time rates.",
       "description_zh": "去中心化代币兑换。即时交换 NEO 生态系统中的代币，享受最优价格。",
       "icon": "/miniapps/neo-swap/static/icon.svg",
       "entry_url": "/miniapps/neo-swap/index.html",
+      "category": "defi",
       "status": "active",
       "contract_hash": null,
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-neoburger",
-      "name": "Neoburger",
+      "name": "NeoBurger",
       "name_zh": "NeoBurger",
       "description": "Stake NEO to earn GAS rewards with liquid staking. Receive bNEO tokens representing your staked NEO, allowing you to earn staking rewards while maintaining liquidity for DeFi activities.",
       "description_zh": "Neo 质押聚合器。质押 NEO 获取 bNEO，自动复投最大化收益。",
       "icon": "/miniapps/neoburger/static/icon.svg",
       "entry_url": "/miniapps/neoburger/index.html",
+      "category": "defi",
       "status": "active",
       "contract_hash": null,
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-selfloan",
+      "app_id": "miniapp-self-loan",
       "name": "Self Loan",
       "name_zh": "自助贷款",
       "description": "Borrow against your own collateral with zero liquidation risk. Lock your assets, borrow up to 50%, and repay on your own schedule.",
       "description_zh": "用自己的抵押品借款，零清算风险。",
       "icon": "/miniapps/self-loan/static/icon.svg",
       "entry_url": "/miniapps/self-loan/index.html",
+      "category": "defi",
       "status": "active",
-      "contract_hash": "0x5ed7d8c85f24f4aa16b328aca776e09be5241296",
+      "contract_hash": "0xb7522afccd80ad5b3cbc112033c22b3d8f2d120c",
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     }
   ],
   "social": [
@@ -142,25 +210,41 @@
       "description_zh": "在链上创建不可变的关系协议，智能合约执行。",
       "icon": "/miniapps/breakup-contract/static/icon.svg",
       "entry_url": "/miniapps/breakup-contract/index.html",
+      "category": "social",
       "status": "active",
-      "contract_hash": "0x84a3864028b7b71e9f420056e1eae2e3e3113a0c",
+      "contract_hash": "0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f",
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-devtipping",
+      "app_id": "miniapp-dev-tipping",
       "name": "Dev Tipping",
       "name_zh": "开发者打赏",
       "description": "Support open-source developers directly! Tip contributors for their work on GitHub repos, Stack Overflow answers, or any valuable code contribution.",
       "description_zh": "直接支持开源开发者，为他们的贡献打赏。",
       "icon": "/miniapps/dev-tipping/static/icon.svg",
       "entry_url": "/miniapps/dev-tipping/index.html",
+      "category": "social",
       "status": "active",
-      "contract_hash": "0x38ec54ce12e9cbf041cc7e31534eccae0eaa38dc",
+      "contract_hash": "0x93d2406a73e060d43cbe28fb26d863e5ac4744a2",
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-exfiles",
@@ -170,41 +254,63 @@
       "description_zh": "Ex Files - Neo 小程序",
       "icon": "/miniapps/ex-files/static/icon.svg",
       "entry_url": "/miniapps/ex-files/index.html",
+      "category": "social",
       "status": "active",
-      "contract_hash": null,
+      "contract_hash": "0x6057934459f1ddc6c63a63bc816afed971514b43",
       "permissions": {
         "payments": true,
         "governance": false,
+        "randomness": false,
+        "datafeed": false,
         "automation": false
-      }
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-grantshare",
-      "name": "Grant Share",
+      "app_id": "miniapp-grant-share",
+      "name": "GrantShare",
       "name_zh": "资助分享",
       "description": "Create and fund community grants with transparent on-chain tracking. Support open-source projects, education initiatives, and community development.",
       "description_zh": "创建和资助社区资助项目，链上透明追踪。",
       "icon": "/miniapps/grant-share/static/icon.svg",
       "entry_url": "/miniapps/grant-share/index.html",
+      "category": "social",
       "status": "active",
       "contract_hash": null,
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-halloffame",
-      "name": "Hall Of Fame",
+      "app_id": "miniapp-hall-of-fame",
+      "name": "Neo Hall of Fame",
       "name_zh": "Neo 名人堂",
       "description": "Vote for Neo legends, communities, and developers using GAS volume. Pay to win ranking system.",
       "description_zh": "使用 GAS 交易量为 Neo 传奇人物、社区和开发者投票。通过付费赢得排名的系统。",
       "icon": "/miniapps/hall-of-fame/static/icon.svg",
       "entry_url": "/miniapps/hall-of-fame/index.html",
+      "category": "social",
       "status": "active",
       "contract_hash": null,
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-redenvelope",
@@ -214,29 +320,43 @@
       "description_zh": "发送幸运 GAS 红包给朋友。创建红包，分享链接，让朋友们抢红包！",
       "icon": "/miniapps/red-envelope/static/icon.svg",
       "entry_url": "/miniapps/red-envelope/index.html",
+      "category": "social",
       "status": "active",
-      "contract_hash": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
+      "contract_hash": null,
       "permissions": {
         "payments": true,
-        "randomness": true
-      }
+        "governance": false,
+        "randomness": true,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     }
   ],
   "nft": [
     {
-      "app_id": "miniapp-gardenofneo",
-      "name": "Garden Of Neo",
+      "app_id": "miniapp-garden-of-neo",
+      "name": "Garden of Neo",
       "name_zh": "Neo 花园",
       "description": "Cultivate your own virtual garden where plants grow based on your blockchain activity. Rare seeds, seasonal events, and cross-pollination create unique botanical NFTs.",
       "description_zh": "培育虚拟花园，植物根据区块链活动生长。",
       "icon": "/miniapps/garden-of-neo/static/icon.svg",
       "entry_url": "/miniapps/garden-of-neo/index.html",
+      "category": "nft",
       "status": "active",
-      "contract_hash": "0xdb52b284d97973b01fed431dd6d143a4d04d9fa7",
+      "contract_hash": "0x192e2a0a1e050440b97d449b7905f37516042faa",
       "permissions": {
         "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
         "automation": true
-      }
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-graveyard",
@@ -246,176 +366,243 @@
       "description_zh": "创建永久的数字纪念碑作为墓碑 NFT。",
       "icon": "/miniapps/graveyard/static/icon.svg",
       "entry_url": "/miniapps/graveyard/index.html",
+      "category": "nft",
       "status": "active",
-      "contract_hash": "0xe88938b2c2032483cf5edcdab7e4bde981e5fb24",
+      "contract_hash": "0x8cf45cdc1d879710c2b88fd8705696fe6f5aacb5",
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-heritagetrust",
+      "app_id": "miniapp-heritage-trust",
       "name": "Heritage Trust",
       "name_zh": "遗产信托",
       "description": "Create smart inheritance plans that automatically transfer your digital assets to beneficiaries. Set conditions, add trustees, and ensure your crypto legacy passes on securely.",
       "description_zh": "创建智能继承计划，自动转移资产。",
       "icon": "/miniapps/heritage-trust/static/icon.svg",
       "entry_url": "/miniapps/heritage-trust/index.html",
+      "category": "nft",
       "status": "active",
-      "contract_hash": "0xd59eea851cd8e5dd57efe80646ff53fa274600f8",
+      "contract_hash": "0x6d910186e2eee3fc38fd027e5e77d50d6f8c429b",
       "permissions": {
         "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
         "automation": true
-      }
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-onchaintarot",
-      "name": "On Chain Tarot",
+      "name": "On-Chain Tarot",
       "name_zh": "链上塔罗",
       "description": "Receive mystical tarot readings powered by VRF randomness. Each reading is minted as a unique NFT capturing your fortune at that moment in time.",
       "description_zh": "接收由 VRF 随机数驱动的神秘塔罗牌占卜。",
       "icon": "/miniapps/on-chain-tarot/static/icon.svg",
       "entry_url": "/miniapps/on-chain-tarot/index.html",
+      "category": "nft",
       "status": "active",
-      "contract_hash": "0xc2bb26d21f357f125a0e49cbca7718b6aa5c3b1e",
+      "contract_hash": "0xfff9616dd3d9e863bc72bf26ff0a0da2d698e767",
       "permissions": {
         "payments": true,
-        "randomness": true
-      }
+        "governance": false,
+        "randomness": true,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-timecapsule",
+      "app_id": "miniapp-time-capsule",
       "name": "Time Capsule",
       "name_zh": "时间胶囊",
       "description": "Lock messages, media, or assets in blockchain time capsules that unlock at a future date. Create digital legacies, schedule surprises, or preserve memories for future generations.",
       "description_zh": "锁定消息或资产，在未来日期解锁。",
       "icon": "/miniapps/time-capsule/static/icon.svg",
       "entry_url": "/miniapps/time-capsule/index.html",
+      "category": "nft",
       "status": "active",
-      "contract_hash": "0x119763e1402d7190728191d83c95c5b8e995abcd",
+      "contract_hash": "0x0108b2d8d020f921d9bdc82ffda5e55f9b749823",
       "permissions": {
         "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
         "automation": true
-      }
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     }
   ],
   "governance": [
     {
-      "app_id": "miniapp-burnleague",
+      "app_id": "miniapp-burn-league",
       "name": "Burn League",
       "name_zh": "销毁联盟",
       "description": "Compete in token burning competitions where communities race to reduce supply. Climb leaderboards, earn burn badges, and prove your commitment to deflation.",
       "description_zh": "参与代币销毁竞赛，减少供应量。",
       "icon": "/miniapps/burn-league/static/icon.svg",
       "entry_url": "/miniapps/burn-league/index.html",
+      "category": "governance",
       "status": "active",
-      "contract_hash": "0xf1aa73e2fb00664e8ef100dac083fc42be6aaf85",
+      "contract_hash": "0x8db1b8c67b52e02592d2ee7ceb47dea908ab0e46",
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-candidatevote",
+      "app_id": "miniapp-candidate-vote",
       "name": "Candidate Vote",
       "name_zh": "候选人投票",
       "description": "Vote for platform candidates and earn GAS rewards. Participate in governance by staking your tokens and supporting your preferred candidates with transparent on-chain voting.",
       "description_zh": "为 Neo 共识节点候选人投票。参与网络治理，支持您信任的节点。",
       "icon": "/miniapps/candidate-vote/static/icon.svg",
       "entry_url": "/miniapps/candidate-vote/index.html",
+      "category": "governance",
       "status": "active",
       "contract_hash": null,
       "permissions": {
+        "payments": true,
         "governance": true,
-        "payments": true
-      }
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-councilgovernance",
-      "name": "Council Governance",
+      "app_id": "miniapp-council-governance",
+      "name": "council-governance",
       "name_zh": "议会治理",
       "description": "Create and vote on governance proposals as a council member. Submit text proposals or policy parameter changes, collect signatures, and execute approved decisions with multi-sig verification.",
       "description_zh": "作为议会成员创建和投票治理提案。提交文本提案或策略参数变更，收集签名，执行已批准的决议。",
       "icon": "/miniapps/council-governance/static/icon.svg",
       "entry_url": "/miniapps/council-governance/index.html",
+      "category": "governance",
       "status": "active",
       "contract_hash": null,
       "permissions": {
+        "payments": true,
         "governance": true,
-        "payments": true
-      }
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-doomsdayclock",
+      "app_id": "miniapp-doomsday-clock",
       "name": "Doomsday Clock",
       "name_zh": "末日时钟",
       "description": "A community-controlled countdown that resets when people contribute. If it hits zero, locked funds redistribute. Keep the clock alive or watch it all burn.",
       "description_zh": "社区控制的倒计时，有人贡献时重置。",
       "icon": "/miniapps/doomsday-clock/static/icon.svg",
       "entry_url": "/miniapps/doomsday-clock/index.html",
+      "category": "governance",
       "status": "active",
       "contract_hash": "0xe4f386057d6308b83a5fd2e84bc3eb9149adc719",
       "permissions": {
         "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
         "automation": true
-      }
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-govmerc",
+      "app_id": "miniapp-gov-merc",
       "name": "Gov Merc",
       "name_zh": "治理雇佣兵",
       "description": "Hire governance mercenaries to vote on your behalf or sell your voting power to the highest bidder. A marketplace for delegation and influence in the DAO ecosystem.",
       "description_zh": "雇佣治理雇佣兵或出售您的投票权。",
       "icon": "/miniapps/gov-merc/static/icon.svg",
       "entry_url": "/miniapps/gov-merc/index.html",
+      "category": "governance",
       "status": "active",
-      "contract_hash": "0x05d4ed2e60141043d6d20f5cde274704bd42c0dc",
+      "contract_hash": "0x69a013c8fde3e835d642717ef1af71f7e02ade00",
       "permissions": {
+        "payments": true,
         "governance": true,
-        "payments": true
-      }
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-masqueradedao",
-      "name": "Masquerade Dao",
+      "name": "Masquerade DAO",
       "name_zh": "假面 DAO",
       "description": "Participate in governance wearing a digital mask. Propose and vote anonymously while still proving membership, enabling honest discourse without social pressure.",
       "description_zh": "戴着数字面具匿名参与治理。",
       "icon": "/miniapps/masquerade-dao/static/icon.svg",
       "entry_url": "/miniapps/masquerade-dao/index.html",
+      "category": "governance",
       "status": "active",
-      "contract_hash": "0x36873ae952147150e065ad2ba8d23731ffd00d5a",
+      "contract_hash": "0x07ff6bac7e2824d1cec0e71a1383d131cdf86c65",
       "permissions": {
-        "governance": true
-      }
+        "payments": true,
+        "governance": true,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     }
   ],
   "utility": [
     {
       "app_id": "miniapp-dailycheckin",
-      "name": "Daily Checkin",
+      "name": "Daily Check-in",
       "name_zh": "每日签到",
       "description": "Check in daily to build your streak and earn GAS rewards. Complete 7 consecutive days for 1 GAS, then earn 1.5 GAS for every additional 7 days. Miss a day and start over!",
       "description_zh": "每日签到累积连续天数赚取 GAS 奖励。连续7天获得1 GAS，之后每7天额外获得1.5 GAS。错过一天重新开始！",
       "icon": "/miniapps/daily-checkin/static/icon.svg",
       "entry_url": "/miniapps/daily-checkin/index.html",
-      "status": "active",
-      "contract_hash": "0x5a3f580fc14cd5f4d7746306eec7e2b44727ae2c",
-      "permissions": {
-        "payments": true
-      }
-    },
-    {
-      "app_id": "miniapp-explorer",
-      "name": "Explorer",
-      "name_zh": "区块浏览器",
-      "description": "Explore the Neo N3 blockchain with real-time stats for both Mainnet and Testnet. Search transactions, addresses, and contracts with detailed execution traces.",
-      "description_zh": "探索 Neo 区块链。查看交易、区块、地址和智能合约详情。",
-      "icon": "/miniapps/explorer/static/icon.svg",
-      "entry_url": "/miniapps/explorer/index.html",
+      "category": "utility",
       "status": "active",
       "contract_hash": null,
       "permissions": {
-        "datafeed": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-guardianpolicy",
@@ -425,51 +612,107 @@
       "description_zh": "为您的钱包定义和执行智能合约策略。",
       "icon": "/miniapps/guardian-policy/static/icon.svg",
       "entry_url": "/miniapps/guardian-policy/index.html",
+      "category": "utility",
       "status": "active",
-      "contract_hash": "0x893a774957244b83a0efed1d42771fe1e424cfec",
+      "contract_hash": null,
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-neonewstoday",
+      "app_id": "miniapp-explorer",
+      "name": "Neo Explorer",
+      "name_zh": "区块浏览器",
+      "description": "Explore the Neo N3 blockchain with real-time stats for both Mainnet and Testnet. Search transactions, addresses, and contracts with detailed execution traces.",
+      "description_zh": "探索 Neo 区块链。查看交易、区块、地址和智能合约详情。",
+      "icon": "/miniapps/explorer/static/icon.svg",
+      "entry_url": "/miniapps/explorer/index.html",
+      "category": "utility",
+      "status": "active",
+      "contract_hash": null,
+      "permissions": {
+        "payments": false,
+        "governance": false,
+        "randomness": false,
+        "datafeed": true,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
+    },
+    {
+      "app_id": "miniapp-neo-ns",
+      "name": "Neo Name Service",
+      "name_zh": "Neo 域名服务",
+      "description": "Register and manage human-readable .neo domain names for your wallet. Search availability, register domains, and manage your digital identity on Neo.",
+      "description_zh": "为您的钱包注册人类可读的 .neo 域名。",
+      "icon": "/miniapps/neo-ns/static/icon.svg",
+      "entry_url": "/miniapps/neo-ns/index.html",
+      "category": "utility",
+      "status": "active",
+      "contract_hash": null,
+      "permissions": {
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
+    },
+    {
+      "app_id": "miniapp-neo-news-today",
       "name": "Neo News Today",
       "name_zh": "Neo新闻今日",
       "description": "Stay updated with the latest Neo ecosystem news from NeoNewsToday.com",
       "description_zh": "获取NeoNewsToday.com的最新Neo生态系统新闻",
       "icon": "/miniapps/neo-news-today/static/icon.svg",
       "entry_url": "/miniapps/neo-news-today/index.html",
-      "status": "active",
-      "contract_hash": null,
-      "permissions": {}
-    },
-    {
-      "app_id": "miniapp-neons",
-      "name": "Neo Ns",
-      "name_zh": "Neo 域名服务",
-      "description": "Register and manage human-readable .neo domain names for your wallet. Search availability, register domains, and manage your digital identity on Neo.",
-      "description_zh": "为您的钱包注册人类可读的 .neo 域名。",
-      "icon": "/miniapps/neo-ns/static/icon.svg",
-      "entry_url": "/miniapps/neo-ns/index.html",
+      "category": "utility",
       "status": "active",
       "contract_hash": null,
       "permissions": {
-        "payments": true
-      }
+        "payments": false,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
-      "app_id": "miniapp-neotreasury",
+      "app_id": "miniapp-neo-treasury",
       "name": "Neo Treasury",
       "name_zh": "Neo 国库",
       "description": "Track Neo co-founders Da Hongfei and Erik Zhang's wallet holdings in real-time. View NEO and GAS balances across 44 treasury addresses with live price data.",
       "description_zh": "实时追踪 Neo 联合创始人达鸿飞和张铮文的钱包持有量。查看 44 个国库地址的 NEO 和 GAS 余额及实时价格。",
       "icon": "/miniapps/neo-treasury/static/icon.svg",
       "entry_url": "/miniapps/neo-treasury/index.html",
+      "category": "utility",
       "status": "active",
       "contract_hash": null,
       "permissions": {
-        "datafeed": true
-      }
+        "payments": false,
+        "governance": false,
+        "randomness": false,
+        "datafeed": true,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     },
     {
       "app_id": "miniapp-unbreakablevault",
@@ -479,11 +722,19 @@
       "description_zh": "在多层安全的时间锁定保险库中存储贵重资产。",
       "icon": "/miniapps/unbreakable-vault/static/icon.svg",
       "entry_url": "/miniapps/unbreakable-vault/index.html",
+      "category": "utility",
       "status": "active",
-      "contract_hash": "0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4",
+      "contract_hash": "0xcf4c6eb16baad22292fb3ced6e570c31fadddd4e",
       "permissions": {
-        "payments": true
-      }
+        "payments": true,
+        "governance": false,
+        "randomness": false,
+        "datafeed": false,
+        "automation": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     }
   ]
 }

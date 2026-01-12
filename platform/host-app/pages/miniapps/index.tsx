@@ -11,6 +11,7 @@ import { getAppHighlights, generateDefaultHighlights } from "@/lib/app-highlight
 import { useCollections } from "@/hooks/useCollections";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
+import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
 
 const categories = ["all", "gaming", "defi", "social", "nft", "governance", "utility"] as const;
 
@@ -353,13 +354,9 @@ export default function MiniAppsPage() {
         <title>MiniApps - NeoHub</title>
       </Head>
 
-      <div className="flex min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-[#050505] relative">
+      <div className="flex min-h-[calc(100vh-3.5rem)] bg-transparent relative">
         {/* E-Robo Water Wave Background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] animate-water-wave opacity-20">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,rgba(159,157,243,0.06)_0%,transparent_70%)]" />
-          </div>
-        </div>
+        <WaterWaveBackground intensity="medium" colorScheme="mixed" className="opacity-70 z-0" />
 
         {/* Sidebar */}
         <FilterSidebar sections={filterSections} selected={filters} onChange={handleFilterChange} />
@@ -367,14 +364,14 @@ export default function MiniAppsPage() {
         {/* Main Content */}
         <main className="flex-1 w-0 relative z-10">
           {/* Header */}
-          <div className="sticky top-16 z-40 bg-white/80 dark:bg-[#050505]/90 backdrop-blur-xl border-b border-gray-200 dark:border-erobo-purple/10 px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="sticky top-16 z-40 bg-white/70 dark:bg-[#0b0c16]/90 backdrop-blur-xl border-b border-white/60 dark:border-erobo-purple/10 px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-neo/10 flex items-center justify-center">
-                <Rocket size={24} className="text-neo" strokeWidth={2} />
+              <div className="w-10 h-10 rounded-xl bg-erobo-purple/10 flex items-center justify-center">
+                <Rocket size={24} className="text-erobo-purple" strokeWidth={2} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("miniapps.title")}</h1>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <h1 className="text-2xl font-bold text-erobo-ink dark:text-white">{t("miniapps.title")}</h1>
+                <span className="text-sm text-erobo-ink-soft/70 dark:text-gray-400">
                   {filteredAndSortedApps.length} {t("miniapps.apps")}
                 </span>
               </div>
@@ -385,7 +382,7 @@ export default function MiniAppsPage() {
               <div className="relative">
                 <button
                   onClick={() => setShowSortMenu(!showSortMenu)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-erobo-ink-soft dark:text-gray-300 border border-white/60 dark:border-white/10 bg-white/70 dark:bg-white/5 rounded-full hover:bg-erobo-peach/30 dark:hover:bg-white/10 transition-all"
                 >
                   <currentSort.icon size={16} strokeWidth={2} />
                   {currentSort.label}
@@ -397,7 +394,7 @@ export default function MiniAppsPage() {
                 </button>
 
                 {showSortMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#111] border border-gray-200 dark:border-erobo-purple/20 rounded-xl shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-white/90 dark:bg-[#0b0c16] border border-white/60 dark:border-erobo-purple/20 rounded-2xl shadow-lg py-1 z-50">
                     {sortOptions.map((option) => (
                       <button
                         key={option.value}
@@ -408,8 +405,8 @@ export default function MiniAppsPage() {
                         className={cn(
                           "flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors text-left",
                           sortBy === option.value
-                            ? "bg-neo/10 text-neo"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white",
+                            ? "bg-erobo-purple/10 text-erobo-purple"
+                            : "text-erobo-ink-soft dark:text-gray-400 hover:bg-erobo-peach/30 dark:hover:bg-white/5 hover:text-erobo-ink dark:hover:text-white",
                         )}
                       >
                         <option.icon size={16} strokeWidth={2} />
@@ -421,14 +418,14 @@ export default function MiniAppsPage() {
               </div>
 
               {/* View Toggle */}
-              <div className="flex items-center border border-gray-200 dark:border-erobo-purple/20 rounded-lg bg-white dark:bg-white/5 overflow-hidden">
+              <div className="flex items-center border border-white/60 dark:border-erobo-purple/20 rounded-full bg-white/70 dark:bg-white/5 overflow-hidden">
                 <button
                   onClick={() => setViewMode("list")}
                   className={cn(
                     "p-2 transition-all",
                     viewMode === "list"
-                      ? "bg-neo/10 text-neo"
-                      : "text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/10",
+                      ? "bg-erobo-purple/10 text-erobo-purple"
+                      : "text-gray-400 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/10",
                   )}
                   title="List view"
                 >
@@ -439,8 +436,8 @@ export default function MiniAppsPage() {
                   className={cn(
                     "p-2 transition-all",
                     viewMode === "grid"
-                      ? "bg-neo/10 text-neo"
-                      : "text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/10",
+                      ? "bg-erobo-purple/10 text-erobo-purple"
+                      : "text-gray-400 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/10",
                   )}
                   title="Card view"
                 >
@@ -453,9 +450,9 @@ export default function MiniAppsPage() {
           {/* Apps List/Grid */}
           <div className="p-8">
             {searchQuery && (
-              <p className="mb-6 text-base text-gray-500 dark:text-gray-400">
+              <p className="mb-6 text-base text-erobo-ink-soft/70 dark:text-gray-400">
                 {t("miniapps.resultsFor")} "
-                <span className="text-gray-900 dark:text-white font-medium bg-neo/10 px-1.5 py-0.5 rounded">
+                <span className="text-erobo-ink dark:text-white font-medium bg-erobo-peach/40 px-1.5 py-0.5 rounded-full">
                   {searchQuery}
                 </span>
                 "
@@ -468,7 +465,7 @@ export default function MiniAppsPage() {
                   <MiniAppListItem key={app.app_id} app={app} />
                 ))}
                 {filteredAndSortedApps.length === 0 && (
-                  <div className="py-16 text-center text-gray-500 dark:text-gray-400 text-base">
+                  <div className="py-16 text-center text-erobo-ink-soft/70 dark:text-gray-400 text-base">
                     {t("miniapps.noApps")}
                   </div>
                 )}
@@ -482,7 +479,7 @@ export default function MiniAppsPage() {
               <div className="mt-12 text-center">
                 <button
                   onClick={() => setDisplayCount((prev) => prev + PAGE_SIZE)}
-                  className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-white/5 border border-gray-200 dark:border-erobo-purple/20 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 hover:border-erobo-purple/40 hover:shadow-[0_0_20px_rgba(159,157,243,0.2)] transition-all"
+                  className="px-6 py-2.5 text-sm font-medium text-erobo-ink-soft dark:text-gray-300 bg-white/70 dark:bg-white/5 border border-white/60 dark:border-erobo-purple/20 rounded-full hover:bg-erobo-peach/30 dark:hover:bg-white/10 hover:border-erobo-purple/40 hover:shadow-[0_0_20px_rgba(159,157,243,0.2)] transition-all"
                 >
                   {t("miniapps.loadMore")} ({filteredAndSortedApps.length - displayCount} {t("miniapps.remaining")})
                 </button>

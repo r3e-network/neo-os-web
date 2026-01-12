@@ -43,7 +43,8 @@ async function fetchFromSupabase(appId?: string, limit = 20, afterId?: string) {
     created_at: tx.created_at,
   }));
 
-  return { transactions, has_more: hasMore };
+  const lastId = transactions.length > 0 ? transactions[transactions.length - 1].id : null;
+  return { transactions, has_more: hasMore, last_id: lastId };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -69,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const params = new URLSearchParams();
     if (app_id) params.set("app_id", String(app_id));
-    if (limit) params.set("limit", String(limit));
+    params.set("limit", String(limitNum)); // Use validated limit
     if (after_id) params.set("after_id", String(after_id));
 
     const url = `${base}/transactions-list?${params}`;

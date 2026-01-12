@@ -486,7 +486,7 @@
           "desc": "Launch any app from our marketplace with zero installation required."
         }
       ],
-      "installSdk": "Install the NeoHub SDK to begin building your own MiniApps.",
+      "installSdk": "Install @neo/uniapp-sdk to begin building your own MiniApps.",
       "initSdk": "Initialize the SDK in your project:",
       "playgroundTitle": "Try the Interactive Playground",
       "playgroundDesc": "The fastest way to experiment with our APIs without writing a single line of code.",
@@ -879,38 +879,38 @@
   },
   "sdks": {
     "jsSDK": {
-      "subtitle": "Official TypeScript/JavaScript SDK for NeoHub.",
-      "install": "npm install @neohub/sdk",
+      "subtitle": "Official MiniApp SDK for browser-based frontends.",
+      "install": "pnpm add @neo/uniapp-sdk",
       "features": [
-        "Full TypeScript support with comprehensive typings",
-        "Browser and Node.js compatible",
-        "Automatic retry with exponential backoff",
-        "WebSocket real-time subscriptions",
-        "Integrated secret management"
+        "Injected by the host app (no API keys in MiniApps)",
+        "Works in iframe or Module Federation contexts",
+        "PostMessage bridge with strict origin checks",
+        "Vue composables plus low-level SDK access",
+        "Wallet, payments, RNG, and datafeeds"
       ],
       "methods": [
         {
-          "name": "connect()",
+          "name": "waitForSDK()",
+          "params": "timeout?: number",
+          "returns": "Promise<MiniAppSDK>"
+        },
+        {
+          "name": "wallet.getAddress()",
           "params": "void",
-          "returns": "Promise<void>"
+          "returns": "Promise<string>"
         },
         {
-          "name": "oracle.fetch()",
-          "params": "FetchOptions",
-          "returns": "Promise<Response>"
+          "name": "payments.payGAS()",
+          "params": "appId, amount, memo?",
+          "returns": "Promise<PaymentIntent>"
         },
         {
-          "name": "vrf.random()",
-          "params": "VRFOptions",
-          "returns": "Promise<VRFResult>"
-        },
-        {
-          "name": "datafeeds.getPrice()",
-          "params": "string",
-          "returns": "Promise<Price>"
+          "name": "rng.requestRandom()",
+          "params": "appId",
+          "returns": "Promise<RandomnessResult>"
         }
       ],
-      "example": "import { NeoHub } from '@neohub/sdk';\n\nconst hub = new NeoHub({ apiKey: 'your-api-key' });\n\nconst price = await hub.datafeeds.getPrice('BTC-USD');\nconsole.log(`Current BTC Price: ${price.value}`);"
+      "example": "import { waitForSDK } from '@neo/uniapp-sdk';\n\nconst sdk = await waitForSDK();\nconst address = await sdk.wallet.getAddress();\nconsole.log(`Wallet: ${address}`);"
     },
     "goSDK": {
       "subtitle": "Official Go SDK for high-performance backend services.",
@@ -1639,5 +1639,22 @@
       "docs": "View Documentation",
       "community": "Join Community"
     }
+  },
+  "wishlist": {
+    "title": "My Wishlist",
+    "pageTitle": "Wishlist - NeoHub",
+    "appsSaved": "{{count}} apps saved",
+    "addToWishlist": "Add to Wishlist",
+    "removeFromWishlist": "Remove from Wishlist",
+    "added": "Added",
+    "connectWallet": "Connect Wallet",
+    "connectWalletDesc": "Connect your wallet to view your wishlist",
+    "noApps": "No Apps Yet",
+    "noAppsDesc": "Browse apps and add them to your wishlist",
+    "browseApps": "Browse Apps"
+  },
+  "discovery": {
+    "title": "Discover New Apps",
+    "personalized": "Personalized for you"
   }
 }

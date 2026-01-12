@@ -8,7 +8,7 @@
                 <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.2"/>
             </filter>
         </defs>
-        <rect x="0" y="0" width="512" height="512" rx="128" fill="url(#g)" />
+        <circle cx="256" cy="256" r="256" fill="url(#g)" />
         <g transform="translate(106, 106) scale(12.5)" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)">
             <path d="M11.5 21a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H2v12h9.5z M22 21a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-7v9h7z M18 2a3 3 0 0 0-3 3v2h6V5a3 3 0 0 0-3-3z" />
         </g>

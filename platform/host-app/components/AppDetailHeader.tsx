@@ -3,6 +3,7 @@ import { MiniAppInfo, MiniAppStats } from "./types";
 import { useI18n } from "@/lib/i18n/react";
 import { MiniAppLogo } from "./features/miniapp/MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
+import { WishlistButton } from "./features/wishlist";
 
 function isIconUrl(icon: string): boolean {
   if (!icon) return false;
@@ -38,7 +39,7 @@ export function AppDetailHeader({ app, stats }: Props) {
   }
 
   return (
-    <header className="pt-28 pb-10 px-8 relative z-10 overflow-hidden bg-white/80 dark:bg-[#050505]/90 backdrop-blur-xl border-b border-gray-200 dark:border-white/10 transition-all duration-300">
+    <header className="pt-28 pb-10 px-8 relative z-10 overflow-hidden bg-white/70 dark:bg-[#0b0c16]/90 backdrop-blur-xl border-b border-white/60 dark:border-white/10 transition-all duration-300">
       {/* E-Robo Background Glow */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[var(--erobo-purple)]/20 to-transparent rounded-full blur-[100px] pointer-events-none -mr-32 -mt-32 opacity-70" />
 
@@ -53,7 +54,7 @@ export function AppDetailHeader({ app, stats }: Props) {
               className="w-full h-full rounded-3xl"
             />
           ) : (
-            <div className="w-full h-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl flex items-center justify-center shadow-2xl backdrop-blur-xl">
+            <div className="w-full h-full bg-white/80 dark:bg-white/5 border border-white/60 dark:border-white/10 rounded-3xl flex items-center justify-center shadow-2xl backdrop-blur-xl">
               <span className="text-6xl transition-transform group-hover:scale-110 duration-300 inline-block drop-shadow-sm">
                 {app.icon}
               </span>
@@ -64,32 +65,35 @@ export function AppDetailHeader({ app, stats }: Props) {
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <Badge
               variant="secondary"
-              className="px-3 py-1 font-bold uppercase text-[10px] tracking-wider bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 shadow-sm border border-gray-300 dark:border-transparent"
+              className="px-3 py-1 font-bold uppercase text-[10px] tracking-wider bg-erobo-purple/10 text-erobo-purple-dark shadow-sm border border-erobo-purple/30"
             >
               {app.category}
             </Badge>
             <div
               className={`px-3 py-1 rounded-full font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 border shadow-sm backdrop-blur-sm ${
                 statusBadge === "Online"
-                  ? "bg-neo/10 text-neo border-neo/20"
+                  ? "bg-erobo-purple/10 text-erobo-purple border-erobo-purple/30"
                   : statusBadge === "Maintenance"
-                    ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                    : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10"
+                    ? "bg-erobo-peach/40 text-erobo-ink border-white/60"
+                    : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft/70 dark:text-gray-400 border-white/60 dark:border-white/10"
               }`}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
                   statusBadge === "Online"
-                    ? "bg-neo animate-pulse shadow-[0_0_8px_currentColor]"
+                    ? "bg-erobo-purple animate-pulse shadow-[0_0_8px_currentColor]"
                     : "bg-current opacity-50"
                 }`}
               />
               {statusBadge}
             </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white leading-tight tracking-tight drop-shadow-sm break-words bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 dark:from-white dark:via-gray-200 dark:to-white">
-            {appName}
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-erobo-ink dark:text-white leading-tight tracking-tight drop-shadow-sm break-words bg-clip-text text-transparent bg-gradient-to-r from-erobo-ink via-erobo-ink-soft to-erobo-ink dark:from-white dark:via-gray-200 dark:to-white">
+              {appName}
+            </h1>
+            <WishlistButton appId={app.app_id} size="lg" />
+          </div>
         </div>
       </div>
     </header>

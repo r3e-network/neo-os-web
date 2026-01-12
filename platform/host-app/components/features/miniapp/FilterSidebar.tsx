@@ -34,9 +34,9 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
   };
 
   return (
-    <aside className="w-72 flex-shrink-0 border-r border-gray-200 dark:border-erobo-purple/10 bg-white/80 dark:bg-[#080808]/80 backdrop-blur-xl overflow-y-auto min-h-screen">
+    <aside className="w-72 flex-shrink-0 border-r border-white/60 dark:border-erobo-purple/10 bg-white/70 dark:bg-[#0b0c16]/80 backdrop-blur-xl overflow-y-auto min-h-screen">
       <div className="p-6">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6 pb-3 border-b border-gray-200 dark:border-erobo-purple/20">
+        <h2 className="text-lg font-bold text-erobo-ink dark:text-white mb-6 pb-3 border-b border-white/60 dark:border-erobo-purple/20">
           {t("miniapps.filters.title")}
         </h2>
 
@@ -44,7 +44,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
           <div key={section.id} className="mb-6">
             <button
               onClick={() => toggleSection(section.id)}
-              className="flex items-center justify-between w-full text-left py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-neo dark:hover:text-neo transition-colors"
+              className="flex items-center justify-between w-full text-left py-2 text-sm font-semibold text-erobo-ink-soft dark:text-gray-300 hover:text-erobo-purple dark:hover:text-erobo-purple transition-colors"
             >
               {section.label}
               {expanded[section.id] ? (
@@ -62,10 +62,10 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
                     <label
                       key={option.value}
                       className={cn(
-                        "flex items-center justify-between gap-3 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all",
+                        "flex items-center justify-between gap-3 px-3 py-2 rounded-xl cursor-pointer text-sm transition-all border",
                         isSelected
-                          ? "bg-erobo-purple/10 text-erobo-purple border border-erobo-purple/30"
-                          : "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-erobo-purple/10 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
+                          ? "bg-erobo-purple/10 text-erobo-purple border-erobo-purple/30"
+                          : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft dark:text-gray-400 border-white/60 dark:border-erobo-purple/10 hover:bg-erobo-peach/30 dark:hover:bg-white/10 hover:text-erobo-ink dark:hover:text-white",
                       )}
                     >
                       <input
@@ -80,7 +80,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
                             "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
                             isSelected
                               ? "border-erobo-purple bg-erobo-purple text-white"
-                              : "border-gray-300 dark:border-erobo-purple/30 bg-transparent",
+                              : "border-erobo-purple/30 dark:border-erobo-purple/30 bg-transparent",
                           )}
                         >
                           {isSelected && <Check size={10} strokeWidth={3} />}

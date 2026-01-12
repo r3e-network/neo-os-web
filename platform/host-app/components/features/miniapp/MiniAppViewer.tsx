@@ -6,13 +6,14 @@ import { MiniAppLogo } from "./MiniAppLogo";
 import { Loader2, ShieldCheck, Zap, Lock } from "lucide-react";
 import { MiniAppInfo } from "../../types";
 import { FederatedMiniApp } from "../../FederatedMiniApp";
-import { buildMiniAppEntryUrl, parseFederatedEntryUrl } from "../../../lib/miniapp";
-import { installMiniAppSDK } from "../../../lib/miniapp-sdk";
-import { injectMiniAppViewportStyles } from "../../../lib/miniapp-iframe";
-import type { MiniAppSDK } from "../../../lib/miniapp-sdk";
+import { buildMiniAppEntryUrl, parseFederatedEntryUrl } from "@/lib/miniapp";
+import { installMiniAppSDK } from "@/lib/miniapp-sdk";
+import { injectMiniAppViewportStyles } from "@/lib/miniapp-iframe";
+import type { MiniAppSDK } from "@/lib/miniapp-sdk";
 import { useTheme } from "../../providers/ThemeProvider";
-import { useWalletStore } from "../../../lib/wallet/store";
+import { useWalletStore } from "@/lib/wallet/store";
 import { MiniAppFrame } from "./MiniAppFrame";
+import { WaterWaveBackground } from "../../ui/WaterWaveBackground";
 
 interface MiniAppViewerProps {
   app: MiniAppInfo;
@@ -24,22 +25,22 @@ interface WindowWithMiniAppSDK {
 }
 
 /**
- * MiniAppLoader - Neo Brutalist styling
+ * MiniAppLoader - E-Robo water ripple launch styling
  */
 function MiniAppLoader({ app }: { app: MiniAppInfo }) {
   const [msgIndex, setMsgIndex] = React.useState(0);
   const loadingMessages = [
-    "INITIALIZING SANDBOX",
+    "WARMING UP VAULT",
     "VERIFYING SDK INTEGRITY",
-    "CONNECTING RPC NODES",
-    "OPTIMIZING GRAPHICS",
-    "CONTAINER READY",
+    "SYNCING WALLET STATE",
+    "ALIGNING NEON SIGNALS",
+    "LAUNCH READY",
   ];
 
   useEffect(() => {
     const timer = setInterval(() => {
       setMsgIndex((i) => (i < loadingMessages.length - 1 ? i + 1 : i));
-    }, 800);
+    }, 900);
     return () => clearInterval(timer);
   }, [loadingMessages.length]);
 
@@ -47,99 +48,76 @@ function MiniAppLoader({ app }: { app: MiniAppInfo }) {
     <motion.div
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-brutal-yellow dark:bg-[#050505] overflow-hidden"
+      transition={{ duration: 0.6 }}
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-white via-[#f5f6ff] to-[#e6fbf3] dark:from-[#05060d] dark:via-[#090a14] dark:to-[#050a0d]"
     >
-      {/* Brutalist Pattern Background */}
-      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)] dark:bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] bg-[size:16px_16px]" />
+      <WaterWaveBackground intensity="medium" colorScheme="mixed" className="opacity-80" />
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.5)_1px,transparent_0)] dark:bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.15)_1px,transparent_0)] bg-[size:24px_24px]" />
 
-      {/* Main Card */}
       <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        initial={{ scale: 0.92, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="relative z-10 flex flex-col items-center p-8 bg-white dark:bg-[#111] border-4 border-black dark:border-white shadow-[8px_8px_0_#000] dark:shadow-[8px_8px_0_#fff] max-w-sm w-full mx-4"
+        className="relative z-10 flex flex-col items-center gap-6 px-10 py-10 rounded-[28px] bg-white/80 dark:bg-white/[0.06] border border-white/60 dark:border-white/10 shadow-[0_20px_60px_rgba(70,60,120,0.15)] backdrop-blur-2xl"
       >
-        {/* Decorative Corner Squares */}
-        <div className="absolute top-2 left-2 w-3 h-3 bg-black dark:bg-white" />
-        <div className="absolute top-2 right-2 w-3 h-3 bg-black dark:bg-white" />
-        <div className="absolute bottom-2 left-2 w-3 h-3 bg-black dark:bg-white" />
-        <div className="absolute bottom-2 right-2 w-3 h-3 bg-black dark:bg-white" />
-
-        {/* Logo Container */}
-        <motion.div
-          animate={{
-            rotate: [0, 5, -5, 0],
-          }}
-          transition={{
-            duration: 0.5,
-            repeat: Infinity,
-            repeatDelay: 2,
-            ease: "easeInOut",
-          }}
-          className="relative mb-8 mt-2"
-        >
-          <div className="absolute inset-0 bg-black dark:bg-white translate-x-1 translate-y-1" />
+        <div className="relative flex items-center justify-center w-32 h-32">
+          <span className="absolute inset-0 rounded-full border border-erobo-purple/30 animate-concentric-ripple" />
+          <span className="absolute inset-0 rounded-full border border-erobo-purple/20 animate-concentric-ripple [animation-delay:0.35s]" />
+          <span className="absolute inset-0 rounded-full border border-neo/20 animate-concentric-ripple [animation-delay:0.7s]" />
+          <span className="absolute inset-0 rounded-full bg-erobo-purple/20 blur-md animate-[water-drop_1.6s_ease-out_infinite]" />
           <MiniAppLogo
             appId={app.app_id}
             category={app.category}
             size="lg"
             iconUrl={app.icon}
-            className="relative border-2 border-black dark:border-white z-10"
+            className="relative z-10"
           />
-        </motion.div>
-
-        {/* Text Details */}
-        <h2 className="text-3xl font-black text-black dark:text-white mb-1 tracking-tighter uppercase italic text-center leading-none">
-          {app.name}
-        </h2>
-
-        <div className="flex items-center gap-2 text-black text-xs font-bold uppercase mb-8 border-2 border-black dark:border-white px-3 py-1 bg-neo shadow-[2px_2px_0_#000] dark:shadow-[2px_2px_0_#fff]">
-          <ShieldCheck size={14} className="text-black" strokeWidth={3} />
-          <span>Verified Sandbox v1.0</span>
         </div>
 
-        {/* Hard Progress Bar */}
-        <div className="w-full h-4 border-2 border-black dark:border-white bg-white dark:bg-black mb-4 p-0.5 shadow-[2px_2px_0_#000] dark:shadow-[2px_2px_0_#fff]">
+        <div className="text-center space-y-2">
+          <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight">{app.name}</h2>
+          <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-white/60">Neo MiniApp Launch</p>
+        </div>
+
+        <div className="w-56 h-2 rounded-full bg-gray-200/70 dark:bg-white/10 overflow-hidden">
           <motion.div
             initial={{ width: "0%" }}
             animate={{ width: "100%" }}
             transition={{ duration: 4, ease: "linear" }}
-            className="h-full bg-black dark:bg-white"
+            className="h-full bg-gradient-to-r from-neo/80 via-erobo-purple/80 to-erobo-purple-dark/90"
           />
         </div>
 
-        {/* Dynamic Status Messages */}
         <div className="h-6 flex items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={msgIndex}
-              initial={{ opacity: 0, y: 5 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              className="flex items-center gap-2 text-xs font-black text-black dark:text-white uppercase tracking-wider"
+              exit={{ opacity: 0, y: -6 }}
+              className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-white/70"
             >
               {msgIndex === loadingMessages.length - 1 ? (
-                <Zap size={14} className="text-black dark:text-white fill-yellow-400" strokeWidth={2} />
+                <Zap size={14} className="text-neo" strokeWidth={2.5} />
               ) : (
-                <Loader2 size={14} className="animate-spin text-black dark:text-white" strokeWidth={3} />
+                <Loader2 size={14} className="animate-spin text-erobo-purple" strokeWidth={2.5} />
               )}
               <span>{loadingMessages[msgIndex]}</span>
             </motion.div>
           </AnimatePresence>
         </div>
-      </motion.div>
 
-      {/* Footer Tags */}
-      <div className="absolute bottom-12 flex gap-8">
-        <div className="flex items-center gap-2 bg-white dark:bg-black border-2 border-black dark:border-white px-3 py-1 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_#fff] rotate-[-2deg]">
-          <Lock size={12} strokeWidth={3} className="text-black dark:text-white" />
-          <span className="text-[10px] font-black uppercase text-black dark:text-white">Isolated Env</span>
+        <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-gray-400 dark:text-white/40">
+          <span className="flex items-center gap-1">
+            <ShieldCheck size={12} className="text-neo" />
+            Secure Sandbox
+          </span>
+          <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-white/20" />
+          <span className="flex items-center gap-1">
+            <Lock size={12} className="text-erobo-purple" />
+            Isolated
+          </span>
         </div>
-        <div className="flex items-center gap-2 bg-white dark:bg-black border-2 border-black dark:border-white px-3 py-1 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_#fff] rotate-[2deg]">
-          <Zap size={12} strokeWidth={3} className="text-black dark:text-white" />
-          <span className="text-[10px] font-black uppercase text-black dark:text-white">Direct RPC</span>
-        </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -167,7 +145,10 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
     if (!iframe?.contentWindow) return;
     const origin = resolveIframeOrigin(app.entry_url);
     if (!origin) return;
-    iframe.contentWindow.postMessage({ type: "theme-change", theme }, origin);
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const targetOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
+    iframe.contentWindow.postMessage({ type: "theme-change", theme }, targetOrigin);
   }, [theme, app.entry_url, federated]);
 
   // Sync wallet state to iframe when it changes
@@ -180,6 +161,9 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
     if (!iframe?.contentWindow) return;
     const origin = resolveIframeOrigin(app.entry_url);
     if (!origin) return;
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const targetOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
 
     // Helper to send wallet state
     const sendWalletState = (state: {
@@ -194,7 +178,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
           address: state.address,
           balance: state.balance,
         },
-        origin,
+        targetOrigin,
       );
     };
 
@@ -264,7 +248,10 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
     const expectedOrigin = resolveIframeOrigin(app.entry_url);
     if (!expectedOrigin) return;
 
-    const allowSameOriginInjection = expectedOrigin === window.location.origin;
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const allowNullOrigin = sandboxAttr.length > 0 && !sandboxAllowsSameOrigin;
+    const allowSameOriginInjection = sandboxAllowsSameOrigin && expectedOrigin === window.location.origin;
 
     const ensureSDK = () => {
       if (!sdkRef.current) {
@@ -279,7 +266,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
 
     const handleMessage = async (event: MessageEvent) => {
       if (event.source !== iframe.contentWindow) return;
-      if (event.origin !== expectedOrigin) return;
+      if (event.origin !== expectedOrigin && !(allowNullOrigin && event.origin === "null")) return;
 
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
@@ -298,7 +285,8 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
       if (!source || typeof source.postMessage !== "function") return;
 
       const respond = (ok: boolean, result?: unknown, error?: string) => {
-        source.postMessage({ type: "neo_miniapp_sdk_response", id, ok, result, error }, expectedOrigin);
+        const responseOrigin = event.origin === "null" ? "*" : expectedOrigin;
+        source.postMessage({ type: "neo_miniapp_sdk_response", id, ok, result, error }, responseOrigin);
       };
 
       try {
@@ -350,6 +338,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
           animate={{
             opacity: isLoaded ? 1 : 0,
             scale: isLoaded ? 1 : 0.98,
+            filter: isLoaded ? "blur(0px)" : "blur(8px)",
           }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="w-full h-full"
@@ -364,9 +353,10 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
               src={iframeSrc}
               ref={iframeRef}
               className="w-full h-full border-0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              sandbox="allow-scripts allow-forms allow-popups"
               title={`${app.name} MiniApp`}
               allowFullScreen
+              referrerPolicy="no-referrer"
             />
           )}
         </motion.div>

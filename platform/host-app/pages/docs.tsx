@@ -34,6 +34,7 @@ import {
   Lock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
 
 // Types
 interface DocItem {
@@ -122,8 +123,8 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
   };
 
   return (
-    <div className="relative group rounded-xl bg-gray-900/90 dark:bg-black/40 border border-gray-800 dark:border-white/5 overflow-hidden my-6">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 dark:border-white/5 bg-gray-900/50">
+    <div className="relative group rounded-2xl bg-erobo-ink/95 dark:bg-black/50 border border-erobo-ink/60 dark:border-white/10 overflow-hidden my-6">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-erobo-ink/60 dark:border-white/10 bg-erobo-ink/80">
         <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">{language}</span>
         <button onClick={handleCopy} className="p-1.5 rounded-md hover:bg-white/5 transition-colors">
           {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-gray-500" />}
@@ -141,14 +142,14 @@ function ComparisonTable({ headers, rows, title }: { headers: string[]; rows: st
   return (
     <div className="my-8 not-prose">
       {title && <h4 className="text-lg font-bold mb-4">{title}</h4>}
-      <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-white/5">
-        <table className="w-full text-left border-collapse bg-white dark:bg-dark-900/20">
+      <div className="overflow-x-auto rounded-xl border border-white/60 dark:border-white/10">
+        <table className="w-full text-left border-collapse bg-white/70 dark:bg-white/5">
           <thead>
-            <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+            <tr className="border-b border-white/60 dark:border-white/10 bg-erobo-peach/20 dark:bg-white/5">
               {headers.map((header, i) => (
                 <th
                   key={i}
-                  className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider"
+                  className="py-3 px-4 text-xs font-bold text-erobo-ink dark:text-white uppercase tracking-wider"
                 >
                   {header}
                 </th>
@@ -159,10 +160,10 @@ function ComparisonTable({ headers, rows, title }: { headers: string[]; rows: st
             {rows.map((row, i) => (
               <tr
                 key={i}
-                className="border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors"
+                className="border-b border-white/60 dark:border-white/10 last:border-0 hover:bg-white/60 dark:hover:bg-white/5 transition-colors"
               >
                 {row.map((cell, j) => (
-                  <td key={j} className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">
+                  <td key={j} className="py-3 px-4 text-sm text-erobo-ink-soft/80 dark:text-slate-400">
                     {cell}
                   </td>
                 ))}
@@ -207,23 +208,27 @@ export default function DocsPage() {
         <title>{t("docs.title")} | NeoHub</title>
       </Head>
 
-      <div className="flex flex-col lg:flex-row min-h-screen bg-white dark:bg-dark-950">
+      <div className="relative flex flex-col lg:flex-row min-h-screen bg-transparent">
+        <div className="fixed inset-0 -z-10 pointer-events-none">
+          <WaterWaveBackground intensity="subtle" colorScheme="mixed" className="opacity-50" />
+          <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_1px_1px,rgba(159,157,243,0.2)_1px,transparent_0)] dark:bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.1)_1px,transparent_0)] bg-[size:22px_22px]" />
+        </div>
         {/* Mobile Navbar */}
-        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/5 sticky top-16 z-30 bg-white/80 dark:bg-dark-950/80 backdrop-blur-md">
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-white/60 dark:border-white/10 sticky top-16 z-30 bg-white/70 dark:bg-black/40 backdrop-blur-md">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400"
+            className="p-2 rounded-lg bg-white/80 dark:bg-white/10 text-erobo-ink-soft dark:text-gray-300 border border-white/60 dark:border-white/10"
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <span className="font-bold text-gray-900 dark:text-white">{t("docs.title")}</span>
+          <span className="font-bold text-erobo-ink dark:text-white">{t("docs.title")}</span>
           <div className="w-10" /> {/* Spacer */}
         </div>
 
         {/* Sidebar Container */}
         <aside
           className={cn(
-            "fixed inset-0 top-[113px] lg:top-20 z-20 transition-transform lg:translate-x-0 lg:static lg:h-[calc(100vh-80px)] lg:w-72 shrink-0 border-r border-gray-100 dark:border-white/5 bg-white dark:bg-dark-950 overflow-y-auto no-scrollbar",
+            "fixed inset-0 top-[113px] lg:top-20 z-20 transition-transform lg:translate-x-0 lg:static lg:h-[calc(100vh-80px)] lg:w-72 shrink-0 border-r border-white/60 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl overflow-y-auto no-scrollbar",
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
@@ -231,8 +236,8 @@ export default function DocsPage() {
             <nav className="space-y-8">
               {docSections.map((section) => (
                 <div key={section.id}>
-                  <h3 className="flex items-center gap-2 text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2 px-2">
-                    <section.icon size={16} className="text-slate-400" />
+                  <h3 className="flex items-center gap-2 text-[13px] font-bold text-erobo-ink dark:text-white mb-2 px-2">
+                    <section.icon size={16} className="text-erobo-purple" />
                     {section.title}
                   </h3>
                   <div className="space-y-0.5">
@@ -245,8 +250,8 @@ export default function DocsPage() {
                           className={cn(
                             "w-full flex items-center px-8 py-2 text-[14px] rounded-lg transition-all",
                             isActive
-                              ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium"
-                              : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5",
+                              ? "bg-erobo-purple/10 text-erobo-purple font-semibold"
+                              : "text-erobo-ink-soft dark:text-gray-300 hover:text-erobo-ink dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10",
                           )}
                         >
                           {item.title}
@@ -296,7 +301,7 @@ export default function DocsPage() {
               {activeItem === "cli" && <SDKDetail id="cli" t={t} />}
 
               {/* Navigation Helper */}
-              <div className="mt-20 pt-10 border-t border-gray-100 dark:border-white/5 flex items-center justify-between">
+              <div className="mt-20 pt-10 border-t border-white/60 dark:border-white/10 flex items-center justify-between">
                 <div /> {/* Spacer */}
                 <button
                   onClick={() => {
@@ -310,7 +315,7 @@ export default function DocsPage() {
                   className="group flex flex-col items-end gap-2 text-right"
                 >
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t("docs.navNext")}</span>
-                  <span className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-neo transition-colors flex items-center gap-2">
+                  <span className="text-lg font-bold text-erobo-ink dark:text-white group-hover:text-erobo-purple transition-colors flex items-center gap-2">
                     {t("docs.navNextTopic")}{" "}
                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                   </span>
@@ -329,49 +334,57 @@ function IntroContent({ t }: { t: any }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{t("docs.items.intro")}</h1>
-      <p className="text-xl text-slate-400 leading-relaxed mb-10">{t("docs.intro.welcome")}</p>
+      <p className="text-xl text-erobo-ink-soft/80 leading-relaxed mb-10">{t("docs.intro.welcome")}</p>
 
       {/* Platform Layers Figure */}
       <div className="my-16 flex flex-col items-center not-prose">
         <div className="w-full max-w-md space-y-4">
-          <div className="p-4 rounded-xl bg-neo/20 border border-neo/30 text-center shadow-lg shadow-neo/10 group hover:scale-[1.02] transition-transform">
-            <span className="text-xs font-black text-neo uppercase tracking-[0.2em]">{t("docs.architecture.appLayer")}</span>
-            <div className="text-white font-bold text-sm mt-1">MiniApps & Frontends</div>
+          <div className="p-4 rounded-xl bg-erobo-mint/70 dark:bg-erobo-mint/20 border border-erobo-mint/80 dark:border-erobo-mint/30 text-center shadow-lg shadow-erobo-mint/30 group hover:scale-[1.02] transition-transform">
+            <span className="text-xs font-black text-erobo-ink uppercase tracking-[0.2em]">
+              {t("docs.architecture.appLayer")}
+            </span>
+            <div className="text-erobo-ink font-bold text-sm mt-1">MiniApps & Frontends</div>
           </div>
-          <div className="w-0.5 h-6 bg-slate-800 mx-auto" />
-          <div className="p-4 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-center shadow-lg shadow-indigo-500/10 group hover:scale-[1.02] transition-transform">
-            <span className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em]">{t("docs.architecture.osLayer")}</span>
-            <div className="text-white font-bold text-sm mt-1">ServiceOS (TEE Runtime)</div>
+          <div className="w-0.5 h-6 bg-erobo-purple/30 mx-auto" />
+          <div className="p-4 rounded-xl bg-erobo-purple/20 dark:bg-erobo-purple/15 border border-erobo-purple/30 text-center shadow-lg shadow-erobo-purple/10 group hover:scale-[1.02] transition-transform">
+            <span className="text-xs font-black text-erobo-purple uppercase tracking-[0.2em]">
+              {t("docs.architecture.osLayer")}
+            </span>
+            <div className="text-erobo-ink dark:text-white font-bold text-sm mt-1">ServiceOS (TEE Runtime)</div>
           </div>
-          <div className="w-0.5 h-6 bg-slate-800 mx-auto" />
-          <div className="p-4 rounded-xl bg-slate-800 border border-slate-700 text-center shadow-lg group hover:scale-[1.02] transition-transform relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-            <span className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">{t("docs.architecture.hardwareLayer")}</span>
-            <div className="text-slate-300 font-bold text-sm mt-1">Intel SGX / TEE Root</div>
+          <div className="w-0.5 h-6 bg-erobo-purple/30 mx-auto" />
+          <div className="p-4 rounded-xl bg-erobo-ink/95 border border-erobo-ink/70 text-center shadow-lg group hover:scale-[1.02] transition-transform relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            <span className="text-xs font-black text-erobo-ink-soft uppercase tracking-[0.2em]">
+              {t("docs.architecture.hardwareLayer")}
+            </span>
+            <div className="text-erobo-peach font-bold text-sm mt-1">Intel SGX / TEE Root</div>
           </div>
         </div>
-        <p className="mt-8 text-xs text-slate-500 uppercase tracking-widest font-bold">Concept: Multi-Layer Hardware Security</p>
+        <p className="mt-8 text-xs text-erobo-ink-soft/70 uppercase tracking-widest font-bold">
+          Concept: Multi-Layer Hardware Security
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-12 not-prose">
-        <div className="p-6 rounded-2xl bg-gray-50 dark:bg-dark-900 border border-gray-100 dark:border-white/5">
-          <Shield className="text-neo mb-4" size={32} />
+        <div className="p-6 rounded-2xl erobo-card">
+          <Shield className="text-erobo-purple mb-4" size={32} />
           <h3 className="text-lg font-bold mb-2">{t("docs.intro.secureTitle")}</h3>
-          <p className="text-sm text-slate-400">{t("docs.intro.secureDesc")}</p>
+          <p className="text-sm text-erobo-ink-soft/80">{t("docs.intro.secureDesc")}</p>
         </div>
-        <div className="p-6 rounded-2xl bg-gray-50 dark:bg-dark-900 border border-gray-100 dark:border-white/5">
-          <Zap className="text-neo mb-4" size={32} />
+        <div className="p-6 rounded-2xl erobo-card">
+          <Zap className="text-erobo-pink mb-4" size={32} />
           <h3 className="text-lg font-bold mb-2">{t("docs.intro.identityTitle")}</h3>
-          <p className="text-sm text-slate-400">{t("docs.intro.identityDesc")}</p>
+          <p className="text-sm text-erobo-ink-soft/80">{t("docs.intro.identityDesc")}</p>
         </div>
       </div>
 
       <h2 className="text-2xl font-bold mt-12 mb-6">{t("docs.intro.whatIs")}</h2>
       <p>{t("docs.intro.whatIsDesc")}</p>
 
-      <div className="bg-indigo-500/10 border-l-4 border-indigo-500 p-6 my-10 rounded-r-2xl">
-        <h4 className="font-bold text-indigo-400 mb-2">{t("docs.intro.didYouKnow")}</h4>
-        <p className="text-sm text-indigo-200/80 m-0">{t("docs.intro.didYouKnowDesc")}</p>
+      <div className="bg-erobo-purple/10 border-l-4 border-erobo-purple p-6 my-10 rounded-r-2xl">
+        <h4 className="font-bold text-erobo-purple mb-2">{t("docs.intro.didYouKnow")}</h4>
+        <p className="text-sm text-erobo-ink-soft m-0">{t("docs.intro.didYouKnowDesc")}</p>
       </div>
     </div>
   );
@@ -381,18 +394,18 @@ function QuickStartContent({ t }: { t: any }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{t("docs.items.quickstart")}</h1>
-      <p className="text-lg text-slate-400">{t("docs.subtitle")}</p>
+      <p className="text-lg text-erobo-ink-soft/80">{t("docs.subtitle")}</p>
 
       <h2 className="text-2xl font-bold mt-12 mb-6">{t("docs.quickstart.userTitle")}</h2>
       <div className="space-y-8 not-prose mt-8">
         {(t("docs.quickstart.userSteps", { returnObjects: true }) as any[]).map((item, idx) => (
           <div key={idx} className="flex gap-6 items-start group">
-            <div className="text-4xl font-black text-neo opacity-20 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            <div className="text-4xl font-black text-erobo-purple opacity-20 group-hover:opacity-100 transition-opacity whitespace-nowrap">
               0{idx + 1}
             </div>
             <div className="pt-2">
               <h4 className="text-lg font-bold mb-1">{item.title}</h4>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{item.desc}</p>
+              <p className="text-sm text-erobo-ink-soft/80 dark:text-slate-400">{item.desc}</p>
             </div>
           </div>
         ))}
@@ -400,29 +413,26 @@ function QuickStartContent({ t }: { t: any }) {
 
       <h2 className="text-2xl font-bold mt-16 mb-6">{t("docs.quickstart.devTitle")}</h2>
       <p>{t("docs.quickstart.installSdk")}</p>
-      <CodeBlock code="npm install @neohub/sdk" language="bash" />
+      <CodeBlock code="pnpm add @neo/uniapp-sdk" language="bash" />
 
       <p className="mt-8">{t("docs.quickstart.initSdk")}</p>
       <CodeBlock
-        code={`import { NeoHub } from "@neohub/sdk";
+        code={`import { waitForSDK } from "@neo/uniapp-sdk";
 
-const hub = new NeoHub({
-  appId: "my-cool-app",
-  network: "testnet"
-});
-
-await hub.connect();`}
+const sdk = await waitForSDK();
+const address = await sdk.wallet.getAddress();
+console.log("Connected wallet:", address);`}
         language="javascript"
       />
 
-      <div className="mt-12 p-8 rounded-3xl bg-dark-900 border border-white/5 flex flex-col items-center text-center not-prose">
-        <div className="w-16 h-16 rounded-2xl bg-neo/10 flex items-center justify-center mb-6">
-          <Play className="text-neo" size={32} />
+      <div className="mt-12 p-8 rounded-3xl erobo-card flex flex-col items-center text-center not-prose">
+        <div className="w-16 h-16 rounded-2xl bg-erobo-purple/10 flex items-center justify-center mb-6">
+          <Play className="text-erobo-purple" size={32} />
         </div>
         <h3 className="text-xl font-bold mb-2">{t("docs.quickstart.playgroundTitle")}</h3>
-        <p className="text-slate-400 text-sm mb-6">{t("docs.quickstart.playgroundDesc")}</p>
+        <p className="text-erobo-ink-soft/80 text-sm mb-6">{t("docs.quickstart.playgroundDesc")}</p>
         <Link href="/playground">
-          <Button className="bg-neo hover:bg-neo/90 text-dark-950 px-8 rounded-xl font-bold">
+          <Button className="erobo-btn px-8 rounded-xl font-bold">
             {t("docs.quickstart.launchPlayground")} <ArrowRight className="ml-2" size={16} />
           </Button>
         </Link>
@@ -438,46 +448,48 @@ function AuthContent({ t }: { t: any }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{t("docs.items.auth")}</h1>
-      <p className="text-lg text-slate-400">{t("docs.auth.subtitle")}</p>
+      <p className="text-lg text-erobo-ink-soft/80">{t("docs.auth.subtitle")}</p>
 
       {/* Visual Auth Flow */}
-      <div className="my-12 p-8 rounded-3xl bg-dark-900 border border-white/5 not-prose overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-emerald-500/5" />
-        <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-10 relative z-10 text-center">
+      <div className="my-12 p-8 rounded-3xl erobo-card not-prose overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-erobo-purple/10 to-erobo-mint/10" />
+        <h4 className="text-sm font-bold text-erobo-ink-soft uppercase tracking-widest mb-10 relative z-10 text-center">
           Authentication Flow
         </h4>
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12">
           {/* Social Box */}
           <div className="flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-              <User size={32} className="text-indigo-400" />
+            <div className="w-16 h-16 rounded-2xl bg-erobo-purple/10 border border-erobo-purple/20 flex items-center justify-center">
+              <User size={32} className="text-erobo-purple" />
             </div>
-            <span className="text-xs font-bold text-indigo-400 uppercase">Social Login</span>
+            <span className="text-xs font-bold text-erobo-purple uppercase">Social Login</span>
           </div>
 
-          <ArrowRight className="text-slate-700 hidden md:block" size={24} />
-          <div className="w-0.5 h-8 bg-slate-800 md:hidden" />
+          <ArrowRight className="text-erobo-ink-soft/60 hidden md:block" size={24} />
+          <div className="w-0.5 h-8 bg-erobo-ink-soft/40 md:hidden" />
 
           {/* NeoHub Enclave */}
-          <div className="px-6 py-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-full bg-neo/10 border border-neo/30 flex items-center justify-center">
-              <Shield size={24} className="text-neo" />
+          <div className="px-6 py-4 rounded-2xl bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 flex flex-col items-center gap-2">
+            <div className="w-12 h-12 rounded-full bg-erobo-mint/60 dark:bg-erobo-mint/20 border border-erobo-mint/60 dark:border-erobo-mint/30 flex items-center justify-center">
+              <Shield size={24} className="text-erobo-ink" />
             </div>
-            <span className="text-[10px] font-bold text-white uppercase tracking-tighter">Identity Mapping</span>
+            <span className="text-[10px] font-bold text-erobo-ink dark:text-white uppercase tracking-tighter">
+              Identity Mapping
+            </span>
           </div>
 
-          <ArrowRight className="text-slate-700 hidden md:block" size={24} />
-          <div className="w-0.5 h-8 bg-slate-800 md:hidden" />
+          <ArrowRight className="text-erobo-ink-soft/60 hidden md:block" size={24} />
+          <div className="w-0.5 h-8 bg-erobo-ink-soft/40 md:hidden" />
 
           {/* Wallet Box */}
           <div className="flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-              <Wallet size={32} className="text-emerald-400" />
+            <div className="w-16 h-16 rounded-2xl bg-erobo-mint/40 border border-erobo-mint/60 flex items-center justify-center">
+              <Wallet size={32} className="text-erobo-ink" />
             </div>
-            <span className="text-xs font-bold text-emerald-400 uppercase">Neo Wallet</span>
+            <span className="text-xs font-bold text-erobo-ink uppercase">Neo Wallet</span>
           </div>
         </div>
-        <p className="mt-10 text-[11px] text-slate-500 text-center max-w-md mx-auto relative z-10">
+        <p className="mt-10 text-[11px] text-erobo-ink-soft text-center max-w-md mx-auto relative z-10">
           Unified identity links your social profile with your blockchain address within the secure enclave.
         </p>
       </div>
@@ -488,17 +500,17 @@ function AuthContent({ t }: { t: any }) {
       <ComparisonTable headers={comparisonHeaders} rows={comparisonRows} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-10 not-prose">
-        <div className="p-8 rounded-2xl bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20">
-          <h4 className="font-bold text-indigo-600 dark:text-indigo-400 mb-2">{t("docs.auth.socialTitle")}</h4>
-          <ul className="text-sm space-y-2 text-slate-600 dark:text-slate-400 list-disc pl-4">
+        <div className="p-8 rounded-2xl bg-erobo-purple/10 dark:bg-erobo-purple/10 border border-erobo-purple/20">
+          <h4 className="font-bold text-erobo-purple mb-2">{t("docs.auth.socialTitle")}</h4>
+          <ul className="text-sm space-y-2 text-erobo-ink-soft dark:text-slate-400 list-disc pl-4">
             {(t("docs.auth.socialItems", { returnObjects: true }) as string[]).map((item, idx) => (
               <li key={idx}>{item}</li>
             ))}
           </ul>
         </div>
-        <div className="p-8 rounded-2xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20">
-          <h4 className="font-bold text-emerald-600 dark:text-emerald-400 mb-2">{t("docs.auth.walletTitle")}</h4>
-          <ul className="text-sm space-y-2 text-slate-600 dark:text-slate-400 list-disc pl-4">
+        <div className="p-8 rounded-2xl bg-erobo-mint/50 dark:bg-erobo-mint/10 border border-erobo-mint/60">
+          <h4 className="font-bold text-erobo-ink mb-2">{t("docs.auth.walletTitle")}</h4>
+          <ul className="text-sm space-y-2 text-erobo-ink-soft dark:text-slate-400 list-disc pl-4">
             {(t("docs.auth.walletItems", { returnObjects: true }) as string[]).map((item, idx) => (
               <li key={idx}>{item}</li>
             ))}
@@ -516,22 +528,23 @@ function APIKeysContent({ t }: { t: any }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{t("docs.items.api-keys")}</h1>
-      <p className="text-lg text-slate-400">{t("docs.apiKeys.subtitle")}</p>
+      <p className="text-lg text-erobo-ink-soft/80">{t("docs.apiKeys.subtitle")}</p>
 
       <h2 className="text-2xl font-bold mt-12 mb-6">{t("docs.apiKeys.createTitle")}</h2>
       <p>{t("docs.apiKeys.createDesc")}</p>
 
-      <div className="bg-amber-500/10 border-l-4 border-amber-500 p-6 my-10 rounded-r-2xl">
-        <h4 className="font-bold text-amber-500 mb-2">{t("docs.apiKeys.warningTitle")}</h4>
-        <p className="text-sm text-amber-200/80 m-0">{t("docs.apiKeys.warningDesc")}</p>
+      <div className="bg-erobo-peach/30 border-l-4 border-erobo-peach p-6 my-10 rounded-r-2xl">
+        <h4 className="font-bold text-erobo-ink mb-2">{t("docs.apiKeys.warningTitle")}</h4>
+        <p className="text-sm text-erobo-ink-soft m-0">{t("docs.apiKeys.warningDesc")}</p>
       </div>
 
       <h3 className="text-xl font-bold mb-4">{t("docs.apiKeys.usageTitle")}</h3>
       <CodeBlock
-        code={`const hub = new NeoHub({
-  apiKey: "nh_live_xxxxxxxxxxxxxxxx",
-  network: "testnet"
-});`}
+        code={`const res = await fetch("https://miniapp.neo.org/api/usage", {
+  headers: { "X-API-Key": "nh_live_xxxxxxxxxxxxxxxx" }
+});
+
+const data = await res.json();`}
         language="javascript"
       />
     </div>
@@ -539,13 +552,17 @@ function APIKeysContent({ t }: { t: any }) {
 }
 
 function SecurityModelContent({ t }: { t: any }) {
-  const securityComparisonHeaders = [t("docs.securityModel.table.level"), t("docs.securityModel.table.traditional"), t("docs.securityModel.table.neohub")];
+  const securityComparisonHeaders = [
+    t("docs.securityModel.table.level"),
+    t("docs.securityModel.table.traditional"),
+    t("docs.securityModel.table.neohub"),
+  ];
   const securityComparisonRows = t("docs.securityModel.table.rows", { returnObjects: true }) as string[][];
 
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{t("docs.items.security-model")}</h1>
-      <p className="text-lg text-slate-400">{t("docs.securityModel.subtitle")}</p>
+      <p className="text-lg text-erobo-ink-soft/80">{t("docs.securityModel.subtitle")}</p>
 
       <h2 className="text-2xl font-bold mt-12 mb-6">{t("docs.securityModel.isolationTitle")}</h2>
       <p>{t("docs.securityModel.isolationDesc")}</p>
@@ -556,15 +573,15 @@ function SecurityModelContent({ t }: { t: any }) {
         rows={securityComparisonRows}
       />
 
-      <div className="my-10 p-8 rounded-3xl bg-dark-900 border border-white/5 not-prose">
+      <div className="my-10 p-8 rounded-3xl erobo-card not-prose">
         <div className="space-y-6">
           <div className="flex gap-4">
             <div className="w-10 h-10 rounded-full bg-neo/10 flex items-center justify-center shrink-0">
               <Shield size={20} className="text-neo" />
             </div>
             <div>
-              <h4 className="font-bold text-white mb-1">{t("docs.securityModel.zeroTitle")}</h4>
-              <p className="text-sm text-slate-400">{t("docs.securityModel.zeroDesc")}</p>
+              <h4 className="font-bold text-erobo-ink dark:text-white mb-1">{t("docs.securityModel.zeroTitle")}</h4>
+              <p className="text-sm text-erobo-ink-soft/80">{t("docs.securityModel.zeroDesc")}</p>
             </div>
           </div>
           <div className="flex gap-4">
@@ -572,8 +589,10 @@ function SecurityModelContent({ t }: { t: any }) {
               <Lock size={20} className="text-blue-400" />
             </div>
             <div>
-              <h4 className="font-bold text-white mb-1">{t("docs.securityModel.attestationTitle")}</h4>
-              <p className="text-sm text-slate-400">{t("docs.securityModel.attestationDesc")}</p>
+              <h4 className="font-bold text-erobo-ink dark:text-white mb-1">
+                {t("docs.securityModel.attestationTitle")}
+              </h4>
+              <p className="text-sm text-erobo-ink-soft/80">{t("docs.securityModel.attestationDesc")}</p>
             </div>
           </div>
         </div>
@@ -590,17 +609,23 @@ function ArchitectureDetail({ id, t }: { id: string; t: any }) {
   };
 
   const key = id === "tee-root" ? "teeRoot" : id === "service-os" ? "serviceOS" : "capabilities";
-  const subtitle = t(`docs.architecture.${key}.subtitle`, { defaultValue: t("docs.architecture.subtitle", { title: titles[id] }) });
-  const howItWorks = t(`docs.architecture.${key}.howItWorks`, { defaultValue: t("docs.architecture.howItWorksDesc", { title: titles[id] }) });
+  const subtitle = t(`docs.architecture.${key}.subtitle`, {
+    defaultValue: t("docs.architecture.subtitle", { title: titles[id] }),
+  });
+  const howItWorks = t(`docs.architecture.${key}.howItWorks`, {
+    defaultValue: t("docs.architecture.howItWorksDesc", { title: titles[id] }),
+  });
   const integrity = t(`docs.architecture.${key}.integrity`, { defaultValue: t("docs.architecture.integrityDesc") });
-  const confidentiality = t(`docs.architecture.${key}.confidentiality`, { defaultValue: t("docs.architecture.confidentialityDesc") });
+  const confidentiality = t(`docs.architecture.${key}.confidentiality`, {
+    defaultValue: t("docs.architecture.confidentialityDesc"),
+  });
 
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{titles[id]}</h1>
-      <p className="text-lg text-slate-400">{subtitle}</p>
+      <p className="text-lg text-erobo-ink-soft/80">{subtitle}</p>
 
-      <div className="my-10 aspect-video rounded-3xl bg-dark-900 border border-white/5 flex items-center justify-center relative overflow-hidden not-prose">
+      <div className="my-10 aspect-video rounded-3xl erobo-card flex items-center justify-center relative overflow-hidden not-prose">
         <div className="absolute inset-0 bg-gradient-to-br from-neo/10 to-transparent" />
         <div className="relative z-10 flex flex-col items-center gap-4">
           <div className="w-20 h-20 rounded-full bg-neo/10 flex items-center justify-center border border-neo/30 animate-pulse">
@@ -620,17 +645,17 @@ function ArchitectureDetail({ id, t }: { id: string; t: any }) {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-10 not-prose">
-        <div className="p-8 rounded-2xl bg-gray-50 dark:bg-dark-900/50 border border-gray-100 dark:border-white/5">
+        <div className="p-8 rounded-2xl erobo-card">
           <h4 className="font-bold mb-4 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-neo" /> {t("docs.architecture.integrity")}
           </h4>
-          <p className="text-sm text-slate-400 m-0">{integrity}</p>
+          <p className="text-sm text-erobo-ink-soft/80 m-0">{integrity}</p>
         </div>
-        <div className="p-8 rounded-2xl bg-gray-50 dark:bg-dark-900/50 border border-gray-100 dark:border-white/5">
+        <div className="p-8 rounded-2xl erobo-card">
           <h4 className="font-bold mb-4 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-500" /> {t("docs.architecture.confidentiality")}
           </h4>
-          <p className="text-sm text-slate-400 m-0">{confidentiality}</p>
+          <p className="text-sm text-erobo-ink-soft/80 m-0">{confidentiality}</p>
         </div>
       </div>
     </div>
@@ -660,7 +685,7 @@ function ServiceDetail({ id, t }: { id: string; t: any }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{titles[id]}</h1>
-      <p className="text-lg text-slate-400">{subtitle || t("docs.services.subtitle", { title: titles[id] })}</p>
+      <p className="text-lg text-erobo-ink-soft/80">{subtitle || t("docs.services.subtitle", { title: titles[id] })}</p>
 
       <h2 className="text-2xl font-bold mt-12 mb-6">{t("docs.services.overview")}</h2>
       <p>{overview || t("docs.services.overviewDesc", { title: titles[id] })}</p>
@@ -674,7 +699,7 @@ function ServiceDetail({ id, t }: { id: string; t: any }) {
                 <div className="w-5 h-5 rounded-full bg-neo/10 flex items-center justify-center shrink-0 mt-0.5">
                   <Check size={12} className="text-neo" />
                 </div>
-                <span className="text-slate-600 dark:text-slate-300">{feature}</span>
+                <span className="text-erobo-ink-soft/80 dark:text-slate-300">{feature}</span>
               </li>
             ))}
           </ul>
@@ -685,21 +710,30 @@ function ServiceDetail({ id, t }: { id: string; t: any }) {
       {Array.isArray(parameters) && parameters.length > 0 && (
         <div className="my-10">
           <h2 className="text-2xl font-bold mb-6">Parameters</h2>
-          <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-white/5 not-prose">
-            <table className="w-full text-left border-collapse bg-white dark:bg-dark-900/20">
+          <div className="overflow-x-auto rounded-xl border border-white/60 dark:border-white/10 not-prose">
+            <table className="w-full text-left border-collapse bg-white/70 dark:bg-white/5">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.name")}</th>
-                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.type")}</th>
-                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.description")}</th>
+                <tr className="border-b border-white/60 dark:border-white/10 bg-erobo-peach/20 dark:bg-white/5">
+                  <th className="py-3 px-4 text-xs font-bold text-erobo-ink dark:text-white uppercase tracking-wider">
+                    {t("docs.tableHeaders.name")}
+                  </th>
+                  <th className="py-3 px-4 text-xs font-bold text-erobo-ink dark:text-white uppercase tracking-wider">
+                    {t("docs.tableHeaders.type")}
+                  </th>
+                  <th className="py-3 px-4 text-xs font-bold text-erobo-ink dark:text-white uppercase tracking-wider">
+                    {t("docs.tableHeaders.description")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {parameters.map((param: any, idx: number) => (
-                  <tr key={idx} className="border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                  <tr
+                    key={idx}
+                    className="border-b border-white/60 dark:border-white/10 last:border-0 hover:bg-white/60 dark:hover:bg-white/5 transition-colors"
+                  >
                     <td className="py-3 px-4 text-sm font-mono text-neo">{param.name}</td>
-                    <td className="py-3 px-4 text-xs text-slate-500 font-mono">{param.type}</td>
-                    <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">{param.desc}</td>
+                    <td className="py-3 px-4 text-xs text-erobo-ink-soft/80 font-mono">{param.type}</td>
+                    <td className="py-3 px-4 text-sm text-erobo-ink-soft/80 dark:text-slate-400">{param.desc}</td>
                   </tr>
                 ))}
               </tbody>
@@ -730,7 +764,7 @@ console.log("Verified result:", result);`
             <Zap size={20} />
             <span className="font-bold text-sm">Pricing</span>
           </div>
-          <p className="text-sm text-slate-400 m-0">{pricing}</p>
+          <p className="text-sm text-erobo-ink-soft/80 m-0">{pricing}</p>
         </div>
       )}
 
@@ -739,7 +773,7 @@ console.log("Verified result:", result);`
           <Eye size={20} />
           <span className="font-bold text-sm">{t("docs.services.realTime")}</span>
         </div>
-        <p className="text-xs text-slate-400 m-0">{t("docs.services.realTimeDesc")}</p>
+        <p className="text-xs text-erobo-ink-soft/80 m-0">{t("docs.services.realTimeDesc")}</p>
       </div>
     </div>
   );
@@ -766,62 +800,71 @@ function APIReferenceDetail({ id, t }: { id: string; t: any }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{titles[id]}</h1>
-      <p className="text-lg text-slate-400">{subtitle}</p>
+      <p className="text-lg text-erobo-ink-soft/80">{subtitle}</p>
 
       {id === "rest-api" && (
         <>
-          <div className="my-8 p-6 rounded-2xl bg-dark-900 border border-white/5 not-prose font-mono">
+          <div className="my-8 p-6 rounded-2xl bg-erobo-ink/95 dark:bg-black/50 border border-erobo-ink/60 dark:border-white/10 not-prose font-mono">
             <p className="text-neo text-sm mb-2">{t("apiReference.restApi.baseUrl")}</p>
-            <p className="text-slate-400 text-sm">{t("apiReference.restApi.authHeader")}</p>
+            <p className="text-erobo-ink-soft/80 text-sm">{t("apiReference.restApi.authHeader")}</p>
           </div>
 
-          <h3 className="text-xl font-bold mb-4">{t("apiReference.restApi.commonHeaders.title", { defaultValue: "Common Headers" })}</h3>
+          <h3 className="text-xl font-bold mb-4">
+            {t("apiReference.restApi.commonHeaders.title", { defaultValue: "Common Headers" })}
+          </h3>
           <ComparisonTable
             headers={[
               t("docs.tableHeaders.header", { defaultValue: "Header" }),
               t("docs.tableHeaders.required", { defaultValue: "Required" }),
-              t("docs.tableHeaders.description", { defaultValue: "Description" })
+              t("docs.tableHeaders.description", { defaultValue: "Description" }),
             ]}
             rows={[
               ["Authorization", "Yes", t("apiReference.restApi.commonHeaders.auth")],
-              ["Content-Type", "Yes", t("apiReference.restApi.commonHeaders.contentType", { defaultValue: "application/json" })],
-              ["X-Neo-Network", "No", t("apiReference.restApi.commonHeaders.networkDesc")]
+              [
+                "Content-Type",
+                "Yes",
+                t("apiReference.restApi.commonHeaders.contentType", { defaultValue: "application/json" }),
+              ],
+              ["X-Neo-Network", "No", t("apiReference.restApi.commonHeaders.networkDesc")],
             ]}
           />
 
           <h2 className="text-2xl font-bold mt-12 mb-6">Endpoints</h2>
-          <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-white/5 not-prose">
-            <table className="w-full text-left border-collapse bg-white dark:bg-dark-900/20">
+          <div className="overflow-x-auto rounded-xl border border-white/60 dark:border-white/10 not-prose">
+            <table className="w-full text-left border-collapse bg-white/70 dark:bg-white/5">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                <tr className="border-b border-white/60 dark:border-white/10 bg-erobo-peach/20 dark:bg-white/5">
+                  <th className="py-3 px-4 text-xs font-bold text-erobo-ink dark:text-white uppercase tracking-wider">
                     {t("docs.tableHeaders.method", { defaultValue: "Method" })}
                   </th>
-                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  <th className="py-3 px-4 text-xs font-bold text-erobo-ink dark:text-white uppercase tracking-wider">
                     {t("docs.tableHeaders.endpoint", { defaultValue: "Endpoint" })}
                   </th>
-                  <th className="py-3 px-4 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  <th className="py-3 px-4 text-xs font-bold text-erobo-ink dark:text-white uppercase tracking-wider">
                     {t("docs.tableHeaders.description", { defaultValue: "Description" })}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(t("apiReference.restApi.endpoints", { returnObjects: true }) as Record<string, string>).map(
-                  ([k, v], idx) => {
-                    const match = v.match(/^(\w+)\s+([^\s]+)\s+-\s+(.+)$/);
-                    const method = match ? match[1] : "";
-                    const url = match ? match[2] : v;
-                    const desc = match ? match[3] : "";
+                {Object.entries(
+                  t("apiReference.restApi.endpoints", { returnObjects: true }) as Record<string, string>,
+                ).map(([k, v], idx) => {
+                  const match = v.match(/^(\w+)\s+([^\s]+)\s+-\s+(.+)$/);
+                  const method = match ? match[1] : "";
+                  const url = match ? match[2] : v;
+                  const desc = match ? match[3] : "";
 
-                    return (
-                      <tr key={k} className="border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
-                        <td className="py-3 px-4 text-sm font-mono font-bold text-neo">{method}</td>
-                        <td className="py-3 px-4 text-sm font-mono text-slate-600 dark:text-slate-300">{url}</td>
-                        <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">{desc}</td>
-                      </tr>
-                    );
-                  }
-                )}
+                  return (
+                    <tr
+                      key={k}
+                      className="border-b border-white/60 dark:border-white/10 last:border-0 hover:bg-white/60 dark:hover:bg-white/5 transition-colors"
+                    >
+                      <td className="py-3 px-4 text-sm font-mono font-bold text-neo">{method}</td>
+                      <td className="py-3 px-4 text-sm font-mono text-erobo-ink-soft/80 dark:text-slate-300">{url}</td>
+                      <td className="py-3 px-4 text-sm text-erobo-ink-soft/80 dark:text-slate-400">{desc}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -830,7 +873,7 @@ function APIReferenceDetail({ id, t }: { id: string; t: any }) {
 
       {id === "websocket" && (
         <>
-          <div className="my-8 p-6 rounded-2xl bg-dark-900 border border-white/5 not-prose font-mono">
+          <div className="my-8 p-6 rounded-2xl bg-erobo-ink/95 dark:bg-black/50 border border-erobo-ink/60 dark:border-white/10 not-prose font-mono">
             <p className="text-neo text-sm">{t("apiReference.websocket.endpoint")}</p>
           </div>
           <h2 className="text-2xl font-bold mt-12 mb-6">Channels</h2>
@@ -854,7 +897,10 @@ function APIReferenceDetail({ id, t }: { id: string; t: any }) {
 
       {id === "limits" && (
         <ComparisonTable
-          headers={[t("docs.tableHeaders.tier", { defaultValue: "Tier" }), t("docs.tableHeaders.limit", { defaultValue: "Limit" })]}
+          headers={[
+            t("docs.tableHeaders.tier", { defaultValue: "Tier" }),
+            t("docs.tableHeaders.limit", { defaultValue: "Limit" }),
+          ]}
           rows={Object.entries(t("apiReference.limits.tiers", { returnObjects: true }) as Record<string, string>)}
         />
       )}
@@ -888,7 +934,7 @@ function SDKDetail({ id, t }: { id: string; t: any }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{titles[id]}</h1>
-      <p className="text-lg text-slate-400">{subtitle}</p>
+      <p className="text-lg text-erobo-ink-soft/80">{subtitle}</p>
 
       <h2 className="text-2xl font-bold mt-12 mb-6">Installation</h2>
       <CodeBlock code={install} language="bash" />
@@ -903,7 +949,7 @@ function SDKDetail({ id, t }: { id: string; t: any }) {
                   <div className="w-5 h-5 rounded-full bg-neo/10 flex items-center justify-center shrink-0 mt-0.5">
                     <Check size={12} className="text-neo" />
                   </div>
-                  <span className="text-slate-600 dark:text-slate-300">{feature}</span>
+                  <span className="text-erobo-ink-soft/80 dark:text-slate-300">{feature}</span>
                 </li>
               ))}
             </ul>
@@ -918,18 +964,27 @@ function SDKDetail({ id, t }: { id: string; t: any }) {
           <div className="overflow-x-auto not-prose mb-10">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-white/5">
-                  <th className="py-3 px-4 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.method")}</th>
-                  <th className="py-3 px-4 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.parameters")}</th>
-                  <th className="py-3 px-4 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t("docs.tableHeaders.returns")}</th>
+                <tr className="border-b border-white/60 dark:border-white/10">
+                  <th className="py-3 px-4 text-sm font-bold text-erobo-ink dark:text-white uppercase tracking-wider">
+                    {t("docs.tableHeaders.method")}
+                  </th>
+                  <th className="py-3 px-4 text-sm font-bold text-erobo-ink dark:text-white uppercase tracking-wider">
+                    {t("docs.tableHeaders.parameters")}
+                  </th>
+                  <th className="py-3 px-4 text-sm font-bold text-erobo-ink dark:text-white uppercase tracking-wider">
+                    {t("docs.tableHeaders.returns")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {methods.map((method: any, idx: number) => (
-                  <tr key={idx} className="border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                  <tr
+                    key={idx}
+                    className="border-b border-white/60 dark:border-white/10 last:border-0 hover:bg-white/60 dark:hover:bg-white/5 transition-colors"
+                  >
                     <td className="py-3 px-4 font-mono text-sm text-neo">{method.name}</td>
-                    <td className="py-3 px-4 text-xs text-slate-500 font-mono">{method.params}</td>
-                    <td className="py-3 px-4 text-sm text-slate-400 font-mono text-xs">{method.returns}</td>
+                    <td className="py-3 px-4 text-xs text-erobo-ink-soft/80 font-mono">{method.params}</td>
+                    <td className="py-3 px-4 text-sm text-erobo-ink-soft/80 font-mono text-xs">{method.returns}</td>
                   </tr>
                 ))}
               </tbody>
@@ -945,7 +1000,7 @@ function SDKDetail({ id, t }: { id: string; t: any }) {
             {commands.map((cmd: string, idx: number) => (
               <div
                 key={idx}
-                className="p-3 rounded-lg bg-dark-900 border border-white/5 font-mono text-sm text-slate-300"
+                className="p-3 rounded-lg bg-erobo-ink/95 dark:bg-black/50 border border-erobo-ink/60 dark:border-white/10 font-mono text-sm text-slate-300"
               >
                 {cmd}
               </div>

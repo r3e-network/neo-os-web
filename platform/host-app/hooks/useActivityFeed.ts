@@ -154,14 +154,19 @@ function transformEvent(evt: Record<string, unknown>): OnChainActivity {
 
 function transformTransaction(tx: Record<string, unknown>): OnChainActivity {
   const status = String(tx.status || "pending");
+  // Support both service_requests schema and simulation_txs schema
+  const appId = tx.app_id ? String(tx.app_id) : extractAppIdFromRequestId(String(tx.request_id || ""));
+  const title = tx.tx_type ? formatTxType(String(tx.tx_type)) : String(tx.method_name || "Transaction");
+  const timestamp = tx.created_at || tx.submitted_at || new Date().toISOString();
+
   return {
     id: `tx-${tx.id}`,
     type: "transaction",
-    app_id: extractAppIdFromRequestId(String(tx.request_id || "")),
-    title: `${tx.method_name || "Transaction"}`,
+    app_id: appId,
+    title,
     description: formatTxDescription(tx),
     tx_hash: tx.tx_hash ? String(tx.tx_hash) : undefined,
-    timestamp: String(tx.submitted_at || new Date().toISOString()),
+    timestamp: String(timestamp),
     status: status === "confirmed" ? "confirmed" : status === "failed" ? "failed" : "pending",
   };
 }
@@ -184,9 +189,28 @@ function formatEventDescription(evt: Record<string, unknown>): string {
 }
 
 function formatTxDescription(tx: Record<string, unknown>): string {
+  // Support simulation_txs schema
+  if (tx.amount !== undefined) {
+    const amount = Number(tx.amount) / 100000000; // Convert from 8 decimals
+    const address = tx.account_address ? String(tx.account_address).slice(0, 8) : "";
+    return `${address}... • ${amount.toFixed(4)} GAS`;
+  }
+  // Support service_requests schema
   const service = tx.from_service ? String(tx.from_service) : "platform";
   const gas = tx.gas_consumed ? `${tx.gas_consumed} GAS` : "";
   return `${service}${gas ? ` • ${gas}` : ""}`;
+}
+
+function formatTxType(txType: string): string {
+  const typeMap: Record<string, string> = {
+    payment: "💰 Payment",
+    request: "📤 Service Request",
+    fulfill: "✅ Fulfillment",
+    randomness: "🎲 Randomness",
+    payout: "🎁 Payout",
+    fund: "💵 Fund Transfer",
+  };
+  return typeMap[txType] || txType.charAt(0).toUpperCase() + txType.slice(1);
 }
 
 function extractAppIdFromRequestId(requestId: string): string | null {

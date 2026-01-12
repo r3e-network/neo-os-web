@@ -125,12 +125,12 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
 
 // Category solid colors for logo background
 const CATEGORY_COLORS: Record<string, string> = {
-  gaming: "bg-brutal-yellow text-black",
-  defi: "bg-neo text-black",
-  social: "bg-brutal-pink text-black",
-  governance: "bg-brutal-blue text-white",
-  utility: "bg-electric-purple text-white",
-  nft: "bg-brutal-lime text-black",
+  gaming: "bg-gradient-to-br from-erobo-peach/90 to-erobo-pink/80 text-erobo-ink",
+  defi: "bg-gradient-to-br from-erobo-mint/90 to-neo/80 text-erobo-ink",
+  social: "bg-gradient-to-br from-erobo-pink/85 to-erobo-purple/80 text-white",
+  governance: "bg-gradient-to-br from-erobo-sky/90 to-erobo-purple/80 text-erobo-ink",
+  utility: "bg-gradient-to-br from-erobo-sky/80 to-erobo-mint/80 text-erobo-ink",
+  nft: "bg-gradient-to-br from-erobo-purple/80 to-erobo-pink/80 text-white",
 };
 
 interface MiniAppLogoProps {
@@ -161,14 +161,29 @@ export function MiniAppLogo({ appId, category, size = "md", className = "", icon
   };
 
   // E-Robo style: Use rounded-full for circular icons with gradient background
-  const containerClasses = `flex-shrink-0 ${sizeClasses[size]} rounded-full border-2 border-erobo-purple/30 dark:border-erobo-purple/20 shadow-[0_0_15px_rgba(159,157,243,0.2)] flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(159,157,243,0.4)] ${className}`;
+  const containerClasses = `flex-shrink-0 ${sizeClasses[size]} rounded-full border border-white/60 dark:border-erobo-purple/20 shadow-[0_0_18px_rgba(159,157,243,0.18)] flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(159,157,243,0.35)] ${className}`;
 
   if (iconUrl && !imageError) {
+    // SVG icons have circular content in square viewBox.
+    // Use clip-path: circle() to ensure perfect circular clipping without visible margins
     return (
       <div
-        className={`${containerClasses} bg-gradient-to-br from-erobo-purple/10 to-erobo-purple-dark/10 dark:from-erobo-purple/20 dark:to-erobo-purple-dark/20`}
+        className={`flex-shrink-0 ${sizeClasses[size]} rounded-full overflow-hidden transition-all duration-300 group-hover:scale-110 ${className}`}
+        style={{
+          boxShadow: "0 0 18px rgba(159, 157, 243, 0.18)",
+          clipPath: "circle(50%)",
+        }}
       >
-        <img src={iconUrl} alt={appId} className="w-[70%] h-[70%] object-contain" onError={() => setImageError(true)} />
+        <img
+          src={iconUrl}
+          alt={appId}
+          className="w-full h-full object-cover"
+          style={{
+            display: "block",
+            borderRadius: "50%",
+          }}
+          onError={() => setImageError(true)}
+        />
       </div>
     );
   }

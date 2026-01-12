@@ -4,48 +4,62 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 235 40% 98%;
+    --foreground: 235 28% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 235 24% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --item-hover: 210 40% 96.1%;
+    --popover-foreground: 235 24% 18%;
+    --primary: 235 30% 16%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 24% 96%;
+    --secondary-foreground: 235 30% 16%;
+    --muted: 240 20% 94%;
+    --muted-foreground: 235 18% 42%;
+    --accent: 240 20% 95%;
+    --accent-foreground: 235 30% 16%;
+    --item-hover: 240 20% 95%;
     --neo: 160 100% 45%;
     --electric-purple: 266 100% 50%;
     /* E-Robo Style Variables */
     --erobo-purple: #9f9df3;
     --erobo-purple-dark: #7b79d1;
+    --erobo-pink: #f7aac7;
+    --erobo-peach: #f8d7c2;
+    --erobo-mint: #d8f2e2;
+    --erobo-sky: #d9ecff;
+    --erobo-ink: #1b1b2f;
+    --erobo-ink-soft: #4a4a63;
     --erobo-gradient: linear-gradient(135deg, #9f9df3 0%, #7b79d1 100%);
     --erobo-glow: 0 0 30px rgba(159, 157, 243, 0.4);
-    --card-radius: 20px;
-    --blur-radius: 50px;
+    --erobo-body-bg: linear-gradient(180deg, #f8f8ff 0%, #fff4ee 100%);
+    --erobo-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 248, 255, 0.9) 100%);
+    --erobo-card-border: rgba(159, 157, 243, 0.2);
+    --erobo-card-shadow: 0 20px 60px rgba(30, 30, 60, 0.08);
+    --card-radius: 24px;
+    --blur-radius: 60px;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 235 30% 6%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 235 30% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 235 30% 8%;
     --popover-foreground: 210 40% 98%;
     --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary-foreground: 235 28% 14%;
+    --secondary: 235 28% 14%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
+    --muted: 235 25% 16%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 235 25% 16%;
     --accent-foreground: 210 40% 98%;
-    --item-hover: 217.2 32.6% 17.5%;
+    --item-hover: 235 25% 16%;
+    --erobo-body-bg: linear-gradient(180deg, #05060d 0%, #090a16 100%);
+    --erobo-card-bg: linear-gradient(135deg, rgba(12, 13, 22, 0.92) 0%, rgba(8, 9, 16, 0.85) 100%);
+    --erobo-card-border: rgba(159, 157, 243, 0.16);
+    --erobo-card-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
   }
 
   * {
@@ -64,7 +78,8 @@
   }
 
   body {
-    @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-white antialiased;
+    @apply text-foreground antialiased;
+    background: var(--erobo-body-bg);
   }
 }
 
@@ -92,19 +107,23 @@
 
   /* E-Robo Global Style Components */
   .erobo-card {
-    @apply rounded-[20px] bg-gradient-to-br from-[rgba(159,157,243,0.15)] to-[rgba(123,121,209,0.08)] backdrop-blur-[50px] border border-[rgba(159,157,243,0.25)] shadow-[0_0_30px_rgba(159,157,243,0.15)] transition-all duration-300;
+    @apply rounded-[24px] backdrop-blur-[40px] border transition-all duration-300;
+    background: var(--erobo-card-bg);
+    border-color: var(--erobo-card-border);
+    box-shadow: var(--erobo-card-shadow);
   }
 
   .erobo-card:hover {
-    @apply shadow-[0_0_40px_rgba(159,157,243,0.3)] border-[rgba(159,157,243,0.4)];
+    @apply border-[rgba(159,157,243,0.4)];
+    box-shadow: 0 30px 90px rgba(159, 157, 243, 0.2);
   }
 
   .erobo-btn {
-    @apply rounded-xl bg-gradient-to-br from-[#9f9df3] to-[#7b79d1] text-white font-bold shadow-[0_0_30px_rgba(159,157,243,0.4)] transition-all duration-300;
+    @apply rounded-full bg-[#1b1b2f] text-white font-bold shadow-[0_20px_50px_rgba(27,27,47,0.35)] transition-all duration-300;
   }
 
   .erobo-btn:hover {
-    @apply shadow-[0_0_40px_rgba(159,157,243,0.6)] brightness-110 translate-y-[-2px];
+    @apply shadow-[0_28px_70px_rgba(27,27,47,0.45)] brightness-110 translate-y-[-2px];
   }
 
   .erobo-glow {

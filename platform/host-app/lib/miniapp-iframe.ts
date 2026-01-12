@@ -1,4 +1,4 @@
-const STYLE_ID = "neo-miniapp-viewport-styles";
+const STYLE_ID = "meshminiapp-viewport-styles";
 
 const MINIAPP_VIEWPORT_CSS = `
 html,

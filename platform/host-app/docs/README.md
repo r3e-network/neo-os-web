@@ -21,7 +21,9 @@ Welcome to the Neo MiniApp Platform documentation. This guide covers everything 
 
 ## For Developers
 
-- **Build MiniApps**: Create applications using the SDK
+- **Build MiniApps**: Create apps with `@neo/uniapp-sdk`
+- **Auto-Registration**: Drop a MiniApp in `miniapps-uniapp/apps/` with `neo-manifest.json`
+- **UniversalMiniApp**: Use the shared contract for storage/events
 - **Platform Services**: Access VRF, DataFeeds, Automation
 - **Deploy**: Publish your MiniApp to the platform
 

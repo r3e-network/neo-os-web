@@ -61,6 +61,12 @@ module.exports = {
         erobo: {
           purple: "#9f9df3",
           "purple-dark": "#7b79d1",
+          pink: "#f7aac7",
+          peach: "#f8d7c2",
+          mint: "#d8f2e2",
+          sky: "#d9ecff",
+          ink: "#1b1b2f",
+          "ink-soft": "#45455c",
         },
       },
       boxShadow: {

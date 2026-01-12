@@ -57,7 +57,8 @@ async function fetchFromSupabase(filters: EventFilters) {
     created_at: evt.created_at,
   }));
 
-  return { events, has_more: hasMore };
+  const lastId = events.length > 0 ? events[events.length - 1].id : null;
+  return { events, has_more: hasMore, last_id: lastId };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -87,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (app_id) params.set("app_id", String(app_id));
   if (event_name) params.set("event_name", String(event_name));
   if (contract_hash) params.set("contract_hash", String(contract_hash));
-  if (limit) params.set("limit", String(limit));
+  params.set("limit", String(limitNum)); // Use validated limit
   if (after_id) params.set("after_id", String(after_id));
 
   try {

@@ -23,6 +23,7 @@ import { LaunchDock } from "../../components/LaunchDock";
 import { FederatedMiniApp } from "../../components/FederatedMiniApp";
 import { LiveChat } from "../../components/features/chat";
 import { MiniAppFrame } from "../../components/features/miniapp";
+import { MiniAppTransition } from "@/components/ui";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { buildMiniAppEntryUrl, coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
@@ -539,55 +540,61 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         onShare={handleShare}
       />
       <div style={iframeWrapperStyle}>
-        <MiniAppFrame>
-          {federated ? (
-            <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-              <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
-            </div>
-          ) : (
-            <>
-              {isIframeLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background z-10 overflow-hidden">
-                  {/* E-Robo Water Wave Background */}
-                  <div className="absolute inset-0 overflow-hidden">
-                    <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] bg-[radial-gradient(ellipse_at_center,rgba(159,157,243,0.15)_0%,transparent_50%)] animate-[water-wave_12s_ease-in-out_infinite]" />
-                    <div className="absolute w-[250%] h-[250%] top-[-75%] left-[-75%] bg-[radial-gradient(ellipse_at_center,rgba(0,229,153,0.08)_0%,transparent_60%)] animate-[water-wave-reverse_15s_ease-in-out_infinite]" />
+        <MiniAppTransition>
+          <MiniAppFrame>
+            {federated ? (
+              <div className="w-full h-full overflow-y-auto overflow-x-hidden">
+                <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
+              </div>
+            ) : (
+              <>
+                {isIframeLoading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white via-[#f5f6ff] to-[#e6fbf3] dark:from-[#05060d] dark:via-[#090a14] dark:to-[#050a0d] z-10 overflow-hidden">
+                    {/* E-Robo Water Wave Background */}
+                    <div className="absolute inset-0 overflow-hidden">
+                      <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] bg-[radial-gradient(ellipse_at_center,rgba(159,157,243,0.15)_0%,transparent_50%)] animate-[water-wave_12s_ease-in-out_infinite]" />
+                      <div className="absolute w-[250%] h-[250%] top-[-75%] left-[-75%] bg-[radial-gradient(ellipse_at_center,rgba(247,170,199,0.1)_0%,transparent_60%)] animate-[water-wave-reverse_15s_ease-in-out_infinite]" />
+                    </div>
+                    {/* Concentric ripple rings */}
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="absolute rounded-full border-2 border-erobo-purple/30 animate-[concentric-ripple_2s_ease-out_infinite]"
+                        style={{
+                          animationDelay: `${i * 0.4}s`,
+                          width: 100 + i * 80,
+                          height: 100 + i * 80,
+                        }}
+                      />
+                    ))}
+                    {/* Center loading indicator */}
+                    <div className="relative z-10 flex flex-col items-center p-8 rounded-[24px] bg-white/85 dark:bg-white/[0.06] backdrop-blur-[50px] border border-white/60 dark:border-erobo-purple/20 shadow-[0_0_30px_rgba(159,157,243,0.15)]">
+                      <div className="w-16 h-16 rounded-full border-4 border-erobo-purple/30 border-t-erobo-purple animate-spin mb-4 shadow-[0_0_20px_rgba(159,157,243,0.4)]" />
+                      <div className="text-xl font-bold text-erobo-ink dark:text-white tracking-tight">
+                        {t("detail.launching")}
+                      </div>
+                      <div className="text-sm font-medium text-erobo-ink-soft/70 dark:text-white/60 mt-1">
+                        {appName}
+                      </div>
+                    </div>
                   </div>
-                  {/* Concentric ripple rings */}
-                  {[0, 1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="absolute rounded-full border-2 border-erobo-purple/30 animate-[concentric-ripple_2s_ease-out_infinite]"
-                      style={{
-                        animationDelay: `${i * 0.4}s`,
-                        width: 100 + i * 80,
-                        height: 100 + i * 80,
-                      }}
-                    />
-                  ))}
-                  {/* Center loading indicator */}
-                  <div className="relative z-10 flex flex-col items-center p-8 rounded-[20px] bg-gradient-to-br from-[rgba(159,157,243,0.15)] to-[rgba(123,121,209,0.08)] backdrop-blur-[50px] border border-[rgba(159,157,243,0.25)] shadow-[0_0_30px_rgba(159,157,243,0.15)]">
-                    <div className="w-16 h-16 rounded-full border-4 border-erobo-purple/30 border-t-erobo-purple animate-spin mb-4 shadow-[0_0_20px_rgba(159,157,243,0.4)]" />
-                    <div className="text-xl font-bold text-white tracking-tight">{t("detail.launching")}</div>
-                    <div className="text-sm font-medium text-white/60 mt-1">{appName}</div>
-                  </div>
-                </div>
-              )}
-              <iframe
-                key={locale}
-                src={iframeSrc}
-                ref={iframeRef}
-                onLoad={() => setIsIframeLoading(false)}
-                className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
-                  isIframeLoading ? "opacity-0" : "opacity-100"
-                }`}
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                title={`${appName} MiniApp`}
-                allowFullScreen
-              />
-            </>
-          )}
-        </MiniAppFrame>
+                )}
+                <iframe
+                  key={locale}
+                  src={iframeSrc}
+                  ref={iframeRef}
+                  onLoad={() => setIsIframeLoading(false)}
+                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
+                    isIframeLoading ? "opacity-0" : "opacity-100"
+                  }`}
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  title={`${appName} MiniApp`}
+                  allowFullScreen
+                />
+              </>
+            )}
+          </MiniAppFrame>
+        </MiniAppTransition>
       </div>
       {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
 

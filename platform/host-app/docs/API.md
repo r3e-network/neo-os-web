@@ -6,7 +6,8 @@ Neo MiniApp Platform API provides RESTful endpoints for managing MiniApps, user 
 
 ## Base URL
 
-**Production:** `https://neomini.app/api`
+**Production:** `https://miniapp.neo.org/api`
+**Testnet:** `https://testnet.miniapp.neo.org/api`
 **Development:** `http://localhost:3000/api`
 
 ## Authentication
@@ -252,11 +253,9 @@ X-RateLimit-Reset: 1704067200
 For MiniApp developers, use the official SDK:
 
 ```typescript
-import { NeoMiniAppSDK } from "@neo/miniapp-sdk";
+import { waitForSDK } from "@neo/uniapp-sdk";
 
-const sdk = new NeoMiniAppSDK({
-    appId: "your-app-id",
-});
+const sdk = await waitForSDK();
 
 // Access platform services
 const price = await sdk.datafeed.getPrice("NEO");

@@ -21,7 +21,7 @@ pnpm install
 # Copy environment variables
 cp .env.example .env.local
 
-# Start development server
+# Start development server (auto-copies miniapps + registry)
 pnpm dev
 ```
 
@@ -47,6 +47,29 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 2. Use categories to filter by type
 3. Click any app to launch it
 4. Interact using your connected wallet
+
+## Build or Add a MiniApp (Auto-Registration)
+
+1. Create a new app folder in `miniapps-uniapp/apps/<your-app>`.
+2. Add a `neo-manifest.json` (source of truth for permissions + metadata).
+3. Run auto-discovery (or let host `predev` handle it):
+
+```bash
+node miniapps-uniapp/scripts/auto-discover-miniapps.js
+```
+
+The host app also runs `scripts/export_host_miniapps.sh` on `predev`/`prebuild`,
+which copies built MiniApps and refreshes the registry automatically.
+Keep `app_id` aligned with your MiniApp `APP_ID` constant so SDK calls are
+scoped correctly.
+If a MiniApp has no `dist/build/h5` output yet, the export script will build it
+on-demand so newly added apps work without extra manual steps.
+
+## UniversalMiniApp Contract
+
+All MiniApps can use the shared UniversalMiniApp contract. If you need on-chain
+events or storage, set `contract_hash` in `neo-manifest.json` to the UniversalMiniApp
+hash for your network. Otherwise you can omit it and keep the MiniApp frontend-only.
 
 ## Next Steps
 

@@ -15,6 +15,7 @@ import { useI18n } from "../../lib/i18n/react";
 import { useTheme } from "../../components/providers/ThemeProvider";
 import { MiniAppFrame } from "../../components/features/miniapp";
 import { injectMiniAppViewportStyles } from "../../lib/miniapp-iframe";
+import { MiniAppTransition } from "@/components/ui";
 
 /** NeoLine N3 wallet interface */
 interface NeoLineN3Wallet {
@@ -48,6 +49,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   const [wallet, setWallet] = useState<WalletState>({ connected: false, address: "", provider: null });
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isIframeLoading, setIsIframeLoading] = useState(true);
   const federated = parseFederatedEntryUrl(app.entry_url, app.app_id);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sdkRef = useRef<MiniAppSDK | null>(null);
@@ -57,6 +59,12 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     const supportedLocale = locale === "zh" ? "zh" : "en";
     return buildMiniAppEntryUrl(app.entry_url, { lang: supportedLocale, theme, embedded: "1" });
   }, [app.entry_url, locale, theme]);
+
+  useEffect(() => {
+    if (federated) {
+      setIsIframeLoading(false);
+    }
+  }, [federated]);
 
   useEffect(() => {
     sdkRef.current = installMiniAppSDK({
@@ -125,7 +133,10 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     if (!iframe?.contentWindow) return;
     const origin = resolveIframeOrigin(app.entry_url);
     if (!origin) return;
-    iframe.contentWindow.postMessage({ type: "theme-change", theme }, origin);
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const targetOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
+    iframe.contentWindow.postMessage({ type: "theme-change", theme }, targetOrigin);
   }, [theme, app.entry_url]);
 
   useEffect(() => {
@@ -138,7 +149,10 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     const expectedOrigin = resolveIframeOrigin(app.entry_url);
     if (!expectedOrigin) return;
 
-    const allowSameOriginInjection = expectedOrigin === window.location.origin;
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const allowNullOrigin = sandboxAttr.length > 0 && !sandboxAllowsSameOrigin;
+    const allowSameOriginInjection = sandboxAllowsSameOrigin && expectedOrigin === window.location.origin;
 
     const ensureSDK = () => {
       if (!sdkRef.current) {
@@ -153,7 +167,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
     const handleMessage = async (event: MessageEvent) => {
       if (event.source !== iframe.contentWindow) return;
-      if (event.origin !== expectedOrigin) return;
+      if (event.origin !== expectedOrigin && !(allowNullOrigin && event.origin === "null")) return;
 
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
@@ -168,6 +182,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       if (!source || typeof source.postMessage !== "function") return;
 
       const respond = (ok: boolean, result?: unknown, error?: string) => {
+        const responseOrigin = event.origin === "null" ? "*" : expectedOrigin;
         source.postMessage(
           {
             type: "neo_miniapp_sdk_response",
@@ -176,7 +191,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
             result,
             error,
           },
-          expectedOrigin,
+          responseOrigin,
         );
       };
 
@@ -241,7 +256,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   }, [app.app_id]);
 
   return (
-    <div style={containerStyle}>
+    <div style={{ ...containerStyle, background: theme === "dark" ? "#05060d" : "var(--erobo-body-bg)" }}>
       <LaunchDock
         appName={app.name}
         appId={app.app_id}
@@ -252,23 +267,59 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         onShare={handleShare}
       />
       <div style={frameWrapperStyle}>
-        <MiniAppFrame>
-          {federated ? (
-            <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-              <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
-            </div>
-          ) : (
-            <iframe
-              key={locale}
-              src={iframeSrc}
-              ref={iframeRef}
-              className="w-full h-full border-0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              title={`${app.name} MiniApp`}
-              allowFullScreen
-            />
-          )}
-        </MiniAppFrame>
+        <MiniAppTransition>
+          <MiniAppFrame>
+            {federated ? (
+              <div className="w-full h-full overflow-y-auto overflow-x-hidden">
+                <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
+              </div>
+            ) : (
+              <>
+                {isIframeLoading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white via-[#f5f6ff] to-[#ffece4] dark:from-[#05060d] dark:via-[#090a14] dark:to-[#050a0d] z-10 overflow-hidden">
+                    <div className="absolute inset-0 overflow-hidden">
+                      <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] bg-[radial-gradient(ellipse_at_center,rgba(159,157,243,0.15)_0%,transparent_55%)] animate-[water-wave_12s_ease-in-out_infinite]" />
+                      <div className="absolute w-[250%] h-[250%] top-[-75%] left-[-75%] bg-[radial-gradient(ellipse_at_center,rgba(247,170,199,0.12)_0%,transparent_60%)] animate-[water-wave-reverse_15s_ease-in-out_infinite]" />
+                    </div>
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="absolute rounded-full border-2 border-erobo-purple/30 animate-[concentric-ripple_2s_ease-out_infinite]"
+                        style={{
+                          animationDelay: `${i * 0.4}s`,
+                          width: 120 + i * 90,
+                          height: 120 + i * 90,
+                        }}
+                      />
+                    ))}
+                    <div className="relative z-10 flex flex-col items-center p-8 rounded-[24px] bg-white/85 dark:bg-white/[0.06] backdrop-blur-[50px] border border-white/60 dark:border-erobo-purple/20 shadow-[0_0_30px_rgba(159,157,243,0.15)]">
+                      <div className="w-16 h-16 rounded-full border-4 border-erobo-purple/30 border-t-erobo-purple animate-spin mb-4 shadow-[0_0_20px_rgba(159,157,243,0.4)]" />
+                      <div className="text-xl font-bold text-erobo-ink dark:text-white tracking-tight">
+                        Launching MiniApp
+                      </div>
+                      <div className="text-sm font-medium text-erobo-ink-soft/70 dark:text-white/60 mt-1">
+                        {app.name}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <iframe
+                  key={locale}
+                  src={iframeSrc}
+                  ref={iframeRef}
+                  onLoad={() => setIsIframeLoading(false)}
+                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
+                    isIframeLoading ? "opacity-0" : "opacity-100"
+                  }`}
+                  sandbox="allow-scripts allow-forms allow-popups"
+                  title={`${app.name} MiniApp`}
+                  allowFullScreen
+                  referrerPolicy="no-referrer"
+                />
+              </>
+            )}
+          </MiniAppFrame>
+        </MiniAppTransition>
       </div>
       {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
 
@@ -433,7 +484,6 @@ const LAUNCH_DOCK_HEIGHT = 56;
 const containerStyle: React.CSSProperties = {
   position: "fixed",
   inset: 0,
-  background: "#000",
   overflow: "hidden",
 };
 
@@ -451,8 +501,8 @@ const toastStyle: React.CSSProperties = {
   bottom: 24,
   left: "50%",
   transform: "translateX(-50%)",
-  background: "rgba(0, 255, 136, 0.9)",
-  color: "#000",
+  background: "rgba(159, 157, 243, 0.9)",
+  color: "#1b1b2f",
   padding: "12px 24px",
   borderRadius: 8,
   fontWeight: 600,

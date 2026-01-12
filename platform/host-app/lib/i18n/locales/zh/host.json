@@ -486,7 +486,7 @@
           "desc": "从市场启动任何应用，无需安装。"
         }
       ],
-      "installSdk": "安装 NeoHub SDK 开始构建您自己的小程序。",
+      "installSdk": "安装 @neo/uniapp-sdk 开始构建您自己的小程序。",
       "initSdk": "在项目中初始化 SDK：",
       "playgroundTitle": "试用交互式演练场",
       "playgroundDesc": "无需编写任何代码即可体验我们 API 的最快方式。",
@@ -853,38 +853,38 @@
   },
   "sdks": {
     "jsSDK": {
-      "subtitle": "NeoHub 官方 TypeScript/JavaScript SDK。",
-      "install": "npm install @neohub/sdk",
+      "subtitle": "面向浏览器 MiniApp 的官方 SDK。",
+      "install": "pnpm add @neo/uniapp-sdk",
       "features": [
-        "完整的 TypeScript 支持及详尽的类型定义",
-        "兼容浏览器和 Node.js 环境",
-        "支持指数退避的自动重试机制",
-        "WebSocket 实时订阅支持",
-        "集成式密钥管理"
+        "由宿主应用注入（MiniApp 内无需 API Key）",
+        "支持 iframe 与 Module Federation",
+        "严格 Origin 校验的 PostMessage 通道",
+        "Vue 组合式 API 与底层 SDK 可选",
+        "钱包、支付、随机数与数据源"
       ],
       "methods": [
         {
-          "name": "connect()",
+          "name": "waitForSDK()",
+          "params": "timeout?: number",
+          "returns": "Promise<MiniAppSDK>"
+        },
+        {
+          "name": "wallet.getAddress()",
           "params": "void",
-          "returns": "Promise<void>"
+          "returns": "Promise<string>"
         },
         {
-          "name": "oracle.fetch()",
-          "params": "FetchOptions",
-          "returns": "Promise<Response>"
+          "name": "payments.payGAS()",
+          "params": "appId, amount, memo?",
+          "returns": "Promise<PaymentIntent>"
         },
         {
-          "name": "vrf.random()",
-          "params": "VRFOptions",
-          "returns": "Promise<VRFResult>"
-        },
-        {
-          "name": "datafeeds.getPrice()",
-          "params": "string",
-          "returns": "Promise<Price>"
+          "name": "rng.requestRandom()",
+          "params": "appId",
+          "returns": "Promise<RandomnessResult>"
         }
       ],
-      "example": "import { NeoHub } from '@neohub/sdk';\n\nconst hub = new NeoHub({ apiKey: 'your-api-key' });\n\nconst price = await hub.datafeeds.getPrice('BTC-USD');\nconsole.log(`当前 BTC 价格: ${price.value}`);"
+      "example": "import { waitForSDK } from '@neo/uniapp-sdk';\n\nconst sdk = await waitForSDK();\nconst address = await sdk.wallet.getAddress();\nconsole.log(`钱包地址: ${address}`);"
     },
     "goSDK": {
       "subtitle": "面向高性能后端服务的官方 Go SDK。",
@@ -1329,5 +1329,22 @@
       "docs": "查看文档",
       "community": "加入社区"
     }
+  },
+  "wishlist": {
+    "title": "我的收藏",
+    "pageTitle": "收藏夹 - NeoHub",
+    "appsSaved": "已收藏 {{count}} 个应用",
+    "addToWishlist": "添加到收藏",
+    "removeFromWishlist": "从收藏中移除",
+    "added": "添加于",
+    "connectWallet": "连接钱包",
+    "connectWalletDesc": "连接钱包以查看您的收藏",
+    "noApps": "暂无应用",
+    "noAppsDesc": "浏览应用并添加到您的收藏",
+    "browseApps": "浏览应用"
+  },
+  "discovery": {
+    "title": "发现新应用",
+    "personalized": "为您推荐"
   }
 }

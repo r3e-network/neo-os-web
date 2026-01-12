@@ -30,6 +30,8 @@ The Neo MiniApp Platform is a three-layer architecture providing secure, decentr
 - Sandboxed iframe execution
 - PostMessage communication with host
 - Access to platform services via SDK
+- Self-contained `neo-manifest.json` for permissions/metadata
+- Auto-registered into the host registry via discovery scripts
 
 ### Edge Functions (Supabase)
 
@@ -37,13 +39,19 @@ The Neo MiniApp Platform is a three-layer architecture providing secure, decentr
 - Data feed oracles
 - Transaction automation
 
+### On-Chain Contracts
+
+- **UniversalMiniApp**: shared contract for storage/events/metrics
+- **ServiceLayerGateway**: dispatches attested results back on-chain
+- **PaymentHub**: handles GAS payments
+
 ## Data Flow
 
 1. User connects wallet to Host App
 2. Host App loads MiniApp in iframe
 3. MiniApp calls SDK methods
 4. SDK bridges to Edge Functions
-5. Edge Functions interact with Neo N3
+5. Edge Functions interact with Neo N3 and UniversalMiniApp (when needed)
 
 ## Security
 

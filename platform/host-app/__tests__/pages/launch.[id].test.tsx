@@ -148,7 +148,7 @@ describe("LaunchPage", () => {
     it("should render LaunchDock with app name", async () => {
       await renderLaunchPage();
       expect(screen.getByTestId("launch-dock")).toBeInTheDocument();
-      expect(screen.getByText("Test App")).toBeInTheDocument();
+      expect(screen.getByTestId("launch-dock")).toHaveTextContent("Test App");
     });
 
     it("should render iframe with correct src and sandbox attributes", async () => {
@@ -156,8 +156,9 @@ describe("LaunchPage", () => {
       const iframe = document.querySelector("iframe");
       expect(iframe).toBeInTheDocument();
       expect(iframe?.src).toBe("https://example.com/app?lang=en&theme=dark&embedded=1");
-      expect(iframe?.getAttribute("sandbox")).toBe("allow-scripts allow-same-origin allow-forms allow-popups");
+      expect(iframe?.getAttribute("sandbox")).toBe("allow-scripts allow-forms allow-popups");
       expect(iframe?.title).toBe("Test App MiniApp");
+      expect(iframe?.getAttribute("referrerpolicy")).toBe("no-referrer");
     });
 
     it("should render iframe sized by the frame container", async () => {
@@ -389,7 +390,7 @@ describe("LaunchPage", () => {
       );
     });
 
-    it("injects MiniAppSDK into same-origin iframes", async () => {
+    it("does not inject MiniAppSDK into sandboxed iframes", async () => {
       const sameOriginApp: MiniAppInfo = {
         ...mockApp,
         entry_url: "/miniapps/test/index.html",
@@ -400,12 +401,8 @@ describe("LaunchPage", () => {
       await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
       fireEvent.load(iframe);
 
-      await waitFor(() => {
-        expect((contentWindow as any).MiniAppSDK).toBe(mockSDK);
-      });
-
-      const dispatched = (contentWindow.dispatchEvent as jest.Mock).mock.calls.at(-1)?.[0];
-      expect(dispatched?.type).toBe("miniapp-sdk-ready");
+      expect((contentWindow as any).MiniAppSDK).toBeUndefined();
+      expect(contentWindow.dispatchEvent).not.toHaveBeenCalled();
     });
   });
 

@@ -94,19 +94,19 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
   return (
     <Card
       className={cn(
-        "glass-card relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
-        wallet.recommended && "ring-2 ring-emerald-500/50",
+        "erobo-card relative overflow-hidden transition-all duration-300 hover:shadow-[0_30px_80px_rgba(159,157,243,0.2)] hover:-translate-y-1",
+        wallet.recommended && "ring-2 ring-erobo-pink/50",
       )}
     >
       {wallet.recommended && (
         <div className="absolute top-4 right-4">
-          <Badge className="bg-emerald-500 text-white">{t("download.recommended")}</Badge>
+          <Badge className="bg-erobo-pink text-erobo-ink">{t("download.recommended")}</Badge>
         </div>
       )}
 
       <CardHeader className="pb-4">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center p-3 shadow-inner">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-erobo-mint/70 to-erobo-sky/80 dark:from-erobo-mint/20 dark:to-erobo-sky/20 flex items-center justify-center p-3 shadow-inner">
             <img
               src={wallet.icon}
               alt={wallet.name}
@@ -117,7 +117,7 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
             />
           </div>
           <div>
-            <CardTitle className="text-xl text-gray-900 dark:text-white">{wallet.name}</CardTitle>
+            <CardTitle className="text-xl text-erobo-ink dark:text-white">{wallet.name}</CardTitle>
             <CardDescription className="mt-1">{t(`download.wallets.${wallet.id}.description`)}</CardDescription>
           </div>
         </div>
@@ -126,16 +126,16 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
       <CardContent className="space-y-6">
         {/* Features */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wider text-erobo-ink-soft/80 dark:text-slate-400">
             {t("download.features")}
           </p>
           <div className="flex flex-wrap gap-2">
             {wallet.features.map((feature) => (
               <span
                 key={feature}
-                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-erobo-peach/40 dark:bg-white/10 text-erobo-ink dark:text-gray-300"
               >
-                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                <CheckCircle2 className="h-3 w-3 text-erobo-purple" />
                 {t(`download.featureLabels.${feature}`)}
               </span>
             ))}
@@ -144,7 +144,7 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
 
         {/* Download Buttons */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wider text-erobo-ink-soft/80 dark:text-slate-400">
             {t("download.availableOn")}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -153,7 +153,10 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
                 href={wallet.links.chrome}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full justify-start gap-2")}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "w-full justify-start gap-2 border-erobo-purple/30 text-erobo-ink hover:bg-erobo-purple/10",
+                )}
               >
                 <Chrome className="h-4 w-4" />
                 Chrome
@@ -165,7 +168,10 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
                 href={wallet.links.ios}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full justify-start gap-2")}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "w-full justify-start gap-2 border-erobo-purple/30 text-erobo-ink hover:bg-erobo-purple/10",
+                )}
               >
                 <Apple className="h-4 w-4" />
                 iOS
@@ -177,7 +183,10 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
                 href={wallet.links.android}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full justify-start gap-2")}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "w-full justify-start gap-2 border-erobo-purple/30 text-erobo-ink hover:bg-erobo-purple/10",
+                )}
               >
                 <Smartphone className="h-4 w-4" />
                 Android
@@ -193,7 +202,7 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
             href={wallet.links.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
+            className="text-sm text-erobo-purple hover:underline inline-flex items-center gap-1"
           >
             {t("download.visitWebsite")}
             <ExternalLink className="h-3 w-3" />
@@ -217,51 +226,53 @@ export default function DownloadPage() {
       <div className="mx-auto max-w-6xl px-4 py-12">
         {/* Header */}
         <div className="mb-12 text-center">
-          <Badge className="mb-4 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+          <Badge className="mb-4 bg-erobo-peach/70 text-erobo-ink">
             <Download className="h-3 w-3 mr-1" />
             {t("download.badge")}
           </Badge>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-erobo-ink dark:text-white tracking-tight">
             {t("download.title")}
           </h1>
-          <p className="mt-4 text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">{t("download.subtitle")}</p>
+          <p className="mt-4 text-lg text-erobo-ink-soft/80 dark:text-slate-400 max-w-2xl mx-auto">
+            {t("download.subtitle")}
+          </p>
         </div>
 
         {/* Why You Need a Wallet */}
         <div className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800">
-            <div className="h-10 w-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
-              <Shield className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex items-start gap-4 p-6 rounded-xl erobo-card">
+            <div className="h-10 w-10 rounded-lg bg-erobo-mint/60 flex items-center justify-center flex-shrink-0">
+              <Shield className="h-5 w-5 text-erobo-ink" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">{t("download.benefits.security.title")}</h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <h3 className="font-semibold text-erobo-ink dark:text-white">{t("download.benefits.security.title")}</h3>
+              <p className="mt-1 text-sm text-erobo-ink-soft/80 dark:text-slate-400">
                 {t("download.benefits.security.description")}
               </p>
             </div>
           </div>
 
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800">
-            <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-              <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <div className="flex items-start gap-4 p-6 rounded-xl erobo-card">
+            <div className="h-10 w-10 rounded-lg bg-erobo-purple/20 flex items-center justify-center flex-shrink-0">
+              <Zap className="h-5 w-5 text-erobo-purple" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">{t("download.benefits.instant.title")}</h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <h3 className="font-semibold text-erobo-ink dark:text-white">{t("download.benefits.instant.title")}</h3>
+              <p className="mt-1 text-sm text-erobo-ink-soft/80 dark:text-slate-400">
                 {t("download.benefits.instant.description")}
               </p>
             </div>
           </div>
 
-          <div className="flex items-start gap-4 p-6 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800">
-            <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-              <MonitorSmartphone className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <div className="flex items-start gap-4 p-6 rounded-xl erobo-card">
+            <div className="h-10 w-10 rounded-lg bg-erobo-peach/50 flex items-center justify-center flex-shrink-0">
+              <MonitorSmartphone className="h-5 w-5 text-erobo-ink" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">
+              <h3 className="font-semibold text-erobo-ink dark:text-white">
                 {t("download.benefits.multiplatform.title")}
               </h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-sm text-erobo-ink-soft/80 dark:text-slate-400">
                 {t("download.benefits.multiplatform.description")}
               </p>
             </div>
@@ -276,18 +287,18 @@ export default function DownloadPage() {
         </div>
 
         {/* Help Section */}
-        <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t("download.help.title")}</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-4">{t("download.help.description")}</p>
+        <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-erobo-mint/40 to-erobo-peach/50 dark:from-erobo-mint/10 dark:to-erobo-peach/10 border border-white/60 dark:border-white/10">
+          <h2 className="text-xl font-bold text-erobo-ink dark:text-white mb-2">{t("download.help.title")}</h2>
+          <p className="text-erobo-ink-soft/80 dark:text-slate-400 mb-4">{t("download.help.description")}</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/docs" className={buttonVariants({ variant: "outline" })}>
+            <Link href="/docs" className={cn(buttonVariants({ variant: "outline" }), "border-erobo-purple/30")}>
               {t("download.help.docs")}
             </Link>
             <a
               href="https://discord.gg/neo"
               target="_blank"
               rel="noopener noreferrer"
-              className={buttonVariants({ variant: "ghost" })}
+              className={cn(buttonVariants({ variant: "ghost" }), "text-erobo-ink")}
             >
               {t("download.help.community")}
               <ExternalLink className="h-3 w-3 ml-2" />

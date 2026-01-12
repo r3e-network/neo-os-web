@@ -1,0 +1,71 @@
+/**
+ * Publish Version API - Publish a specific version
+ */
+
+import type { NextApiRequest, NextApiResponse } from "next";
+import { supabaseAdmin } from "@/lib/supabase";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  if (!supabaseAdmin) {
+    return res.status(500).json({ error: "Database not configured" });
+  }
+
+  const developerAddress = req.headers["x-developer-address"] as string;
+  if (!developerAddress) {
+    return res.status(401).json({ error: "Developer address required" });
+  }
+
+  const { appId, versionId } = req.query;
+
+  // Verify ownership
+  const { data: app } = await supabaseAdmin
+    .from("miniapp_registry")
+    .select("app_id")
+    .eq("app_id", appId)
+    .eq("developer_address", developerAddress)
+    .single();
+
+  if (!app) {
+    return res.status(404).json({ error: "App not found" });
+  }
+
+  try {
+    // Unset current for all versions
+    await supabaseAdmin.from("miniapp_versions").update({ is_current: false }).eq("app_id", appId);
+
+    // Set new current version
+    const { data, error } = await supabaseAdmin
+      .from("miniapp_versions")
+      .update({
+        is_current: true,
+        status: "published",
+        published_at: new Date().toISOString(),
+      })
+      .eq("id", versionId)
+      .eq("app_id", appId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Update registry status
+    await supabaseAdmin
+      .from("miniapp_registry")
+      .update({
+        status: "published",
+        visibility: "public",
+        published_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("app_id", appId);
+
+    return res.status(200).json({ version: data, message: "Version published" });
+  } catch (error) {
+    console.error("Publish version error:", error);
+    return res.status(500).json({ error: "Failed to publish version" });
+  }
+}

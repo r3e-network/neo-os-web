@@ -27,7 +27,7 @@ export const WaterWaveBackground = memo(function WaterWaveBackground({
   const colors = {
     neo: { primary: "0, 229, 153", secondary: "0, 229, 153" },
     purple: { primary: "159, 157, 243", secondary: "123, 121, 209" },
-    mixed: { primary: "159, 157, 243", secondary: "0, 229, 153" },
+    mixed: { primary: "159, 157, 243", secondary: "247, 170, 199" },
   };
 
   const opacity = opacityMap[intensity];

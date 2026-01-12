@@ -18,8 +18,8 @@ export default class MyDocument extends Document<Props> {
           <script src="/theme-init.js" />
           <meta charSet="utf-8" />
           <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
-          <link rel="icon" href="/logo-icon.png" type="image/png" />
-          <link rel="apple-touch-icon" href="/logo-icon.png" />
+          <link rel="icon" href="/logo-icon.svg" type="image/svg+xml" />
+          <link rel="apple-touch-icon" href="/logo-icon.svg" />
           {/* Google Fonts for beautiful typography */}
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

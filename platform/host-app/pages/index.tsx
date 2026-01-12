@@ -31,6 +31,8 @@ import { ServicesGrid } from "@/components/features/landing/ServicesGrid";
 import { NNTNewsFeed } from "@/components/features/news";
 import { SecurityFeatures } from "@/components/features/landing/SecurityFeatures";
 import { CTABuilding } from "@/components/features/landing/CTABuilding";
+import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
+import { DiscoveryCarousel } from "@/components/features/discovery";
 
 // Interface for stats from API
 interface AppStats {
@@ -212,6 +214,11 @@ export default function LandingPage() {
         />
       </Head>
 
+      {/* Global E-Robo Water Wave Background */}
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        <WaterWaveBackground intensity="medium" colorScheme="mixed" className="opacity-60" />
+      </div>
+
       {/* 1. Hero Section */}
       <HeroSection />
 
@@ -247,24 +254,29 @@ export default function LandingPage() {
       <ArchitectureSection />
 
       {/* 4. MiniApp Explorer Grid */}
-      <section id="explore" className="py-24 px-4 bg-background min-h-screen relative overflow-hidden">
+      <section id="explore" className="py-24 px-4 bg-transparent min-h-screen relative overflow-hidden">
         {/* Background Gradients */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-neo/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-erobo-purple/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-erobo-peach/20 rounded-full blur-3xl pointer-events-none" />
 
         <div className="mx-auto max-w-[1600px] relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+            <h2 className="text-4xl font-bold text-erobo-ink dark:text-white mb-4 tracking-tight">
               {t("explore.title")}
             </h2>
-            <p className="text-gray-600 dark:text-white/60 max-w-2xl mx-auto">{t("explore.subtitle")}</p>
+            <p className="text-erobo-ink-soft/70 dark:text-white/60 max-w-2xl mx-auto">{t("explore.subtitle")}</p>
+          </div>
+
+          {/* Discovery Carousel - Personalized Recommendations */}
+          <div className="mb-12">
+            <DiscoveryCarousel apps={BUILTIN_APPS} />
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8">
             <aside className="hidden lg:block w-72 shrink-0 space-y-8">
               <div>
-                <h3 className="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-4 px-2">
-                  <Filter size={18} className="text-neo" />
+                <h3 className="flex items-center gap-2 font-bold text-erobo-ink dark:text-white mb-4 px-2">
+                  <Filter size={18} className="text-erobo-purple" />
                   {t("miniapps.sidebar.categories")}
                 </h3>
                 <div className="space-y-1">
@@ -278,8 +290,8 @@ export default function LandingPage() {
                         className={cn(
                           "w-full flex items-center justify-between px-4 py-3 text-sm font-bold uppercase transition-all cursor-pointer rounded-lg border",
                           isActive
-                            ? "bg-neo/10 border-neo/30 text-neo shadow-[0_0_15px_rgba(0,229,153,0.1)]"
-                            : "border-transparent text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5",
+                            ? "bg-erobo-purple/10 border-erobo-purple/30 text-erobo-purple shadow-[0_0_15px_rgba(159,157,243,0.15)]"
+                            : "border-transparent text-erobo-ink-soft dark:text-white/60 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/5",
                         )}
                       >
                         <span className="flex items-center gap-2">
@@ -290,8 +302,8 @@ export default function LandingPage() {
                           className={cn(
                             "text-[10px] px-2 py-0.5 rounded-full border",
                             isActive
-                              ? "bg-neo/20 text-neo border-neo/30"
-                              : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 border-gray-200 dark:border-white/10",
+                              ? "bg-erobo-purple/20 text-erobo-purple border-erobo-purple/30"
+                              : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft/70 dark:text-white/40 border-white/60 dark:border-white/10",
                           )}
                         >
                           {cat.count}
@@ -302,8 +314,8 @@ export default function LandingPage() {
                 </div>
               </div>
               <div>
-                <h3 className="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-4 px-2">
-                  <Zap size={18} className="text-yellow-400" />
+                <h3 className="flex items-center gap-2 font-bold text-erobo-ink dark:text-white mb-4 px-2">
+                  <Zap size={18} className="text-erobo-pink" />
                   {t("activity.live")}
                 </h3>
                 <ActivityTicker activities={activities} title={t("activity.global") || "GLOBAL FEED"} height={400} />
@@ -323,10 +335,10 @@ export default function LandingPage() {
                       variant="ghost"
                       onClick={() => setSortBy(sort as any)}
                       className={cn(
-                        "h-auto rounded-full text-[10px] font-bold uppercase px-6 py-2 border transition-all hover:bg-gray-100 dark:hover:bg-white/5",
+                        "h-auto rounded-full text-[10px] font-bold uppercase px-6 py-2 border transition-all hover:bg-erobo-peach/30 dark:hover:bg-white/5",
                         sortBy === sort
-                          ? "bg-gray-100 dark:bg-white/10 border-gray-300 dark:border-white/20 text-gray-900 dark:text-white shadow-sm dark:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-                          : "border-transparent text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white",
+                          ? "bg-erobo-purple/10 border-erobo-purple/30 text-erobo-purple shadow-sm dark:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                          : "border-transparent text-erobo-ink-soft/70 dark:text-white/50 hover:text-erobo-ink dark:hover:text-white",
                       )}
                     >
                       {t(`miniapps.sort.${sort}`)}
@@ -334,14 +346,14 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
-                  <div className="bg-gray-100 dark:bg-white/5 p-1 flex items-center border border-gray-200 dark:border-white/10 rounded-lg backdrop-blur-md">
+                  <div className="bg-white/70 dark:bg-white/5 p-1 flex items-center border border-white/60 dark:border-white/10 rounded-full backdrop-blur-md">
                     <button
                       onClick={() => setViewMode("grid")}
                       className={cn(
                         "p-2 rounded-md transition-all",
                         viewMode === "grid"
-                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
-                          : "text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5",
+                          ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm"
+                          : "text-gray-400 dark:text-white/40 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/5",
                       )}
                     >
                       <LayoutGrid size={18} strokeWidth={2.5} />
@@ -351,8 +363,8 @@ export default function LandingPage() {
                       className={cn(
                         "p-2 rounded-md transition-all",
                         viewMode === "list"
-                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
-                          : "text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5",
+                          ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm"
+                          : "text-gray-400 dark:text-white/40 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/5",
                       )}
                     >
                       <List size={18} strokeWidth={2.5} />
@@ -380,7 +392,9 @@ export default function LandingPage() {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="col-span-full text-center py-20 text-white/40">{t("miniapps.noApps")}</div>
+                  <div className="col-span-full text-center py-20 text-erobo-ink-soft/70 dark:text-white/40">
+                    {t("miniapps.noApps")}
+                  </div>
                 )}
               </div>
             </div>

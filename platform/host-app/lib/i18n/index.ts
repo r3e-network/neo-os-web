@@ -13,7 +13,7 @@ export const localeNames: Record<Locale, string> = {
 };
 
 // Storage key for persisting locale preference
-export const LOCALE_STORAGE_KEY = "neo-miniapp-locale";
+export const LOCALE_STORAGE_KEY = "meshminiapp-locale";
 
 /**
  * Get the current locale from storage (user preference only)

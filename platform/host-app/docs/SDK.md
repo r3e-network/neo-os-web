@@ -1,23 +1,36 @@
 # MiniApp SDK Guide
 
-The MiniApp SDK provides a bridge between your application and the Neo MiniApp Platform services.
+The MiniApp SDK is injected by the host app and provides a safe bridge to Neo MiniApp Platform services.
+MiniApps should **never** construct or sign transactions directly.
 
-## Installation
+Use `@neo/uniapp-sdk` in UniApp/Vue, or access `window.MiniAppSDK` directly in other frameworks.
+
+## Installation (UniApp/Vue)
 
 ```bash
-npm install @neo/miniapp-sdk
+pnpm add @neo/uniapp-sdk
 ```
 
-## Quick Start
+## Quick Start (UniApp/Vue)
 
 ```typescript
-import { NeoMiniAppSDK } from "@neo/miniapp-sdk";
+import { useWallet, usePayments } from "@neo/uniapp-sdk";
 
-const sdk = new NeoMiniAppSDK({
-    appId: "your-app-id",
-});
+const APP_ID = "miniapp-my-app"; // must match neo-manifest.json app_id
 
-// Get user's wallet address
+const { address, connect } = useWallet();
+const { payGAS } = usePayments(APP_ID);
+
+await connect();
+const walletAddress = address.value;
+```
+
+## Quick Start (Any Framework)
+
+```typescript
+import { waitForSDK } from "@neo/uniapp-sdk";
+
+const sdk = await waitForSDK();
 const address = await sdk.wallet.getAddress();
 ```
 
@@ -29,7 +42,7 @@ const address = await sdk.wallet.getAddress();
 // Get connected wallet address
 const address = await sdk.wallet.getAddress();
 
-// Invoke a transaction intent
+// Invoke a transaction intent (optional, host-specific)
 const result = await sdk.wallet.invokeIntent(requestId);
 ```
 
@@ -44,7 +57,7 @@ const tx = await sdk.payments.payGAS(appId, amount, memo);
 
 ```typescript
 // Request verifiable random number
-const random = await sdk.rng.requestRandom(appId);
+const random = await sdk.rng.requestRandom(APP_ID);
 ```
 
 ### Data Feeds
@@ -75,6 +88,25 @@ try {
     }
 }
 ```
+
+## UniversalMiniApp Contract
+
+If you need on-chain events, storage, or metrics, set `contract_hash` in `neo-manifest.json`
+to the UniversalMiniApp contract hash for your network. If you do not emit on-chain events,
+`contract_hash` can be omitted.
+Ensure `app_id` matches the `APP_ID` constant used in your MiniApp so SDK calls
+and payment workflows resolve correctly.
+
+## Auto-Registration
+
+MiniApps are auto-registered. Add a folder under `miniapps-uniapp/apps/<your-app>` with a
+`neo-manifest.json` file and run:
+
+```bash
+node miniapps-uniapp/scripts/auto-discover-miniapps.js
+```
+
+The host app runs this automatically during `predev` and `prebuild`.
 
 ## See Also
 

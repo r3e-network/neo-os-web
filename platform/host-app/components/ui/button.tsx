@@ -7,12 +7,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-neo text-black hover:bg-neo-dark shadow-sm hover:shadow-md hover:shadow-neo/20 border border-transparent",
+        default:
+          "bg-erobo-ink text-white hover:brightness-110 shadow-[0_18px_45px_rgba(27,27,47,0.3)] border border-transparent",
         destructive: "bg-red-500 text-white hover:bg-red-600 shadow-sm hover:shadow-md hover:shadow-red-500/20",
-        outline: "border border-gray-200 dark:border-white/10 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-900 dark:text-gray-100",
-        secondary: "bg-electric-purple text-white hover:bg-purple-600 shadow-sm hover:shadow-md hover:shadow-purple-500/20",
-        ghost: "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300",
-        link: "text-neo underline-offset-4 hover:underline",
+        outline:
+          "border border-white/60 dark:border-white/10 bg-transparent hover:bg-erobo-peach/30 dark:hover:bg-white/10 text-erobo-ink dark:text-gray-100",
+        secondary:
+          "bg-gradient-to-r from-erobo-purple to-erobo-pink text-white hover:brightness-110 shadow-[0_12px_30px_rgba(159,157,243,0.35)]",
+        ghost: "hover:bg-erobo-peach/30 dark:hover:bg-white/10 text-erobo-ink-soft dark:text-gray-300",
+        link: "text-erobo-purple underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { X, Code2, Rocket, Shield, Dice5, TrendingUp, ChevronRight, ExternalLink } from "lucide-react";
+import { X, Code2, Rocket, Shield, Dice5, TrendingUp, ChevronRight, ExternalLink, LayoutDashboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/lib/i18n/react";
 
@@ -122,6 +122,12 @@ export default function DeveloperPage() {
             </h1>
             <p className="mt-6 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">{t("developer.subtitle")}</p>
             <div className="mt-10 flex flex-wrap justify-center gap-4">
+              <Link href="/developer/dashboard">
+                <Button size="lg" className="bg-neo text-white rounded-xl hover:bg-neo/90 transition-all font-medium">
+                  <LayoutDashboard size={18} className="mr-2" />
+                  My Dashboard
+                </Button>
+              </Link>
               <Link href="/docs">
                 <Button
                   size="lg"
@@ -164,7 +170,7 @@ export default function DeveloperPage() {
               </div>
               <div className="rounded-xl bg-gray-900 dark:bg-black border border-gray-200 dark:border-white/10 p-6 font-mono text-sm overflow-x-auto mb-6">
                 <div className="text-gray-500">// {t("developer.installSdkComment")}</div>
-                <div className="text-neo">$ npm install @neo-miniapp/sdk</div>
+                <div className="text-neo">$ npm install @meshminiapp/sdk</div>
                 <div className="text-gray-500 mt-4">// {t("developer.createAppComment")}</div>
                 <div className="text-neo">$ npx create-miniapp my-app</div>
               </div>

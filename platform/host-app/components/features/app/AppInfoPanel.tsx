@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { MiniAppInfo, MiniAppStats, MiniAppNotification } from "../../types";
 import { ReviewsTab } from "../reviews";
 import { ForumTab } from "../forum";
-import { useTranslation } from "../../../lib/i18n/react";
+import { useTranslation } from "@/lib/i18n/react";
 
 interface AppInfoPanelProps {
   app: MiniAppInfo;

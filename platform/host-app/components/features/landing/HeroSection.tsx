@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { WaterBackground } from "@/components/ui/WaterBackground";
+import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
 import { Rocket, FileText, Code2, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTranslation } from "@/lib/i18n/react";
@@ -11,7 +11,7 @@ export function HeroSection() {
   return (
     <section className="relative overflow-hidden pt-16 pb-24 md:pt-24 md:pb-32 bg-background">
       {/* E-Robo Water Wave Background */}
-      <WaterBackground intensity="medium" className="-z-10" />
+      <WaterWaveBackground intensity="medium" colorScheme="mixed" className="-z-10" />
 
       {/* Additional decorative elements */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
@@ -24,14 +24,14 @@ export function HeroSection() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-neo/10 text-neo text-xs font-bold uppercase tracking-widest border border-neo/20 rounded-full mb-10 shadow-[0_0_15px_rgba(0,229,153,0.3)] backdrop-blur-md">
-            <div className="w-2 h-2 bg-neo rounded-full animate-pulse shadow-[0_0_10px_#00E599]" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-erobo-purple/10 text-erobo-purple text-xs font-bold uppercase tracking-widest border border-erobo-purple/30 rounded-full mb-10 shadow-[0_0_15px_rgba(159,157,243,0.3)] backdrop-blur-md">
+            <div className="w-2 h-2 bg-erobo-purple rounded-full animate-pulse shadow-[0_0_10px_rgba(159,157,243,0.7)]" />
             {t("hero.badge")}
           </div>
 
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold text-gray-900 dark:text-white mb-10 tracking-tight leading-[1.1]">
             {t("hero.title")} <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-neo to-blue-500 inline-block mt-2 drop-shadow-2xl">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-erobo-purple to-erobo-pink inline-block mt-2 drop-shadow-2xl">
               {t("hero.titleHighlight")}
             </span>
           </h1>
@@ -44,7 +44,7 @@ export function HeroSection() {
             <Link href="#explore">
               <Button
                 size="lg"
-                className="bg-neo hover:bg-neo/90 text-black font-bold px-10 h-16 rounded-full border border-neo/50 shadow-[0_0_20px_rgba(0,229,153,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(0,229,153,0.6)] text-lg"
+                className="bg-gradient-to-r from-erobo-purple to-erobo-pink text-white font-bold px-10 h-16 rounded-full border border-white/30 shadow-[0_0_30px_rgba(159,157,243,0.35)] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(159,157,243,0.45)] text-lg"
               >
                 {t("hero.exploreApps")} <Rocket className="ml-2" size={20} strokeWidth={2.5} />
               </Button>

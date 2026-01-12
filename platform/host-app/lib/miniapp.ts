@@ -10,9 +10,29 @@ function toString(value: unknown, fallback = ""): string {
   return String(value);
 }
 
+function isSafeEntryUrl(entryUrl: string): boolean {
+  if (!entryUrl) return false;
+  if (entryUrl.startsWith("mf://")) return true;
+  if (entryUrl.startsWith("/") || entryUrl.startsWith("./")) return true;
+  if (entryUrl.startsWith("//")) return false;
+  try {
+    const url = new URL(entryUrl);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function normalizeCategory(value: unknown): MiniAppCategory {
   const raw = toString(value).trim().toLowerCase();
-  if (raw === "gaming" || raw === "defi" || raw === "governance" || raw === "utility" || raw === "social") {
+  if (
+    raw === "gaming" ||
+    raw === "defi" ||
+    raw === "governance" ||
+    raw === "utility" ||
+    raw === "social" ||
+    raw === "nft"
+  ) {
     return raw;
   }
   return "utility";
@@ -68,7 +88,7 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   if (!appId) return null;
 
   const entryUrl = toString(obj.entry_url ?? fallback?.entry_url).trim();
-  if (!entryUrl) return null;
+  if (!entryUrl || !isSafeEntryUrl(entryUrl)) return null;
 
   const name = toString(obj.name ?? fallback?.name ?? appId).trim() || appId;
   const description = toString(obj.description ?? fallback?.description ?? "").trim();
