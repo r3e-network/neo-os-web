@@ -38,11 +38,15 @@ async function getVersions(appId: string, res: NextApiResponse) {
 }
 
 async function createVersion(appId: string, req: NextApiRequest, res: NextApiResponse) {
-  const { version, entry_url, contract_hash, changelog, release_notes, is_current, published_by } = req.body;
+  const { version, entry_url, supported_chains, contracts, changelog, release_notes, is_current, published_by } =
+    req.body;
 
   if (!version || !entry_url || !published_by) {
     return res.status(400).json({ error: "Missing required fields" });
   }
+
+  const supportedChains = Array.isArray(supported_chains) ? supported_chains : [];
+  const contractMap = contracts && typeof contracts === "object" && !Array.isArray(contracts) ? contracts : {};
 
   const { data, error } = await supabase
     .from("app_versions")
@@ -50,7 +54,8 @@ async function createVersion(appId: string, req: NextApiRequest, res: NextApiRes
       app_id: appId,
       version,
       entry_url,
-      contract_hash,
+      supported_chains: supportedChains,
+      contracts: contractMap,
       changelog,
       release_notes,
       is_current: is_current ?? true,

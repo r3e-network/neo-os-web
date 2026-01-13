@@ -232,7 +232,7 @@ func (d *Deployer) DeployContract(nefPath, manifestPath string) (*chain.Deployed
 		return nil, fmt.Errorf("simulation failed: %s (exception: %s)", invokeResult.State, invokeResult.Exception)
 	}
 
-	// Calculate expected contract hash
+	// Calculate expected contract address
 	nefFile, err := nef.FileFromBytes(nefData)
 	if err != nil {
 		return nil, fmt.Errorf("parse nef: %w", err)
@@ -241,16 +241,17 @@ func (d *Deployer) DeployContract(nefPath, manifestPath string) (*chain.Deployed
 	if err := json.Unmarshal(manifestData, &m); err != nil {
 		return nil, fmt.Errorf("parse manifest: %w", err)
 	}
-	contractHash := state.CreateContractHash(d.GetAccountHash(), nefFile.Checksum, m.Name)
+	contractAddress := state.CreateContractHash(d.GetAccountHash(), nefFile.Checksum, m.Name)
 
 	return &chain.DeployedContract{
-		Hash:        "0x" + contractHash.StringLE(),
+		Address:     "0x" + contractAddress.StringLE(),
+		Hash:        "0x" + contractAddress.StringLE(),
 		GasConsumed: invokeResult.GasConsumed,
 	}, nil
 }
 
 // InvokeFunction invokes a contract function (read-only).
-func (d *Deployer) InvokeFunction(contractHash, method string, args []interface{}) (*chain.InvokeResult, error) {
+func (d *Deployer) InvokeFunction(contractAddress, method string, args []interface{}) (*chain.InvokeResult, error) {
 	if args == nil {
 		args = []interface{}{}
 	}
@@ -262,7 +263,7 @@ func (d *Deployer) InvokeFunction(contractHash, method string, args []interface{
 		},
 	}
 
-	resp, err := d.call("invokefunction", contractHash, method, args, signers)
+	resp, err := d.call("invokefunction", contractAddress, method, args, signers)
 	if err != nil {
 		return nil, err
 	}
@@ -275,8 +276,8 @@ func (d *Deployer) InvokeFunction(contractHash, method string, args []interface{
 }
 
 // GetContractState gets the state of a deployed contract.
-func (d *Deployer) GetContractState(contractHash string) (map[string]interface{}, error) {
-	resp, err := d.call("getcontractstate", contractHash)
+func (d *Deployer) GetContractState(contractAddress string) (map[string]interface{}, error) {
+	resp, err := d.call("getcontractstate", contractAddress)
 	if err != nil {
 		return nil, err
 	}

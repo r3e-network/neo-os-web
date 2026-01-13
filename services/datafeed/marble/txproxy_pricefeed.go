@@ -25,8 +25,8 @@ func (s *Service) invokePriceFeedUpdate(
 	if s.txProxy == nil {
 		return fmt.Errorf("neofeeds: txproxy not configured")
 	}
-	if s.priceFeedHash == "" {
-		return fmt.Errorf("neofeeds: pricefeed hash not configured")
+	if s.priceFeedAddress == "" {
+		return fmt.Errorf("neofeeds: pricefeed address not configured")
 	}
 	if symbol == "" {
 		return fmt.Errorf("neofeeds: symbol required")
@@ -46,11 +46,11 @@ func (s *Service) invokePriceFeedUpdate(
 
 	params := priceFeedUpdateParams(symbol, roundID, price, timestamp, s.attestationHash, sourceSetID)
 	req := txproxytypes.InvokeRequest{
-		RequestID:    "neofeeds:" + uuid.NewString(),
-		ContractHash: s.priceFeedHash,
-		Method:       "update",
-		Params:       params,
-		Wait:         wait,
+		RequestID:       "neofeeds:" + uuid.NewString(),
+		ContractAddress: s.priceFeedAddress,
+		Method:          "update",
+		Params:          params,
+		Wait:            wait,
 	}
 	_, err := s.txProxy.Invoke(ctx, &req)
 	return err

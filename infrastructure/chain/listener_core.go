@@ -16,7 +16,7 @@ import (
 type EventListener struct {
 	mu             sync.RWMutex
 	client         *Client
-	contractHashes map[string]bool // Multiple contracts to monitor
+	contractAddresses map[string]bool // Multiple contracts to monitor
 	handlers       map[string][]EventHandler
 	anyHandlers    []EventHandler
 	txHandlers     []TxHandler
@@ -84,9 +84,9 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 		interval = 5 * time.Second
 	}
 
-	// Build contract hash map for filtering
-	contractHashes := make(map[string]bool)
-	for _, contractHash := range []string{
+	// Build contract address map for filtering
+	contractAddresses := make(map[string]bool)
+	for _, contractAddress := range []string{
 		cfg.Contracts.PaymentHub,
 		cfg.Contracts.Governance,
 		cfg.Contracts.PriceFeed,
@@ -95,8 +95,8 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 		cfg.Contracts.AutomationAnchor,
 		cfg.Contracts.ServiceLayerGateway,
 	} {
-		if normalized := normalizeContractHash(contractHash); normalized != "" {
-			contractHashes[normalized] = true
+		if normalized := normalizeContractAddress(contractAddress); normalized != "" {
+			contractAddresses[normalized] = true
 		}
 	}
 
@@ -116,7 +116,7 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 
 	return &EventListener{
 		client:         cfg.Client,
-		contractHashes: contractHashes,
+		contractAddresses: contractAddresses,
 		handlers:       make(map[string][]EventHandler),
 		pollInterval:   interval,
 		lastBlock:      cfg.StartBlock,
@@ -298,10 +298,10 @@ func (l *EventListener) processTransaction(
 		}
 
 		for _, notif := range exec.Notifications {
-			contractHash := normalizeContractHash(notif.Contract)
+			contractAddress := normalizeContractAddress(notif.Contract)
 
 			// Filter by contract (if we have contracts configured)
-			if len(l.contractHashes) > 0 && !l.contractHashes[contractHash] {
+			if len(l.contractAddresses) > 0 && !l.contractAddresses[contractAddress] {
 				continue
 			}
 
@@ -309,7 +309,7 @@ func (l *EventListener) processTransaction(
 				TxHash:     txHash,
 				BlockIndex: blockIndex,
 				BlockHash:  blockHash,
-				Contract:   contractHash,
+				Contract:   contractAddress,
 				EventName:  notif.EventName,
 				Timestamp:  timestamp,
 				Sender:     tx.Sender,
@@ -382,7 +382,7 @@ func (l *EventListener) runHandler(ctx context.Context, fields map[string]interf
 	}()
 }
 
-func normalizeContractHash(value string) string {
+func normalizeContractAddress(value string) string {
 	trimmed := strings.TrimSpace(value)
 	trimmed = strings.TrimPrefix(trimmed, "0x")
 	trimmed = strings.TrimPrefix(trimmed, "0X")

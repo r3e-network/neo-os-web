@@ -244,14 +244,14 @@ func (c *Client) BatchSign(ctx context.Context, requests []SignRequest) (*BatchS
 }
 
 // Transfer transfers tokens from a pool account to an external address.
-func (c *Client) Transfer(ctx context.Context, accountID, toAddress string, amount int64, tokenHash string) (*TransferResponse, error) {
+func (c *Client) Transfer(ctx context.Context, accountID, toAddress string, amount int64, tokenAddress string) (*TransferResponse, error) {
 	var out TransferResponse
 	if err := c.doJSON(ctx, http.MethodPost, "/transfer", TransferInput{
 		ServiceID: c.serviceID,
 		AccountID: accountID,
 		ToAddress: toAddress,
 		Amount:    amount,
-		TokenHash: tokenHash,
+		TokenAddress: tokenAddress,
 	}, &out); err != nil {
 		return nil, err
 	}
@@ -315,12 +315,12 @@ func (c *Client) DeployContract(ctx context.Context, accountID, nefBase64, manif
 
 // UpdateContract updates an existing smart contract using a pool account.
 // All signing happens inside TEE - private keys never leave the enclave.
-func (c *Client) UpdateContract(ctx context.Context, accountID, contractHash, nefBase64, manifestJSON string, data any) (*UpdateContractResponse, error) {
+func (c *Client) UpdateContract(ctx context.Context, accountID, contractAddress, nefBase64, manifestJSON string, data any) (*UpdateContractResponse, error) {
 	var out UpdateContractResponse
 	if err := c.doJSON(ctx, http.MethodPost, "/update-contract", UpdateContractInput{
 		ServiceID:    c.serviceID,
 		AccountID:    accountID,
-		ContractHash: contractHash,
+		ContractAddress: contractAddress,
 		NEFBase64:    nefBase64,
 		ManifestJSON: manifestJSON,
 		Data:         data,
@@ -333,12 +333,12 @@ func (c *Client) UpdateContract(ctx context.Context, accountID, contractHash, ne
 // InvokeContract invokes a contract method using a pool account.
 // All signing happens inside TEE - private keys never leave the enclave.
 // Scope can be: "CalledByEntry" (default), "Global", "CustomContracts", "CustomGroups", "None"
-func (c *Client) InvokeContract(ctx context.Context, accountID, contractHash, method string, params []ContractParam, scope string) (*InvokeContractResponse, error) {
+func (c *Client) InvokeContract(ctx context.Context, accountID, contractAddress, method string, params []ContractParam, scope string) (*InvokeContractResponse, error) {
 	var out InvokeContractResponse
 	if err := c.doJSON(ctx, http.MethodPost, "/invoke", InvokeContractInput{
 		ServiceID:    c.serviceID,
 		AccountID:    accountID,
-		ContractHash: contractHash,
+		ContractAddress: contractAddress,
 		Method:       method,
 		Params:       params,
 		Scope:        scope,
@@ -349,12 +349,12 @@ func (c *Client) InvokeContract(ctx context.Context, accountID, contractHash, me
 }
 
 // SimulateContract simulates a contract invocation without signing or broadcasting.
-func (c *Client) SimulateContract(ctx context.Context, accountID, contractHash, method string, params []ContractParam) (*SimulateContractResponse, error) {
+func (c *Client) SimulateContract(ctx context.Context, accountID, contractAddress, method string, params []ContractParam) (*SimulateContractResponse, error) {
 	var out SimulateContractResponse
 	if err := c.doJSON(ctx, http.MethodPost, "/simulate", SimulateContractInput{
 		ServiceID:    c.serviceID,
 		AccountID:    accountID,
-		ContractHash: contractHash,
+		ContractAddress: contractAddress,
 		Method:       method,
 		Params:       params,
 	}, &out); err != nil {
@@ -390,13 +390,13 @@ func (c *Client) ListLowBalanceAccounts(ctx context.Context, tokenType string, m
 // InvokeMaster invokes a contract method using the master wallet (TEE_PRIVATE_KEY).
 // This is used for TEE operations like PriceFeed and RandomnessLog that require
 // the caller to be a registered TEE signer in AppRegistry.
-func (c *Client) InvokeMaster(ctx context.Context, contractHash, method string, params []ContractParam, scope string) (*InvokeContractResponse, error) {
+func (c *Client) InvokeMaster(ctx context.Context, contractAddress, method string, params []ContractParam, scope string) (*InvokeContractResponse, error) {
 	var out InvokeContractResponse
 	if err := c.doJSON(ctx, http.MethodPost, "/invoke-master", InvokeMasterInput{
-		ContractHash: contractHash,
-		Method:       method,
-		Params:       params,
-		Scope:        scope,
+		ContractAddress: contractAddress,
+		Method:          method,
+		Params:          params,
+		Scope:           scope,
 	}, &out); err != nil {
 		return nil, err
 	}

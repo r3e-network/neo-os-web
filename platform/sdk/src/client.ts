@@ -6,6 +6,9 @@ import type {
   AppUpdateManifestResponse,
   AutomationTask,
   AutomationLog,
+  ChainId,
+  ChainType,
+  EVMInvocationIntent,
   RegisterTaskRequest,
   RegisterTaskResponse,
   EventsListParams,
@@ -19,6 +22,7 @@ import type {
   MiniAppSDK,
   MiniAppSDKConfig,
   MiniAppUsageResponse,
+  NeoInvocationIntent,
   ComputeExecuteRequest,
   ComputeJob,
   OracleQueryRequest,
@@ -61,9 +65,29 @@ interface WindowWithNeoLine extends Window {
   [key: string]: unknown;
 }
 
-async function getInjectedWalletAddress(): Promise<string> {
+interface EthereumProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+}
+
+interface WindowWithEthereum extends Window {
+  ethereum?: EthereumProvider;
+}
+
+async function getInjectedWalletAddress(chainType: ChainType): Promise<string> {
   if (typeof window === "undefined") {
     throw new Error("wallet.getAddress must be called in a browser context");
+  }
+
+  if (chainType === "evm") {
+    const w = window as unknown as WindowWithEthereum;
+    const provider = w.ethereum;
+    if (!provider) {
+      throw new Error("evm wallet not detected (install MetaMask or compatible wallet)");
+    }
+    const accounts = (await provider.request({ method: "eth_requestAccounts" })) as string[];
+    const address = String(accounts?.[0] ?? "").trim();
+    if (!address) throw new Error("evm wallet address not available");
+    return address;
   }
 
   const g = window as unknown as WindowWithNeoLine;
@@ -96,6 +120,32 @@ function getNeoLineN3Instance(): NeoLineN3Instance {
   return new neoline.Init();
 }
 
+function getEvmProvider(): EthereumProvider {
+  if (typeof window === "undefined") {
+    throw new Error("wallet invocation must be called in a browser context");
+  }
+  const w = window as unknown as WindowWithEthereum;
+  if (!w.ethereum) {
+    throw new Error("evm wallet not detected (install MetaMask or compatible wallet)");
+  }
+  return w.ethereum;
+}
+
+function inferChainType(chainId?: string | null): ChainType {
+  if (!chainId) return "neo-n3";
+  if (chainId.startsWith("neo-n3")) return "neo-n3";
+  return "evm";
+}
+
+function toHexQuantity(value?: string): string | undefined {
+  if (!value) return undefined;
+  const raw = String(value).trim();
+  if (!raw) return undefined;
+  if (raw.startsWith("0x")) return raw;
+  const parsed = BigInt(raw);
+  return `0x${parsed.toString(16)}`;
+}
+
 // Resolve SENDER placeholder in invocation params with the user's wallet address.
 // This is used for GAS.Transfer where the 'from' parameter must be the user's address.
 function resolveInvocationParams(params: InvocationIntent["params"], userAddress: string): InvocationIntent["params"] {
@@ -114,22 +164,26 @@ function resolveInvocationParams(params: InvocationIntent["params"], userAddress
 }
 
 async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<unknown> {
+  if (invocation.chain_type && invocation.chain_type !== "neo-n3") {
+    throw new Error("invocation is not a neo-n3 intent");
+  }
+  const neoInvocation = invocation as NeoInvocationIntent;
   const inst = getNeoLineN3Instance();
   if (!inst || typeof inst.invoke !== "function") {
     throw new Error("wallet does not support invoke (NeoLine N3 required)");
   }
 
-  const scriptHash = String(invocation.contract_hash ?? "").trim();
-  const operation = String(invocation.method ?? "").trim();
+  const scriptHash = String(neoInvocation.contract_address ?? "").trim();
+  const operation = String(neoInvocation.method ?? "").trim();
 
-  if (!scriptHash) throw new Error("invocation missing contract_hash");
+  if (!scriptHash) throw new Error("invocation missing contract_address");
   if (!operation) throw new Error("invocation missing method");
 
   // Get user's wallet address for SENDER placeholder resolution and signing
-  const address = await getInjectedWalletAddress();
+  const address = await getInjectedWalletAddress("neo-n3");
 
   // Resolve SENDER placeholders in params with the user's actual address
-  const rawArgs = Array.isArray(invocation.params) ? invocation.params : [];
+  const rawArgs = Array.isArray(neoInvocation.params) ? neoInvocation.params : [];
   const args = resolveInvocationParams(rawArgs, address);
 
   // NeoLine SDKs vary slightly in accepted shapes; try a small set of candidates.
@@ -159,6 +213,32 @@ async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<un
   }
 
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "invoke failed"));
+}
+
+async function invokeEvmInvocation(invocation: InvocationIntent): Promise<unknown> {
+  if (invocation.chain_type && invocation.chain_type !== "evm") {
+    throw new Error("invocation is not an evm intent");
+  }
+  const evmInvocation = invocation as EVMInvocationIntent;
+  const provider = getEvmProvider();
+  const from = await getInjectedWalletAddress("evm");
+
+  const to = String(evmInvocation.contract_address ?? "").trim();
+  const data = String(evmInvocation.data ?? "").trim();
+  if (!to) throw new Error("invocation missing contract_address");
+  if (!data) throw new Error("invocation missing data");
+
+  const tx = {
+    from,
+    to,
+    data,
+    value: toHexQuantity(evmInvocation.value),
+    gas: toHexQuantity(evmInvocation.gas),
+    gasPrice: toHexQuantity(evmInvocation.gas_price),
+  };
+
+  const txHash = (await provider.request({ method: "eth_sendTransaction", params: [tx] })) as string;
+  return { tx_hash: txHash };
 }
 
 async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: RequestInit): Promise<T> {
@@ -203,14 +283,30 @@ async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Req
 
 export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
   const pendingInvocations = new Map<string, InvocationIntent>();
+  const resolvedChainId = cfg.chainId ?? null;
+  const fallbackChainType = cfg.chainType ?? inferChainType(resolvedChainId);
+
+  const resolveInvocationChainType = (invocation?: InvocationIntent): ChainType => {
+    if (invocation?.chain_type) return invocation.chain_type;
+    if (invocation?.chain_id) return inferChainType(invocation.chain_id);
+    return fallbackChainType;
+  };
+
+  const invokeWithWallet = async (invocation: InvocationIntent): Promise<unknown> => {
+    const chainType = resolveInvocationChainType(invocation);
+    if (chainType === "evm") {
+      return invokeEvmInvocation(invocation);
+    }
+    return invokeNeoLineInvocation(invocation);
+  };
 
   return {
     async getAddress() {
-      return getInjectedWalletAddress();
+      return getInjectedWalletAddress(fallbackChainType);
     },
     wallet: {
       async getAddress() {
-        return getInjectedWalletAddress();
+        return getInjectedWalletAddress(fallbackChainType);
       },
       async invokeIntent(requestId: string): Promise<unknown> {
         const id = String(requestId ?? "").trim();
@@ -218,17 +314,22 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         const invocation = pendingInvocations.get(id);
         if (!invocation) throw new Error("unknown request_id (no pending invocation)");
         pendingInvocations.delete(id);
-        return invokeNeoLineInvocation(invocation);
+        return invokeWithWallet(invocation);
       },
       async invokeInvocation(invocation: InvocationIntent): Promise<unknown> {
-        return invokeNeoLineInvocation(invocation);
+        return invokeWithWallet(invocation);
       },
     },
     payments: {
       async payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse> {
         const res = await requestJSON<PayGASResponse>(cfg, "/pay-gas", {
           method: "POST",
-          body: JSON.stringify({ app_id: appId, amount_gas: amount, memo }),
+          body: JSON.stringify({
+            app_id: appId,
+            amount_gas: amount,
+            memo,
+            chain_id: resolvedChainId ?? undefined,
+          }),
         });
         try {
           pendingInvocations.set(res.request_id, res.invocation);
@@ -239,7 +340,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       },
       async payGASAndInvoke(appId: string, amount: string, memo?: string) {
         const intent = await this.payGAS(appId, amount, memo);
-        const tx = await invokeNeoLineInvocation(intent.invocation);
+        const tx = await invokeWithWallet(intent.invocation);
         return { intent, tx };
       },
     },
@@ -252,6 +353,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
             proposal_id: proposalId,
             bneo_amount: bneoAmount,
             support,
+            chain_id: resolvedChainId ?? undefined,
           }),
         });
         try {
@@ -263,7 +365,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       },
       async voteAndInvoke(appId: string, proposalId: string, bneoAmount: string, support?: boolean) {
         const intent = await this.vote(appId, proposalId, bneoAmount, support);
-        const tx = await invokeNeoLineInvocation(intent.invocation);
+        const tx = await invokeWithWallet(intent.invocation);
         return { intent, tx };
       },
     },
@@ -271,7 +373,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       async requestRandom(appId: string): Promise<RNGResponse> {
         return requestJSON<RNGResponse>(cfg, "/rng-request", {
           method: "POST",
-          body: JSON.stringify({ app_id: appId }),
+          body: JSON.stringify({ app_id: appId, chain_id: resolvedChainId ?? undefined }),
         });
       },
     },
@@ -288,6 +390,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         const qs = new URLSearchParams();
         if (resolvedAppId) qs.set("app_id", resolvedAppId);
         if (date) qs.set("date", date);
+        if (resolvedChainId) qs.set("chain_id", resolvedChainId);
         const path = qs.toString() ? `/miniapp-usage?${qs.toString()}` : "/miniapp-usage";
         const res = await requestJSON<MiniAppUsageResponse>(cfg, path, { method: "GET" });
         return res.usage;
@@ -298,7 +401,10 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         const qs = new URLSearchParams();
         if (params.app_id) qs.set("app_id", params.app_id);
         if (params.event_name) qs.set("event_name", params.event_name);
-        if (params.contract_hash) qs.set("contract_hash", params.contract_hash);
+        const chainId = params.chain_id ?? resolvedChainId ?? undefined;
+        if (chainId) qs.set("chain_id", chainId);
+        if (params.contract_address) qs.set("contract_address", params.contract_address);
+        if (params.contract_address) qs.set("contract_address", params.contract_address);
         if (params.limit) qs.set("limit", String(params.limit));
         if (params.after_id) qs.set("after_id", params.after_id);
         return requestJSON<EventsListResponse>(cfg, `/events-list?${qs.toString()}`, { method: "GET" });
@@ -308,6 +414,8 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       async list(params: TransactionsListParams): Promise<TransactionsListResponse> {
         const qs = new URLSearchParams();
         if (params.app_id) qs.set("app_id", params.app_id);
+        const chainId = params.chain_id ?? resolvedChainId ?? undefined;
+        if (chainId) qs.set("chain_id", chainId);
         if (params.limit) qs.set("limit", String(params.limit));
         if (params.after_id) qs.set("after_id", params.after_id);
         return requestJSON<TransactionsListResponse>(cfg, `/transactions-list?${qs.toString()}`, { method: "GET" });
@@ -349,6 +457,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
           method: "POST",
           body: JSON.stringify({
             manifest: params.manifest,
+            chain_id: params.chain_id ?? resolvedChainId ?? undefined,
           }),
         });
       },
@@ -357,6 +466,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
           method: "POST",
           body: JSON.stringify({
             manifest: params.manifest,
+            chain_id: params.chain_id ?? resolvedChainId ?? undefined,
           }),
         });
       },

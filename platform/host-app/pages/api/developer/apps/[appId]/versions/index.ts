@@ -61,7 +61,7 @@ async function handleGet(res: NextApiResponse, appId: string) {
 }
 
 async function handlePost(req: NextApiRequest, res: NextApiResponse, appId: string) {
-  const { version, release_notes, entry_url } = req.body;
+  const { version, release_notes, entry_url, supported_chains, contracts } = req.body;
 
   if (!version || !entry_url) {
     return res.status(400).json({ error: "Version and entry_url required" });
@@ -79,6 +79,9 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, appId: stri
 
     const version_code = (latest?.version_code || 0) + 1;
 
+    const supportedChains = Array.isArray(supported_chains) ? supported_chains : [];
+    const contractMap = contracts && typeof contracts === "object" && !Array.isArray(contracts) ? contracts : {};
+
     const { data, error } = await supabaseAdmin!
       .from("miniapp_versions")
       .insert({
@@ -86,6 +89,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, appId: stri
         version,
         version_code,
         entry_url,
+        supported_chains: supportedChains,
+        contracts: contractMap,
         release_notes,
         status: "draft",
       })

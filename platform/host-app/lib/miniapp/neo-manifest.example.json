@@ -10,29 +10,26 @@
   "supported_chains": ["neo-n3-mainnet", "neo-n3-testnet", "neox-mainnet", "neox-testnet"],
   "contracts": {
     "neo-n3-mainnet": {
-      "chain_id": "neo-n3-mainnet",
-      "contract_address": "0x1234567890abcdef1234567890abcdef12345678",
-      "is_primary": true
+      "address": "0x1234567890abcdef1234567890abcdef12345678",
+      "active": true
     },
     "neo-n3-testnet": {
-      "chain_id": "neo-n3-testnet",
-      "contract_address": "0xabcdef1234567890abcdef1234567890abcdef12"
+      "address": "0xabcdef1234567890abcdef1234567890abcdef12",
+      "active": true
     },
     "neox-mainnet": {
-      "chain_id": "neox-mainnet",
-      "contract_address": "0x1234567890123456789012345678901234567890",
+      "address": "0x1234567890123456789012345678901234567890",
       "abi": "contracts/example.abi.json"
     },
     "neox-testnet": {
-      "chain_id": "neox-testnet",
-      "contract_address": "0x0987654321098765432109876543210987654321",
+      "address": "0x0987654321098765432109876543210987654321",
       "abi": "contracts/example.abi.json"
     }
   },
   "permissions": {
     "payments": true,
     "governance": false,
-    "randomness": true,
+    "rng": true,
     "datafeed": true,
     "automation": false,
     "cross_chain": true

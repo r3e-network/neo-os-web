@@ -18,6 +18,7 @@ interface TrendingApp {
   app_id: string;
   name: string;
   icon: string;
+  chain_id: string;
   growth_rate: number;
   total_transactions: number;
   daily_transactions: number;
@@ -89,6 +90,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
   // Parse and validate query parameters
   const url = new URL(req.url);
   const { limit, period } = parseQueryParams(url);
+  const chainId = url.searchParams.get("chain_id") ?? "neo-n3-mainnet";
   const days = periodToDays(period);
 
   const supabase = supabaseFactory ? supabaseFactory() : supabaseClient();
@@ -98,6 +100,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
     const { data: todayData, error: todayErr } = await supabase
       .from("miniapp_stats_daily")
       .select("app_id, tx_count")
+      .eq("chain_id", chainId)
       .eq("date", new Date().toISOString().split("T")[0])
       .order("tx_count", { ascending: false });
 
@@ -126,6 +129,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
     const { data: historicalData, error: historicalErr } = await supabase
       .from("miniapp_stats_daily")
       .select("app_id, tx_count")
+      .eq("chain_id", chainId)
       .gte("date", startDateStr)
       .lt("date", todayDateStr);
 
@@ -213,6 +217,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
     const { data: statsData, error: statsErr } = await supabase
       .from("miniapp_stats")
       .select("app_id, total_transactions")
+      .eq("chain_id", chainId)
       .in("app_id", topAppIds);
 
     if (statsErr) {
@@ -262,6 +267,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
         app_id: growth.app_id,
         name: meta.name,
         icon: meta.icon,
+        chain_id: chainId,
         growth_rate: Math.round(growth.growth_rate * 10000) / 10000, // Round to 4 decimals
         total_transactions: totalTx,
         daily_transactions: growth.daily_transactions,

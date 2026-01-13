@@ -42,7 +42,7 @@ var newMiniApps = []string{
 
 type DeployResult struct {
 	Name        string `json:"name"`
-	Hash        string `json:"hash"`
+	Address     string `json:"address"`
 	GasConsumed string `json:"gas_consumed"`
 	Status      string `json:"status"`
 	Error       string `json:"error,omitempty"`
@@ -90,13 +90,13 @@ func main() {
 
 		result := DeployResult{
 			Name:        name,
-			Hash:        deployed.Hash,
+			Address:     deployed.Address,
 			GasConsumed: deployed.GasConsumed,
 			Status:      "simulated",
 		}
 		results = append(results, result)
 
-		fmt.Printf("  Hash: %s\n", deployed.Hash)
+		fmt.Printf("  Address: %s\n", deployed.Address)
 		fmt.Printf("  GAS: %s\n", deployed.GasConsumed)
 		fmt.Printf("  ✅ Simulation successful\n\n")
 
@@ -109,10 +109,10 @@ func main() {
 	fmt.Println(string(jsonData))
 
 	// Output for config update
-	fmt.Println("\n=== Contract Hashes for Config ===")
+	fmt.Println("\n=== Contract Addresses for Config ===")
 	for _, r := range results {
 		if r.Status == "simulated" {
-			fmt.Printf("%s: %s\n", r.Name, r.Hash)
+			fmt.Printf("%s: %s\n", r.Name, r.Address)
 		}
 	}
 }

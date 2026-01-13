@@ -33,15 +33,15 @@ func (s *Service) handleMiniAppContractEvent(ctx context.Context, event *chain.C
 		return nil
 	}
 
-	app, err := s.loadMiniAppByContractHash(ctx, event.Contract)
+	app, err := s.loadMiniAppByContractAddress(ctx, event.Contract)
 	if err != nil {
 		if database.IsNotFound(err) {
 			return nil
 		}
 		s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
-			"contract_hash": event.Contract,
-			"event":         event.EventName,
-			"tx_hash":       event.TxHash,
+			"contract_address": event.Contract,
+			"event":            event.EventName,
+			"tx_hash":          event.TxHash,
 		}).Warn("failed to resolve miniapp contract for event")
 		return nil
 	}
@@ -58,23 +58,23 @@ func (s *Service) handleMiniAppContractEvent(ctx context.Context, event *chain.C
 			return nil
 		}
 	}
-	if contractHash := appContractHash(app); contractHash != "" {
-		if normalizeContractHash(event.Contract) != contractHash {
+	if contractAddress := appContractAddress(app, s.chainID); contractAddress != "" {
+		if normalizeContractAddress(event.Contract) != contractAddress {
 			s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
-				"app_id":        app.AppID,
-				"event":         event.EventName,
-				"contract_hash": event.Contract,
-				"tx_hash":       event.TxHash,
-			}).Warn("miniapp contract hash mismatch for event")
+				"app_id":           app.AppID,
+				"event":            event.EventName,
+				"contract_address": event.Contract,
+				"tx_hash":          event.TxHash,
+			}).Warn("miniapp contract address mismatch for event")
 			return nil
 		}
 	} else if s.requireManifestContract {
 		s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
-			"app_id":        app.AppID,
-			"event":         event.EventName,
-			"contract_hash": event.Contract,
-			"tx_hash":       event.TxHash,
-		}).Warn("contract_hash missing; event rejected")
+			"app_id":           app.AppID,
+			"event":            event.EventName,
+			"contract_address": event.Contract,
+			"tx_hash":          event.TxHash,
+		}).Warn("contract_address missing; event rejected")
 		return nil
 	}
 

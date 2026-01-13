@@ -59,9 +59,9 @@ type Service struct {
     repo neoflowsupabase.RepositoryInterface
 
     chainClient          *chain.Client
-    priceFeedHash        string
+    priceFeedAddress     string
     priceFeed            *chain.PriceFeedContract
-    automationAnchorHash string
+    automationAnchorAddress string
     automationAnchor     *chain.AutomationAnchorContract
     txProxy              txproxytypes.Invoker
     eventListener        *chain.EventListener
@@ -107,8 +107,8 @@ type Config struct {
     DB               database.RepositoryInterface
     NeoFlowRepo      neoflowsupabase.RepositoryInterface
     ChainClient          *chain.Client
-    PriceFeedHash        string
-    AutomationAnchorHash string
+    PriceFeedAddress     string
+    AutomationAnchorAddress string
     TxProxy              txproxytypes.Invoker
     EventListener        *chain.EventListener
     EnableChainExec      bool

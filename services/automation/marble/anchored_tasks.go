@@ -433,9 +433,9 @@ func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskSta
 			}
 
 			txResult, err := s.txProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
-				RequestID:    "neoflow:periodic:" + uuid.NewString(),
-				ContractHash: s.automationAnchorHash,
-				Method:       "executePeriodicTask",
+				RequestID:       "neoflow:periodic:" + uuid.NewString(),
+				ContractAddress: s.automationAnchorAddress,
+				Method:          "executePeriodicTask",
 				Params: []chain.ContractParam{
 					chain.NewIntegerParam(taskIDInt),
 					chain.NewByteArrayParam(payload),
@@ -493,11 +493,11 @@ func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskSta
 	}
 
 	txResult, err := s.txProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
-		RequestID:    "neoflow:" + uuid.NewString(),
-		ContractHash: task.task.Target,
-		Method:       task.task.Method,
-		Params:       params,
-		Wait:         true,
+		RequestID:       "neoflow:" + uuid.NewString(),
+		ContractAddress: task.task.Target,
+		Method:          task.task.Method,
+		Params:          params,
+		Wait:            true,
 	})
 	if err != nil {
 		s.Logger().WithContext(ctx).WithError(err).WithField("task_id", taskKey).Warn("automation task invocation failed")
@@ -525,9 +525,9 @@ func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskSta
 	}
 
 	markResult, err := s.txProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
-		RequestID:    "neoflow:mark:" + uuid.NewString(),
-		ContractHash: s.automationAnchorHash,
-		Method:       "markExecuted",
+		RequestID:       "neoflow:mark:" + uuid.NewString(),
+		ContractAddress: s.automationAnchorAddress,
+		Method:          "markExecuted",
 		Params: []chain.ContractParam{
 			chain.NewByteArrayParam(task.task.TaskID),
 			chain.NewIntegerParam(nonce),

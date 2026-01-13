@@ -4,7 +4,17 @@ import { useEffect, type CSSProperties } from "react";
 import { FederatedMiniApp as FederatedMiniAppRenderer } from "../components/FederatedMiniApp";
 import { MiniAppFrame } from "../components/features/miniapp";
 import { installMiniAppSDK } from "../lib/miniapp-sdk";
-import { coerceMiniAppInfo } from "../lib/miniapp";
+import { coerceMiniAppInfo, getContractForChain } from "../lib/miniapp";
+import type { ChainId } from "../lib/chains/types";
+// Chain configuration comes from MiniApp manifest only - no environment defaults
+
+/** Get effective chainId from app manifest - returns null if app has no chain support */
+function getEffectiveChainId(supportedChains?: ChainId[]): ChainId | null {
+  if (supportedChains && supportedChains.length > 0) {
+    return supportedChains[0];
+  }
+  return null;
+}
 
 export default function FederatedMiniApp() {
   const router = useRouter();
@@ -30,14 +40,17 @@ export default function FederatedMiniApp() {
               : [];
         const info = coerceMiniAppInfo(list[0]);
         if (!mounted) return;
+        const chainId = getEffectiveChainId(info?.supportedChains);
+        const contractAddress = info ? getContractForChain(info, chainId) : null;
         installMiniAppSDK({
           appId: info?.app_id ?? appId,
-          contractHash: info?.contract_hash ?? null,
+          chainId,
+          contractAddress,
           permissions: info?.permissions,
         });
       } catch {
         if (!mounted) return;
-        installMiniAppSDK({ appId });
+        installMiniAppSDK({ appId, chainId: getEffectiveChainId() });
       }
     };
 

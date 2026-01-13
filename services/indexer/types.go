@@ -53,40 +53,40 @@ type Signer struct {
 
 // OpcodeTrace represents a single VM opcode execution step.
 type OpcodeTrace struct {
-	ID            int64   `json:"id" db:"id"`
-	TxHash        string  `json:"tx_hash" db:"tx_hash"`
-	StepIndex     int     `json:"step_index" db:"step_index"`
-	Opcode        string  `json:"opcode" db:"opcode"`
-	OpcodeHex     string  `json:"opcode_hex" db:"opcode_hex"`
-	GasConsumed   string  `json:"gas_consumed" db:"gas_consumed"`
-	StackSize     int     `json:"stack_size" db:"stack_size"`
-	ContractHash  string  `json:"contract_hash,omitempty" db:"contract_hash"`
-	InstructionPtr int    `json:"instruction_ptr" db:"instruction_ptr"`
+	ID              int64  `json:"id" db:"id"`
+	TxHash          string `json:"tx_hash" db:"tx_hash"`
+	StepIndex       int    `json:"step_index" db:"step_index"`
+	Opcode          string `json:"opcode" db:"opcode"`
+	OpcodeHex       string `json:"opcode_hex" db:"opcode_hex"`
+	GasConsumed     string `json:"gas_consumed" db:"gas_consumed"`
+	StackSize       int    `json:"stack_size" db:"stack_size"`
+	ContractAddress string `json:"contract_address,omitempty" db:"contract_address"`
+	InstructionPtr  int    `json:"instruction_ptr" db:"instruction_ptr"`
 }
 
 // ContractCall represents a contract invocation within a transaction.
 type ContractCall struct {
-	ID           int64           `json:"id" db:"id"`
-	TxHash       string          `json:"tx_hash" db:"tx_hash"`
-	CallIndex    int             `json:"call_index" db:"call_index"`
-	ContractHash string          `json:"contract_hash" db:"contract_hash"`
-	Method       string          `json:"method" db:"method"`
-	ArgsJSON     json.RawMessage `json:"args" db:"args_json"`
-	GasConsumed  string          `json:"gas_consumed" db:"gas_consumed"`
-	Success      bool            `json:"success" db:"success"`
-	ParentCallID *int64          `json:"parent_call_id,omitempty" db:"parent_call_id"`
+	ID              int64           `json:"id" db:"id"`
+	TxHash          string          `json:"tx_hash" db:"tx_hash"`
+	CallIndex       int             `json:"call_index" db:"call_index"`
+	ContractAddress string          `json:"contract_address" db:"contract_address"`
+	Method          string          `json:"method" db:"method"`
+	ArgsJSON        json.RawMessage `json:"args" db:"args_json"`
+	GasConsumed     string          `json:"gas_consumed" db:"gas_consumed"`
+	Success         bool            `json:"success" db:"success"`
+	ParentCallID    *int64          `json:"parent_call_id,omitempty" db:"parent_call_id"`
 }
 
 // Syscall represents a system call made during transaction execution.
 type Syscall struct {
-	ID           int64           `json:"id" db:"id"`
-	TxHash       string          `json:"tx_hash" db:"tx_hash"`
-	CallIndex    int             `json:"call_index" db:"call_index"`
-	SyscallName  string          `json:"syscall_name" db:"syscall_name"`
-	ArgsJSON     json.RawMessage `json:"args" db:"args_json"`
-	ResultJSON   json.RawMessage `json:"result" db:"result_json"`
-	GasConsumed  string          `json:"gas_consumed" db:"gas_consumed"`
-	ContractHash string          `json:"contract_hash,omitempty" db:"contract_hash"`
+	ID              int64           `json:"id" db:"id"`
+	TxHash          string          `json:"tx_hash" db:"tx_hash"`
+	CallIndex       int             `json:"call_index" db:"call_index"`
+	SyscallName     string          `json:"syscall_name" db:"syscall_name"`
+	ArgsJSON        json.RawMessage `json:"args" db:"args_json"`
+	ResultJSON      json.RawMessage `json:"result" db:"result_json"`
+	GasConsumed     string          `json:"gas_consumed" db:"gas_consumed"`
+	ContractAddress string          `json:"contract_address,omitempty" db:"contract_address"`
 }
 
 // =============================================================================
@@ -116,12 +116,12 @@ const (
 
 // Notification represents a contract event notification.
 type Notification struct {
-	ID           int64           `json:"id" db:"id"`
-	TxHash       string          `json:"tx_hash" db:"tx_hash"`
-	NotifyIndex  int             `json:"notify_index" db:"notify_index"`
-	ContractHash string          `json:"contract_hash" db:"contract_hash"`
-	EventName    string          `json:"event_name" db:"event_name"`
-	StateJSON    json.RawMessage `json:"state" db:"state_json"`
+	ID              int64           `json:"id" db:"id"`
+	TxHash          string          `json:"tx_hash" db:"tx_hash"`
+	NotifyIndex     int             `json:"notify_index" db:"notify_index"`
+	ContractAddress string          `json:"contract_address" db:"contract_address"`
+	EventName       string          `json:"event_name" db:"event_name"`
+	StateJSON       json.RawMessage `json:"state" db:"state_json"`
 }
 
 // =============================================================================

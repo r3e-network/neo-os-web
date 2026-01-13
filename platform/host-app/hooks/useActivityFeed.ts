@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { OnChainActivity } from "../components/types";
+import type { ChainId } from "../lib/chains/types";
+// Chain configuration comes from data source - no environment defaults
 import { logger } from "../lib/logger";
 
 interface UseActivityFeedOptions {
@@ -144,6 +146,7 @@ function transformEvent(evt: Record<string, unknown>): OnChainActivity {
     id: `evt-${evt.id}`,
     type: "event",
     app_id: evt.app_id ? String(evt.app_id) : null,
+    chain_id: (evt.chain_id as ChainId) || null,
     title: String(evt.event_name || "Contract Event"),
     description: formatEventDescription(evt),
     tx_hash: evt.tx_hash ? String(evt.tx_hash) : undefined,
@@ -163,6 +166,7 @@ function transformTransaction(tx: Record<string, unknown>): OnChainActivity {
     id: `tx-${tx.id}`,
     type: "transaction",
     app_id: appId,
+    chain_id: (tx.chain_id as ChainId) || null,
     title,
     description: formatTxDescription(tx),
     tx_hash: tx.tx_hash ? String(tx.tx_hash) : undefined,
@@ -176,6 +180,7 @@ function transformNotification(notif: Record<string, unknown>): OnChainActivity 
     id: `notif-${notif.id}`,
     type: "notification",
     app_id: notif.app_id ? String(notif.app_id) : null,
+    chain_id: (notif.chain_id as ChainId) || null,
     title: String(notif.title || "Notification"),
     description: String(notif.content || ""),
     tx_hash: notif.tx_hash ? String(notif.tx_hash) : undefined,
@@ -184,7 +189,7 @@ function transformNotification(notif: Record<string, unknown>): OnChainActivity 
 }
 
 function formatEventDescription(evt: Record<string, unknown>): string {
-  const contract = evt.contract_hash ? String(evt.contract_hash).slice(0, 10) : "unknown";
+  const contract = evt.contract_address ? String(evt.contract_address).slice(0, 10) : "unknown";
   return `Contract ${contract}... emitted event`;
 }
 

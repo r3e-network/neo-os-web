@@ -11,7 +11,7 @@ describe("LaunchDock", () => {
   const baseProps: LaunchDockProps = {
     appName: "Test App",
     appId: "test-app",
-    wallet: { connected: false, address: "", provider: null },
+    wallet: { connected: false, address: "", provider: null, chainId: "neo-n3-mainnet" },
     networkLatency: 50,
     onBack: mockOnBack,
     onExit: mockOnExit,
@@ -60,6 +60,7 @@ describe("LaunchDock", () => {
         connected: true,
         address: "NeoTestAddress123456789",
         provider: "neoline",
+        chainId: "neo-n3-mainnet",
       };
 
       render(<LaunchDock {...baseProps} wallet={connectedWallet} />);
@@ -78,6 +79,7 @@ describe("LaunchDock", () => {
         connected: true,
         address: "NeoTestAddress123456789",
         provider: "neoline",
+        chainId: "neo-n3-mainnet",
       };
 
       const { container } = render(<LaunchDock {...baseProps} wallet={connectedWallet} />);
@@ -91,11 +93,12 @@ describe("LaunchDock", () => {
         connected: true,
         address: "Neo123",
         provider: "neoline",
+        chainId: "neo-n3-mainnet",
       };
 
       render(<LaunchDock {...baseProps} wallet={shortWallet} />);
       // Should still slice properly without errors
-      expect(screen.getByText(/Neo/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Neo/)[0]).toBeInTheDocument();
     });
   });
 
@@ -243,7 +246,7 @@ describe("LaunchDock", () => {
       const newProps: LaunchDockProps = {
         appName: "New App",
         appId: "new-app",
-        wallet: { connected: true, address: "NewAddress123", provider: "o3" },
+        wallet: { connected: true, address: "NewAddress123", provider: "o3", chainId: "neo-n3-mainnet" },
         networkLatency: 999,
         onBack: jest.fn(),
         onExit: jest.fn(),

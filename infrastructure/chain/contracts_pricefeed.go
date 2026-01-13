@@ -46,7 +46,7 @@ func (c *PriceFeedContract) GetLatest(ctx context.Context, symbol string) (*Pric
 		return nil, fmt.Errorf("pricefeed: client not configured")
 	}
 	if c.hash == "" {
-		return nil, fmt.Errorf("pricefeed: contract hash not configured")
+		return nil, fmt.Errorf("pricefeed: contract address not configured")
 	}
 	if symbol == "" {
 		return nil, fmt.Errorf("pricefeed: symbol required")
@@ -113,7 +113,7 @@ func (c *PriceFeedContract) Update(
 		return nil, fmt.Errorf("pricefeed: client not configured")
 	}
 	if c.hash == "" {
-		return nil, fmt.Errorf("pricefeed: contract hash not configured")
+		return nil, fmt.Errorf("pricefeed: contract address not configured")
 	}
 	if signer == nil {
 		return nil, fmt.Errorf("pricefeed: signer not configured")

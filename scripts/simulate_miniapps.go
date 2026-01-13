@@ -62,15 +62,15 @@ func NewSimulator(ctx context.Context) (*Simulator, error) {
 	account := wallet.NewAccountFromPrivateKey(privKey)
 
 	contracts := make(map[string]util.Uint160)
-	loadHash := func(name, env string) {
+	loadAddress := func(name, env string) {
 		h, _ := util.Uint160DecodeStringLE(strings.TrimPrefix(os.Getenv(env), "0x"))
 		contracts[name] = h
 	}
 
-	loadHash("PaymentHub", "CONTRACT_PAYMENTHUB_HASH")
-	loadHash("PriceFeed", "CONTRACT_PRICEFEED_HASH")
-	loadHash("RandomnessLog", "CONTRACT_RANDOMNESSLOG_HASH")
-	loadHash("Governance", "CONTRACT_GOVERNANCE_HASH")
+	loadAddress("PaymentHub", "CONTRACT_PAYMENT_HUB_ADDRESS")
+	loadAddress("PriceFeed", "CONTRACT_PRICE_FEED_ADDRESS")
+	loadAddress("RandomnessLog", "CONTRACT_RANDOMNESS_LOG_ADDRESS")
+	loadAddress("Governance", "CONTRACT_GOVERNANCE_ADDRESS")
 
 	return &Simulator{ctx: ctx, rpc: rpc, account: account, contracts: contracts}, nil
 }

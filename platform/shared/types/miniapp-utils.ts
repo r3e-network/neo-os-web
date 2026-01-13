@@ -16,7 +16,7 @@ export function normalizePermissions(value: unknown): MiniAppPermissions {
   return {
     payments: Boolean(v.payments),
     governance: Boolean(v.governance),
-    randomness: Boolean(v.randomness),
+    rng: Boolean(v.rng),
     datafeed: Boolean(v.datafeed),
     confidential: Boolean(v.confidential),
   };

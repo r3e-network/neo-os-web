@@ -54,7 +54,7 @@ Or use the Make target:
 make dev-stack-bootstrap
 ```
 
-Ensure `.env` contains contract hashes and `.env.local` contains Supabase keys
+Ensure `.env` contains contract addresses and `.env.local` contains Supabase keys
 before running the bootstrap script.
 
 ### 1. Bootstrap k3s Local Stack
@@ -199,7 +199,7 @@ marblerun manifest update manifests/manifest.json localhost:4433 --insecure
 # Apply secrets from .env.local (Supabase URL/keys included)
 ./scripts/apply_k8s_secrets_from_env.sh --env-file .env.local
 
-# Sync non-secret config (contract hashes, RPC, allowlists) into k3s ConfigMap
+# Sync non-secret config (contract addresses, RPC, allowlists) into k3s ConfigMap
 ./scripts/apply_k8s_config_from_env.sh --env-file .env
 ```
 
@@ -209,7 +209,7 @@ are also loaded from `.env` / `config/*.env` for consistency across dev and
 testnet.
 
 `apply_k8s_config_from_env.sh` patches the `service-layer-config` ConfigMap with
-non-secret values from `.env` (contract hashes, RPC URL, allowlists), keeping
+non-secret values from `.env` (contract addresses, RPC URL, allowlists), keeping
 k3s aligned with your local configuration.
 
 For k3s local dev, the service-layer marbles typically use:

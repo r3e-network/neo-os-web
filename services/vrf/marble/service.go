@@ -69,7 +69,7 @@ func New(cfg Config) (*Service, error) {
 	s := &Service{
 		BaseService: base,
 	}
-	s.attestationHash = computeAttestationHash(cfg.Marble)
+	s.attestationHash = marble.ComputeAttestationHash(cfg.Marble, ServiceID)
 
 	if key, ok := cfg.Marble.Secret("NEOVRF_SIGNING_KEY"); ok && len(key) >= 32 {
 		s.signingKey = key

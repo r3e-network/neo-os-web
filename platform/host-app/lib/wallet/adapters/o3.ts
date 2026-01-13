@@ -13,6 +13,8 @@ import {
   WalletNotInstalledError,
   WalletConnectionError,
 } from "./base";
+import { getNeoContract, getGasContract } from "../../chains/registry";
+import type { ChainId } from "../../chains/types";
 
 /** Window with O3 wallet */
 interface O3Window {
@@ -29,13 +31,11 @@ interface Neo3DapiInstance {
   invoke(params: InvokeParams): Promise<{ txid: string }>;
 }
 
-const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-const GAS_CONTRACT = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-
 export class O3Adapter implements WalletAdapter {
   readonly name = "O3";
   readonly icon = "https://o3.network/favicon.ico";
   readonly downloadUrl = "https://o3.network/";
+  readonly supportedChainTypes = ["neo-n3"] as const;
 
   private getWindow(): O3Window {
     return window as unknown as O3Window;
@@ -70,21 +70,27 @@ export class O3Adapter implements WalletAdapter {
     // O3 doesn't have explicit disconnect
   }
 
-  async getBalance(address: string): Promise<WalletBalance> {
-    if (!this.isInstalled()) return { neo: "0", gas: "0" };
+  async getBalance(address: string, chainId: ChainId): Promise<WalletBalance> {
+    if (!this.isInstalled()) return { native: "0", nativeSymbol: "GAS", governance: "0", governanceSymbol: "NEO" };
 
     try {
+      // Get contract addresses from chain registry
+      const neoContract = getNeoContract(chainId) || "";
+      const gasContract = getGasContract(chainId) || "";
+
       const result = await this.getWindow().neo3Dapi!.getBalance({
         address,
-        contracts: [NEO_CONTRACT, GAS_CONTRACT],
+        contracts: [neoContract, gasContract],
       });
 
       return {
-        neo: result[NEO_CONTRACT]?.amount || "0",
-        gas: result[GAS_CONTRACT]?.amount || "0",
+        native: result[gasContract]?.amount || "0",
+        nativeSymbol: "GAS",
+        governance: result[neoContract]?.amount || "0",
+        governanceSymbol: "NEO",
       };
     } catch {
-      return { neo: "0", gas: "0" };
+      return { native: "0", nativeSymbol: "GAS", governance: "0", governanceSymbol: "NEO" };
     }
   }
 

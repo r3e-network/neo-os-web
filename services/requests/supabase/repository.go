@@ -14,21 +14,22 @@ import (
 )
 
 const (
-	miniappsTable        = "miniapps"
-	serviceRequestsTable = "service_requests"
-	chainTxsTable        = "chain_txs"
-	contractEventsTable  = "contract_events"
-	processedEventsTable = "processed_events"
+	miniappsTable         = "miniapps"
+	miniappContractsTable = "miniapp_contracts"
+	serviceRequestsTable  = "service_requests"
+	chainTxsTable         = "chain_txs"
+	contractEventsTable   = "contract_events"
+	processedEventsTable  = "processed_events"
 )
 
 // RepositoryInterface defines NeoRequests data access methods.
 type RepositoryInterface interface {
 	GetMiniApp(ctx context.Context, appID string) (*MiniApp, error)
-	GetMiniAppByContractHash(ctx context.Context, contractHash string) (*MiniApp, error)
+	GetMiniAppByContractAddress(ctx context.Context, chainID, contractAddress string) (*MiniApp, error)
 	UpdateMiniAppRegistry(ctx context.Context, appID string, update *MiniAppRegistryUpdate) error
-	LogMiniAppTx(ctx context.Context, appID, txHash, senderAddress string, blockTime time.Time) error
+	LogMiniAppTx(ctx context.Context, appID, chainID, txHash, senderAddress string, blockTime time.Time) error
 	RollupMiniAppStats(ctx context.Context, date time.Time) error
-	BumpMiniAppUsage(ctx context.Context, userID, appID string, gasDelta, governanceDelta *big.Int) error
+	BumpMiniAppUsage(ctx context.Context, userID, appID, chainID string, gasDelta, governanceDelta *big.Int) error
 	CreateServiceRequest(ctx context.Context, req *ServiceRequest) error
 	UpdateServiceRequest(ctx context.Context, req *ServiceRequest) error
 	CreateChainTx(ctx context.Context, tx *ChainTx) error
@@ -75,36 +76,33 @@ func (r *Repository) GetMiniApp(ctx context.Context, appID string) (*MiniApp, er
 	return &rows[0], nil
 }
 
-// GetMiniAppByContractHash retrieves a MiniApp manifest row by on-chain contract_hash.
-func (r *Repository) GetMiniAppByContractHash(ctx context.Context, contractHash string) (*MiniApp, error) {
-	if contractHash == "" {
-		return nil, fmt.Errorf("contract_hash cannot be empty")
+type miniappContractRow struct {
+	AppID string `json:"app_id"`
+}
+
+// GetMiniAppByContractAddress retrieves a MiniApp manifest row by chain-specific contract address.
+func (r *Repository) GetMiniAppByContractAddress(ctx context.Context, chainID, contractAddress string) (*MiniApp, error) {
+	if strings.TrimSpace(chainID) == "" {
+		return nil, fmt.Errorf("chain_id cannot be empty")
+	}
+	if contractAddress == "" {
+		return nil, fmt.Errorf("contract_address cannot be empty")
 	}
 
 	query := database.NewQuery().
-		Eq("contract_hash", contractHash).
+		Eq("chain_id", chainID).
+		Eq("contract_address", contractAddress).
 		Limit(1).
 		Build()
 
-	rows, err := database.GenericListWithQuery[MiniApp](r.base, ctx, miniappsTable, query)
+	rows, err := database.GenericListWithQuery[miniappContractRow](r.base, ctx, miniappContractsTable, query)
 	if err != nil {
 		return nil, err
 	}
 	if len(rows) == 0 {
-		// Backward-compatible fallback while caches are backfilled.
-		fallbackQuery := database.NewQuery().
-			Eq("manifest->>contract_hash", contractHash).
-			Limit(1).
-			Build()
-		rows, err = database.GenericListWithQuery[MiniApp](r.base, ctx, miniappsTable, fallbackQuery)
-		if err != nil {
-			return nil, err
-		}
-		if len(rows) == 0 {
-			return nil, database.NewNotFoundError(miniappsTable, contractHash)
-		}
+		return nil, database.NewNotFoundError(miniappContractsTable, contractAddress)
 	}
-	return &rows[0], nil
+	return r.GetMiniApp(ctx, rows[0].AppID)
 }
 
 // UpdateMiniAppRegistry updates a MiniApp record with AppRegistry data.
@@ -119,13 +117,63 @@ func (r *Repository) UpdateMiniAppRegistry(ctx context.Context, appID string, up
 		return fmt.Errorf("app_id cannot be empty")
 	}
 
-	return database.GenericUpdate(r.base, ctx, miniappsTable, "app_id", appID, update)
+	payload := map[string]interface{}{}
+	if update.ManifestHash != "" {
+		payload["manifest_hash"] = update.ManifestHash
+	}
+	if update.EntryURL != "" {
+		payload["entry_url"] = update.EntryURL
+	}
+	if update.DeveloperPubKey != "" {
+		payload["developer_pubkey"] = update.DeveloperPubKey
+	}
+	if update.Status != "" {
+		payload["status"] = update.Status
+	}
+	if update.Name != "" {
+		payload["name"] = update.Name
+	}
+	if update.Description != "" {
+		payload["description"] = update.Description
+	}
+	if update.Icon != "" {
+		payload["icon"] = update.Icon
+	}
+	if update.Banner != "" {
+		payload["banner"] = update.Banner
+	}
+	if update.Category != "" {
+		payload["category"] = update.Category
+	}
+	if !update.UpdatedAt.IsZero() {
+		payload["updated_at"] = update.UpdatedAt
+	}
+
+	if len(payload) > 0 {
+		if err := database.GenericUpdate(r.base, ctx, miniappsTable, "app_id", appID, payload); err != nil {
+			return err
+		}
+	}
+
+	if update.ChainID != "" && update.ContractAddress != "" {
+		contractPayload := map[string]interface{}{
+			"app_id":           appID,
+			"chain_id":         update.ChainID,
+			"contract_address": update.ContractAddress,
+			"updated_at":       time.Now().UTC(),
+		}
+		if _, err := r.base.Request(ctx, "POST", miniappContractsTable, contractPayload, "on_conflict=app_id,chain_id"); err != nil {
+			return fmt.Errorf("update miniapp contract: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // LogMiniAppTx records a MiniApp transaction for usage analytics.
 func (r *Repository) LogMiniAppTx(
 	ctx context.Context,
-	appID, txHash, senderAddress string,
+	appID, chainID, txHash, senderAddress string,
 	blockTime time.Time,
 ) error {
 	if r == nil || r.base == nil {
@@ -133,6 +181,9 @@ func (r *Repository) LogMiniAppTx(
 	}
 	if strings.TrimSpace(appID) == "" {
 		return fmt.Errorf("app_id cannot be empty")
+	}
+	if strings.TrimSpace(chainID) == "" {
+		return fmt.Errorf("chain_id cannot be empty")
 	}
 	if strings.TrimSpace(txHash) == "" {
 		return fmt.Errorf("tx_hash cannot be empty")
@@ -143,6 +194,7 @@ func (r *Repository) LogMiniAppTx(
 
 	payload := map[string]interface{}{
 		"p_app_id":         appID,
+		"p_chain_id":       chainID,
 		"p_tx_hash":        txHash,
 		"p_sender_address": strings.TrimSpace(senderAddress),
 		"p_block_time":     blockTime,
@@ -174,7 +226,7 @@ func (r *Repository) RollupMiniAppStats(ctx context.Context, date time.Time) err
 }
 
 // BumpMiniAppUsage increments per-user MiniApp usage in Supabase.
-func (r *Repository) BumpMiniAppUsage(ctx context.Context, userID, appID string, gasDelta, governanceDelta *big.Int) error {
+func (r *Repository) BumpMiniAppUsage(ctx context.Context, userID, appID, chainID string, gasDelta, governanceDelta *big.Int) error {
 	if r == nil || r.base == nil {
 		return fmt.Errorf("repository not configured")
 	}
@@ -183,6 +235,9 @@ func (r *Repository) BumpMiniAppUsage(ctx context.Context, userID, appID string,
 	}
 	if strings.TrimSpace(appID) == "" {
 		return fmt.Errorf("app_id cannot be empty")
+	}
+	if strings.TrimSpace(chainID) == "" {
+		return fmt.Errorf("chain_id cannot be empty")
 	}
 
 	gasValue := "0"
@@ -197,6 +252,7 @@ func (r *Repository) BumpMiniAppUsage(ctx context.Context, userID, appID string,
 	payload := map[string]interface{}{
 		"p_user_id":          userID,
 		"p_app_id":           appID,
+		"p_chain_id":         chainID,
 		"p_gas_delta":        gasValue,
 		"p_governance_delta": governanceValue,
 		"p_gas_cap":          nil,
@@ -277,7 +333,7 @@ func (r *Repository) CreateContractEvent(ctx context.Context, event *ContractEve
 	if event == nil {
 		return fmt.Errorf("contract event cannot be nil")
 	}
-	if event.TxHash == "" || event.ContractHash == "" || event.EventName == "" {
+	if event.TxHash == "" || event.ContractAddress == "" || event.EventName == "" {
 		return fmt.Errorf("contract event missing required fields")
 	}
 	if err := database.GenericCreate(r.base, ctx, contractEventsTable, event, nil); err != nil {

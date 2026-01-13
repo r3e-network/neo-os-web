@@ -17,7 +17,7 @@ Usage: ./scripts/verify_testnet_workflows.sh [OPTIONS]
 
 Options:
   --env-file <path>       Path to env file (default: .env)
-  --miniapp-hash <hash>   MiniApp consumer contract hash (overrides env)
+  --miniapp-address <address>   MiniApp consumer contract address (overrides env)
   --app-id <id>           MiniApp app_id (default: com.test.consumer)
   --no-wait-callback      Do not wait for on-chain callbacks
   --callback-timeout <s>  Callback wait timeout in seconds (default: 180)
@@ -62,24 +62,16 @@ set -a
 source "$ENV_FILE"
 set +a
 
-if [[ -n "$MINIAPP_HASH" ]]; then
-  export MINIAPP_CONSUMER_HASH="$MINIAPP_HASH"
+if [[ -n "$MINIAPP_ADDRESS" ]]; then
+  export CONTRACT_MINIAPP_CONSUMER_ADDRESS="$MINIAPP_ADDRESS"
 fi
 if [[ -n "$APP_ID" ]]; then
   export MINIAPP_APP_ID="$APP_ID"
 fi
 
-resolve_miniapp_hash() {
-  if [[ -n "${MINIAPP_CONSUMER_HASH:-}" ]]; then
-    echo "$MINIAPP_CONSUMER_HASH"
-    return 0
-  fi
-  if [[ -n "${MINIAPP_CONTRACT_HASH:-}" ]]; then
-    echo "$MINIAPP_CONTRACT_HASH"
-    return 0
-  fi
-  if [[ -n "${CONTRACT_MINIAPP_CONSUMER_HASH:-}" ]]; then
-    echo "$CONTRACT_MINIAPP_CONSUMER_HASH"
+resolve_miniapp_address() {
+  if [[ -n "${CONTRACT_MINIAPP_CONSUMER_ADDRESS:-}" ]]; then
+    echo "$CONTRACT_MINIAPP_CONSUMER_ADDRESS"
     return 0
   fi
   return 1
@@ -94,13 +86,13 @@ require_env() {
 }
 
 require_env "NEO_TESTNET_WIF"
-require_env "CONTRACT_PAYMENTHUB_HASH"
-require_env "CONTRACT_GOVERNANCE_HASH"
-require_env "CONTRACT_SERVICEGATEWAY_HASH"
-require_env "CONTRACT_APPREGISTRY_HASH"
+require_env "CONTRACT_PAYMENT_HUB_ADDRESS"
+require_env "CONTRACT_GOVERNANCE_ADDRESS"
+require_env "CONTRACT_SERVICE_GATEWAY_ADDRESS"
+require_env "CONTRACT_APP_REGISTRY_ADDRESS"
 
-if ! resolve_miniapp_hash >/dev/null; then
-  missing+=("MINIAPP_CONSUMER_HASH")
+if ! resolve_miniapp_address >/dev/null; then
+  missing+=("CONTRACT_MINIAPP_CONSUMER_ADDRESS")
 fi
 
 if [[ "${#missing[@]}" -gt 0 ]]; then

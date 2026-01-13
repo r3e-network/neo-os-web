@@ -3,8 +3,12 @@ export { createAdminSDK, AdminSDK } from "./admin.js";
 
 // Core types
 export type {
+  ChainId,
+  ChainType,
   ContractParam,
   InvocationIntent,
+  NeoInvocationIntent,
+  EVMInvocationIntent,
   MiniAppSDK,
   MiniAppSDKConfig,
   HostSDK,

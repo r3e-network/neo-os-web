@@ -52,6 +52,7 @@ var miniAppContracts = []string{
 	"MiniAppTurboOptions",
 	"MiniAppILGuard",
 	"MiniAppGuardianPolicy",
+	"MiniAppCouncilGovernance",
 	// Phase 4 - Long-Running
 	"MiniAppAITrader",
 	"MiniAppGridBot",
@@ -110,7 +111,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	gatewayHash, _ := resolveGatewayHash()
+	gatewayAddress, _ := resolveGatewayAddress()
 
 	var results []DeployResult
 	var failures []string
@@ -118,7 +119,7 @@ func main() {
 	for i, contractName := range miniAppContracts {
 		fmt.Printf("\n[%d/%d] Deploying %s...\n", i+1, len(miniAppContracts), contractName)
 
-		hash, err := deployContract(ctx, client, act, buildDir, contractName, deployerHash, gatewayHash)
+		hash, err := deployContract(ctx, client, act, buildDir, contractName, deployerHash, gatewayAddress)
 		if err != nil {
 			fmt.Printf("  ❌ Failed: %v\n", err)
 			failures = append(failures, contractName)
@@ -163,7 +164,7 @@ func main() {
 	}
 }
 
-func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Actor, buildDir, contractName string, deployerHash, gatewayHash util.Uint160) (string, error) {
+func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Actor, buildDir, contractName string, deployerHash, gatewayAddress util.Uint160) (string, error) {
 	nefPath := filepath.Join(buildDir, contractName+".nef")
 	manifestPath := filepath.Join(buildDir, contractName+".manifest.json")
 
@@ -177,11 +178,11 @@ func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Ac
 		return "", fmt.Errorf("load manifest: %w", err)
 	}
 
-	expectedHash := state.CreateContractHash(deployerHash, nefFile.Checksum, mani.Name)
-	expectedHex := "0x" + expectedHash.StringLE()
+	expectedAddress := state.CreateContractHash(deployerHash, nefFile.Checksum, mani.Name)
+	expectedHex := "0x" + expectedAddress.StringLE()
 
 	// Check if already deployed
-	if _, err := client.GetContractStateByHash(expectedHash); err == nil {
+	if _, err := client.GetContractStateByHash(expectedAddress); err == nil {
 		fmt.Printf("  Already deployed at: %s\n", expectedHex)
 		return expectedHex, nil
 	}
@@ -195,21 +196,21 @@ func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Ac
 
 	fmt.Printf("  Transaction: %s (vub: %d)\n", txHash.StringLE(), vub)
 
-	contractHash, err := waitForDeployment(ctx, client, txHash, expectedHash)
+	contractAddress, err := waitForDeployment(ctx, client, txHash, expectedAddress)
 	if err != nil {
 		return "", fmt.Errorf("wait: %w", err)
 	}
 
 	// Configure gateway if available
-	if gatewayHash != (util.Uint160{}) {
-		if err := setGateway(ctx, client, act, expectedHash, gatewayHash); err != nil {
+	if gatewayAddress != (util.Uint160{}) {
+		if err := setGateway(ctx, client, act, expectedAddress, gatewayAddress); err != nil {
 			fmt.Printf("  ⚠ Gateway config failed: %v\n", err)
 		} else {
 			fmt.Printf("  Gateway configured\n")
 		}
 	}
 
-	return contractHash, nil
+	return contractAddress, nil
 }
 
 func loadNEF(path string) (*nef.File, error) {
@@ -236,18 +237,15 @@ func loadManifest(path string) (*manifest.Manifest, error) {
 	return &m, nil
 }
 
-func resolveGatewayHash() (util.Uint160, error) {
-	raw := strings.TrimSpace(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
-	if raw == "" {
-		raw = strings.TrimSpace(os.Getenv("CONTRACT_SERVICE_GATEWAY_HASH"))
-	}
+func resolveGatewayAddress() (util.Uint160, error) {
+	raw := strings.TrimSpace(os.Getenv("CONTRACT_SERVICE_GATEWAY_ADDRESS"))
 	if raw == "" {
 		return util.Uint160{}, nil
 	}
-	return parseHash160(raw)
+	return parseAddress160(raw)
 }
 
-func parseHash160(raw string) (util.Uint160, error) {
+func parseAddress160(raw string) (util.Uint160, error) {
 	raw = strings.TrimPrefix(strings.TrimSpace(raw), "0x")
 	return util.Uint160DecodeStringLE(raw)
 }

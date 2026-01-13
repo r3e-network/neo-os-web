@@ -997,10 +997,10 @@ func (s *Service) runAutomationTaskTopUp() {
 	ctx := context.Background()
 	logger := s.Logger().WithFields(map[string]interface{}{"worker": "automation-topup"})
 
-	// Get AutomationAnchor contract hash from environment
-	automationAnchorHash := strings.TrimSpace(os.Getenv("CONTRACT_AUTOMATIONANCHOR_HASH"))
-	if automationAnchorHash == "" {
-		logger.WithContext(ctx).Warn("automation task top-up disabled: CONTRACT_AUTOMATIONANCHOR_HASH not set")
+	// Get AutomationAnchor contract address from environment
+	automationAnchorAddress := strings.TrimSpace(os.Getenv("CONTRACT_AUTOMATION_ANCHOR_ADDRESS"))
+	if automationAnchorAddress == "" {
+		logger.WithContext(ctx).Warn("automation task top-up disabled: CONTRACT_AUTOMATION_ANCHOR_ADDRESS not set")
 		return
 	}
 
@@ -1032,7 +1032,7 @@ func (s *Service) runAutomationTaskTopUp() {
 	}
 
 	// Initialize AutomationAnchor contract client
-	automationAnchor := chain.NewAutomationAnchorContract(s.chainClient, automationAnchorHash)
+	automationAnchor := chain.NewAutomationAnchorContract(s.chainClient, automationAnchorAddress)
 	if automationAnchor == nil {
 		logger.WithContext(ctx).Warn("automation task top-up disabled: failed to initialize AutomationAnchor contract")
 		return
@@ -1089,7 +1089,7 @@ func (s *Service) runAutomationTaskTopUp() {
 
 					// Fund the task by transferring GAS to AutomationAnchor contract with taskId as data
 					// This calls AutomationAnchor.OnNEP17Payment which credits the task balance
-					err := s.fundAutomationTask(ctx, automationAnchorHash, taskID, topUpAmount)
+					err := s.fundAutomationTask(ctx, automationAnchorAddress, taskID, topUpAmount)
 					if err != nil {
 						logger.WithError(err).WithFields(map[string]interface{}{
 							"task_id": taskID,
@@ -1112,7 +1112,7 @@ func (s *Service) runAutomationTaskTopUp() {
 }
 
 // fundAutomationTask funds an automation task by transferring GAS to AutomationAnchor with taskId as data.
-func (s *Service) fundAutomationTask(ctx context.Context, contractHash string, taskID int64, amount int64) error {
+func (s *Service) fundAutomationTask(ctx context.Context, contractAddress string, taskID int64, amount int64) error {
 	// Use poolClient.TransferWithData to send GAS to AutomationAnchor contract
 	// The taskId is passed as data, which triggers OnNEP17Payment callback
 
@@ -1153,7 +1153,7 @@ func (s *Service) fundAutomationTask(ctx context.Context, contractHash string, t
 	// This will trigger AutomationAnchor.OnNEP17Payment(from, amount, taskId)
 	// The data parameter should be the taskID as a string (will be converted to BigInteger by the contract)
 	taskIDStr := fmt.Sprintf("%d", taskID)
-	transferResp, err := s.poolClient.TransferWithData(ctx, account.ID, "0x"+contractHash, amount, taskIDStr)
+	transferResp, err := s.poolClient.TransferWithData(ctx, account.ID, "0x"+contractAddress, amount, taskIDStr)
 	if err != nil {
 		return fmt.Errorf("transfer to automation anchor: %w", err)
 	}

@@ -31,15 +31,15 @@ import (
 //	}
 type BaseContract struct {
 	client       *Client
-	contractHash string
+	contractAddress string
 	wallet       *Wallet
 }
 
 // NewBaseContract creates a new base contract wrapper.
-func NewBaseContract(client *Client, contractHash string, wallet *Wallet) *BaseContract {
+func NewBaseContract(client *Client, contractAddress string, wallet *Wallet) *BaseContract {
 	return &BaseContract{
 		client:       client,
-		contractHash: contractHash,
+		contractAddress: contractAddress,
 		wallet:       wallet,
 	}
 }
@@ -49,9 +49,9 @@ func (b *BaseContract) Client() *Client {
 	return b.client
 }
 
-// ContractHash returns the contract hash.
-func (b *BaseContract) ContractHash() string {
-	return b.contractHash
+// ContractAddress returns the contract address.
+func (b *BaseContract) ContractAddress() string {
+	return b.contractAddress
 }
 
 // Wallet returns the wallet for signing.
@@ -66,7 +66,7 @@ func (b *BaseContract) Wallet() *Wallet {
 // InvokeRaw invokes a contract method and returns the raw result.
 // Use this when you need custom result parsing.
 func (b *BaseContract) InvokeRaw(ctx context.Context, method string, params ...ContractParam) (*InvokeResult, error) {
-	result, err := b.client.InvokeFunction(ctx, b.contractHash, method, params)
+	result, err := b.client.InvokeFunction(ctx, b.contractAddress, method, params)
 	if err != nil {
 		return nil, fmt.Errorf("%s: invoke failed: %w", method, err)
 	}

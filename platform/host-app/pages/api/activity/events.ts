@@ -1,11 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "@/lib/edge";
 import { supabaseAdmin } from "@/lib/supabase";
+import type { ChainId } from "@/lib/chains/types";
 
 interface EventFilters {
   appId?: string;
   eventName?: string;
-  contractHash?: string;
+  contractAddress?: string;
+  chainId?: ChainId;
   limit: number;
   afterId?: string;
 }
@@ -22,7 +24,7 @@ async function fetchFromSupabase(filters: EventFilters) {
   let query = supabaseAdmin
     .from("contract_events")
     .select("*")
-    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(filters.limit + 1);
 
   if (filters.appId) {
@@ -31,8 +33,11 @@ async function fetchFromSupabase(filters: EventFilters) {
   if (filters.eventName) {
     query = query.eq("event_name", filters.eventName);
   }
-  if (filters.contractHash) {
-    query = query.eq("contract_hash", filters.contractHash);
+  if (filters.contractAddress) {
+    query = query.eq("contract_address", filters.contractAddress);
+  }
+  if (filters.chainId) {
+    query = query.eq("chain_id", filters.chainId);
   }
   if (filters.afterId) {
     query = query.lt("id", filters.afterId);
@@ -50,10 +55,11 @@ async function fetchFromSupabase(filters: EventFilters) {
     id: evt.id,
     app_id: evt.app_id,
     event_name: evt.event_name,
-    contract_hash: evt.contract_hash,
+    contract_address: evt.contract_address,
+    chain_id: evt.chain_id,
     tx_hash: evt.tx_hash,
     block_index: evt.block_index,
-    payload: evt.payload,
+    state: evt.state,
     created_at: evt.created_at,
   }));
 
@@ -66,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "method not allowed" });
   }
 
-  const { app_id, event_name, contract_hash, limit, after_id } = req.query;
+  const { app_id, event_name, contract_address, chain_id, limit, after_id } = req.query;
   const parsedLimit = limit ? parseInt(String(limit), 10) : 20;
   const limitNum = Number.isNaN(parsedLimit) ? 20 : Math.min(Math.max(parsedLimit, 1), 100);
 
@@ -76,7 +82,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await fetchFromSupabase({
       appId: app_id ? String(app_id) : undefined,
       eventName: event_name ? String(event_name) : undefined,
-      contractHash: contract_hash ? String(contract_hash) : undefined,
+      contractAddress: contract_address ? String(contract_address) : undefined,
+      chainId: chain_id ? (String(chain_id) as ChainId) : undefined,
       limit: limitNum,
       afterId: after_id ? String(after_id) : undefined,
     });
@@ -87,7 +94,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (app_id) params.set("app_id", String(app_id));
   if (event_name) params.set("event_name", String(event_name));
-  if (contract_hash) params.set("contract_hash", String(contract_hash));
+  if (contract_address) params.set("contract_address", String(contract_address));
+  if (chain_id) params.set("chain_id", String(chain_id));
   params.set("limit", String(limitNum)); // Use validated limit
   if (after_id) params.set("after_id", String(after_id));
 

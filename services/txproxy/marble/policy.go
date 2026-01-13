@@ -12,38 +12,38 @@ const (
 	intentGovernance = "governance"
 )
 
-func (s *Service) checkIntentPolicy(contractHash, method, intent string, params []chain.ContractParam) (status int, message string) {
+func (s *Service) checkIntentPolicy(contractAddress, method, intent string, params []chain.ContractParam) (status int, message string) {
 	intent = strings.ToLower(strings.TrimSpace(intent))
 	if intent == "" {
 		return 0, ""
 	}
 
-	contractHash = normalizeContractHash(contractHash)
+	contractAddress = normalizeContractAddress(contractAddress)
 	methodLower := strings.ToLower(strings.TrimSpace(method))
 
 	switch intent {
 	case intentPayments, "payment":
-		if s == nil || s.paymentHubHash == "" {
-			return http.StatusServiceUnavailable, "payments intent requires PaymentHub hash configured"
+		if s == nil || s.paymentHubAddress == "" {
+			return http.StatusServiceUnavailable, "payments intent requires PaymentHub address configured"
 		}
-		if contractHash == s.paymentHubHash && methodLower == "pay" {
+		if contractAddress == s.paymentHubAddress && methodLower == "pay" {
 			return 0, ""
 		}
-		if s.gasHash == "" {
-			return http.StatusServiceUnavailable, "payments intent requires GAS hash configured"
+		if s.gasAddress == "" {
+			return http.StatusServiceUnavailable, "payments intent requires GAS address configured"
 		}
-		if contractHash != s.gasHash || methodLower != "transfer" {
+		if contractAddress != s.gasAddress || methodLower != "transfer" {
 			return http.StatusForbidden, "payments intent only allows GAS transfer to PaymentHub"
 		}
-		if !transferTargetsPaymentHub(params, s.paymentHubHash) {
+		if !transferTargetsPaymentHub(params, s.paymentHubAddress) {
 			return http.StatusForbidden, "payments intent requires transfer to PaymentHub"
 		}
 		return 0, ""
 	case intentGovernance:
-		if s == nil || s.governanceHash == "" {
-			return http.StatusServiceUnavailable, "governance intent requires Governance hash configured"
+		if s == nil || s.governanceAddress == "" {
+			return http.StatusServiceUnavailable, "governance intent requires Governance address configured"
 		}
-		if contractHash != s.governanceHash {
+		if contractAddress != s.governanceAddress {
 			return http.StatusForbidden, "governance intent requires Governance contract"
 		}
 		switch methodLower {
@@ -57,7 +57,7 @@ func (s *Service) checkIntentPolicy(contractHash, method, intent string, params 
 	}
 }
 
-func transferTargetsPaymentHub(params []chain.ContractParam, paymentHubHash string) bool {
+func transferTargetsPaymentHub(params []chain.ContractParam, paymentHubAddress string) bool {
 	if len(params) < 2 {
 		return false
 	}
@@ -69,5 +69,5 @@ func transferTargetsPaymentHub(params []chain.ContractParam, paymentHubHash stri
 	if !ok {
 		return false
 	}
-	return normalizeContractHash(value) == paymentHubHash
+	return normalizeContractAddress(value) == paymentHubAddress
 }

@@ -60,18 +60,18 @@ type releaseAccountsCall struct {
 }
 
 type invokeContractCall struct {
-	AccountID    string
-	ContractHash string
-	Method       string
-	Params       []neoaccountsclient.ContractParam
-	Scope        string
+	AccountID       string
+	ContractAddress string
+	Method          string
+	Params          []neoaccountsclient.ContractParam
+	Scope           string
 }
 
 type invokeMasterCall struct {
-	ContractHash string
-	Method       string
-	Params       []neoaccountsclient.ContractParam
-	Scope        string
+	ContractAddress string
+	Method          string
+	Params          []neoaccountsclient.ContractParam
+	Scope           string
 }
 
 type fundAccountCall struct {
@@ -83,7 +83,7 @@ type transferCall struct {
 	AccountID string
 	ToAddress string
 	Amount    int64
-	TokenHash string
+	TokenAddress string
 }
 
 type transferWithDataCall struct {
@@ -151,27 +151,27 @@ func (m *mockPoolClient) ReleaseAccounts(ctx context.Context, accountIDs []strin
 	return m.releaseAccountsResp, m.releaseAccountsErr
 }
 
-func (m *mockPoolClient) InvokeContract(ctx context.Context, accountID, contractHash, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error) {
+func (m *mockPoolClient) InvokeContract(ctx context.Context, accountID, contractAddress, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.invokeContractCalls = append(m.invokeContractCalls, invokeContractCall{
-		AccountID:    accountID,
-		ContractHash: contractHash,
-		Method:       method,
-		Params:       params,
-		Scope:        scope,
+		AccountID:       accountID,
+		ContractAddress: contractAddress,
+		Method:          method,
+		Params:          params,
+		Scope:           scope,
 	})
 	return m.invokeContractResp, m.invokeContractErr
 }
 
-func (m *mockPoolClient) InvokeMaster(ctx context.Context, contractHash, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error) {
+func (m *mockPoolClient) InvokeMaster(ctx context.Context, contractAddress, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.invokeMasterCalls = append(m.invokeMasterCalls, invokeMasterCall{
-		ContractHash: contractHash,
-		Method:       method,
-		Params:       params,
-		Scope:        scope,
+		ContractAddress: contractAddress,
+		Method:          method,
+		Params:          params,
+		Scope:           scope,
 	})
 	return m.invokeMasterResp, m.invokeMasterErr
 }
@@ -183,10 +183,10 @@ func (m *mockPoolClient) FundAccount(ctx context.Context, toAddress string, amou
 	return m.fundAccountResp, m.fundAccountErr
 }
 
-func (m *mockPoolClient) Transfer(ctx context.Context, accountID, toAddress string, amount int64, tokenHash string) (*neoaccountsclient.TransferResponse, error) {
+func (m *mockPoolClient) Transfer(ctx context.Context, accountID, toAddress string, amount int64, tokenAddress string) (*neoaccountsclient.TransferResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.transferCalls = append(m.transferCalls, transferCall{AccountID: accountID, ToAddress: toAddress, Amount: amount, TokenHash: tokenHash})
+	m.transferCalls = append(m.transferCalls, transferCall{AccountID: accountID, ToAddress: toAddress, Amount: amount, TokenAddress: tokenAddress})
 	return m.transferResp, m.transferErr
 }
 
@@ -268,7 +268,7 @@ type mockContractInvoker struct {
 	payoutToUserErr  error
 
 	// MiniApp contract support
-	miniAppContracts       map[string]string // appID -> contract hash
+	miniAppContracts       map[string]string // appID -> contract address
 	invokeMiniAppResp      string
 	invokeMiniAppErr       error
 	invokeMiniAppCalls     []invokeMiniAppCall
@@ -413,14 +413,14 @@ func (m *mockContractInvoker) HasMiniAppContract(appID string) bool {
 	return ok
 }
 
-func (m *mockContractInvoker) GetMiniAppContractHash(appID string) (string, error) {
+func (m *mockContractInvoker) GetMiniAppContractAddress(appID string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	hash, ok := m.miniAppContracts[appID]
+	address, ok := m.miniAppContracts[appID]
 	if !ok {
 		return "", fmt.Errorf("miniapp contract not found: %s", appID)
 	}
-	return hash, nil
+	return address, nil
 }
 
 func (m *mockContractInvoker) InvokeMiniAppContract(ctx context.Context, appID, method string, params []neoaccountsclient.ContractParam) (string, error) {

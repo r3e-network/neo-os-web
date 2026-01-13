@@ -1,6 +1,8 @@
 /**
  * API: Hall of Fame Leaderboard
  * GET /api/hall-of-fame/leaderboard
+ *
+ * All data comes from Supabase - no mock/fallback data
  */
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
@@ -14,19 +16,8 @@ interface HallOfFameEntry {
   score: number;
 }
 
-const FALLBACK_ENTRIES: HallOfFameEntry[] = [
-  { id: "p1", name: "Da Hongfei", category: "people", score: 54020 },
-  { id: "p2", name: "Erik Zhang", category: "people", score: 48900 },
-  { id: "p3", name: "John DeVadoss", category: "people", score: 32150 },
-  { id: "c1", name: "Neo News Today", category: "community", score: 89000 },
-  { id: "c2", name: "N Zone", category: "community", score: 67500 },
-  { id: "d1", name: "AxLabs", category: "developer", score: 92100 },
-  { id: "d2", name: "COZ", category: "developer", score: 88500 },
-  { id: "d3", name: "Red4Sec", category: "developer", score: 76000 },
-];
-
 const CACHE_TTL_MS = 5 * 60 * 1000;
-let cachedEntries: HallOfFameEntry[] = [];
+let cachedEntries: HallOfFameEntry[] | null = null;
 let cacheTimestamp = 0;
 
 function normalizeCategory(value: string | undefined): HallOfFameCategory | null {
@@ -40,14 +31,13 @@ function normalizeCategory(value: string | undefined): HallOfFameCategory | null
 
 async function loadEntries(): Promise<HallOfFameEntry[]> {
   const now = Date.now();
-  if (cachedEntries.length > 0 && now - cacheTimestamp < CACHE_TTL_MS) {
+  if (cachedEntries && cachedEntries.length > 0 && now - cacheTimestamp < CACHE_TTL_MS) {
     return cachedEntries;
   }
 
   if (!isSupabaseConfigured) {
-    cachedEntries = FALLBACK_ENTRIES;
-    cacheTimestamp = now;
-    return cachedEntries;
+    // Return empty array when database not configured - no mock data
+    return [];
   }
 
   try {
@@ -56,8 +46,14 @@ async function loadEntries(): Promise<HallOfFameEntry[]> {
       .select("id, name, category, score")
       .order("score", { ascending: false });
 
-    if (error || !data || data.length === 0) {
-      cachedEntries = FALLBACK_ENTRIES;
+    if (error) {
+      console.error("Failed to fetch hall of fame entries:", error);
+      return cachedEntries || [];
+    }
+
+    if (!data || data.length === 0) {
+      // No data in database - return empty, not mock data
+      cachedEntries = [];
     } else {
       cachedEntries = data.map((row) => ({
         id: String(row.id),
@@ -66,12 +62,14 @@ async function loadEntries(): Promise<HallOfFameEntry[]> {
         score: Number(row.score) || 0,
       }));
     }
-  } catch (err) {
-    cachedEntries = FALLBACK_ENTRIES;
-  }
 
-  cacheTimestamp = now;
-  return cachedEntries;
+    cacheTimestamp = now;
+    return cachedEntries;
+  } catch (err) {
+    console.error("Hall of fame query error:", err);
+    // Return cached data if available, otherwise empty array
+    return cachedEntries || [];
+  }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

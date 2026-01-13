@@ -4,6 +4,7 @@ import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { getNeoRpcUrl } from "../_shared/k8s-config.ts";
+import { getChainConfig } from "../_shared/chains.ts";
 
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
@@ -12,6 +13,15 @@ interface Nep17Balance {
   assethash: string;
   amount: string;
   lastupdatedblock: number;
+}
+
+function formatUnits(value: bigint, decimals: number): string {
+  if (decimals <= 0) return value.toString();
+  const divisor = 10n ** BigInt(decimals);
+  const intPart = value / divisor;
+  const fracPart = value % divisor;
+  const fracStr = fracPart.toString().padStart(decimals, "0").replace(/0+$/, "");
+  return fracStr ? `${intPart}.${fracStr}` : intPart.toString();
 }
 
 export async function handler(req: Request): Promise<Response> {
@@ -30,8 +40,45 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
+  const url = new URL(req.url);
+  const chainId = url.searchParams.get("chain_id")?.trim() || "neo-n3-mainnet";
+  const chain = getChainConfig(chainId);
+  if (!chain) return error(400, "unknown chain_id", "INVALID_CHAIN", req);
+
+  if (chain.type === "evm") {
+    const rpcUrl = chain.rpc_urls?.[0];
+    if (!rpcUrl) return error(500, "RPC endpoint not configured", "RPC_ERROR", req);
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_getBalance",
+        params: [walletCheck.address, "latest"],
+      }),
+    });
+
+    if (!res.ok) {
+      return error(500, "RPC request failed", "RPC_ERROR", req);
+    }
+
+    const data = await res.json();
+    if (data.error) {
+      return error(500, data.error.message, "RPC_ERROR", req);
+    }
+
+    const raw = String(data.result || "0x0");
+    const wei = BigInt(raw);
+    const decimals = chain.native_currency?.decimals ?? 18;
+    const symbol = chain.native_currency?.symbol ?? "ETH";
+    const balance = formatUnits(wei, decimals);
+
+    return json({ address: walletCheck.address, chain_id: chainId, balances: { [symbol]: balance } }, {}, req);
+  }
+
   // Query on-chain balances
-  const rpcUrl = getNeoRpcUrl();
+  const rpcUrl = chain.rpc_urls?.[0] || getNeoRpcUrl();
   const res = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -79,7 +126,7 @@ export async function handler(req: Request): Promise<Response> {
   if (!result.GAS) result.GAS = "0.00000000";
   if (!result.NEO) result.NEO = "0";
 
-  return json({ address: walletCheck.address, balances: result }, {}, req);
+  return json({ address: walletCheck.address, chain_id: chainId, balances: result }, {}, req);
 }
 
 if (import.meta.main) {

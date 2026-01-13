@@ -3,16 +3,16 @@
     "badge": "新一代小程序中心",
     "title": "体验",
     "titleHighlight": "NeoHub 生态系统",
-    "subtitle": "探索和使用去中心化小程序，涵盖游戏、DeFi 和社交。由硬件级安全、零知识证明和 Neo N3 的强大功能保护。",
+    "subtitle": "探索和使用去中心化小程序，涵盖游戏、DeFi 和社交。由 Neo 提供支持，受硬件级安全和多链支持保护。",
     "exploreApps": "探索小程序",
     "howItWorks": "了解原理",
     "sgxEnabled": "SGX 加持",
     "teeTrusted": "TEE 可信",
-    "neoNative": "NEO 原生"
+    "neoNative": "由 NEO 驱动"
   },
   "features": {
     "title": "功能特性",
-    "subtitle": "Neo N3 为下一代 Web3 应用提供极致的开发者体验和用户安全保障。",
+    "subtitle": "NeoHub 为下一代 Web3 应用提供极致的开发者体验和用户安全保障。",
     "secureCompute": "安全计算",
     "secureComputeDesc": "TEE 驱动的机密计算，保护敏感操作",
     "verifiableRandom": "可验证随机",
@@ -152,7 +152,7 @@
   },
   "explore": {
     "title": "探索 NeoHub 生态系统",
-    "subtitle": "发现 Neo N3 上最具创新性的小程序。由 TEE 驱动，链上验证。"
+    "subtitle": "发现 NeoHub 上最具创新性的小程序。由 TEE 驱动，链上验证。"
   },
   "stats": {
     "totalApps": "应用总数",
@@ -340,9 +340,17 @@
       "title": "筛选",
       "category": "分类",
       "features": "功能",
+      "chains": "区块链",
+      "tags": "标签",
       "payments": "支付",
       "randomness": "随机数",
-      "datafeed": "数据源"
+      "datafeed": "数据源",
+      "neo_n3_mainnet": "Neo N3 主网",
+      "neo_n3_testnet": "Neo N3 测试网",
+      "neox_mainnet": "NeoX 主网",
+      "neox_testnet": "NeoX 测试网",
+      "ethereum_mainnet": "以太坊主网",
+      "ethereum_sepolia": "以太坊 Sepolia"
     },
     "view": {
       "list": "列表视图",
@@ -350,6 +358,14 @@
     },
     "loadMore": "加载更多",
     "remaining": "剩余"
+  },
+  "featured": {
+    "new": "新上线",
+    "trending": "热门",
+    "popular": "人气",
+    "promoted": "精选",
+    "users": "用户",
+    "launch": "启动应用"
   },
   "reviews": {
     "title": "评价",
@@ -383,7 +399,7 @@
     "contractDetails": "合约详情",
     "appInfo": "应用信息",
     "appId": "应用 ID",
-    "contractHash": "合约哈希",
+    "contractAddress": "合约地址",
     "entryUrl": "入口 URL",
     "maxGasPerTx": "单笔交易最大 GAS",
     "dailyGasCap": "每用户每日 GAS 上限",
@@ -400,7 +416,12 @@
     "weeklyActive": "周活用户",
     "lastActive": "最后活跃",
     "activity": "活动",
-    "views": "浏览量"
+    "views": "浏览量",
+    "users": "用户",
+    "txs": "交易",
+    "chains": "支持链",
+    "similarApps": "相似应用",
+    "viewAll": "查看全部"
   },
   "docs": {
     "tableHeaders": {
@@ -459,7 +480,7 @@
       "cli": "CLI 工具"
     },
     "intro": {
-      "welcome": "欢迎来到 NeoHub，这是基于 Neo N3 构建的新一代小程序平台。NeoHub 为去中心化应用提供安全、高性能的执行环境，利用可信执行环境 (TEE) 为您的数据和密钥提供硬件级隔离保护。",
+      "welcome": "欢迎来到 NeoHub，这是支持多链的新一代小程序平台。NeoHub 为去中心化应用提供安全、高性能的执行环境，利用可信执行环境 (TEE) 为您的数据和密钥提供硬件级隔离保护。",
       "secureTitle": "默认安全",
       "secureDesc": "每个小程序都在隔离的安全区中运行，受 Intel SGX 保护。密钥永远不会离开硬件。",
       "identityTitle": "统一身份",
@@ -734,7 +755,7 @@
     "gasbank": {
       "subtitle": "预付费 GAS 账户，实现无缝服务使用。",
       "overview": "GasBank 服务管理您的平台服务 GAS 余额。将 GAS 存入您的账户，服务将自动扣除费用，无需每笔交易单独批准。",
-      "features": ["Neo N3 链存款验证", "余额扣款/充值操作", "自动服务费扣除", "交易历史跟踪", "24小时存款过期"],
+      "features": ["区块链存款验证", "余额扣款/充值操作", "自动服务费扣除", "交易历史跟踪", "24小时存款过期"],
       "parameters": [
         {
           "name": "amount",
@@ -744,7 +765,7 @@
         {
           "name": "txHash",
           "type": "string",
-          "desc": "用于验证的 Neo N3 交易哈希。"
+          "desc": "用于验证的交易哈希。"
         }
       ],
       "codeExample": "// 查询余额\nconst balance = await hub.gasbank.getBalance();\nconsole.log(`可用余额: ${balance.available} GAS`);\n\n// 充值 GAS\nconst deposit = await hub.gasbank.deposit({\n  amount: 100,\n  txHash: '0x...' \n});",
@@ -776,7 +797,7 @@
     },
     "ccip": {
       "subtitle": "跨链互操作协议。",
-      "overview": "CCIP 服务支持安全的跨链通信和资产转移。通过 TEE 验证的消息传递在 Neo N3 和其他支持的链之间桥接资产。",
+      "overview": "CCIP 服务支持安全的跨链通信和资产转移。通过 TEE 验证的消息传递在支持的链之间桥接资产。",
       "features": [
         "多链支持 (Ethereum, BSC, Polygon)",
         "TEE 验证的消息传递",
@@ -969,7 +990,7 @@
   "developer": {
     "title": "开发者门户",
     "subtitle": "使用强大的 SDK 构建、测试和发布小程序。开箱即用 TEE、VRF 和预言机服务。",
-    "badge": "基于 Neo N3 构建",
+    "badge": "基于多链构建",
     "registerApp": "注册应用",
     "quickStart": "快速开始",
     "quickStartDesc": "几分钟内启动运行",
@@ -977,7 +998,7 @@
     "createAppComment": "# 创建第一个应用",
     "submitYourApp": "提交应用",
     "submitYourAppDesc": "发布到市场",
-    "readyToLaunch": "准备好发布了吗？提交您的小程序进行审核，触达数百万 Neo 用户。",
+    "readyToLaunch": "准备好发布了吗？提交您的小程序进行审核，触达多链用户。",
     "readDocumentation": "阅读文档",
     "submitMiniApp": "提交小程序",
     "platformFeatures": "平台功能",
@@ -1008,13 +1029,16 @@
       "category": "分类",
       "entryUrl": "入口 URL",
       "entryUrlPlaceholder": "https://your-app.com/miniapp",
-      "contractHash": "合约哈希",
-      "contractHashPlaceholder": "0x... (可选)",
+      "supportedChains": "支持链",
+      "supportedChainsPlaceholder": "neo-n3-mainnet, neox-mainnet",
+      "contractsJson": "合约配置 (JSON)",
+      "contractsJsonPlaceholder": "{\"neo-n3-mainnet\": {\"address\": \"0x...\"}, \"neox-mainnet\": {\"address\": \"0x...\"}}",
+      "contractsJsonInvalid": "合约 JSON 无效",
       "developerInfo": "开发者信息",
       "developerName": "开发者名称",
       "developerNamePlaceholder": "您的名称或团队名称",
-      "neoAddress": "Neo 地址",
-      "neoAddressPlaceholder": "NXxx...",
+      "neoAddress": "钱包地址",
+      "neoAddressPlaceholder": "NXxx... 或 0x...",
       "required": "*",
       "cancel": "取消",
       "submit": "提交审核",
@@ -1057,7 +1081,7 @@
     "appId": "应用 ID",
     "contractAddress": "合约地址",
     "scriptHash": "脚本哈希",
-    "contractHash": "合约哈希",
+    "contractAddress": "合约地址",
     "noContract": "未部署合约",
     "masterKey": "主密钥",
     "masterAccount": "主账户",
@@ -1282,7 +1306,7 @@
   "download": {
     "badge": "开始使用",
     "title": "下载 Neo 钱包",
-    "subtitle": "使用安全的 Neo N3 钱包连接 NeoHub 并与 MiniApps 交互。从以下推荐钱包中选择。",
+    "subtitle": "使用安全的钱包连接 NeoHub 并与 MiniApps 交互。从以下推荐钱包中选择。",
     "recommended": "推荐",
     "features": "主要功能",
     "availableOn": "可用平台",
@@ -1346,5 +1370,11 @@
   "discovery": {
     "title": "发现新应用",
     "personalized": "为您推荐"
+  },
+  "recommendations": {
+    "newNoteworthy": "新上线精选",
+    "popularGaming": "热门游戏",
+    "defiEssentials": "DeFi 必备",
+    "seeAll": "查看全部"
   }
 }

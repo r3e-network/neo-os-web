@@ -8,6 +8,7 @@ const mockNotifications: MiniAppNotification[] = [
   {
     id: "1",
     app_id: "test-app",
+    chain_id: "neo-n3-mainnet",
     title: "New Achievement",
     content: "You've reached level 10!",
     notification_type: "achievement",
@@ -17,6 +18,7 @@ const mockNotifications: MiniAppNotification[] = [
   {
     id: "2",
     app_id: "test-app",
+    chain_id: "neo-n3-mainnet",
     title: "System Update",
     content: "New features available",
     notification_type: "update",
@@ -53,6 +55,7 @@ describe("AppNewsList", () => {
       {
         id: "1",
         app_id: "test",
+        chain_id: "neo-n3-mainnet",
         title: "Achievement",
         content: "Test",
         notification_type: "achievement",
@@ -70,6 +73,7 @@ describe("AppNewsList", () => {
       {
         id: "1",
         app_id: "test",
+        chain_id: "neo-n3-mainnet",
         title: "Update",
         content: "Test",
         notification_type: "update",
@@ -87,6 +91,7 @@ describe("AppNewsList", () => {
       {
         id: "1",
         app_id: "test",
+        chain_id: "neo-n3-mainnet",
         title: "Warning",
         content: "Test",
         notification_type: "warning",
@@ -113,6 +118,7 @@ describe("AppNewsList", () => {
       {
         id: "1",
         app_id: "test",
+        chain_id: "neo-n3-mainnet",
         title: "Test",
         content: "No TX",
         notification_type: "info",
@@ -130,6 +136,7 @@ describe("AppNewsList", () => {
       {
         id: "1",
         app_id: "test",
+        chain_id: "neo-n3-mainnet",
         title: "Recent",
         content: "Test",
         notification_type: "info",
@@ -147,6 +154,7 @@ describe("AppNewsList", () => {
       {
         id: "1",
         app_id: "test",
+        chain_id: "neo-n3-mainnet",
         title: "Test",
         content: "Test",
         notification_type: "info",
@@ -164,6 +172,7 @@ describe("AppNewsList", () => {
       {
         id: "1",
         app_id: "test",
+        chain_id: "neo-n3-mainnet",
         title: "Test",
         content: "Test",
         notification_type: "info",
@@ -181,6 +190,7 @@ describe("AppNewsList", () => {
       {
         id: "1",
         app_id: "test",
+        chain_id: "neo-n3-mainnet",
         title: "Test",
         content: "Test",
         notification_type: "info",
@@ -205,6 +215,7 @@ describe("AppNewsList", () => {
       {
         id: "1",
         app_id: "test",
+        chain_id: "neo-n3-mainnet",
         title: "Unknown",
         content: "Test",
         notification_type: "unknown",

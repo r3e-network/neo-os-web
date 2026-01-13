@@ -4,9 +4,11 @@ import Link from "next/link";
 import { Globe, Zap } from "lucide-react";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
+import { ChainBadge } from "@/components/ui/ChainBadge";
 import { useTranslation } from "@/lib/i18n/react";
 import { formatNumber, formatTimeAgo } from "@/lib/utils";
 import type { MiniAppInfo } from "./MiniAppCard";
+import type { ChainId } from "@/lib/chains/types";
 
 interface MiniAppListItemProps {
   app: MiniAppInfo;
@@ -19,6 +21,9 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
   // Self-contained i18n: use MiniApp's own translations based on locale
   const appName = locale === "zh" && app.name_zh ? app.name_zh : app.name;
   const appDesc = locale === "zh" && app.description_zh ? app.description_zh : app.description;
+
+  // Multi-chain support: get supported chains
+  const supportedChains = (app.supportedChains || []) as ChainId[];
 
   return (
     <Link
@@ -46,6 +51,19 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
               >
                 {categoryLabel}
               </Badge>
+              {/* Multi-chain badges */}
+              {supportedChains.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {supportedChains.slice(0, 3).map((chainId) => (
+                    <ChainBadge key={chainId} chainId={chainId} size="xs" />
+                  ))}
+                  {supportedChains.length > 3 && (
+                    <span className="text-[10px] text-erobo-ink-soft/60 dark:text-gray-500">
+                      +{supportedChains.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <p className="text-sm font-light text-erobo-ink-soft/80 dark:text-gray-400 truncate tracking-wide group-hover:text-erobo-ink dark:group-hover:text-gray-300">
               {appDesc}

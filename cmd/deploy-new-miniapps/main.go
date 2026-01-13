@@ -78,7 +78,7 @@ func main() {
 			continue
 		}
 
-		// Calculate expected hash
+		// Calculate expected contract address
 		nefFile, err := nef.FileFromBytes(nefData)
 		if err != nil {
 			fmt.Printf("  ❌ Parse NEF: %v\n\n", err)
@@ -91,18 +91,18 @@ func main() {
 			continue
 		}
 
-		expectedHash := state.CreateContractHash(
+		expectedAddress := state.CreateContractHash(
 			deployer.GetAccountHash(),
 			nefFile.Checksum,
 			m.Name,
 		)
-		fmt.Printf("  Expected: 0x%s\n", expectedHash.StringLE())
+		fmt.Printf("  Expected: 0x%s\n", expectedAddress.StringLE())
 
 		// Check if deployed
-		_, err = deployer.GetContractState("0x" + expectedHash.StringLE())
+		_, err = deployer.GetContractState("0x" + expectedAddress.StringLE())
 		if err == nil {
 			fmt.Printf("  ✅ Already deployed\n\n")
-			results[name] = "0x" + expectedHash.StringLE()
+			results[name] = "0x" + expectedAddress.StringLE()
 			continue
 		}
 
@@ -113,10 +113,10 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("  Hash: %s\n", deployed.Hash)
+		fmt.Printf("  Address: %s\n", deployed.Address)
 		fmt.Printf("  GAS: %s\n", deployed.GasConsumed)
 		fmt.Printf("  ✅ Ready to deploy\n\n")
-		results[name] = deployed.Hash
+		results[name] = deployed.Address
 
 		time.Sleep(500 * time.Millisecond)
 	}

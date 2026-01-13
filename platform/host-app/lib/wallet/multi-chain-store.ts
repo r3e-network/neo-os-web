@@ -2,13 +2,32 @@
  * Multi-Chain Wallet Store
  *
  * Zustand store for managing multi-chain wallet state.
+ * Adapters are managed as singletons outside the store to avoid serialization issues.
  */
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ChainId, ChainAccount, MultiChainAccount, WalletProviderType } from "../chains/types";
+import type { ChainId, MultiChainAccount, WalletProviderType } from "../chains/types";
 import type { IWalletAdapter } from "./adapters/interface";
 import { MetaMaskAdapter } from "./adapters/metamask";
+
+// ============================================================================
+// Adapter Registry (Singleton - outside store to avoid serialization issues)
+// ============================================================================
+
+const adapterRegistry = new Map<string, IWalletAdapter>([
+  ["metamask", new MetaMaskAdapter() as unknown as IWalletAdapter],
+]);
+
+/** Get a wallet adapter by provider type */
+export function getMultiChainAdapter(provider: string): IWalletAdapter | undefined {
+  return adapterRegistry.get(provider);
+}
+
+/** Register a new wallet adapter */
+export function registerMultiChainAdapter(provider: string, adapter: IWalletAdapter): void {
+  adapterRegistry.set(provider, adapter);
+}
 
 // ============================================================================
 // Store Types
@@ -23,9 +42,6 @@ interface MultiChainWalletState {
   // Account data
   account: MultiChainAccount | null;
   activeChainId: ChainId | null;
-
-  // Adapters
-  adapters: Map<string, IWalletAdapter>;
 
   // Actions
   connect: (provider: WalletProviderType, chainId: ChainId) => Promise<void>;
@@ -47,11 +63,10 @@ export const useMultiChainWallet = create<MultiChainWalletState>()(
       error: null,
       account: null,
       activeChainId: null,
-      adapters: new Map([["metamask", new MetaMaskAdapter()]]),
 
       // Connect to wallet
       connect: async (provider: WalletProviderType, chainId: ChainId) => {
-        const adapter = get().adapters.get(provider);
+        const adapter = adapterRegistry.get(provider);
         if (!adapter) {
           set({ error: `Provider ${provider} not found` });
           return;
@@ -74,19 +89,20 @@ export const useMultiChainWallet = create<MultiChainWalletState>()(
               activeChainId: chainId,
             },
           });
-        } catch (error: any) {
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Connection failed";
           set({
             connecting: false,
-            error: error.message || "Connection failed",
+            error: message,
           });
         }
       },
 
       // Disconnect
       disconnect: async () => {
-        const { account, adapters } = get();
+        const { account } = get();
         if (account) {
-          const adapter = adapters.get(account.provider);
+          const adapter = adapterRegistry.get(account.provider);
           await adapter?.disconnect();
         }
         set({ connected: false, account: null, activeChainId: null });
@@ -94,17 +110,18 @@ export const useMultiChainWallet = create<MultiChainWalletState>()(
 
       // Switch chain
       switchChain: async (chainId: ChainId) => {
-        const { account, adapters } = get();
+        const { account } = get();
         if (!account) return;
 
-        const adapter = adapters.get(account.provider);
+        const adapter = adapterRegistry.get(account.provider);
         if (!adapter) return;
 
         try {
           await adapter.switchChain(chainId);
           set({ activeChainId: chainId });
-        } catch (error: any) {
-          set({ error: error.message });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Chain switch failed";
+          set({ error: message });
         }
       },
 

@@ -111,6 +111,19 @@ export function Footer() {
           <p className="text-sm font-medium text-erobo-ink-soft/70 dark:text-gray-500">
             © {new Date().getFullYear()} R3E Network. {t("footer.rights")}
           </p>
+          {/* Powered by Neo Badge */}
+          <a
+            href="https://neo.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#00E599]/10 border border-[#00E599]/30 hover:bg-[#00E599]/20 transition-all group"
+          >
+            <span className="text-sm font-medium text-erobo-ink-soft/80 dark:text-gray-400 group-hover:text-[#00E599] transition-colors">
+              {t("footer.poweredBy")}
+            </span>
+            <img src="/chains/neo.svg" alt="Neo" className="h-5 w-5" />
+            <span className="text-sm font-bold text-[#00E599]">Neo</span>
+          </a>
         </div>
       </div>
     </footer>

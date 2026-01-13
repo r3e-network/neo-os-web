@@ -17,7 +17,10 @@ export default class MyDocument extends Document<Props> {
           {/* Theme initialization script - must run before React hydrates */}
           <script src="/theme-init.js" />
           <meta charSet="utf-8" />
-          <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
+          <meta
+            name="description"
+            content="Discover and use decentralized MiniApps on Neo N3, NeoX, Ethereum and more"
+          />
           <link rel="icon" href="/logo-icon.svg" type="image/svg+xml" />
           <link rel="apple-touch-icon" href="/logo-icon.svg" />
           {/* Google Fonts for beautiful typography */}

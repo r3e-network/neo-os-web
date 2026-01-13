@@ -1,8 +1,11 @@
 /**
- * Default Chain Configurations
+ * Platform Supported Chain Configurations
  *
  * Pre-configured chain settings for Neo N3, NeoX, and Ethereum.
- * These serve as defaults and can be overridden by database configurations.
+ * These define which chains the platform can interact with.
+ *
+ * NOTE: MiniApp chain support is declared in each app's manifest (supportedChains).
+ * This file only defines platform-level chain configurations, NOT default chains.
  */
 
 import type { NeoN3ChainConfig, EVMChainConfig, ChainConfig } from "./types";
@@ -299,10 +302,12 @@ export const BSC_TESTNET: EVMChainConfig = {
 };
 
 // ============================================================================
-// Default Chain Registry
+// Platform Supported Chain Configurations
+// These are the chains the platform can interact with - NOT default chains
+// MiniApp chain support is declared in each app's manifest (supportedChains)
 // ============================================================================
 
-export const DEFAULT_CHAINS: ChainConfig[] = [
+export const SUPPORTED_CHAIN_CONFIGS: ChainConfig[] = [
   NEO_N3_MAINNET,
   NEO_N3_TESTNET,
   NEOX_MAINNET,
@@ -315,6 +320,6 @@ export const DEFAULT_CHAINS: ChainConfig[] = [
   BSC_TESTNET,
 ];
 
-export const DEFAULT_CHAIN_MAP: Record<string, ChainConfig> = Object.fromEntries(
-  DEFAULT_CHAINS.map((chain) => [chain.id, chain]),
+export const CHAIN_CONFIG_MAP: Record<string, ChainConfig> = Object.fromEntries(
+  SUPPORTED_CHAIN_CONFIGS.map((chain) => [chain.id, chain]),
 );

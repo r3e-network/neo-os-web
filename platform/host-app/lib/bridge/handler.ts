@@ -82,8 +82,11 @@ async function handleSwitchChain(payload: unknown): Promise<void> {
 
 async function handleConnect(payload: unknown): Promise<unknown> {
   const { chainId, provider = "metamask" } = (payload as { chainId?: string; provider?: string }) || {};
+  if (!chainId) {
+    throw new Error("chainId is required for wallet connection");
+  }
   const store = useMultiChainWallet.getState();
-  await store.connect(provider as "metamask" | "walletconnect", chainId || "neo-n3-mainnet");
+  await store.connect(provider as "metamask" | "walletconnect", chainId);
   return store.account;
 }
 

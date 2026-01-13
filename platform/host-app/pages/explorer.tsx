@@ -5,17 +5,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, FileCode, Cpu } from "lucide-react";
+import { Search, Loader2, FileCode, Cpu, ChevronDown } from "lucide-react";
 import { OpcodeViewer } from "@/components/features/explorer";
+import type { ChainId } from "@/lib/chains/types";
+import { cn } from "@/lib/utils";
+
+// Supported chains for explorer
+const EXPLORER_CHAINS: { id: ChainId; name: string; icon: string }[] = [
+  { id: "neo-n3-mainnet", name: "Neo N3", icon: "/chains/neo.svg" },
+  { id: "neo-n3-testnet", name: "Neo N3 Testnet", icon: "/chains/neo.svg" },
+  { id: "neox-mainnet", name: "NeoX", icon: "/chains/neox.svg" },
+  { id: "neox-testnet", name: "NeoX Testnet", icon: "/chains/neox.svg" },
+  { id: "ethereum-mainnet", name: "Ethereum", icon: "/chains/ethereum.svg" },
+  { id: "ethereum-sepolia", name: "Ethereum Sepolia", icon: "/chains/ethereum.svg" },
+];
 
 interface SearchResult {
   type: string;
   found: boolean;
+  chainId?: ChainId;
   data?: TransactionData;
   address?: string;
   tx_count?: number;
   transactions?: AddressTx[];
-  contract_hash?: string;
+  contract_address?: string;
   call_count?: number;
   calls?: ContractCall[];
 }
@@ -39,12 +52,13 @@ interface OpcodeTrace {
   opcode_hex: string;
   gas_consumed: string;
   instruction_ptr: number;
+  contract_address?: string;
 }
 
 interface ContractCall {
   tx_hash: string;
   method: string;
-  contract_hash: string;
+  contract_address: string;
   gas_consumed: string;
   success: boolean;
 }
@@ -52,7 +66,7 @@ interface ContractCall {
 interface Syscall {
   syscall_name: string;
   gas_consumed: string;
-  contract_hash: string;
+  contract_address: string;
 }
 
 interface AddressTx {
@@ -66,6 +80,10 @@ export default function ExplorerPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [error, setError] = useState("");
+  const [selectedChain, setSelectedChain] = useState<ChainId>("neo-n3-mainnet");
+  const [showChainMenu, setShowChainMenu] = useState(false);
+
+  const currentChain = EXPLORER_CHAINS.find((c) => c.id === selectedChain) || EXPLORER_CHAINS[0];
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -74,12 +92,12 @@ export default function ExplorerPage() {
     setResult(null);
 
     try {
-      const res = await fetch(`/api/explorer/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/explorer/search?q=${encodeURIComponent(query)}&chain_id=${selectedChain}`);
       const data = await res.json();
       if (data.error) {
         setError(data.error);
       } else {
-        setResult(data);
+        setResult({ ...data, chainId: selectedChain });
       }
     } catch (err) {
       setError("Search failed");
@@ -91,17 +109,52 @@ export default function ExplorerPage() {
   return (
     <Layout>
       <Head>
-        <title>Neo Explorer | MiniApp Platform</title>
+        <title>Multi-Chain Explorer | MiniApp Platform</title>
       </Head>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Neo N3 Explorer</h1>
-          <p className="text-muted-foreground">Search transactions, addresses, and contracts with execution traces</p>
+          <h1 className="text-3xl font-bold mb-2">Multi-Chain Explorer</h1>
+          <p className="text-muted-foreground">
+            Search transactions, addresses, and contracts across Neo N3, NeoX, and Ethereum
+          </p>
         </div>
 
-        {/* Search Bar */}
+        {/* Chain Selector and Search Bar */}
         <div className="flex gap-2 mb-8 max-w-2xl mx-auto">
+          {/* Chain Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setShowChainMenu(!showChainMenu)}
+              className="flex items-center gap-2 px-4 py-2 border rounded-md bg-background hover:bg-accent min-w-[160px]"
+            >
+              <img src={currentChain.icon} alt={currentChain.name} className="w-5 h-5" />
+              <span className="text-sm font-medium">{currentChain.name}</span>
+              <ChevronDown className={cn("h-4 w-4 ml-auto transition-transform", showChainMenu && "rotate-180")} />
+            </button>
+
+            {showChainMenu && (
+              <div className="absolute top-full left-0 mt-1 w-full bg-background border rounded-md shadow-lg z-50">
+                {EXPLORER_CHAINS.map((chain) => (
+                  <button
+                    key={chain.id}
+                    onClick={() => {
+                      setSelectedChain(chain.id);
+                      setShowChainMenu(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-accent",
+                      selectedChain === chain.id && "bg-accent",
+                    )}
+                  >
+                    <img src={chain.icon} alt={chain.name} className="w-4 h-4" />
+                    {chain.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <Input
             placeholder="Search by tx hash, address, or contract..."
             value={query}
@@ -189,6 +242,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
             opcode: t.opcode,
             opcode_hex: t.opcode_hex,
             gas_consumed: t.gas_consumed,
+            contract_address: t.contract_address,
             stack_size: 0,
             instruction_ptr: t.instruction_ptr,
           })) || []
@@ -197,7 +251,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
           id: idx,
           tx_hash: data.hash,
           call_index: idx,
-          contract_hash: c.contract_hash,
+          contract_address: c.contract_address,
           method: c.method,
           args: [],
           gas_consumed: c.gas_consumed,
@@ -219,7 +273,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
                     <span className="font-medium">{c.method}</span>
                     <Badge variant={c.success ? "default" : "destructive"}>{c.success ? "Success" : "Failed"}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground font-mono">{c.contract_hash}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{c.contract_address}</p>
                 </div>
               ))}
             </div>
@@ -277,7 +331,7 @@ function ContractResult({ result }: { result: SearchResult }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Contract: {result.contract_hash}</CardTitle>
+        <CardTitle>Contract: {result.contract_address}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="mb-4">Total Calls: {result.call_count}</p>

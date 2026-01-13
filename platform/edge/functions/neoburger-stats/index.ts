@@ -2,7 +2,7 @@ import { handleCorsPreflight } from "../_shared/cors.ts";
 import { json } from "../_shared/response.ts";
 import { getNeoRpcUrl } from "../_shared/k8s-config.ts";
 
-// NeoBurger bNEO contract hash
+// NeoBurger bNEO contract address
 const BNEO_CONTRACT = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
 
 export async function handler(req: Request): Promise<Response> {

@@ -913,8 +913,8 @@ func TestServiceConfigFields(t *testing.T) {
 		Marble:               m,
 		DB:                   nil,
 		ChainClient:          nil,
-		PriceFeedHash:        "0x1234567890abcdef",
-		AutomationAnchorHash: "0xabcdef1234567890",
+		PriceFeedAddress:     "0x1234567890abcdef",
+		AutomationAnchorAddress: "0xabcdef1234567890",
 		TxProxy:              nil,
 		EnableChainExec:      true,
 	}
@@ -924,11 +924,11 @@ func TestServiceConfigFields(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	if svc.priceFeedHash != cfg.PriceFeedHash {
-		t.Errorf("priceFeedHash = %s, want %s", svc.priceFeedHash, cfg.PriceFeedHash)
+	if svc.priceFeedAddress != cfg.PriceFeedAddress {
+		t.Errorf("priceFeedAddress = %s, want %s", svc.priceFeedAddress, cfg.PriceFeedAddress)
 	}
-	if svc.automationAnchorHash != cfg.AutomationAnchorHash {
-		t.Errorf("automationAnchorHash = %s, want %s", svc.automationAnchorHash, cfg.AutomationAnchorHash)
+	if svc.automationAnchorAddress != cfg.AutomationAnchorAddress {
+		t.Errorf("automationAnchorAddress = %s, want %s", svc.automationAnchorAddress, cfg.AutomationAnchorAddress)
 	}
 	// With chain dependencies missing in non-strict mode, the service disables on-chain execution.
 	if svc.enableChainExec {

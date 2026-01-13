@@ -63,12 +63,12 @@ func NewInvoker(rpcURL string) (*Invoker, error) {
 
 	// Load contract addresses from environment
 	addresses := ContractAddresses{
-		PriceFeed:        getEnvOrDefault("CONTRACT_PRICEFEED_HASH", "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"),
-		RandomnessLog:    getEnvOrDefault("CONTRACT_RANDOMNESSLOG_HASH", "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"),
-		PaymentHub:       getEnvOrDefault("CONTRACT_PAYMENTHUB_HASH", "0x45777109546ceaacfbeed9336d695bb8b8bd77ca"),
-		AutomationAnchor: getEnvOrDefault("CONTRACT_AUTOMATIONANCHOR_HASH", "0x1c888d699ce76b0824028af310d90c3c18adeab5"),
-		AppRegistry:      getEnvOrDefault("CONTRACT_APPREGISTRY_HASH", "0x79d16bee03122e992bb80c478ad4ed405f33bc7f"),
-		Governance:       getEnvOrDefault("CONTRACT_GOVERNANCE_HASH", "0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05"),
+		PriceFeed:        getEnvOrDefault("CONTRACT_PRICE_FEED_ADDRESS", "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"),
+		RandomnessLog:    getEnvOrDefault("CONTRACT_RANDOMNESS_LOG_ADDRESS", "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"),
+		PaymentHub:       getEnvOrDefault("CONTRACT_PAYMENT_HUB_ADDRESS", "0x45777109546ceaacfbeed9336d695bb8b8bd77ca"),
+		AutomationAnchor: getEnvOrDefault("CONTRACT_AUTOMATION_ANCHOR_ADDRESS", "0x1c888d699ce76b0824028af310d90c3c18adeab5"),
+		AppRegistry:      getEnvOrDefault("CONTRACT_APP_REGISTRY_ADDRESS", "0x79d16bee03122e992bb80c478ad4ed405f33bc7f"),
+		Governance:       getEnvOrDefault("CONTRACT_GOVERNANCE_ADDRESS", "0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05"),
 	}
 
 	return &Invoker{
@@ -85,17 +85,17 @@ func getEnvOrDefault(key, defaultVal string) string {
 	return defaultVal
 }
 
-func parseContractHash(hashStr string) (util.Uint160, error) {
-	hashStr = strings.TrimPrefix(hashStr, "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+func parseContractAddress(addressStr string) (util.Uint160, error) {
+	addressStr = strings.TrimPrefix(addressStr, "0x")
+	return util.Uint160DecodeStringLE(addressStr)
 }
 
 // UpdatePriceFeed updates a price feed with new data.
 // Returns the transaction hash on success.
 func (inv *Invoker) UpdatePriceFeed(ctx context.Context, symbol string, roundID int64, price int64, timestamp uint64) (string, error) {
-	contractHash, err := parseContractHash(inv.addresses.PriceFeed)
+	contractAddress, err := parseContractAddress(inv.addresses.PriceFeed)
 	if err != nil {
-		return "", fmt.Errorf("parse contract hash: %w", err)
+		return "", fmt.Errorf("parse contract address: %w", err)
 	}
 
 	// Generate attestation hash (32 bytes)
@@ -106,7 +106,7 @@ func (inv *Invoker) UpdatePriceFeed(ctx context.Context, symbol string, roundID 
 
 	// Call Update(symbol, roundId, price, timestamp, attestationHash, sourceSetId)
 	txHash, _, err := inv.actor.SendCall(
-		contractHash,
+		contractAddress,
 		"update",
 		symbol,
 		roundID,
@@ -125,9 +125,9 @@ func (inv *Invoker) UpdatePriceFeed(ctx context.Context, symbol string, roundID 
 // RecordRandomness records a randomness value on-chain.
 // Returns the transaction hash on success.
 func (inv *Invoker) RecordRandomness(ctx context.Context, requestID string) (string, error) {
-	contractHash, err := parseContractHash(inv.addresses.RandomnessLog)
+	contractAddress, err := parseContractAddress(inv.addresses.RandomnessLog)
 	if err != nil {
-		return "", fmt.Errorf("parse contract hash: %w", err)
+		return "", fmt.Errorf("parse contract address: %w", err)
 	}
 
 	// Generate random bytes (32 bytes)
@@ -142,7 +142,7 @@ func (inv *Invoker) RecordRandomness(ctx context.Context, requestID string) (str
 
 	// Call Record(requestId, randomness, attestationHash, timestamp)
 	txHash, _, err := inv.actor.SendCall(
-		contractHash,
+		contractAddress,
 		"record",
 		requestID,
 		randomness,
@@ -159,14 +159,14 @@ func (inv *Invoker) RecordRandomness(ctx context.Context, requestID string) (str
 // PayToApp makes a payment to a MiniApp via PaymentHub.
 // Returns the transaction hash on success.
 func (inv *Invoker) PayToApp(ctx context.Context, appID string, amount int64, memo string) (string, error) {
-	contractHash, err := parseContractHash(inv.addresses.PaymentHub)
+	contractAddress, err := parseContractAddress(inv.addresses.PaymentHub)
 	if err != nil {
-		return "", fmt.Errorf("parse contract hash: %w", err)
+		return "", fmt.Errorf("parse contract address: %w", err)
 	}
 
 	// Call Pay(appId, amount, memo)
 	txHash, _, err := inv.actor.SendCall(
-		contractHash,
+		contractAddress,
 		"pay",
 		appID,
 		amount,
@@ -181,12 +181,12 @@ func (inv *Invoker) PayToApp(ctx context.Context, appID string, amount int64, me
 
 // GetPriceFeedLatest gets the latest price for a symbol.
 func (inv *Invoker) GetPriceFeedLatest(ctx context.Context, symbol string) (map[string]interface{}, error) {
-	contractHash, err := parseContractHash(inv.addresses.PriceFeed)
+	contractAddress, err := parseContractAddress(inv.addresses.PriceFeed)
 	if err != nil {
-		return nil, fmt.Errorf("parse contract hash: %w", err)
+		return nil, fmt.Errorf("parse contract address: %w", err)
 	}
 
-	result, err := inv.actor.Call(contractHash, "getLatest", symbol)
+	result, err := inv.actor.Call(contractAddress, "getLatest", symbol)
 	if err != nil {
 		return nil, fmt.Errorf("call getLatest: %w", err)
 	}

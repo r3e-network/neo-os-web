@@ -223,7 +223,7 @@ func (s *Service) handleTransfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txHash, err := s.Transfer(r.Context(), input.ServiceID, input.AccountID, input.ToAddress, input.Amount, input.TokenHash)
+	txHash, err := s.Transfer(r.Context(), input.ServiceID, input.AccountID, input.ToAddress, input.Amount, input.TokenAddress)
 	if err != nil {
 		httputil.InternalError(w, err.Error())
 		return
@@ -320,12 +320,12 @@ func (s *Service) handleUpdateContract(w http.ResponseWriter, r *http.Request) {
 	}
 	input.ServiceID = serviceID
 
-	if input.AccountID == "" || input.ContractHash == "" || input.NEFBase64 == "" || input.ManifestJSON == "" {
-		httputil.BadRequest(w, "account_id, contract_hash, nef_base64, and manifest_json required")
+	if input.AccountID == "" || input.ContractAddress == "" || input.NEFBase64 == "" || input.ManifestJSON == "" {
+		httputil.BadRequest(w, "account_id, contract_address, nef_base64, and manifest_json required")
 		return
 	}
 
-	resp, err := s.UpdateContract(r.Context(), input.ServiceID, input.AccountID, input.ContractHash, input.NEFBase64, input.ManifestJSON, input.Data)
+	resp, err := s.UpdateContract(r.Context(), input.ServiceID, input.AccountID, input.ContractAddress, input.NEFBase64, input.ManifestJSON, input.Data)
 	if err != nil {
 		httputil.InternalError(w, err.Error())
 		return
@@ -348,12 +348,12 @@ func (s *Service) handleInvokeContract(w http.ResponseWriter, r *http.Request) {
 	}
 	input.ServiceID = serviceID
 
-	if input.AccountID == "" || input.ContractHash == "" || input.Method == "" {
-		httputil.BadRequest(w, "account_id, contract_hash, and method required")
+	if input.AccountID == "" || input.ContractAddress == "" || input.Method == "" {
+		httputil.BadRequest(w, "account_id, contract_address, and method required")
 		return
 	}
 
-	resp, err := s.InvokeContract(r.Context(), input.ServiceID, input.AccountID, input.ContractHash, input.Method, input.Params, input.Scope)
+	resp, err := s.InvokeContract(r.Context(), input.ServiceID, input.AccountID, input.ContractAddress, input.Method, input.Params, input.Scope)
 	if err != nil {
 		// Return partial response if available (for simulation failures)
 		if resp != nil {
@@ -380,12 +380,12 @@ func (s *Service) handleSimulateContract(w http.ResponseWriter, r *http.Request)
 	}
 	input.ServiceID = serviceID
 
-	if input.AccountID == "" || input.ContractHash == "" || input.Method == "" {
-		httputil.BadRequest(w, "account_id, contract_hash, and method required")
+	if input.AccountID == "" || input.ContractAddress == "" || input.Method == "" {
+		httputil.BadRequest(w, "account_id, contract_address, and method required")
 		return
 	}
 
-	resp, err := s.SimulateContract(r.Context(), input.ServiceID, input.AccountID, input.ContractHash, input.Method, input.Params)
+	resp, err := s.SimulateContract(r.Context(), input.ServiceID, input.AccountID, input.ContractAddress, input.Method, input.Params)
 	if err != nil {
 		httputil.InternalError(w, err.Error())
 		return
@@ -403,12 +403,12 @@ func (s *Service) handleInvokeMaster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if input.ContractHash == "" || input.Method == "" {
-		httputil.BadRequest(w, "contract_hash and method required")
+	if input.ContractAddress == "" || input.Method == "" {
+		httputil.BadRequest(w, "contract_address and method required")
 		return
 	}
 
-	resp, err := s.InvokeMaster(r.Context(), input.ContractHash, input.Method, input.Params, input.Scope)
+	resp, err := s.InvokeMaster(r.Context(), input.ContractAddress, input.Method, input.Params, input.Scope)
 	if err != nil {
 		// Return partial response if available (for simulation failures)
 		if resp != nil {
@@ -492,7 +492,7 @@ func (s *Service) handleFundAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := s.FundAccount(r.Context(), input.ToAddress, input.Amount, input.TokenHash)
+	resp, err := s.FundAccount(r.Context(), input.ToAddress, input.Amount, input.TokenAddress)
 	if err != nil {
 		httputil.InternalError(w, err.Error())
 		return

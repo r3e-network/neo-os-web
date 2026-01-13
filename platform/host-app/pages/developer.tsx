@@ -15,7 +15,8 @@ type FormData = {
   icon: string;
   category: (typeof categories)[number];
   entry_url: string;
-  contract_hash: string;
+  supported_chains: string;
+  contracts_json: string;
   developer_name: string;
   developer_address: string;
 };
@@ -26,7 +27,8 @@ const initialForm: FormData = {
   icon: "📦",
   category: "utility",
   entry_url: "",
-  contract_hash: "",
+  supported_chains: "",
+  contracts_json: "",
   developer_name: "",
   developer_address: "",
 };
@@ -71,12 +73,33 @@ export default function DeveloperPage() {
     setResult(null);
 
     try {
+      const supportedChains = form.supported_chains
+        .split(",")
+        .map((c) => c.trim().toLowerCase())
+        .filter(Boolean);
+      let contracts: Record<string, { address?: string | null; active?: boolean; entry_url?: string }> | undefined;
+      if (form.contracts_json.trim()) {
+        try {
+          const parsed = JSON.parse(form.contracts_json);
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            throw new Error("invalid contracts");
+          }
+          contracts = parsed;
+        } catch {
+          setResult({ success: false, message: t("developer.form.contractsJsonInvalid") });
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const res = await fetch("/api/miniapps/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          permissions: { payments: true, randomness: true, datafeed: true },
+          supported_chains: supportedChains,
+          contracts,
+          permissions: { payments: true, rng: true, datafeed: true },
         }),
       });
       const data = await res.json();
@@ -397,20 +420,32 @@ export default function DeveloperPage() {
                   />
                 </div>
 
-                {/* Contract Hash */}
+                {/* Supported Chains */}
                 <div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t("developer.form.contractHash")}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={t("developer.form.contractHashPlaceholder")}
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all font-mono text-sm text-gray-900 dark:text-white placeholder-gray-400"
-                      value={form.contract_hash}
-                      onChange={(e) => setForm({ ...form, contract_hash: e.target.value })}
-                    />
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t("developer.form.supportedChains")}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={t("developer.form.supportedChainsPlaceholder")}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                    value={form.supported_chains}
+                    onChange={(e) => setForm({ ...form, supported_chains: e.target.value })}
+                  />
+                </div>
+
+                {/* Contracts JSON */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t("developer.form.contractsJson")}
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder={t("developer.form.contractsJsonPlaceholder")}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all font-mono text-sm text-gray-900 dark:text-white placeholder-gray-400"
+                    value={form.contracts_json}
+                    onChange={(e) => setForm({ ...form, contracts_json: e.target.value })}
+                  />
                 </div>
 
                 {/* Developer Info */}

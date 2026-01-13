@@ -46,7 +46,7 @@ type PriceCondition struct {
 // ThresholdCondition represents a threshold-based trigger condition.
 type ThresholdCondition struct {
 	Address   string `json:"address"`
-	Asset     string `json:"asset"` // "GAS", "NEO", or contract hash
+	Asset     string `json:"asset"` // "GAS", "NEO", or contract address
 	Operator  string `json:"operator"`
 	Threshold int64  `json:"threshold"`
 }

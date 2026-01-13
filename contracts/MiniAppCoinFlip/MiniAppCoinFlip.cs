@@ -253,7 +253,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger betId = (BigInteger)betIdData;
             BetData bet = GetBet(betId);
             ExecutionEngine.Assert(!bet.Resolved, "already resolved");
-            ExecutionEngine.Assert(bet.Player != null, "bet not found");
+            ExecutionEngine.Assert(bet.Player != UInt160.Zero, "bet not found");
 
             // Handle failure
             if (!success)

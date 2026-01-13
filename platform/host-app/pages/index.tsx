@@ -33,6 +33,7 @@ import { SecurityFeatures } from "@/components/features/landing/SecurityFeatures
 import { CTABuilding } from "@/components/features/landing/CTABuilding";
 import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
 import { DiscoveryCarousel } from "@/components/features/discovery";
+import { RecommendationSection, useRecommendations } from "@/components/features/recommendations";
 
 // Interface for stats from API
 interface AppStats {
@@ -61,9 +62,10 @@ const CATEGORY_ICONS: Record<string, any> = {
 
 export default function LandingPage() {
   const { t } = useTranslation("host");
+  const { sections: recommendationSections } = useRecommendations();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [sortBy, setSortBy] = useState<"trending" | "recent" | "popular">("trending");
+  const [activeFilter, setActiveFilter] = useState("trending");
   const [appStats, setAppStats] = useState<AppStats>({});
   const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,8 +83,8 @@ export default function LandingPage() {
       setSelectedCategory(category);
     }
 
-    if (sort && (sort === "trending" || sort === "recent" || sort === "popular")) {
-      setSortBy(sort as any);
+    if (sort) {
+      setActiveFilter(sort as string);
     }
 
     if (view && (view === "grid" || view === "list")) {
@@ -104,8 +106,8 @@ export default function LandingPage() {
       delete newQuery.category;
     }
 
-    if (sortBy !== "trending") {
-      newQuery.sort = sortBy;
+    if (activeFilter !== "trending") {
+      newQuery.sort = activeFilter;
     } else {
       delete newQuery.sort;
     }
@@ -124,7 +126,7 @@ export default function LandingPage() {
       undefined,
       { shallow: true },
     );
-  }, [selectedCategory, sortBy, viewMode, isUrlInitialized, router.isReady, router.pathname]);
+  }, [selectedCategory, activeFilter, viewMode, isUrlInitialized, router.isReady, router.pathname]);
 
   // Real-time global activity feed
   const { activities } = useActivityFeed({ maxItems: 20 });
@@ -187,15 +189,24 @@ export default function LandingPage() {
   }, [t]);
 
   const filteredApps = useMemo(() => {
+    // Check if activeFilter matches a recommendation section
+    const recommendation = recommendationSections.find((s) => s.id === activeFilter);
+    if (recommendation) {
+      return (recommendation.apps || []) as any[]; // Cast to bypass strict category type check
+    }
+
     let apps =
       selectedCategory === "all" ? appsWithStats : appsWithStats.filter((app) => app.category === selectedCategory);
-    if (sortBy === "popular") {
+
+    if (activeFilter === "popular") {
       apps = [...apps].sort((a, b) => (b.stats?.users || 0) - (a.stats?.users || 0));
-    } else if (sortBy === "recent") {
+    } else if (activeFilter === "recent") {
       apps = [...apps].reverse();
     }
+    // "trending" is default order (usually curated or simple list)
+
     return apps.slice(0, 12);
-  }, [selectedCategory, sortBy, appsWithStats]);
+  }, [selectedCategory, activeFilter, appsWithStats, recommendationSections]);
 
   const totalStats = useMemo(() => {
     return {
@@ -207,10 +218,10 @@ export default function LandingPage() {
   return (
     <Layout>
       <Head>
-        <title>NeoHub - The Premier MiniApp Ecosystem on Neo N3</title>
+        <title>NeoHub - The Premier Multi-Chain MiniApp Ecosystem | Powered by Neo</title>
         <meta
           name="description"
-          content="Discover and use secure, high-performance decentralized MiniApps. Protected by hardware-grade TEE security."
+          content="Discover and use secure, high-performance decentralized MiniApps. Powered by Neo, protected by hardware-grade TEE security, supporting Neo N3, NeoX, and Ethereum."
         />
       </Head>
 
@@ -272,6 +283,8 @@ export default function LandingPage() {
             <DiscoveryCarousel apps={BUILTIN_APPS} />
           </div>
 
+          {/* Recommendation Sections moved to filters below */}
+
           <div className="flex flex-col lg:flex-row gap-8">
             <aside className="hidden lg:block w-72 shrink-0 space-y-8">
               <div>
@@ -329,19 +342,24 @@ export default function LandingPage() {
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
-                  {["trending", "recent", "popular"].map((sort) => (
+                  {[
+                    { id: "trending", label: t("miniapps.sort.trending") },
+                    { id: "recent", label: t("miniapps.sort.recent") },
+                    { id: "popular", label: t("miniapps.sort.popular") },
+                    ...recommendationSections.map(s => ({ id: s.id, label: s.title }))
+                  ].map((filter) => (
                     <Button
-                      key={sort}
+                      key={filter.id}
                       variant="ghost"
-                      onClick={() => setSortBy(sort as any)}
+                      onClick={() => setActiveFilter(filter.id)}
                       className={cn(
-                        "h-auto rounded-full text-[10px] font-bold uppercase px-6 py-2 border transition-all hover:bg-erobo-peach/30 dark:hover:bg-white/5",
-                        sortBy === sort
+                        "h-auto rounded-full text-[10px] font-bold uppercase px-6 py-2 border transition-all hover:bg-erobo-peach/30 dark:hover:bg-white/5 whitespace-nowrap",
+                        activeFilter === filter.id
                           ? "bg-erobo-purple/10 border-erobo-purple/30 text-erobo-purple shadow-sm dark:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
                           : "border-transparent text-erobo-ink-soft/70 dark:text-white/50 hover:text-erobo-ink dark:hover:text-white",
                       )}
                     >
-                      {t(`miniapps.sort.${sort}`)}
+                      {filter.label}
                     </Button>
                   ))}
                 </div>

@@ -20,6 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	chaincfg "github.com/R3E-Network/service_layer/infrastructure/chains"
 	"github.com/R3E-Network/service_layer/infrastructure/config"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
 	gasbankclient "github.com/R3E-Network/service_layer/infrastructure/gasbank/client"
@@ -169,12 +170,54 @@ func main() {
 		}
 	}
 
-	chainID := ""
-	if networkMagic != 0 {
-		chainID = fmt.Sprintf("neo-n3:%d", networkMagic)
+	chainID := strings.TrimSpace(os.Getenv("CHAIN_ID"))
+	var chainMeta *chaincfg.ChainConfig
+	if chainID == "" || networkMagic != 0 {
+		if cfg, cfgErr := chaincfg.LoadConfig(); cfgErr == nil {
+			if networkMagic != 0 {
+				for i := range cfg.Chains {
+					chainInfo := cfg.Chains[i]
+					if chainInfo.Type == chaincfg.ChainTypeNeoN3 && chainInfo.NetworkMagic == networkMagic {
+						chainID = chainInfo.ID
+						chainMeta = &cfg.Chains[i]
+						break
+					}
+				}
+			}
+			if chainID == "" {
+				for i := range cfg.Chains {
+					chainInfo := cfg.Chains[i]
+					if chainInfo.Type == chaincfg.ChainTypeNeoN3 {
+						chainID = chainInfo.ID
+						chainMeta = &cfg.Chains[i]
+						break
+					}
+				}
+			}
+			if chainMeta == nil && chainID != "" {
+				if found, ok := cfg.GetChain(chainID); ok {
+					chainMeta = found
+				}
+			}
+		}
 	}
 	if chainID == "" {
-		chainID = "neo-n3"
+		if networkMagic != 0 {
+			chainID = fmt.Sprintf("neo-n3:%d", networkMagic)
+		} else {
+			chainID = "neo-n3-mainnet"
+		}
+	}
+	if chainMeta != nil && chainMeta.Type == chaincfg.ChainTypeNeoN3 {
+		if networkMagic == 0 && chainMeta.NetworkMagic != 0 {
+			networkMagic = chainMeta.NetworkMagic
+		}
+		if len(neoRPCURLs) == 0 && len(chainMeta.RPCUrls) > 0 {
+			neoRPCURLs = chainMeta.RPCUrls
+		}
+		if neoRPCURL == "" && len(neoRPCURLs) > 0 {
+			neoRPCURL = neoRPCURLs[0]
+		}
 	}
 
 	var chainClient *chain.Client
@@ -187,49 +230,62 @@ func main() {
 	}
 
 	contracts := chain.ContractAddressesFromEnv()
-
-	paymentHubHash := trimHexPrefix(contracts.PaymentHub)
-	if paymentHubHash == "" {
-		if secret, ok := m.Secret("CONTRACT_PAYMENTHUB_HASH"); ok && len(secret) > 0 {
-			paymentHubHash = trimHexPrefix(string(secret))
-		} else if secret, ok := m.Secret("CONTRACT_PAYMENT_HUB_HASH"); ok && len(secret) > 0 {
-			paymentHubHash = trimHexPrefix(string(secret))
+	if chainMeta != nil {
+		if value := chainMeta.Contract("payment_hub"); value != "" {
+			contracts.PaymentHub = value
+		}
+		if value := chainMeta.Contract("governance"); value != "" {
+			contracts.Governance = value
+		}
+		if value := chainMeta.Contract("price_feed"); value != "" {
+			contracts.PriceFeed = value
+		}
+		if value := chainMeta.Contract("randomness_log"); value != "" {
+			contracts.RandomnessLog = value
+		}
+		if value := chainMeta.Contract("app_registry"); value != "" {
+			contracts.AppRegistry = value
+		}
+		if value := chainMeta.Contract("automation_anchor"); value != "" {
+			contracts.AutomationAnchor = value
+		}
+		if value := chainMeta.Contract("service_gateway"); value != "" {
+			contracts.ServiceLayerGateway = value
 		}
 	}
 
-	priceFeedHash := trimHexPrefix(contracts.PriceFeed)
-	if priceFeedHash == "" {
-		if secret, ok := m.Secret("CONTRACT_PRICEFEED_HASH"); ok && len(secret) > 0 {
-			priceFeedHash = trimHexPrefix(string(secret))
-		} else if secret, ok := m.Secret("CONTRACT_PRICE_FEED_HASH"); ok && len(secret) > 0 {
-			priceFeedHash = trimHexPrefix(string(secret))
+	paymentHubAddress := trimHexPrefix(contracts.PaymentHub)
+	if paymentHubAddress == "" {
+		if secret, ok := m.Secret("CONTRACT_PAYMENT_HUB_ADDRESS"); ok && len(secret) > 0 {
+			paymentHubAddress = trimHexPrefix(string(secret))
 		}
 	}
 
-	automationAnchorHash := trimHexPrefix(contracts.AutomationAnchor)
-	if automationAnchorHash == "" {
-		if secret, ok := m.Secret("CONTRACT_AUTOMATIONANCHOR_HASH"); ok && len(secret) > 0 {
-			automationAnchorHash = trimHexPrefix(string(secret))
-		} else if secret, ok := m.Secret("CONTRACT_AUTOMATION_ANCHOR_HASH"); ok && len(secret) > 0 {
-			automationAnchorHash = trimHexPrefix(string(secret))
+	priceFeedAddress := trimHexPrefix(contracts.PriceFeed)
+	if priceFeedAddress == "" {
+		if secret, ok := m.Secret("CONTRACT_PRICE_FEED_ADDRESS"); ok && len(secret) > 0 {
+			priceFeedAddress = trimHexPrefix(string(secret))
 		}
 	}
 
-	appRegistryHash := trimHexPrefix(contracts.AppRegistry)
-	if appRegistryHash == "" {
-		if secret, ok := m.Secret("CONTRACT_APPREGISTRY_HASH"); ok && len(secret) > 0 {
-			appRegistryHash = trimHexPrefix(string(secret))
-		} else if secret, ok := m.Secret("CONTRACT_APP_REGISTRY_HASH"); ok && len(secret) > 0 {
-			appRegistryHash = trimHexPrefix(string(secret))
+	automationAnchorAddress := trimHexPrefix(contracts.AutomationAnchor)
+	if automationAnchorAddress == "" {
+		if secret, ok := m.Secret("CONTRACT_AUTOMATION_ANCHOR_ADDRESS"); ok && len(secret) > 0 {
+			automationAnchorAddress = trimHexPrefix(string(secret))
 		}
 	}
 
-	serviceGatewayHash := trimHexPrefix(contracts.ServiceLayerGateway)
-	if serviceGatewayHash == "" {
-		if secret, ok := m.Secret("CONTRACT_SERVICEGATEWAY_HASH"); ok && len(secret) > 0 {
-			serviceGatewayHash = trimHexPrefix(string(secret))
-		} else if secret, ok := m.Secret("CONTRACT_SERVICE_GATEWAY_HASH"); ok && len(secret) > 0 {
-			serviceGatewayHash = trimHexPrefix(string(secret))
+	appRegistryAddress := trimHexPrefix(contracts.AppRegistry)
+	if appRegistryAddress == "" {
+		if secret, ok := m.Secret("CONTRACT_APP_REGISTRY_ADDRESS"); ok && len(secret) > 0 {
+			appRegistryAddress = trimHexPrefix(string(secret))
+		}
+	}
+
+	serviceGatewayAddress := trimHexPrefix(contracts.ServiceLayerGateway)
+	if serviceGatewayAddress == "" {
+		if secret, ok := m.Secret("CONTRACT_SERVICE_GATEWAY_ADDRESS"); ok && len(secret) > 0 {
+			serviceGatewayAddress = trimHexPrefix(string(secret))
 		}
 	}
 
@@ -337,11 +393,11 @@ func main() {
 		}
 
 		contracts := chain.ContractAddresses{
-			PaymentHub:          paymentHubHash,
-			PriceFeed:           priceFeedHash,
-			AutomationAnchor:    automationAnchorHash,
-			AppRegistry:         appRegistryHash,
-			ServiceLayerGateway: serviceGatewayHash,
+			PaymentHub:          paymentHubAddress,
+			PriceFeed:           priceFeedAddress,
+			AutomationAnchor:    automationAnchorAddress,
+			AppRegistry:         appRegistryAddress,
+			ServiceLayerGateway: serviceGatewayAddress,
 		}
 		if listenAll {
 			contracts = chain.ContractAddresses{}
@@ -420,9 +476,9 @@ func main() {
 		}
 	}
 
-	enablePriceFeedPush := chainClient != nil && priceFeedHash != "" && txProxyInvoker != nil
+	enablePriceFeedPush := chainClient != nil && priceFeedAddress != "" && txProxyInvoker != nil
 	enableChainPush := enablePriceFeedPush
-	enableChainExec := chainClient != nil && automationAnchorHash != "" && txProxyInvoker != nil
+	enableChainExec := chainClient != nil && automationAnchorAddress != "" && txProxyInvoker != nil
 
 	// GasBank client for service fee deduction
 	gasbankURL := strings.TrimSpace(os.Getenv("GASBANK_URL"))
@@ -476,7 +532,7 @@ func main() {
 			DB:              db,
 			ArbitrumRPC:     arbitrumRPC,
 			ChainClient:     chainClient,
-			PriceFeedHash:   priceFeedHash,
+			PriceFeedAddress: priceFeedAddress,
 			TxProxy:         txProxyInvoker,
 			EnableChainPush: enableChainPush,
 			GasBank:         gasbankClient,
@@ -489,8 +545,8 @@ func main() {
 			DB:                   db,
 			NeoFlowRepo:          neoflowRepo,
 			ChainClient:          chainClient,
-			PriceFeedHash:        priceFeedHash,
-			AutomationAnchorHash: automationAnchorHash,
+			PriceFeedAddress:        priceFeedAddress,
+			AutomationAnchorAddress: automationAnchorAddress,
 			TxProxy:              txProxyInvoker,
 			EventListener:        eventListener,
 			EnableChainExec:      enableChainExec,
@@ -540,9 +596,9 @@ func main() {
 			EventListener:      eventListener,
 			TxProxy:            txProxyInvoker,
 			ChainClient:        chainClient,
-			ServiceGatewayHash: serviceGatewayHash,
-			AppRegistryHash:    appRegistryHash,
-			PaymentHubHash:     paymentHubHash,
+			ServiceGatewayAddress: serviceGatewayAddress,
+			AppRegistryAddress:    appRegistryAddress,
+			PaymentHubAddress:     paymentHubAddress,
 			NeoVRFURL:          neovrfURL,
 			NeoOracleURL:       neooracleURL,
 			NeoComputeURL:      neocomputeURL,

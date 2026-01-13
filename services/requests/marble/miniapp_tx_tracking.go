@@ -29,21 +29,21 @@ func (s *Service) handleMiniAppTxEvent(ctx context.Context, event *chain.Transac
 	}
 
 	sender := normalizeSenderAddress(event.Sender)
-	for _, contractHash := range event.Contracts {
-		normalized := normalizeContractHash(contractHash)
+	for _, contractAddress := range event.Contracts {
+		normalized := normalizeContractAddress(contractAddress)
 		if normalized == "" {
 			continue
 		}
 
-		app, err := s.repo.GetMiniAppByContractHash(ctx, normalized)
+		app, err := s.repo.GetMiniAppByContractAddress(ctx, s.chainID, normalized)
 		if err != nil {
 			if database.IsNotFound(err) {
 				continue
 			}
 			s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
-				"contract_hash": contractHash,
-				"tx_hash":       event.TxHash,
-			}).Warn("failed to resolve miniapp contract hash")
+				"contract_address": contractAddress,
+				"tx_hash":          event.TxHash,
+			}).Warn("failed to resolve miniapp contract address")
 			continue
 		}
 		if !isAppActive(app.Status) {
@@ -58,21 +58,21 @@ func (s *Service) handleMiniAppTxEvent(ctx context.Context, event *chain.Transac
 				continue
 			}
 		}
-		if contractHash := appContractHash(app); contractHash != "" {
-			if contractHash != normalized {
+		if contractAddress := appContractAddress(app, s.chainID); contractAddress != "" {
+			if contractAddress != normalized {
 				s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
-					"app_id":        app.AppID,
-					"tx_hash":       event.TxHash,
-					"contract_hash": normalized,
-				}).Warn("miniapp contract hash mismatch for tx event")
+					"app_id":           app.AppID,
+					"tx_hash":          event.TxHash,
+					"contract_address": normalized,
+				}).Warn("miniapp contract address mismatch for tx event")
 				continue
 			}
 		} else if s.requireManifestContract {
 			s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
-				"app_id":        app.AppID,
-				"tx_hash":       event.TxHash,
-				"contract_hash": normalized,
-			}).Warn("contract_hash missing; tx event rejected")
+				"app_id":           app.AppID,
+				"tx_hash":          event.TxHash,
+				"contract_address": normalized,
+			}).Warn("contract_address missing; tx event rejected")
 			continue
 		}
 
@@ -93,7 +93,7 @@ func (s *Service) logMiniAppTx(ctx context.Context, appID, sender, txHash string
 	}
 
 	address := normalizeSenderAddress(sender)
-	if err := s.repo.LogMiniAppTx(ctx, appID, txHash, address, timestamp); err != nil {
+	if err := s.repo.LogMiniAppTx(ctx, appID, s.chainID, txHash, address, timestamp); err != nil {
 		s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
 			"app_id":  appID,
 			"tx_hash": txHash,

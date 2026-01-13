@@ -1,14 +1,26 @@
 # MiniApp SDK Guide
 
-MiniApps must not construct or sign Neo transactions directly. All sensitive actions flow through:
+MiniApps must not construct or sign transactions directly. All sensitive actions flow through:
 
-`MiniApp → Host SDK → Supabase Edge (auth/limits) → TEE services (attested) → Neo N3 chain`
+`MiniApp → Host SDK → Supabase Edge (auth/limits) → TEE services (attested) → chain (Neo N3 / EVM)`
 
 ## Runtime Model
 
-- The host provides `window.MiniAppSDK`.
+- The host provides `window.MiniAppSDK` (or use `@neo/uniapp-sdk` helpers).
 - MiniApps run in a sandbox (Module Federation or `iframe`) with strict CSP.
 - MiniApps communicate with the host via a restricted message channel (allowlisted origins).
+- If direct injection is not available, the SDK falls back to a postMessage bridge and validates origin on every response.
+
+For UniApp/Vue, install and use:
+
+```bash
+pnpm add @neo/uniapp-sdk
+```
+
+```ts
+import { waitForSDK } from "@neo/uniapp-sdk";
+const sdk = await waitForSDK();
+```
 
 ## API (Draft)
 
@@ -32,7 +44,9 @@ declare global {
                     request_id: string;
                     intent: "payments";
                     invocation: {
-                        contract_hash: string;
+                        chain_id: string;
+                        chain_type: "neo-n3";
+                        contract_address: string;
                         method: string;
                         params: any[];
                     };
@@ -49,7 +63,9 @@ declare global {
                     request_id: string;
                     intent: "governance";
                     invocation: {
-                        contract_hash: string;
+                        chain_id: string;
+                        chain_type: "neo-n3";
+                        contract_address: string;
                         method: string;
                         params: any[];
                     };
@@ -59,6 +75,8 @@ declare global {
                 // RNG is executed inside TEE (via `neovrf`), optional on-chain anchoring.
                 requestRandom(appId: string): Promise<{
                     request_id: string;
+                    chain_id: string;
+                    chain_type: "neo-n3" | "evm";
                     randomness: string;
                     signature?: string;
                     public_key?: string;
@@ -89,7 +107,8 @@ declare global {
                 list(params: {
                     app_id?: string;
                     event_name?: string;
-                    contract_hash?: string;
+                    chain_id?: string;
+                    contract_address?: string;
                     limit?: number;
                     after_id?: string;
                 }): Promise<{
@@ -102,6 +121,7 @@ declare global {
                 // Query platform-tracked chain transactions (auth required).
                 list(params: {
                     app_id?: string;
+                    chain_id?: string;
                     limit?: number;
                     after_id?: string;
                 }): Promise<{
@@ -130,8 +150,18 @@ explicit scopes; bearer JWTs are rejected there.
 
 MiniApps that use the on-chain request/callback pattern should invoke their
 MiniApp contract (or `ServiceLayerGateway`) via the wallet. The callback target
-is configured in the manifest (`callback_contract`, `callback_method`) and
+is configured per chain in the manifest (`contracts.<chain>.callback`) and
 executed on-chain by the gateway when the TEE result is ready.
+
+If you are using the shared **UniversalMiniApp** contract (recommended), you do
+not need to deploy a custom contract. For on-chain events or callbacks, set
+`manifest.contracts.<chain>.address` to the UniversalMiniApp address for each
+supported chain. If you do not emit on-chain events, `contracts` can omit
+addresses and `news_integration` should be disabled.
+When using `useWallet.invokeRead`/`invokeContract` without passing an explicit
+hash, the SDK uses the active chain's `manifest.contracts.<chain>.address`. Ensure `manifest.app_id` matches
+the `APP_ID` used in your MiniApp code so SDK scoping and payments target the
+same app. `app_id` must not include `:` to avoid storage key collisions.
 
 ## Contract Events for Platform Feeds
 
@@ -156,7 +186,7 @@ public static event Action<string, BigInteger> OnMetric;
 // Platform_Metric(app_id, metric_name, value)
 ```
 
-Ensure `manifest.contract_hash` is set so the indexer can map contract events back to the
+Ensure `manifest.contracts.<chain>.address` is set so the indexer can map contract events back to the
 correct MiniApp. The platform can enforce this requirement even when `app_id` is provided,
 especially when news/stats are enabled.
 If you do not want platform news/stats ingestion, set `news_integration=false` and omit

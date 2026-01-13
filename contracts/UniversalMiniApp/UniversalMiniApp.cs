@@ -13,6 +13,8 @@ namespace NeoMiniAppPlatform.Contracts
     // Event delegates
     public delegate void AppRegisteredInUniversalHandler(string appId, UInt160 owner);
     public delegate void AppUnregisteredHandler(string appId);
+    public delegate void OwnershipTransferredHandler(string appId, UInt160 previousOwner, UInt160 newOwner);
+    public delegate void AppAdminChangedHandler(string appId, UInt160 previousAdmin, UInt160 newAdmin);
     public delegate void ValueSetHandler(string appId, string key);
     public delegate void ValueDeletedHandler(string appId, string key);
 
@@ -47,6 +49,12 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("AppUnregistered")]
         public static event AppUnregisteredHandler OnAppUnregistered;
+
+        [DisplayName("OwnershipTransferred")]
+        public static event OwnershipTransferredHandler OnOwnershipTransferred;
+
+        [DisplayName("AppAdminChanged")]
+        public static event AppAdminChangedHandler OnAppAdminChanged;
 
         [DisplayName("ValueSet")]
         public static event ValueSetHandler OnValueSet;
@@ -248,7 +256,9 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAppOwner(appId);
             ExecutionEngine.Assert(newOwner != null && newOwner.IsValid, "invalid new owner");
 
+            UInt160 previousOwner = GetAppOwner(appId);
             AppOwnerMap().Put(appId, newOwner);
+            OnOwnershipTransferred(appId, previousOwner, newOwner);
         }
 
         /// <summary>
@@ -260,7 +270,9 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAppOwner(appId);
             ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
 
+            UInt160 previousAdmin = GetAppAdmin(appId);
             AppAdminMap().Put(appId, newAdmin);
+            OnAppAdminChanged(appId, previousAdmin, newAdmin);
         }
 
         #endregion

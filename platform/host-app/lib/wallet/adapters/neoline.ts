@@ -14,6 +14,8 @@ import {
   WalletConnectionError,
 } from "./base";
 import { logger } from "../../logger";
+import { getNeoContract, getGasContract } from "../../chains/registry";
+import type { ChainId } from "../../chains/types";
 
 /** NeoLine wallet provider interface */
 interface NeoLineProvider {
@@ -51,13 +53,11 @@ interface NeoLineInstance {
   }): Promise<{ txid: string; nodeUrl: string }>;
 }
 
-const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-const GAS_CONTRACT = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-
 export class NeoLineAdapter implements WalletAdapter {
   readonly name = "NeoLine";
   readonly icon = "https://neoline.io/favicon.ico";
   readonly downloadUrl = "https://neoline.io/";
+  readonly supportedChainTypes = ["neo-n3"] as const;
 
   private instance: NeoLineInstance | null = null;
 
@@ -121,7 +121,7 @@ export class NeoLineAdapter implements WalletAdapter {
     this.instance = null;
   }
 
-  async getBalance(address: string): Promise<WalletBalance> {
+  async getBalance(address: string, chainId: ChainId): Promise<WalletBalance> {
     const instance = await this.getInstance();
 
     try {
@@ -132,10 +132,14 @@ export class NeoLineAdapter implements WalletAdapter {
       let neo = "0";
       let gas = "0";
 
+      // Get contract addresses from chain registry
+      const neoContract = getNeoContract(chainId) || "";
+      const gasContract = getGasContract(chainId) || "";
+
       // Normalize contract addresses for comparison (case-insensitive, handle 0x prefix)
       const normalizeContract = (c: string) => c.toLowerCase().replace(/^0x/, "");
-      const neoNorm = normalizeContract(NEO_CONTRACT);
-      const gasNorm = normalizeContract(GAS_CONTRACT);
+      const neoNorm = normalizeContract(neoContract);
+      const gasNorm = normalizeContract(gasContract);
 
       // Handle multiple possible response formats from NeoLine
       // NeoLine N3 returns: { [address]: [{ contract, symbol, amount }] }
@@ -167,7 +171,7 @@ export class NeoLineAdapter implements WalletAdapter {
           JSON.stringify(balances),
         );
         // Return zero balances but don't throw error
-        return { neo: "0", gas: "0" };
+        return { native: "0", nativeSymbol: "GAS", governance: "0", governanceSymbol: "NEO" };
       }
 
       for (const b of balanceArray) {
@@ -181,7 +185,7 @@ export class NeoLineAdapter implements WalletAdapter {
 
         logger.debug("[NeoLine] Processing balance:", symbol, amount, "contract:", contractField);
 
-        // Match by contract hash (most reliable)
+        // Match by contract address (most reliable)
         if (contractNorm === neoNorm) {
           neo = amount;
         }
@@ -200,15 +204,17 @@ export class NeoLineAdapter implements WalletAdapter {
 
       logger.debug("[NeoLine] Final balance - NEO:", neo, "GAS:", gas);
 
-      // Ensure we return valid numeric strings
+      // Return multi-chain format balance
       return {
-        neo: neo || "0",
-        gas: gas || "0",
+        native: gas || "0",
+        nativeSymbol: "GAS",
+        governance: neo || "0",
+        governanceSymbol: "NEO",
       };
     } catch (error) {
       logger.error("[NeoLine] Failed to get balance:", error);
       // Return zero balances on error
-      return { neo: "0", gas: "0" };
+      return { native: "0", nativeSymbol: "GAS", governance: "0", governanceSymbol: "NEO" };
     }
   }
 

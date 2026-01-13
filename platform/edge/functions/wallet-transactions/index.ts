@@ -4,6 +4,7 @@ import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { getNeoRpcUrl } from "../_shared/k8s-config.ts";
+import { getChainConfig } from "../_shared/chains.ts";
 
 interface TransferRecord {
   timestamp: number;
@@ -42,10 +43,26 @@ export async function handler(req: Request): Promise<Response> {
 
   // Parse query params
   const url = new URL(req.url);
+  const chainId = url.searchParams.get("chain_id")?.trim() || "neo-n3-mainnet";
+  const chain = getChainConfig(chainId);
+  if (!chain) return error(400, "unknown chain_id", "INVALID_CHAIN", req);
   const limit = Math.min(100, parseInt(url.searchParams.get("limit") || "20"));
 
+  if (chain.type === "evm") {
+    return json(
+      {
+        address: walletCheck.address,
+        chain_id: chainId,
+        transactions: [],
+        total: 0,
+      },
+      {},
+      req,
+    );
+  }
+
   // Query transaction history via RPC
-  const rpcUrl = getNeoRpcUrl();
+  const rpcUrl = chain.rpc_urls?.[0] || getNeoRpcUrl();
   const res = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -104,6 +121,7 @@ export async function handler(req: Request): Promise<Response> {
   return json(
     {
       address: walletCheck.address,
+      chain_id: chainId,
       transactions: transactions.slice(0, limit),
       total: transactions.length,
     },

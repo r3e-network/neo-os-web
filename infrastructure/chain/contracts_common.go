@@ -26,25 +26,25 @@ type ContractAddresses struct {
 // LoadFromEnv loads contract addresses from environment variables.
 func (c *ContractAddresses) LoadFromEnv() {
 	// MiniApp platform contracts.
-	if h := firstNonEmptyEnv("CONTRACT_PAYMENTHUB_HASH", "CONTRACT_PAYMENT_HUB_HASH"); h != "" {
+	if h := firstNonEmptyEnv("CONTRACT_PAYMENT_HUB_ADDRESS"); h != "" {
 		c.PaymentHub = h
 	}
-	if h := os.Getenv("CONTRACT_GOVERNANCE_HASH"); h != "" {
+	if h := os.Getenv("CONTRACT_GOVERNANCE_ADDRESS"); h != "" {
 		c.Governance = h
 	}
-	if h := firstNonEmptyEnv("CONTRACT_PRICEFEED_HASH", "CONTRACT_PRICE_FEED_HASH"); h != "" {
+	if h := firstNonEmptyEnv("CONTRACT_PRICE_FEED_ADDRESS"); h != "" {
 		c.PriceFeed = h
 	}
-	if h := firstNonEmptyEnv("CONTRACT_RANDOMNESSLOG_HASH", "CONTRACT_RANDOMNESS_LOG_HASH"); h != "" {
+	if h := firstNonEmptyEnv("CONTRACT_RANDOMNESS_LOG_ADDRESS"); h != "" {
 		c.RandomnessLog = h
 	}
-	if h := firstNonEmptyEnv("CONTRACT_APPREGISTRY_HASH", "CONTRACT_APP_REGISTRY_HASH"); h != "" {
+	if h := firstNonEmptyEnv("CONTRACT_APP_REGISTRY_ADDRESS"); h != "" {
 		c.AppRegistry = h
 	}
-	if h := firstNonEmptyEnv("CONTRACT_AUTOMATIONANCHOR_HASH", "CONTRACT_AUTOMATION_ANCHOR_HASH"); h != "" {
+	if h := firstNonEmptyEnv("CONTRACT_AUTOMATION_ANCHOR_ADDRESS"); h != "" {
 		c.AutomationAnchor = h
 	}
-	if h := firstNonEmptyEnv("CONTRACT_SERVICEGATEWAY_HASH", "CONTRACT_SERVICE_GATEWAY_HASH"); h != "" {
+	if h := firstNonEmptyEnv("CONTRACT_SERVICE_GATEWAY_ADDRESS"); h != "" {
 		c.ServiceLayerGateway = h
 	}
 }

@@ -73,10 +73,10 @@ func main() {
 		log.Fatalf("Failed to parse manifest: %v", err)
 	}
 
-	// Calculate expected contract hash
-	contractHash := state.CreateContractHash(signer.ScriptHash(), nefFile.Checksum, m.Name)
-	contractHashStr := "0x" + contractHash.StringLE()
-	log.Printf("Expected contract hash: %s", contractHashStr)
+	// Calculate expected contract address
+	contractAddress := state.CreateContractHash(signer.ScriptHash(), nefFile.Checksum, m.Name)
+	contractAddressStr := "0x" + contractAddress.StringLE()
+	log.Printf("Expected contract address: %s", contractAddressStr)
 	log.Printf("Contract name: %s", m.Name)
 
 	// Build deployment parameters
@@ -86,7 +86,7 @@ func main() {
 		chain.NewByteArrayParam(manifestData),
 	}
 
-	// ContractManagement native contract hash
+	// ContractManagement native contract address
 	contractMgmtHash := "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
 
 	log.Println("Simulating deployment...")
@@ -139,11 +139,11 @@ func main() {
 	}
 
 	log.Println("=== Deployment Successful ===")
-	log.Printf("Contract Hash: %s", contractHashStr)
+	log.Printf("Contract Address: %s", contractAddressStr)
 	log.Printf("Transaction: %s", txHashString)
 	log.Printf("GAS Consumed: %s", invokeResult.GasConsumed)
 
 	// Output for easy copy-paste
 	fmt.Println()
-	fmt.Printf("CONTRACT_PAYMENTHUB_HASH=%s\n", contractHashStr)
+	fmt.Printf("CONTRACT_PAYMENT_HUB_ADDRESS=%s\n", contractAddressStr)
 }

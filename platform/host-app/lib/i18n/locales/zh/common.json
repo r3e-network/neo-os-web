@@ -128,7 +128,9 @@
     "sdkGuide": "SDK 指南",
     "apiReference": "API 参考",
     "rights": "保留所有权利。",
-    "tagline": "Neo N3 上去中心化应用的未来。",
+    "tagline": "支持多链的去中心化应用的未来。",
+    "poweredBy": "由",
+    "poweredByNeo": "由 Neo 提供支持",
     "github": "GitHub",
     "discord": "Discord",
     "twitter": "Twitter"

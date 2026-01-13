@@ -6,6 +6,7 @@ import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
 
 type UsageRow = {
   app_id: string;
+  chain_id?: string;
   usage_date: string;
   gas_used: string;
   governance_used: string;
@@ -20,11 +21,16 @@ function resolveUsageDate(raw?: string | null): string | null {
   return trimmed;
 }
 
-function normalizeUsageRow(row: Record<string, unknown>, fallback: { app_id: string; usage_date: string }): UsageRow {
+function normalizeUsageRow(
+  row: Record<string, unknown>,
+  fallback: { app_id: string; chain_id?: string; usage_date: string },
+): UsageRow {
   const appId = String(row.app_id ?? fallback.app_id ?? "").trim();
+  const chainId = String(row.chain_id ?? fallback.chain_id ?? "").trim();
   const usageDate = String(row.usage_date ?? fallback.usage_date ?? "").trim();
   return {
     app_id: appId,
+    chain_id: chainId || undefined,
     usage_date: usageDate,
     gas_used: String(row.gas_used ?? "0"),
     governance_used: String(row.governance_used ?? "0"),
@@ -46,6 +52,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const url = new URL(req.url);
   const appId = String(url.searchParams.get("app_id") ?? "").trim();
+  const chainId = String(url.searchParams.get("chain_id") ?? "").trim();
   const date = resolveUsageDate(url.searchParams.get("date"));
   if (!date) return error(400, "date must be YYYY-MM-DD", "DATE_INVALID", req);
 
@@ -61,32 +68,43 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   if (appId) {
-    const { data, error: err } = await supabase
+    let query = supabase
       .from("miniapp_usage")
-      .select("app_id, usage_date, gas_used, governance_used, tx_count")
+      .select("app_id, chain_id, usage_date, gas_used, governance_used, tx_count")
       .eq("user_id", auth.userId)
       .eq("usage_date", date)
-      .eq("app_id", appId)
-      .maybeSingle();
+      .eq("app_id", appId);
+
+    if (chainId) {
+      query = query.eq("chain_id", chainId);
+    }
+
+    const { data, error: err } = await query.maybeSingle();
 
     if (err) return error(500, err.message, "DB_ERROR", req);
 
-    const usage = normalizeUsageRow(data ?? {}, { app_id: appId, usage_date: date });
+    const usage = normalizeUsageRow(data ?? {}, { app_id: appId, chain_id: chainId, usage_date: date });
     return json({ usage }, {}, req);
   }
 
-  const { data, error: err } = await supabase
+  let query = supabase
     .from("miniapp_usage")
-    .select("app_id, usage_date, gas_used, governance_used, tx_count")
+    .select("app_id, chain_id, usage_date, gas_used, governance_used, tx_count")
     .eq("user_id", auth.userId)
-    .eq("usage_date", date)
-    .order("gas_used", { ascending: false })
-    .limit(limit);
+    .eq("usage_date", date);
+
+  if (chainId) {
+    query = query.eq("chain_id", chainId);
+  }
+
+  const { data, error: err } = await query.order("gas_used", { ascending: false }).limit(limit);
 
   if (err) return error(500, err.message, "DB_ERROR", req);
 
   const usage = Array.isArray(data)
-    ? data.map((row) => normalizeUsageRow(row as Record<string, unknown>, { app_id: "", usage_date: date }))
+    ? data.map((row) =>
+        normalizeUsageRow(row as Record<string, unknown>, { app_id: "", chain_id: chainId, usage_date: date }),
+      )
     : [];
 
   return json({ usage, date }, {}, req);

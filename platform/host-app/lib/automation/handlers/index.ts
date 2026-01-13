@@ -7,6 +7,8 @@ import type {
   CustomPayload,
 } from "@/lib/db/types";
 import { createClient } from "@supabase/supabase-js";
+import { getChainRpcUrl } from "@/lib/chain/rpc-client";
+import type { ChainId } from "@/lib/chains/types";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -31,8 +33,13 @@ async function handleInvokeContract(
   payload: InvokeContractPayload,
   task: AutomationTask,
 ): Promise<Record<string, unknown>> {
-  // Call Neo RPC to invoke contract
-  const rpcUrl = payload.network === "mainnet" ? "https://mainnet1.neo.coz.io:443" : "https://testnet1.neo.coz.io:443";
+  // chainId is required in payload
+  if (!payload.chainId) {
+    throw new Error(`chainId is required for invoke-contract action (task: ${task.task_name})`);
+  }
+
+  const chainId: ChainId = payload.chainId;
+  const rpcUrl = getChainRpcUrl(chainId);
 
   const response = await fetch(rpcUrl, {
     method: "POST",
@@ -41,12 +48,12 @@ async function handleInvokeContract(
       jsonrpc: "2.0",
       id: 1,
       method: "invokefunction",
-      params: [payload.contractHash, payload.method, payload.args || []],
+      params: [payload.contractAddress, payload.method, payload.args || []],
     }),
   });
 
   const result = await response.json();
-  return { rpcResult: result, contractHash: payload.contractHash, method: payload.method };
+  return { rpcResult: result, contractAddress: payload.contractAddress, method: payload.method, chainId };
 }
 
 async function handleEmitEvent(payload: EmitEventPayload, task: AutomationTask): Promise<Record<string, unknown>> {

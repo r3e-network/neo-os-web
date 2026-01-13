@@ -46,7 +46,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("=== Contract Hash Calculation ===")
+	fmt.Println("=== Contract Address Calculation ===")
 	fmt.Printf("Deployer: %s\n\n", deployerHash.StringLE())
 
 	for _, name := range contracts {
@@ -77,17 +77,17 @@ func main() {
 			continue
 		}
 
-		// Calculate expected contract hash
-		contractHash := state.CreateContractHash(deployerHash, nefFile.Checksum, m.Name)
-		hashStr := "0x" + contractHash.StringLE()
+		// Calculate expected contract address
+		contractAddress := state.CreateContractHash(deployerHash, nefFile.Checksum, m.Name)
+		addressStr := "0x" + contractAddress.StringLE()
 
 		// Verify on chain
-		contractState, err := client.GetContractStateByHash(contractHash)
+		contractState, err := client.GetContractStateByHash(contractAddress)
 		status := "NOT DEPLOYED"
 		if err == nil && contractState != nil {
 			status = "DEPLOYED ✅"
 		}
 
-		fmt.Printf("%-20s %s  [%s]\n", name+":", hashStr, status)
+		fmt.Printf("%-20s %s  [%s]\n", name+":", addressStr, status)
 	}
 }

@@ -26,7 +26,7 @@ type AppRegistryApp struct {
 	Icon            string
 	Banner          string
 	Category        string
-	ContractHash    []byte
+	ContractAddress []byte
 }
 
 // AppRegistryContract is a minimal wrapper for the AppRegistry contract.
@@ -34,9 +34,9 @@ type AppRegistryContract struct {
 	*BaseContract
 }
 
-func NewAppRegistryContract(client *Client, hash string) *AppRegistryContract {
+func NewAppRegistryContract(client *Client, contractAddress string) *AppRegistryContract {
 	return &AppRegistryContract{
-		BaseContract: NewBaseContract(client, hash, nil),
+		BaseContract: NewBaseContract(client, contractAddress, nil),
 	}
 }
 
@@ -45,8 +45,8 @@ func (c *AppRegistryContract) GetApp(ctx context.Context, appID string) (*AppReg
 	if c == nil || c.BaseContract == nil || c.Client() == nil {
 		return nil, fmt.Errorf("appregistry: client not configured")
 	}
-	if strings.TrimSpace(c.ContractHash()) == "" {
-		return nil, fmt.Errorf("appregistry: contract hash not configured")
+	if strings.TrimSpace(c.ContractAddress()) == "" {
+		return nil, fmt.Errorf("appregistry: contract address not configured")
 	}
 	if strings.TrimSpace(appID) == "" {
 		return nil, fmt.Errorf("appregistry: appID required")
@@ -137,13 +137,13 @@ func parseAppRegistryApp(item StackItem) (*AppRegistryApp, error) {
 			category = parsed
 		}
 	}
-	var contractHash []byte
+	var contractAddress []byte
 	if len(items) > 12 {
 		parsed, err := ParseByteArray(items[12])
 		if err != nil {
-			return nil, fmt.Errorf("appregistry: contract_hash: %w", err)
+			return nil, fmt.Errorf("appregistry: contract_address: %w", err)
 		}
-		contractHash = parsed
+		contractAddress = parsed
 	}
 
 	return &AppRegistryApp{
@@ -159,6 +159,6 @@ func parseAppRegistryApp(item StackItem) (*AppRegistryApp, error) {
 		Icon:            icon,
 		Banner:          banner,
 		Category:        category,
-		ContractHash:    contractHash,
+		ContractAddress: contractAddress,
 	}, nil
 }

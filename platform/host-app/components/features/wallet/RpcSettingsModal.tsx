@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X, Globe, Check, AlertCircle, RefreshCw } from "lucide-react";
-import { useWalletStore, NetworkType, DEFAULT_RPC_URLS } from "@/lib/wallet/store";
+import { useWalletStore } from "@/lib/wallet/store";
 import { useTranslation } from "@/lib/i18n/react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getChainRegistry } from "@/lib/chains/registry";
+import type { ChainId, ChainConfig } from "@/lib/chains/types";
 
 interface RpcSettingsModalProps {
   isOpen: boolean;
@@ -15,31 +16,42 @@ export function RpcSettingsModal({ isOpen, onClose }: RpcSettingsModalProps) {
   const { t } = useTranslation("common");
   const { networkConfig, setCustomRpcUrl } = useWalletStore();
 
-  const [testnetUrl, setTestnetUrl] = useState(networkConfig.customRpcUrls.testnet || "");
-  const [mainnetUrl, setMainnetUrl] = useState(networkConfig.customRpcUrls.mainnet || "");
-  const [testing, setTesting] = useState<NetworkType | null>(null);
-  const [testResults, setTestResults] = useState<Record<NetworkType, "success" | "error" | null>>({
-    testnet: null,
-    mainnet: null,
-  });
+  // Get active chains from registry
+  const chains = useMemo(() => getChainRegistry().getActiveChains(), []);
+
+  // State for custom RPC URLs per chain
+  const [customUrls, setCustomUrls] = useState<Partial<Record<ChainId, string>>>({});
+  const [testing, setTesting] = useState<ChainId | null>(null);
+  const [testResults, setTestResults] = useState<Partial<Record<ChainId, "success" | "error">>>({});
 
   useEffect(() => {
     if (isOpen) {
-      setTestnetUrl(networkConfig.customRpcUrls.testnet || "");
-      setMainnetUrl(networkConfig.customRpcUrls.mainnet || "");
-      setTestResults({ testnet: null, mainnet: null });
+      setCustomUrls(networkConfig.customRpcUrls || {});
+      setTestResults({});
     }
   }, [isOpen, networkConfig.customRpcUrls]);
 
   if (!isOpen) return null;
 
-  const testRpcUrl = async (network: NetworkType, url: string) => {
+  // Get RPC test method based on chain type
+  const getRpcTestMethod = (chain: ChainConfig) => {
+    return chain.type === "neo-n3" ? "getblockcount" : "eth_blockNumber";
+  };
+
+  const testRpcUrl = async (chainId: ChainId, url: string) => {
     if (!url.trim()) {
-      setTestResults((prev) => ({ ...prev, [network]: null }));
+      setTestResults((prev) => {
+        const next = { ...prev };
+        delete next[chainId];
+        return next;
+      });
       return;
     }
 
-    setTesting(network);
+    const chain = chains.find((c) => c.id === chainId);
+    if (!chain) return;
+
+    setTesting(chainId);
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -47,37 +59,49 @@ export function RpcSettingsModal({ isOpen, onClose }: RpcSettingsModalProps) {
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: 1,
-          method: "getblockcount",
+          method: getRpcTestMethod(chain),
           params: [],
         }),
       });
 
       const data = await response.json();
-      if (data.result && typeof data.result === "number") {
-        setTestResults((prev) => ({ ...prev, [network]: "success" }));
-      } else {
-        setTestResults((prev) => ({ ...prev, [network]: "error" }));
-      }
+      const isValid =
+        chain.type === "neo-n3"
+          ? data.result && typeof data.result === "number"
+          : data.result && typeof data.result === "string";
+
+      setTestResults((prev) => ({ ...prev, [chainId]: isValid ? "success" : "error" }));
     } catch {
-      setTestResults((prev) => ({ ...prev, [network]: "error" }));
+      setTestResults((prev) => ({ ...prev, [chainId]: "error" }));
     } finally {
       setTesting(null);
     }
   };
 
   const handleSave = () => {
-    setCustomRpcUrl("testnet", testnetUrl.trim() || null);
-    setCustomRpcUrl("mainnet", mainnetUrl.trim() || null);
+    // Save all custom RPC URLs
+    chains.forEach((chain) => {
+      const url = customUrls[chain.id]?.trim() || null;
+      setCustomRpcUrl(chain.id, url);
+    });
     onClose();
   };
 
-  const handleReset = (network: NetworkType) => {
-    if (network === "testnet") {
-      setTestnetUrl("");
-    } else {
-      setMainnetUrl("");
-    }
-    setTestResults((prev) => ({ ...prev, [network]: null }));
+  const handleReset = (chainId: ChainId) => {
+    setCustomUrls((prev) => {
+      const next = { ...prev };
+      delete next[chainId];
+      return next;
+    });
+    setTestResults((prev) => {
+      const next = { ...prev };
+      delete next[chainId];
+      return next;
+    });
+  };
+
+  const updateUrl = (chainId: ChainId, url: string) => {
+    setCustomUrls((prev) => ({ ...prev, [chainId]: url }));
   };
 
   return (
@@ -97,39 +121,36 @@ export function RpcSettingsModal({ isOpen, onClose }: RpcSettingsModalProps) {
               {t("network.rpcSettings") || "RPC Settings"}
             </h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
             <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {t("network.rpcDescription") || "Configure custom RPC endpoints. Leave empty to use default."}
           </p>
 
           <div className="space-y-4">
-            <RpcUrlInput
-              label={t("network.testnet") || "Testnet"}
-              value={testnetUrl}
-              onChange={setTestnetUrl}
-              defaultUrl={DEFAULT_RPC_URLS.testnet}
-              testResult={testResults.testnet}
-              testing={testing === "testnet"}
-              onTest={() => testRpcUrl("testnet", testnetUrl)}
-              onReset={() => handleReset("testnet")}
-            />
-
-            <RpcUrlInput
-              label={t("network.mainnet") || "Mainnet"}
-              value={mainnetUrl}
-              onChange={setMainnetUrl}
-              defaultUrl={DEFAULT_RPC_URLS.mainnet}
-              testResult={testResults.mainnet}
-              testing={testing === "mainnet"}
-              onTest={() => testRpcUrl("mainnet", mainnetUrl)}
-              onReset={() => handleReset("mainnet")}
-            />
+            {chains.map((chain) => (
+              <RpcUrlInput
+                key={chain.id}
+                label={chain.name}
+                value={customUrls[chain.id] || ""}
+                onChange={(url) => updateUrl(chain.id, url)}
+                defaultUrl={chain.rpcUrls[0] || ""}
+                testResult={testResults[chain.id]}
+                testing={testing === chain.id}
+                onTest={() => testRpcUrl(chain.id, customUrls[chain.id] || "")}
+                onReset={() => handleReset(chain.id)}
+                chainIcon={chain.icon}
+                chainColor={chain.color}
+              />
+            ))}
           </div>
         </div>
 
@@ -142,10 +163,7 @@ export function RpcSettingsModal({ isOpen, onClose }: RpcSettingsModalProps) {
           >
             {t("actions.cancel") || "Cancel"}
           </Button>
-          <Button
-            onClick={handleSave}
-            className="bg-neo hover:bg-neo-dark text-black hover:opacity-90 font-bold"
-          >
+          <Button onClick={handleSave} className="bg-neo hover:bg-neo-dark text-black hover:opacity-90 font-bold">
             {t("actions.save") || "Save"}
           </Button>
         </div>
@@ -159,17 +177,40 @@ interface RpcUrlInputProps {
   value: string;
   onChange: (value: string) => void;
   defaultUrl: string;
-  testResult: "success" | "error" | null;
+  testResult?: "success" | "error";
   testing: boolean;
   onTest: () => void;
   onReset: () => void;
+  chainIcon?: string;
+  chainColor?: string;
 }
 
-function RpcUrlInput({ label, value, onChange, defaultUrl, testResult, testing, onTest, onReset }: RpcUrlInputProps) {
+function RpcUrlInput({
+  label,
+  value,
+  onChange,
+  defaultUrl,
+  testResult,
+  testing,
+  onTest,
+  onReset,
+  chainIcon,
+  chainColor,
+}: RpcUrlInputProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-bold text-gray-700 dark:text-gray-300">{label}</label>
+        <div className="flex items-center gap-2">
+          {chainIcon && (
+            <img
+              src={chainIcon}
+              alt={label}
+              className="w-4 h-4"
+              style={{ filter: chainColor ? undefined : "grayscale(1)" }}
+            />
+          )}
+          <label className="text-sm font-bold text-gray-700 dark:text-gray-300">{label}</label>
+        </div>
         {value && (
           <button onClick={onReset} className="text-xs text-neo hover:text-neo-dark underline transition-colors">
             Reset to default

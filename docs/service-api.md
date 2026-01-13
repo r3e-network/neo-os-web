@@ -73,7 +73,7 @@ enforces a conservative result size cap (configurable via
 ### Payments (GAS only)
 
 - `POST /functions/v1/pay-gas`
-    - body: `{ app_id: "...", amount_gas: "1.5", memo?: "..." }`
+    - body: `{ app_id: "...", amount_gas: "1.5", chain_id?: "...", memo?: "..." }`
     - returns: a GAS `transfer` invocation to `PaymentHub` (GAS-only) for the wallet/SDK to sign and submit
     - enforces: manifest `permissions.payments` and `limits.max_gas_per_tx` (when present)
     - enforces: `limits.daily_gas_cap_per_user` via `miniapp_usage_bump(...)`
@@ -83,7 +83,7 @@ enforces a conservative result size cap (configurable via
 ### Governance (bNEO only)
 
 - `POST /functions/v1/vote-bneo`
-    - body: `{ app_id: "...", proposal_id: "...", bneo_amount: "10", support?: true }`
+    - body: `{ app_id: "...", proposal_id: "...", bneo_amount: "10", chain_id?: "...", support?: true }`
     - returns: a Governance `vote` invocation (bNEO-only) for the wallet/SDK to sign and submit
     - enforces: manifest `permissions.governance` and `limits.governance_cap` (when present)
     - tracks: `limits.governance_cap` via `miniapp_usage_bump(...)` (per-day enforcement)
@@ -93,7 +93,7 @@ enforces a conservative result size cap (configurable via
 ### RNG / VRF
 
 - `POST /functions/v1/rng-request`
-    - body: `{ app_id: "..." }`
+    - body: `{ app_id: "...", chain_id?: "..." }`
     - requests randomness from `neovrf` (`/random`) with signature + attestation hash
     - returns: `{ randomness, signature, public_key, attestation_hash }`
     - enforces: manifest `permissions.rng`
@@ -105,21 +105,21 @@ enforces a conservative result size cap (configurable via
     - body: `{ manifest: { ... } }`
     - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
     - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["bNEO"]`
-    - enforces: `contract_hash` when news/stats are enabled
+    - enforces: `contracts.<chain>.address` when news/stats are enabled
     - persists: canonical manifest in Supabase `miniapps` table for runtime enforcement
     - returns: an AppRegistry `registerApp` invocation for the developer wallet to sign and submit
 - `POST /functions/v1/app-update-manifest`
     - body: `{ manifest: { ... } }`
     - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
     - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["bNEO"]`
-    - enforces: `contract_hash` when news/stats are enabled
+    - enforces: `contracts.<chain>.address` when news/stats are enabled
     - persists: updated canonical manifest in Supabase `miniapps` table
     - returns: an AppRegistry `updateApp` invocation for the developer wallet to sign and submit
 
 After `registerApp` / `updateApp`, an **admin** must approve or disable the
 MiniApp on-chain via `AppRegistry.setStatus`. AppRegistry events mirror back to
 Supabase so `miniapps.status` reflects `pending`/`active`/`disabled` and
-on-chain metadata (name/icon/category/contract_hash) stays in sync.
+on-chain metadata (name/icon/category/contracts) stays in sync.
 
 ### MiniApp Stats & Notifications (Public Read)
 
@@ -127,15 +127,15 @@ on-chain metadata (name/icon/category/contract_hash) stays in sync.
     - returns aggregate stats for a single MiniApp
     - when `app_id` is omitted, returns top apps by `total_transactions` (limit 50)
     - includes AppRegistry metadata when available (`name`, `description`, `icon`, `banner`, `category`,
-      `contract_hash`, `entry_url`) plus manifest fields (`permissions`, `limits`, `news_integration`, `stats_display`)
+      `contract_address`, `entry_url`) plus manifest fields (`permissions`, `limits`, `news_integration`, `stats_display`)
 - `GET /functions/v1/miniapp-notifications?app_id=...&limit=20`
     - returns the most recent notifications (default `limit=20`, max `100`)
     - optional `app_id` to filter by MiniApp
-    - requires the emitting contract to match `contract_hash` when strict ingestion is enabled
+    - requires the emitting contract to match `contracts.<chain>.address` when strict ingestion is enabled
 
 ### MiniApp Usage (Authenticated)
 
-- `GET /functions/v1/miniapp-usage?app_id=...&date=YYYY-MM-DD`
+- `GET /functions/v1/miniapp-usage?app_id=...&chain_id=...&date=YYYY-MM-DD`
     - returns the caller's daily usage for a single MiniApp
     - `gas_used` / `governance_used` are returned in base units (1e-8 for GAS)
     - when `app_id` is omitted, returns all MiniApp usage rows for the date
@@ -143,17 +143,18 @@ on-chain metadata (name/icon/category/contract_hash) stays in sync.
 
 ### Contract Events (Authenticated)
 
-- `GET /functions/v1/events-list?app_id=...&event_name=...&contract_hash=...&limit=...&after_id=...`
+- `GET /functions/v1/events-list?app_id=...&event_name=...&contract_address=...&chain_id=...&limit=...&after_id=...`
     - returns indexed contract events from `contract_events`
     - optional filters:
         - `app_id` (MiniApp identifier)
         - `event_name` (e.g., `Platform_Notification`)
-        - `contract_hash` (Neo N3 script hash)
+        - `contract_address` (chain-specific contract address/hash)
+        - `chain_id` (chain identifier)
     - pagination via `after_id` (numeric, descending order)
 
 ### Chain Transactions (Authenticated)
 
-- `GET /functions/v1/transactions-list?app_id=...&limit=...&after_id=...`
+- `GET /functions/v1/transactions-list?app_id=...&chain_id=...&limit=...&after_id=...`
     - returns platform-tracked chain transactions from `chain_txs`
     - `app_id` filters by request ID pattern (used for service callbacks)
 
@@ -301,7 +302,7 @@ triggers, and the supported action type is `webhook`.
 
 - `POST /invoke`: build+sign+broadcast allowlisted transactions.
     - hard rule: **payments only GAS**, **governance only bNEO**, contract/method allowlists enforced.
-    - optional `intent` field enables stricter gates for `payments` (GAS.transfer to PaymentHub) and `governance` (Governance stake/unstake/vote) when contract hashes are configured.
+    - optional `intent` field enables stricter gates for `payments` (GAS.transfer to PaymentHub) and `governance` (Governance stake/unstake/vote) when contract addresses are configured.
 
 ### `neovrf` (vrf-service)
 

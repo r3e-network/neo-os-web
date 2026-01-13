@@ -179,7 +179,7 @@ export function useAccount(): UseAccountResult {
             throw new Error("Password required for OAuth transactions");
           }
           const adapter = new Auth0Adapter();
-          const result = await adapter.invokeWithPassword(invokeParams, password);
+          const result = await adapter.invokeWithPassword(invokeParams, password, walletStore.chainId);
           return { txid: result.txid };
         }
       } catch (err) {

@@ -49,7 +49,7 @@ Balances are stored in `pool_account_balances` keyed by:
 
 - `account_id`
 - `token_type` (e.g. `GAS`, `NEO`)
-- `script_hash` (NEP-17 contract hash)
+- `script_hash` (NEP-17 contract address)
 
 ## Code Layout
 

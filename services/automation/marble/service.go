@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -48,9 +47,9 @@ type Service struct {
 
 	// Optional chain interaction for anchored tasks (platform contracts).
 	chainClient          *chain.Client
-	priceFeedHash        string
+	priceFeedAddress     string
 	priceFeed            *chain.PriceFeedContract
-	automationAnchorHash string
+	automationAnchorAddress string
 	automationAnchor     *chain.AutomationAnchorContract
 	txProxy              txproxytypes.Invoker
 	eventListener        *chain.EventListener
@@ -78,8 +77,8 @@ type Config struct {
 
 	// Optional chain configuration for anchored tasks (platform AutomationAnchor + PriceFeed).
 	ChainClient          *chain.Client
-	PriceFeedHash        string
-	AutomationAnchorHash string
+	PriceFeedAddress     string
+	AutomationAnchorAddress string
 	TxProxy              txproxytypes.Invoker
 	EventListener        *chain.EventListener
 	EnableChainExec      bool
@@ -109,7 +108,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 
 	triggerConcurrency := cfg.TriggerConcurrency
 	if triggerConcurrency <= 0 {
-		if parsed, ok := parseEnvInt("NEOFLOW_TRIGGER_CONCURRENCY"); ok && parsed > 0 {
+		if parsed, ok := runtime.ParseEnvInt("NEOFLOW_TRIGGER_CONCURRENCY"); ok && parsed > 0 {
 			triggerConcurrency = parsed
 		} else {
 			triggerConcurrency = 10
@@ -117,7 +116,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	}
 	anchoredTaskConcurrency := cfg.AnchoredTaskConcurrency
 	if anchoredTaskConcurrency <= 0 {
-		if parsed, ok := parseEnvInt("NEOFLOW_ANCHORED_TASK_CONCURRENCY"); ok && parsed > 0 {
+		if parsed, ok := runtime.ParseEnvInt("NEOFLOW_ANCHORED_TASK_CONCURRENCY"); ok && parsed > 0 {
 			anchoredTaskConcurrency = parsed
 		} else {
 			anchoredTaskConcurrency = 10
@@ -132,8 +131,8 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 			anchoredTasks: make(map[string]*anchoredTaskState),
 		},
 		chainClient:          cfg.ChainClient,
-		priceFeedHash:        cfg.PriceFeedHash,
-		automationAnchorHash: cfg.AutomationAnchorHash,
+		priceFeedAddress:     cfg.PriceFeedAddress,
+		automationAnchorAddress: cfg.AutomationAnchorAddress,
 		txProxy:              cfg.TxProxy,
 		eventListener:        cfg.EventListener,
 		enableChainExec:      cfg.EnableChainExec,
@@ -142,22 +141,22 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		anchoredTaskSem:      make(chan struct{}, anchoredTaskConcurrency),
 	}
 
-	if s.chainClient != nil && s.priceFeedHash != "" {
-		s.priceFeed = chain.NewPriceFeedContract(s.chainClient, s.priceFeedHash)
+	if s.chainClient != nil && s.priceFeedAddress != "" {
+		s.priceFeed = chain.NewPriceFeedContract(s.chainClient, s.priceFeedAddress)
 	}
-	if s.chainClient != nil && s.automationAnchorHash != "" {
-		s.automationAnchor = chain.NewAutomationAnchorContract(s.chainClient, s.automationAnchorHash)
+	if s.chainClient != nil && s.automationAnchorAddress != "" {
+		s.automationAnchor = chain.NewAutomationAnchorContract(s.chainClient, s.automationAnchorAddress)
 	}
 
-	if s.enableChainExec && strings.TrimSpace(s.automationAnchorHash) == "" {
+	if s.enableChainExec && strings.TrimSpace(s.automationAnchorAddress) == "" {
 		if strict {
-			return nil, fmt.Errorf("neoflow: EnableChainExec requires AutomationAnchorHash configured")
+			return nil, fmt.Errorf("neoflow: EnableChainExec requires AutomationAnchorAddress configured")
 		}
-		s.Logger().WithFields(nil).Warn("EnableChainExec enabled but AutomationAnchorHash not configured; disabling on-chain automation")
+		s.Logger().WithFields(nil).Warn("EnableChainExec enabled but AutomationAnchorAddress not configured; disabling on-chain automation")
 		s.enableChainExec = false
 	}
 
-	if s.enableChainExec && s.automationAnchorHash != "" && s.automationAnchor == nil {
+	if s.enableChainExec && s.automationAnchorAddress != "" && s.automationAnchor == nil {
 		if strict {
 			return nil, fmt.Errorf("neoflow: EnableChainExec requires chain client configured")
 		}
@@ -165,7 +164,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		s.enableChainExec = false
 	}
 
-	if s.enableChainExec && s.automationAnchorHash != "" && s.txProxy == nil {
+	if s.enableChainExec && s.automationAnchorAddress != "" && s.txProxy == nil {
 		if strict {
 			return nil, fmt.Errorf("neoflow: EnableChainExec requires TxProxy configured")
 		}
@@ -198,18 +197,6 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	s.registerRoutes()
 
 	return s, nil
-}
-
-func parseEnvInt(key string) (int, bool) {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return 0, false
-	}
-	value, err := strconv.Atoi(raw)
-	if err != nil {
-		return 0, false
-	}
-	return value, true
 }
 
 func (s *Service) runEventListener(ctx context.Context) {

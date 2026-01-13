@@ -28,8 +28,9 @@ export function ConnectButton() {
   };
 
   if (connected) {
-    const gasBalance = balance?.gas ? parseFloat(balance.gas) : 0;
-    const displayBalance = gasBalance > 0 ? gasBalance.toFixed(4) : "0.0000";
+    const nativeBalance = balance?.native ? parseFloat(balance.native) : 0;
+    const displayBalance = nativeBalance > 0 ? nativeBalance.toFixed(4) : "0.0000";
+    const nativeSymbol = balance?.nativeSymbol || "GAS";
     const isSocial = provider === "auth0";
 
     return (
@@ -43,7 +44,7 @@ export function ConnectButton() {
           </span>
           <div className="h-4 w-px bg-gray-200 dark:bg-white/20" />
           <span className="text-xs text-gray-600 dark:text-gray-300 font-medium tabular-nums">
-            {displayBalance} GAS
+            {displayBalance} {nativeSymbol}
           </span>
           <button
             onClick={handleRefresh}
@@ -54,9 +55,8 @@ export function ConnectButton() {
             <RefreshCw size={12} className={`text-gray-500 dark:text-gray-400 ${refreshing ? "animate-spin" : ""}`} />
           </button>
         </div>
-        {isSocial ? (
-          <NetworkSelector compact />
-        ) : (
+        <NetworkSelector compact />
+        {!isSocial && (
           <Button
             variant="ghost"
             size="sm"

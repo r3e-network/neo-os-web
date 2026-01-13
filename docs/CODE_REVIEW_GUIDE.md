@@ -96,7 +96,7 @@ services/simulation/marble/
 1. **Contract Invocation Flow**:
     - Verify `ContractInvoker` properly manages pool accounts
     - Check error handling in `InvokeMiniAppContract`
-    - Validate contract hash loading from environment
+    - Validate contract address loading from environment
 
 2. **Simulator Logic**:
     - Each simulator should follow the pattern: Payment -> Contract Call -> Payout

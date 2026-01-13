@@ -46,7 +46,7 @@ func main() {
 		buildDir = filepath.Join("contracts", "build")
 	}
 
-	fmt.Println("=== Contract Hash Calculation (offline) ===")
+	fmt.Println("=== Contract Address Calculation (offline) ===")
 	fmt.Printf("Deployer: %s\n\n", deployerHash.StringLE())
 
 	results := make(map[string]string)
@@ -80,8 +80,8 @@ func main() {
 			continue
 		}
 
-		contractHash := state.CreateContractHash(deployerHash, nefFile.Checksum, m.Name)
-		results[name] = "0x" + contractHash.StringLE()
+		contractAddress := state.CreateContractHash(deployerHash, nefFile.Checksum, m.Name)
+		results[name] = "0x" + contractAddress.StringLE()
 	}
 
 	keys := make([]string, 0, len(results))

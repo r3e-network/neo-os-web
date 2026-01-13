@@ -13,21 +13,21 @@ import (
 // It coordinates on-chain service requests and callbacks to MiniApp contracts.
 type ServiceLayerGatewayContract struct {
 	client *Client
-	hash   string
+	address string
 }
 
-func NewServiceLayerGatewayContract(client *Client, hash string) *ServiceLayerGatewayContract {
+func NewServiceLayerGatewayContract(client *Client, contractAddress string) *ServiceLayerGatewayContract {
 	return &ServiceLayerGatewayContract{
 		client: client,
-		hash:   hash,
+		address: contractAddress,
 	}
 }
 
-func (c *ServiceLayerGatewayContract) Hash() string {
+func (c *ServiceLayerGatewayContract) Address() string {
 	if c == nil {
 		return ""
 	}
-	return c.hash
+	return c.address
 }
 
 // RequestService submits a service request (primarily for testing; normally called by MiniApp contracts).
@@ -36,14 +36,14 @@ func (c *ServiceLayerGatewayContract) RequestService(
 	signer TxSigner,
 	appID, serviceType string,
 	payload []byte,
-	callbackContractHash160, callbackMethod string,
+	callbackContractAddress, callbackMethod string,
 	wait bool,
 ) (*TxResult, error) {
 	if c == nil || c.client == nil {
 		return nil, fmt.Errorf("servicegateway: client not configured")
 	}
-	if c.hash == "" {
-		return nil, fmt.Errorf("servicegateway: contract hash not configured")
+	if c.address == "" {
+		return nil, fmt.Errorf("servicegateway: contract address not configured")
 	}
 	if signer == nil {
 		return nil, fmt.Errorf("servicegateway: signer not configured")
@@ -54,7 +54,7 @@ func (c *ServiceLayerGatewayContract) RequestService(
 	if strings.TrimSpace(serviceType) == "" {
 		return nil, fmt.Errorf("servicegateway: serviceType required")
 	}
-	if strings.TrimSpace(callbackContractHash160) == "" {
+	if strings.TrimSpace(callbackContractAddress) == "" {
 		return nil, fmt.Errorf("servicegateway: callback contract required")
 	}
 	if strings.TrimSpace(callbackMethod) == "" {
@@ -65,13 +65,13 @@ func (c *ServiceLayerGatewayContract) RequestService(
 		NewStringParam(appID),
 		NewStringParam(serviceType),
 		NewByteArrayParam(payload),
-		NewHash160Param(callbackContractHash160),
+		NewHash160Param(callbackContractAddress),
 		NewStringParam(callbackMethod),
 	}
 
 	return c.client.InvokeFunctionWithSignerAndWait(
 		ctx,
-		c.hash,
+		c.address,
 		"requestService",
 		params,
 		signer,
@@ -93,8 +93,8 @@ func (c *ServiceLayerGatewayContract) FulfillRequest(
 	if c == nil || c.client == nil {
 		return nil, fmt.Errorf("servicegateway: client not configured")
 	}
-	if c.hash == "" {
-		return nil, fmt.Errorf("servicegateway: contract hash not configured")
+	if c.address == "" {
+		return nil, fmt.Errorf("servicegateway: contract address not configured")
 	}
 	if signer == nil {
 		return nil, fmt.Errorf("servicegateway: signer not configured")
@@ -112,7 +112,7 @@ func (c *ServiceLayerGatewayContract) FulfillRequest(
 
 	return c.client.InvokeFunctionWithSignerAndWait(
 		ctx,
-		c.hash,
+		c.address,
 		"fulfillRequest",
 		params,
 		signer,
@@ -122,25 +122,25 @@ func (c *ServiceLayerGatewayContract) FulfillRequest(
 }
 
 // SetUpdater sets the authorized updater address for fulfillment calls.
-func (c *ServiceLayerGatewayContract) SetUpdater(ctx context.Context, signer TxSigner, updaterHash160 string, wait bool) (*TxResult, error) {
+func (c *ServiceLayerGatewayContract) SetUpdater(ctx context.Context, signer TxSigner, updaterAddress string, wait bool) (*TxResult, error) {
 	if c == nil || c.client == nil {
 		return nil, fmt.Errorf("servicegateway: client not configured")
 	}
-	if c.hash == "" {
-		return nil, fmt.Errorf("servicegateway: contract hash not configured")
+	if c.address == "" {
+		return nil, fmt.Errorf("servicegateway: contract address not configured")
 	}
 	if signer == nil {
 		return nil, fmt.Errorf("servicegateway: signer not configured")
 	}
-	if strings.TrimSpace(updaterHash160) == "" {
+	if strings.TrimSpace(updaterAddress) == "" {
 		return nil, fmt.Errorf("servicegateway: updater required")
 	}
 
 	return c.client.InvokeFunctionWithSignerAndWait(
 		ctx,
-		c.hash,
+		c.address,
 		"setUpdater",
-		[]ContractParam{NewHash160Param(updaterHash160)},
+		[]ContractParam{NewHash160Param(updaterAddress)},
 		signer,
 		transaction.CalledByEntry,
 		wait,

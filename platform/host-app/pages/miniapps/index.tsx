@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown, Rocket } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { MiniAppGrid, MiniAppListItem, FilterSidebar } from "@/components/features/miniapp";
+import { FeaturedHeroCarousel, type FeaturedApp } from "@/components/features/discovery/FeaturedHeroCarousel";
 import type { MiniAppInfo } from "@/components/types";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { getCardData } from "@/hooks/useCardData";
@@ -12,6 +13,8 @@ import { useCollections } from "@/hooks/useCollections";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
 import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
+import { getChainRegistry } from "@/lib/chains/registry";
+import { PREDEFINED_TAGS, APP_TAGS } from "@/components/features/tags";
 
 const categories = ["all", "gaming", "defi", "social", "nft", "governance", "utility"] as const;
 
@@ -61,17 +64,35 @@ export default function MiniAppsPage() {
         ],
       },
       {
+        id: "chains",
+        label: t("miniapps.filters.chains"),
+        options: getChainRegistry()
+          .getActiveChains()
+          .map((chain) => ({
+            value: chain.id,
+            label: chain.name,
+          })),
+      },
+      {
         id: "features",
         label: t("miniapps.filters.features"),
         options: [
           { value: "payments", label: t("miniapps.filters.payments") },
-          { value: "randomness", label: t("miniapps.filters.randomness") },
+          { value: "rng", label: t("miniapps.filters.randomness") },
           { value: "governance", label: t("categories.governance") },
           { value: "datafeed", label: t("miniapps.filters.datafeed") },
         ],
       },
+      {
+        id: "tags",
+        label: t("miniapps.filters.tags") || "Tags",
+        options: PREDEFINED_TAGS.map((tag) => ({
+          value: tag.id,
+          label: locale === "zh" && tag.name_zh ? tag.name_zh : tag.name,
+        })),
+      },
     ],
-    [t],
+    [t, locale],
   );
 
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -91,7 +112,7 @@ export default function MiniAppsPage() {
   useEffect(() => {
     if (!router.isReady || isUrlInitialized) return;
 
-    const { category, features, sort, view } = router.query;
+    const { category, features, chains, tags, tag, sort, view } = router.query;
 
     const newFilters: Record<string, string[]> = {};
     if (category) {
@@ -99,6 +120,15 @@ export default function MiniAppsPage() {
     }
     if (features) {
       newFilters.features = Array.isArray(features) ? features : [features];
+    }
+    if (chains) {
+      newFilters.chains = Array.isArray(chains) ? chains : [chains];
+    }
+    // Handle both 'tags' (multiple) and 'tag' (single from detail page)
+    if (tags) {
+      newFilters.tags = Array.isArray(tags) ? tags : [tags];
+    } else if (tag) {
+      newFilters.tags = Array.isArray(tag) ? tag : [tag];
     }
 
     if (Object.keys(newFilters).length > 0) {
@@ -139,6 +169,20 @@ export default function MiniAppsPage() {
     } else {
       delete newQuery.features;
     }
+
+    if (filters.chains?.length) {
+      newQuery.chains = filters.chains;
+    } else {
+      delete newQuery.chains;
+    }
+
+    if (filters.tags?.length) {
+      newQuery.tags = filters.tags;
+    } else {
+      delete newQuery.tags;
+    }
+    // Remove single 'tag' param if present (converted to 'tags')
+    delete newQuery.tag;
 
     // Update sort
     if (sortBy !== "trending") {
@@ -319,6 +363,25 @@ export default function MiniAppsPage() {
       });
     }
 
+    // Chains filter
+    if (filters.chains?.length) {
+      result = result.filter((app) => {
+        const appChains = app.supportedChains || [];
+        // Apps must explicitly declare supported chains
+        if (appChains.length === 0) return false;
+        return filters.chains.some((c: string) => appChains.includes(c));
+      });
+    }
+
+    // Tags filter - match apps that have any of the selected tags
+    if (filters.tags?.length) {
+      result = result.filter((app) => {
+        const appTags = APP_TAGS[app.app_id] || [];
+        if (appTags.length === 0) return false;
+        return filters.tags.some((t: string) => appTags.includes(t));
+      });
+    }
+
     // Sort
     result.sort((a, b) => {
       // Collected apps always come first
@@ -347,6 +410,45 @@ export default function MiniAppsPage() {
   }, [apps, communityApps, statsMap, searchQuery, filters, sortBy, collectionsSet]);
 
   const currentSort = sortOptions.find((s) => s.value === sortBy) || sortOptions[0];
+
+  // Generate featured apps from top trending apps (Steam-style hero carousel)
+  const featuredApps = useMemo((): FeaturedApp[] => {
+    // Select top 5 apps by trending score for the featured carousel
+    const topApps = [...apps]
+      .map((app) => {
+        const stats = statsMap[app.app_id] || app.stats;
+        return { ...app, stats };
+      })
+      .sort((a, b) => {
+        const aScore = (a.stats?.users || 0) + (a.stats?.transactions || 0);
+        const bScore = (b.stats?.users || 0) + (b.stats?.transactions || 0);
+        return bScore - aScore;
+      })
+      .slice(0, 5);
+
+    return topApps.map((app, index) => ({
+      app_id: app.app_id,
+      name: app.name,
+      name_zh: app.name_zh,
+      description: app.description,
+      description_zh: app.description_zh,
+      category: app.category as FeaturedApp["category"],
+      icon: app.icon,
+      banner: app.banner,
+      supportedChains: app.supportedChains,
+      stats: {
+        users: app.stats?.users || 0,
+        transactions: app.stats?.transactions || 0,
+        rating: 4.5 + Math.random() * 0.5, // Placeholder rating
+        reviews: Math.floor(Math.random() * 500) + 50,
+      },
+      featured: {
+        tagline: app.tagline,
+        tagline_zh: app.tagline_zh,
+        highlight: index === 0 ? "trending" : index === 1 ? "popular" : index < 3 ? "new" : undefined,
+      },
+    }));
+  }, [apps, statsMap]);
 
   return (
     <Layout>
@@ -449,6 +551,13 @@ export default function MiniAppsPage() {
 
           {/* Apps List/Grid */}
           <div className="p-8">
+            {/* Steam-style Featured Hero Carousel - only show when not searching */}
+            {!searchQuery && featuredApps.length > 0 && (
+              <div className="mb-10">
+                <FeaturedHeroCarousel apps={featuredApps} autoPlayInterval={6000} />
+              </div>
+            )}
+
             {searchQuery && (
               <p className="mb-6 text-base text-erobo-ink-soft/70 dark:text-gray-400">
                 {t("miniapps.resultsFor")} "

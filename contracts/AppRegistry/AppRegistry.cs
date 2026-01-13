@@ -22,7 +22,7 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void StatusChangedHandler(string appId, AppStatus oldStatus, AppStatus newStatus);
     public delegate void AllowlistUpdatedHandler(string appId, ByteString allowlistHash);
     public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
-    public delegate void ContractHashUpdatedHandler(string appId, ByteString contractHash);
+    public delegate void ContractAddressUpdatedHandler(string appId, ByteString contractAddress);
     public delegate void TeeScriptRegisteredHandler(string appId, string scriptName, ByteString scriptHash);
 
     [DisplayName("AppRegistry")]
@@ -50,7 +50,7 @@ namespace NeoMiniAppPlatform.Contracts
             public string Icon;
             public string Banner;
             public string Category;
-            public ByteString ContractHash;
+            public ByteString ContractAddress;
         }
 
         [DisplayName("AppRegistered")]
@@ -68,8 +68,8 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("AdminChanged")]
         public static event AdminChangedHandler OnAdminChanged;
 
-        [DisplayName("ContractHashUpdated")]
-        public static event ContractHashUpdatedHandler OnContractHashUpdated;
+        [DisplayName("ContractAddressUpdated")]
+        public static event ContractAddressUpdatedHandler OnContractAddressUpdated;
 
         [DisplayName("TeeScriptRegistered")]
         public static event TeeScriptRegisteredHandler OnTeeScriptRegistered;
@@ -101,17 +101,17 @@ namespace NeoMiniAppPlatform.Contracts
             return (ByteString)appId;
         }
 
-        private static ByteString NormalizeContractHash(ByteString contractHash)
+        private static ByteString NormalizeContractAddress(ByteString contractAddress)
         {
-            if (contractHash == null || contractHash.Length == 0) return (ByteString)"";
-            ExecutionEngine.Assert(contractHash.Length == 20, "invalid contract hash");
+            if (contractAddress == null || contractAddress.Length == 0) return (ByteString)"";
+            ExecutionEngine.Assert(contractAddress.Length == 20, "invalid contract address");
 
             // Validate contract exists on-chain
-            UInt160 contractAddr = (UInt160)(byte[])contractHash;
+            UInt160 contractAddr = (UInt160)(byte[])contractAddress;
             var contract = ContractManagement.GetContract(contractAddr);
             ExecutionEngine.Assert(contract != null, "contract does not exist");
 
-            return contractHash;
+            return contractAddress;
         }
 
         public static AppInfo GetApp(string appId)
@@ -134,7 +134,7 @@ namespace NeoMiniAppPlatform.Contracts
                     Icon = "",
                     Banner = "",
                     Category = "",
-                    ContractHash = (ByteString)""
+                    ContractAddress = (ByteString)""
                 };
             }
             return (AppInfo)StdLib.Deserialize(raw);
@@ -145,7 +145,7 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString manifestHash,
             string entryUrl,
             ByteString developerPubKey,
-            ByteString contractHash,
+            ByteString contractAddress,
             string name,
             string description,
             string icon,
@@ -181,14 +181,14 @@ namespace NeoMiniAppPlatform.Contracts
                 Icon = icon ?? "",
                 Banner = banner ?? "",
                 Category = category ?? "",
-                ContractHash = NormalizeContractHash(contractHash)
+                ContractAddress = NormalizeContractAddress(contractAddress)
             };
 
             AppMap().Put(key, StdLib.Serialize(info));
             OnAppRegistered(appId, info.Developer, name ?? "", category ?? "");
-            if (contractHash != null && contractHash.Length > 0)
+            if (contractAddress != null && contractAddress.Length > 0)
             {
-                OnContractHashUpdated(appId, info.ContractHash);
+                OnContractAddressUpdated(appId, info.ContractAddress);
             }
         }
 
@@ -202,14 +202,14 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString manifestHash,
             string entryUrl,
             ByteString developerPubKey,
-            ByteString contractHash,
+            ByteString contractAddress,
             string name,
             string description,
             string icon,
             string banner,
             string category)
         {
-            RegisterInternal(appId, manifestHash, entryUrl, developerPubKey, contractHash, name, description, icon, banner, category);
+            RegisterInternal(appId, manifestHash, entryUrl, developerPubKey, contractAddress, name, description, icon, banner, category);
         }
 
         public static void UpdateManifest(string appId, ByteString manifestHash, string entryUrl)
@@ -237,7 +237,7 @@ namespace NeoMiniAppPlatform.Contracts
             string appId,
             ByteString manifestHash,
             string entryUrl,
-            ByteString contractHash,
+            ByteString contractAddress,
             string name,
             string description,
             string icon,
@@ -252,7 +252,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(entryUrl != null && entryUrl.Length > 0, "entry url required");
 
             AppStatus oldStatus = info.Status;
-            ByteString oldContractHash = info.ContractHash;
+            ByteString oldContractAddress = info.ContractAddress;
             info.ManifestHash = manifestHash;
             info.EntryUrl = entryUrl;
             info.Name = name ?? "";
@@ -260,16 +260,16 @@ namespace NeoMiniAppPlatform.Contracts
             info.Icon = icon ?? "";
             info.Banner = banner ?? "";
             info.Category = category ?? "";
-            if (contractHash != null && contractHash.Length > 0)
+            if (contractAddress != null && contractAddress.Length > 0)
             {
-                info.ContractHash = NormalizeContractHash(contractHash);
+                info.ContractAddress = NormalizeContractAddress(contractAddress);
             }
             info.Status = AppStatus.Pending; // require re-approval
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
             OnAppUpdated(appId, manifestHash, entryUrl);
-            if (contractHash != null && contractHash.Length > 0 && contractHash != oldContractHash)
+            if (contractAddress != null && contractAddress.Length > 0 && contractAddress != oldContractAddress)
             {
-                OnContractHashUpdated(appId, info.ContractHash);
+                OnContractAddressUpdated(appId, info.ContractAddress);
             }
             if (oldStatus != AppStatus.Pending)
             {

@@ -1,0 +1,208 @@
+{
+  "chains": [
+    {
+      "id": "neo-n3-mainnet",
+      "name": "Neo N3",
+      "name_zh": "Neo N3 主网",
+      "type": "neo-n3",
+      "is_testnet": false,
+      "status": "active",
+      "icon": "/chains/neo.svg",
+      "color": "#00E599",
+      "native_currency": {
+        "name": "GAS",
+        "symbol": "GAS",
+        "decimals": 8
+      },
+      "explorer_url": "https://explorer.onegate.space",
+      "block_time": 15,
+      "network_magic": 860833102,
+      "rpc_urls": [
+        "https://mainnet1.neo.coz.io:443",
+        "https://mainnet2.neo.coz.io:443",
+        "https://neo1.neo.coz.io:443"
+      ],
+      "contracts": {
+        "neo": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        "gas": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "policy": "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+        "role_management": "0x49cf4e5378ffcd4dec034fd98a174c5491e395e2",
+        "oracle": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+        "name_service": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+        "app_registry": "",
+        "service_gateway": "",
+        "payment_hub": "",
+        "price_feed": "",
+        "randomness_log": "",
+        "automation_anchor": "",
+        "governance": ""
+      }
+    },
+    {
+      "id": "neo-n3-testnet",
+      "name": "Neo N3 Testnet",
+      "name_zh": "Neo N3 测试网",
+      "type": "neo-n3",
+      "is_testnet": true,
+      "status": "active",
+      "icon": "/chains/neo.svg",
+      "color": "#00E599",
+      "native_currency": {
+        "name": "GAS",
+        "symbol": "GAS",
+        "decimals": 8
+      },
+      "explorer_url": "https://testnet.explorer.onegate.space",
+      "block_time": 15,
+      "network_magic": 894710606,
+      "rpc_urls": [
+        "https://testnet1.neo.coz.io:443",
+        "https://testnet2.neo.coz.io:443"
+      ],
+      "contracts": {
+        "neo": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        "gas": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "policy": "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+        "role_management": "0x49cf4e5378ffcd4dec034fd98a174c5491e395e2",
+        "oracle": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+        "app_registry": "",
+        "service_gateway": "",
+        "payment_hub": "",
+        "price_feed": "",
+        "randomness_log": "",
+        "automation_anchor": "",
+        "governance": ""
+      }
+    },
+    {
+      "id": "neox-mainnet",
+      "name": "NeoX",
+      "name_zh": "NeoX 主网",
+      "type": "evm",
+      "is_testnet": false,
+      "status": "active",
+      "icon": "/chains/neox.svg",
+      "color": "#00E599",
+      "native_currency": {
+        "name": "GAS",
+        "symbol": "GAS",
+        "decimals": 18
+      },
+      "explorer_url": "https://xexplorer.neo.org",
+      "block_time": 4,
+      "chain_id": 47763,
+      "rpc_urls": [
+        "https://mainnet-1.rpc.banelabs.org"
+      ],
+      "ws_urls": [
+        "wss://mainnet-1.rpc.banelabs.org/ws"
+      ],
+      "contracts": {
+        "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+        "app_registry": "",
+        "service_gateway": "",
+        "payment_hub": "",
+        "price_feed": "",
+        "randomness_log": "",
+        "automation_anchor": "",
+        "governance": ""
+      }
+    },
+    {
+      "id": "neox-testnet",
+      "name": "NeoX Testnet",
+      "name_zh": "NeoX 测试网",
+      "type": "evm",
+      "is_testnet": true,
+      "status": "active",
+      "icon": "/chains/neox.svg",
+      "color": "#00E599",
+      "native_currency": {
+        "name": "GAS",
+        "symbol": "GAS",
+        "decimals": 18
+      },
+      "explorer_url": "https://xt4scan.ngd.network",
+      "block_time": 4,
+      "chain_id": 12227332,
+      "rpc_urls": [
+        "https://neoxt4seed1.ngd.network"
+      ],
+      "ws_urls": [
+        "wss://neoxt4wss1.ngd.network"
+      ],
+      "contracts": {
+        "app_registry": "",
+        "service_gateway": "",
+        "payment_hub": "",
+        "price_feed": "",
+        "randomness_log": "",
+        "automation_anchor": "",
+        "governance": ""
+      }
+    },
+    {
+      "id": "ethereum-mainnet",
+      "name": "Ethereum",
+      "name_zh": "以太坊主网",
+      "type": "evm",
+      "is_testnet": false,
+      "status": "active",
+      "icon": "/chains/ethereum.svg",
+      "color": "#627EEA",
+      "native_currency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "explorer_url": "https://etherscan.io",
+      "block_time": 12,
+      "chain_id": 1,
+      "rpc_urls": [
+        "https://eth.llamarpc.com"
+      ],
+      "contracts": {
+        "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+        "ens_registry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+        "app_registry": "",
+        "service_gateway": "",
+        "payment_hub": "",
+        "price_feed": "",
+        "randomness_log": "",
+        "automation_anchor": "",
+        "governance": ""
+      }
+    },
+    {
+      "id": "ethereum-sepolia",
+      "name": "Ethereum Sepolia",
+      "name_zh": "以太坊 Sepolia 测试网",
+      "type": "evm",
+      "is_testnet": true,
+      "status": "active",
+      "icon": "/chains/ethereum.svg",
+      "color": "#627EEA",
+      "native_currency": {
+        "name": "Sepolia Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "explorer_url": "https://sepolia.etherscan.io",
+      "block_time": 12,
+      "chain_id": 11155111,
+      "rpc_urls": [
+        "https://rpc.sepolia.org"
+      ],
+      "contracts": {
+        "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+        "app_registry": "",
+        "service_gateway": "",
+        "payment_hub": "",
+        "price_feed": "",
+        "randomness_log": "",
+        "automation_anchor": "",
+        "governance": ""
+      }
+    }
+  ]
+}

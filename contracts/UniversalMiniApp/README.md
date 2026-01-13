@@ -25,6 +25,7 @@ mkdir miniapps-uniapp/apps/my-app
 
 ```json
 {
+  "app_id": "miniapp-my-app",
   "category": "utility",
   "name": "My App",
   "name_zh": "我的应用",
@@ -37,19 +38,27 @@ mkdir miniapps-uniapp/apps/my-app
 }
 ```
 
+权限为 **默认拒绝**，只有显式设为 `true` 的能力才会启用。
+确保 `app_id` 与前端代码中使用的 `APP_ID` 一致，且 `app_id` 不允许包含 `:`（避免存储键冲突）。
+如需链上事件/存储，设置 `contracts.<chain>.address` 为对应网络的 UniversalMiniApp 脚本哈希
+（自动发现脚本会在 `deploy/config/testnet_contracts.json` 可用时填充）。
+
 ### 3. 自动发现
 
 运行自动发现脚本，MiniApp 将自动注册：
 
 ```bash
-node platform/host-app/scripts/auto-discover-miniapps.js
+node miniapps-uniapp/scripts/auto-discover-miniapps.js
 ```
+
+如果需要链上事件/存储，请在 `neo-manifest.json` 中设置 `contracts.<chain>.address`
+为 UniversalMiniApp 的脚本哈希（按网络区分）。
 
 ## 功能特性
 
 - **App 注册**: 注册 app_id，成为 owner
 - **隔离存储**: 按 app_id 隔离的 Key-Value 存储
-- **服务调用**: 随机数、价格预言机等
+- **服务调用**: 随机数、价格预言机等（由网关触发）
 - **事件发射**: 自定义事件和指标
 
 ## API
@@ -68,12 +77,14 @@ GetAppOwner(string appId)      // 获取 owner 地址
 ```csharp
 SetValue(string appId, string key, ByteString value)
 GetValue(string appId, string key)
+DeleteValue(string appId, string key)
 ```
+注意：`key` 不允许包含 `:`，以避免命名空间冲突。
 
 ### 服务
 
 ```csharp
-RequestRandom(string appId)    // 请求随机数
+RequestRandom(string appId)    // 请求随机数（结果通过网关回调返回）
 GetPrice(string symbol)        // 获取价格
 ```
 

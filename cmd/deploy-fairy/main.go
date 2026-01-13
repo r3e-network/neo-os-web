@@ -92,13 +92,14 @@ func main() {
 
 		contract := chain.DeployedContract{
 			Name:        name,
-			Hash:        deployed.ContractHash,
+			Address:     deployed.ContractAddress,
+			Hash:        deployed.ContractAddress,
 			GasConsumed: deployed.GasConsumed,
 			State:       deployed.State,
 		}
 		result.Contracts = append(result.Contracts, contract)
 
-		log.Printf("  Hash: %s", deployed.ContractHash)
+		log.Printf("  Address: %s", deployed.ContractAddress)
 		log.Printf("  Gas: %s", deployed.GasConsumed)
 		log.Printf("  State: %s", deployed.State)
 

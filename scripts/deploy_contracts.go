@@ -85,8 +85,8 @@ func main() {
 		fmt.Printf("\n--- %s ---\n", name)
 
 		// Check if already deployed
-		if existing, ok := config.Contracts[name]; ok && existing.Hash != "" && existing.Hash != "null" {
-			fmt.Printf("Already deployed at: %s\n", existing.Hash)
+		if existing, ok := config.Contracts[name]; ok && existing.Address != "" && existing.Address != "null" {
+			fmt.Printf("Already deployed at: %s\n", existing.Address)
 			continue
 		}
 
@@ -120,18 +120,18 @@ func main() {
 
 		// Wait for transaction to be included
 		fmt.Println("Waiting for confirmation...")
-		contractHash, err := waitForDeployment(ctx, client, txHash, vub)
+		contractAddress, err := waitForDeployment(ctx, client, txHash, vub)
 		if err != nil {
 			fmt.Printf("Deployment failed: %v\n", err)
 			continue
 		}
 
-		fmt.Printf("✅ Contract deployed at: %s\n", contractHash)
+		fmt.Printf("✅ Contract deployed at: %s\n", contractAddress)
 
 		// Update config
 		config.Contracts[name] = &ContractInfo{
 			Name:       name,
-			Hash:       contractHash,
+			Address:    contractAddress,
 			Version:    "1.0.0",
 			DeployedAt: time.Now().UTC().Format(time.RFC3339),
 			Network:    "testnet",
@@ -197,12 +197,12 @@ func waitForDeployment(ctx context.Context, client *rpcclient.Client, txHash uti
 
 			exec := appLog.Executions[0]
 			if exec.VMState.HasFlag(1) { // HALT
-				// Get contract hash from stack - deploy returns the contract state
+				// Get contract address from stack - deploy returns the contract state
 				if len(exec.Stack) > 0 {
 					item := exec.Stack[0]
 					// The deploy returns a struct, try to extract hash
 					if arr, ok := item.Value().([]interface{}); ok && len(arr) > 0 {
-						// First element should be the contract hash
+						// First element should be the contract address
 						if hashItem, ok := arr[0].([]byte); ok {
 							return fmt.Sprintf("0x%x", hashItem), nil
 						}
@@ -230,7 +230,7 @@ func waitForDeployment(ctx context.Context, client *rpcclient.Client, txHash uti
 
 type ContractInfo struct {
 	Name       string `json:"name"`
-	Hash       string `json:"hash"`
+	Address    string `json:"address"`
 	Version    string `json:"version,omitempty"`
 	DeployedAt string `json:"deployed_at,omitempty"`
 	Network    string `json:"network,omitempty"`

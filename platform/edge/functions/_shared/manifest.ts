@@ -1,5 +1,17 @@
+import { getChainConfig } from "./chains.ts";
 import { isProductionEnv } from "./env.ts";
 import { bytesToHex, normalizeHex, normalizeHexBytes } from "./hex.ts";
+
+export type MiniAppChainContract = {
+  address: string | null;
+  abi?: unknown;
+  entry_url?: string;
+  active?: boolean;
+  callback?: {
+    address: string;
+    method: string;
+  };
+};
 
 export type MiniAppManifestCore = {
   appId: string;
@@ -11,7 +23,8 @@ export type MiniAppManifestCore = {
   icon: string;
   banner: string;
   category: string;
-  contractHashHex: string;
+  supportedChains: string[];
+  contracts: Record<string, MiniAppChainContract>;
 };
 
 const SUPPORTED_PERMISSION_KEYS = new Set([
@@ -26,6 +39,7 @@ const SUPPORTED_PERMISSION_KEYS = new Set([
   "automation",
   "apps",
   "secrets",
+  "cross_chain",
 ]);
 
 const SUPPORTED_STATS_KEYS = new Set([
@@ -44,7 +58,9 @@ const STATS_KEY_ALIASES = new Map<string, string>([
   ["gas_consumed", "total_gas_used"],
 ]);
 
-const SUPPORTED_CATEGORIES = new Set(["gaming", "defi", "governance", "utility", "social"]);
+const SUPPORTED_CATEGORIES = new Set(["gaming", "defi", "governance", "utility", "social", "nft"]);
+
+const CHAIN_ID_PATTERN = /^[a-z0-9]+-[a-z0-9]+(-[a-z0-9]+)*$/;
 
 function stableSort(value: unknown): unknown {
   if (value === null) return null;
@@ -76,6 +92,117 @@ function normalizeStringList(
     .filter(Boolean)
     .map((v) => (mode === "upper" ? v.toUpperCase() : mode === "lower" ? v.toLowerCase() : v));
   return Array.from(new Set(items)).sort();
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function normalizeSupportedChains(value: unknown, label: string): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} must be an array`);
+  }
+  const list = value
+    .map((v) => String(v ?? "").trim().toLowerCase())
+    .filter(Boolean)
+    .filter((v) => CHAIN_ID_PATTERN.test(v));
+  const deduped = Array.from(new Set(list)).sort();
+  for (const chainId of deduped) {
+    if (!getChainConfig(chainId)) {
+      throw new Error(`manifest.supported_chains contains unknown chain: ${chainId}`);
+    }
+  }
+  return deduped;
+}
+
+function normalizeAddress(chainId: string, value: unknown, label: string): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) throw new Error(`${label} required`);
+  return normalizeHexBytes(raw, 20, label);
+}
+
+function normalizeContractEntry(chainId: string, raw: unknown): MiniAppChainContract {
+  const obj = asObject(raw);
+  if (obj.address === undefined) {
+    const hasLegacy =
+      "contract_address" in obj ||
+      "contract_hash" in obj ||
+      "script_hash" in obj ||
+      "hash" in obj ||
+      "contractHash" in obj;
+    if (hasLegacy) {
+      throw new Error(`manifest.contracts.${chainId}.address required (legacy address fields are not supported)`);
+    }
+  }
+
+  const address = obj.address ? normalizeAddress(chainId, obj.address, `manifest.contracts.${chainId}.address`) : null;
+  const entryUrl = String(obj.entry_url ?? obj.entryUrl ?? "").trim();
+  const active = typeof obj.active === "boolean" ? obj.active : undefined;
+
+  let callback: MiniAppChainContract["callback"];
+  const callbackAddressRaw = obj.callback_contract ?? obj.callback?.address ?? obj.callback?.contract;
+  const callbackMethodRaw = obj.callback_method ?? obj.callback?.method;
+  if (callbackAddressRaw || callbackMethodRaw) {
+    if (!callbackAddressRaw || !callbackMethodRaw) {
+      throw new Error(`manifest.contracts.${chainId}.callback requires address and method`);
+    }
+    callback = {
+      address: normalizeAddress(chainId, callbackAddressRaw, `manifest.contracts.${chainId}.callback.address`),
+      method: String(callbackMethodRaw).trim(),
+    };
+  }
+
+  const out: MiniAppChainContract = { address };
+  if (entryUrl) out.entry_url = entryUrl;
+  if (active !== undefined) out.active = active;
+  if (callback) out.callback = callback;
+  if (obj.abi !== undefined) out.abi = obj.abi;
+  return out;
+}
+
+function normalizeContracts(
+  value: unknown,
+  supportedChains: string[],
+): Record<string, MiniAppChainContract> {
+  const obj = asObject(value);
+  const contracts: Record<string, MiniAppChainContract> = {};
+
+  for (const [chainIdRaw, entry] of Object.entries(obj)) {
+    const chainId = String(chainIdRaw ?? "").trim().toLowerCase();
+    if (!CHAIN_ID_PATTERN.test(chainId)) continue;
+    if (!getChainConfig(chainId)) {
+      throw new Error(`manifest.contracts contains unknown chain: ${chainId}`);
+    }
+    contracts[chainId] = normalizeContractEntry(chainId, entry);
+  }
+
+  for (const chainId of supportedChains) {
+    if (!contracts[chainId]) {
+      contracts[chainId] = { address: null };
+    }
+  }
+
+  return contracts;
+}
+
+function normalizeAssetPolicy(value: unknown, label: string): string[] | Record<string, string[]> {
+  if (Array.isArray(value)) {
+    return normalizeStringList(value, label, "upper");
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be an array or object`);
+  }
+  const obj = value as Record<string, unknown>;
+  const out: Record<string, string[]> = {};
+  for (const [chainIdRaw, list] of Object.entries(obj)) {
+    const chainId = String(chainIdRaw ?? "").trim().toLowerCase();
+    if (!CHAIN_ID_PATTERN.test(chainId)) {
+      throw new Error(`${label} contains invalid chain id: ${chainId}`);
+    }
+    out[chainId] = normalizeStringList(list, `${label}.${chainId}`, "upper");
+  }
+  return out;
 }
 
 function normalizePermissions(value: unknown): Record<string, unknown> {
@@ -223,19 +350,43 @@ export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, u
   if ("category" in m) {
     out.category = normalizeCategory(m.category);
   }
-  const contractHashRaw = String(m.contract_hash ?? "").trim();
-  if (contractHashRaw) {
-    out.contract_hash = normalizeHexBytes(contractHashRaw, 20, "manifest.contract_hash");
+
+  if ("supportedChains" in m && m.supported_chains === undefined) {
+    throw new Error("manifest.supported_chains required (supportedChains is not supported)");
+  }
+  const supportedChainsRaw = m.supported_chains;
+  let supportedChains: string[] = [];
+  if (supportedChainsRaw !== undefined) {
+    supportedChains = normalizeSupportedChains(supportedChainsRaw, "manifest.supported_chains");
   }
 
+  if ("contract_hash" in m || "contractHash" in m) {
+    throw new Error("manifest.contract_hash is no longer supported; use manifest.contracts");
+  }
+  let contractsRaw = m.contracts ?? undefined;
+
+  let contracts = normalizeContracts(contractsRaw, supportedChains);
+  if (supportedChains.length === 0) {
+    supportedChains = Object.keys(contracts).sort();
+  }
+  if (supportedChains.length === 0) {
+    throw new Error("manifest.supported_chains required");
+  }
+
+  if ("callback_contract" in m || "callbackContract" in m || "callback_method" in m || "callbackMethod" in m) {
+    throw new Error("manifest.callback_contract is no longer supported; use contracts.<chain>.callback");
+  }
+
+  out.supported_chains = supportedChains;
+  out.contracts = contracts;
+
   if ("assets_allowed" in m) {
-    out.assets_allowed = normalizeStringList(m.assets_allowed, "manifest.assets_allowed", "upper");
+    out.assets_allowed = normalizeAssetPolicy(m.assets_allowed, "manifest.assets_allowed");
   }
   if ("governance_assets_allowed" in m) {
-    out.governance_assets_allowed = normalizeStringList(
+    out.governance_assets_allowed = normalizeAssetPolicy(
       m.governance_assets_allowed,
       "manifest.governance_assets_allowed",
-      "upper",
     );
   }
   if ("sandbox_flags" in m) {
@@ -262,23 +413,11 @@ export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, u
     statsDisplay = normalizeStatsDisplay(m.stats_display);
     out.stats_display = statsDisplay;
   }
-  const requiresContractHash =
+  const requiresContracts =
     newsIntegrationRaw !== false || (Array.isArray(statsDisplay) && statsDisplay.length > 0);
-  if (requiresContractHash && !contractHashRaw) {
-    throw new Error("manifest.contract_hash required when news/stats are enabled");
-  }
-
-  const callbackContractRaw = String(m.callback_contract ?? "").trim();
-  const callbackMethodRaw = String(m.callback_method ?? "").trim();
-  if (callbackContractRaw || callbackMethodRaw) {
-    if (!callbackContractRaw) {
-      throw new Error("manifest.callback_contract required when callback_method is set");
-    }
-    if (!callbackMethodRaw) {
-      throw new Error("manifest.callback_method required when callback_contract is set");
-    }
-    out.callback_contract = normalizeHexBytes(callbackContractRaw, 20, "manifest.callback_contract");
-    out.callback_method = callbackMethodRaw;
+  const hasContractAddress = Object.values(contracts).some((entry) => Boolean(entry?.address));
+  if (requiresContracts && !hasContractAddress) {
+    throw new Error("manifest.contracts address required when news/stats are enabled");
   }
 
   return out;
@@ -308,23 +447,34 @@ function isModuleFederationEntry(entryUrl: string): boolean {
 
 export function enforceMiniAppAssetPolicy(manifest: unknown): void {
   const canonical = canonicalizeMiniAppManifest(manifest);
+  const supportedChains = Array.isArray(canonical.supported_chains) ? (canonical.supported_chains as string[]) : [];
 
-  const assetsAllowed = normalizeStringList(
-    canonical.assets_allowed,
-    "manifest.assets_allowed",
-    "upper",
-  );
-  if (assetsAllowed.length !== 1 || assetsAllowed[0] !== "GAS") {
-    throw new Error("manifest.assets_allowed must be exactly [\"GAS\"]");
-  }
+  const resolvePolicy = (label: string, policy: unknown, chainId: string): string[] | null => {
+    if (!policy) return null;
+    if (Array.isArray(policy)) return normalizeStringList(policy, label, "upper");
+    if (typeof policy === "object" && !Array.isArray(policy)) {
+      const map = policy as Record<string, unknown>;
+      const value = map[chainId];
+      if (value === undefined) return null;
+      return normalizeStringList(value, `${label}.${chainId}`, "upper");
+    }
+    return null;
+  };
 
-  const governanceAssetsAllowed = normalizeStringList(
-    canonical.governance_assets_allowed,
-    "manifest.governance_assets_allowed",
-    "upper",
-  );
-  if (governanceAssetsAllowed.length !== 1 || governanceAssetsAllowed[0] !== "NEO") {
-    throw new Error("manifest.governance_assets_allowed must be exactly [\"NEO\"]");
+  for (const chainId of supportedChains) {
+    const chain = getChainConfig(chainId);
+    if (!chain || chain.type !== "neo-n3") continue;
+
+    const assetsAllowed = resolvePolicy("manifest.assets_allowed", canonical.assets_allowed, chainId) ?? ["GAS"];
+    if (assetsAllowed.length !== 1 || assetsAllowed[0] !== "GAS") {
+      throw new Error("manifest.assets_allowed must be exactly [\"GAS\"] for neo-n3 chains");
+    }
+
+    const governanceAllowed =
+      resolvePolicy("manifest.governance_assets_allowed", canonical.governance_assets_allowed, chainId) ?? ["NEO"];
+    if (governanceAllowed.length !== 1 || governanceAllowed[0] !== "NEO") {
+      throw new Error("manifest.governance_assets_allowed must be exactly [\"NEO\"] for neo-n3 chains");
+    }
   }
 
   const entryUrl = String(canonical.entry_url ?? "").trim();
@@ -345,7 +495,8 @@ export async function parseMiniAppManifestCore(manifest: unknown): Promise<MiniA
   const icon = String(canonical.icon ?? "").trim();
   const banner = String(canonical.banner ?? "").trim();
   const category = String(canonical.category ?? "").trim();
-  const contractHashHex = String(canonical.contract_hash ?? "").trim();
+  const supportedChains = Array.isArray(canonical.supported_chains) ? (canonical.supported_chains as string[]) : [];
+  const contracts = asObject(canonical.contracts) as Record<string, MiniAppChainContract>;
 
   const manifestHashHex = await computeManifestHashHex(canonical);
 
@@ -359,6 +510,7 @@ export async function parseMiniAppManifestCore(manifest: unknown): Promise<MiniA
     icon,
     banner,
     category,
-    contractHashHex,
+    supportedChains,
+    contracts,
   };
 }

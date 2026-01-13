@@ -171,7 +171,9 @@ function FlowView({ opcodes, contractCalls, expandedSteps, toggleStep }: FlowVie
               <div className="px-4 pb-3 pl-24">
                 <div className="bg-gray-100 dark:bg-gray-900 rounded p-3 text-sm">
                   <div className="font-mono text-xs text-gray-500 mb-1">Hex: 0x{trace.opcode_hex}</div>
-                  {trace.contract_hash && <div className="text-xs text-gray-500">Contract: {trace.contract_hash}</div>}
+                  {trace.contract_address && (
+                    <div className="text-xs text-gray-500">Contract: {trace.contract_address}</div>
+                  )}
                 </div>
               </div>
             )}
@@ -202,8 +204,8 @@ function TextView({ opcodes, contractCalls }: TextViewProps) {
                 <span className="text-gray-500"> | </span>
                 <span className={getTextColor(meta.category)}>{trace.opcode.padEnd(12, " ")}</span>
                 <span className="text-gray-500"> ; {meta.description}</span>
-                {trace.contract_hash && (
-                  <span className="text-purple-400"> @ {trace.contract_hash.slice(0, 10)}...</span>
+                {trace.contract_address && (
+                  <span className="text-purple-400"> @ {trace.contract_address.slice(0, 10)}...</span>
                 )}
                 {"\n"}
               </div>
@@ -225,7 +227,7 @@ function TextView({ opcodes, contractCalls }: TextViewProps) {
                   <span className={`w-2 h-2 rounded-full ${call.success ? "bg-green-500" : "bg-red-500"}`} />
                   <span className="font-mono text-gray-900 dark:text-white">{call.method}</span>
                   <span className="text-gray-500">on</span>
-                  <span className="font-mono text-xs text-gray-500">{call.contract_hash.slice(0, 16)}...</span>
+                  <span className="font-mono text-xs text-gray-500">{call.contract_address.slice(0, 16)}...</span>
                 </div>
               </div>
             ))}

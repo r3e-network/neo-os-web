@@ -388,16 +388,16 @@ func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*chain.Deplo
 
 	// Prefer JSON output (neo-express --json).
 	type deployJSON struct {
-		ContractHash string `json:"contract-hash"`
-		TxHash       string `json:"tx-hash"`
-		ContractName string `json:"contract-name"`
+		ContractAddress string `json:"contract-hash"`
+		TxHash          string `json:"tx-hash"`
+		ContractName    string `json:"contract-name"`
 	}
 
 	var parsed deployJSON
 	if jsonErr := json.Unmarshal(out, &parsed); jsonErr == nil {
-		hash := strings.TrimSpace(parsed.ContractHash)
-		if strings.HasPrefix(hash, "0x") && len(hash) == 42 {
-			return &chain.DeployedContract{Hash: hash}, nil
+		address := strings.TrimSpace(parsed.ContractAddress)
+		if strings.HasPrefix(address, "0x") && len(address) == 42 {
+			return &chain.DeployedContract{Address: address, Hash: address}, nil
 		}
 	}
 
@@ -408,7 +408,7 @@ func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*chain.Deplo
 			parts := strings.Fields(line)
 			for _, part := range parts {
 				if strings.HasPrefix(part, "0x") && len(part) == 42 {
-					return &chain.DeployedContract{Hash: part}, nil
+					return &chain.DeployedContract{Address: part, Hash: part}, nil
 				}
 			}
 		}

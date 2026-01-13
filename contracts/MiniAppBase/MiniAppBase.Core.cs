@@ -161,7 +161,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         /// <summary>
         /// Upgrades the contract code.
-        /// SECURITY: Only admin can upgrade; preserves contract hash.
+        /// SECURITY: Only admin can upgrade; preserves contract address.
         /// CORRECTNESS: Use instead of redeploy to maintain references.
         /// </summary>
         public static void Update(ByteString nef, string manifest)

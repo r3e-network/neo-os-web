@@ -150,7 +150,7 @@ The platform engine maintains the **news + stats** layer for MiniApps:
 
 - **Ingestion:** consumes AppRegistry + MiniApp events and scans `System.Contract.Call`
   activity using `infrastructure/chain`.
-- **Validation:** rejects MiniApp events that do not match the on-chain `contract_hash` when strict ingestion is enabled.
+- **Validation:** rejects MiniApp events that do not match the on-chain `contracts.<chain>.address` when strict ingestion is enabled.
 - **Idempotency:** uses `processed_events` to avoid double-processing.
 - **Rollups:** writes `miniapp_tx_events`, `miniapp_stats`, `miniapp_stats_daily`, `miniapp_notifications`.
 - **Consistency:** handles confirmation depth, reorg backfill, and replay tooling.
@@ -162,7 +162,7 @@ The AppRegistry contract is the on-chain anchor for MiniApp manifests,
 metadata, and approval status:
 
 - Developers register `manifest_hash`, `entry_url`, and display metadata
-  (`name`, `description`, `icon`, `banner`, `category`, `contract_hash`) on-chain
+  (`name`, `description`, `icon`, `banner`, `category`, `contracts.<chain>.address`) on-chain
   (typically via the Edge `app-register` intent).
 - An admin sets status to `Approved` or `Disabled` on-chain (default is `Pending`).
 - Supabase `miniapps` stores the canonical manifest for fast runtime checks and

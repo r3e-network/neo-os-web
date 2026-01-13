@@ -38,8 +38,8 @@ const (
 	DepositExpirationTime    = 24 * time.Hour
 	MaxPendingDepositsPerRun = 100
 
-	// GAS contract hash on Neo N3
-	GASContractHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+	// GAS contract address on Neo N3
+	GASContractAddress = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 )
 
 var errDepositMismatch = errors.New("deposit transaction does not match request")
@@ -403,7 +403,7 @@ func (s *Service) matchGasTransfer(notifications []chain.Notification, fromAddre
 	depositAddress := strings.TrimSpace(s.depositAddress)
 
 	for _, notif := range notifications {
-		if !strings.EqualFold(notif.Contract, GASContractHash) {
+		if !strings.EqualFold(notif.Contract, GASContractAddress) {
 			continue
 		}
 		if notif.EventName != "Transfer" {

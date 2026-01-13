@@ -16,7 +16,7 @@ import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 
 // Cache configuration
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-let statsCache: { data: AppStats[]; timestamp: number } | null = null;
+let statsCache: { data: AppStats[]; timestamp: number; chainId: string } | null = null;
 
 interface AppStats {
   app_id: string;
@@ -86,14 +86,24 @@ function normalizeAppId(dbAppId: string): string {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
   const appIdFilter = req.query.app_id as string | undefined;
+  const chainIdFilter = req.query.chain_id as string | undefined;
+  const cacheKey = chainIdFilter || "all";
 
   if (!isSupabaseConfigured) return res.status(200).json({ stats: [] });
-  if (!appIdFilter && statsCache && Date.now() - statsCache.timestamp < CACHE_TTL_MS) {
-    return res.status(200).json({ stats: statsCache.data, cached: true });
+  if (
+    !appIdFilter &&
+    statsCache &&
+    statsCache.chainId === cacheKey &&
+    Date.now() - statsCache.timestamp < CACHE_TTL_MS
+  ) {
+    return res.status(200).json({ stats: statsCache.data, cached: true, chainId: cacheKey });
   }
 
   try {
-    const appStatsMap: Record<string, { users: Set<string>; txCount: number; volume: bigint; views: number; sources: Set<string> }> = {};
+    const appStatsMap: Record<
+      string,
+      { users: Set<string>; txCount: number; volume: bigint; views: number; sources: Set<string> }
+    > = {};
 
     const ensureApp = (appId: string) => {
       if (!appStatsMap[appId]) {
@@ -104,8 +114,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 1. Get transaction stats from simulation_txs (paginated)
     let offset = 0;
     const pageSize = 5000;
-    while (offset < 20000) { // Safety limit for dev
-      const { data: simTxs } = await supabase.from("simulation_txs").select("app_id, account_address, amount").not("app_id", "is", null).range(offset, offset + pageSize - 1);
+    while (offset < 20000) {
+      // Safety limit for dev
+      let query = supabase.from("simulation_txs").select("app_id, account_address, amount").not("app_id", "is", null);
+
+      // Filter by chain_id if specified
+      if (chainIdFilter) {
+        query = query.eq("chain_id", chainIdFilter);
+      }
+
+      const { data: simTxs } = await query.range(offset, offset + pageSize - 1);
       if (!simTxs || simTxs.length === 0) break;
       for (const tx of simTxs) {
         if (!tx.app_id) continue;
@@ -113,37 +131,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         appStatsMap[tx.app_id].txCount++;
         appStatsMap[tx.app_id].sources.add("simulation_txs");
         if (tx.account_address) appStatsMap[tx.app_id].users.add(tx.account_address);
-        if (tx.amount) { try { appStatsMap[tx.app_id].volume += BigInt(String(tx.amount)); } catch { } }
+        if (tx.amount) {
+          try {
+            appStatsMap[tx.app_id].volume += BigInt(String(tx.amount));
+          } catch {}
+        }
       }
       if (simTxs.length < pageSize) break;
       offset += pageSize;
     }
 
     // 2. Get views from summary table
-    const { data: summaryData } = await supabase.from("miniapp_stats_summary").select("app_id, view_count, total_transactions, total_unique_users");
+    let summaryQuery = supabase
+      .from("miniapp_stats_summary")
+      .select("app_id, view_count, total_transactions, total_unique_users");
+
+    if (chainIdFilter) {
+      summaryQuery = summaryQuery.eq("chain_id", chainIdFilter);
+    }
+
+    const { data: summaryData } = await summaryQuery;
     if (summaryData) {
       for (const row of summaryData) {
         ensureApp(row.app_id);
         appStatsMap[row.app_id].views = row.view_count || 0;
-        appStatsMap[row.app_id].txCount += (row.total_transactions || 0);
+        appStatsMap[row.app_id].txCount += row.total_transactions || 0;
         appStatsMap[row.app_id].sources.add("stats_summary");
       }
     }
 
     // 3. Convert to normalized array
-    const stats: AppStats[] = Object.entries(appStatsMap).map(([appId, data]) => ({
-      app_id: normalizeAppId(appId),
-      total_users: data.users.size,
-      total_transactions: data.txCount,
-      total_gas_used: (Number(data.volume) / 100000000).toFixed(2),
-      view_count: data.views,
-      data_sources: Array.from(data.sources),
-    })).sort((a, b) => b.total_transactions - a.total_transactions);
+    const stats: AppStats[] = Object.entries(appStatsMap)
+      .map(([appId, data]) => ({
+        app_id: normalizeAppId(appId),
+        total_users: data.users.size,
+        total_transactions: data.txCount,
+        total_gas_used: (Number(data.volume) / 100000000).toFixed(2),
+        view_count: data.views,
+        data_sources: Array.from(data.sources),
+      }))
+      .sort((a, b) => b.total_transactions - a.total_transactions);
 
     const filteredStats = appIdFilter ? stats.filter((s) => s.app_id === appIdFilter) : stats;
-    if (!appIdFilter) statsCache = { data: stats, timestamp: Date.now() };
+    if (!appIdFilter) statsCache = { data: stats, timestamp: Date.now(), chainId: cacheKey };
 
-    res.status(200).json({ stats: filteredStats });
+    res.status(200).json({ stats: filteredStats, chainId: cacheKey });
   } catch (error) {
     console.error("MiniApp stats error:", error);
     res.status(200).json({ stats: [] });

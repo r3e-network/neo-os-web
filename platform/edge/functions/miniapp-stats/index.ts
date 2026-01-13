@@ -6,7 +6,8 @@ import { requireRateLimit } from "../_shared/ratelimit.ts";
 type MiniAppMetaRow = {
   app_id: string;
   entry_url?: string;
-  contract_hash?: string;
+  supported_chains?: string[];
+  contracts?: Record<string, unknown>;
   name?: string;
   description?: string;
   icon?: string;
@@ -29,7 +30,7 @@ function normalizeCategory(value: unknown): string {
   const raw = String(value ?? "")
     .trim()
     .toLowerCase();
-  if (raw === "gaming" || raw === "defi" || raw === "governance" || raw === "utility" || raw === "social") {
+  if (raw === "gaming" || raw === "defi" || raw === "governance" || raw === "utility" || raw === "social" || raw === "nft") {
     return raw;
   }
   return "utility";
@@ -40,7 +41,7 @@ function normalizePermissions(value: unknown): Record<string, boolean> {
   return {
     payments: Boolean(raw.payments),
     governance: Boolean(raw.governance),
-    randomness: Boolean(raw.randomness ?? raw.rng),
+    rng: Boolean(raw.rng),
     datafeed: Boolean(raw.datafeed),
   };
 }
@@ -54,6 +55,23 @@ function normalizeLimits(value: unknown): Record<string, string> | undefined {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+function resolveContractAddress(
+  meta: MiniAppMetaRow | undefined,
+  manifest: Record<string, unknown>,
+  chainId: string,
+): string {
+  const normalize = (value: unknown) => String(value ?? "").trim();
+  const contracts = (meta?.contracts ?? manifest.contracts ?? {}) as Record<string, unknown>;
+  if (chainId && contracts && typeof contracts === "object") {
+    const entry = contracts[chainId] as Record<string, unknown> | undefined;
+    if (entry && typeof entry === "object") {
+      const address = normalize(entry.address);
+      if (address) return address;
+    }
+  }
+  return "";
+}
+
 function mergeStatsWithMeta(stats: MiniAppStatsRow, meta?: MiniAppMetaRow): Record<string, unknown> {
   const fallback = {
     name: String(stats.app_id ?? "").trim(),
@@ -62,7 +80,9 @@ function mergeStatsWithMeta(stats: MiniAppStatsRow, meta?: MiniAppMetaRow): Reco
     banner: "",
     category: "utility",
     entry_url: "",
-    contract_hash: "",
+    contract_address: "",
+    supported_chains: [],
+    contracts: {},
     permissions: {},
     limits: undefined,
     news_integration: undefined,
@@ -78,10 +98,14 @@ function mergeStatsWithMeta(stats: MiniAppStatsRow, meta?: MiniAppMetaRow): Reco
   const icon = String(meta.icon ?? manifest.icon ?? "").trim();
   const banner = String(meta.banner ?? manifest.banner ?? "").trim();
   const entryUrl = String(meta.entry_url ?? manifest.entry_url ?? "").trim();
-  const contractHash = String(meta.contract_hash ?? manifest.contract_hash ?? "").trim();
+  const chainId = String((stats as Record<string, unknown>).chain_id ?? "").trim();
+  const contractAddress = resolveContractAddress(meta, manifest, chainId);
   const category = String(meta.category ?? manifest.category ?? "").trim();
   const permissions = normalizePermissions(meta.permissions ?? manifest.permissions);
   const limits = normalizeLimits(meta.limits ?? manifest.limits);
+  const supportedChains =
+    (meta.supported_chains as string[] | undefined) ?? (manifest.supported_chains as string[] | undefined) ?? [];
+  const contracts = (meta.contracts ?? manifest.contracts ?? {}) as Record<string, unknown>;
   const newsIntegration =
     typeof manifest.news_integration === "boolean" ? (manifest.news_integration as boolean) : undefined;
   const statsDisplay = Array.isArray(manifest.stats_display)
@@ -101,7 +125,9 @@ function mergeStatsWithMeta(stats: MiniAppStatsRow, meta?: MiniAppMetaRow): Reco
     banner,
     category: normalizeCategory(category),
     entry_url: entryUrl,
-    contract_hash: contractHash,
+    contract_address: contractAddress,
+    supported_chains: supportedChains,
+    contracts,
     permissions,
     limits,
     news_integration: newsIntegration,
@@ -123,7 +149,7 @@ async function loadMiniAppMeta(appIds: string[]): Promise<Record<string, MiniApp
   const { data, error: err } = await supabase
     .from("miniapps")
     .select(
-      "app_id, entry_url, contract_hash, name, description, icon, banner, category, permissions, limits, manifest, status",
+      "app_id, entry_url, supported_chains, contracts, name, description, icon, banner, category, permissions, limits, manifest, status",
     )
     .in("app_id", appIds);
 
@@ -150,25 +176,33 @@ export async function handler(req: Request): Promise<Response> {
 
   const url = new URL(req.url);
   const appId = url.searchParams.get("app_id");
+  const chainId = url.searchParams.get("chain_id");
 
   const supabase = supabaseClient();
 
   if (appId) {
-    // Single app stats
-    const { data, error: err } = await supabase.from("miniapp_stats").select("*").eq("app_id", appId).single();
-
+    let query = supabase.from("miniapp_stats").select("*").eq("app_id", appId);
+    if (chainId) {
+      const { data, error: err } = await query.eq("chain_id", chainId).single();
+      if (err) return error(404, "app not found", "NOT_FOUND", req);
+      const metaMap = await loadMiniAppMeta([appId]);
+      const merged = mergeStatsWithMeta(data as MiniAppStatsRow, metaMap[appId]);
+      return json(merged, req);
+    }
+    const { data, error: err } = await query.order("chain_id", { ascending: true });
     if (err) return error(404, "app not found", "NOT_FOUND", req);
+    const rows = (data ?? []) as MiniAppStatsRow[];
     const metaMap = await loadMiniAppMeta([appId]);
-    const merged = mergeStatsWithMeta(data as MiniAppStatsRow, metaMap[appId]);
-    return json(merged, req);
+    const merged = rows.map((row) => mergeStatsWithMeta(row, metaMap[appId]));
+    return json({ stats: merged }, req);
   }
 
   // All apps stats
-  const { data, error: err } = await supabase
-    .from("miniapp_stats")
-    .select("*")
-    .order("total_transactions", { ascending: false })
-    .limit(50);
+  let allQuery = supabase.from("miniapp_stats").select("*");
+  if (chainId) {
+    allQuery = allQuery.eq("chain_id", chainId);
+  }
+  const { data, error: err } = await allQuery.order("total_transactions", { ascending: false }).limit(50);
 
   if (err) return error(500, err.message, "DB_ERROR", req);
   const statsRows = (data ?? []) as MiniAppStatsRow[];

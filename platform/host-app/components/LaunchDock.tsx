@@ -4,18 +4,28 @@ import { cn } from "@/lib/utils";
 import { WalletState } from "./types";
 import { NetworkSelector } from "./features/wallet/NetworkSelector";
 import { RpcSettingsModal } from "./features/wallet/RpcSettingsModal";
+import type { ChainId } from "@/lib/chains/types";
 
 export type LaunchDockProps = {
   appName: string;
   appId: string;
   wallet: WalletState;
+  supportedChainIds?: ChainId[];
   networkLatency: number | null;
   onBack: () => void;
   onExit: () => void;
   onShare: () => void;
 };
 
-export function LaunchDock({ appName, wallet, networkLatency, onBack, onExit, onShare }: LaunchDockProps) {
+export function LaunchDock({
+  appName,
+  wallet,
+  supportedChainIds,
+  networkLatency,
+  onBack,
+  onExit,
+  onShare,
+}: LaunchDockProps) {
   const [showRpcSettings, setShowRpcSettings] = useState(false);
   const isSocialAccount = wallet.provider === "auth0";
 
@@ -57,7 +67,12 @@ export function LaunchDock({ appName, wallet, networkLatency, onBack, onExit, on
       <div className="flex items-center gap-2 md:gap-4">
         {/* Network Selector - clickable for social accounts, display-only for wallets */}
         {wallet.connected && (
-          <NetworkSelector compact showSettings={isSocialAccount} onSettingsClick={() => setShowRpcSettings(true)} />
+          <NetworkSelector
+            compact
+            showSettings={isSocialAccount}
+            allowedChainIds={supportedChainIds}
+            onSettingsClick={() => setShowRpcSettings(true)}
+          />
         )}
 
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/70 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">

@@ -5,10 +5,13 @@
  * the underlying provider is a social account or extension wallet.
  *
  * - Social Account: Password-based signing (encrypted key in DB)
- * - Extension Wallet: Browser extension signing (NeoLine, O3, OneGate)
+ * - Extension Wallet: Browser extension signing (NeoLine, O3, OneGate, MetaMask)
+ *
+ * Supports multi-chain: Neo N3, NeoX, Ethereum, and other EVM chains.
  */
 
 import type { InvokeParams, TransactionResult, SignedMessage, WalletBalance } from "./adapters/base";
+import type { ChainId, ChainType } from "../chains/types";
 
 /**
  * Wallet provider type - abstracted from MiniApps
@@ -16,13 +19,15 @@ import type { InvokeParams, TransactionResult, SignedMessage, WalletBalance } fr
 export type WalletProviderType = "social" | "extension";
 
 /**
- * Unified wallet account info
+ * Unified wallet account info with multi-chain support
  */
 export interface UnifiedWalletAccount {
   address: string;
   publicKey: string;
   providerType: WalletProviderType;
   providerName: string;
+  chainId: ChainId;
+  chainType: ChainType;
   label?: string;
 }
 
@@ -79,6 +84,7 @@ export interface IWalletService {
   readonly isConnected: boolean;
   readonly account: UnifiedWalletAccount | null;
   readonly providerType: WalletProviderType | null;
+  readonly chainId: ChainId | null;
 
   // Core operations (provider-agnostic)
   getAddress(): Promise<string>;
@@ -87,8 +93,9 @@ export interface IWalletService {
   invoke(request: InvokeRequest): Promise<TransactionResult>;
 
   // Connection management
-  connect(providerType: WalletProviderType, providerName?: string): Promise<UnifiedWalletAccount>;
+  connect(providerType: WalletProviderType, providerName?: string, chainId?: ChainId): Promise<UnifiedWalletAccount>;
   disconnect(): Promise<void>;
+  switchChain(chainId: ChainId): Promise<void>;
 
   // Event handling
   on(event: WalletEventType, listener: WalletEventListener): void;

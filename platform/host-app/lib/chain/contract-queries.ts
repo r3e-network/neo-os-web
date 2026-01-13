@@ -1,23 +1,86 @@
 /**
  * Contract Query Functions
- * Query specific MiniApp contract states
+ * Query specific MiniApp contract states with multi-chain support
  */
 
-import { invokeRead, type Network, type StackItem } from "./rpc-client";
+import { invokeRead, type StackItem } from "./rpc-client";
+import type { ChainId } from "../chains/types";
 
-// Contract addresses from manifest
-export const CONTRACTS = {
-  lottery: "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
-  coinFlip: "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
-  diceGame: "0xfacff9abd201dca86e6a63acfb5d60da278da8ea",
-  secretVote: "0x7763ce957515f6acef6d093376977ac6c1cbc47d",
-  predictionMarket: "0x64118096bd004a2bcb010f4371aba45121eca790",
-  neoCrash: "0x2e594e12b2896c135c3c8c80dbf2317fa56ceead",
-  canvas: "0x53f9c7b86fa2f8336839ef5073d964d644cbb46c",
-  priceTicker: "0x838bd5dd3d257a844fadddb5af2b9dac45e1d320",
-  flashLoan: "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
-  redEnvelope: "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
-} as const;
+// ============================================================================
+// Multi-Chain Contract Configuration
+// ============================================================================
+
+type ChainContractMap = Partial<Record<ChainId, string>>;
+
+/**
+ * Multi-chain contract addresses
+ * Each contract can have addresses on multiple chains
+ */
+export const CONTRACTS: Record<string, ChainContractMap> = {
+  lottery: {
+    "neo-n3-mainnet": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+    "neo-n3-testnet": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+  },
+  coinFlip: {
+    "neo-n3-mainnet": "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
+    "neo-n3-testnet": "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
+  },
+  diceGame: {
+    "neo-n3-mainnet": "0xfacff9abd201dca86e6a63acfb5d60da278da8ea",
+    "neo-n3-testnet": "0xfacff9abd201dca86e6a63acfb5d60da278da8ea",
+  },
+  secretVote: {
+    "neo-n3-mainnet": "0x7763ce957515f6acef6d093376977ac6c1cbc47d",
+    "neo-n3-testnet": "0x7763ce957515f6acef6d093376977ac6c1cbc47d",
+  },
+  predictionMarket: {
+    "neo-n3-mainnet": "0x64118096bd004a2bcb010f4371aba45121eca790",
+    "neo-n3-testnet": "0x64118096bd004a2bcb010f4371aba45121eca790",
+  },
+  neoCrash: {
+    "neo-n3-mainnet": "0x2e594e12b2896c135c3c8c80dbf2317fa56ceead",
+    "neo-n3-testnet": "0x2e594e12b2896c135c3c8c80dbf2317fa56ceead",
+  },
+  canvas: {
+    "neo-n3-mainnet": "0x53f9c7b86fa2f8336839ef5073d964d644cbb46c",
+    "neo-n3-testnet": "0x53f9c7b86fa2f8336839ef5073d964d644cbb46c",
+  },
+  priceTicker: {
+    "neo-n3-mainnet": "0x838bd5dd3d257a844fadddb5af2b9dac45e1d320",
+    "neo-n3-testnet": "0x838bd5dd3d257a844fadddb5af2b9dac45e1d320",
+  },
+  flashLoan: {
+    "neo-n3-mainnet": "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
+    "neo-n3-testnet": "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
+  },
+  redEnvelope: {
+    "neo-n3-mainnet": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
+    "neo-n3-testnet": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
+  },
+};
+
+/**
+ * Get contract address for a specific chain
+ */
+export function getContractAddress(contractName: string, chainId: ChainId): string | null {
+  return CONTRACTS[contractName]?.[chainId] ?? null;
+}
+
+/**
+ * Check if contract is deployed on a specific chain
+ */
+export function isContractOnChain(contractName: string, chainId: ChainId): boolean {
+  return !!CONTRACTS[contractName]?.[chainId];
+}
+
+/**
+ * Get all chains where a contract is deployed
+ */
+export function getContractChains(contractName: string): ChainId[] {
+  const contract = CONTRACTS[contractName];
+  if (!contract) return [];
+  return Object.keys(contract) as ChainId[];
+}
 
 // Helper to parse stack items
 function parseInteger(item: StackItem): bigint {
@@ -40,15 +103,15 @@ export interface LotteryState {
   endTime: number;
 }
 
-export async function getLotteryState(
-  contractHash: string = CONTRACTS.lottery,
-  network: Network = "testnet",
-): Promise<LotteryState> {
+export async function getLotteryState(contractAddress: string | undefined, chainId: ChainId): Promise<LotteryState> {
+  const hash = contractAddress || getContractAddress("lottery", chainId);
+  if (!hash) return { prizePool: "0", ticketsSold: 0, currentRound: 0, endTime: 0 };
+
   try {
     const [poolRes, ticketsRes, roundRes] = await Promise.all([
-      invokeRead(contractHash, "prizePool", [], network),
-      invokeRead(contractHash, "totalTickets", [], network),
-      invokeRead(contractHash, "currentRound", [], network),
+      invokeRead(hash, "prizePool", [], chainId),
+      invokeRead(hash, "totalTickets", [], chainId),
+      invokeRead(hash, "currentRound", [], chainId),
     ]);
 
     return {
@@ -70,11 +133,11 @@ export interface GameState {
   roundId: number;
 }
 
-export async function getGameState(contractHash: string, network: Network = "testnet"): Promise<GameState> {
+export async function getGameState(contractAddress: string, chainId: ChainId): Promise<GameState> {
   try {
     const [multiplierRes, roundRes] = await Promise.all([
-      invokeRead(contractHash, "getCurrentMultiplier", [], network),
-      invokeRead(contractHash, "currentRound", [], network),
+      invokeRead(contractAddress, "getCurrentMultiplier", [], chainId),
+      invokeRead(contractAddress, "currentRound", [], chainId),
     ]);
 
     return {
@@ -96,12 +159,12 @@ export interface VotingState {
   endTime: number;
 }
 
-export async function getVotingState(
-  contractHash: string = CONTRACTS.secretVote,
-  network: Network = "testnet",
-): Promise<VotingState> {
+export async function getVotingState(contractAddress: string | undefined, chainId: ChainId): Promise<VotingState> {
+  const hash = contractAddress || getContractAddress("secretVote", chainId);
+  if (!hash) return { proposalId: 0, title: "No Active Proposal", options: [], totalVotes: 0, endTime: 0 };
+
   try {
-    const res = await invokeRead(contractHash, "getActiveProposal", [], network);
+    const res = await invokeRead(hash, "getActiveProposal", [], chainId);
     if (res.state === "HALT" && res.stack[0]) {
       return {
         proposalId: 1,
@@ -116,13 +179,7 @@ export async function getVotingState(
       };
     }
   } catch {}
-  return {
-    proposalId: 0,
-    title: "No Active Proposal",
-    options: [],
-    totalVotes: 0,
-    endTime: 0,
-  };
+  return { proposalId: 0, title: "No Active Proposal", options: [], totalVotes: 0, endTime: 0 };
 }
 
 // Generic contract stats
@@ -132,9 +189,9 @@ export interface ContractStats {
   uniqueUsers: number;
 }
 
-export async function getContractStats(contractHash: string, network: Network = "testnet"): Promise<ContractStats> {
+export async function getContractStats(contractAddress: string, chainId: ChainId): Promise<ContractStats> {
   try {
-    const res = await invokeRead(contractHash, "getStats", [], network);
+    const res = await invokeRead(contractAddress, "getStats", [], chainId);
     if (res.state === "HALT" && res.stack[0]?.type === "Array") {
       const arr = res.stack[0].value as StackItem[];
       return {

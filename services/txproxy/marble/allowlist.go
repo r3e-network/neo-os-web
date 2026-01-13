@@ -33,9 +33,9 @@ func ParseAllowlist(raw string) (*Allowlist, error) {
 
 	out := &Allowlist{Contracts: map[string]ContractAllowlist{}}
 	for contract, methods := range parsed.Contracts {
-		normalized := normalizeContractHash(contract)
+		normalized := normalizeContractAddress(contract)
 		if normalized == "" {
-			return nil, fmt.Errorf("invalid contract hash: %q", contract)
+			return nil, fmt.Errorf("invalid contract address: %q", contract)
 		}
 
 		entry := ContractAllowlist{Methods: map[string]struct{}{}}
@@ -56,18 +56,18 @@ func ParseAllowlist(raw string) (*Allowlist, error) {
 	return out, nil
 }
 
-func (a *Allowlist) Allows(contractHash, method string) bool {
+func (a *Allowlist) Allows(contractAddress, method string) bool {
 	if a == nil {
 		return false
 	}
 
-	contractHash = normalizeContractHash(contractHash)
+	contractAddress = normalizeContractAddress(contractAddress)
 	method = canonicalizeMethodName(method)
-	if contractHash == "" || method == "" {
+	if contractAddress == "" || method == "" {
 		return false
 	}
 
-	entry, ok := a.Contracts[contractHash]
+	entry, ok := a.Contracts[contractAddress]
 	if !ok {
 		return false
 	}
@@ -78,7 +78,7 @@ func (a *Allowlist) Allows(contractHash, method string) bool {
 	return ok
 }
 
-func normalizeContractHash(raw string) string {
+func normalizeContractAddress(raw string) string {
 	raw = strings.TrimSpace(raw)
 	raw = strings.TrimPrefix(raw, "0x")
 	raw = strings.TrimPrefix(raw, "0X")

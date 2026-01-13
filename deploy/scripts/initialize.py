@@ -139,8 +139,8 @@ class PlatformInitializer:
         return {}
 
     def invoke(self, contract_name: str, method: str, *args: str, signer: str = "owner") -> None:
-        contract_hash = self.deployed.get(contract_name)
-        if not contract_hash:
+        contract_address = self.deployed.get(contract_name)
+        if not contract_address:
             raise RuntimeError(f"contract not found in deployed_contracts.json: {contract_name}")
 
         if not self.network.neo_express_config:
@@ -154,7 +154,7 @@ class PlatformInitializer:
             self.network.neo_express_config,
             "-a",
             signer,
-            contract_hash,
+            contract_address,
             method,
         ]
         cmd.extend(str(a) for a in args)

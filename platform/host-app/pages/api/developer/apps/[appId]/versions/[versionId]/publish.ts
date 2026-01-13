@@ -52,6 +52,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (error) throw error;
 
+    const supportedChains = Array.isArray(data?.supported_chains) ? data.supported_chains : [];
+    const contractMap =
+      data?.contracts && typeof data.contracts === "object" && !Array.isArray(data.contracts) ? data.contracts : {};
+
     // Update registry status
     await supabaseAdmin
       .from("miniapp_registry")
@@ -60,6 +64,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         visibility: "public",
         published_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        supported_chains: supportedChains,
+        contracts: contractMap,
       })
       .eq("app_id", appId);
 

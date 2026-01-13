@@ -67,7 +67,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	appRegistryHash, _ := parseContractHash(contracts["AppRegistry"])
+	appRegistryHash, _ := parseContractAddress(contracts["AppRegistry"])
 
 	// Step 1: Check if already registered as TEE signer
 	fmt.Println("\n=== Checking TEE Signer Registration ===")
@@ -103,14 +103,14 @@ func main() {
 	fmt.Println("\n=== Done ===")
 }
 
-func parseContractHash(hashStr string) (util.Uint160, error) {
-	hashStr = strings.TrimPrefix(hashStr, "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+func parseContractAddress(addressStr string) (util.Uint160, error) {
+	addressStr = strings.TrimPrefix(addressStr, "0x")
+	return util.Uint160DecodeStringLE(addressStr)
 }
 
-func registerTeeSigner(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHash util.Uint160, signerHash util.Uint160) error {
+func registerTeeSigner(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractAddress util.Uint160, signerHash util.Uint160) error {
 	// First, test invoke - registerTeeSigner only takes Hash160
-	testResult, err := act.Call(contractHash, "registerTeeSigner", signerHash)
+	testResult, err := act.Call(contractAddress, "registerTeeSigner", signerHash)
 	if err != nil {
 		return fmt.Errorf("test invoke failed: %w", err)
 	}
@@ -122,7 +122,7 @@ func registerTeeSigner(ctx context.Context, client *rpcclient.Client, act *actor
 	fmt.Printf("Test invoke succeeded, GAS: %s\n", testResult.GasConsumed)
 
 	// Send actual transaction
-	txHash, vub, err := act.SendCall(contractHash, "registerTeeSigner", signerHash)
+	txHash, vub, err := act.SendCall(contractAddress, "registerTeeSigner", signerHash)
 	if err != nil {
 		return fmt.Errorf("send transaction: %w", err)
 	}

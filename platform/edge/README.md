@@ -6,8 +6,8 @@ intended architecture is a **thin gateway**:
 - Auth via **Supabase Auth (GoTrue)**.
 - Stateless request validation + rate limiting (backed by Postgres `rate_limits`).
 - Enforce platform rules:
-  - **payments/settlement = GAS only**
-  - **governance = NEO only**
+  - **payments/settlement = GAS only (Neo N3)**
+  - **governance = NEO only (Neo N3)**
 - Forward sensitive requests to the **TEE services** over **mTLS** (attested TLS
   inside MarbleRun; **required in production**).
 
@@ -15,8 +15,8 @@ intended architecture is a **thin gateway**:
 
 See `platform/edge/functions/`:
 
-- `wallet-nonce`: issues a nonce + message for Neo N3 wallet binding.
-- `wallet-bind`: verifies signature and binds a Neo N3 address to the authenticated user.
+- `wallet-nonce`: issues a nonce + message for wallet binding.
+- `wallet-bind`: verifies signature and binds a wallet address to the authenticated user.
 - `api-keys-create`: create a user API key (returned once; stored hashed).
 - `api-keys-list`: list API keys (no raw key).
 - `api-keys-revoke`: revoke an API key.
@@ -33,10 +33,10 @@ See `platform/edge/functions/`:
 - `miniapp-notifications`: public notifications feed.
 - `miniapp-usage`: authenticated per-user daily usage.
 - `market-trending`: trending MiniApps based on rolling stats.
-- `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (GAS-only).
-- `vote-neo`: returns a Governance `vote` invocation (NEO-only).
-- `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `registerApp` invocation (developer wallet-signed).
-- `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateApp` invocation (developer wallet-signed).
+- `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (Neo N3, GAS-only).
+- `vote-bneo`: returns a Governance `vote` invocation (Neo N3, bNEO-only).
+- `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `registerApp` invocation (chain-aware, developer wallet-signed).
+- `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateApp` invocation (chain-aware, developer wallet-signed).
 - `rng-request`: runs RNG via `neovrf` (signature + attestation hash).
 - `compute-execute`: runs a script via `neocompute` (`/execute`) (host-gated).
 - `compute-jobs`: lists compute jobs via `neocompute` (`/jobs`) (host-gated).
@@ -60,7 +60,7 @@ At minimum, these functions expect:
 
 `app-register` and `app-update-manifest` persist canonical manifests into the
 Supabase `miniapps` table for runtime permission/limit enforcement. App metadata
-(name/icon/category/contract_hash/entry_url) is anchored on-chain in AppRegistry
+(name/icon/category/per-chain contract address/entry_url) is anchored on-chain in AppRegistry
 and mirrored into Supabase as a cache.
 Daily cap enforcement uses the `miniapp_usage` table and the
 `miniapp_usage_bump(...)` RPC (see `migrations/026_miniapp_usage.sql`).
@@ -92,7 +92,7 @@ API key management endpoints (`api-keys-*`) require `Authorization: Bearer <jwt>
 - `EDGE_CORS_ORIGINS`: optional origin allowlist for browser clients (comma/space-separated). When unset, responses default to `Access-Control-Allow-Origin: *`.
 - `MINIAPP_USAGE_MODE`: `record` (default) or `check` for cap-only enforcement.
 - `MINIAPP_USAGE_MODE_PAYMENTS`, `MINIAPP_USAGE_MODE_GOVERNANCE`: optional per-intent overrides.
-- `CONTRACT_GAS_HASH`: optional override for the native GAS contract hash.
+- `CONTRACT_GAS_ADDRESS`: optional override for the native GAS contract address.
 
 ## Rate Limiting
 

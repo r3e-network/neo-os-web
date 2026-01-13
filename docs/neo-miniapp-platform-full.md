@@ -80,7 +80,7 @@ neo-miniapp-platform/
 - Governance：仅 bNEO；stake/unstake/vote；治理平台参数（费率、白名单）。
 - PriceFeed：`symbol -> { round_id, price, ts, attestation_hash, sourceset_id }`；TEE 签名/测量校验；round_id 单调。
 - RandomnessLog：`requestId -> randomness + attestationHash + timestamp`。
-- AppRegistry：`app_id -> manifest_hash/entry_url/contract_hash/metadata/status/allowlist`（合约/MRSIGNER）。
+- AppRegistry：`app_id -> manifest_hash/entry_url/contracts/metadata/status/allowlist`（合约/MRSIGNER）。
 - AutomationAnchor：登记自动化任务（target/method/trigger/gasLimit），记录 nonce/txHash 防重放。
 - ServiceLayerGateway：`RequestService` 发起服务请求，发出 `ServiceRequested` 事件；`FulfillRequest` 完成并回调 MiniApp 合约。
 
@@ -121,9 +121,8 @@ public static event Action<string, BigInteger> OnMetric;
 // 可选扩展：Platform_Metric(app_id, metric_name, value)
 ```
 
-建议在 manifest 中设置 `contract_hash` 以便 AppRegistry 锚定；索引器依据链上
-`contract_hash` 校验事件来源。当新闻/统计开启时平台会要求该字段（严格模式下即使
-提供 `app_id` 也会要求）。
+建议在 manifest 中设置 `contracts.<chain>.address` 以便 AppRegistry 锚定；索引器依据链上
+合约地址校验事件来源。当新闻/统计开启时平台会要求该字段（严格模式下即使提供 `app_id` 也会要求）。
 
 ### 3.5.3 统计聚合与趋势
 

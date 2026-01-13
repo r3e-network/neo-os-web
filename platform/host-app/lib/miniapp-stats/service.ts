@@ -6,64 +6,113 @@
 import type { MiniAppStats, MiniAppLiveStatus } from "./types";
 import { statsCache, CACHE_TTL } from "./collector";
 import { supabase, isSupabaseConfigured } from "../supabase";
-import { getLotteryState, getGameState, getContractStats, CONTRACTS } from "../chain";
+import { getLotteryState, getContractStats } from "../chain";
+import type { ChainId } from "../chains/types";
+
+/**
+ * Ensure stats record exists for an app-chain combination (lazy creation)
+ * Returns true if stats were created, false if they already existed
+ */
+export async function ensureStatsExist(appId: string, chainId: ChainId): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  try {
+    const { data, error } = await supabase.rpc("ensure_miniapp_stats_exist", {
+      p_app_id: appId,
+      p_chain_id: chainId,
+    });
+
+    if (error) {
+      console.warn(`[stats] Lazy creation failed for ${appId}/${chainId}:`, error.message);
+      return false;
+    }
+
+    if (data === true) {
+      console.log(`[stats] Lazy-created stats for ${appId}/${chainId}`);
+    }
+    return data === true;
+  } catch (err) {
+    console.warn(`[stats] Exception in lazy creation:`, err);
+    return false;
+  }
+}
 
 /**
  * Get stats for a single MiniApp
  */
-export async function getMiniAppStats(
-  appId: string,
-  network: "testnet" | "mainnet" = "testnet",
-): Promise<MiniAppStats | null> {
+export async function getMiniAppStats(appId: string, chainId: ChainId): Promise<MiniAppStats | null> {
+  const cacheKey = `${appId}:${chainId}`;
   // Check cache first
-  const cached = statsCache.get(appId);
+  const cached = statsCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.stats;
   }
 
   // Try to fetch from database
   if (isSupabaseConfigured) {
-    const { data } = await supabase.from("miniapp_stats").select("*").eq("app_id", appId).single();
+    const { data } = await supabase
+      .from("miniapp_stats")
+      .select("*")
+      .eq("app_id", appId)
+      .eq("chain_id", chainId)
+      .single();
 
     if (data) {
       const stats = mapDbToStats(data);
-      statsCache.set(appId, { stats, timestamp: Date.now() });
+      statsCache.set(cacheKey, { stats, timestamp: Date.now() });
+      return stats;
+    }
+
+    // Lazy creation: if stats don't exist, create them
+    await ensureStatsExist(appId, chainId);
+
+    // Try fetching again after lazy creation
+    const { data: newData } = await supabase
+      .from("miniapp_stats")
+      .select("*")
+      .eq("app_id", appId)
+      .eq("chain_id", chainId)
+      .single();
+
+    if (newData) {
+      const stats = mapDbToStats(newData);
+      statsCache.set(cacheKey, { stats, timestamp: Date.now() });
       return stats;
     }
   }
 
-  // Return default stats if not found
-  return getDefaultStats(appId);
+  // Return null if not found in database - no fake data
+  return null;
 }
 
 /**
  * Get stats for multiple MiniApps
+ * Returns only data from database - no static fallbacks
  */
-export async function getBatchStats(
-  appIds: string[],
-  network: "testnet" | "mainnet" = "testnet",
-): Promise<Record<string, MiniAppStats>> {
+export async function getBatchStats(appIds: string[], chainId: ChainId): Promise<Record<string, MiniAppStats>> {
   const result: Record<string, MiniAppStats> = {};
 
-  if (isSupabaseConfigured) {
-    const { data } = await supabase.from("miniapp_stats").select("*").in("app_id", appIds);
+  if (!isSupabaseConfigured) {
+    // Return empty result when database not configured
+    return result;
+  }
 
-    if (data) {
-      for (const row of data) {
-        const stats = mapDbToStats(row);
-        result[row.app_id] = stats;
-        statsCache.set(row.app_id, { stats, timestamp: Date.now() });
-      }
+  const { data, error } = await supabase.from("miniapp_stats").select("*").in("app_id", appIds).eq("chain_id", chainId);
+
+  if (error) {
+    console.error("Failed to fetch batch stats:", error);
+    return result;
+  }
+
+  if (data) {
+    for (const row of data) {
+      const stats = mapDbToStats(row);
+      result[row.app_id] = stats;
+      statsCache.set(row.app_id, { stats, timestamp: Date.now() });
     }
   }
 
-  // Fill missing with defaults
-  for (const appId of appIds) {
-    if (!result[appId]) {
-      result[appId] = getDefaultStats(appId);
-    }
-  }
-
+  // No fallback - only return data that exists in database
   return result;
 }
 
@@ -72,21 +121,21 @@ export async function getBatchStats(
  */
 export async function getLiveStatus(
   appId: string,
-  contractHash: string,
+  contractAddress: string,
   category: string,
-  network: "testnet" | "mainnet" = "testnet",
+  chainId: ChainId,
 ): Promise<MiniAppLiveStatus> {
   const status: MiniAppLiveStatus = { appId };
 
   try {
     if (category === "gaming") {
-      const state = await getLotteryState(contractHash, network);
+      const state = await getLotteryState(contractAddress, chainId);
       status.jackpot = state.prizePool;
       status.playersOnline = state.ticketsSold;
     }
 
     if (category === "defi") {
-      const stats = await getContractStats(contractHash, network);
+      const stats = await getContractStats(contractAddress, chainId);
       status.tvl = stats.totalValueLocked;
       status.volume24h = stats.totalValueLocked;
     }
@@ -104,35 +153,20 @@ function mapDbToStats(data: Record<string, unknown>): MiniAppStats {
     activeUsersWeekly: (data.active_users_weekly as number) || 0,
     activeUsersDaily: (data.active_users_daily as number) || 0,
     totalTransactions: (data.total_transactions as number) || 0,
-    transactionsWeekly: (data.transactions_weekly as number) || 0,
-    transactionsDaily: (data.transactions_daily as number) || 0,
+    transactionsWeekly: (data.transactions_7d as number) || 0,
+    transactionsDaily: (data.transactions_24h as number) || 0,
     totalVolumeGas: (data.total_volume_gas as string) || "0",
-    volumeWeeklyGas: (data.volume_weekly_gas as string) || "0",
-    volumeDailyGas: (data.volume_daily_gas as string) || "0",
+    volumeWeeklyGas: (data.volume_7d_gas as string) || "0",
+    volumeDailyGas: (data.volume_24h_gas as string) || "0",
     rating: (data.rating as number) || 0,
-    reviewCount: (data.review_count as number) || 0,
-    weeklyTrend: (data.weekly_trend as number) || 0,
-    lastUpdated: (data.last_updated as number) || Date.now(),
+    reviewCount: (data.rating_count as number) || 0,
+    // Extended analytics fields
+    viewCount: (data.view_count as number) || 0,
+    retentionD1: (data.retention_d1 as number) || 0,
+    retentionD7: (data.retention_d7 as number) || 0,
+    avgSessionDuration: (data.avg_session_duration as number) || 0,
+    funnelViewToConnect: (data.funnel_view_to_connect as number) || 0,
+    funnelConnectToTx: (data.funnel_connect_to_tx as number) || 0,
+    lastUpdated: new Date(data.updated_at as string).getTime() || Date.now(),
   };
 }
-
-function getDefaultStats(appId: string): MiniAppStats {
-  return {
-    appId,
-    activeUsersMonthly: 0,
-    activeUsersWeekly: 0,
-    activeUsersDaily: 0,
-    totalTransactions: 0,
-    transactionsWeekly: 0,
-    transactionsDaily: 0,
-    totalVolumeGas: "0",
-    volumeWeeklyGas: "0",
-    volumeDailyGas: "0",
-    rating: 0,
-    reviewCount: 0,
-    weeklyTrend: 0,
-    lastUpdated: Date.now(),
-  };
-}
-
-export { getDefaultStats };

@@ -139,6 +139,7 @@ describe("useRealtimeNotifications", () => {
       const mockNotification: MiniAppNotification = {
         id: "1",
         app_id: "test-app",
+        chain_id: "neo-n3-mainnet",
         title: "Test Notification",
         content: "Test content",
         notification_type: "info",
@@ -166,6 +167,7 @@ describe("useRealtimeNotifications", () => {
       const mockNotification: MiniAppNotification = {
         id: "2",
         app_id: "test-app",
+        chain_id: "neo-n3-mainnet",
         title: "Callback Test",
         content: "Content",
         notification_type: "info",
@@ -197,6 +199,7 @@ describe("useRealtimeNotifications", () => {
       const notification1: MiniAppNotification = {
         id: "1",
         app_id: "app-1",
+        chain_id: "neo-n3-mainnet",
         title: "Matching App",
         content: "Content",
         notification_type: "info",
@@ -207,6 +210,7 @@ describe("useRealtimeNotifications", () => {
       const notification2: MiniAppNotification = {
         id: "2",
         app_id: "app-2",
+        chain_id: "neo-n3-mainnet",
         title: "Different App",
         content: "Content",
         notification_type: "info",
@@ -239,6 +243,7 @@ describe("useRealtimeNotifications", () => {
           const notification: MiniAppNotification = {
             id: `${i}`,
             app_id: "test-app",
+            chain_id: "neo-n3-mainnet",
             title: `Notification ${i}`,
             content: "Content",
             notification_type: "info",
@@ -272,6 +277,7 @@ describe("useRealtimeNotifications", () => {
       const notification: MiniAppNotification = {
         id: "1",
         app_id: "test-app",
+        chain_id: "neo-n3-mainnet",
         title: "Error Test",
         content: "Content",
         notification_type: "info",
@@ -425,6 +431,7 @@ describe("useRealtimeNotifications", () => {
       const notification: MiniAppNotification = {
         id: "1",
         app_id: "test-app",
+        chain_id: "neo-n3-mainnet",
         title: "Reset Test",
         content: "Content",
         notification_type: "info",
@@ -533,6 +540,7 @@ describe("useRealtimeNotifications", () => {
       const notification: MiniAppNotification = {
         id: "1",
         app_id: "test-app",
+        chain_id: "neo-n3-mainnet",
         title: "After Unmount",
         content: "Content",
         notification_type: "info",

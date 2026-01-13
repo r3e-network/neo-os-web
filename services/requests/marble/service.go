@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	chaincfg "github.com/R3E-Network/service_layer/infrastructure/chains"
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
@@ -42,9 +43,9 @@ type Config struct {
 	TxProxy       txproxytypes.Invoker
 	ChainClient   *chain.Client
 
-	ServiceGatewayHash string
-	AppRegistryHash    string
-	PaymentHubHash     string
+	ServiceGatewayAddress string
+	AppRegistryAddress    string
+	PaymentHubAddress     string
 	NeoVRFURL          string
 	NeoOracleURL       string
 	NeoComputeURL      string
@@ -73,12 +74,12 @@ type Service struct {
 	repo                    neorequestsupabase.RepositoryInterface
 	eventListener           *chain.EventListener
 	txProxy                 txproxytypes.Invoker
-	serviceGatewayHash      string
-	appRegistryHash         string
+	serviceGatewayAddress   string
+	appRegistryAddress      string
 	appRegistry             *chain.AppRegistryContract
 	chainClient             *chain.Client
 	enforceAppRegistry      bool
-	paymentHubHash          string
+	paymentHubAddress       string
 	appRegistryCache        map[string]appRegistryCacheEntry
 	appRegistryMu           sync.RWMutex
 	appRegistryTTL          time.Duration
@@ -146,68 +147,36 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		}
 	}
 
-	serviceGatewayHash := normalizeContractHash(cfg.ServiceGatewayHash)
-	if serviceGatewayHash == "" {
-		serviceGatewayHash = normalizeContractHash(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
+	serviceGatewayAddress := normalizeContractAddress(cfg.ServiceGatewayAddress)
+	if serviceGatewayAddress == "" {
+		serviceGatewayAddress = normalizeContractAddress(os.Getenv("CONTRACT_SERVICE_GATEWAY_ADDRESS"))
 	}
-	if serviceGatewayHash == "" {
-		serviceGatewayHash = normalizeContractHash(os.Getenv("CONTRACT_SERVICE_GATEWAY_HASH"))
-	}
-	if serviceGatewayHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_SERVICEGATEWAY_HASH"); ok && len(secret) > 0 {
-			serviceGatewayHash = normalizeContractHash(string(secret))
+	if serviceGatewayAddress == "" {
+		if secret, ok := cfg.Marble.Secret("CONTRACT_SERVICE_GATEWAY_ADDRESS"); ok && len(secret) > 0 {
+			serviceGatewayAddress = normalizeContractAddress(string(secret))
 		}
 	}
-	if serviceGatewayHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_SERVICE_GATEWAY_HASH"); ok && len(secret) > 0 {
-			serviceGatewayHash = normalizeContractHash(string(secret))
-		}
-	}
-	if strict && serviceGatewayHash == "" {
-		return nil, fmt.Errorf("neorequests: ServiceLayerGateway hash required in strict/enclave mode")
+	if strict && serviceGatewayAddress == "" {
+		return nil, fmt.Errorf("neorequests: ServiceLayerGateway address required in strict/enclave mode")
 	}
 
-	appRegistryHash := normalizeContractHash(cfg.AppRegistryHash)
-	if appRegistryHash == "" {
-		appRegistryHash = normalizeContractHash(os.Getenv("CONTRACT_APPREGISTRY_HASH"))
+	appRegistryAddress := normalizeContractAddress(cfg.AppRegistryAddress)
+	if appRegistryAddress == "" {
+		appRegistryAddress = normalizeContractAddress(os.Getenv("CONTRACT_APP_REGISTRY_ADDRESS"))
 	}
-	if appRegistryHash == "" {
-		appRegistryHash = normalizeContractHash(os.Getenv("CONTRACT_APP_REGISTRY_HASH"))
-	}
-	if appRegistryHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_APPREGISTRY_HASH"); ok && len(secret) > 0 {
-			appRegistryHash = normalizeContractHash(string(secret))
-		}
-	}
-	if appRegistryHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_APP_REGISTRY_HASH"); ok && len(secret) > 0 {
-			appRegistryHash = normalizeContractHash(string(secret))
+	if appRegistryAddress == "" {
+		if secret, ok := cfg.Marble.Secret("CONTRACT_APP_REGISTRY_ADDRESS"); ok && len(secret) > 0 {
+			appRegistryAddress = normalizeContractAddress(string(secret))
 		}
 	}
 
-	paymentHubHash := normalizeContractHash(cfg.PaymentHubHash)
-	if paymentHubHash == "" {
-		paymentHubHash = normalizeContractHash(os.Getenv("CONTRACT_PAYMENTHUB_HASH"))
+	paymentHubAddress := normalizeContractAddress(cfg.PaymentHubAddress)
+	if paymentHubAddress == "" {
+		paymentHubAddress = normalizeContractAddress(os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS"))
 	}
-	if paymentHubHash == "" {
-		paymentHubHash = normalizeContractHash(os.Getenv("CONTRACT_PAYMENT_HUB_HASH"))
-	}
-	if paymentHubHash == "" {
-		paymentHubHash = normalizeContractHash(os.Getenv("CONTRACT_GATEWAY_HASH"))
-	}
-	if paymentHubHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_PAYMENTHUB_HASH"); ok && len(secret) > 0 {
-			paymentHubHash = normalizeContractHash(string(secret))
-		}
-	}
-	if paymentHubHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_PAYMENT_HUB_HASH"); ok && len(secret) > 0 {
-			paymentHubHash = normalizeContractHash(string(secret))
-		}
-	}
-	if paymentHubHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_GATEWAY_HASH"); ok && len(secret) > 0 {
-			paymentHubHash = normalizeContractHash(string(secret))
+	if paymentHubAddress == "" {
+		if secret, ok := cfg.Marble.Secret("CONTRACT_PAYMENT_HUB_ADDRESS"); ok && len(secret) > 0 {
+			paymentHubAddress = normalizeContractAddress(string(secret))
 		}
 	}
 
@@ -245,6 +214,26 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		chainID = resolveChainID()
 	}
 
+	var chainMeta *chaincfg.ChainConfig
+	if chainID != "" {
+		if cfg, err := chaincfg.LoadConfig(); err == nil {
+			if found, ok := cfg.GetChain(chainID); ok {
+				chainMeta = found
+			}
+		}
+	}
+	if chainMeta != nil {
+		if value := normalizeContractAddress(chainMeta.Contract("service_gateway")); value != "" {
+			serviceGatewayAddress = value
+		}
+		if value := normalizeContractAddress(chainMeta.Contract("app_registry")); value != "" {
+			appRegistryAddress = value
+		}
+		if value := normalizeContractAddress(chainMeta.Contract("payment_hub")); value != "" {
+			paymentHubAddress = value
+		}
+	}
+
 	txWait := cfg.TxWait
 	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_WAIT")); raw != "" {
 		txWait = strings.EqualFold(raw, "true") || raw == "1"
@@ -274,7 +263,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ENFORCE_APPREGISTRY")); raw != "" {
 		enforceAppRegistry = parseEnvBool(raw)
 	}
-	if !enforceAppRegistry && appRegistryHash != "" && cfg.ChainClient != nil {
+	if !enforceAppRegistry && appRegistryAddress != "" && cfg.ChainClient != nil {
 		enforceAppRegistry = true
 	}
 
@@ -310,8 +299,8 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		repo:                    repo,
 		eventListener:           cfg.EventListener,
 		txProxy:                 cfg.TxProxy,
-		serviceGatewayHash:      serviceGatewayHash,
-		appRegistryHash:         appRegistryHash,
+		serviceGatewayAddress:   serviceGatewayAddress,
+		appRegistryAddress:      appRegistryAddress,
 		chainClient:             cfg.ChainClient,
 		enforceAppRegistry:      enforceAppRegistry,
 		appRegistryCache:        map[string]appRegistryCacheEntry{},
@@ -319,7 +308,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		miniAppCache:            map[string]miniAppCacheEntry{},
 		miniAppCacheTTL:         time.Duration(cacheSeconds) * time.Second,
 		requireManifestContract: requireManifestContract,
-		paymentHubHash:          paymentHubHash,
+		paymentHubAddress:       paymentHubAddress,
 		httpClient:              httpClient,
 		vrfURL:                  strings.TrimSpace(cfg.NeoVRFURL),
 		oracleURL:               strings.TrimSpace(cfg.NeoOracleURL),
@@ -337,11 +326,11 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	}
 
 	if s.enforceAppRegistry {
-		if s.appRegistryHash == "" {
+		if s.appRegistryAddress == "" {
 			if strict {
-				return nil, fmt.Errorf("neorequests: AppRegistry hash required when enforcement enabled")
+				return nil, fmt.Errorf("neorequests: AppRegistry address required when enforcement enabled")
 			}
-			s.Logger().WithContext(context.Background()).Warn("AppRegistry enforcement enabled but hash missing; disabling enforcement")
+			s.Logger().WithContext(context.Background()).Warn("AppRegistry enforcement enabled but address missing; disabling enforcement")
 			s.enforceAppRegistry = false
 		}
 		if s.chainClient == nil {
@@ -352,8 +341,8 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 			s.enforceAppRegistry = false
 		}
 	}
-	if s.enforceAppRegistry && s.chainClient != nil && s.appRegistryHash != "" {
-		s.appRegistry = chain.NewAppRegistryContract(s.chainClient, s.appRegistryHash)
+	if s.enforceAppRegistry && s.chainClient != nil && s.appRegistryAddress != "" {
+		s.appRegistry = chain.NewAppRegistryContract(s.chainClient, s.appRegistryAddress)
 	}
 
 	if s.vrfURL == "" {
@@ -375,7 +364,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 }
 
 func (s *Service) registerHandlers() {
-	if s.eventListener == nil || s.serviceGatewayHash == "" {
+	if s.eventListener == nil || s.serviceGatewayAddress == "" {
 		return
 	}
 
@@ -484,17 +473,41 @@ func parseEnvBool(raw string) bool {
 }
 
 func resolveChainID() string {
-	raw := strings.TrimSpace(os.Getenv("NEO_NETWORK_MAGIC"))
-	if raw == "" {
-		return "neo-n3"
+	if raw := strings.TrimSpace(os.Getenv("CHAIN_ID")); raw != "" {
+		return raw
 	}
-	if _, err := strconv.ParseUint(raw, 10, 32); err != nil {
-		return "neo-n3"
+
+	var magic uint64
+	if raw := strings.TrimSpace(os.Getenv("NEO_NETWORK_MAGIC")); raw != "" {
+		if parsed, err := strconv.ParseUint(raw, 10, 32); err == nil {
+			magic = parsed
+		}
 	}
-	return fmt.Sprintf("neo-n3:%s", raw)
+
+	cfg, err := chaincfg.LoadConfig()
+	if err == nil {
+		for _, chain := range cfg.Chains {
+			if chain.Type != chaincfg.ChainTypeNeoN3 {
+				continue
+			}
+			if magic > 0 && uint64(chain.NetworkMagic) == magic {
+				return chain.ID
+			}
+		}
+		for _, chain := range cfg.Chains {
+			if chain.Type == chaincfg.ChainTypeNeoN3 {
+				return chain.ID
+			}
+		}
+	}
+
+	if magic > 0 {
+		return fmt.Sprintf("neo-n3:%d", magic)
+	}
+	return "neo-n3-mainnet"
 }
 
-func normalizeContractHash(value string) string {
+func normalizeContractAddress(value string) string {
 	value = strings.TrimSpace(value)
 	value = strings.TrimPrefix(value, "0x")
 	value = strings.TrimPrefix(value, "0X")

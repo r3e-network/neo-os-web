@@ -5,8 +5,8 @@ This checklist is the minimum baseline for a Neo N3 MiniApp Platform with TEE-ba
 ## Asset Constraints
 
 - Payments / settlement: **GAS only**
-- Governance: **bNEO only**
-- Explicitly reject: native NEO and any other assets for payment/governance paths.
+- Governance: **NEO only**
+- Explicitly reject: any other assets for payment/governance paths.
 
 ## Defense in Depth (Four Layers)
 
@@ -40,3 +40,5 @@ This checklist is the minimum baseline for a Neo N3 MiniApp Platform with TEE-ba
 - Strict CSP: no `eval`, no arbitrary script origins.
 - `postMessage` origin allowlist.
 - Prefer `iframe` sandbox attributes when embedding untrusted apps.
+- Omit `allow-same-origin` for untrusted MiniApps; handle `origin === "null"` safely.
+- Set `referrerPolicy="no-referrer"` on sandboxed MiniApp iframes.

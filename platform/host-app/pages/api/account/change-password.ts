@@ -48,6 +48,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Re-encrypt all linked Neo private keys
+    // First, prepare all re-encrypted keys before updating database
+    const reEncryptedKeys: Array<{
+      address: string;
+      encrypted: ReturnType<typeof encryptNeoAccount>;
+    }> = [];
+
+    const failedAddresses: string[] = [];
+
     for (const neoAccount of account.linkedNeoAccounts) {
       const encryptedKey = await getEncryptedKey(neoAccount.address);
       if (!encryptedKey) continue;
@@ -69,23 +77,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Re-encrypt with new password
         const encrypted = encryptNeoAccount(decrypted, newPassword);
-
-        // Update database
-        await supabase
-          .from("encrypted_keys")
-          .update({
-            encrypted_private_key: encrypted.encryptedPrivateKey,
-            encryption_salt: encrypted.salt,
-            key_derivation_params: {
-              iv: encrypted.iv,
-              tag: encrypted.tag,
-              iterations: encrypted.iterations,
-            },
-            updated_at: new Date().toISOString(),
-          })
-          .eq("wallet_address", neoAccount.address);
+        reEncryptedKeys.push({ address: neoAccount.address, encrypted });
       } catch (err) {
         console.error(`Failed to re-encrypt key for ${neoAccount.address}:`, err);
+        failedAddresses.push(neoAccount.address);
+      }
+    }
+
+    // If any key failed to re-encrypt, abort the entire operation
+    if (failedAddresses.length > 0) {
+      // Note: Password was already changed, but we should warn the user
+      console.error(`Password changed but ${failedAddresses.length} keys failed to re-encrypt`);
+      return res.status(500).json({
+        error: "Partial failure",
+        message: `Password changed but some keys failed to re-encrypt: ${failedAddresses.join(", ")}`,
+        failedAddresses,
+      });
+    }
+
+    // Update all keys in database
+    for (const { address, encrypted } of reEncryptedKeys) {
+      const { error: updateError } = await supabase
+        .from("encrypted_keys")
+        .update({
+          encrypted_private_key: encrypted.encryptedPrivateKey,
+          encryption_salt: encrypted.salt,
+          key_derivation_params: {
+            iv: encrypted.iv,
+            tag: encrypted.tag,
+            iterations: encrypted.iterations,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("wallet_address", address);
+
+      if (updateError) {
+        console.error(`Failed to update encrypted key for ${address}:`, updateError);
       }
     }
 

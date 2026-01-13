@@ -141,13 +141,13 @@ func (s *Storage) SaveOpcodeTraces(ctx context.Context, traces []*OpcodeTrace) e
 	query := `
 		INSERT INTO indexer_opcode_traces (
 			tx_hash, step_index, opcode, opcode_hex, gas_consumed,
-			stack_size, contract_hash, instruction_ptr
+			stack_size, contract_address, instruction_ptr
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 	for _, t := range traces {
 		_, err := s.db.ExecContext(ctx, query,
 			t.TxHash, t.StepIndex, t.Opcode, t.OpcodeHex, t.GasConsumed,
-			t.StackSize, t.ContractHash, t.InstructionPtr,
+			t.StackSize, t.ContractAddress, t.InstructionPtr,
 		)
 		if err != nil {
 			return err
@@ -160,7 +160,7 @@ func (s *Storage) SaveOpcodeTraces(ctx context.Context, traces []*OpcodeTrace) e
 func (s *Storage) GetOpcodeTraces(ctx context.Context, txHash string) ([]*OpcodeTrace, error) {
 	query := `
 		SELECT id, tx_hash, step_index, opcode, opcode_hex, gas_consumed,
-			stack_size, contract_hash, instruction_ptr
+			stack_size, contract_address, instruction_ptr
 		FROM indexer_opcode_traces WHERE tx_hash = $1 ORDER BY step_index
 	`
 	rows, err := s.db.QueryContext(ctx, query, txHash)
@@ -174,7 +174,7 @@ func (s *Storage) GetOpcodeTraces(ctx context.Context, txHash string) ([]*Opcode
 		t := &OpcodeTrace{}
 		if err := rows.Scan(
 			&t.ID, &t.TxHash, &t.StepIndex, &t.Opcode, &t.OpcodeHex, &t.GasConsumed,
-			&t.StackSize, &t.ContractHash, &t.InstructionPtr,
+			&t.StackSize, &t.ContractAddress, &t.InstructionPtr,
 		); err != nil {
 			return nil, err
 		}
@@ -194,13 +194,13 @@ func (s *Storage) SaveContractCalls(ctx context.Context, calls []*ContractCall) 
 	}
 	query := `
 		INSERT INTO indexer_contract_calls (
-			tx_hash, call_index, contract_hash, method, args_json,
+			tx_hash, call_index, contract_address, method, args_json,
 			gas_consumed, success, parent_call_id
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 	for _, c := range calls {
 		_, err := s.db.ExecContext(ctx, query,
-			c.TxHash, c.CallIndex, c.ContractHash, c.Method, c.ArgsJSON,
+			c.TxHash, c.CallIndex, c.ContractAddress, c.Method, c.ArgsJSON,
 			c.GasConsumed, c.Success, c.ParentCallID,
 		)
 		if err != nil {
@@ -213,7 +213,7 @@ func (s *Storage) SaveContractCalls(ctx context.Context, calls []*ContractCall) 
 // GetContractCalls retrieves contract calls for a transaction.
 func (s *Storage) GetContractCalls(ctx context.Context, txHash string) ([]*ContractCall, error) {
 	query := `
-		SELECT id, tx_hash, call_index, contract_hash, method, args_json,
+		SELECT id, tx_hash, call_index, contract_address, method, args_json,
 			gas_consumed, success, parent_call_id
 		FROM indexer_contract_calls WHERE tx_hash = $1 ORDER BY call_index
 	`
@@ -227,7 +227,7 @@ func (s *Storage) GetContractCalls(ctx context.Context, txHash string) ([]*Contr
 	for rows.Next() {
 		c := &ContractCall{}
 		if err := rows.Scan(
-			&c.ID, &c.TxHash, &c.CallIndex, &c.ContractHash, &c.Method, &c.ArgsJSON,
+			&c.ID, &c.TxHash, &c.CallIndex, &c.ContractAddress, &c.Method, &c.ArgsJSON,
 			&c.GasConsumed, &c.Success, &c.ParentCallID,
 		); err != nil {
 			return nil, err
@@ -249,13 +249,13 @@ func (s *Storage) SaveSyscalls(ctx context.Context, syscalls []*Syscall) error {
 	query := `
 		INSERT INTO indexer_syscalls (
 			tx_hash, call_index, syscall_name, args_json,
-			result_json, gas_consumed, contract_hash
+			result_json, gas_consumed, contract_address
 		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 	for _, sc := range syscalls {
 		_, err := s.db.ExecContext(ctx, query,
 			sc.TxHash, sc.CallIndex, sc.SyscallName, sc.ArgsJSON,
-			sc.ResultJSON, sc.GasConsumed, sc.ContractHash,
+			sc.ResultJSON, sc.GasConsumed, sc.ContractAddress,
 		)
 		if err != nil {
 			return err
@@ -268,7 +268,7 @@ func (s *Storage) SaveSyscalls(ctx context.Context, syscalls []*Syscall) error {
 func (s *Storage) GetSyscalls(ctx context.Context, txHash string) ([]*Syscall, error) {
 	query := `
 		SELECT id, tx_hash, call_index, syscall_name, args_json,
-			result_json, gas_consumed, contract_hash
+			result_json, gas_consumed, contract_address
 		FROM indexer_syscalls WHERE tx_hash = $1 ORDER BY call_index
 	`
 	rows, err := s.db.QueryContext(ctx, query, txHash)
@@ -282,7 +282,7 @@ func (s *Storage) GetSyscalls(ctx context.Context, txHash string) ([]*Syscall, e
 		sc := &Syscall{}
 		if err := rows.Scan(
 			&sc.ID, &sc.TxHash, &sc.CallIndex, &sc.SyscallName, &sc.ArgsJSON,
-			&sc.ResultJSON, &sc.GasConsumed, &sc.ContractHash,
+			&sc.ResultJSON, &sc.GasConsumed, &sc.ContractAddress,
 		); err != nil {
 			return nil, err
 		}

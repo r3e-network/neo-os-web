@@ -21,12 +21,14 @@ export async function handler(req: Request): Promise<Response> {
 
   const url = new URL(req.url);
   const appId = url.searchParams.get("app_id") ?? undefined;
+  const chainId = url.searchParams.get("chain_id") ?? undefined;
   const limit = url.searchParams.get("limit") ?? undefined;
   const afterId = url.searchParams.get("after_id") ?? undefined;
 
   const result = await queryTransactions(
     {
       app_id: appId,
+      chain_id: chainId,
       limit: limit ? Number.parseInt(limit, 10) : undefined,
       after_id: afterId,
     },

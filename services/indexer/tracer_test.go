@@ -149,8 +149,8 @@ func TestExtractContractCalls(t *testing.T) {
 	tracer := NewTracer(nil)
 
 	notifications := []Notification{
-		{ContractHash: "0xabc", EventName: "Transfer", StateJSON: []byte(`["from","to",100]`)},
-		{ContractHash: "0xdef", EventName: "Approve", StateJSON: []byte(`["owner","spender",50]`)},
+		{ContractAddress: "0xabc", EventName: "Transfer", StateJSON: []byte(`["from","to",100]`)},
+		{ContractAddress: "0xdef", EventName: "Approve", StateJSON: []byte(`["owner","spender",50]`)},
 	}
 
 	calls := tracer.ExtractContractCalls("0x123", notifications)
@@ -158,8 +158,8 @@ func TestExtractContractCalls(t *testing.T) {
 	if len(calls) != 2 {
 		t.Fatalf("expected 2 calls, got %d", len(calls))
 	}
-	if calls[0].ContractHash != "0xabc" {
-		t.Errorf("expected contract 0xabc, got %s", calls[0].ContractHash)
+	if calls[0].ContractAddress != "0xabc" {
+		t.Errorf("expected contract 0xabc, got %s", calls[0].ContractAddress)
 	}
 	if calls[0].Method != "Transfer" {
 		t.Errorf("expected method Transfer, got %s", calls[0].Method)

@@ -128,7 +128,9 @@
     "sdkGuide": "SDK Guide",
     "apiReference": "API Reference",
     "rights": "All rights reserved.",
-    "tagline": "The future of decentralized applications on Neo N3.",
+    "tagline": "The future of decentralized applications with multi-chain support.",
+    "poweredBy": "Powered by",
+    "poweredByNeo": "Powered by Neo",
     "github": "GitHub",
     "discord": "Discord",
     "twitter": "Twitter"

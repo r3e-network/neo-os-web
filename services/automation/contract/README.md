@@ -28,6 +28,6 @@ In production, the Updater should be the enclave-managed signer (GlobalSigner/Tx
 
 The service discovers the deployed contract via:
 
-- `CONTRACT_AUTOMATIONANCHOR_HASH`: deployed script hash (see `../../../.env.example`).
+- `CONTRACT_AUTOMATION_ANCHOR_ADDRESS`: deployed contract address (see `../../../.env.example`).
 
 On-chain writes are performed via `../../txproxy/README.md` (allowlisted sign+broadcast).

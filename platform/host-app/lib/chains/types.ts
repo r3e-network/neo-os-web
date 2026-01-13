@@ -93,7 +93,7 @@ export interface NeoN3ChainConfig extends BaseChainConfig {
   networkMagic: number;
   /** RPC endpoints */
   rpcUrls: string[];
-  /** Neo-specific contract hashes */
+  /** Neo-specific contract addresses */
   contracts: {
     neo: string;
     gas: string;

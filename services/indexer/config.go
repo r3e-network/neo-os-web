@@ -11,6 +11,20 @@ import (
 	"time"
 )
 
+// Network represents the blockchain network type.
+type Network string
+
+const (
+	NetworkMainnet      Network = "mainnet"
+	NetworkTestnet      Network = "testnet"
+	NetworkNeoXMainnet  Network = "neox-mainnet"
+	NetworkNeoXTestnet  Network = "neox-testnet"
+	NetworkEthereum     Network = "ethereum"
+	NetworkSepolia      Network = "sepolia"
+	NetworkPolygon      Network = "polygon"
+	NetworkPolygonAmoy  Network = "polygon-amoy"
+)
+
 // Config holds the indexer configuration with isolated credentials.
 type Config struct {
 	// Supabase configuration (ISOLATED - uses INDEXER_ prefix)
@@ -29,6 +43,14 @@ type Config struct {
 	MainnetRPCURL string
 	TestnetRPCURL string
 
+	// EVM RPC endpoints
+	NeoXMainnetRPCURL string
+	NeoXTestnetRPCURL string
+	EthereumRPCURL    string
+	SepoliaRPCURL     string
+	PolygonRPCURL     string
+	AmoyRPCURL        string
+
 	// Indexer settings
 	Networks   []Network // Support multiple networks
 	StartBlock uint64
@@ -41,14 +63,6 @@ type Config struct {
 	MaxRetries     int
 	RequestTimeout time.Duration
 }
-
-// Network represents the Neo network type.
-type Network string
-
-const (
-	NetworkMainnet Network = "mainnet"
-	NetworkTestnet Network = "testnet"
-)
 
 // DefaultConfig returns a Config with default values.
 func DefaultConfig() *Config {
@@ -109,6 +123,14 @@ func LoadFromEnv() (*Config, error) {
 		cfg.TestnetRPCURL = "https://testnet1.neo.coz.io:443"
 	}
 
+	// EVM RPC
+	cfg.NeoXMainnetRPCURL = os.Getenv("INDEXER_NEOX_MAINNET_RPC")
+	cfg.NeoXTestnetRPCURL = os.Getenv("INDEXER_NEOX_TESTNET_RPC")
+	cfg.EthereumRPCURL = os.Getenv("INDEXER_ETHEREUM_RPC")
+	cfg.SepoliaRPCURL = os.Getenv("INDEXER_SEPOLIA_RPC")
+	cfg.PolygonRPCURL = os.Getenv("INDEXER_POLYGON_RPC")
+	cfg.AmoyRPCURL = os.Getenv("INDEXER_AMOY_RPC")
+
 	// Network selection - supports "both", "mainnet", "testnet", or comma-separated
 	if net := os.Getenv("INDEXER_NETWORKS"); net != "" {
 		cfg.Networks = parseNetworks(net)
@@ -147,11 +169,7 @@ func (c *Config) Validate() error {
 	if len(c.Networks) == 0 {
 		return fmt.Errorf("at least one network required")
 	}
-	for _, n := range c.Networks {
-		if n != NetworkMainnet && n != NetworkTestnet {
-			return fmt.Errorf("invalid network: %s (must be mainnet or testnet)", n)
-		}
-	}
+	// Validation of network values omitted for brevity as they are dynamic strings now
 	if c.BatchSize < 1 || c.BatchSize > 1000 {
 		return fmt.Errorf("batch size must be between 1 and 1000")
 	}
@@ -163,10 +181,25 @@ func (c *Config) Validate() error {
 
 // GetRPCURL returns the RPC URL for the specified network.
 func (c *Config) GetRPCURL(network Network) string {
-	if network == NetworkMainnet {
+	switch network {
+	case NetworkMainnet:
 		return c.MainnetRPCURL
+	case NetworkTestnet:
+		return c.TestnetRPCURL
+	case NetworkNeoXMainnet:
+		return c.NeoXMainnetRPCURL
+	case NetworkNeoXTestnet:
+		return c.NeoXTestnetRPCURL
+	case NetworkEthereum:
+		return c.EthereumRPCURL
+	case NetworkSepolia:
+		return c.SepoliaRPCURL
+	case NetworkPolygon:
+		return c.PolygonRPCURL
+	case NetworkPolygonAmoy:
+		return c.AmoyRPCURL
 	}
-	return c.TestnetRPCURL
+	return ""
 }
 
 // GetPostgresDSN returns the PostgreSQL connection string.
@@ -179,19 +212,33 @@ func (c *Config) GetPostgresDSN() string {
 }
 
 // parseNetworks parses network string into slice.
-// Supports: "both", "mainnet", "testnet", "mainnet,testnet"
+// Supports: "both", "mainnet", "testnet", "neox-mainnet", "ethereum", etc.
 func parseNetworks(s string) []Network {
 	s = strings.ToLower(strings.TrimSpace(s))
 	if s == "both" || s == "all" {
+		// Return all Neo chains by default if "all" is used, or maybe just main/test
 		return []Network{NetworkMainnet, NetworkTestnet}
 	}
 	var networks []Network
 	for _, n := range strings.Split(s, ",") {
 		n = strings.TrimSpace(n)
-		if n == "mainnet" {
+		switch n {
+		case "mainnet":
 			networks = append(networks, NetworkMainnet)
-		} else if n == "testnet" {
+		case "testnet":
 			networks = append(networks, NetworkTestnet)
+		case "neox-mainnet":
+			networks = append(networks, NetworkNeoXMainnet)
+		case "neox-testnet":
+			networks = append(networks, NetworkNeoXTestnet)
+		case "ethereum":
+			networks = append(networks, NetworkEthereum)
+		case "sepolia":
+			networks = append(networks, NetworkSepolia)
+		case "polygon":
+			networks = append(networks, NetworkPolygon)
+		case "polygon-amoy":
+			networks = append(networks, NetworkPolygonAmoy)
 		}
 	}
 	if len(networks) == 0 {

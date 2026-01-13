@@ -7,67 +7,67 @@ import (
 )
 
 func TestCheckIntentPolicyPayments(t *testing.T) {
-	const paymentHubHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	const otherHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-	const gasHash = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+	const paymentHubAddress = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	const otherAddress = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	const gasAddress = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 
-	svc := &Service{paymentHubHash: paymentHubHash, gasHash: gasHash}
+	svc := &Service{paymentHubAddress: paymentHubAddress, gasAddress: gasAddress}
 
-	status, _ := svc.checkIntentPolicy("0x"+paymentHubHash, "pay", "payments", nil)
+	status, _ := svc.checkIntentPolicy("0x"+paymentHubAddress, "pay", "payments", nil)
 	if status != 0 {
 		t.Fatalf("expected ok, got status %d", status)
 	}
 
-	status, _ = svc.checkIntentPolicy(otherHash, "pay", "payments", nil)
+	status, _ = svc.checkIntentPolicy(otherAddress, "pay", "payments", nil)
 	if status == 0 {
 		t.Fatal("expected forbidden for non-PaymentHub contract")
 	}
 
-	status, _ = svc.checkIntentPolicy(paymentHubHash, "withdraw", "payments", nil)
+	status, _ = svc.checkIntentPolicy(paymentHubAddress, "withdraw", "payments", nil)
 	if status == 0 {
 		t.Fatal("expected forbidden for non-pay method")
 	}
 
 	params := []chain.ContractParam{
 		{Type: "Hash160", Value: "SENDER"},
-		{Type: "Hash160", Value: "0x" + paymentHubHash},
+		{Type: "Hash160", Value: "0x" + paymentHubAddress},
 	}
-	status, _ = svc.checkIntentPolicy(gasHash, "transfer", "payments", params)
+	status, _ = svc.checkIntentPolicy(gasAddress, "transfer", "payments", params)
 	if status != 0 {
 		t.Fatalf("expected ok for GAS transfer, got status %d", status)
 	}
 
-	params[1].Value = "0x" + otherHash
-	status, _ = svc.checkIntentPolicy(gasHash, "transfer", "payments", params)
+	params[1].Value = "0x" + otherAddress
+	status, _ = svc.checkIntentPolicy(gasAddress, "transfer", "payments", params)
 	if status == 0 {
 		t.Fatal("expected forbidden for transfer to non-PaymentHub target")
 	}
 }
 
 func TestCheckIntentPolicyGovernance(t *testing.T) {
-	const governanceHash = "cccccccccccccccccccccccccccccccccccccccc"
-	const otherHash = "dddddddddddddddddddddddddddddddddddddddd"
+	const governanceAddress = "cccccccccccccccccccccccccccccccccccccccc"
+	const otherAddress = "dddddddddddddddddddddddddddddddddddddddd"
 
-	svc := &Service{governanceHash: governanceHash}
+	svc := &Service{governanceAddress: governanceAddress}
 
-	status, _ := svc.checkIntentPolicy("0x"+governanceHash, "vote", "governance", nil)
+	status, _ := svc.checkIntentPolicy("0x"+governanceAddress, "vote", "governance", nil)
 	if status != 0 {
 		t.Fatalf("expected ok, got status %d", status)
 	}
 
-	status, _ = svc.checkIntentPolicy(governanceHash, "getProposal", "governance", nil)
+	status, _ = svc.checkIntentPolicy(governanceAddress, "getProposal", "governance", nil)
 	if status == 0 {
 		t.Fatal("expected forbidden for non-state-changing method")
 	}
 
-	status, _ = svc.checkIntentPolicy(otherHash, "vote", "governance", nil)
+	status, _ = svc.checkIntentPolicy(otherAddress, "vote", "governance", nil)
 	if status == 0 {
 		t.Fatal("expected forbidden for non-Governance contract")
 	}
 }
 
 func TestCheckIntentPolicyUnknownIntent(t *testing.T) {
-	svc := &Service{paymentHubHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+	svc := &Service{paymentHubAddress: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
 
 	status, _ := svc.checkIntentPolicy("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "pay", "unknown", nil)
 	if status == 0 {

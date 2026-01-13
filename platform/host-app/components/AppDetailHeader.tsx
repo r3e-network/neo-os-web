@@ -1,9 +1,12 @@
 import React from "react";
 import { MiniAppInfo, MiniAppStats } from "./types";
-import { useI18n } from "@/lib/i18n/react";
+import { useI18n, useTranslation } from "@/lib/i18n/react";
 import { MiniAppLogo } from "./features/miniapp/MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
+import { ChainBadge } from "@/components/ui/ChainBadge";
 import { WishlistButton } from "./features/wishlist";
+import { Users, Activity, Eye } from "lucide-react";
+import type { ChainId } from "@/lib/chains/types";
 
 function isIconUrl(icon: string): boolean {
   if (!icon) return false;
@@ -18,24 +21,18 @@ type Props = {
 
 export function AppDetailHeader({ app, stats }: Props) {
   const { locale } = useI18n();
+  const { t } = useTranslation("host");
   const appName = locale === "zh" && app.name_zh ? app.name_zh : app.name;
+  const supportedChains = (app.supportedChains || []) as ChainId[];
 
   let statusBadge = stats?.last_activity_at ? "Active" : "Inactive";
-  let statusColorClass = stats?.last_activity_at ? "text-neo" : "text-gray-400";
-  let statusVariant: "default" | "secondary" | "destructive" | "outline" = "outline";
 
   if (app.status === "active") {
     statusBadge = "Online";
-    statusColorClass = "text-neo";
-    statusVariant = "default";
   } else if (app.status === "disabled") {
     statusBadge = "Maintenance";
-    statusColorClass = "text-amber-500";
-    statusVariant = "secondary";
   } else if (app.status === "pending") {
     statusBadge = "Pending";
-    statusColorClass = "text-gray-400";
-    statusVariant = "outline";
   }
 
   return (
@@ -93,6 +90,55 @@ export function AppDetailHeader({ app, stats }: Props) {
               {appName}
             </h1>
             <WishlistButton appId={app.app_id} size="lg" />
+          </div>
+
+          {/* Quick Stats & Chain Badges - Steam-style */}
+          <div className="flex flex-wrap items-center gap-6 mt-4">
+            {/* Quick Stats */}
+            {stats && (
+              <div className="flex items-center gap-4">
+                {stats.total_users != null && stats.total_users > 0 && (
+                  <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-gray-400">
+                    <Users size={14} className="text-erobo-purple" />
+                    <span className="font-medium">{stats.total_users.toLocaleString()}</span>
+                    <span className="text-xs">{t("detail.users") || "users"}</span>
+                  </div>
+                )}
+                {stats.total_transactions != null && stats.total_transactions > 0 && (
+                  <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-gray-400">
+                    <Activity size={14} className="text-erobo-pink" />
+                    <span className="font-medium">{stats.total_transactions.toLocaleString()}</span>
+                    <span className="text-xs">{t("detail.txs") || "txs"}</span>
+                  </div>
+                )}
+                {stats.view_count != null && stats.view_count > 0 && (
+                  <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-gray-400">
+                    <Eye size={14} className="text-erobo-mint" />
+                    <span className="font-medium">{stats.view_count.toLocaleString()}</span>
+                    <span className="text-xs">{t("detail.views") || "views"}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Supported Chains */}
+            {supportedChains.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/50 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">
+                <span className="text-xs text-erobo-ink-soft/60 dark:text-gray-500 font-medium">
+                  {t("detail.chains") || "Chains"}:
+                </span>
+                <div className="flex items-center gap-1">
+                  {supportedChains.slice(0, 4).map((chainId) => (
+                    <ChainBadge key={chainId} chainId={chainId} size="sm" />
+                  ))}
+                  {supportedChains.length > 4 && (
+                    <span className="text-xs text-erobo-ink-soft/60 dark:text-gray-500">
+                      +{supportedChains.length - 4}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

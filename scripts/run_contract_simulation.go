@@ -158,13 +158,13 @@ func main() {
 	fmt.Printf("Errors:              %d\n", atomic.LoadInt64(&stats.errors))
 }
 
-func parseContractHash(hashStr string) (util.Uint160, error) {
-	hashStr = strings.TrimPrefix(hashStr, "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+func parseContractAddress(addressStr string) (util.Uint160, error) {
+	addressStr = strings.TrimPrefix(addressStr, "0x")
+	return util.Uint160DecodeStringLE(addressStr)
 }
 
 func runPriceFeedUpdater(ctx context.Context, act *actor.Actor) {
-	contractHash, _ := parseContractHash(contracts["PriceFeed"])
+	contractAddress, _ := parseContractAddress(contracts["PriceFeed"])
 	roundID := int64(time.Now().Unix())
 
 	ticker := time.NewTicker(5 * time.Second)
@@ -183,7 +183,7 @@ func runPriceFeedUpdater(ctx context.Context, act *actor.Actor) {
 				sourceSetID := int64(1)
 
 				txHash, _, err := act.SendCall(
-					contractHash,
+					contractAddress,
 					"update",
 					symbol,
 					roundID,
@@ -209,7 +209,7 @@ func runPriceFeedUpdater(ctx context.Context, act *actor.Actor) {
 }
 
 func runRandomnessRecorder(ctx context.Context, act *actor.Actor) {
-	contractHash, _ := parseContractHash(contracts["RandomnessLog"])
+	contractAddress, _ := parseContractAddress(contracts["RandomnessLog"])
 
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -225,7 +225,7 @@ func runRandomnessRecorder(ctx context.Context, act *actor.Actor) {
 			timestamp := uint64(time.Now().Unix())
 
 			txHash, _, err := act.SendCall(
-				contractHash,
+				contractAddress,
 				"record",
 				requestID,
 				randomness,
@@ -246,7 +246,7 @@ func runRandomnessRecorder(ctx context.Context, act *actor.Actor) {
 }
 
 func runPaymentHubPayer(ctx context.Context, act *actor.Actor, appID string) {
-	contractHash, _ := parseContractHash(contracts["PaymentHub"])
+	contractAddress, _ := parseContractAddress(contracts["PaymentHub"])
 
 	// Stagger start times
 	time.Sleep(time.Duration(len(appID)%3) * time.Second)
@@ -264,8 +264,8 @@ func runPaymentHubPayer(ctx context.Context, act *actor.Actor, appID string) {
 			amount := int64(100000) // 0.001 GAS
 			memo := fmt.Sprintf("sim-payment-%d", paymentCount)
 
-			txHash, _, err := act.SendCall(
-				contractHash,
+		txHash, _, err := act.SendCall(
+			contractAddress,
 				"pay",
 				appID,
 				amount,

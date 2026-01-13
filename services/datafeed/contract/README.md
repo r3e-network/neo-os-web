@@ -26,6 +26,6 @@ NeoFeeds (`service_id`: `neofeeds`) can optionally anchor aggregated price updat
 
 The service discovers the deployed contract via:
 
-- `CONTRACT_PRICEFEED_HASH`: deployed script hash (see `../../../.env.example`).
+- `CONTRACT_PRICE_FEED_ADDRESS`: deployed contract address (see `../../../.env.example`).
 
 On-chain writes are performed via `../../txproxy/README.md` (allowlisted sign+broadcast).

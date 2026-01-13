@@ -9,11 +9,30 @@ export type ContractParam =
   | { type: "Any"; value: null }
   | { type: "Array"; value: ContractParam[] };
 
-export type InvocationIntent = {
-  contract_hash: string;
+export type ChainType = "neo-n3" | "evm";
+export type ChainId = string;
+
+export type NeoInvocationIntent = {
+  chain_id: ChainId;
+  chain_type: "neo-n3";
+  contract_address: string;
   method: string;
   params: ContractParam[];
 };
+
+export type EVMInvocationIntent = {
+  chain_id: ChainId;
+  chain_type: "evm";
+  contract_address: string;
+  data: string;
+  value?: string;
+  gas?: string;
+  gas_price?: string;
+  method?: string;
+  args?: unknown[];
+};
+
+export type InvocationIntent = NeoInvocationIntent | EVMInvocationIntent;
 
 // Wallet invocation result shape varies by wallet implementation (NeoLine/O3/etc).
 export type TxResult = unknown;
@@ -28,6 +47,8 @@ export type PayGASResponse = {
   user_id: string;
   intent: "payments";
   constraints: { settlement: "GAS_ONLY" };
+  chain_id: ChainId;
+  chain_type: ChainType;
   invocation: InvocationIntent;
 };
 
@@ -36,6 +57,8 @@ export type VoteBNEOResponse = {
   user_id: string;
   intent: "governance";
   constraints: { governance: "BNEO_ONLY" };
+  chain_id: ChainId;
+  chain_type: ChainType;
   invocation: InvocationIntent;
 };
 
@@ -45,6 +68,8 @@ export type VoteNEOResponse = VoteBNEOResponse;
 export type RNGResponse = {
   request_id: string;
   app_id: string;
+  chain_id: ChainId;
+  chain_type: ChainType;
   randomness: string;
   signature?: string;
   public_key?: string;
@@ -57,6 +82,8 @@ export type AppRegisterResponse = {
   user_id: string;
   intent: "apps";
   manifest_hash?: string;
+  chain_id: ChainId;
+  chain_type: ChainType;
   invocation: InvocationIntent;
 };
 
@@ -65,6 +92,8 @@ export type AppUpdateManifestResponse = {
   user_id: string;
   intent: "apps";
   manifest_hash?: string;
+  chain_id: ChainId;
+  chain_type: ChainType;
   invocation: InvocationIntent;
 };
 
@@ -260,6 +289,7 @@ export type RegisterTaskResponse = {
 // Usage
 export type MiniAppUsage = {
   app_id: string;
+  chain_id?: ChainId;
   usage_date: string;
   gas_used: string;
   governance_used: string;
@@ -275,8 +305,9 @@ export type MiniAppUsageResponse = {
 export type ContractEvent = {
   id: string;
   tx_hash: string;
+  chain_id: ChainId;
   block_index: number;
-  contract_hash: string;
+  contract_address: string;
   event_name: string;
   app_id?: string;
   state?: unknown;
@@ -286,7 +317,8 @@ export type ContractEvent = {
 export type EventsListParams = {
   app_id?: string;
   event_name?: string;
-  contract_hash?: string;
+  chain_id?: ChainId;
+  contract_address?: string;
   limit?: number;
   after_id?: string;
 };
@@ -304,6 +336,7 @@ export type ChainTransaction = {
   request_id: string;
   from_service: string;
   tx_type: string;
+  chain_id?: ChainId;
   contract_address: string;
   method_name: string;
   status: string;
@@ -314,6 +347,7 @@ export type ChainTransaction = {
 
 export type TransactionsListParams = {
   app_id?: string;
+  chain_id?: ChainId;
   limit?: number;
   after_id?: string;
 };
@@ -380,8 +414,8 @@ export interface HostSDK {
     }): Promise<WalletBindResponse>;
   };
   apps: {
-    register(params: { manifest: Record<string, unknown> }): Promise<AppRegisterResponse>;
-    updateManifest(params: { manifest: Record<string, unknown> }): Promise<AppUpdateManifestResponse>;
+    register(params: { manifest: Record<string, unknown>; chain_id?: ChainId }): Promise<AppRegisterResponse>;
+    updateManifest(params: { manifest: Record<string, unknown>; chain_id?: ChainId }): Promise<AppUpdateManifestResponse>;
   };
   oracle: {
     query(params: OracleQueryRequest): Promise<OracleQueryResponse>;
@@ -446,4 +480,6 @@ export type MiniAppSDKConfig = {
   getAuthToken?: () => Promise<string | undefined>;
   getAPIKey?: () => Promise<string | undefined>;
   appId?: string;
+  chainId?: ChainId | null;
+  chainType?: ChainType;
 };

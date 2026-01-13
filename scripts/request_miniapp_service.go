@@ -30,9 +30,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	miniappHashRaw := resolveMiniAppHash()
-	if miniappHashRaw == "" {
-		fmt.Println("MiniApp contract hash not set (MINIAPP_CONSUMER_HASH or CONTRACT_MINIAPP_CONSUMER_HASH)")
+	miniappAddressRaw := resolveMiniAppAddress()
+	if miniappAddressRaw == "" {
+		fmt.Println("MiniApp contract address not set (CONTRACT_MINIAPP_CONSUMER_ADDRESS)")
 		os.Exit(1)
 	}
 
@@ -62,9 +62,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	miniappHash, err := parseHash160(miniappHashRaw)
+	miniappAddress, err := parseAddress160(miniappAddressRaw)
 	if err != nil {
-		fmt.Printf("Invalid MiniApp contract hash: %v\n", err)
+		fmt.Printf("Invalid MiniApp contract address: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -85,7 +85,7 @@ func main() {
 	fmt.Println("=== MiniApp Service Request ===")
 	fmt.Printf("RPC: %s\n", rpcURL)
 	fmt.Printf("Caller: %s\n", address.Uint160ToString(privateKey.GetScriptHash()))
-	fmt.Printf("MiniApp: 0x%s\n", miniappHash.StringLE())
+	fmt.Printf("MiniApp: 0x%s\n", miniappAddress.StringLE())
 	fmt.Printf("App ID: %s\n", appID)
 	fmt.Printf("Service Type: %s\n", serviceType)
 	fmt.Printf("Payload: %s\n", payload)
@@ -95,7 +95,7 @@ func main() {
 		payloadBytes = []byte{}
 	}
 
-	testResult, err := act.Call(miniappHash, "requestService", appID, serviceType, payloadBytes)
+	testResult, err := act.Call(miniappAddress, "requestService", appID, serviceType, payloadBytes)
 	if err != nil {
 		fmt.Printf("Test invoke failed: %v\n", err)
 		os.Exit(1)
@@ -105,7 +105,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	txHash, vub, err := act.SendCall(miniappHash, "requestService", appID, serviceType, payloadBytes)
+	txHash, vub, err := act.SendCall(miniappAddress, "requestService", appID, serviceType, payloadBytes)
 	if err != nil {
 		fmt.Printf("Send failed: %v\n", err)
 		os.Exit(1)
@@ -129,7 +129,7 @@ func main() {
 	if requestID != "" && parseEnvBool("MINIAPP_WAIT_CALLBACK") {
 		timeout := parseEnvDuration("MINIAPP_CALLBACK_TIMEOUT_SECONDS", 180*time.Second)
 		fmt.Printf("Waiting for callback (timeout: %s)...\n", timeout)
-		record, err := waitForCallback(ctx, act, miniappHash, requestID, timeout)
+		record, err := waitForCallback(ctx, act, miniappAddress, requestID, timeout)
 		if err != nil {
 			fmt.Printf("❌ Callback wait failed: %v\n", err)
 			os.Exit(1)
@@ -138,11 +138,9 @@ func main() {
 	}
 }
 
-func resolveMiniAppHash() string {
+func resolveMiniAppAddress() string {
 	for _, key := range []string{
-		"MINIAPP_CONSUMER_HASH",
-		"MINIAPP_CONTRACT_HASH",
-		"CONTRACT_MINIAPP_CONSUMER_HASH",
+		"CONTRACT_MINIAPP_CONSUMER_ADDRESS",
 	} {
 		if raw := strings.TrimSpace(os.Getenv(key)); raw != "" {
 			return raw
@@ -151,7 +149,7 @@ func resolveMiniAppHash() string {
 	return ""
 }
 
-func parseHash160(raw string) (util.Uint160, error) {
+func parseAddress160(raw string) (util.Uint160, error) {
 	raw = strings.TrimPrefix(strings.TrimSpace(raw), "0x")
 	return util.Uint160DecodeStringLE(raw)
 }

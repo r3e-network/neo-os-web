@@ -1,6 +1,6 @@
 # MiniApp SDK Guide
 
-The MiniApp SDK is injected by the host app and provides a safe bridge to Neo MiniApp Platform services.
+The MiniApp SDK is injected by the host app and provides a safe bridge to MiniApp platform services.
 MiniApps should **never** construct or sign transactions directly.
 
 Use `@neo/uniapp-sdk` in UniApp/Vue, or access `window.MiniAppSDK` directly in other frameworks.
@@ -16,7 +16,7 @@ pnpm add @neo/uniapp-sdk
 ```typescript
 import { useWallet, usePayments } from "@neo/uniapp-sdk";
 
-const APP_ID = "miniapp-my-app"; // must match neo-manifest.json app_id
+const APP_ID = "miniapp-my-app"; // must match manifest app_id
 
 const { address, connect } = useWallet();
 const { payGAS } = usePayments(APP_ID);
@@ -91,16 +91,17 @@ try {
 
 ## UniversalMiniApp Contract
 
-If you need on-chain events, storage, or metrics, set `contract_hash` in `neo-manifest.json`
-to the UniversalMiniApp contract hash for your network. If you do not emit on-chain events,
-`contract_hash` can be omitted.
+If you need on-chain events, storage, or metrics, set `supported_chains` and
+`contracts.<chain>.address` in your manifest (for example `neo-manifest.json`) to the
+UniversalMiniApp contract address for each supported chain. If you do not emit on-chain
+events, you may omit addresses for those chains.
 Ensure `app_id` matches the `APP_ID` constant used in your MiniApp so SDK calls
 and payment workflows resolve correctly.
 
 ## Auto-Registration
 
 MiniApps are auto-registered. Add a folder under `miniapps-uniapp/apps/<your-app>` with a
-`neo-manifest.json` file and run:
+manifest file (`neo-manifest.json`) and run:
 
 ```bash
 node miniapps-uniapp/scripts/auto-discover-miniapps.js

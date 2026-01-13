@@ -210,4 +210,4 @@ dotnet tool install -g Neo.Compiler.CSharp
 ### Initialization fails
 
 - Ensure contracts are deployed first
-- Check `deployed_contracts.json` has valid contract hashes
+- Check `deployed_contracts.json` has valid contract addresses

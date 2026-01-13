@@ -21,7 +21,15 @@ export interface MiniAppStats {
   rating: number;
   reviewCount: number;
   // Trends
-  weeklyTrend: number; // percentage change
+  weeklyTrend?: number; // percentage change (optional, computed)
+  // View count
+  viewCount?: number;
+  // Extended analytics (Full Analytics mode)
+  retentionD1?: number; // Day 1 retention %
+  retentionD7?: number; // Day 7 retention %
+  avgSessionDuration?: number; // seconds
+  funnelViewToConnect?: number; // % who connect wallet
+  funnelConnectToTx?: number; // % who make transaction
   // Timestamps
   lastUpdated: number;
 }

@@ -94,7 +94,7 @@ This is the **callback workflow** for service contracts requested by MiniApps.
     - Filters events to approved MiniApps only.
 3. **Notification Ingestion**
     - Parses `Platform_Notification(app_id, title, content, notification_type, priority)`.
-    - Requires a valid `manifest.contract_hash` when strict ingestion is enabled.
+    - Requires a valid `manifest.contracts.<chain>.address` when strict ingestion is enabled.
     - Writes `miniapp_notifications` rows for the host feed.
 4. **Metric Ingestion**
     - Parses `Platform_Metric(app_id, metric_name, value)` and scans tx scripts for
@@ -292,12 +292,12 @@ workflow on Neo N3 testnet.
         # deploy MiniAppLottery (or any MiniApp with callback support)
         go run scripts/deploy_miniapp.go --contract MiniAppLottery
         ```
-    - Record the deployed contract hash printed by the script.
+    - Record the deployed contract address printed by the script.
 2. **Seed Supabase `miniapps`**
     - Insert a manifest row with:
         - `app_id` matching the request (e.g., `com.test.consumer`).
         - `permissions.rng=true` (or `oracle` / `compute`).
-        - `callback_contract` set to the deployed MiniApp contract hash.
+        - `callback_contract` set to the deployed MiniApp contract address.
         - `callback_method` set to `onServiceCallback`.
 3. **Register + Approve in AppRegistry**
     - Register the manifest on-chain and approve it:
@@ -317,8 +317,8 @@ workflow on Neo N3 testnet.
 4. **Trigger a service request**
     - Run:
         ```bash
-        # set the MiniApp contract hash from step 1
-        export MINIAPP_CONSUMER_HASH=0x...
+        # set the MiniApp contract address from step 1
+        export CONTRACT_MINIAPP_CONSUMER_ADDRESS=0x...
         # wait for the callback to land in the MiniApp contract
         export MINIAPP_WAIT_CALLBACK=true
         # optional: override callback wait timeout (default 180s)
@@ -329,7 +329,7 @@ workflow on Neo N3 testnet.
     - For Oracle / Compute:
 
         ```bash
-        export MINIAPP_CONSUMER_HASH=0x...
+        export CONTRACT_MINIAPP_CONSUMER_ADDRESS=0x...
         export MINIAPP_SERVICE_TYPE=oracle
         export MINIAPP_WAIT_CALLBACK=true
         # optional override; uses a Binance price query by default
@@ -353,7 +353,7 @@ If the callback does not arrive, verify:
 - `TXPROXY_ALLOWLIST` includes `ServiceLayerGateway.fulfillRequest`.
 - `ServiceLayerGateway` updater is set to the TEE signer.
 - `miniapps.manifest.permissions` includes the requested service.
-- `CONTRACT_SERVICEGATEWAY_HASH` + `NEO_RPC_URL` + `NEO_NETWORK_MAGIC` match the target network.
+- `CONTRACT_SERVICE_GATEWAY_ADDRESS` + `NEO_RPC_URL` + `NEO_NETWORK_MAGIC` match the target network.
 - `NEOVRF_URL` / `NEOORACLE_URL` / `NEOCOMPUTE_URL` are reachable by `neorequests`.
 
 ## Automated Full Workflow (Testnet)
@@ -362,19 +362,19 @@ Use the helper script to run **payments**, **governance**, and **service callbac
 flows in one sequence.
 
 ```bash
-./scripts/verify_testnet_workflows.sh --env-file .env --miniapp-hash 0x...
+./scripts/verify_testnet_workflows.sh --env-file .env --miniapp-address 0x...
 ```
 
 Required environment variables:
 
 - `NEO_TESTNET_WIF`
-- `CONTRACT_PAYMENTHUB_HASH`
-- `CONTRACT_GOVERNANCE_HASH`
-- `CONTRACT_SERVICEGATEWAY_HASH`
-- `CONTRACT_APPREGISTRY_HASH`
+- `CONTRACT_PAYMENT_HUB_ADDRESS`
+- `CONTRACT_GOVERNANCE_ADDRESS`
+- `CONTRACT_SERVICE_GATEWAY_ADDRESS`
+- `CONTRACT_APP_REGISTRY_ADDRESS`
 
-You can also set `CONTRACT_MINIAPP_CONSUMER_HASH` or `MINIAPP_CONTRACT_HASH`
-in `.env` instead of passing `--miniapp-hash`.
+You can also set `CONTRACT_MINIAPP_CONSUMER_ADDRESS`
+in `.env` instead of passing `--miniapp-address`.
 
 ## Automation Workflow (Periodic Tasks with GAS Deposit Pool)
 
@@ -711,7 +711,7 @@ Response:
 #### NeoFlow Service
 
 - `NEOFLOW_TASK_IDS`: Comma-separated list of anchored task IDs to monitor
-- `CONTRACT_AUTOMATIONANCHOR_HASH`: AutomationAnchor contract hash
+- `CONTRACT_AUTOMATION_ANCHOR_ADDRESS`: AutomationAnchor contract address
 - `NEOFLOW_ENABLE_CHAIN_EXEC`: Enable on-chain task execution (default: true)
 
 #### AutomationAnchor Contract

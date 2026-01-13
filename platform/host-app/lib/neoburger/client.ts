@@ -1,17 +1,26 @@
 /**
  * NeoBurger Client
  * Fetches real APR and staking data from NeoBurger protocol
+ * Note: NeoBurger is a Neo N3-specific protocol
  */
 
-// NeoBurger contract on Neo N3 Mainnet
-export const NEOBURGER_CONTRACT = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
+import type { ChainId } from "../chains/types";
+import { getChainRpcUrl } from "../chain/rpc-client";
+import { getChainRegistry } from "../chains/registry";
+import { isNeoN3Chain } from "../chains/types";
+
+// NeoBurger contract addresses per chain
+const NEOBURGER_CONTRACTS: Partial<Record<ChainId, string>> = {
+  "neo-n3-mainnet": "0x48c40d4666f93408be1bef038b6722404d9a4c2a",
+  "neo-n3-testnet": "0x48c40d4666f93408be1bef038b6722404d9a4c2a", // Same contract on testnet
+};
+
 export const BNEO_DECIMALS = 8;
 
-// Neo N3 RPC endpoints
-const RPC_ENDPOINTS = {
-  mainnet: "https://mainnet1.neo.coz.io:443",
-  testnet: "https://testnet1.neo.coz.io:443",
-};
+/** Get NeoBurger contract address for a chain */
+export function getNeoBurgerContract(chainId: ChainId): string | null {
+  return NEOBURGER_CONTRACTS[chainId] ?? null;
+}
 
 export interface NeoBurgerStats {
   apr: string;
@@ -27,16 +36,29 @@ export interface NeoBurgerStats {
 
 /**
  * Fetch NeoBurger stats from chain
+ * @param chainId - Must be a Neo N3 chain (neo-n3-mainnet or neo-n3-testnet)
  */
-export async function getNeoBurgerStats(network: "mainnet" | "testnet" = "mainnet"): Promise<NeoBurgerStats> {
-  const rpcUrl = RPC_ENDPOINTS[network];
+export async function getNeoBurgerStats(chainId: ChainId): Promise<NeoBurgerStats> {
+  // Validate chain is Neo N3
+  const registry = getChainRegistry();
+  const chainConfig = registry.getChain(chainId);
+  if (!chainConfig || !isNeoN3Chain(chainConfig)) {
+    throw new Error(`NeoBurger is only available on Neo N3 chains. Got: ${chainId}`);
+  }
+
+  const contractAddress = getNeoBurgerContract(chainId);
+  if (!contractAddress) {
+    throw new Error(`NeoBurger contract not deployed on ${chainId}`);
+  }
+
+  const rpcUrl = getChainRpcUrl(chainId);
 
   try {
     // Parallel fetch: Chain data + Price data
     // Note: NeoBurger contract uses "rPS" (reward per share), not "getGasPerNeo"
     const [supplyResult, rewardPerShareResult, prices] = await Promise.all([
-      invokeRead(rpcUrl, NEOBURGER_CONTRACT, "totalSupply", []),
-      invokeRead(rpcUrl, NEOBURGER_CONTRACT, "rPS", []),
+      invokeRead(rpcUrl, contractAddress, "totalSupply", []),
+      invokeRead(rpcUrl, contractAddress, "rPS", []),
       fetchTokenPrices().catch((e) => {
         console.warn("Failed to fetch token prices, using fallbacks:", e);
         return { neo: 12.5, gas: 4.8 }; // Fallback prices
@@ -130,7 +152,12 @@ async function fetchTokenPrices(): Promise<{ neo: number; gas: number }> {
 /**
  * Invoke read-only contract method
  */
-async function invokeRead(rpcUrl: string, contractHash: string, method: string, params: unknown[]): Promise<string> {
+async function invokeRead(
+  rpcUrl: string,
+  contractAddress: string,
+  method: string,
+  params: unknown[],
+): Promise<string> {
   const response = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -138,7 +165,7 @@ async function invokeRead(rpcUrl: string, contractHash: string, method: string, 
       jsonrpc: "2.0",
       id: 1,
       method: "invokefunction",
-      params: [contractHash, method, params],
+      params: [contractAddress, method, params],
     }),
   });
 
@@ -181,8 +208,9 @@ function formatLargeNumber(num: number): string {
 
 /**
  * Get current staking APR only (lightweight call helper)
+ * @param chainId - Must be a Neo N3 chain
  */
-export async function getStakingApr(network: "mainnet" | "testnet" = "mainnet"): Promise<string> {
-  const stats = await getNeoBurgerStats(network);
+export async function getStakingApr(chainId: ChainId): Promise<string> {
+  const stats = await getNeoBurgerStats(chainId);
   return stats.apr;
 }

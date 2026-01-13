@@ -66,12 +66,12 @@ func main() {
 	}
 
 	deployerHash := privateKey.GetScriptHash()
-	expectedHash := state.CreateContractHash(deployerHash, nefFile.Checksum, mani.Name)
-	expectedHex := "0x" + expectedHash.StringLE()
+	expectedAddress := state.CreateContractHash(deployerHash, nefFile.Checksum, mani.Name)
+	expectedHex := "0x" + expectedAddress.StringLE()
 
 	fmt.Println("=== ServiceLayerGateway Deployment ===")
 	fmt.Printf("RPC: %s\n", rpcURL)
-	fmt.Printf("Expected hash: %s\n", expectedHex)
+	fmt.Printf("Expected address: %s\n", expectedHex)
 
 	ctx := context.Background()
 	client, err := rpcclient.New(ctx, rpcURL, rpcclient.Options{})
@@ -80,7 +80,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if _, err := client.GetContractStateByHash(expectedHash); err == nil {
+	if _, err := client.GetContractStateByHash(expectedAddress); err == nil {
 		fmt.Printf("Already deployed at: %s\n", expectedHex)
 		return
 	}
@@ -106,13 +106,13 @@ func main() {
 	fmt.Printf("Transaction sent: %s\n", txHash.StringLE())
 	fmt.Printf("Valid until block: %d\n", vub)
 
-	contractHash, err := waitForDeployment(ctx, client, txHash, expectedHash)
+	contractAddress, err := waitForDeployment(ctx, client, txHash, expectedAddress)
 	if err != nil {
 		fmt.Printf("Deployment failed: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✅ Contract deployed at: %s\n", contractHash)
+	fmt.Printf("✅ Contract deployed at: %s\n", contractAddress)
 }
 
 func loadNEF(path string) (*nef.File, error) {
@@ -189,7 +189,7 @@ func waitForDeployment(ctx context.Context, client *rpcclient.Client, txHash uti
 			if _, err := client.GetContractStateByHash(expected); err == nil {
 				return "0x" + expected.StringLE(), nil
 			}
-			return "", fmt.Errorf("deploy succeeded but contract hash not found in logs")
+			return "", fmt.Errorf("deploy succeeded but contract address not found in logs")
 		}
 	}
 }

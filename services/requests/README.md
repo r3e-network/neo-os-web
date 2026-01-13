@@ -22,9 +22,9 @@ tracks on-chain `Pending`/`Approved`/`Disabled` states.
 
 ## Environment
 
-- `CONTRACT_SERVICEGATEWAY_HASH`: ServiceLayerGateway script hash.
-- `CONTRACT_APPREGISTRY_HASH`: AppRegistry script hash (optional enforcement).
-- `CONTRACT_PAYMENTHUB_HASH`: PaymentHub script hash (validates `PaymentReceived` events).
+- `CONTRACT_SERVICE_GATEWAY_ADDRESS`: ServiceLayerGateway contract address.
+- `CONTRACT_APP_REGISTRY_ADDRESS`: AppRegistry contract address (optional enforcement).
+- `CONTRACT_PAYMENT_HUB_ADDRESS`: PaymentHub contract address (validates `PaymentReceived` events).
 - `NEOVRF_URL`, `NEOORACLE_URL`, `NEOCOMPUTE_URL`: internal service URLs.
 - `NEOREQUESTS_MAX_RESULT_BYTES`: max callback payload size (bytes). Default
   keeps callbacks under the Neo `Notify` 1024-byte limit to avoid on-chain
@@ -44,7 +44,7 @@ tracks on-chain `Pending`/`Approved`/`Disabled` states.
 - `NEOREQUESTS_ENFORCE_APPREGISTRY`: `true` to require AppRegistry Approved status
   (defaults to on when AppRegistry hash + chain client are available).
 - `NEOREQUESTS_APPREGISTRY_CACHE_SECONDS`: cache TTL for AppRegistry + MiniApp
-  registry lookups (contract hash → app_id).
+  registry lookups (contract address → app_id).
 - `NEO_EVENT_LISTEN_ALL`: `true` to listen to all contract notifications for indexing
   (required to capture `Platform_Notification` / `Platform_Metric` from MiniApps).
   Defaults to `true` for `neorequests` when unset.
@@ -52,7 +52,8 @@ tracks on-chain `Pending`/`Approved`/`Disabled` states.
   (default `0`).
 - `NEO_EVENT_BACKFILL_BLOCKS`: number of blocks to rewind when resuming from the
   latest processed cursor (default `0`).
-- `NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT`: `true` to require `manifest.contract_hash`
-  for MiniApp event ingestion and tx tracking (defaults to `true`).
+- `NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT`: `true` to require
+  `manifest.contracts.<chain>.address` for MiniApp event ingestion and tx tracking
+  (defaults to `true`).
 - `NEOREQUESTS_STATS_ROLLUP_INTERVAL`: how often to recompute `miniapp_stats` and
   `miniapp_stats_daily` from `miniapp_usage` (Go duration, default `30m`).

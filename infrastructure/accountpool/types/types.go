@@ -141,7 +141,7 @@ type TransferInput struct {
 	AccountID string `json:"account_id"`
 	ToAddress string `json:"to_address"`
 	Amount    int64  `json:"amount"`
-	TokenHash string `json:"token_hash,omitempty"` // NEP-17 script hash (defaults to GAS)
+	TokenAddress string `json:"token_address,omitempty"` // NEP-17 contract address (defaults to GAS)
 }
 
 // TransferResponse returns the transfer result.
@@ -207,7 +207,7 @@ type DeployContractInput struct {
 // DeployContractResponse returns the deployment result.
 type DeployContractResponse struct {
 	TxHash       string `json:"tx_hash"`
-	ContractHash string `json:"contract_hash"`
+	ContractAddress string `json:"contract_address"`
 	GasConsumed  string `json:"gas_consumed"`
 	AccountID    string `json:"account_id"`
 }
@@ -216,7 +216,7 @@ type DeployContractResponse struct {
 type UpdateContractInput struct {
 	ServiceID    string `json:"service_id"`
 	AccountID    string `json:"account_id"`
-	ContractHash string `json:"contract_hash"`   // Existing contract hash to update
+	ContractAddress string `json:"contract_address"` // Existing contract address to update
 	NEFBase64    string `json:"nef_base64"`      // Base64-encoded NEF file
 	ManifestJSON string `json:"manifest_json"`   // JSON manifest string
 	Data         any    `json:"data,omitempty"`  // Optional update data
@@ -225,7 +225,7 @@ type UpdateContractInput struct {
 // UpdateContractResponse returns the update result.
 type UpdateContractResponse struct {
 	TxHash       string `json:"tx_hash"`
-	ContractHash string `json:"contract_hash"`
+	ContractAddress string `json:"contract_address"`
 	GasConsumed  string `json:"gas_consumed"`
 	AccountID    string `json:"account_id"`
 }
@@ -235,7 +235,7 @@ type UpdateContractResponse struct {
 type InvokeContractInput struct {
 	ServiceID    string          `json:"service_id"`
 	AccountID    string          `json:"account_id"`
-	ContractHash string          `json:"contract_hash"` // Contract to invoke
+	ContractAddress string       `json:"contract_address"` // Contract to invoke
 	Method       string          `json:"method"`        // Method name
 	Params       []ContractParam `json:"params"`        // Method parameters
 	Scope        string          `json:"scope,omitempty"` // Transaction scope: "CalledByEntry" (default), "Global", "CustomContracts", "CustomGroups"
@@ -254,7 +254,7 @@ type InvokeContractResponse struct {
 type SimulateContractInput struct {
 	ServiceID    string          `json:"service_id"`
 	AccountID    string          `json:"account_id"`    // Account to use as signer
-	ContractHash string          `json:"contract_hash"` // Contract to invoke
+	ContractAddress string       `json:"contract_address"` // Contract to invoke
 	Method       string          `json:"method"`        // Method name
 	Params       []ContractParam `json:"params"`        // Method parameters
 }
@@ -272,7 +272,7 @@ type SimulateContractResponse struct {
 type FundAccountInput struct {
 	ToAddress string `json:"to_address"`          // Pool account address to fund
 	Amount    int64  `json:"amount"`              // Amount in smallest units (8 decimals for GAS)
-	TokenHash string `json:"token_hash,omitempty"` // NEP-17 script hash (defaults to GAS)
+	TokenAddress string `json:"token_address,omitempty"` // NEP-17 contract address (defaults to GAS)
 }
 
 // FundAccountResponse returns the funding result.
@@ -287,7 +287,7 @@ type FundAccountResponse struct {
 // This is used for TEE operations like PriceFeed and RandomnessLog that require
 // the caller to be a registered TEE signer in AppRegistry.
 type InvokeMasterInput struct {
-	ContractHash string          `json:"contract_hash"` // Contract to invoke
+	ContractAddress string       `json:"contract_address"` // Contract to invoke
 	Method       string          `json:"method"`        // Method name
 	Params       []ContractParam `json:"params"`        // Method parameters
 	Scope        string          `json:"scope,omitempty"` // Transaction scope: "CalledByEntry" (default), "Global"
@@ -304,7 +304,7 @@ type DeployMasterInput struct {
 // DeployMasterResponse returns the deployment result using master wallet.
 type DeployMasterResponse struct {
 	TxHash       string `json:"tx_hash"`
-	ContractHash string `json:"contract_hash"`
+	ContractAddress string `json:"contract_address"`
 	GasConsumed  string `json:"gas_consumed"`
 	AccountID    string `json:"account_id"` // Always "master"
 }

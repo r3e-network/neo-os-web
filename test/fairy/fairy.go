@@ -189,9 +189,9 @@ func (c *Client) DeleteSession(sessionID string) error {
 
 // VirtualDeployResult represents the result of VirtualDeploy.
 type VirtualDeployResult struct {
-	ContractHash string `json:"contracthash"`
-	GasConsumed  string `json:"gasconsumed"`
-	State        string `json:"state"`
+	ContractAddress string `json:"contracthash"`
+	GasConsumed     string `json:"gasconsumed"`
+	State           string `json:"state"`
 }
 
 // VirtualDeploy deploys a contract virtually in a session.
@@ -223,7 +223,7 @@ func (c *Client) VirtualDeploy(sessionID, nefPath, manifestPath string) (*Virtua
 		return nil, err
 	}
 	if hash, ok := rawResult[sessionID].(string); ok {
-		result.ContractHash = hash
+		result.ContractAddress = hash
 	}
 	return &result, nil
 }
@@ -231,14 +231,14 @@ func (c *Client) VirtualDeploy(sessionID, nefPath, manifestPath string) (*Virtua
 // InvokeResult and StackItem imported from infrastructure/chain package
 
 // InvokeFunctionWithSession invokes a contract method in a session.
-func (c *Client) InvokeFunctionWithSession(sessionID string, writeSnapshot bool, contractHash, method string, args []interface{}) (*chain.InvokeResult, error) {
+func (c *Client) InvokeFunctionWithSession(sessionID string, writeSnapshot bool, contractAddress, method string, args []interface{}) (*chain.InvokeResult, error) {
 	if args == nil {
 		args = []interface{}{}
 	}
 	params := []interface{}{
 		sessionID,
 		writeSnapshot,
-		contractHash,
+		contractAddress,
 		method,
 		args,
 	}

@@ -14,7 +14,7 @@ import (
 // ContractInfo holds information about a deployed contract.
 type ContractInfo struct {
 	Name        string `json:"name"`
-	Hash        string `json:"hash"`
+	Address     string `json:"address"`
 	Version     string `json:"version,omitempty"`
 	DeployedAt  string `json:"deployed_at,omitempty"`
 	DeployTxHash string `json:"deploy_tx_hash,omitempty"`
@@ -55,13 +55,13 @@ var LegacyContractMapping = map[string]string{
 
 // EnvVarMapping maps contract names to environment variable names.
 var EnvVarMapping = map[string][]string{
-	"PaymentHub":          {"CONTRACT_PAYMENTHUB_HASH", "CONTRACT_PAYMENT_HUB_HASH", "CONTRACT_GATEWAY_HASH"},
-	"Governance":          {"CONTRACT_GOVERNANCE_HASH"},
-	"PriceFeed":           {"CONTRACT_PRICEFEED_HASH", "CONTRACT_PRICE_FEED_HASH", "CONTRACT_DATAFEEDS_HASH"},
-	"RandomnessLog":       {"CONTRACT_RANDOMNESSLOG_HASH", "CONTRACT_RANDOMNESS_LOG_HASH", "CONTRACT_VRF_HASH"},
-	"AppRegistry":         {"CONTRACT_APPREGISTRY_HASH", "CONTRACT_APP_REGISTRY_HASH"},
-	"AutomationAnchor":    {"CONTRACT_AUTOMATIONANCHOR_HASH", "CONTRACT_AUTOMATION_ANCHOR_HASH", "CONTRACT_AUTOMATION_HASH"},
-	"ServiceLayerGateway": {"CONTRACT_SERVICEGATEWAY_HASH", "CONTRACT_SERVICE_GATEWAY_HASH"},
+	"PaymentHub":          {"CONTRACT_PAYMENT_HUB_ADDRESS"},
+	"Governance":          {"CONTRACT_GOVERNANCE_ADDRESS"},
+	"PriceFeed":           {"CONTRACT_PRICE_FEED_ADDRESS"},
+	"RandomnessLog":       {"CONTRACT_RANDOMNESS_LOG_ADDRESS"},
+	"AppRegistry":         {"CONTRACT_APP_REGISTRY_ADDRESS"},
+	"AutomationAnchor":    {"CONTRACT_AUTOMATION_ANCHOR_ADDRESS"},
+	"ServiceLayerGateway": {"CONTRACT_SERVICE_GATEWAY_ADDRESS"},
 }
 
 // NewContractRegistry creates a new contract registry.
@@ -80,10 +80,10 @@ func (r *ContractRegistry) LoadFromEnv() {
 
 	for name, envVars := range EnvVarMapping {
 		for _, envVar := range envVars {
-			if hash := strings.TrimSpace(os.Getenv(envVar)); hash != "" {
+			if address := strings.TrimSpace(os.Getenv(envVar)); address != "" {
 				r.contracts[name] = &ContractInfo{
 					Name:    name,
-					Hash:    hash,
+					Address: address,
 					Network: r.network,
 					Status:  "deployed",
 				}
@@ -118,7 +118,7 @@ func (r *ContractRegistry) LoadFromFile(filename string) error {
 		r.network = registry.Network
 	}
 	for name, info := range registry.Contracts {
-		if info != nil && info.Hash != "" {
+		if info != nil && info.Address != "" {
 			info.Name = name
 			r.contracts[name] = info
 		}
@@ -165,12 +165,12 @@ func (r *ContractRegistry) Get(name string) *ContractInfo {
 	return r.contracts[name]
 }
 
-// GetHash returns the contract hash for a given name.
-func (r *ContractRegistry) GetHash(name string) string {
+// GetAddress returns the contract address for a given name.
+func (r *ContractRegistry) GetAddress(name string) string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if info := r.contracts[name]; info != nil {
-		return info.Hash
+		return info.Address
 	}
 	return ""
 }
@@ -183,25 +183,25 @@ func (r *ContractRegistry) Set(name string, info *ContractInfo) {
 	r.contracts[name] = info
 }
 
-// SetHash sets the contract hash for a given name.
-func (r *ContractRegistry) SetHash(name, hash string) {
+// SetAddress sets the contract address for a given name.
+func (r *ContractRegistry) SetAddress(name, address string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.contracts[name] == nil {
 		r.contracts[name] = &ContractInfo{Name: name}
 	}
-	r.contracts[name].Hash = hash
+	r.contracts[name].Address = address
 	r.contracts[name].Network = r.network
 }
 
 // RegisterDeployment records a new contract deployment.
-func (r *ContractRegistry) RegisterDeployment(name, hash, version, txHash, deployer string) {
+func (r *ContractRegistry) RegisterDeployment(name, address, version, txHash, deployer string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	r.contracts[name] = &ContractInfo{
 		Name:         name,
-		Hash:         hash,
+		Address:      address,
 		Version:      version,
 		DeployedAt:   time.Now().UTC().Format(time.RFC3339),
 		DeployTxHash: txHash,
@@ -212,7 +212,7 @@ func (r *ContractRegistry) RegisterDeployment(name, hash, version, txHash, deplo
 }
 
 // RegisterUpdate records a contract update.
-func (r *ContractRegistry) RegisterUpdate(name, newHash, newVersion, txHash string) error {
+func (r *ContractRegistry) RegisterUpdate(name, newAddress, newVersion, txHash string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -221,7 +221,7 @@ func (r *ContractRegistry) RegisterUpdate(name, newHash, newVersion, txHash stri
 		return fmt.Errorf("contract %s not found", name)
 	}
 
-	info.Hash = newHash
+	info.Address = newAddress
 	info.Version = newVersion
 	info.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	info.UpdateTxHash = txHash
@@ -248,19 +248,19 @@ func (r *ContractRegistry) GetAddresses() ContractAddresses {
 	defer r.mu.RUnlock()
 
 	return ContractAddresses{
-		PaymentHub:          r.getHashUnsafe("PaymentHub"),
-		Governance:          r.getHashUnsafe("Governance"),
-		PriceFeed:           r.getHashUnsafe("PriceFeed"),
-		RandomnessLog:       r.getHashUnsafe("RandomnessLog"),
-		AppRegistry:         r.getHashUnsafe("AppRegistry"),
-		AutomationAnchor:    r.getHashUnsafe("AutomationAnchor"),
-		ServiceLayerGateway: r.getHashUnsafe("ServiceLayerGateway"),
+		PaymentHub:          r.getAddressUnsafe("PaymentHub"),
+		Governance:          r.getAddressUnsafe("Governance"),
+		PriceFeed:           r.getAddressUnsafe("PriceFeed"),
+		RandomnessLog:       r.getAddressUnsafe("RandomnessLog"),
+		AppRegistry:         r.getAddressUnsafe("AppRegistry"),
+		AutomationAnchor:    r.getAddressUnsafe("AutomationAnchor"),
+		ServiceLayerGateway: r.getAddressUnsafe("ServiceLayerGateway"),
 	}
 }
 
-func (r *ContractRegistry) getHashUnsafe(name string) string {
+func (r *ContractRegistry) getAddressUnsafe(name string) string {
 	if info := r.contracts[name]; info != nil {
-		return info.Hash
+		return info.Address
 	}
 	return ""
 }
@@ -272,7 +272,7 @@ func (r *ContractRegistry) Validate() []string {
 
 	var missing []string
 	for _, name := range PlatformContracts {
-		if r.contracts[name] == nil || r.contracts[name].Hash == "" {
+		if r.contracts[name] == nil || r.contracts[name].Address == "" {
 			missing = append(missing, name)
 		}
 	}
@@ -286,12 +286,12 @@ func (r *ContractRegistry) GenerateEnvExports() string {
 
 	var lines []string
 	for name, info := range r.contracts {
-		if info == nil || info.Hash == "" {
+		if info == nil || info.Address == "" {
 			continue
 		}
 		envVars := EnvVarMapping[name]
 		if len(envVars) > 0 {
-			lines = append(lines, fmt.Sprintf("export %s=%s", envVars[0], info.Hash))
+			lines = append(lines, fmt.Sprintf("export %s=%s", envVars[0], info.Address))
 		}
 	}
 	return strings.Join(lines, "\n")

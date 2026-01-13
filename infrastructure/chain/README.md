@@ -27,16 +27,16 @@ client, err := chain.NewClient(chain.Config{
 
 ### Contract Addresses (`contracts_common.go`)
 
-Contract hashes are typically provided via env vars. For the MiniApp platform,
+Contract addresses are typically provided via env vars. For the MiniApp platform,
 these are the primary contract vars:
 
-- `CONTRACT_PAYMENTHUB_HASH`
-- `CONTRACT_GOVERNANCE_HASH`
-- `CONTRACT_PRICEFEED_HASH`
-- `CONTRACT_RANDOMNESSLOG_HASH`
-- `CONTRACT_APPREGISTRY_HASH`
-- `CONTRACT_AUTOMATIONANCHOR_HASH`
-- `CONTRACT_SERVICEGATEWAY_HASH`
+- `CONTRACT_PAYMENT_HUB_ADDRESS`
+- `CONTRACT_GOVERNANCE_ADDRESS`
+- `CONTRACT_PRICE_FEED_ADDRESS`
+- `CONTRACT_RANDOMNESS_LOG_ADDRESS`
+- `CONTRACT_APP_REGISTRY_ADDRESS`
+- `CONTRACT_AUTOMATION_ANCHOR_ADDRESS`
+- `CONTRACT_SERVICE_GATEWAY_ADDRESS`
 
 ```go
 contracts := chain.ContractAddressesFromEnv()
@@ -45,7 +45,7 @@ contracts := chain.ContractAddressesFromEnv()
 ### Event Listener (`listener_core.go`)
 
 The listener polls Neo RPC for application logs and emits typed events for the
-Service Layer contracts. Contract hashes are normalized (strip `0x`, lowercase)
+Service Layer contracts. Contract addresses are normalized (strip `0x`, lowercase)
 before filtering, to avoid silent mismatches between configs and RPC output.
 
 ```go

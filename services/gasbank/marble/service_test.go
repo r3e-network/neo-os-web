@@ -52,8 +52,8 @@ func TestServiceConstants(t *testing.T) {
 	if Version != "1.0.0" {
 		t.Errorf("Version = %s, want 1.0.0", Version)
 	}
-	if GASContractHash != "0xd2a4cff31913016155e38e474a2c06d08be276cf" {
-		t.Errorf("GASContractHash mismatch")
+	if GASContractAddress != "0xd2a4cff31913016155e38e474a2c06d08be276cf" {
+		t.Errorf("GASContractAddress mismatch")
 	}
 }
 

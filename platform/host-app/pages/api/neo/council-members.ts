@@ -1,15 +1,25 @@
 /**
  * API: Neo council member check
- * GET /api/neo/council-members?network=testnet|mainnet&address=...
+ * GET /api/neo/council-members?chain_id=neo-n3-testnet&address=...
+ *
+ * Note: Council members only exist on Neo N3 chains
  */
 import type { NextApiRequest, NextApiResponse } from "next";
 import { wallet } from "@cityofzion/neon-js";
-import { rpcCall, type Network } from "../../../lib/chain/rpc-client";
+import { rpcCall } from "../../../lib/chain/rpc-client";
+import { getChainRegistry } from "../../../lib/chains/registry";
+import type { ChainId } from "../../../lib/chains/types";
+import { isNeoN3Chain } from "../../../lib/chains/types";
 
 type CommitteeResponse = string[] | { committee?: string[] } | Array<{ publicKey?: string; publickey?: string }>;
 
-function normalizeNetwork(value: string | undefined): Network {
-  return value === "mainnet" ? "mainnet" : "testnet";
+/** Validate chain ID and ensure it's a Neo N3 chain */
+function validateNeoN3ChainId(value: string | undefined): ChainId | null {
+  if (!value) return null;
+  const registry = getChainRegistry();
+  const chain = registry.getChain(value as ChainId);
+  if (!chain || !isNeoN3Chain(chain)) return null;
+  return chain.id;
 }
 
 function normalizePublicKey(raw: string): string {
@@ -46,10 +56,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "invalid address" });
   }
 
-  const network = normalizeNetwork(String(req.query.network || ""));
+  const rawChainId = String(req.query.chain_id || req.query.network || "");
+  const chainId = validateNeoN3ChainId(rawChainId);
+
+  if (!chainId) {
+    const registry = getChainRegistry();
+    const neoChains = registry.getChainsByType("neo-n3").map((c) => c.id);
+    return res.status(400).json({
+      error: "Invalid or missing chain_id. Council members only exist on Neo N3 chains.",
+      availableChains: neoChains,
+    });
+  }
 
   try {
-    const result = await rpcCall<CommitteeResponse>("getcommittee", [], network);
+    const result = await rpcCall<CommitteeResponse>("getcommittee", [], chainId);
     const publicKeys = extractPublicKeys(result);
     const committeeAddresses = publicKeys.map((key) => {
       const scriptHash = wallet.getScriptHashFromPublicKey(normalizePublicKey(key));
@@ -57,14 +77,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     return res.status(200).json({
-      network,
+      chainId,
       isCouncilMember: committeeAddresses.includes(address),
     });
   } catch (error) {
     console.error("Council member check failed:", error);
     return res.status(500).json({
       error: "Failed to check council membership",
-      network,
+      chainId,
       isCouncilMember: null,
     });
   }

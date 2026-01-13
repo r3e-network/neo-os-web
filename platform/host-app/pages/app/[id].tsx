@@ -1,23 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { SplitViewLayout } from "../../components/layout";
 import { AppInfoPanel } from "../../components/features/app";
 import { MiniAppViewer } from "../../components/features/miniapp";
-import { MiniAppInfo, MiniAppStats, MiniAppNotification, WalletState } from "../../components/types";
-import { coerceMiniAppInfo } from "../../lib/miniapp";
+import { MiniAppInfo, MiniAppStats, MiniAppNotification } from "../../components/types";
+import { coerceMiniAppInfo, resolveChainIdForApp } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { getBuiltinApp } from "../../lib/builtin-apps";
 import { logger } from "../../lib/logger";
 import { useI18n } from "../../lib/i18n/react";
-
-interface NeoLineN3Wallet {
-  Init: new () => { getAccount: () => Promise<{ address: string }> };
-}
-
-interface WindowWithNeoLine extends Window {
-  NEOLineN3?: NeoLineN3Wallet;
-}
+import type { ChainId } from "../../lib/chains/types";
+import { useWalletStore } from "../../lib/wallet/store";
+// Chain configuration comes from MiniApp manifest only - no environment defaults
 
 type RequestLike = {
   headers?: Record<string, string | string[] | undefined>;
@@ -44,28 +39,17 @@ export type UnifiedAppPageProps = {
 export default function UnifiedAppPage({ app, stats, notifications, error }: UnifiedAppPageProps) {
   const router = useRouter();
   const { locale } = useI18n();
-  const [wallet, setWallet] = useState<WalletState>({
-    connected: false,
-    address: "",
-    provider: null,
-  });
-
-  // Wallet connection
-  useEffect(() => {
-    const tryConnectWallet = async () => {
-      try {
-        const g = window as WindowWithNeoLine;
-        if (g?.NEOLineN3) {
-          const inst = new g.NEOLineN3.Init();
-          const acc = await inst.getAccount();
-          setWallet({ connected: true, address: acc.address, provider: "neoline" });
-        }
-      } catch {
-        // Silent fail
-      }
-    };
-    tryConnectWallet();
-  }, []);
+  const { connected, address, chainId: storeChainId } = useWalletStore();
+  const requestedChainId = useMemo(() => {
+    const raw = router.query.chain ?? router.query.chainId;
+    if (Array.isArray(raw)) return (raw[0] || "") as ChainId;
+    if (typeof raw === "string" && raw.trim()) return raw as ChainId;
+    return null;
+  }, [router.query.chain, router.query.chainId]);
+  const effectiveChainId = useMemo(
+    () => (app ? resolveChainIdForApp(app, requestedChainId || storeChainId) : null),
+    [app, requestedChainId, storeChainId],
+  );
 
   // ESC key to go back
   useEffect(() => {
@@ -102,11 +86,11 @@ export default function UnifiedAppPage({ app, stats, notifications, error }: Uni
           app={app}
           stats={stats}
           notifications={notifications}
-          walletConnected={wallet.connected}
-          walletAddress={wallet.address}
+          walletConnected={connected}
+          walletAddress={address}
         />
       }
-      centerPanel={<MiniAppViewer key={locale} app={app} locale={locale} />}
+      centerPanel={<MiniAppViewer key={locale} app={app} locale={locale} chainId={effectiveChainId ?? undefined} />}
     />
   );
 }

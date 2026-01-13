@@ -88,7 +88,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	paymentHubHash, _ := parseContractHash(contracts["PaymentHub"])
+	paymentHubAddress, _ := parseContractAddress(contracts["PaymentHub"])
 
 	fmt.Println("\n=== Configuring PaymentHub for All 14 MiniApps ===")
 
@@ -96,7 +96,7 @@ func main() {
 		fmt.Printf("\n--- Configuring %s (%s) ---\n", app.Name, app.AppID)
 
 		// Check if already configured
-		result, err := act.Call(paymentHubHash, "getApp", app.AppID)
+		result, err := act.Call(paymentHubAddress, "getApp", app.AppID)
 		if err == nil && result.State == "HALT" && len(result.Stack) > 0 {
 			// Check if owner is set (non-null)
 			if result.Stack[0].Type().String() == "Array" {
@@ -109,7 +109,7 @@ func main() {
 		}
 
 		// Configure the app
-		if err := configureApp(ctx, client, act, paymentHubHash, app.AppID, deployerHash); err != nil {
+		if err := configureApp(ctx, client, act, paymentHubAddress, app.AppID, deployerHash); err != nil {
 			fmt.Printf("❌ Failed to configure %s: %v\n", app.AppID, err)
 		} else {
 			fmt.Printf("✅ %s configured successfully\n", app.AppID)
@@ -122,18 +122,18 @@ func main() {
 	fmt.Printf("Configured %d MiniApps\n", len(miniApps))
 }
 
-func parseContractHash(hashStr string) (util.Uint160, error) {
-	hashStr = strings.TrimPrefix(hashStr, "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+func parseContractAddress(addressStr string) (util.Uint160, error) {
+	addressStr = strings.TrimPrefix(addressStr, "0x")
+	return util.Uint160DecodeStringLE(addressStr)
 }
 
-func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHash util.Uint160, appID string, owner util.Uint160) error {
+func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractAddress util.Uint160, appID string, owner util.Uint160) error {
 	// ConfigureApp(appId, owner, recipients[], sharesBps[], enabled)
 	recipients := []util.Uint160{owner}
 	sharesBps := []int64{10000} // 100% to owner
 
 	// First, test invoke
-	testResult, err := act.Call(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)
+	testResult, err := act.Call(contractAddress, "configureApp", appID, owner, recipients, sharesBps, true)
 	if err != nil {
 		return fmt.Errorf("test invoke failed: %w", err)
 	}
@@ -145,7 +145,7 @@ func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Acto
 	fmt.Printf("Test invoke succeeded, GAS: %s\n", testResult.GasConsumed)
 
 	// Send actual transaction
-	txHash, vub, err := act.SendCall(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)
+	txHash, vub, err := act.SendCall(contractAddress, "configureApp", appID, owner, recipients, sharesBps, true)
 	if err != nil {
 		return fmt.Errorf("send transaction: %w", err)
 	}

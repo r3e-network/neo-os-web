@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import type { AnyCardData, CardDisplayType } from "@/types/card-display";
+import type { ChainId } from "@/lib/chains/types";
 import { getCountdownData, getMultiplierData, getStatsData, getVotingData } from "@/lib/card-data";
 
 // Map app_id to card display type
@@ -34,11 +35,11 @@ const APP_CARD_TYPES: Record<string, CardDisplayType> = {
 };
 
 // Fetch real data from chain and transform to expected types
-async function fetchRealData(appId: string, type: CardDisplayType): Promise<AnyCardData | null> {
+async function fetchRealData(appId: string, type: CardDisplayType, chainId: ChainId): Promise<AnyCardData | null> {
   try {
     switch (type) {
       case "live_countdown": {
-        const data = await getCountdownData(appId);
+        const data = await getCountdownData(appId, chainId);
         return {
           type: "live_countdown",
           endTime: data.endTime,
@@ -49,7 +50,7 @@ async function fetchRealData(appId: string, type: CardDisplayType): Promise<AnyC
         };
       }
       case "live_multiplier": {
-        const data = await getMultiplierData(appId);
+        const data = await getMultiplierData(appId, chainId);
         return {
           type: "live_multiplier",
           currentMultiplier: data.multiplier,
@@ -60,7 +61,7 @@ async function fetchRealData(appId: string, type: CardDisplayType): Promise<AnyC
         };
       }
       case "live_stats": {
-        const data = await getStatsData(appId);
+        const data = await getStatsData(appId, chainId);
         return {
           type: "live_stats",
           stats: [
@@ -72,7 +73,7 @@ async function fetchRealData(appId: string, type: CardDisplayType): Promise<AnyC
         };
       }
       case "live_voting": {
-        const data = await getVotingData(appId);
+        const data = await getVotingData(appId, chainId);
         const yesOption = data.options.find((o) => o.label.toLowerCase().includes("yes"));
         const noOption = data.options.find((o) => o.label.toLowerCase().includes("no"));
         return {
@@ -94,10 +95,10 @@ async function fetchRealData(appId: string, type: CardDisplayType): Promise<AnyC
 }
 
 // Get card data for a single app (async version for real data)
-export async function getCardDataAsync(appId: string): Promise<AnyCardData | undefined> {
+export async function getCardDataAsync(appId: string, chainId: ChainId): Promise<AnyCardData | undefined> {
   const cardType = APP_CARD_TYPES[appId];
   if (!cardType) return undefined;
-  const realData = await fetchRealData(appId, cardType);
+  const realData = await fetchRealData(appId, cardType, chainId);
   return realData || undefined;
 }
 
@@ -110,7 +111,7 @@ export function getCardData(appId: string): AnyCardData | undefined {
 }
 
 // Hook to get card data with auto-refresh (real data only)
-export function useCardData(appId: string) {
+export function useCardData(appId: string, chainId: ChainId) {
   const cardType = APP_CARD_TYPES[appId];
   const [data, setData] = useState<AnyCardData | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -123,7 +124,7 @@ export function useCardData(appId: string) {
     setError(null);
 
     try {
-      const realData = await fetchRealData(appId, cardType);
+      const realData = await fetchRealData(appId, cardType, chainId);
       setData(realData || undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data");
@@ -131,7 +132,7 @@ export function useCardData(appId: string) {
     } finally {
       setLoading(false);
     }
-  }, [appId, cardType]);
+  }, [appId, cardType, chainId]);
 
   // Initial fetch
   useEffect(() => {
@@ -150,6 +151,8 @@ export function useCardData(appId: string) {
 
 // Batch get card data for multiple apps
 export function getCardDataBatch(appIds: string[]): Record<string, AnyCardData> {
+  // Note: This sync version returns placeholder data for SSR
+  // Real data should be fetched via useCardData hook with chainId
   const result: Record<string, AnyCardData> = {};
   for (const appId of appIds) {
     const data = getCardData(appId);

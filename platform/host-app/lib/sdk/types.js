@@ -2,11 +2,17 @@
  * MiniApp SDK Types (stub)
  */
 
+/** @typedef {import('../chains/types').ChainId} ChainId */
+
 /** @typedef {Object} MiniAppSDKConfig
- * @property {string} [baseUrl]
+ * @property {string} [edgeBaseUrl]
  * @property {string} [appId]
- * @property {string|null} [contractHash]
- * @property {"testnet"|"mainnet"} [network]
+ * @property {"testnet"|"mainnet"} [network] - @deprecated Use chainId instead
+ * @property {ChainId|null} [chainId] - Multi-chain support, null if app has no chain support
+ * @property {"neo-n3"|"evm"} [chainType]
+ * @property {string|null} [contractAddress]
+ * @property {ChainId[]} [supportedChains]
+ * @property {Record<ChainId, {address: string|null, active?: boolean, entryUrl?: string}>} [chainContracts]
  * @property {() => Promise<string|undefined>} [getAuthToken]
  * @property {() => Promise<string|undefined>} [getAPIKey]
  */

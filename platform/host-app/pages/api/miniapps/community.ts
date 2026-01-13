@@ -36,7 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       icon: row.icon,
       category: row.category,
       entry_url: row.entry_url,
-      contract_hash: row.contract_hash,
+      supportedChains: Array.isArray(row.supported_chains) ? row.supported_chains : [],
+      chainContracts: row.contracts && typeof row.contracts === "object" ? row.contracts : undefined,
       source: "community" as const,
       status: row.status,
       developer: {

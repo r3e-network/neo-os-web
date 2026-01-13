@@ -6,9 +6,15 @@
   if (!isEmbedded) return;
 
   const TYPES = {
-    request: "neo_miniapp_sdk_request",
-    response: "neo_miniapp_sdk_response",
+    request: "miniapp_sdk_request",
+    response: "miniapp_sdk_response",
+    config: "miniapp_config",
   };
+
+  let cachedConfig = null;
+  if (window.__MINIAPP_CONFIG__ && typeof window.__MINIAPP_CONFIG__ === "object") {
+    cachedConfig = window.__MINIAPP_CONFIG__;
+  }
 
   function getParentOrigin() {
     const ref = String(document.referrer || "").trim();
@@ -38,8 +44,15 @@
   window.addEventListener("message", (event) => {
     const data = event.data;
     if (!data || typeof data !== "object") return;
-    if (data.type !== TYPES.response) return;
     if (parentOrigin !== "*" && event.origin !== parentOrigin) return;
+
+    if (data.type === TYPES.config && data.config && typeof data.config === "object") {
+      cachedConfig = data.config;
+      window.__MINIAPP_CONFIG__ = data.config;
+      return;
+    }
+
+    if (data.type !== TYPES.response) return;
 
     const id = String(data.id || "").trim();
     if (!id) return;
@@ -79,7 +92,26 @@
     });
   }
 
+  const getConfig = () => {
+    if (cachedConfig) return cachedConfig;
+    if (window.__MINIAPP_CONFIG__ && typeof window.__MINIAPP_CONFIG__ === "object") {
+      cachedConfig = window.__MINIAPP_CONFIG__;
+      return cachedConfig;
+    }
+    return {
+      appId: "",
+      chainId: null,
+      chainType: undefined,
+      contractAddress: null,
+      supportedChains: [],
+      chainContracts: {},
+      debug: false,
+    };
+  };
+
   window.MiniAppSDK = {
+    invoke: (method, ...args) => rpc(method, args),
+    getConfig,
     getAddress: () => rpc("wallet.getAddress", []),
     wallet: {
       getAddress: () => rpc("wallet.getAddress", []),

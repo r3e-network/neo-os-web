@@ -23,7 +23,7 @@ import (
 )
 
 type edgeInvocation struct {
-	ContractHash string                `json:"contract_hash"`
+	ContractAddress string             `json:"contract_address"`
 	Method       string                `json:"method"`
 	Params       []chain.ContractParam `json:"params"`
 }
@@ -47,6 +47,7 @@ func main() {
 	payAmount := getEnv("PAY_AMOUNT_GAS", "0.001")
 	voteAmount := getEnv("VOTE_AMOUNT_BNEO", "1")
 	proposalID := strings.TrimSpace(os.Getenv("VOTE_PROPOSAL_ID"))
+	chainID := getEnv("CHAIN_ID", "neo-n3-testnet")
 
 	rpcURL := getEnv("NEO_RPC_URL", "https://testnet1.neo.coz.io:443")
 	networkMagic := uint32(894710606)
@@ -89,6 +90,7 @@ func main() {
 		"app_id":     appID,
 		"amount_gas": payAmount,
 		"memo":       "edge-pay-gas",
+		"chain_id":   chainID,
 	})
 	if err != nil {
 		fmt.Printf("pay-gas failed: %v\n", err)
@@ -120,6 +122,7 @@ func main() {
 		"proposal_id": proposalID,
 		"bneo_amount": voteAmount,
 		"support":     true,
+		"chain_id":    chainID,
 	})
 	if err != nil {
 		fmt.Printf("vote-bneo failed: %v\n", err)
@@ -196,7 +199,7 @@ func invokeAndBroadcast(
 	scope transaction.WitnessScope,
 	simScope string,
 ) (*chain.TxResult, error) {
-	invokeResult, err := client.InvokeFunctionWithScope(ctx, inv.ContractHash, inv.Method, inv.Params, account.ScriptHash(), simScope)
+	invokeResult, err := client.InvokeFunctionWithScope(ctx, inv.ContractAddress, inv.Method, inv.Params, account.ScriptHash(), simScope)
 	if err != nil {
 		return nil, fmt.Errorf("simulate %s: %w", inv.Method, err)
 	}
@@ -237,7 +240,7 @@ func ensureProposal(ctx context.Context, client *chain.Client, account chain.TxS
 		chain.NewIntegerParam(bigInt(end)),
 	}
 	_, err := invokeAndBroadcast(ctx, client, account, edgeInvocation{
-		ContractHash: mustEnv("CONTRACT_GOVERNANCE_HASH"),
+		ContractAddress: mustEnv("CONTRACT_GOVERNANCE_ADDRESS"),
 		Method:       "createProposal",
 		Params:       params,
 	}, transaction.CalledByEntry, chain.ScopeCalledByEntry)
@@ -245,7 +248,7 @@ func ensureProposal(ctx context.Context, client *chain.Client, account chain.TxS
 }
 
 func ensureStake(ctx context.Context, client *chain.Client, account chain.TxSigner, amount string) error {
-	stake, err := chain.InvokeInt(ctx, client, mustEnv("CONTRACT_GOVERNANCE_HASH"), "getStake", chain.NewHash160Param("0x"+account.ScriptHash().StringLE()))
+	stake, err := chain.InvokeInt(ctx, client, mustEnv("CONTRACT_GOVERNANCE_ADDRESS"), "getStake", chain.NewHash160Param("0x"+account.ScriptHash().StringLE()))
 	if err != nil {
 		return fmt.Errorf("getStake: %w", err)
 	}
@@ -257,7 +260,7 @@ func ensureStake(ctx context.Context, client *chain.Client, account chain.TxSign
 		return nil
 	}
 	_, err = invokeAndBroadcast(ctx, client, account, edgeInvocation{
-		ContractHash: mustEnv("CONTRACT_GOVERNANCE_HASH"),
+		ContractAddress: mustEnv("CONTRACT_GOVERNANCE_ADDRESS"),
 		Method:       "stake",
 		Params:       []chain.ContractParam{chain.NewIntegerParam(bigInt(amt))},
 	}, transaction.CalledByEntry, chain.ScopeCalledByEntry)
@@ -280,7 +283,7 @@ func ensurePaymentHubApp(ctx context.Context, client *chain.Client, account chai
 		chain.NewBoolParam(true),
 	}
 	_, err := invokeAndBroadcast(ctx, client, account, edgeInvocation{
-		ContractHash: mustEnv("CONTRACT_PAYMENTHUB_HASH"),
+		ContractAddress: mustEnv("CONTRACT_PAYMENT_HUB_ADDRESS"),
 		Method:       "configureApp",
 		Params:       params,
 	}, transaction.CalledByEntry, chain.ScopeCalledByEntry)

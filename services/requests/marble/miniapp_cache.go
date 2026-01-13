@@ -54,35 +54,39 @@ func (s *Service) deleteMiniAppCache(key string) {
 	s.miniAppCacheMu.Unlock()
 }
 
-func miniAppCacheKey(prefix, value string) string {
+func miniAppCacheKey(prefix, chainID, value string) string {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return ""
 	}
-	return prefix + value
+	chainID = strings.TrimSpace(chainID)
+	if chainID == "" {
+		return prefix + value
+	}
+	return prefix + chainID + ":" + value
 }
 
-func (s *Service) cacheMiniApp(app *neorequestsupabase.MiniApp, contractHash string) {
+func (s *Service) cacheMiniApp(app *neorequestsupabase.MiniApp, contractAddress string) {
 	if s == nil || app == nil {
 		return
 	}
 	if appID := strings.TrimSpace(app.AppID); appID != "" {
-		s.setMiniAppCache(miniAppCacheKey("app:", appID), app, false)
+		s.setMiniAppCache(miniAppCacheKey("app:", "", appID), app, false)
 	}
-	if contractHash != "" {
-		s.setMiniAppCache(miniAppCacheKey("contract:", contractHash), app, false)
+	if contractAddress != "" {
+		s.setMiniAppCache(miniAppCacheKey("contract:", s.chainID, contractAddress), app, false)
 	}
 }
 
-func (s *Service) cacheMiniAppNotFound(appID, contractHash string) {
+func (s *Service) cacheMiniAppNotFound(appID, contractAddress string) {
 	if s == nil {
 		return
 	}
 	if appID = strings.TrimSpace(appID); appID != "" {
-		s.setMiniAppCache(miniAppCacheKey("app:", appID), nil, true)
+		s.setMiniAppCache(miniAppCacheKey("app:", "", appID), nil, true)
 	}
-	if contractHash = strings.TrimSpace(contractHash); contractHash != "" {
-		s.setMiniAppCache(miniAppCacheKey("contract:", contractHash), nil, true)
+	if contractAddress = strings.TrimSpace(contractAddress); contractAddress != "" {
+		s.setMiniAppCache(miniAppCacheKey("contract:", s.chainID, contractAddress), nil, true)
 	}
 }
 

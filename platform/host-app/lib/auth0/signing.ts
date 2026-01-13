@@ -97,7 +97,8 @@ export async function signMessage(message: string, context: SigningContext, pass
       throw new Error("No wallet connected");
     }
     const result = await adapter.signMessage(message);
-    return result.data; // Return the signature data
+    // Handle both Neo (SignedMessage) and EVM (string) return types
+    return typeof result === "string" ? result : result.data;
   } else {
     if (!password) {
       throw new Error("Password required for OAuth signing");

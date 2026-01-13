@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 async function getStats(wallet: string, res: NextApiResponse) {
   if (!supabaseUrl || !supabaseAnonKey) {
-    return res.status(200).json({ stats: getDefaultStats(wallet) });
+    return res.status(503).json({ error: "Database not configured" });
   }
 
   try {
@@ -30,7 +30,7 @@ async function getStats(wallet: string, res: NextApiResponse) {
     const { data, error } = await supabase.from("user_leaderboard").select("*").eq("wallet", wallet).single();
 
     if (error || !data) {
-      return res.status(200).json({ stats: getDefaultStats(wallet) });
+      return res.status(404).json({ error: "User stats not found" });
     }
 
     const stats: UserStats = {
@@ -48,20 +48,6 @@ async function getStats(wallet: string, res: NextApiResponse) {
     return res.status(200).json({ stats });
   } catch (err) {
     console.error("Gamification stats error:", err);
-    return res.status(200).json({ stats: getDefaultStats(wallet) });
+    return res.status(500).json({ error: "Failed to fetch user stats" });
   }
-}
-
-function getDefaultStats(wallet: string): UserStats {
-  return {
-    wallet,
-    xp: 0,
-    level: 1,
-    badges: [],
-    rank: 0,
-    streak: 0,
-    totalTx: 0,
-    totalVotes: 0,
-    appsUsed: 0,
-  };
 }

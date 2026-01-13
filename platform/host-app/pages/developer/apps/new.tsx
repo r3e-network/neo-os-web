@@ -5,11 +5,13 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
+import type { ChainId } from "@/lib/chains/types";
+import { getChainRegistry } from "@/lib/chains/registry";
 
 const categories = ["gaming", "defi", "social", "nft", "governance", "utility"] as const;
 
@@ -22,6 +24,24 @@ export default function CreateAppPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Multi-chain configuration
+  const [selectedChains, setSelectedChains] = useState<ChainId[]>(["neo-n3-mainnet"]);
+  const [contractAddresses, setContractAddresses] = useState<Record<ChainId, string>>({});
+
+  // Get available chains from registry
+  const availableChains = useMemo(() => {
+    const registry = getChainRegistry();
+    return registry.getActiveChains();
+  }, []);
+
+  const toggleChain = (chainId: ChainId) => {
+    setSelectedChains((prev) => (prev.includes(chainId) ? prev.filter((id) => id !== chainId) : [...prev, chainId]));
+  };
+
+  const updateContractAddress = (chainId: ChainId, address: string) => {
+    setContractAddresses((prev) => ({ ...prev, [chainId]: address }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address) return;
@@ -30,13 +50,27 @@ export default function CreateAppPage() {
     setError("");
 
     try {
+      // Build contracts JSON from selected chains
+      const contractsJson: Record<string, string> = {};
+      selectedChains.forEach((chainId) => {
+        if (contractAddresses[chainId]) {
+          contractsJson[chainId] = contractAddresses[chainId];
+        }
+      });
+
       const res = await fetch("/api/developer/apps", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-developer-address": address,
         },
-        body: JSON.stringify({ name, description, category }),
+        body: JSON.stringify({
+          name,
+          description,
+          category,
+          supported_chains: selectedChains,
+          contracts_json: Object.keys(contractsJson).length > 0 ? contractsJson : undefined,
+        }),
       });
 
       const data = await res.json();
@@ -117,6 +151,58 @@ export default function CreateAppPage() {
               ))}
             </select>
           </div>
+
+          {/* Supported Chains */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Supported Chains <span className="text-red-500">*</span>
+            </label>
+            <p className="text-xs text-gray-500 mb-3">Select the blockchain networks your app supports</p>
+            <div className="grid grid-cols-2 gap-3">
+              {availableChains.map((chain) => (
+                <button
+                  key={chain.id}
+                  type="button"
+                  onClick={() => toggleChain(chain.id)}
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    selectedChains.includes(chain.id)
+                      ? "border-neo bg-neo/10 text-neo"
+                      : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                  }`}
+                >
+                  <img src={chain.icon} alt={chain.name} className="w-6 h-6 rounded-full" />
+                  <span className="text-sm font-medium">{chain.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Contract Addresses per Chain */}
+          {selectedChains.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Contract Addresses (Optional)
+              </label>
+              <p className="text-xs text-gray-500 mb-3">Enter contract addresses for each chain if applicable</p>
+              <div className="space-y-3">
+                {selectedChains.map((chainId) => {
+                  const chain = availableChains.find((c) => c.id === chainId);
+                  return (
+                    <div key={chainId} className="flex items-center gap-3">
+                      {chain && <img src={chain.icon} alt={chain.name} className="w-5 h-5 rounded-full" />}
+                      <input
+                        type="text"
+                        value={contractAddresses[chainId] || ""}
+                        onChange={(e) => updateContractAddress(chainId, e.target.value)}
+                        placeholder={`Contract address on ${chain?.name || chainId}`}
+                        className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo text-sm text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="p-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400">

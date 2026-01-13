@@ -77,9 +77,9 @@ func main() {
 		rpcURL = "https://testnet1.neo.coz.io:443"
 	}
 
-	contractHash, err := util.Uint160DecodeStringLE(strings.TrimPrefix(os.Getenv("CONTRACT_APPREGISTRY_HASH"), "0x"))
-	if err != nil || contractHash.Equals(util.Uint160{}) {
-		fmt.Println("❌ CONTRACT_APPREGISTRY_HASH required")
+	contractAddress, err := util.Uint160DecodeStringLE(strings.TrimPrefix(os.Getenv("CONTRACT_APP_REGISTRY_ADDRESS"), "0x"))
+	if err != nil || contractAddress.Equals(util.Uint160{}) {
+		fmt.Println("❌ CONTRACT_APP_REGISTRY_ADDRESS required")
 		os.Exit(1)
 	}
 
@@ -98,7 +98,7 @@ func main() {
 
 	fmt.Printf("📍 RPC: %s\n", rpcURL)
 	fmt.Printf("📍 Developer: %s\n", acc.Address)
-	fmt.Printf("📍 AppRegistry: 0x%s\n", contractHash.StringLE())
+	fmt.Printf("📍 AppRegistry: 0x%s\n", contractAddress.StringLE())
 	fmt.Printf("📦 Apps to register: %d\n\n", len(builtinApps))
 
 	registered := 0
@@ -117,7 +117,7 @@ func main() {
 		}
 
 		// Check if already registered
-		existing, _ := checkApp(act, contractHash, app.AppID)
+		existing, _ := checkApp(act, contractAddress, app.AppID)
 		if existing {
 			fmt.Printf("   ✅ Already registered\n")
 			skipped++
@@ -126,7 +126,7 @@ func main() {
 
 		// Register
 		developerKey, _ := hex.DecodeString(pubKeyHex)
-		txHash, _, err := act.SendCall(contractHash, "register",
+		txHash, _, err := act.SendCall(contractAddress, "register",
 			app.AppID, manifestHash, app.EntryURL, developerKey)
 		if err != nil {
 			fmt.Printf("   ❌ Register failed: %v\n", err)
@@ -137,7 +137,7 @@ func main() {
 
 		// Wait and approve
 		time.Sleep(5 * time.Second)
-		txHash2, _, err := act.SendCall(contractHash, "setStatus", app.AppID, 1)
+		txHash2, _, err := act.SendCall(contractAddress, "setStatus", app.AppID, 1)
 		if err != nil {
 			fmt.Printf("   ⚠️  Approve failed: %v\n", err)
 		} else {

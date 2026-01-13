@@ -107,13 +107,13 @@ func deployContract(
 		return "", fmt.Errorf("parse manifest: %w", err)
 	}
 
-	// Calculate expected hash
-	expectedHash := state.CreateContractHash(account.ScriptHash(), nefFile.Checksum, m.Name)
+	// Calculate expected contract address
+	expectedAddress := state.CreateContractHash(account.ScriptHash(), nefFile.Checksum, m.Name)
 
 	// Check if already deployed
-	_, err = client.GetContractStateByHash(expectedHash)
+	_, err = client.GetContractStateByHash(expectedAddress)
 	if err == nil {
-		return "0x" + expectedHash.StringLE() + " (exists)", nil
+		return "0x" + expectedAddress.StringLE() + " (exists)", nil
 	}
 
 	// Deploy
@@ -130,5 +130,5 @@ func deployContract(
 		return "", fmt.Errorf("wait: %w", err)
 	}
 
-	return "0x" + expectedHash.StringLE(), nil
+	return "0x" + expectedAddress.StringLE(), nil
 }

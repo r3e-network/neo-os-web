@@ -372,11 +372,11 @@ func (s *Service) DeployContract(ctx context.Context, serviceID, accountID, nefB
 		params = append(params, chain.NewAnyParam())
 	}
 
-	// ContractManagement native contract hash
-	contractMgmtHash := "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
+	// ContractManagement native contract address
+	contractMgmtAddress := "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
 
 	// Simulate deployment first
-	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractMgmtHash, "deploy", params, signer.ScriptHash())
+	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractMgmtAddress, "deploy", params, signer.ScriptHash())
 	if err != nil {
 		return nil, fmt.Errorf("deployment simulation failed: %w", err)
 	}
@@ -407,8 +407,8 @@ func (s *Service) DeployContract(ctx context.Context, serviceID, accountID, nefB
 		return nil, fmt.Errorf("wait for deployment execution: %w", err)
 	}
 
-	// Extract contract hash from deployment result
-	contractHash := ""
+	// Extract contract address from deployment result
+	contractAddress := ""
 	if appLog != nil && len(appLog.Executions) > 0 {
 		exec := appLog.Executions[0]
 		if exec.VMState != "HALT" {
@@ -421,7 +421,7 @@ func (s *Service) DeployContract(ctx context.Context, serviceID, accountID, nefB
 			var valueMap map[string]any
 			if err := json.Unmarshal(exec.Stack[0].Value, &valueMap); err == nil {
 				if h, ok := valueMap["hash"].(string); ok {
-					contractHash = h
+					contractAddress = h
 				}
 			}
 		}
@@ -439,21 +439,21 @@ func (s *Service) DeployContract(ctx context.Context, serviceID, accountID, nefB
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 		"account_id":    accountID,
 		"tx_hash":       txHashString,
-		"contract_hash": contractHash,
+		"contract_address": contractAddress,
 		"gas_consumed":  invokeResult.GasConsumed,
 	}).Info("contract deployed")
 
 	return &DeployContractResponse{
-		TxHash:       txHashString,
-		ContractHash: contractHash,
-		GasConsumed:  invokeResult.GasConsumed,
-		AccountID:    accountID,
+		TxHash:          txHashString,
+		ContractAddress: contractAddress,
+		GasConsumed:     invokeResult.GasConsumed,
+		AccountID:       accountID,
 	}, nil
 }
 
 // UpdateContract updates an existing smart contract using a pool account.
 // All signing happens inside TEE - private keys never leave the enclave.
-func (s *Service) UpdateContract(ctx context.Context, serviceID, accountID, contractHash, nefBase64, manifestJSON string, data any) (*UpdateContractResponse, error) {
+func (s *Service) UpdateContract(ctx context.Context, serviceID, accountID, contractAddress, nefBase64, manifestJSON string, data any) (*UpdateContractResponse, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
@@ -463,8 +463,8 @@ func (s *Service) UpdateContract(ctx context.Context, serviceID, accountID, cont
 	if accountID == "" {
 		return nil, fmt.Errorf("account_id required")
 	}
-	if contractHash == "" {
-		return nil, fmt.Errorf("contract_hash required")
+	if contractAddress == "" {
+		return nil, fmt.Errorf("contract_address required")
 	}
 	if nefBase64 == "" {
 		return nil, fmt.Errorf("nef_base64 required")
@@ -516,7 +516,7 @@ func (s *Service) UpdateContract(ctx context.Context, serviceID, accountID, cont
 	}
 
 	// Simulate update
-	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractHash, "update", params, signer.ScriptHash())
+	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractAddress, "update", params, signer.ScriptHash())
 	if err != nil {
 		return nil, fmt.Errorf("update simulation failed: %w", err)
 	}
@@ -562,21 +562,21 @@ func (s *Service) UpdateContract(ctx context.Context, serviceID, accountID, cont
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 		"account_id":    accountID,
 		"tx_hash":       txHashString,
-		"contract_hash": contractHash,
+		"contract_address": contractAddress,
 		"gas_consumed":  invokeResult.GasConsumed,
 	}).Info("contract updated")
 
 	return &UpdateContractResponse{
-		TxHash:       txHashString,
-		ContractHash: contractHash,
-		GasConsumed:  invokeResult.GasConsumed,
-		AccountID:    accountID,
+		TxHash:          txHashString,
+		ContractAddress: contractAddress,
+		GasConsumed:     invokeResult.GasConsumed,
+		AccountID:       accountID,
 	}, nil
 }
 
 // InvokeContract invokes a contract method using a pool account.
 // All signing happens inside TEE - private keys never leave the enclave.
-func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, contractHash, method string, params []ContractParam, scope string) (*InvokeContractResponse, error) {
+func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, contractAddress, method string, params []ContractParam, scope string) (*InvokeContractResponse, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
@@ -586,8 +586,8 @@ func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, cont
 	if accountID == "" {
 		return nil, fmt.Errorf("account_id required")
 	}
-	if contractHash == "" {
-		return nil, fmt.Errorf("contract_hash required")
+	if contractAddress == "" {
+		return nil, fmt.Errorf("contract_address required")
 	}
 	if method == "" {
 		return nil, fmt.Errorf("method required")
@@ -649,7 +649,7 @@ func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, cont
 	}
 
 	// Simulate invocation with the correct scope
-	invokeResult, err := s.chainClient.InvokeFunctionWithScope(ctx, contractHash, method, chainParams, signer.ScriptHash(), rpcScope)
+	invokeResult, err := s.chainClient.InvokeFunctionWithScope(ctx, contractAddress, method, chainParams, signer.ScriptHash(), rpcScope)
 	if err != nil {
 		return nil, fmt.Errorf("invocation simulation failed: %w", err)
 	}
@@ -704,7 +704,7 @@ func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, cont
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 		"account_id":    accountID,
 		"tx_hash":       txHashString,
-		"contract_hash": contractHash,
+		"contract_address": contractAddress,
 		"method":        method,
 		"scope":         scope,
 		"gas_consumed":  invokeResult.GasConsumed,
@@ -720,7 +720,7 @@ func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, cont
 }
 
 // SimulateContract simulates a contract invocation without signing or broadcasting.
-func (s *Service) SimulateContract(ctx context.Context, serviceID, accountID, contractHash, method string, params []ContractParam) (*SimulateContractResponse, error) {
+func (s *Service) SimulateContract(ctx context.Context, serviceID, accountID, contractAddress, method string, params []ContractParam) (*SimulateContractResponse, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
@@ -730,8 +730,8 @@ func (s *Service) SimulateContract(ctx context.Context, serviceID, accountID, co
 	if accountID == "" {
 		return nil, fmt.Errorf("account_id required")
 	}
-	if contractHash == "" {
-		return nil, fmt.Errorf("contract_hash required")
+	if contractAddress == "" {
+		return nil, fmt.Errorf("contract_address required")
 	}
 	if method == "" {
 		return nil, fmt.Errorf("method required")
@@ -771,7 +771,7 @@ func (s *Service) SimulateContract(ctx context.Context, serviceID, accountID, co
 	}
 
 	// Simulate invocation
-	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractHash, method, chainParams, signer.ScriptHash())
+	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractAddress, method, chainParams, signer.ScriptHash())
 	if err != nil {
 		return nil, fmt.Errorf("simulation failed: %w", err)
 	}
@@ -846,7 +846,7 @@ func convertToChainParam(p ContractParam) chain.ContractParam {
 // This is used to fund pool accounts with GAS for transaction fees.
 // Unlike Transfer(), this uses the master wallet directly, not a pool account.
 // After successful transfer, updates the database balance for the target account.
-func (s *Service) FundAccount(ctx context.Context, toAddress string, amount int64, tokenHash string) (*FundAccountResponse, error) {
+func (s *Service) FundAccount(ctx context.Context, toAddress string, amount int64, tokenAddress string) (*FundAccountResponse, error) {
 	if s.chainClient == nil {
 		return nil, fmt.Errorf("chain client not configured")
 	}
@@ -962,12 +962,12 @@ func (s *Service) FundAccount(ctx context.Context, toAddress string, amount int6
 // This is used for TEE operations like PriceFeed and RandomnessLog that require
 // the caller to be a registered TEE signer in AppRegistry.
 // Unlike InvokeContract(), this uses the master wallet directly, not a pool account.
-func (s *Service) InvokeMaster(ctx context.Context, contractHash, method string, params []ContractParam, scope string) (*InvokeContractResponse, error) {
+func (s *Service) InvokeMaster(ctx context.Context, contractAddress, method string, params []ContractParam, scope string) (*InvokeContractResponse, error) {
 	if s.chainClient == nil {
 		return nil, fmt.Errorf("chain client not configured")
 	}
-	if contractHash == "" {
-		return nil, fmt.Errorf("contract_hash required")
+	if contractAddress == "" {
+		return nil, fmt.Errorf("contract_address required")
 	}
 	if method == "" {
 		return nil, fmt.Errorf("method required")
@@ -1030,7 +1030,7 @@ func (s *Service) InvokeMaster(ctx context.Context, contractHash, method string,
 	}
 
 	// Simulate invocation with the correct scope
-	invokeResult, err := s.chainClient.InvokeFunctionWithScope(ctx, contractHash, method, chainParams, signer.ScriptHash(), rpcScope)
+	invokeResult, err := s.chainClient.InvokeFunctionWithScope(ctx, contractAddress, method, chainParams, signer.ScriptHash(), rpcScope)
 	if err != nil {
 		return nil, fmt.Errorf("invocation simulation failed: %w", err)
 	}
@@ -1076,7 +1076,7 @@ func (s *Service) InvokeMaster(ctx context.Context, contractHash, method string,
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 		"account":       "master",
 		"tx_hash":       txHashString,
-		"contract_hash": contractHash,
+		"contract_address": contractAddress,
 		"method":        method,
 		"scope":         scope,
 		"gas_consumed":  invokeResult.GasConsumed,
@@ -1150,11 +1150,11 @@ func (s *Service) DeployMaster(ctx context.Context, nefBase64, manifestJSON stri
 		params = append(params, chain.NewAnyParam())
 	}
 
-	// ContractManagement native contract hash
-	contractMgmtHash := "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
+	// ContractManagement native contract address
+	contractMgmtAddress := "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
 
 	// Simulate deployment first
-	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractMgmtHash, "deploy", params, signer.ScriptHash())
+	invokeResult, err := s.chainClient.InvokeFunctionWithSigners(ctx, contractMgmtAddress, "deploy", params, signer.ScriptHash())
 	if err != nil {
 		return nil, fmt.Errorf("deployment simulation failed: %w", err)
 	}
@@ -1198,8 +1198,8 @@ func (s *Service) DeployMaster(ctx context.Context, nefBase64, manifestJSON stri
 		return nil, fmt.Errorf("wait for deployment execution (tx: %s): %w", txHashString, err)
 	}
 
-	// Extract contract hash from deployment result
-	contractHash := ""
+	// Extract contract address from deployment result
+	contractAddress := ""
 	if appLog != nil && len(appLog.Executions) > 0 {
 		exec := appLog.Executions[0]
 		if exec.VMState != "HALT" {
@@ -1210,14 +1210,14 @@ func (s *Service) DeployMaster(ctx context.Context, nefBase64, manifestJSON stri
 			}).Error("deployment transaction failed")
 			return nil, fmt.Errorf("deployment failed (tx: %s) with state: %s, exception: %s", txHashString, exec.VMState, exec.Exception)
 		}
-		// Contract hash is typically in the first notification or stack result
+		// Contract address is typically in the first notification or stack result
 		// The stack item contains the deployed contract state as a struct
 		if len(exec.Stack) > 0 {
 			// Try to extract hash from the stack item's Value field
 			var valueMap map[string]any
 			if err := json.Unmarshal(exec.Stack[0].Value, &valueMap); err == nil {
 				if h, ok := valueMap["hash"].(string); ok {
-					contractHash = h
+					contractAddress = h
 				}
 			}
 		}
@@ -1226,14 +1226,14 @@ func (s *Service) DeployMaster(ctx context.Context, nefBase64, manifestJSON stri
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 		"account":       "master",
 		"tx_hash":       txHashString,
-		"contract_hash": contractHash,
+		"contract_address": contractAddress,
 		"gas_consumed":  invokeResult.GasConsumed,
 	}).Info("contract deployed with master wallet")
 
 	return &DeployMasterResponse{
-		TxHash:       txHashString,
-		ContractHash: contractHash,
-		GasConsumed:  invokeResult.GasConsumed,
-		AccountID:    "master",
+		TxHash:          txHashString,
+		ContractAddress: contractAddress,
+		GasConsumed:     invokeResult.GasConsumed,
+		AccountID:       "master",
 	}, nil
 }

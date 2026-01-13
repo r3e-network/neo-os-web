@@ -8,19 +8,13 @@ import (
 func TestContractAddressesLoadFromEnv(t *testing.T) {
 	// Save and restore environment
 	envVars := []string{
-		"CONTRACT_PAYMENTHUB_HASH",
-		"CONTRACT_PAYMENT_HUB_HASH",
-		"CONTRACT_GOVERNANCE_HASH",
-		"CONTRACT_PRICEFEED_HASH",
-		"CONTRACT_PRICE_FEED_HASH",
-		"CONTRACT_RANDOMNESSLOG_HASH",
-		"CONTRACT_RANDOMNESS_LOG_HASH",
-		"CONTRACT_APPREGISTRY_HASH",
-		"CONTRACT_APP_REGISTRY_HASH",
-		"CONTRACT_AUTOMATIONANCHOR_HASH",
-		"CONTRACT_AUTOMATION_ANCHOR_HASH",
-		"CONTRACT_SERVICEGATEWAY_HASH",
-		"CONTRACT_SERVICE_GATEWAY_HASH",
+		"CONTRACT_PAYMENT_HUB_ADDRESS",
+		"CONTRACT_GOVERNANCE_ADDRESS",
+		"CONTRACT_PRICE_FEED_ADDRESS",
+		"CONTRACT_RANDOMNESS_LOG_ADDRESS",
+		"CONTRACT_APP_REGISTRY_ADDRESS",
+		"CONTRACT_AUTOMATION_ANCHOR_ADDRESS",
+		"CONTRACT_SERVICE_GATEWAY_ADDRESS",
 	}
 	saved := make(map[string]string)
 	for _, k := range envVars {
@@ -38,13 +32,13 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 	}()
 
 	t.Run("primary env vars", func(t *testing.T) {
-		os.Setenv("CONTRACT_PAYMENTHUB_HASH", "0xpayment")
-		os.Setenv("CONTRACT_GOVERNANCE_HASH", "0xgov")
-		os.Setenv("CONTRACT_PRICEFEED_HASH", "0xprice")
-		os.Setenv("CONTRACT_RANDOMNESSLOG_HASH", "0xrandom")
-		os.Setenv("CONTRACT_APPREGISTRY_HASH", "0xapp")
-		os.Setenv("CONTRACT_AUTOMATIONANCHOR_HASH", "0xauto")
-		os.Setenv("CONTRACT_SERVICEGATEWAY_HASH", "0xservice")
+		os.Setenv("CONTRACT_PAYMENT_HUB_ADDRESS", "0xpayment")
+		os.Setenv("CONTRACT_GOVERNANCE_ADDRESS", "0xgov")
+		os.Setenv("CONTRACT_PRICE_FEED_ADDRESS", "0xprice")
+		os.Setenv("CONTRACT_RANDOMNESS_LOG_ADDRESS", "0xrandom")
+		os.Setenv("CONTRACT_APP_REGISTRY_ADDRESS", "0xapp")
+		os.Setenv("CONTRACT_AUTOMATION_ANCHOR_ADDRESS", "0xauto")
+		os.Setenv("CONTRACT_SERVICE_GATEWAY_ADDRESS", "0xservice")
 		defer func() {
 			for _, k := range envVars {
 				os.Unsetenv(k)
@@ -77,42 +71,6 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 		}
 	})
 
-	t.Run("fallback env vars", func(t *testing.T) {
-		os.Setenv("CONTRACT_PAYMENT_HUB_HASH", "0xpayment2")
-		os.Setenv("CONTRACT_PRICE_FEED_HASH", "0xprice2")
-		os.Setenv("CONTRACT_RANDOMNESS_LOG_HASH", "0xrandom2")
-		os.Setenv("CONTRACT_APP_REGISTRY_HASH", "0xapp2")
-		os.Setenv("CONTRACT_AUTOMATION_ANCHOR_HASH", "0xauto2")
-		os.Setenv("CONTRACT_SERVICE_GATEWAY_HASH", "0xservice2")
-		defer func() {
-			for _, k := range envVars {
-				os.Unsetenv(k)
-			}
-		}()
-
-		c := ContractAddresses{}
-		c.LoadFromEnv()
-
-		if c.PaymentHub != "0xpayment2" {
-			t.Errorf("PaymentHub = %s, want 0xpayment2", c.PaymentHub)
-		}
-		if c.PriceFeed != "0xprice2" {
-			t.Errorf("PriceFeed = %s, want 0xprice2", c.PriceFeed)
-		}
-		if c.RandomnessLog != "0xrandom2" {
-			t.Errorf("RandomnessLog = %s, want 0xrandom2", c.RandomnessLog)
-		}
-		if c.AppRegistry != "0xapp2" {
-			t.Errorf("AppRegistry = %s, want 0xapp2", c.AppRegistry)
-		}
-		if c.AutomationAnchor != "0xauto2" {
-			t.Errorf("AutomationAnchor = %s, want 0xauto2", c.AutomationAnchor)
-		}
-		if c.ServiceLayerGateway != "0xservice2" {
-			t.Errorf("ServiceLayerGateway = %s, want 0xservice2", c.ServiceLayerGateway)
-		}
-	})
-
 	t.Run("empty env vars", func(t *testing.T) {
 		c := ContractAddresses{}
 		c.LoadFromEnv()
@@ -127,8 +85,8 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 }
 
 func TestContractAddressesFromEnv(t *testing.T) {
-	os.Setenv("CONTRACT_GOVERNANCE_HASH", "0xtest")
-	defer os.Unsetenv("CONTRACT_GOVERNANCE_HASH")
+	os.Setenv("CONTRACT_GOVERNANCE_ADDRESS", "0xtest")
+	defer os.Unsetenv("CONTRACT_GOVERNANCE_ADDRESS")
 
 	c := ContractAddressesFromEnv()
 	if c.Governance != "0xtest" {

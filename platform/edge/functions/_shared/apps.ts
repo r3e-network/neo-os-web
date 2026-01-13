@@ -1,13 +1,21 @@
 import { parseDecimalToInt } from "./amount.ts";
 import { getEnv, isProductionEnv } from "./env.ts";
-import { canonicalizeMiniAppManifest, enforceMiniAppAssetPolicy, type MiniAppManifestCore } from "./manifest.ts";
+import {
+  canonicalizeMiniAppManifest,
+  enforceMiniAppAssetPolicy,
+  type MiniAppChainContract,
+  type MiniAppManifestCore,
+} from "./manifest.ts";
 import { error } from "./response.ts";
 import { supabaseServiceClient } from "./supabase.ts";
+import { initializeStatsForApp } from "./stats-init.ts";
 
 export type MiniAppPolicy = {
   appId: string;
   manifestHash: string;
   status: string;
+  supportedChains: string[];
+  contracts: Record<string, MiniAppChainContract>;
   permissions: Record<string, unknown>;
   limits: {
     maxGasPerTx?: bigint;
@@ -21,6 +29,7 @@ type UsageMode = "record" | "check";
 type UsageCapInput = {
   appId: string;
   userId: string;
+  chainId?: string;
   gasDelta?: bigint;
   governanceDelta?: bigint;
   gasCap?: bigint;
@@ -69,10 +78,18 @@ export function permissionEnabled(permissions: Record<string, unknown> | undefin
 }
 
 function parseUsageMode(raw: string | undefined): UsageMode | null {
-  const value = String(raw ?? "").trim().toLowerCase();
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
   if (!value) return null;
   if (value === "record") return "record";
-  if (value === "check" || value === "cap-only" || value === "caps-only" || value === "cap_only" || value === "caps_only") {
+  if (
+    value === "check" ||
+    value === "cap-only" ||
+    value === "caps-only" ||
+    value === "cap_only" ||
+    value === "caps_only"
+  ) {
     return "check";
   }
   return null;
@@ -111,6 +128,7 @@ export async function enforceUsageCaps(input: UsageCapInput): Promise<Response |
   const { error: bumpErr } = await supabase.rpc(rpcName, {
     p_user_id: input.userId,
     p_app_id: input.appId,
+    p_chain_id: input.chainId ?? "neo-n3-mainnet",
     p_gas_delta: gasDelta.toString(),
     p_governance_delta: governanceDelta.toString(),
     p_gas_cap: hasGas ? input.gasCap?.toString() : null,
@@ -170,10 +188,10 @@ export async function upsertMiniAppManifest(input: {
   }
   const permissions = (canonical.permissions as Record<string, unknown> | undefined) ?? {};
   const limits = (canonical.limits as Record<string, unknown> | undefined) ?? {};
-  const assetsAllowed = Array.isArray(canonical.assets_allowed) ? (canonical.assets_allowed as string[]) : [];
-  const governanceAssetsAllowed = Array.isArray(canonical.governance_assets_allowed)
-    ? (canonical.governance_assets_allowed as string[])
-    : [];
+  const assetsAllowed = canonical.assets_allowed ?? null;
+  const governanceAssetsAllowed = canonical.governance_assets_allowed ?? null;
+  const supportedChains = Array.isArray(canonical.supported_chains) ? (canonical.supported_chains as string[]) : [];
+  const contracts = (canonical.contracts as Record<string, MiniAppChainContract> | undefined) ?? {};
 
   const payload: Record<string, unknown> = {
     app_id: input.core.appId,
@@ -182,6 +200,8 @@ export async function upsertMiniAppManifest(input: {
     entry_url: input.core.entryUrl,
     developer_pubkey: input.core.developerPubKeyHex,
     manifest: canonical,
+    supported_chains: supportedChains,
+    contracts,
     permissions,
     limits,
     assets_allowed: assetsAllowed,
@@ -192,12 +212,19 @@ export async function upsertMiniAppManifest(input: {
     payload.status = "pending";
   }
 
-  const { error: upsertErr } = await supabase
-    .from("miniapps")
-    .upsert(payload, { onConflict: "app_id" });
+  const { error: upsertErr } = await supabase.from("miniapps").upsert(payload, { onConflict: "app_id" });
 
   if (upsertErr) {
     return error(500, `failed to store miniapp manifest: ${upsertErr.message}`, "DB_ERROR", input.req);
+  }
+
+  // Eager stats creation for new registrations (async, non-blocking)
+  // Note: Database trigger also creates stats, this is a backup mechanism
+  if (input.mode === "register" && !existing) {
+    // Fire and forget - don't block registration on stats creation
+    initializeStatsForApp(input.core.appId, supportedChains).catch((err) => {
+      console.warn(`[apps] Stats initialization failed for ${input.core.appId}:`, err);
+    });
   }
 
   return null;
@@ -237,6 +264,8 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
 
   const permissions = (canonical.permissions as Record<string, unknown> | undefined) ?? {};
   const limitsRaw = (canonical.limits as Record<string, unknown> | undefined) ?? {};
+  const supportedChains = Array.isArray(canonical.supported_chains) ? (canonical.supported_chains as string[]) : [];
+  const contracts = (canonical.contracts as Record<string, MiniAppChainContract> | undefined) ?? {};
 
   let limits: MiniAppPolicy["limits"];
   try {
@@ -254,6 +283,8 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
     appId,
     manifestHash,
     status: status || "active",
+    supportedChains,
+    contracts,
     permissions,
     limits,
   };

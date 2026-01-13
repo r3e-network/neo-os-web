@@ -68,13 +68,13 @@ func main() {
 
 	deployerHash := privateKey.GetScriptHash()
 	deployerAddr := address.Uint160ToString(deployerHash)
-	expectedHash := state.CreateContractHash(deployerHash, nefFile.Checksum, mani.Name)
-	expectedHex := "0x" + expectedHash.StringLE()
+	expectedAddress := state.CreateContractHash(deployerHash, nefFile.Checksum, mani.Name)
+	expectedHex := "0x" + expectedAddress.StringLE()
 
 	fmt.Println("=== MiniAppServiceConsumer Deployment ===")
 	fmt.Printf("RPC: %s\n", rpcURL)
 	fmt.Printf("Deployer: %s\n", deployerAddr)
-	fmt.Printf("Expected hash: %s\n", expectedHex)
+	fmt.Printf("Expected address: %s\n", expectedHex)
 
 	ctx := context.Background()
 	client, err := rpcclient.New(ctx, rpcURL, rpcclient.Options{})
@@ -91,9 +91,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	contractHash := expectedHex
-	if _, err := client.GetContractStateByHash(expectedHash); err == nil {
-		fmt.Printf("Already deployed at: %s\n", contractHash)
+	contractAddress := expectedHex
+	if _, err := client.GetContractStateByHash(expectedAddress); err == nil {
+		fmt.Printf("Already deployed at: %s\n", contractAddress)
 	} else {
 		mgmt := management.New(act)
 		fmt.Println("Submitting deploy transaction...")
@@ -107,23 +107,23 @@ func main() {
 		fmt.Printf("Transaction sent: %s\n", txHash.StringLE())
 		fmt.Printf("Valid until block: %d\n", vub)
 
-		contractHash, err = waitForDeployment(ctx, client, txHash, expectedHash)
+		contractAddress, err = waitForDeployment(ctx, client, txHash, expectedAddress)
 		if err != nil {
 			fmt.Printf("Deployment failed: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("✅ Contract deployed at: %s\n", contractHash)
+		fmt.Printf("✅ Contract deployed at: %s\n", contractAddress)
 	}
 
-	gatewayHash, err := resolveGatewayHash()
+	gatewayAddress, err := resolveGatewayAddress()
 	if err != nil {
-		fmt.Printf("Invalid ServiceLayerGateway hash: %v\n", err)
+		fmt.Printf("Invalid ServiceLayerGateway address: %v\n", err)
 		os.Exit(1)
 	}
-	if gatewayHash != (util.Uint160{}) {
+	if gatewayAddress != (util.Uint160{}) {
 		fmt.Println("Configuring gateway on MiniAppServiceConsumer...")
-		if err := setGateway(ctx, client, act, expectedHash, gatewayHash); err != nil {
+		if err := setGateway(ctx, client, act, expectedAddress, gatewayAddress); err != nil {
 			fmt.Printf("❌ setGateway failed: %v\n", err)
 			os.Exit(1)
 		}
@@ -155,18 +155,15 @@ func loadManifest(path string) (*manifest.Manifest, error) {
 	return &m, nil
 }
 
-func resolveGatewayHash() (util.Uint160, error) {
-	raw := strings.TrimSpace(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
-	if raw == "" {
-		raw = strings.TrimSpace(os.Getenv("CONTRACT_SERVICE_GATEWAY_HASH"))
-	}
+func resolveGatewayAddress() (util.Uint160, error) {
+	raw := strings.TrimSpace(os.Getenv("CONTRACT_SERVICE_GATEWAY_ADDRESS"))
 	if raw == "" {
 		return util.Uint160{}, nil
 	}
-	return parseHash160(raw)
+	return parseAddress160(raw)
 }
 
-func parseHash160(raw string) (util.Uint160, error) {
+func parseAddress160(raw string) (util.Uint160, error) {
 	raw = strings.TrimPrefix(strings.TrimSpace(raw), "0x")
 	return util.Uint160DecodeStringLE(raw)
 }
@@ -264,7 +261,7 @@ func waitForDeployment(ctx context.Context, client *rpcclient.Client, txHash uti
 			if _, err := client.GetContractStateByHash(expected); err == nil {
 				return "0x" + expected.StringLE(), nil
 			}
-			return "", fmt.Errorf("deploy succeeded but contract hash not found in logs")
+			return "", fmt.Errorf("deploy succeeded but contract address not found in logs")
 		}
 	}
 }

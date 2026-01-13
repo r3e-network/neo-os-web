@@ -25,13 +25,13 @@ var contracts = []struct {
 	NEF      string
 	Manifest string
 }{
-	{"ServiceLayerGateway", "CONTRACT_SERVICEGATEWAY_HASH", "ServiceLayerGateway.nef", "ServiceLayerGateway.manifest.json"},
-	{"PaymentHub", "CONTRACT_PAYMENTHUB_HASH", "PaymentHubV2.nef", "PaymentHubV2.manifest.json"},
-	{"PriceFeed", "CONTRACT_PRICEFEED_HASH", "PriceFeed.nef", "PriceFeed.manifest.json"},
-	{"RandomnessLog", "CONTRACT_RANDOMNESSLOG_HASH", "RandomnessLog.nef", "RandomnessLog.manifest.json"},
-	{"Governance", "CONTRACT_GOVERNANCE_HASH", "Governance.nef", "Governance.manifest.json"},
-	{"AppRegistry", "CONTRACT_APPREGISTRY_HASH", "AppRegistry.nef", "AppRegistry.manifest.json"},
-	{"AutomationAnchor", "CONTRACT_AUTOMATIONANCHOR_HASH", "AutomationAnchor.nef", "AutomationAnchor.manifest.json"},
+	{"ServiceLayerGateway", "CONTRACT_SERVICE_GATEWAY_ADDRESS", "ServiceLayerGateway.nef", "ServiceLayerGateway.manifest.json"},
+	{"PaymentHub", "CONTRACT_PAYMENT_HUB_ADDRESS", "PaymentHubV2.nef", "PaymentHubV2.manifest.json"},
+	{"PriceFeed", "CONTRACT_PRICE_FEED_ADDRESS", "PriceFeed.nef", "PriceFeed.manifest.json"},
+	{"RandomnessLog", "CONTRACT_RANDOMNESS_LOG_ADDRESS", "RandomnessLog.nef", "RandomnessLog.manifest.json"},
+	{"Governance", "CONTRACT_GOVERNANCE_ADDRESS", "Governance.nef", "Governance.manifest.json"},
+	{"AppRegistry", "CONTRACT_APP_REGISTRY_ADDRESS", "AppRegistry.nef", "AppRegistry.manifest.json"},
+	{"AutomationAnchor", "CONTRACT_AUTOMATION_ANCHOR_ADDRESS", "AutomationAnchor.nef", "AutomationAnchor.manifest.json"},
 }
 
 func main() {
@@ -76,15 +76,15 @@ func main() {
 	failCount := 0
 
 	for _, c := range contracts {
-		hashStr := strings.TrimSpace(os.Getenv(c.EnvVar))
-		if hashStr == "" {
+		addressStr := strings.TrimSpace(os.Getenv(c.EnvVar))
+		if addressStr == "" {
 			fmt.Printf("⏭️  %s: %s not set, skipping\n", c.Name, c.EnvVar)
 			continue
 		}
 
-		hash, err := util.Uint160DecodeStringLE(strings.TrimPrefix(hashStr, "0x"))
+		address, err := util.Uint160DecodeStringLE(strings.TrimPrefix(addressStr, "0x"))
 		if err != nil {
-			fmt.Printf("❌ %s: invalid hash: %v\n", c.Name, err)
+			fmt.Printf("❌ %s: invalid address: %v\n", c.Name, err)
 			failCount++
 			continue
 		}
@@ -119,9 +119,9 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("📦 %s: updating at %s...\n", c.Name, hashStr)
+		fmt.Printf("📦 %s: updating at %s...\n", c.Name, addressStr)
 
-		txHash, vub, err := act.SendCall(hash, "update", nefBytes, string(manifestBytes))
+		txHash, vub, err := act.SendCall(address, "update", nefBytes, string(manifestBytes))
 		if err != nil {
 			fmt.Printf("   ❌ update failed: %v\n", err)
 			failCount++

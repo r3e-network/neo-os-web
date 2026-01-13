@@ -46,13 +46,13 @@ func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
 	}
 
 	// Not allowed contract - request_id should NOT be consumed for invalid requests.
-	resp := call(InvokeRequest{RequestID: "1", ContractHash: "beef", Method: "foo"})
+	resp := call(InvokeRequest{RequestID: "1", ContractAddress: "beef", Method: "foo"})
 	if resp.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", resp.Code)
 	}
 
 	// Same request_id with invalid contract should still be rejected (not consumed).
-	resp = call(InvokeRequest{RequestID: "1", ContractHash: "beef", Method: "foo"})
+	resp = call(InvokeRequest{RequestID: "1", ContractAddress: "beef", Method: "foo"})
 	if resp.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 (request_id not consumed for invalid request), got %d", resp.Code)
 	}
@@ -60,13 +60,13 @@ func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
 	// Allowed contract+method but chain is not configured -> 503.
 	// Note: With the new validation-first approach, markSeen happens AFTER chain check,
 	// so 503 means request_id is NOT consumed.
-	resp = call(InvokeRequest{RequestID: "2", ContractHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Method: "foo"})
+	resp = call(InvokeRequest{RequestID: "2", ContractAddress: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Method: "foo"})
 	if resp.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected 503, got %d", resp.Code)
 	}
 
 	// Same request_id should still get 503 (not 409) because markSeen is after chain check.
-	resp = call(InvokeRequest{RequestID: "2", ContractHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Method: "foo"})
+	resp = call(InvokeRequest{RequestID: "2", ContractAddress: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Method: "foo"})
 	if resp.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected 503 (request_id not consumed when chain unavailable), got %d", resp.Code)
 	}

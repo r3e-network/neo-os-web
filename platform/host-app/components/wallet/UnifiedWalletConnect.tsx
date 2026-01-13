@@ -7,8 +7,15 @@
 import { useState, useCallback } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { useWalletStore, walletOptions } from "@/lib/wallet/store";
-import { useAccountSetup } from "@/lib/wallet/hooks/useAccountSetup";
+import { useMultiChainAccountSetup } from "@/lib/wallet/hooks/useMultiChainAccountSetup";
 import { PasswordSetupModal } from "./PasswordSetupModal";
+import type { ChainId, ChainType } from "@/lib/chains/types";
+
+// Chains to generate accounts for on social login (platform-level, not MiniApp-specific)
+const ACCOUNT_SETUP_CHAINS: Array<{ chainId: ChainId; chainType: ChainType }> = [
+  { chainId: "neo-n3-mainnet", chainType: "neo-n3" },
+  { chainId: "neox-mainnet", chainType: "evm" },
+];
 
 interface UnifiedWalletConnectProps {
   onConnect?: (address: string) => void;
@@ -18,7 +25,7 @@ interface UnifiedWalletConnectProps {
 export function UnifiedWalletConnect({ onConnect, onError }: UnifiedWalletConnectProps) {
   const { user, isLoading: userLoading } = useUser();
   const { connect, connected, address, loading, error } = useWalletStore();
-  const { needsSetup, setupAccount, isLoading: setupLoading } = useAccountSetup();
+  const { needsSetup, setupMultipleAccounts, isLoading: setupLoading } = useMultiChainAccountSetup();
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [connectMode, setConnectMode] = useState<"social" | "extension" | null>(null);
@@ -47,7 +54,7 @@ export function UnifiedWalletConnect({ onConnect, onError }: UnifiedWalletConnec
 
   // Handle extension wallet connection
   const handleExtensionConnect = useCallback(
-    async (provider: "neoline" | "o3" | "onegate") => {
+    async (provider: "neoline" | "o3" | "onegate" | "metamask") => {
       setConnectMode("extension");
       try {
         await connect(provider);
@@ -59,11 +66,11 @@ export function UnifiedWalletConnect({ onConnect, onError }: UnifiedWalletConnec
     [connect, address, onConnect, onError],
   );
 
-  // Handle password setup completion
+  // Handle password setup completion - generates accounts for platform supported chains
   const handlePasswordSetup = useCallback(
     async (password: string) => {
       try {
-        await setupAccount(password);
+        await setupMultipleAccounts(ACCOUNT_SETUP_CHAINS, password);
         setShowPasswordModal(false);
         await connect("auth0");
         onConnect?.(address);
@@ -71,7 +78,7 @@ export function UnifiedWalletConnect({ onConnect, onError }: UnifiedWalletConnec
         onError?.(err instanceof Error ? err.message : "Setup failed");
       }
     },
-    [setupAccount, connect, address, onConnect, onError],
+    [setupMultipleAccounts, connect, address, onConnect, onError],
   );
 
   if (connected) {

@@ -193,27 +193,27 @@ spec:
                   name: edge-gateway-config
                   key: TXPROXY_URL
 
-            # MiniApp platform contract hashes
-            - name: CONTRACT_PAYMENTHUB_HASH
+            # MiniApp platform contract addresses
+            - name: CONTRACT_PAYMENT_HUB_ADDRESS
               valueFrom:
                 configMapKeyRef:
                   name: edge-gateway-config
-                  key: CONTRACT_PAYMENTHUB_HASH
-            - name: CONTRACT_GOVERNANCE_HASH
+                  key: CONTRACT_PAYMENT_HUB_ADDRESS
+            - name: CONTRACT_GOVERNANCE_ADDRESS
               valueFrom:
                 configMapKeyRef:
                   name: edge-gateway-config
-                  key: CONTRACT_GOVERNANCE_HASH
-            - name: CONTRACT_RANDOMNESSLOG_HASH
+                  key: CONTRACT_GOVERNANCE_ADDRESS
+            - name: CONTRACT_RANDOMNESS_LOG_ADDRESS
               valueFrom:
                 configMapKeyRef:
                   name: edge-gateway-config
-                  key: CONTRACT_RANDOMNESSLOG_HASH
-            - name: CONTRACT_APPREGISTRY_HASH
+                  key: CONTRACT_RANDOMNESS_LOG_ADDRESS
+            - name: CONTRACT_APP_REGISTRY_ADDRESS
               valueFrom:
                 configMapKeyRef:
                   name: edge-gateway-config
-                  key: CONTRACT_APPREGISTRY_HASH
+                  key: CONTRACT_APP_REGISTRY_ADDRESS
 
           resources:
             requests:

@@ -6,18 +6,29 @@ import { MiniAppLogo } from "./MiniAppLogo";
 import { Loader2, ShieldCheck, Zap, Lock } from "lucide-react";
 import { MiniAppInfo } from "../../types";
 import { FederatedMiniApp } from "../../FederatedMiniApp";
-import { buildMiniAppEntryUrl, parseFederatedEntryUrl } from "@/lib/miniapp";
+import {
+  buildMiniAppEntryUrl,
+  parseFederatedEntryUrl,
+  getContractForChain,
+  resolveChainIdForApp,
+  getEntryUrlForChain,
+} from "@/lib/miniapp";
 import { installMiniAppSDK } from "@/lib/miniapp-sdk";
 import { injectMiniAppViewportStyles } from "@/lib/miniapp-iframe";
 import type { MiniAppSDK } from "@/lib/miniapp-sdk";
+import type { ChainId } from "@/lib/chains/types";
+// Chain configuration comes from MiniApp manifest only - no environment defaults
 import { useTheme } from "../../providers/ThemeProvider";
-import { useWalletStore } from "@/lib/wallet/store";
+import { useWalletStore, type WalletStore } from "@/lib/wallet/store";
 import { MiniAppFrame } from "./MiniAppFrame";
 import { WaterWaveBackground } from "../../ui/WaterWaveBackground";
+import { getChainRegistry } from "@/lib/chains/registry";
 
 interface MiniAppViewerProps {
   app: MiniAppInfo;
   locale?: string;
+  /** Override chain ID (defaults to first supported chain from manifest, null if none) */
+  chainId?: ChainId;
 }
 
 interface WindowWithMiniAppSDK {
@@ -75,7 +86,7 @@ function MiniAppLoader({ app }: { app: MiniAppInfo }) {
 
         <div className="text-center space-y-2">
           <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight">{app.name}</h2>
-          <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-white/60">Neo MiniApp Launch</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-white/60">MiniApp Launch</p>
         </div>
 
         <div className="w-56 h-2 rounded-full bg-gray-200/70 dark:bg-white/10 overflow-hidden">
@@ -126,30 +137,38 @@ function MiniAppLoader({ app }: { app: MiniAppInfo }) {
  * MiniAppViewer - Renders a MiniApp in an iframe or federated module
  * Handles SDK injection and message bridging for the embedded app
  */
-export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
+export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: MiniAppViewerProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sdkRef = useRef<MiniAppSDK | null>(null);
-  const federated = parseFederatedEntryUrl(app.entry_url, app.app_id);
+  const effectiveChainId = useMemo(() => resolveChainIdForApp(app, chainIdProp), [app, chainIdProp]);
+  const entryUrl = useMemo(() => getEntryUrlForChain(app, effectiveChainId), [app, effectiveChainId]);
+  const federated = parseFederatedEntryUrl(entryUrl, app.app_id);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const { theme } = useTheme();
+
+  const contractAddress = useMemo(() => getContractForChain(app, effectiveChainId), [app, effectiveChainId]);
+  const chainType = useMemo(() => {
+    if (!effectiveChainId) return undefined;
+    return getChainRegistry().getChain(effectiveChainId)?.type;
+  }, [effectiveChainId]);
 
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
     const supportedLocale = locale === "zh" ? "zh" : "en";
-    return buildMiniAppEntryUrl(app.entry_url, { lang: supportedLocale, theme, embedded: "1" });
-  }, [app.entry_url, locale, theme]);
+    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1" });
+  }, [entryUrl, locale, theme]);
 
   useEffect(() => {
     if (federated) return;
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
-    const origin = resolveIframeOrigin(app.entry_url);
+    const origin = resolveIframeOrigin(entryUrl);
     if (!origin) return;
     const sandboxAttr = iframe.getAttribute("sandbox") || "";
     const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
     const targetOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
     iframe.contentWindow.postMessage({ type: "theme-change", theme }, targetOrigin);
-  }, [theme, app.entry_url, federated]);
+  }, [theme, entryUrl, federated]);
 
   // Sync wallet state to iframe when it changes
   useEffect(() => {
@@ -159,24 +178,29 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
 
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
-    const origin = resolveIframeOrigin(app.entry_url);
+    const origin = resolveIframeOrigin(entryUrl);
     if (!origin) return;
     const sandboxAttr = iframe.getAttribute("sandbox") || "";
     const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
     const targetOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
 
-    // Helper to send wallet state
-    const sendWalletState = (state: {
-      connected: boolean;
-      address: string | null;
-      balance: { neo: string; gas: string } | null;
-    }) => {
+    // Helper to send wallet state to MiniApp iframe
+    const sendWalletState = (state: WalletStore) => {
       iframe.contentWindow?.postMessage(
         {
-          type: "neo_wallet_state_change",
+          type: "miniapp_wallet_state_change",
           connected: state.connected,
           address: state.address,
-          balance: state.balance,
+          balance: state.balance
+            ? {
+                native: state.balance.native || "0",
+                nativeSymbol: state.balance.nativeSymbol,
+                governance: state.balance.governance,
+                governanceSymbol: state.balance.governanceSymbol,
+              }
+            : null,
+          chainId: state.chainId,
+          chainType: state.chainType,
         },
         targetOrigin,
       );
@@ -199,14 +223,18 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
       unsubscribe();
       clearTimeout(delayedSend);
     };
-  }, [app.entry_url, federated, isLoaded]);
+  }, [entryUrl, federated, isLoaded]);
 
   // Initialize SDK
   useEffect(() => {
     const sdk = installMiniAppSDK({
       appId: app.app_id,
-      contractHash: app.contract_hash ?? null,
+      chainId: effectiveChainId,
+      chainType,
+      contractAddress,
       permissions: app.permissions,
+      supportedChains: app.supportedChains,
+      chainContracts: app.chainContracts,
     });
 
     if (sdk && sdk.wallet) {
@@ -230,7 +258,23 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
     }
 
     sdkRef.current = sdk;
-  }, [app.app_id, app.contract_hash, app.permissions]);
+  }, [app.app_id, app.chainContracts, app.permissions, effectiveChainId, contractAddress, chainType]);
+
+  useEffect(() => {
+    if (federated) return;
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    const origin = resolveIframeOrigin(entryUrl);
+    if (!origin) return;
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const responseOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
+
+    const sdk = sdkRef.current;
+    if (sdk?.getConfig) {
+      iframe.contentWindow.postMessage({ type: "miniapp_config", config: sdk.getConfig() }, responseOrigin);
+    }
+  }, [federated, entryUrl, effectiveChainId, contractAddress, chainType, app.chainContracts, app.supportedChains]);
 
   // Setup message bridge for iframe communication
   useEffect(() => {
@@ -245,7 +289,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    const expectedOrigin = resolveIframeOrigin(app.entry_url);
+    const expectedOrigin = resolveIframeOrigin(entryUrl);
     if (!expectedOrigin) return;
 
     const sandboxAttr = iframe.getAttribute("sandbox") || "";
@@ -257,11 +301,22 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
       if (!sdkRef.current) {
         sdkRef.current = installMiniAppSDK({
           appId: app.app_id,
-          contractHash: app.contract_hash ?? null,
+          chainId: effectiveChainId,
+          chainType,
+          contractAddress,
           permissions: app.permissions,
+          supportedChains: app.supportedChains,
+          chainContracts: app.chainContracts,
         });
       }
       return sdkRef.current;
+    };
+
+    const sendConfig = (target: Window | null, responseOrigin: string) => {
+      if (!target) return;
+      const sdk = ensureSDK();
+      if (!sdk?.getConfig) return;
+      target.postMessage({ type: "miniapp_config", config: sdk.getConfig() }, responseOrigin);
     };
 
     const handleMessage = async (event: MessageEvent) => {
@@ -270,11 +325,13 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
 
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
-      if (data.type === "neo_miniapp_ready") {
+      if (data.type === "miniapp_ready") {
         setIsLoaded(true);
+        const responseOrigin = event.origin === "null" ? "*" : expectedOrigin;
+        sendConfig(event.source as Window | null, responseOrigin);
         return;
       }
-      if (data.type !== "neo_miniapp_sdk_request") return;
+      if (data.type !== "miniapp_sdk_request") return;
 
       const id = String(data.id ?? "").trim();
       if (!id) return;
@@ -286,7 +343,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
 
       const respond = (ok: boolean, result?: unknown, error?: string) => {
         const responseOrigin = event.origin === "null" ? "*" : expectedOrigin;
-        source.postMessage({ type: "neo_miniapp_sdk_response", id, ok, result, error }, responseOrigin);
+        source.postMessage({ type: "miniapp_sdk_response", id, ok, result, error }, responseOrigin);
       };
 
       try {
@@ -301,8 +358,11 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
     };
 
     const handleLoad = () => {
-      // fallback for apps that don't send "neo_miniapp_ready"
+      // fallback for apps that don't send "miniapp_ready"
       setTimeout(() => setIsLoaded(true), 1500);
+
+      const responseOrigin = allowNullOrigin ? "*" : expectedOrigin;
+      sendConfig(iframe.contentWindow, responseOrigin);
 
       if (!allowSameOriginInjection) return;
       injectMiniAppViewportStyles(iframe);
@@ -326,7 +386,7 @@ export function MiniAppViewer({ app, locale = "en" }: MiniAppViewerProps) {
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-  }, [app.app_id, app.entry_url, app.permissions, federated]);
+  }, [app.app_id, entryUrl, app.permissions, app.chainContracts, federated, effectiveChainId, chainType]);
 
   return (
     <div className="w-full h-full min-h-0 min-w-0 overflow-hidden bg-black">
@@ -384,7 +444,7 @@ function hasPermission(method: string, permissions: MiniAppInfo["permissions"]):
     case "governance.vote":
       return Boolean(permissions.governance);
     case "rng.requestRandom":
-      return Boolean(permissions.randomness);
+      return Boolean(permissions.rng);
     case "datafeed.getPrice":
       return Boolean(permissions.datafeed);
     default:
@@ -419,12 +479,22 @@ async function dispatchBridgeCall(
   const wallet = useWalletStore.getState();
 
   switch (method) {
+    case "getConfig": {
+      if (!sdk.getConfig) throw new Error("getConfig not available");
+      return sdk.getConfig();
+    }
     case "wallet.getAddress":
     case "getAddress": {
       if (wallet.connected && wallet.address) return wallet.address;
       if (sdk.wallet?.getAddress) return sdk.wallet.getAddress();
       if (sdk.getAddress) return sdk.getAddress();
       throw new Error("wallet.getAddress not available");
+    }
+    case "wallet.switchChain": {
+      const [chainId] = params;
+      if (!chainId || typeof chainId !== "string") throw new Error("chainId required");
+      await useWalletStore.getState().switchChain(chainId as import("@/lib/chains/types").ChainId);
+      return true;
     }
     case "wallet.invokeIntent": {
       if (!sdk.wallet?.invokeIntent) throw new Error("wallet.invokeIntent not available");
@@ -444,6 +514,10 @@ async function dispatchBridgeCall(
       const scopedAppId = resolveScopedAppId(requestedAppId, appId);
       const supportValue = typeof support === "boolean" ? support : undefined;
       return sdk.governance.vote(scopedAppId, String(proposalId ?? ""), String(neoAmount ?? ""), supportValue);
+    }
+    case "governance.getCandidates": {
+      if (!sdk.governance?.getCandidates) throw new Error("governance.getCandidates not available");
+      return sdk.governance.getCandidates();
     }
     case "rng.requestRandom": {
       if (!sdk.rng?.requestRandom) throw new Error("rng.requestRandom not available");

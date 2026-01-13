@@ -131,10 +131,10 @@ TOPUP_ENABLED=false
 # NEOCOMPUTE_URL=http://neocompute:8086
 # NEOVRF_URL=http://neovrf:8087
 # TXPROXY_URL=http://txproxy:8090
-# CONTRACT_PAYMENTHUB_HASH=0x...
-# CONTRACT_GOVERNANCE_HASH=0x...
-# CONTRACT_SERVICEGATEWAY_HASH=0x...
-# CONTRACT_RANDOMNESSLOG_HASH=0x... (optional; for RNG anchoring)
+# CONTRACT_PAYMENT_HUB_ADDRESS=0x...
+# CONTRACT_GOVERNANCE_ADDRESS=0x...
+# CONTRACT_SERVICE_GATEWAY_ADDRESS=0x...
+# CONTRACT_RANDOMNESS_LOG_ADDRESS=0x... (optional; for RNG anchoring)
 ```
 
 #### 3. Start Services
@@ -211,7 +211,7 @@ kubectl apply -f k8s/secrets.yaml
 # Alternatively, if you manage secrets in `.env`, you can generate/apply the Secret directly:
 #   ./scripts/apply_k8s_secrets_from_env.sh --namespace service-layer --name service-layer-secrets
 
-# Sync non-secret config (contract hashes, RPC URL, allowlists) from `.env`:
+# Sync non-secret config (contract addresses, RPC URL, allowlists) from `.env`:
 #   ./scripts/apply_k8s_config_from_env.sh --namespace service-layer --name service-layer-config --env-file .env
 
 # Create TLS certificates (if not using cert-manager)
@@ -342,8 +342,8 @@ NEOFEEDS_URL=https://neofeeds:8083
 NEOCOMPUTE_URL=https://neocompute:8086
 NEOVRF_URL=https://neovrf:8087
 TXPROXY_URL=https://txproxy:8090
-CONTRACT_PAYMENTHUB_HASH=0x...
-CONTRACT_GOVERNANCE_HASH=0x...
+CONTRACT_PAYMENT_HUB_ADDRESS=0x...
+CONTRACT_GOVERNANCE_ADDRESS=0x...
 ```
 
 Example (oracle):

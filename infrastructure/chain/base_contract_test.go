@@ -41,8 +41,8 @@ func TestNewBaseContract(t *testing.T) {
 	if bc.Client() != client {
 		t.Error("Client() should return the configured client")
 	}
-	if bc.ContractHash() != "0x1234" {
-		t.Errorf("ContractHash() = %s, want 0x1234", bc.ContractHash())
+	if bc.ContractAddress() != "0x1234" {
+		t.Errorf("ContractAddress() = %s, want 0x1234", bc.ContractAddress())
 	}
 	if bc.Wallet() != wallet {
 		t.Error("Wallet() should return the configured wallet")

@@ -5,8 +5,8 @@
  * SECURITY: Uses AES-GCM encryption with a session-derived key
  */
 
-const CACHE_KEY = "neo_wallet_session_auth";
-const KEY_CACHE_KEY = "neo_wallet_session_key";
+const CACHE_KEY = "wallet_session_auth";
+const KEY_CACHE_KEY = "wallet_session_key";
 const SESSION_DURATION = 10 * 60 * 1000; // 10 minutes (reduced from 30 for security)
 
 interface CachedAuth {

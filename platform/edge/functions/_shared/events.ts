@@ -13,13 +13,15 @@ function escapeLikePattern(value: string): string {
 export type EventsQueryParams = {
   app_id?: string;
   event_name?: string;
-  contract_hash?: string;
+  contract_address?: string;
+  chain_id?: string;
   limit?: number;
   after_id?: string;
 };
 
 export type TransactionsQueryParams = {
   app_id?: string;
+  chain_id?: string;
   limit?: number;
   after_id?: string;
 };
@@ -29,9 +31,10 @@ export type EventsListResponse = {
     id: string;
     tx_hash: string;
     block_index: number;
-    contract_hash: string;
+    contract_address: string;
     event_name: string;
     app_id: string | null;
+    chain_id: string | null;
     state: Record<string, unknown> | null;
     created_at: string;
   }>;
@@ -47,6 +50,7 @@ export type TransactionsListResponse = {
     from_service: string;
     tx_type: string;
     contract_address: string;
+    chain_id: string | null;
     method_name: string;
     params: Record<string, unknown>;
     gas_consumed: number | null;
@@ -91,17 +95,23 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
     query = query.eq("event_name", eventName);
   }
 
-  if (params.contract_hash) {
-    const contractHash = String(params.contract_hash).trim();
-    if (!contractHash) return error(400, "contract_hash cannot be empty", "INVALID_PARAM", req);
+  if (params.contract_address) {
+    const contractAddress = String(params.contract_address).trim();
+    if (!contractAddress) return error(400, "contract_address cannot be empty", "INVALID_PARAM", req);
     let normalized: string;
     try {
-      normalized = normalizeHexBytes(contractHash, 20, "contract_hash");
+      normalized = normalizeHexBytes(contractAddress, 20, "contract_address");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "invalid contract_hash";
+      const msg = err instanceof Error ? err.message : "invalid contract_address";
       return error(400, msg, "INVALID_PARAM", req);
     }
-    query = query.eq("contract_hash", normalized);
+    query = query.eq("contract_address", normalized);
+  }
+
+  if (params.chain_id) {
+    const chainId = String(params.chain_id).trim();
+    if (!chainId) return error(400, "chain_id cannot be empty", "INVALID_PARAM", req);
+    query = query.eq("chain_id", chainId);
   }
 
   if (afterId) {
@@ -124,9 +134,10 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
       id: String(row.id ?? ""),
       tx_hash: String(row.tx_hash ?? ""),
       block_index: Number(row.block_index ?? 0),
-      contract_hash: String(row.contract_hash ?? ""),
+      contract_address: String(row.contract_address ?? ""),
       event_name: String(row.event_name ?? ""),
       app_id: row.app_id ? String(row.app_id) : null,
+      chain_id: row.chain_id ? String(row.chain_id) : null,
       state: row.state ?? null,
       created_at: String(row.created_at ?? ""),
     })),
@@ -158,6 +169,12 @@ export async function queryTransactions(
     query = query.ilike("request_id", `%${escapedAppId}%`);
   }
 
+  if (params.chain_id) {
+    const chainId = String(params.chain_id).trim();
+    if (!chainId) return error(400, "chain_id cannot be empty", "INVALID_PARAM", req);
+    query = query.eq("chain_id", chainId);
+  }
+
   if (afterId) {
     const afterIdNum = Number.parseInt(afterId, 10);
     if (!Number.isFinite(afterIdNum) || afterIdNum <= 0) {
@@ -181,6 +198,7 @@ export async function queryTransactions(
       from_service: String(row.from_service ?? ""),
       tx_type: String(row.tx_type ?? ""),
       contract_address: String(row.contract_address ?? ""),
+      chain_id: row.chain_id ? String(row.chain_id) : null,
       method_name: String(row.method_name ?? ""),
       params: row.params ?? {},
       gas_consumed: row.gas_consumed !== null && row.gas_consumed !== undefined ? Number(row.gas_consumed) : null,

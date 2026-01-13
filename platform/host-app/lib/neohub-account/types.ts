@@ -1,6 +1,9 @@
 /**
  * NeoHub Account System Types
+ * Supports multi-chain accounts (Neo N3, NeoX, Ethereum, etc.)
  */
+
+import type { ChainId } from "../chains/types";
 
 export interface NeoHubAccount {
   id: string;
@@ -24,6 +27,10 @@ export interface LinkedIdentity {
   lastUsedAt?: string;
 }
 
+/**
+ * Linked blockchain account (multi-chain support)
+ * @deprecated Use LinkedChainAccount for new code
+ */
 export interface LinkedNeoAccount {
   id: string;
   neohubAccountId: string;
@@ -31,6 +38,24 @@ export interface LinkedNeoAccount {
   publicKey: string;
   isPrimary: boolean;
   linkedAt: string;
+  /** Chain ID - defaults to neo-n3-mainnet for legacy accounts */
+  chainId?: ChainId;
+}
+
+/**
+ * Multi-chain linked account
+ */
+export interface LinkedChainAccount {
+  id: string;
+  neohubAccountId: string;
+  address: string;
+  publicKey: string;
+  isPrimary: boolean;
+  linkedAt: string;
+  /** Chain ID this account belongs to */
+  chainId: ChainId;
+  /** Chain type for quick filtering */
+  chainType: "neo-n3" | "evm";
 }
 
 export interface AccountChangeLog {
@@ -45,7 +70,9 @@ export interface AccountChangeLog {
 
 export interface NeoHubAccountFull extends NeoHubAccount {
   linkedIdentities: LinkedIdentity[];
+  /** @deprecated use linkedChainAccounts */
   linkedNeoAccounts: LinkedNeoAccount[];
+  linkedChainAccounts: LinkedChainAccount[];
 }
 
 export interface CreateAccountParams {

@@ -181,5 +181,5 @@ For authenticated endpoints (for example `stats.getMyUsage`), set a Supabase
 JWT in the host browser storage before loading the MiniApp:
 
 ```js
-localStorage.setItem("neo_miniapp_auth_jwt", "<supabase-jwt>");
+localStorage.setItem("miniapp_auth_jwt", "<supabase-jwt>");
 ```

@@ -15,10 +15,10 @@ func (s *Service) handleAppRegistryEvent(ctx context.Context, event *chain.Contr
 	if event == nil {
 		return nil
 	}
-	if s.appRegistry == nil || s.appRegistryHash == "" {
+	if s.appRegistry == nil || s.appRegistryAddress == "" {
 		return nil
 	}
-	if normalizeContractHash(event.Contract) != s.appRegistryHash {
+	if normalizeContractAddress(event.Contract) != s.appRegistryAddress {
 		return nil
 	}
 
@@ -73,6 +73,7 @@ func (s *Service) handleAppRegistryEvent(ctx context.Context, event *chain.Contr
 	}
 
 	update := &neorequestsupabase.MiniAppRegistryUpdate{
+		ChainID:   s.chainID,
 		Status:    mapAppRegistryStatus(info.Status),
 		UpdatedAt: time.Now().UTC(),
 	}
@@ -100,8 +101,8 @@ func (s *Service) handleAppRegistryEvent(ctx context.Context, event *chain.Contr
 	if category := strings.TrimSpace(info.Category); category != "" {
 		update.Category = category
 	}
-	if len(info.ContractHash) > 0 {
-		update.ContractHash = hex.EncodeToString(info.ContractHash)
+	if len(info.ContractAddress) > 0 {
+		update.ContractAddress = hex.EncodeToString(info.ContractAddress)
 	}
 
 	if err := s.repo.UpdateMiniAppRegistry(ctx, appID, update); err != nil {

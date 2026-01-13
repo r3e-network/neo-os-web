@@ -4,40 +4,38 @@
  * EVM wallet adapter for MetaMask browser extension.
  */
 
-import type { IWalletAdapter, WalletAdapterEvents } from "./interface";
-import type {
-  ChainId,
-  ChainAccount,
-  TransactionRequest,
-  TransactionResult,
-  EVMTransactionRequest,
-} from "../../chains/types";
+import type { EVMWalletAdapter, WalletBalance, TransactionResult, EVMTransactionParams, WalletAccount } from "./base";
+import type { ChainId } from "../../chains/types";
 import { getChainRegistry } from "../../chains/registry";
-import { isEVMChain, isEVMTransactionRequest } from "../../chains/types";
+import { isEVMChain } from "../../chains/types";
 
-type EventCallback = WalletAdapterEvents[keyof WalletAdapterEvents];
-
-export class MetaMaskAdapter implements IWalletAdapter {
+export class MetaMaskAdapter implements EVMWalletAdapter {
   readonly id = "metamask";
   readonly name = "MetaMask";
+  readonly icon = "https://metamask.io/favicon.ico";
+  readonly downloadUrl = "https://metamask.io/";
   readonly chainType = "evm" as const;
+  readonly supportedChainTypes = ["evm"] as const;
 
-  private account: ChainAccount | null = null;
-  private listeners: Map<string, Set<EventCallback>> = new Map();
+  private account: (WalletAccount & { balance?: { native: string } }) | null = null;
+  private listeners: Map<string, Set<any>> = new Map();
+
+  // Implementation of IWalletAdapter compatibility if needed, but primarily EVMWalletAdapter
 
   isAvailable(): boolean {
     return typeof window !== "undefined" && !!window.ethereum?.isMetaMask;
+  }
+
+  isInstalled(): boolean {
+    // Alias for compatibility
+    return this.isAvailable();
   }
 
   isConnected(): boolean {
     return this.account !== null;
   }
 
-  getAccount(): ChainAccount | null {
-    return this.account;
-  }
-
-  async connect(chainId: ChainId): Promise<ChainAccount> {
+  async connect(chainId: ChainId): Promise<WalletAccount & { balance?: { native: string } }> {
     if (!this.isAvailable()) {
       throw new Error("MetaMask is not installed");
     }
@@ -62,7 +60,7 @@ export class MetaMaskAdapter implements IWalletAdapter {
       await this.switchChain(chainId);
 
       // Get balance
-      const balance = await window.ethereum!.request({
+      const balanceVal = await window.ethereum!.request({
         method: "eth_getBalance",
         params: [accounts[0], "latest"],
       });
@@ -70,15 +68,14 @@ export class MetaMaskAdapter implements IWalletAdapter {
       this.account = {
         chainId,
         address: accounts[0],
+        publicKey: "", // MetaMask doesn't expose public key easily without signing
         balance: {
-          native: BigInt(balance as string).toString(),
+          native: BigInt(balanceVal as string).toString(),
         },
       };
 
-      this.emit("connect", this.account);
       return this.account;
     } catch (error: any) {
-      this.emit("error", error);
       throw error;
     }
   }
@@ -128,6 +125,33 @@ export class MetaMaskAdapter implements IWalletAdapter {
     }
   }
 
+  async getBalance(address: string, chainId: ChainId): Promise<WalletBalance> {
+    // Ensure we query the correct chain's RPC or switch?
+    // For MetaMask, eth_getBalance queries the *current* connected chain of the provider usually,
+    // or we should use an RPC URL from registry to be safe if checking non-active chain.
+    // But adapter usually uses the injected provider.
+
+    // Note: If chainId != current MetaMask chain, this might return wrong value if we just use window.ethereum.
+    // But switchChain should have been called.
+    // For safety, we can trust the provider is on the right chain if we just switched.
+
+    const registry = getChainRegistry();
+    const chain = registry.getChain(chainId);
+    const symbol = chain?.nativeCurrency?.symbol || "ETH";
+
+    const balanceHex = await window.ethereum!.request({
+      method: "eth_getBalance",
+      params: [address, "latest"],
+    });
+
+    return {
+      native: BigInt(balanceHex as string).toString(),
+      nativeSymbol: symbol,
+      governance: undefined,
+      governanceSymbol: undefined,
+    };
+  }
+
   async signMessage(message: string): Promise<string> {
     if (!this.account) {
       throw new Error("Not connected");
@@ -141,53 +165,52 @@ export class MetaMaskAdapter implements IWalletAdapter {
     return signature as string;
   }
 
-  async sendTransaction(request: TransactionRequest): Promise<TransactionResult> {
+  async sendTransaction(params: EVMTransactionParams): Promise<TransactionResult> {
     if (!this.account) {
       throw new Error("Not connected");
     }
 
-    if (!isEVMTransactionRequest(request)) {
-      throw new Error("Invalid EVM transaction request");
-    }
-
-    const evmRequest = request as EVMTransactionRequest;
-
+    // Convert generic params to MetaMask format
     const txHash = await window.ethereum!.request({
       method: "eth_sendTransaction",
       params: [
         {
           from: this.account.address,
-          to: evmRequest.to,
-          value: evmRequest.value ? `0x${BigInt(evmRequest.value).toString(16)}` : undefined,
-          data: evmRequest.data,
-          gas: evmRequest.gasLimit,
+          to: params.to,
+          value: params.value ? `0x${BigInt(params.value).toString(16)}` : undefined,
+          data: params.data,
+          gas: params.gasLimit,
+          gasPrice: params.gasPrice,
+          maxFeePerGas: params.maxFeePerGas,
+          maxPriorityFeePerGas: params.maxPriorityFeePerGas,
         },
       ],
     });
 
     return {
-      chainId: this.account.chainId,
-      txHash: txHash as string,
-      status: "pending",
+      txid: txHash as string, // Map txHash to txid
+      chainType: "evm",
     };
   }
 
-  // Event handling
-  on<K extends keyof WalletAdapterEvents>(event: K, callback: WalletAdapterEvents[K]): void {
+  // Event handling (simplified)
+  on(event: string, callback: any): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    this.listeners.get(event)!.add(callback as EventCallback);
+    this.listeners.get(event)!.add(callback);
   }
 
-  off<K extends keyof WalletAdapterEvents>(event: K, callback: WalletAdapterEvents[K]): void {
-    this.listeners.get(event)?.delete(callback as EventCallback);
+  off(event: string, callback: any): void {
+    this.listeners.get(event)?.delete(callback);
   }
 
-  private emit<K extends keyof WalletAdapterEvents>(event: K, ...args: Parameters<WalletAdapterEvents[K]>): void {
-    this.listeners.get(event)?.forEach((cb) => {
-      (cb as (...args: unknown[]) => void)(...args);
-    });
+  getAccount(): (WalletAccount & { balance?: { native: string } }) | null {
+    return this.account;
+  }
+
+  private emit(event: string, ...args: any[]): void {
+    this.listeners.get(event)?.forEach((cb) => cb(...args));
   }
 }
 

@@ -43,7 +43,7 @@ func (c *RandomnessLogContract) Record(
 		return nil, fmt.Errorf("randomnesslog: client not configured")
 	}
 	if c.hash == "" {
-		return nil, fmt.Errorf("randomnesslog: contract hash not configured")
+		return nil, fmt.Errorf("randomnesslog: contract address not configured")
 	}
 	if signer == nil {
 		return nil, fmt.Errorf("randomnesslog: signer not configured")
@@ -85,7 +85,7 @@ func (c *RandomnessLogContract) SetUpdater(ctx context.Context, signer TxSigner,
 		return nil, fmt.Errorf("randomnesslog: client not configured")
 	}
 	if c.hash == "" {
-		return nil, fmt.Errorf("randomnesslog: contract hash not configured")
+		return nil, fmt.Errorf("randomnesslog: contract address not configured")
 	}
 	if signer == nil {
 		return nil, fmt.Errorf("randomnesslog: signer not configured")

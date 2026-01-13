@@ -21,7 +21,7 @@ Usage tracking:
 
 - `MINIAPP_USAGE_MODE`: `record` (default) or `check` to enforce caps without recording usage.
 - `MINIAPP_USAGE_MODE_PAYMENTS`, `MINIAPP_USAGE_MODE_GOVERNANCE`: optional per-intent overrides.
-- `CONTRACT_GAS_HASH`: optional override for the native GAS contract hash.
+- `CONTRACT_GAS_ADDRESS`: optional override for the native GAS contract address.
 
 TEE routing env vars (required by functions that proxy to internal services):
 
@@ -36,8 +36,8 @@ Notes:
 
 - These functions are intended to be deployed under `supabase/functions/*`
   (or symlinked/copied from here).
-- MiniApp manifests must include `contract_hash` unless `news_integration=false`
-  and no stats are requested; the indexer relies on it for event ingestion.
+- MiniApp manifests must include `supported_chains` + `contracts` (per-chain
+  contract addresses) when news/stats are enabled.
 - This repo includes a helper to export a Supabase-compatible layout:
   `./scripts/export_supabase_functions.sh` (populates `supabase/functions/`).
 - In strict identity / production mode, the TEE services will only trust
@@ -50,7 +50,12 @@ Notes:
 Wallet onboarding:
 
 - `wallet-nonce` + `wallet-bind` implement an OAuth-first flow where users must
-  bind a Neo N3 address (once signature) before accessing on-chain actions.
+  bind a wallet address before accessing on-chain actions.
+
+Wallet data:
+
+- `wallet-balance` + `wallet-transactions` accept `chain_id` (defaults to `neo-n3-mainnet`).
+  EVM chains return native balance and an empty transaction list for now.
 
 Secrets:
 
@@ -75,10 +80,10 @@ Gas bank (delegated payments):
 
 On-chain invocations (wallet-signed):
 
-- `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (**GAS only**).
-- `vote-neo`: returns a `Governance.vote` invocation (**NEO only**).
-- `app-register`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.registerApp` invocation (developer wallet-signed).
-- `app-update-manifest`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.updateApp` invocation (developer wallet-signed).
+- `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (**Neo N3 only**, GAS only).
+- `vote-bneo`: returns a `Governance.vote` invocation (**Neo N3 only**, bNEO only).
+- `app-register`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.registerApp` invocation (developer wallet-signed, chain-aware).
+- `app-update-manifest`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.updateApp` invocation (developer wallet-signed, chain-aware).
 
 Catalog + stats:
 

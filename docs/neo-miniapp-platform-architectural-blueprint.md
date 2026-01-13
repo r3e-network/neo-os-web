@@ -192,8 +192,8 @@ public static event Action<string, BigInteger> OnMetric;
 // Optional extension: Platform_Metric(app_id, metric_name, value)
 ```
 
-The manifest should include `contract_hash` so AppRegistry can anchor it; the indexer verifies the emitting
-contract against the on-chain `contract_hash` cache (strict mode can require it even when `app_id` is provided).
+The manifest should include `contracts.<chain>.address` so AppRegistry can anchor it; the indexer verifies the emitting
+contract against the on-chain contract cache (strict mode can require it even when `app_id` is provided).
 
 ### E. On-Chain Service Request Flow
 

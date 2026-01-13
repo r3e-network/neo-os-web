@@ -7,7 +7,7 @@ export interface OpcodeTrace {
   opcode_hex: string;
   gas_consumed: string;
   stack_size: number;
-  contract_hash?: string;
+  contract_address?: string;
   instruction_ptr: number;
 }
 
@@ -16,7 +16,7 @@ export interface ContractCall {
   id: number;
   tx_hash: string;
   call_index: number;
-  contract_hash: string;
+  contract_address: string;
   method: string;
   args: unknown[];
   gas_consumed: string;

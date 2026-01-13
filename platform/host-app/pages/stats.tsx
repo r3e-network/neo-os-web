@@ -35,7 +35,7 @@ interface RecentEvent {
   id: string;
   method: string;
   contract: string;
-  contractHash: string;
+  contractAddress: string;
   gasUsed: string;
   timestamp: string;
 }
@@ -285,8 +285,8 @@ export default function EnhancedStatsPage() {
                           {event.method || "invokefunction"}
                         </p>
                         <p className="text-xs text-erobo-ink-soft/70 dark:text-gray-400">
-                          {t("statsPage.contract")}: {event.contract || "Unknown"} ({event.contractHash?.slice(0, 6)}...
-                          {event.contractHash?.slice(-4)})
+                          {t("statsPage.contract")}: {event.contract || "Unknown"} ({event.contractAddress?.slice(0, 6)}...
+                          {event.contractAddress?.slice(-4)})
                         </p>
                       </div>
                     </div>

@@ -24,11 +24,11 @@ const rpcURL = "https://testnet1.neo.coz.io:443"
 // Contract addresses (new v2.0 platform contracts).
 // Prefer environment overrides to avoid stale hardcoded hashes.
 var contracts = map[string]string{
-	"PriceFeed":           envOrDefault("CONTRACT_PRICEFEED_HASH", "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"),
-	"RandomnessLog":       envOrDefault("CONTRACT_RANDOMNESSLOG_HASH", "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"),
-	"PaymentHub":          envOrDefault("CONTRACT_PAYMENTHUB_HASH", "0x45777109546ceaacfbeed9336d695bb8b8bd77ca"),
-	"AutomationAnchor":    envOrDefault("CONTRACT_AUTOMATIONANCHOR_HASH", "0x1c888d699ce76b0824028af310d90c3c18adeab5"),
-	"ServiceLayerGateway": envOrDefault("CONTRACT_SERVICEGATEWAY_HASH", ""),
+	"PriceFeed":           envOrDefault("CONTRACT_PRICE_FEED_ADDRESS", "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"),
+	"RandomnessLog":       envOrDefault("CONTRACT_RANDOMNESS_LOG_ADDRESS", "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"),
+	"PaymentHub":          envOrDefault("CONTRACT_PAYMENT_HUB_ADDRESS", "0x45777109546ceaacfbeed9336d695bb8b8bd77ca"),
+	"AutomationAnchor":    envOrDefault("CONTRACT_AUTOMATION_ANCHOR_ADDRESS", "0x1c888d699ce76b0824028af310d90c3c18adeab5"),
+	"ServiceLayerGateway": envOrDefault("CONTRACT_SERVICE_GATEWAY_ADDRESS", ""),
 }
 
 func envOrDefault(key, fallback string) string {
@@ -109,7 +109,7 @@ func main() {
 		time.Sleep(2 * time.Second)
 	} else {
 		fmt.Println("\n--- ServiceLayerGateway: SetUpdater ---")
-		fmt.Println("⚠️  ServiceLayerGateway hash not configured; skipping")
+		fmt.Println("⚠️  ServiceLayerGateway address not configured; skipping")
 	}
 
 	// 4. Configure MiniApps in PaymentHub
@@ -126,20 +126,20 @@ func main() {
 	fmt.Println("\n=== Contract Setup Complete ===")
 }
 
-func parseContractHash(hashStr string) (util.Uint160, error) {
-	hashStr = strings.TrimPrefix(hashStr, "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+func parseContractAddress(addressStr string) (util.Uint160, error) {
+	addressStr = strings.TrimPrefix(addressStr, "0x")
+	return util.Uint160DecodeStringLE(addressStr)
 }
 
-func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHashStr string, updater util.Uint160) error {
-	contractHash, err := parseContractHash(contractHashStr)
+func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractAddressStr string, updater util.Uint160) error {
+	contractAddress, err := parseContractAddress(contractAddressStr)
 	if err != nil {
-		return fmt.Errorf("parse contract hash: %w", err)
+		return fmt.Errorf("parse contract address: %w", err)
 	}
 
 	// First, test invoke to check if it will succeed
 	// Pass the UInt160 directly - neo-go will convert it properly
-	testResult, err := act.Call(contractHash, "setUpdater", updater)
+	testResult, err := act.Call(contractAddress, "setUpdater", updater)
 	if err != nil {
 		return fmt.Errorf("test invoke failed: %w", err)
 	}
@@ -151,7 +151,7 @@ func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor,
 	fmt.Printf("Test invoke succeeded, GAS: %s\n", testResult.GasConsumed)
 
 	// Now send the actual transaction
-	txHash, vub, err := act.SendCall(contractHash, "setUpdater", updater)
+	txHash, vub, err := act.SendCall(contractAddress, "setUpdater", updater)
 	if err != nil {
 		return fmt.Errorf("send transaction: %w", err)
 	}
@@ -161,10 +161,10 @@ func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor,
 	return waitForTx(ctx, client, txHash)
 }
 
-func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHashStr string, appID string, owner util.Uint160) error {
-	contractHash, err := parseContractHash(contractHashStr)
+func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractAddressStr string, appID string, owner util.Uint160) error {
+	contractAddress, err := parseContractAddress(contractAddressStr)
 	if err != nil {
-		return fmt.Errorf("parse contract hash: %w", err)
+		return fmt.Errorf("parse contract address: %w", err)
 	}
 
 	// ConfigureApp(appId, owner, recipients[], sharesBps[], enabled)
@@ -173,7 +173,7 @@ func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Acto
 	sharesBps := []int64{10000} // 100% to owner
 
 	// First, test invoke
-	testResult, err := act.Call(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)
+	testResult, err := act.Call(contractAddress, "configureApp", appID, owner, recipients, sharesBps, true)
 	if err != nil {
 		return fmt.Errorf("test invoke failed: %w", err)
 	}
@@ -185,7 +185,7 @@ func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Acto
 	fmt.Printf("Test invoke succeeded, GAS: %s\n", testResult.GasConsumed)
 
 	// Send actual transaction
-	txHash, vub, err := act.SendCall(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)
+	txHash, vub, err := act.SendCall(contractAddress, "configureApp", appID, owner, recipients, sharesBps, true)
 	if err != nil {
 		return fmt.Errorf("send transaction: %w", err)
 	}

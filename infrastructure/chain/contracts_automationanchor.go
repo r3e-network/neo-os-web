@@ -47,7 +47,7 @@ func (c *AutomationAnchorContract) GetTask(ctx context.Context, taskID []byte) (
 		return nil, fmt.Errorf("automationanchor: client not configured")
 	}
 	if c.hash == "" {
-		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+		return nil, fmt.Errorf("automationanchor: contract address not configured")
 	}
 	if len(taskID) == 0 {
 		return nil, fmt.Errorf("automationanchor: taskID required")
@@ -122,7 +122,7 @@ func (c *AutomationAnchorContract) IsNonceUsed(ctx context.Context, taskID []byt
 		return false, fmt.Errorf("automationanchor: client not configured")
 	}
 	if c.hash == "" {
-		return false, fmt.Errorf("automationanchor: contract hash not configured")
+		return false, fmt.Errorf("automationanchor: contract address not configured")
 	}
 	if len(taskID) == 0 {
 		return false, fmt.Errorf("automationanchor: taskID required")
@@ -158,7 +158,7 @@ func (c *AutomationAnchorContract) MarkExecuted(
 		return nil, fmt.Errorf("automationanchor: client not configured")
 	}
 	if c.hash == "" {
-		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+		return nil, fmt.Errorf("automationanchor: contract address not configured")
 	}
 	if signer == nil {
 		return nil, fmt.Errorf("automationanchor: signer not configured")
@@ -196,7 +196,7 @@ func (c *AutomationAnchorContract) SetUpdater(ctx context.Context, signer TxSign
 		return nil, fmt.Errorf("automationanchor: client not configured")
 	}
 	if c.hash == "" {
-		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+		return nil, fmt.Errorf("automationanchor: contract address not configured")
 	}
 	if signer == nil {
 		return nil, fmt.Errorf("automationanchor: signer not configured")
@@ -232,7 +232,7 @@ func (c *AutomationAnchorContract) BalanceOf(ctx context.Context, taskID *big.In
 		return nil, fmt.Errorf("automationanchor: client not configured")
 	}
 	if c.hash == "" {
-		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+		return nil, fmt.Errorf("automationanchor: contract address not configured")
 	}
 	if taskID == nil {
 		return nil, fmt.Errorf("automationanchor: taskID required")
@@ -255,7 +255,7 @@ func (c *AutomationAnchorContract) GetSchedule(ctx context.Context, taskID *big.
 		return nil, fmt.Errorf("automationanchor: client not configured")
 	}
 	if c.hash == "" {
-		return nil, fmt.Errorf("automationanchor: contract hash not configured")
+		return nil, fmt.Errorf("automationanchor: contract address not configured")
 	}
 	if taskID == nil {
 		return nil, fmt.Errorf("automationanchor: taskID required")

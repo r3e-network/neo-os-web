@@ -15,7 +15,7 @@ export function HeroSection() {
 
       {/* Additional decorative elements */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.03)_1px,transparent_0)] bg-[size:32px_32px] opacity-20" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(159,157,243,0.1)_1px,transparent_0)] bg-[size:40px_40px] opacity-30" />
       </div>
 
       <div className="mx-auto max-w-7xl px-4 text-center relative z-10">
@@ -64,17 +64,17 @@ export function HeroSection() {
           <div className="mt-20 flex flex-wrap justify-center items-center gap-8 text-gray-500 dark:text-white/50 transition-all duration-700">
             <div className="flex items-center gap-2">
               <Code2 size={20} />
-              <span className="font-medium tracking-tight text-lg">{t("hero.sgxEnabled")}</span>
+              <span className="font-bold tracking-tight text-lg bg-clip-text text-transparent bg-gradient-to-r from-gray-700 to-gray-900 dark:from-white dark:to-white/70">{t("hero.sgxEnabled")}</span>
             </div>
             <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-white/20" />
             <div className="flex items-center gap-2">
               <Shield size={20} />
-              <span className="font-medium tracking-tight text-lg">{t("hero.teeTrusted")}</span>
+              <span className="font-bold tracking-tight text-lg bg-clip-text text-transparent bg-gradient-to-r from-gray-700 to-gray-900 dark:from-white dark:to-white/70">{t("hero.teeTrusted")}</span>
             </div>
             <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-white/20" />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-[#00E599]">
               <Rocket size={20} />
-              <span className="font-medium tracking-tight text-lg">{t("hero.neoNative")}</span>
+              <span className="font-bold tracking-tight text-lg text-[#00E599] dropshadow-neo">{t("hero.neoNative")}</span>
             </div>
           </div>
         </motion.div>

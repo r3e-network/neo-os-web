@@ -125,14 +125,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	gatewayHash, _ := resolveGatewayHash()
+	gatewayAddress, _ := resolveGatewayAddress()
 	var results []DeployResult
 	var failures []string
 
 	for i, contractName := range remainingContracts {
 		fmt.Printf("\n[%d/%d] Deploying %s...\n", i+1, len(remainingContracts), contractName)
 
-		hash, err := deployContract(ctx, client, act, buildDir, contractName, deployerHash, gatewayHash)
+		hash, err := deployContract(ctx, client, act, buildDir, contractName, deployerHash, gatewayAddress)
 		if err != nil {
 			fmt.Printf("  ❌ Failed: %v\n", err)
 			failures = append(failures, contractName)
@@ -147,12 +147,12 @@ func main() {
 	printSummary(results, failures, buildDir)
 }
 
-func resolveGatewayHash() (util.Uint160, error) {
-	hashStr := os.Getenv("CONTRACT_GATEWAY_HASH")
-	if hashStr == "" {
+func resolveGatewayAddress() (util.Uint160, error) {
+	addressStr := os.Getenv("CONTRACT_SERVICE_GATEWAY_ADDRESS")
+	if addressStr == "" {
 		return util.Uint160{}, nil
 	}
-	return util.Uint160DecodeStringLE(strings.TrimPrefix(hashStr, "0x"))
+	return util.Uint160DecodeStringLE(strings.TrimPrefix(addressStr, "0x"))
 }
 
 func loadNEF(path string) (*nef.File, error) {
@@ -194,10 +194,10 @@ func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Ac
 	}
 
 	// Check if already deployed
-	expectedHash := state.CreateContractHash(deployer, nefFile.Checksum, mani.Name)
-	expectedHex := "0x" + expectedHash.StringLE()
+	expectedAddress := state.CreateContractHash(deployer, nefFile.Checksum, mani.Name)
+	expectedHex := "0x" + expectedAddress.StringLE()
 
-	if _, err := client.GetContractStateByHash(expectedHash); err == nil {
+	if _, err := client.GetContractStateByHash(expectedAddress); err == nil {
 		fmt.Printf("  Already deployed at: %s\n", expectedHex)
 		return expectedHex, nil
 	}

@@ -68,7 +68,7 @@ on-demand so newly added apps work without extra manual steps.
 ## UniversalMiniApp Contract
 
 All MiniApps can use the shared UniversalMiniApp contract. If you need on-chain
-events or storage, set `contract_hash` in `neo-manifest.json` to the UniversalMiniApp
+events or storage, set `contracts.<chain>.address` in `neo-manifest.json` to the UniversalMiniApp
 hash for your network. Otherwise you can omit it and keep the MiniApp frontend-only.
 
 ## Next Steps

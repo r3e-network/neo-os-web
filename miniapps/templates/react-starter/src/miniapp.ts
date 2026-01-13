@@ -11,31 +11,56 @@ export type ContractParam =
   | { type: "Any"; value: null }
   | { type: "Array"; value: ContractParam[] };
 
-export type InvocationIntent = {
-  contract_hash: string;
-  method: string;
-  params: ContractParam[];
-};
+export type ChainType = "neo-n3" | "evm";
+export type ChainId = string;
+
+export type InvocationIntent =
+  | {
+      chain_id: ChainId;
+      chain_type: "neo-n3";
+      contract_address: string;
+      method: string;
+      params: ContractParam[];
+    }
+  | {
+      chain_id: ChainId;
+      chain_type: "evm";
+      contract_address: string;
+      data: string;
+      value?: string;
+      gas?: string;
+      gas_price?: string;
+      method?: string;
+      args?: unknown[];
+    };
 
 export type PayGASResponse = {
   request_id: string;
   user_id: string;
   intent: "payments";
   constraints: { settlement: "GAS_ONLY" };
+  chain_id: ChainId;
+  chain_type: ChainType;
   invocation: InvocationIntent;
 };
 
-export type VoteNEOResponse = {
+export type VoteBNEOResponse = {
   request_id: string;
   user_id: string;
   intent: "governance";
-  constraints: { governance: "NEO_ONLY" };
+  constraints: { governance: "BNEO_ONLY" };
+  chain_id: ChainId;
+  chain_type: ChainType;
   invocation: InvocationIntent;
 };
+
+export type VoteNEOResponse = VoteBNEOResponse;
 
 export type RNGResponse = {
   request_id: string;
   app_id: string;
+  chain_id: ChainId;
+  chain_type: ChainType;
   randomness: string;
   signature?: string;
   public_key?: string;
@@ -65,13 +90,13 @@ export type MiniAppSDK = {
     payGASAndInvoke?: (appId: string, amount: string, memo?: string) => Promise<{ intent: PayGASResponse; tx: TxResult }>;
   };
   governance: {
-    vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteNEOResponse>;
+    vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteBNEOResponse>;
     voteAndInvoke?: (
       appId: string,
       proposalId: string,
       neoAmount: string,
       support?: boolean,
-    ) => Promise<{ intent: VoteNEOResponse; tx: TxResult }>;
+    ) => Promise<{ intent: VoteBNEOResponse; tx: TxResult }>;
   };
   rng: {
     requestRandom(appId: string): Promise<RNGResponse>;

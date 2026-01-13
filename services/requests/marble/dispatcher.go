@@ -29,7 +29,7 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 	if event == nil {
 		return nil
 	}
-	if s.serviceGatewayHash != "" && normalizeContractHash(event.Contract) != s.serviceGatewayHash {
+	if s.serviceGatewayAddress != "" && normalizeContractAddress(event.Contract) != s.serviceGatewayAddress {
 		return nil
 	}
 
@@ -85,7 +85,7 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 
 	s.trackMiniAppTx(ctx, appID, "", event)
 
-	manifestInfo, err := parseManifestInfo(app.Manifest)
+	manifestInfo, err := parseManifestInfo(app.Manifest, s.chainID)
 	if err != nil {
 		logger.WithError(err).Warn("invalid manifest")
 		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
@@ -138,7 +138,7 @@ func (s *Service) handleServiceFulfilled(ctx context.Context, event *chain.Contr
 	if event == nil {
 		return nil
 	}
-	if s.serviceGatewayHash != "" && normalizeContractHash(event.Contract) != s.serviceGatewayHash {
+	if s.serviceGatewayAddress != "" && normalizeContractAddress(event.Contract) != s.serviceGatewayAddress {
 		return nil
 	}
 
@@ -422,7 +422,8 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 		RequestID:       requestKey,
 		FromService:     ServiceID,
 		TxType:          "service_callback",
-		ContractAddress: "0x" + s.serviceGatewayHash,
+		ChainID:         s.chainID,
+		ContractAddress: "0x" + s.serviceGatewayAddress,
 		MethodName:      "fulfillRequest",
 		Params:          neorequestsupabase.MarshalParams(params),
 		Status:          "pending",
@@ -439,7 +440,7 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 
 	resp, err := s.txProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
 		RequestID:    requestKey,
-		ContractHash: "0x" + s.serviceGatewayHash,
+		ContractAddress: "0x" + s.serviceGatewayAddress,
 		Method:       "fulfillRequest",
 		Params:       params,
 		Wait:         s.txWait,
@@ -536,6 +537,7 @@ func (s *Service) createServiceRequest(ctx context.Context, app *neorequestsupab
 
 	req := &neorequestsupabase.ServiceRequest{
 		UserID:      app.DeveloperUserID,
+		ChainID:     s.chainID,
 		ServiceType: serviceType,
 		Status:      "processing",
 		Payload:     neorequestsupabase.MarshalParams(payloadAudit),
@@ -556,7 +558,7 @@ func (s *Service) loadMiniApp(ctx context.Context, appID string) (*neorequestsup
 	if appID == "" {
 		return nil, fmt.Errorf("app_id cannot be empty")
 	}
-	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("app:", appID)); ok {
+	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("app:", "", appID)); ok {
 		if notFound {
 			return nil, miniAppNotFoundError(appID)
 		}
@@ -571,27 +573,27 @@ func (s *Service) loadMiniApp(ctx context.Context, appID string) (*neorequestsup
 		return nil, err
 	}
 
-	contractHash := appContractHash(app)
-	s.cacheMiniApp(app, contractHash)
+	contractAddress := appContractAddress(app, s.chainID)
+	s.cacheMiniApp(app, contractAddress)
 	return app, nil
 }
 
-func (s *Service) loadMiniAppByContractHash(ctx context.Context, contractHash string) (*neorequestsupabase.MiniApp, error) {
+func (s *Service) loadMiniAppByContractAddress(ctx context.Context, contractAddress string) (*neorequestsupabase.MiniApp, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
-	normalized := normalizeContractHash(contractHash)
+	normalized := normalizeContractAddress(contractAddress)
 	if normalized == "" {
-		return nil, fmt.Errorf("contract_hash cannot be empty")
+		return nil, fmt.Errorf("contract_address cannot be empty")
 	}
-	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("contract:", normalized)); ok {
+	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("contract:", s.chainID, normalized)); ok {
 		if notFound {
 			return nil, miniAppNotFoundError(normalized)
 		}
 		return app, nil
 	}
 
-	app, err := s.repo.GetMiniAppByContractHash(ctx, normalized)
+	app, err := s.repo.GetMiniAppByContractAddress(ctx, s.chainID, normalized)
 	if err != nil {
 		if database.IsNotFound(err) {
 			s.cacheMiniAppNotFound("", normalized)
@@ -636,12 +638,13 @@ func (s *Service) storeContractEvent(ctx context.Context, event *chain.ContractE
 	}
 
 	record := &neorequestsupabase.ContractEvent{
-		TxHash:       event.TxHash,
-		BlockIndex:   event.BlockIndex,
-		ContractHash: event.Contract,
-		EventName:    event.EventName,
-		AppID:        appID,
-		State:        state,
+		ChainID:         s.chainID,
+		TxHash:          event.TxHash,
+		BlockIndex:      event.BlockIndex,
+		ContractAddress: event.Contract,
+		EventName:       event.EventName,
+		AppID:           appID,
+		State:           state,
 	}
 
 	return s.repo.CreateContractEvent(ctx, record)
@@ -781,7 +784,7 @@ type manifestInfo struct {
 	NewsIntegration  *bool
 }
 
-func parseManifestInfo(raw json.RawMessage) (manifestInfo, error) {
+func parseManifestInfo(raw json.RawMessage, chainID string) (manifestInfo, error) {
 	out := manifestInfo{Permissions: map[string]interface{}{}}
 	if len(raw) == 0 {
 		return out, nil
@@ -792,18 +795,41 @@ func parseManifestInfo(raw json.RawMessage) (manifestInfo, error) {
 		return out, err
 	}
 
-	if val, ok := m["callback_contract"]; ok {
-		contract := strings.TrimSpace(fmt.Sprintf("%v", val))
-		if contract != "" {
-			normalized := normalizeContractHash(contract)
-			if normalized == "" {
-				return out, fmt.Errorf("invalid callback_contract")
-			}
-			out.CallbackContract = "0x" + normalized
-		}
+	if _, ok := m["callback_contract"]; ok {
+		return out, fmt.Errorf("manifest.callback_contract is no longer supported")
 	}
-	if val, ok := m["callback_method"]; ok {
-		out.CallbackMethod = strings.TrimSpace(fmt.Sprintf("%v", val))
+	if _, ok := m["callback_method"]; ok {
+		return out, fmt.Errorf("manifest.callback_method is no longer supported")
+	}
+
+	if chainID != "" {
+		if contractsRaw, ok := m["contracts"]; ok {
+			if contractsMap, ok := contractsRaw.(map[string]interface{}); ok {
+				if entryRaw, ok := contractsMap[chainID]; ok {
+					if entryMap, ok := entryRaw.(map[string]interface{}); ok {
+						if callbackRaw, ok := entryMap["callback"]; ok {
+							callbackMap, ok := callbackRaw.(map[string]interface{})
+							if !ok {
+								return out, fmt.Errorf("manifest.contracts.%s.callback must be an object", chainID)
+							}
+							addrVal, addrOk := callbackMap["address"]
+							methodVal, methodOk := callbackMap["method"]
+							if addrOk || methodOk {
+								if !addrOk || !methodOk {
+									return out, fmt.Errorf("manifest.contracts.%s.callback requires address and method", chainID)
+								}
+								normalized := normalizeContractAddress(fmt.Sprintf("%v", addrVal))
+								if normalized == "" {
+									return out, fmt.Errorf("invalid callback address for %s", chainID)
+								}
+								out.CallbackContract = "0x" + normalized
+								out.CallbackMethod = strings.TrimSpace(fmt.Sprintf("%v", methodVal))
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	if perms, ok := m["permissions"]; ok {
@@ -829,7 +855,7 @@ func parseManifestInfo(raw json.RawMessage) (manifestInfo, error) {
 	return out, nil
 }
 
-func manifestContractHash(raw json.RawMessage) string {
+func manifestContractAddress(raw json.RawMessage, chainID string) string {
 	if len(raw) == 0 {
 		return ""
 	}
@@ -839,25 +865,55 @@ func manifestContractHash(raw json.RawMessage) string {
 		return ""
 	}
 
-	if val, ok := m["contract_hash"]; ok {
-		contract := strings.TrimSpace(fmt.Sprintf("%v", val))
-		if contract == "" {
-			return ""
+	if chainID != "" {
+		if contractsRaw, ok := m["contracts"]; ok {
+			if contractsMap, ok := contractsRaw.(map[string]interface{}); ok {
+				if entryRaw, ok := contractsMap[chainID]; ok {
+					if entryMap, ok := entryRaw.(map[string]interface{}); ok {
+						addrVal, ok := entryMap["address"]
+						if addrVal != nil {
+								return normalizeContractAddress(fmt.Sprintf("%v", addrVal))
+						}
+					}
+				}
+			}
 		}
-		return normalizeContractHash(contract)
 	}
 
 	return ""
 }
 
-func appContractHash(app *neorequestsupabase.MiniApp) string {
+func appContractAddress(app *neorequestsupabase.MiniApp, chainID string) string {
 	if app == nil {
 		return ""
 	}
-	if normalized := normalizeContractHash(app.ContractHash); normalized != "" {
+	if normalized := contractsContractAddress(app.Contracts, chainID); normalized != "" {
 		return normalized
 	}
-	return manifestContractHash(app.Manifest)
+	return manifestContractAddress(app.Manifest, chainID)
+}
+
+func contractsContractAddress(raw json.RawMessage, chainID string) string {
+	if len(raw) == 0 || chainID == "" {
+		return ""
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return ""
+	}
+	entryRaw, ok := m[chainID]
+	if !ok {
+		return ""
+	}
+	entryMap, ok := entryRaw.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	addrVal, ok := entryMap["address"]
+	if addrVal == nil {
+		return ""
+	}
+	return normalizeContractAddress(fmt.Sprintf("%v", addrVal))
 }
 
 func permissionEnabled(perms map[string]interface{}, key string) bool {
@@ -886,7 +942,7 @@ func callbackMatches(info manifestInfo, contract, method string) bool {
 		return false
 	}
 	if info.CallbackContract != "" {
-		if normalizeContractHash(info.CallbackContract) != normalizeContractHash(contract) {
+		if normalizeContractAddress(info.CallbackContract) != normalizeContractAddress(contract) {
 			return false
 		}
 	}
@@ -953,7 +1009,7 @@ func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.Cont
 		if strings.TrimSpace(parsed.AppID) != "" {
 			app, err = s.loadMiniApp(ctx, parsed.AppID)
 		} else if strings.TrimSpace(event.Contract) != "" {
-			app, err = s.loadMiniAppByContractHash(ctx, event.Contract)
+			app, err = s.loadMiniAppByContractAddress(ctx, event.Contract)
 			if err == nil && app != nil {
 				parsed.AppID = app.AppID
 				logger = s.Logger().WithFields(map[string]interface{}{
@@ -977,17 +1033,17 @@ func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.Cont
 					return nil
 				}
 			}
-			info, err := parseManifestInfo(app.Manifest)
+			info, err := parseManifestInfo(app.Manifest, s.chainID)
 			if err == nil && info.NewsIntegration != nil && !*info.NewsIntegration {
 				return nil
 			}
-			if contractHash := appContractHash(app); contractHash != "" {
-				if normalizeContractHash(event.Contract) != contractHash {
-					logger.WithContext(ctx).Warn("miniapp contract hash mismatch")
+			if contractAddress := appContractAddress(app, s.chainID); contractAddress != "" {
+				if normalizeContractAddress(event.Contract) != contractAddress {
+					logger.WithContext(ctx).Warn("miniapp contract address mismatch")
 					return nil
 				}
 			} else if s.requireManifestContract {
-				logger.WithContext(ctx).Warn("contract_hash missing; notification rejected")
+				logger.WithContext(ctx).Warn("contract_address missing; notification rejected")
 				return nil
 			}
 		} else {
@@ -1001,6 +1057,7 @@ func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.Cont
 	// Store notification in database via repository
 	err = s.repo.CreateNotification(ctx, &neorequestsupabase.Notification{
 		AppID:            parsed.AppID,
+		ChainID:          s.chainID,
 		Title:            parsed.Title,
 		Content:          parsed.Content,
 		NotificationType: parsed.NotificationType,
@@ -1050,7 +1107,7 @@ func (s *Service) handleMetricEvent(ctx context.Context, event *chain.ContractEv
 		if strings.TrimSpace(parsed.AppID) != "" {
 			app, err = s.loadMiniApp(ctx, parsed.AppID)
 		} else if strings.TrimSpace(event.Contract) != "" {
-			app, err = s.loadMiniAppByContractHash(ctx, event.Contract)
+			app, err = s.loadMiniAppByContractAddress(ctx, event.Contract)
 			if err == nil && app != nil {
 				parsed.AppID = app.AppID
 				logger = s.Logger().WithFields(map[string]interface{}{
@@ -1074,13 +1131,13 @@ func (s *Service) handleMetricEvent(ctx context.Context, event *chain.ContractEv
 					return nil
 				}
 			}
-			if contractHash := appContractHash(app); contractHash != "" {
-				if normalizeContractHash(event.Contract) != contractHash {
-					logger.WithContext(ctx).Warn("miniapp contract hash mismatch")
+			if contractAddress := appContractAddress(app, s.chainID); contractAddress != "" {
+				if normalizeContractAddress(event.Contract) != contractAddress {
+					logger.WithContext(ctx).Warn("miniapp contract address mismatch")
 					return nil
 				}
 			} else if s.requireManifestContract {
-				logger.WithContext(ctx).Warn("contract_hash missing; metric rejected")
+				logger.WithContext(ctx).Warn("contract_address missing; metric rejected")
 				return nil
 			}
 		} else {

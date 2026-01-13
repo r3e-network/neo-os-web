@@ -208,7 +208,7 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	manifestHash := "0x" + strings.Repeat("cc", 32)
 	entryURL := "https://example.com/app"
 	developerPubKey := "0x" + strings.Repeat("dd", 33)
-	contractHash := "0x" + strings.Repeat("aa", 20)
+	contractAddress := "0x" + strings.Repeat("aa", 20)
 	appName := "MiniApp One"
 	appDescription := "Test miniapp registry entry"
 	appIcon := "https://example.com/icon.png"
@@ -216,7 +216,7 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	appCategory := "gaming"
 
 	if _, err := nx.InvokeWithAccount(appRegistry.Hash, "registerApp", account,
-		appID, manifestHash, entryURL, developerPubKey, contractHash, appName, appDescription, appIcon, appBanner, appCategory,
+		appID, manifestHash, entryURL, developerPubKey, contractAddress, appName, appDescription, appIcon, appBanner, appCategory,
 	); err != nil {
 		t.Fatalf("AppRegistry.registerApp: %v", err)
 	}
@@ -277,10 +277,10 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	} else if gotCategory != appCategory {
 		t.Fatalf("AppRegistry.getApp: category = %s, want %s", gotCategory, appCategory)
 	}
-	if gotContractHash, err := chain.ParseByteArray(appItems[12]); err != nil {
-		t.Fatalf("AppRegistry.getApp: parse contract_hash: %v", err)
-	} else if hex.EncodeToString(gotContractHash) != strings.TrimPrefix(strings.ToLower(contractHash), "0x") {
-		t.Fatalf("AppRegistry.getApp: contract_hash mismatch")
+	if gotContractAddress, err := chain.ParseByteArray(appItems[12]); err != nil {
+		t.Fatalf("AppRegistry.getApp: parse contract_address: %v", err)
+	} else if hex.EncodeToString(gotContractAddress) != strings.TrimPrefix(strings.ToLower(contractAddress), "0x") {
+		t.Fatalf("AppRegistry.getApp: contract_address mismatch")
 	}
 
 	// AutomationAnchor task registry + anti-replay.
@@ -350,8 +350,8 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	}
 
 	amount := int64(100000000) // 1 GAS (GAS has 8 decimals)
-	const gasContractHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
-	if _, err := nx.InvokeWithAccount(gasContractHash, "transfer", account,
+	const gasContractAddress = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+	if _, err := nx.InvokeWithAccount(gasContractAddress, "transfer", account,
 		map[string]any{"type": "Hash160", "value": genesisScriptHash},
 		map[string]any{"type": "Hash160", "value": paymentHub.Hash},
 		amount,

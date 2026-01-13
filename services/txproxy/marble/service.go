@@ -27,10 +27,10 @@ type Service struct {
 	*commonservice.BaseService
 
 	allowlist *Allowlist
-	// Optional platform contract hashes used for intent-based policy gating.
-	gasHash        string
-	paymentHubHash string
-	governanceHash string
+	// Optional platform contract addresses used for intent-based policy gating.
+	gasAddress        string
+	paymentHubAddress string
+	governanceAddress string
 
 	chainClient *chain.Client
 	signer      chain.TEESigner
@@ -47,11 +47,11 @@ type Config struct {
 	ChainClient *chain.Client
 	Signer      chain.TEESigner
 
-	// Optional platform contract hashes. If not provided, txproxy attempts to
+	// Optional platform contract addresses. If not provided, txproxy attempts to
 	// read them from environment variables via chain.ContractAddressesFromEnv().
-	GasHash        string
-	PaymentHubHash string
-	GovernanceHash string
+	GasAddress        string
+	PaymentHubAddress string
+	GovernanceAddress string
 
 	AllowlistRaw string
 	Allowlist    *Allowlist
@@ -59,7 +59,7 @@ type Config struct {
 	ReplayWindow time.Duration
 }
 
-const defaultGASContractHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+const defaultGASContractAddress = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 
 func New(cfg Config) (*Service, error) {
 	if cfg.Marble == nil {
@@ -88,20 +88,20 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	contracts := chain.ContractAddressesFromEnv()
-	gasHash := strings.TrimSpace(cfg.GasHash)
-	if gasHash == "" {
-		gasHash = strings.TrimSpace(os.Getenv("CONTRACT_GAS_HASH"))
+	gasAddress := strings.TrimSpace(cfg.GasAddress)
+	if gasAddress == "" {
+		gasAddress = strings.TrimSpace(os.Getenv("CONTRACT_GAS_ADDRESS"))
 	}
-	if gasHash == "" {
-		gasHash = defaultGASContractHash
+	if gasAddress == "" {
+		gasAddress = defaultGASContractAddress
 	}
-	paymentHubHash := strings.TrimSpace(cfg.PaymentHubHash)
-	if paymentHubHash == "" {
-		paymentHubHash = strings.TrimSpace(contracts.PaymentHub)
+	paymentHubAddress := strings.TrimSpace(cfg.PaymentHubAddress)
+	if paymentHubAddress == "" {
+		paymentHubAddress = strings.TrimSpace(contracts.PaymentHub)
 	}
-	governanceHash := strings.TrimSpace(cfg.GovernanceHash)
-	if governanceHash == "" {
-		governanceHash = strings.TrimSpace(contracts.Governance)
+	governanceAddress := strings.TrimSpace(cfg.GovernanceAddress)
+	if governanceAddress == "" {
+		governanceAddress = strings.TrimSpace(contracts.Governance)
 	}
 
 	if strict {
@@ -129,9 +129,9 @@ func New(cfg Config) (*Service, error) {
 	s := &Service{
 		BaseService:    base,
 		allowlist:      allowlist,
-		gasHash:        normalizeContractHash(gasHash),
-		paymentHubHash: normalizeContractHash(paymentHubHash),
-		governanceHash: normalizeContractHash(governanceHash),
+		gasAddress:        normalizeContractAddress(gasAddress),
+		paymentHubAddress: normalizeContractAddress(paymentHubAddress),
+		governanceAddress: normalizeContractAddress(governanceAddress),
 		chainClient:    cfg.ChainClient,
 		signer:         cfg.Signer,
 		replayWindow:   replayWindow,

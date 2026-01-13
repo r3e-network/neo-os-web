@@ -7,13 +7,14 @@ export interface SubmitMiniAppRequest {
   icon: string;
   category: "gaming" | "defi" | "social" | "nft" | "governance" | "utility";
   entry_url: string;
-  contract_hash?: string;
+  supported_chains?: string[];
+  contracts?: Record<string, { address?: string | null; active?: boolean; entry_url?: string }>;
   developer_address: string;
   developer_name?: string;
   permissions: {
     payments?: boolean;
     governance?: boolean;
-    randomness?: boolean;
+    rng?: boolean;
     datafeed?: boolean;
   };
 }
@@ -36,6 +37,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Generate app_id from name
   const app_id = `community-${body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const supportedChains =
+    Array.isArray(body.supported_chains) && body.supported_chains.length > 0 ? body.supported_chains : [];
+  const contracts =
+    body.contracts && typeof body.contracts === "object" && !Array.isArray(body.contracts) ? body.contracts : {};
 
   try {
     const { data, error } = await supabase
@@ -47,7 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         icon: body.icon || "📦",
         category: body.category || "utility",
         entry_url: body.entry_url,
-        contract_hash: body.contract_hash,
+        supported_chains: supportedChains,
+        contracts: contracts,
         developer_address: body.developer_address,
         developer_name: body.developer_name,
         permissions: body.permissions || {},

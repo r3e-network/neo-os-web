@@ -70,7 +70,7 @@ Neo N3 blocks
 
 - `Platform_Notification(app_id, title, content, notification_type, priority)` drives news/notification feeds.
 - `Platform_Metric(app_id, metric_name, value)` drives custom KPIs.
-- In strict mode, event ingestion and tx tracking require `manifest.contract_hash` to match the emitting contract.
+- In strict mode, event ingestion and tx tracking require `manifest.contracts.<chain>.address` to match the emitting contract.
 - `news_integration=false` in the manifest can disable notification ingestion for that app.
 - `miniapp_tx_events` stores tx hashes + sender addresses (from System.Contract.Call scans, with
   event-based fallback) and drives tx_count/active_users rollups.
@@ -424,7 +424,7 @@ Runtime values are sourced from:
 - `.env` / `.env.local` for local dev.
 - `config/development.env`, `config/testing.env`, `config/production.env` for
   deployment defaults.
-- `deploy/config/testnet_contracts.json` for testnet contract hashes.
+- `deploy/config/testnet_contracts.json` for testnet contract addresses.
 
-All service and gateway deployments should read contract hashes and URLs from
+All service and gateway deployments should read contract addresses and URLs from
 these sources to avoid hardcoding.

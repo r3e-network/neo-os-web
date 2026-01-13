@@ -3,13 +3,17 @@
 </p>
 
 <h1 align="center">NeoHub</h1>
-<p align="center"><b>The Neo N3 MiniApp Platform</b></p>
+<p align="center"><b>The Multi-Chain MiniApp Platform</b></p>
+
+<p align="center">
+  <a href="https://neo.org"><img src="https://img.shields.io/badge/Powered%20by-Neo-00E599?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMwMEU1OTkiLz48cGF0aCBkPSJNMTAgOGg0bDggMTB2NmgtNGwtOC0xMFY4eiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjIgOGgtNHY2bDQgNVY4eiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNiIvPjwvc3ZnPgo=" alt="Powered by Neo"/></a>
+</p>
 
 <p align="center">
   <a href="https://neomini.app"><img src="https://img.shields.io/badge/Live-neomini.app-00E599?style=flat-square" alt="Live"/></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/Quick%20Start-Guide-00E599?style=flat-square" alt="Quick Start"/></a>
   <a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/Docs-Architecture-00D9FF?style=flat-square" alt="Architecture"/></a>
-  <a href="#platform-contracts"><img src="https://img.shields.io/badge/Network-Neo%20N3%20Testnet-green?style=flat-square" alt="Neo N3"/></a>
+  <a href="#supported-chains"><img src="https://img.shields.io/badge/Chains-Neo%20N3%20|%20NeoX%20|%20Ethereum-green?style=flat-square" alt="Multi-Chain"/></a>
   <a href="https://github.com/R3E-Network"><img src="https://img.shields.io/badge/R3E-Network-00E599?style=flat-square" alt="R3E Network"/></a>
 </p>
 
@@ -17,11 +21,19 @@
 
 # NeoHub
 
-A TEE-powered miniapp platform for Neo N3 that combines a user-facing **Gateway** (Supabase Edge) with enclave workloads (MarbleRun + EGo) for secure signing and confidential computation.
+A TEE-powered multi-chain MiniApp platform that combines a user-facing **Gateway** (Supabase Edge) with enclave workloads (MarbleRun + EGo) for secure signing and confidential computation. **Powered by Neo** and supporting Neo N3, NeoX, and Ethereum networks.
+
+## Supported Chains
+
+| Chain        | Type           | Status        |
+| ------------ | -------------- | ------------- |
+| **Neo N3**   | Native         | ✅ Production |
+| **NeoX**     | EVM-Compatible | ✅ Production |
+| **Ethereum** | EVM            | ✅ Production |
 
 ## Overview
 
-The Neo MiniApp Platform provides infrastructure for building decentralized MiniApps on Neo N3 with:
+The NeoHub MiniApp Platform provides infrastructure for building decentralized MiniApps with multi-chain support:
 
 - **60+ Production MiniApps** across Gaming, DeFi, Social, NFT, and Governance categories
 - **TEE Security** via Intel SGX enclaves for confidential computation
@@ -220,14 +232,14 @@ See [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md) for detailed setup.
 
 ## Environment Variables
 
-| Variable                    | Description                |
-| --------------------------- | -------------------------- |
-| `SUPABASE_URL`              | Supabase project URL       |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key  |
-| `SECRETS_MASTER_KEY`        | Encryption key for secrets |
-| `NEO_RPC_URL`               | Neo N3 RPC endpoint        |
-| `NEO_NETWORK_MAGIC`         | Network magic number       |
-| `CONTRACT_*_HASH`           | Platform contract hashes   |
+| Variable                    | Description                 |
+| --------------------------- | --------------------------- |
+| `SUPABASE_URL`              | Supabase project URL        |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key   |
+| `SECRETS_MASTER_KEY`        | Encryption key for secrets  |
+| `NEO_RPC_URL`               | Neo N3 RPC endpoint         |
+| `NEO_NETWORK_MAGIC`         | Network magic number        |
+| `CONTRACT_*_ADDRESS`        | Platform contract addresses |
 
 See [`.env.example`](.env.example) for complete list.
 
@@ -266,3 +278,12 @@ See [`.env.example`](.env.example) for complete list.
 ## License
 
 Copyright © 2024 R3E Network. All rights reserved.
+
+---
+
+<p align="center">
+  <b>Proudly powered by</b><br/><br/>
+  <a href="https://neo.org">
+    <img src="platform/host-app/public/chains/neo.svg" alt="Neo" height="48"/>
+  </a>
+</p>

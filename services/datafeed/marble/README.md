@@ -78,7 +78,7 @@ feeds:
 
 ## On-Chain Anchoring (PriceFeed)
 
-When `EnableChainPush` is enabled and `PriceFeedHash` is configured, NeoFeeds
+When `EnableChainPush` is enabled and `PriceFeedAddress` is configured, NeoFeeds
 periodically evaluates all enabled feeds and anchors qualifying updates on-chain
 via `PriceFeed.update(...)`.
 

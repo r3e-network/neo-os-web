@@ -3,12 +3,12 @@
     "badge": "Next-Generation MiniApp Hub",
     "title": "Experience the",
     "titleHighlight": "NeoHub Ecosystem",
-    "subtitle": "Discover and use decentralized MiniApps for gaming, DeFi, and social. Protected by hardware-grade security, Zero-Knowledge Proofs, and the power of Neo N3.",
+    "subtitle": "Discover and use decentralized MiniApps for gaming, DeFi, and social. Powered by Neo, protected by hardware-grade security and multi-chain support.",
     "exploreApps": "Explore MiniApps",
     "howItWorks": "How it Works",
     "sgxEnabled": "SGX-ENABLED",
     "teeTrusted": "TEE-TRUSTED",
-    "neoNative": "NEO-NATIVE"
+    "neoNative": "POWERED BY NEO"
   },
   "landing": {
     "architecture": {
@@ -118,7 +118,7 @@
   },
   "features": {
     "title": "Features",
-    "subtitle": "Neo N3 provides the ultimate developer experience and user security for the next generation of web3 applications.",
+    "subtitle": "NeoHub provides the ultimate developer experience and user security for the next generation of web3 applications.",
     "secureCompute": "Secure Compute",
     "secureComputeDesc": "TEE-powered confidential computing for sensitive operations",
     "verifiableRandom": "Verifiable Random",
@@ -161,7 +161,7 @@
   },
   "explore": {
     "title": "Explore NeoHub Ecosystem",
-    "subtitle": "Discover the most innovative MiniApps built on Neo N3. Powered by TEE and verified on-chain."
+    "subtitle": "Discover the most innovative MiniApps built on NeoHub. Powered by TEE and verified on-chain."
   },
   "categories": {
     "all": "All",
@@ -340,9 +340,17 @@
       "title": "Filters",
       "category": "Category",
       "features": "Features",
+      "chains": "Chains",
+      "tags": "Tags",
       "payments": "Payments",
       "randomness": "Randomness",
-      "datafeed": "Data Feed"
+      "datafeed": "Data Feed",
+      "neo_n3_mainnet": "Neo N3",
+      "neo_n3_testnet": "Neo N3 Testnet",
+      "neox_mainnet": "NeoX",
+      "neox_testnet": "NeoX Testnet",
+      "ethereum_mainnet": "Ethereum",
+      "ethereum_sepolia": "Ethereum Sepolia"
     },
     "view": {
       "list": "List view",
@@ -350,6 +358,14 @@
     },
     "loadMore": "Load More",
     "remaining": "remaining"
+  },
+  "featured": {
+    "new": "NEW",
+    "trending": "TRENDING",
+    "popular": "POPULAR",
+    "promoted": "FEATURED",
+    "users": "users",
+    "launch": "Launch App"
   },
   "reviews": {
     "title": "Reviews",
@@ -383,7 +399,7 @@
     "contractDetails": "Contract Details",
     "appInfo": "App Info",
     "appId": "App ID",
-    "contractHash": "Contract Hash",
+    "contractAddress": "Contract Address",
     "entryUrl": "Entry URL",
     "maxGasPerTx": "Max GAS per transaction",
     "dailyGasCap": "Daily GAS cap per user",
@@ -400,7 +416,12 @@
     "weeklyActive": "Weekly Active",
     "lastActive": "Last Active",
     "activity": "Activity",
-    "views": "Views"
+    "views": "Views",
+    "users": "users",
+    "txs": "txs",
+    "chains": "Chains",
+    "similarApps": "Similar Apps",
+    "viewAll": "View All"
   },
   "docs": {
     "tableHeaders": {
@@ -459,7 +480,7 @@
       "cli": "CLI Tool"
     },
     "intro": {
-      "welcome": "Welcome to NeoHub, the next-generation MiniApp platform built on Neo N3. NeoHub provides a secure, high-performance execution environment for decentralized applications, leveraging Trusted Execution Environments (TEE) to provide hardware-level isolation for your data and secrets.",
+      "welcome": "Welcome to NeoHub, the next-generation MiniApp platform with multi-chain support. NeoHub provides a secure, high-performance execution environment for decentralized applications, leveraging Trusted Execution Environments (TEE) to provide hardware-level isolation for your data and secrets.",
       "secureTitle": "Secure by Default",
       "secureDesc": "Every MiniApp runs in an isolated enclave, protected by Intel SGX. Secrets never leave the hardware.",
       "identityTitle": "Unified Identity",
@@ -749,7 +770,7 @@
       "subtitle": "Prepaid GAS account for seamless service usage.",
       "overview": "The GasBank Service manages your GAS balance for platform services. Deposit GAS to your account and services will automatically deduct fees, eliminating the need for per-transaction approvals.",
       "features": [
-        "Deposit verification from Neo N3 chain",
+        "Deposit verification from blockchain",
         "Balance credit/debit operations",
         "Automatic service fee deduction",
         "Transaction history tracking",
@@ -764,7 +785,7 @@
         {
           "name": "txHash",
           "type": "string",
-          "desc": "Neo N3 transaction hash for verification."
+          "desc": "Transaction hash for verification."
         }
       ],
       "codeExample": "// Check balance\nconst balance = await hub.gasbank.getBalance();\nconsole.log(`Available: ${balance.available} GAS`);\n\n// Deposit GAS\nconst deposit = await hub.gasbank.deposit({\n  amount: 100,\n  txHash: '0x...' \n});",
@@ -802,7 +823,7 @@
     },
     "ccip": {
       "subtitle": "Cross-chain interoperability protocol.",
-      "overview": "The CCIP Service enables secure cross-chain communication and asset transfers. Bridge assets between Neo N3 and other supported chains with TEE-verified message passing.",
+      "overview": "The CCIP Service enables secure cross-chain communication and asset transfers. Bridge assets between supported chains with TEE-verified message passing.",
       "features": [
         "Multi-chain support (Ethereum, BSC, Polygon)",
         "TEE-verified message passing",
@@ -995,7 +1016,7 @@
   "developer": {
     "title": "Developer Portal",
     "subtitle": "Build, test, and publish MiniApps with our powerful SDK. Access TEE, VRF, and Oracle services out of the box.",
-    "badge": "Build on Neo N3",
+    "badge": "Build on Multi-Chain",
     "registerApp": "Register Your App",
     "quickStart": "Quick Start",
     "quickStartDesc": "Get up and running in minutes",
@@ -1003,7 +1024,7 @@
     "createAppComment": "# Create your first app",
     "submitYourApp": "Submit Your App",
     "submitYourAppDesc": "Publish to the marketplace",
-    "readyToLaunch": "Ready to launch? Submit your MiniApp for review and reach millions of Neo users.",
+    "readyToLaunch": "Ready to launch? Submit your MiniApp for review and reach users across chains.",
     "readDocumentation": "Read Documentation",
     "submitMiniApp": "Submit MiniApp",
     "platformFeatures": "Platform Features",
@@ -1034,13 +1055,16 @@
       "category": "Category",
       "entryUrl": "Entry URL",
       "entryUrlPlaceholder": "https://your-app.com/miniapp",
-      "contractHash": "Contract Hash",
-      "contractHashPlaceholder": "0x... (optional)",
+      "supportedChains": "Supported Chains",
+      "supportedChainsPlaceholder": "neo-n3-mainnet, neox-mainnet",
+      "contractsJson": "Contracts (JSON)",
+      "contractsJsonPlaceholder": "{\"neo-n3-mainnet\": {\"address\": \"0x...\"}, \"neox-mainnet\": {\"address\": \"0x...\"}}",
+      "contractsJsonInvalid": "Contracts JSON is invalid",
       "developerInfo": "Developer Information",
       "developerName": "Developer Name",
       "developerNamePlaceholder": "Your name or team",
-      "neoAddress": "Neo Address",
-      "neoAddressPlaceholder": "NXxx...",
+      "neoAddress": "Wallet Address",
+      "neoAddressPlaceholder": "NXxx... or 0x...",
       "required": "*",
       "cancel": "Cancel",
       "submit": "Submit for Review",
@@ -1083,7 +1107,7 @@
     "appId": "App ID",
     "contractAddress": "Contract Address",
     "scriptHash": "Script Hash",
-    "contractHash": "Contract Hash",
+    "contractAddress": "Contract Address",
     "noContract": "No contract deployed",
     "masterKey": "Master Key",
     "masterAccount": "Master Account",
@@ -1592,7 +1616,7 @@
   "download": {
     "badge": "Get Started",
     "title": "Download a Neo Wallet",
-    "subtitle": "Connect to NeoHub and interact with MiniApps using a secure Neo N3 wallet. Choose from our recommended wallets below.",
+    "subtitle": "Connect to NeoHub and interact with MiniApps using a secure wallet. Choose from our recommended wallets below.",
     "recommended": "Recommended",
     "features": "Key Features",
     "availableOn": "Available On",
@@ -1656,5 +1680,11 @@
   "discovery": {
     "title": "Discover New Apps",
     "personalized": "Personalized for you"
+  },
+  "recommendations": {
+    "newNoteworthy": "New & Noteworthy",
+    "popularGaming": "Popular in Gaming",
+    "defiEssentials": "DeFi Essentials",
+    "seeAll": "See all"
   }
 }

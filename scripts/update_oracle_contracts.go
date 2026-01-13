@@ -20,7 +20,7 @@ const defaultRPC = "https://testnet1.neo.coz.io:443"
 
 type updateTarget struct {
 	Name       string
-	EnvHashKey string
+	EnvAddressKey string
 	Method     string
 }
 
@@ -61,12 +61,12 @@ func main() {
 	targets := []updateTarget{
 		{
 			Name:       "PriceFeed",
-			EnvHashKey: "CONTRACT_PRICEFEED_HASH",
+			EnvAddressKey: "CONTRACT_PRICE_FEED_ADDRESS",
 			Method:     "updateContract",
 		},
 		{
 			Name:       "RandomnessLog",
-			EnvHashKey: "CONTRACT_RANDOMNESSLOG_HASH",
+			EnvAddressKey: "CONTRACT_RANDOMNESS_LOG_ADDRESS",
 			Method:     "update",
 		},
 	}
@@ -75,9 +75,9 @@ func main() {
 	fmt.Printf("RPC: %s\n", rpcURL)
 
 	for _, target := range targets {
-		contractHash := strings.TrimSpace(os.Getenv(target.EnvHashKey))
-		if contractHash == "" {
-			fmt.Printf("\n%s: %s not set, skipping\n", target.Name, target.EnvHashKey)
+		contractAddress := strings.TrimSpace(os.Getenv(target.EnvAddressKey))
+		if contractAddress == "" {
+			fmt.Printf("\n%s: %s not set, skipping\n", target.Name, target.EnvAddressKey)
 			continue
 		}
 
@@ -102,9 +102,9 @@ func main() {
 		}
 
 		fmt.Printf("\n=== Updating %s ===\n", target.Name)
-		fmt.Printf("Contract: %s\n", contractHash)
+		fmt.Printf("Contract: %s\n", contractAddress)
 
-		invokeResult, err := client.InvokeFunctionWithSigners(ctx, contractHash, target.Method, params, signer.ScriptHash())
+		invokeResult, err := client.InvokeFunctionWithSigners(ctx, contractAddress, target.Method, params, signer.ScriptHash())
 		if err != nil {
 			fmt.Printf("Simulation failed: %v\n", err)
 			continue

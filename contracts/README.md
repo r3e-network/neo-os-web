@@ -236,16 +236,16 @@ For actual deployment, use `neo-go contract deploy` with the compiled `.nef` and
 
 ### Updating Existing Contracts (Preferred Over Redeploy)
 
-If a contract hash is already in use (and referenced by clients), **do not
+If a contract address is already in use (and referenced by clients), **do not
 redeploy**. Use the on-chain `Update(nef, manifest)` method instead:
 
 ```bash
-# Example (testnet): update an existing contract hash
+# Example (testnet): update an existing contract address
 neo-go contract update -i contracts/build/PaymentHub.nef \
   -m contracts/build/PaymentHub.manifest.json \
   -r https://testnet1.neo.coz.io:443 \
   -w wallet.json \
-  --hash <existing_contract_hash>
+  --hash <existing_contract_address>
 ```
 
 For Neo Express local dev, `deploy/scripts/deploy_all.sh` automatically updates

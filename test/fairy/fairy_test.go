@@ -94,7 +94,7 @@ func TestFairyVirtualDeploy(t *testing.T) {
 	}
 
 	t.Logf("Contract deployed:")
-	t.Logf("  Hash: %s", result.ContractHash)
+	t.Logf("  Address: %s", result.ContractAddress)
 	t.Logf("  Gas: %s", result.GasConsumed)
 	t.Logf("  State: %s", result.State)
 
@@ -122,16 +122,16 @@ func TestPriceFeedContractWithFairy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("VirtualDeploy: %v", err)
 	}
-	contractHash := deployResult.ContractHash
-	t.Logf("PriceFeed deployed: %s", contractHash)
+	contractAddress := deployResult.ContractAddress
+	t.Logf("PriceFeed deployed: %s", contractAddress)
 
-	adminResult, err := client.InvokeFunctionWithSession(sessionID, false, contractHash, "admin", nil)
+	adminResult, err := client.InvokeFunctionWithSession(sessionID, false, contractAddress, "admin", nil)
 	if err != nil {
 		t.Fatalf("admin(): %v", err)
 	}
 	t.Logf("admin(): %s", adminResult.State)
 
-	updaterResult, err := client.InvokeFunctionWithSession(sessionID, false, contractHash, "updater", nil)
+	updaterResult, err := client.InvokeFunctionWithSession(sessionID, false, contractAddress, "updater", nil)
 	if err != nil {
 		t.Fatalf("updater(): %v", err)
 	}
@@ -157,8 +157,8 @@ func TestPriceFeedReadOnlyFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("VirtualDeploy: %v", err)
 	}
-	contractHash := deployResult.ContractHash
-	t.Logf("Contract deployed: %s", contractHash)
+	contractAddress := deployResult.ContractAddress
+	t.Logf("Contract deployed: %s", contractAddress)
 
 	// Set virtual time (to avoid timestamp issues)
 	now := uint64(time.Now().UnixMilli())
@@ -170,7 +170,7 @@ func TestPriceFeedReadOnlyFlow(t *testing.T) {
 	adminResult, err := client.InvokeFunctionWithSession(
 		sessionID,
 		false,
-		contractHash,
+		contractAddress,
 		"admin",
 		nil,
 	)
@@ -180,7 +180,7 @@ func TestPriceFeedReadOnlyFlow(t *testing.T) {
 	t.Logf("Admin result: %+v", adminResult)
 
 	// Updater is optional until configured.
-	updaterResult, err := client.InvokeFunctionWithSession(sessionID, false, contractHash, "updater", nil)
+	updaterResult, err := client.InvokeFunctionWithSession(sessionID, false, contractAddress, "updater", nil)
 	if err != nil {
 		t.Fatalf("updater(): %v", err)
 	}

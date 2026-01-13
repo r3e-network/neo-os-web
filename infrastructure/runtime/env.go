@@ -3,7 +3,9 @@ package runtime
 
 import (
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Environment represents the logical deployment environment.
@@ -52,4 +54,32 @@ func IsProduction() bool  { return Env() == Production }
 func IsDevelopmentOrTesting() bool {
 	env := Env()
 	return env == Development || env == Testing
+}
+
+// ParseEnvInt parses an integer from the environment variable with the given key.
+// Returns the parsed value and true if successful, or 0 and false if not set or invalid.
+func ParseEnvInt(key string) (int, bool) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return 0, false
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
+}
+
+// ParseEnvDuration parses a duration from the environment variable with the given key.
+// Returns the parsed duration and true if successful, or 0 and false if not set or invalid.
+func ParseEnvDuration(key string) (time.Duration, bool) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return 0, false
+	}
+	parsed, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, false
+	}
+	return parsed, true
 }

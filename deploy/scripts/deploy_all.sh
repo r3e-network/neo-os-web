@@ -138,7 +138,7 @@ deploy_contract() {
             echo "  Output: $result"
             exit 1
         fi
-        # Extract contract hash from output
+        # Extract contract address from output
         hash=$(echo "$result" | grep -oP '0x[a-fA-F0-9]{40}' | head -1 || echo "")
 
         if [ -n "$hash" ]; then
@@ -146,7 +146,7 @@ deploy_contract() {
             # Update deployed contracts file
             jq --arg name "$name" --arg hash "$hash" '.[$name] = $hash' "$DEPLOYED_FILE" > "$DEPLOYED_FILE.tmp" && mv "$DEPLOYED_FILE.tmp" "$DEPLOYED_FILE"
         else
-            echo "  Warning: Could not extract contract hash"
+            echo "  Warning: Could not extract contract address"
             echo "  Output: $result"
         fi
     else

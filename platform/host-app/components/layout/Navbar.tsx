@@ -3,13 +3,13 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { Search, Moon, Sun, Menu, X, Globe, User, LogIn, Heart } from "lucide-react";
+import { Menu, X, Globe, User, LogIn, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useTheme } from "@/components/providers/ThemeProvider";
+import { useState, useCallback } from "react";
 import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
 import { NotificationDropdown } from "@/components/features/notifications/NotificationDropdown";
+import { SearchAutocomplete } from "@/components/features/search";
 import { useUser } from "@auth0/nextjs-auth0/client";
 
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -27,22 +27,18 @@ const navLinks = [
 
 export function Navbar() {
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
   const { locale, setLocale, t } = useI18n();
   const { address: walletAddress } = useWalletStore();
   const { user, isLoading: authLoading } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleLogoClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
       if (router.pathname === "/" || router.pathname === "/home") {
         event.preventDefault();
-        // Force scroll to absolute top immediately
         window.scrollTo(0, 0);
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-        // Then smooth scroll as backup
         requestAnimationFrame(() => {
           window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
         });
@@ -51,49 +47,8 @@ export function Navbar() {
     [router.pathname],
   );
 
-  // Real-time search with debounce (300ms delay)
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchQuery(value);
-
-      // Clear previous timeout
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-
-      // Debounce the route change
-      debounceRef.current = setTimeout(() => {
-        if (value.trim()) {
-          router.push(`/miniapps?q=${encodeURIComponent(value.trim())}`, undefined, { shallow: true });
-        } else if (router.pathname === "/miniapps" && router.query.q) {
-          // Clear search when input is empty
-          router.push("/miniapps", undefined, { shallow: true });
-        }
-      }, 300);
-    },
-    [router],
-  );
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, []);
-
-  // Sync search query with URL on mount/route change
-  useEffect(() => {
-    const urlQuery = (router.query.q as string) || "";
-    if (urlQuery !== searchQuery) {
-      setSearchQuery(urlQuery);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.query.q]);
-
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-white/60 dark:border-white/10 bg-white/70 dark:bg-[#0b0c16]/90 backdrop-blur-xl supports-[backdrop-filter]:bg-white/50">
+    <nav className="sticky top-0 z-50 w-full border-b border-white/20 dark:border-white/5 bg-white/10 dark:bg-black/70 backdrop-blur-xl supports-[backdrop-filter]:bg-white/5">
       <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-6">
@@ -130,18 +85,9 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Search Bar - Real-time search on keystroke */}
+        {/* Search Bar - Steam-style autocomplete */}
         <div className="hidden md:flex flex-1 max-w-md mx-6">
-          <div className="relative w-full group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-erobo-purple transition-colors" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder={t("actions.search")}
-              className="w-full h-10 pl-10 pr-4 text-sm bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 rounded-full focus:bg-white dark:focus:bg-black focus:border-erobo-purple/50 focus:ring-4 focus:ring-erobo-purple/10 transition-all outline-none text-erobo-ink dark:text-white placeholder-gray-500"
-            />
-          </div>
+          <SearchAutocomplete className="w-full" />
         </div>
 
         {/* Right Actions */}
@@ -227,16 +173,7 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-white/60 dark:border-white/10 bg-white/90 dark:bg-[#0b0c16] px-4 py-4 shadow-lg">
           <div className="mb-4">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-erobo-purple transition-colors" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder={t("actions.search")}
-                className="w-full h-10 pl-10 pr-4 text-sm bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 rounded-full focus:bg-white dark:focus:bg-black focus:border-erobo-purple/50 focus:ring-4 focus:ring-erobo-purple/10 transition-all outline-none text-erobo-ink dark:text-white placeholder-gray-500"
-              />
-            </div>
+            <SearchAutocomplete className="w-full" />
           </div>
           <div className="flex flex-col gap-2">
             {navLinks.map((link) => (

@@ -167,10 +167,10 @@ func loadContracts() map[string]util.Uint160 {
 		h, _ := util.Uint160DecodeStringLE(strings.TrimPrefix(os.Getenv(env), "0x"))
 		contracts[name] = h
 	}
-	load("PaymentHub", "CONTRACT_PAYMENTHUB_HASH")
-	load("PriceFeed", "CONTRACT_PRICEFEED_HASH")
-	load("RandomnessLog", "CONTRACT_RANDOMNESSLOG_HASH")
-	load("Governance", "CONTRACT_GOVERNANCE_HASH")
+	load("PaymentHub", "CONTRACT_PAYMENT_HUB_ADDRESS")
+	load("PriceFeed", "CONTRACT_PRICE_FEED_ADDRESS")
+	load("RandomnessLog", "CONTRACT_RANDOMNESS_LOG_ADDRESS")
+	load("Governance", "CONTRACT_GOVERNANCE_ADDRESS")
 	return contracts
 }
 

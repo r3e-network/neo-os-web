@@ -171,7 +171,11 @@ func (c *Client) request(ctx context.Context, method, table string, body interfa
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("apikey", c.serviceKey)
 	req.Header.Set("Authorization", "Bearer "+c.serviceKey)
-	req.Header.Set("Prefer", "return=representation")
+	prefer := "return=representation"
+	if method == http.MethodPost && strings.Contains(query, "on_conflict=") {
+		prefer = "return=representation,resolution=merge-duplicates"
+	}
+	req.Header.Set("Prefer", prefer)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

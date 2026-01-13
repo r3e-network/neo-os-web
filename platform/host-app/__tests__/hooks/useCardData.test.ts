@@ -1,6 +1,9 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { useCardData, getCardData, getCardDataBatch } from "@/hooks/useCardData";
 
+// Test chain ID
+const TEST_CHAIN_ID = "neo-n3-testnet" as const;
+
 // Mock the card-data module
 jest.mock("@/lib/card-data", () => ({
   getCountdownData: jest.fn().mockResolvedValue({
@@ -67,12 +70,12 @@ describe("useCardData", () => {
   });
 
   it("returns undefined for unknown app", () => {
-    const { result } = renderHook(() => useCardData("unknown-app"));
+    const { result } = renderHook(() => useCardData("unknown-app", TEST_CHAIN_ID));
     expect(result.current.data).toBeUndefined();
   });
 
   it("fetches countdown data for lottery app", async () => {
-    const { result } = renderHook(() => useCardData("miniapp-lottery"));
+    const { result } = renderHook(() => useCardData("miniapp-lottery", TEST_CHAIN_ID));
 
     expect(result.current.loading).toBe(true);
 
@@ -84,7 +87,7 @@ describe("useCardData", () => {
   });
 
   it("fetches multiplier data for crash app", async () => {
-    const { result } = renderHook(() => useCardData("miniapp-neo-crash"));
+    const { result } = renderHook(() => useCardData("miniapp-neo-crash", TEST_CHAIN_ID));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -94,7 +97,7 @@ describe("useCardData", () => {
   });
 
   it("fetches stats data for red envelope app", async () => {
-    const { result } = renderHook(() => useCardData("miniapp-redenvelope"));
+    const { result } = renderHook(() => useCardData("miniapp-redenvelope", TEST_CHAIN_ID));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -104,7 +107,7 @@ describe("useCardData", () => {
   });
 
   it("fetches voting data for governance app", async () => {
-    const { result } = renderHook(() => useCardData("miniapp-govbooster"));
+    const { result } = renderHook(() => useCardData("miniapp-govbooster", TEST_CHAIN_ID));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

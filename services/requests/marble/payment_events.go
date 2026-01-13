@@ -15,7 +15,7 @@ func (s *Service) handlePaymentReceivedEvent(ctx context.Context, event *chain.C
 	if event == nil {
 		return nil
 	}
-	if s.paymentHubHash != "" && normalizeContractHash(event.Contract) != s.paymentHubHash {
+	if s.paymentHubAddress != "" && normalizeContractAddress(event.Contract) != s.paymentHubAddress {
 		return nil
 	}
 
@@ -94,7 +94,7 @@ func (s *Service) handlePaymentReceivedEvent(ctx context.Context, event *chain.C
 		}
 	}
 
-	if err := s.repo.BumpMiniAppUsage(ctx, user.ID, parsed.AppID, amount, nil); err != nil {
+	if err := s.repo.BumpMiniAppUsage(ctx, user.ID, parsed.AppID, s.chainID, amount, nil); err != nil {
 		logger.WithContext(ctx).WithError(err).Warn("failed to bump miniapp usage")
 	}
 

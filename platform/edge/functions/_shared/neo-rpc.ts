@@ -3,8 +3,8 @@
  */
 import { getNeoRpcUrl } from "./k8s-config.ts";
 
-// Neo N3 GAS contract hash (native)
-const GAS_CONTRACT_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+// Neo N3 GAS contract address (native)
+const GAS_CONTRACT_ADDRESS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
 interface RpcResponse<T> {
   jsonrpc: string;
@@ -59,7 +59,7 @@ async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
 export async function getGasBalance(address: string): Promise<string> {
   const result = await rpcCall<Nep17BalancesResult>("getnep17balances", [address]);
 
-  const gasBalance = result.balance.find((b) => b.assethash.toLowerCase() === GAS_CONTRACT_HASH.toLowerCase());
+  const gasBalance = result.balance.find((b) => b.assethash.toLowerCase() === GAS_CONTRACT_ADDRESS.toLowerCase());
 
   if (!gasBalance) {
     return "0";

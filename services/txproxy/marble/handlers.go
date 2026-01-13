@@ -21,21 +21,21 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contractHash := strings.TrimSpace(req.ContractHash)
+	contractAddress := strings.TrimSpace(req.ContractAddress)
 	method := canonicalizeMethodName(req.Method)
-	if contractHash == "" || method == "" {
-		httputil.BadRequest(w, "contract_hash and method required")
+	if contractAddress == "" || method == "" {
+		httputil.BadRequest(w, "contract_address and method required")
 		return
 	}
 
 	// Validate allowlist and policy BEFORE marking request as seen
 	// This prevents DoS via invalid requests consuming request_ids
-	if s.allowlist == nil || !s.allowlist.Allows(contractHash, method) {
+	if s.allowlist == nil || !s.allowlist.Allows(contractAddress, method) {
 		httputil.WriteError(w, http.StatusForbidden, "contract/method not allowed")
 		return
 	}
 
-	if status, msg := s.checkIntentPolicy(contractHash, method, req.Intent, req.Params); status != 0 {
+	if status, msg := s.checkIntentPolicy(contractAddress, method, req.Intent, req.Params); status != 0 {
 		httputil.WriteError(w, status, msg)
 		return
 	}
@@ -53,7 +53,7 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 
 	txRes, err := s.chainClient.InvokeFunctionWithSignerAndWait(
 		r.Context(),
-		normalizeContractHash(contractHash),
+		normalizeContractAddress(contractAddress),
 		method,
 		req.Params,
 		s.signer,

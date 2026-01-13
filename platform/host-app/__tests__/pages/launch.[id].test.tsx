@@ -47,7 +47,8 @@ const mockApp: MiniAppInfo = {
   icon: "🧪",
   category: "gaming",
   entry_url: "https://example.com/app",
-  permissions: { payments: true, governance: true, randomness: true, datafeed: true },
+  supportedChains: ["neo-n3-mainnet"],
+  permissions: { payments: true, governance: true, rng: true, datafeed: true },
 };
 
 const flushAsyncUpdates = async () => {
@@ -325,7 +326,7 @@ describe("LaunchPage", () => {
     ) => {
       contentWindow.postMessage.mockClear();
       const event = new MessageEvent("message", {
-        data: { type: "neo_miniapp_sdk_request", id: method, method, params },
+        data: { type: "miniapp_sdk_request", id: method, method, params },
         origin,
       });
       Object.defineProperty(event, "source", { value: contentWindow });

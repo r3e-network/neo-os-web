@@ -41,9 +41,9 @@ func main() {
 		log.Fatal("NEO_TESTNET_WIF environment variable not set")
 	}
 
-	contractHash := os.Getenv("CONTRACT_PAYMENTHUB_HASH")
-	if contractHash == "" {
-		contractHash = "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
+	contractAddress := os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS")
+	if contractAddress == "" {
+		contractAddress = "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
 	}
 
 	client, err := chain.NewClient(chain.Config{
@@ -65,7 +65,7 @@ func main() {
 		log.Fatalf("Failed to parse owner address: %v", err)
 	}
 
-	log.Printf("Configuring MiniApps in contract: %s", contractHash)
+	log.Printf("Configuring MiniApps in contract: %s", contractAddress)
 	log.Printf("Owner address: %s", ownerAddress)
 
 	for _, appID := range miniApps {
@@ -93,7 +93,7 @@ func main() {
 			chain.NewBoolParam(true),
 		}
 
-		result, err := client.InvokeFunctionWithSigners(ctx, contractHash, "configureApp", params, signer.ScriptHash())
+		result, err := client.InvokeFunctionWithSigners(ctx, contractAddress, "configureApp", params, signer.ScriptHash())
 		if err != nil {
 			log.Printf("  Failed to simulate %s: %v", appID, err)
 			continue

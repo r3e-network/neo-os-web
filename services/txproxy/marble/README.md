@@ -45,8 +45,8 @@ The allowlist defines which contracts and methods TxProxy will sign transactions
 ```json
 {
   "contracts": {
-    "<contract_hash>": ["method1", "method2"],
-    "<contract_hash>": ["*"]
+    "<contract_address>": ["method1", "method2"],
+    "<contract_address>": ["*"]
   }
 }
 ```
@@ -56,20 +56,20 @@ Example (allow platform contracts):
 ```json
 {
   "contracts": {
-    "<gas_hash>": ["transfer"],
-    "<paymenthub_hash>": ["configureApp", "withdraw"],
-    "<governance_hash>": ["stake", "unstake", "vote"],
-    "<randomnesslog_hash>": ["record"],
-    "<pricefeed_hash>": ["update"],
-    "<automationanchor_hash>": ["markExecuted"],
-    "<servicegateway_hash>": ["fulfillRequest"]
+    "<gas_address>": ["transfer"],
+    "<paymenthub_address>": ["configureApp", "withdraw"],
+    "<governance_address>": ["stake", "unstake", "vote"],
+    "<randomnesslog_address>": ["record"],
+    "<pricefeed_address>": ["update"],
+    "<automationanchor_address>": ["markExecuted"],
+    "<servicegateway_address>": ["fulfillRequest"]
   }
 }
 ```
 
 ### Rules
 
-- Contract hashes are normalized to lowercase **without** `0x` prefix (40 hex chars)
+- Contract addresses are normalized to lowercase **without** `0x` prefix (40 hex chars)
 - Method names are canonicalized by lowercasing the first character (to match Neo C# devpack manifest names like `getLatest`, `setUpdater`, `transfer`)
 - `"*"` allows all methods on a contract (not recommended in production)
 - Empty array `[]` blocks all methods
@@ -89,11 +89,11 @@ Request field `intent` enables stricter checks for platform user flows:
 | `payments`   | GAS only         | GAS        | `transfer` to `PaymentHub` |
 | `governance` | NEO only         | Governance | `stake`, `unstake`, `vote` |
 
-Requires corresponding contract hash environment variables:
+Requires corresponding contract address environment variables:
 
-- `CONTRACT_PAYMENTHUB_HASH` for payments intent
-- `CONTRACT_GAS_HASH` (optional override; defaults to native GAS hash)
-- `CONTRACT_GOVERNANCE_HASH` for governance intent
+- `CONTRACT_PAYMENT_HUB_ADDRESS` for payments intent
+- `CONTRACT_GAS_ADDRESS` (optional override; defaults to native GAS address)
+- `CONTRACT_GOVERNANCE_ADDRESS` for governance intent
 
 Note: the allowlist must still permit GAS `transfer` when using the `payments` intent.
 
@@ -112,9 +112,9 @@ Note: the allowlist must still permit GAS `transfer` when using the `payments` i
 | `TXPROXY_ALLOWLIST`        | JSON allowlist config | Yes (strict mode)     |
 | `GLOBALSIGNER_SERVICE_URL` | GlobalSigner URL      | Recommended           |
 | `TEE_PRIVATE_KEY`          | Fallback signing key  | If no GlobalSigner    |
-| `CONTRACT_PAYMENTHUB_HASH` | PaymentHub contract   | For payments intent   |
-| `CONTRACT_GAS_HASH`        | GAS contract hash     | Optional override     |
-| `CONTRACT_GOVERNANCE_HASH` | Governance contract   | For governance intent |
+| `CONTRACT_PAYMENT_HUB_ADDRESS` | PaymentHub contract   | For payments intent   |
+| `CONTRACT_GAS_ADDRESS`        | GAS contract address  | Optional override     |
+| `CONTRACT_GOVERNANCE_ADDRESS` | Governance contract   | For governance intent |
 
 ## Security
 

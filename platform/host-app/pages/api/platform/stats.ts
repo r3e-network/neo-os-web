@@ -7,6 +7,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { getNeoBurgerStats } from "../../../lib/neoburger";
+// Chain ID must be provided by caller - no environment defaults
 import miniappsData from "../../../data/miniapps.json";
 
 // Calculate total apps from miniapps.json
@@ -36,18 +37,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // Chain ID is optional - if not provided, return aggregate stats across all chains
+  const chainId = req.query.chain_id as string | undefined;
+
   try {
     // Require Supabase configuration - no fallback data
     if (!isSupabaseConfigured) {
       return res.status(503).json({ error: "Database not configured" });
     }
 
-    // Try platform_stats first
-    const { data: platformData, error: platformError } = await supabase
-      .from("platform_stats")
+    // Try platform_stats_by_chain first for chain-specific stats
+    const { data: chainData } = await supabase
+      .from("platform_stats_by_chain")
       .select("total_users, total_transactions, total_volume_gas, total_gas_burned, active_apps")
-      .eq("id", 1)
+      .eq("chain_id", chainId)
       .single();
+
+    // Fallback to legacy platform_stats if chain-specific not available
+    const { data: platformData, error: platformError } = chainData
+      ? { data: chainData, error: null }
+      : await supabase
+          .from("platform_stats")
+          .select("total_users, total_transactions, total_volume_gas, total_gas_burned, active_apps")
+          .eq("id", 1)
+          .single();
 
     // Fetch staking APR from NeoBurger
     let stakingApr = "0";
@@ -75,7 +88,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       // Fallback: Aggregate from miniapp_stats table
       console.log("platform_stats not available, aggregating from miniapp_stats");
-      const { data: aggregateData } = await supabase.from("miniapp_stats").select("*");
+      let aggregateQuery = supabase.from("miniapp_stats").select("*");
+      if (chainId) {
+        aggregateQuery = aggregateQuery.eq("chain_id", chainId);
+      }
+      const { data: aggregateData } = await aggregateQuery;
 
       if (aggregateData && aggregateData.length > 0) {
         const safeParseFloat = (val: string | null | undefined): number => {
@@ -110,11 +127,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Get top apps from miniapp_stats
-    const { data: topAppsData } = await supabase
+    let topAppsQuery = supabase
       .from("miniapp_stats")
       .select("app_id, total_transactions")
       .order("total_transactions", { ascending: false })
       .limit(5);
+
+    if (chainId) {
+      topAppsQuery = topAppsQuery.eq("chain_id", chainId);
+    }
+
+    const { data: topAppsData } = await topAppsQuery;
 
     const colors = ["#9f9df3", "#f7aac7", "#f8d7c2", "#d8f2e2", "#d9ecff"];
     if (topAppsData) {
@@ -125,7 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }));
     }
 
-    res.status(200).json(stats);
+    res.status(200).json({ ...stats, chainId });
   } catch (error) {
     console.error("Stats API error:", error);
     res.status(500).json({ error: "Failed to fetch stats" });

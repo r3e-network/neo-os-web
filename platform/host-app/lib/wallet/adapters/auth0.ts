@@ -1,15 +1,16 @@
 import { WalletAdapter, WalletAccount, WalletBalance, SignedMessage, InvokeParams, TransactionResult } from "./base";
-import { rpcCall, Network } from "../../chain/rpc-client";
+import { rpcCall, getChainRpcUrl } from "../../chain/rpc-client";
+import type { ChainId } from "../../chains/types";
+import { isNeoN3Chain } from "../../chains/types";
+import { getNeoContract, getGasContract, getChainRegistry } from "../../chains/registry";
 import { decryptPrivateKeyBrowser } from "../crypto-browser";
 import { wallet, u, sc, tx, rpc } from "@cityofzion/neon-js";
-
-const NEO_GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-const NEO_NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 
 export class Auth0Adapter implements WalletAdapter {
   readonly name = "Social Account";
   readonly icon = "/auth0-logo.svg";
   readonly downloadUrl = "";
+  readonly supportedChainTypes = ["neo-n3"] as const;
 
   isInstalled(): boolean {
     return true;
@@ -37,29 +38,33 @@ export class Auth0Adapter implements WalletAdapter {
     // No-op
   }
 
-  async getBalance(address: string): Promise<WalletBalance> {
+  async getBalance(address: string, chainId: ChainId): Promise<WalletBalance> {
     try {
-      const network = (process.env.NEXT_PUBLIC_NEO_NETWORK as "mainnet" | "testnet") || "testnet";
+      const gasHash = getGasContract(chainId);
+      const neoHash = getNeoContract(chainId);
+
       const response = await rpcCall<{ balance: { assethash: string; amount: string }[] }>(
         "getnep17balances",
         [address],
-        network,
+        chainId,
       );
 
       const balances = response?.balance || [];
-      const gas = balances.find((b) => b.assethash === NEO_GAS_HASH)?.amount || "0";
-      const neo = balances.find((b) => b.assethash === NEO_NEO_HASH)?.amount || "0";
+      const gas = balances.find((b) => b.assethash === gasHash)?.amount || "0";
+      const neo = balances.find((b) => b.assethash === neoHash)?.amount || "0";
 
       const gasVal = (parseInt(gas) / 100000000).toString();
       const neoVal = neo;
 
       return {
-        gas: gasVal,
-        neo: neoVal,
+        native: gasVal,
+        nativeSymbol: "GAS",
+        governance: neoVal,
+        governanceSymbol: "NEO",
       };
     } catch (error) {
       console.error("Failed to fetch balance:", error);
-      return { neo: "0", gas: "0" };
+      return { native: "0", nativeSymbol: "GAS", governance: "0", governanceSymbol: "NEO" };
     }
   }
 
@@ -101,9 +106,8 @@ export class Auth0Adapter implements WalletAdapter {
   /**
    * Invoke transaction with password
    */
-  async invokeWithPassword(params: InvokeParams, password: string): Promise<TransactionResult> {
+  async invokeWithPassword(params: InvokeParams, password: string, chainId: ChainId): Promise<TransactionResult> {
     const account = await this.getDecryptedAccount(password);
-    const network = (process.env.NEXT_PUBLIC_NEO_NETWORK as Network) || "testnet";
 
     // Build script from params
     const script = sc.createScript({
@@ -112,8 +116,8 @@ export class Auth0Adapter implements WalletAdapter {
       args: params.args?.map((arg) => this.convertArg(arg)) || [],
     });
 
-    // Get network magic and current block
-    const rpcEndpoint = network === "mainnet" ? "https://mainnet1.neo.coz.io:443" : "https://testnet1.neo.coz.io:443";
+    // Get RPC endpoint from chain registry
+    const rpcEndpoint = getChainRpcUrl(chainId);
 
     const rpcClient = new rpc.RPCClient(rpcEndpoint);
     const currentHeight = await rpcClient.getBlockCount();
@@ -146,8 +150,14 @@ export class Auth0Adapter implements WalletAdapter {
     transaction.systemFee = u.BigInteger.fromNumber(feeData.gasconsumed);
     transaction.networkFee = u.BigInteger.fromNumber(1000000); // 0.01 GAS base fee
 
-    // Sign transaction
-    transaction.sign(account, network === "mainnet" ? 860833102 : 894710606);
+    // Sign transaction - get network magic from chain registry
+    const registry = getChainRegistry();
+    const chainConfig = registry.getChain(chainId);
+    if (!chainConfig || !isNeoN3Chain(chainConfig)) {
+      throw new Error(`Auth0 adapter only supports Neo N3 chains. Got: ${chainId}`);
+    }
+    const networkMagic = chainConfig.networkMagic;
+    transaction.sign(account, networkMagic);
 
     // Send transaction
     const txid = await rpcClient.sendRawTransaction(transaction.serialize(true));

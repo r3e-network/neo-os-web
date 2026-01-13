@@ -26,6 +26,6 @@ platform `RandomnessLog` contract.
 
 The service discovers the deployed contract via:
 
-- `CONTRACT_RANDOMNESSLOG_HASH`: deployed script hash (see `../../../.env.example`).
+- `CONTRACT_RANDOMNESS_LOG_ADDRESS`: deployed contract address (see `../../../.env.example`).
 
 On-chain writes are performed via `../../txproxy/README.md` (allowlisted sign+broadcast).

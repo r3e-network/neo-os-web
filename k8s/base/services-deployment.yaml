@@ -128,11 +128,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: CONTRACT_PRICEFEED_HASH
+        - name: CONTRACT_PRICE_FEED_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_PRICEFEED_HASH
+              key: CONTRACT_PRICE_FEED_ADDRESS
         - name: TXPROXY_URL
           valueFrom:
             configMapKeyRef:
@@ -342,16 +342,16 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: CONTRACT_PRICEFEED_HASH
+        - name: CONTRACT_PRICE_FEED_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_PRICEFEED_HASH
-        - name: CONTRACT_AUTOMATIONANCHOR_HASH
+              key: CONTRACT_PRICE_FEED_ADDRESS
+        - name: CONTRACT_AUTOMATION_ANCHOR_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_AUTOMATIONANCHOR_HASH
+              key: CONTRACT_AUTOMATION_ANCHOR_ADDRESS
         - name: TXPROXY_URL
           valueFrom:
             configMapKeyRef:
@@ -1249,16 +1249,16 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: CONTRACT_SERVICEGATEWAY_HASH
+        - name: CONTRACT_SERVICE_GATEWAY_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_SERVICEGATEWAY_HASH
-        - name: CONTRACT_APPREGISTRY_HASH
+              key: CONTRACT_SERVICE_GATEWAY_ADDRESS
+        - name: CONTRACT_APP_REGISTRY_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_APPREGISTRY_HASH
+              key: CONTRACT_APP_REGISTRY_ADDRESS
         - name: NEOVRF_URL
           valueFrom:
             configMapKeyRef:
@@ -1484,16 +1484,16 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: CONTRACT_PAYMENTHUB_HASH
+        - name: CONTRACT_PAYMENT_HUB_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_PAYMENTHUB_HASH
-        - name: CONTRACT_GOVERNANCE_HASH
+              key: CONTRACT_PAYMENT_HUB_ADDRESS
+        - name: CONTRACT_GOVERNANCE_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_GOVERNANCE_HASH
+              key: CONTRACT_GOVERNANCE_ADDRESS
         - name: TXPROXY_ALLOWLIST
           valueFrom:
             configMapKeyRef:
@@ -2056,22 +2056,22 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: CONTRACT_PAYMENTHUB_HASH
+        - name: CONTRACT_PAYMENT_HUB_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_PAYMENTHUB_HASH
-        - name: CONTRACT_PRICEFEED_HASH
+              key: CONTRACT_PAYMENT_HUB_ADDRESS
+        - name: CONTRACT_PRICE_FEED_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_PRICEFEED_HASH
+              key: CONTRACT_PRICE_FEED_ADDRESS
               optional: true
-        - name: CONTRACT_RANDOMNESSLOG_HASH
+        - name: CONTRACT_RANDOMNESS_LOG_ADDRESS
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: CONTRACT_RANDOMNESSLOG_HASH
+              key: CONTRACT_RANDOMNESS_LOG_ADDRESS
               optional: true
         - name: NEOACCOUNTS_SERVICE_URL
           valueFrom:

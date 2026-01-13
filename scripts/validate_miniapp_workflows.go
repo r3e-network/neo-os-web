@@ -26,8 +26,8 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
 )
 
-// Contract hashes from environment
-type ContractHashes struct {
+// Contract addresses from environment
+type ContractAddresses struct {
 	PaymentHub       util.Uint160
 	Governance       util.Uint160
 	PriceFeed        util.Uint160
@@ -51,7 +51,7 @@ type Validator struct {
 	ctx       context.Context
 	rpc       *rpcclient.Client
 	account   *wallet.Account
-	contracts ContractHashes
+	contracts ContractAddresses
 	results   []ValidationResult
 }
 
@@ -105,10 +105,10 @@ func NewValidator(ctx context.Context) (*Validator, error) {
 	}
 	account := wallet.NewAccountFromPrivateKey(privKey)
 
-	// Load contract hashes
-	contracts, err := loadContractHashes()
+	// Load contract addresses
+	contracts, err := loadContractAddresses()
 	if err != nil {
-		return nil, fmt.Errorf("load contract hashes: %w", err)
+		return nil, fmt.Errorf("load contract addresses: %w", err)
 	}
 
 	return &Validator{
@@ -126,41 +126,41 @@ func (v *Validator) Close() {
 	}
 }
 
-func loadContractHashes() (ContractHashes, error) {
-	var c ContractHashes
+func loadContractAddresses() (ContractAddresses, error) {
+	var c ContractAddresses
 	var err error
 
-	c.PaymentHub, err = parseHash(os.Getenv("CONTRACT_PAYMENTHUB_HASH"))
+	c.PaymentHub, err = parseAddress(os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS"))
 	if err != nil {
 		return c, fmt.Errorf("PaymentHub: %w", err)
 	}
 
-	c.Governance, err = parseHash(os.Getenv("CONTRACT_GOVERNANCE_HASH"))
+	c.Governance, err = parseAddress(os.Getenv("CONTRACT_GOVERNANCE_ADDRESS"))
 	if err != nil {
 		return c, fmt.Errorf("Governance: %w", err)
 	}
 
-	c.PriceFeed, err = parseHash(os.Getenv("CONTRACT_PRICEFEED_HASH"))
+	c.PriceFeed, err = parseAddress(os.Getenv("CONTRACT_PRICE_FEED_ADDRESS"))
 	if err != nil {
 		return c, fmt.Errorf("PriceFeed: %w", err)
 	}
 
-	c.RandomnessLog, err = parseHash(os.Getenv("CONTRACT_RANDOMNESSLOG_HASH"))
+	c.RandomnessLog, err = parseAddress(os.Getenv("CONTRACT_RANDOMNESS_LOG_ADDRESS"))
 	if err != nil {
 		return c, fmt.Errorf("RandomnessLog: %w", err)
 	}
 
-	c.AppRegistry, err = parseHash(os.Getenv("CONTRACT_APPREGISTRY_HASH"))
+	c.AppRegistry, err = parseAddress(os.Getenv("CONTRACT_APP_REGISTRY_ADDRESS"))
 	if err != nil {
 		return c, fmt.Errorf("AppRegistry: %w", err)
 	}
 
-	c.AutomationAnchor, err = parseHash(os.Getenv("CONTRACT_AUTOMATIONANCHOR_HASH"))
+	c.AutomationAnchor, err = parseAddress(os.Getenv("CONTRACT_AUTOMATION_ANCHOR_ADDRESS"))
 	if err != nil {
 		return c, fmt.Errorf("AutomationAnchor: %w", err)
 	}
 
-	c.ServiceGateway, err = parseHash(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
+	c.ServiceGateway, err = parseAddress(os.Getenv("CONTRACT_SERVICE_GATEWAY_ADDRESS"))
 	if err != nil {
 		return c, fmt.Errorf("ServiceGateway: %w", err)
 	}
@@ -168,10 +168,10 @@ func loadContractHashes() (ContractHashes, error) {
 	return c, nil
 }
 
-func parseHash(s string) (util.Uint160, error) {
+func parseAddress(s string) (util.Uint160, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return util.Uint160{}, fmt.Errorf("hash not set")
+		return util.Uint160{}, fmt.Errorf("address not set")
 	}
 	s = strings.TrimPrefix(s, "0x")
 	return util.Uint160DecodeStringLE(s)
@@ -211,7 +211,7 @@ func (v *Validator) ValidateContractDeployment() {
 
 	contracts := []struct {
 		name string
-		hash util.Uint160
+		address util.Uint160
 	}{
 		{"PaymentHub", v.contracts.PaymentHub},
 		{"Governance", v.contracts.Governance},
@@ -226,14 +226,14 @@ func (v *Validator) ValidateContractDeployment() {
 	details := make(map[string]interface{})
 
 	for _, c := range contracts {
-		state, err := v.rpc.GetContractStateByHash(c.hash)
+		state, err := v.rpc.GetContractStateByHash(c.address)
 		if err != nil {
 			details[c.name] = "NOT DEPLOYED"
 			allDeployed = false
-			fmt.Printf("   ❌ %s: NOT DEPLOYED (0x%s)\n", c.name, c.hash.StringLE())
+			fmt.Printf("   ❌ %s: NOT DEPLOYED (0x%s)\n", c.name, c.address.StringLE())
 		} else {
 			details[c.name] = state.Manifest.Name
-			fmt.Printf("   ✅ %s: %s (0x%s)\n", c.name, state.Manifest.Name, c.hash.StringLE())
+			fmt.Printf("   ✅ %s: %s (0x%s)\n", c.name, state.Manifest.Name, c.address.StringLE())
 		}
 	}
 

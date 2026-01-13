@@ -1,9 +1,24 @@
+import type { ChainId } from "../chains/types";
+
+export interface MiniAppChainContract {
+  address: string | null;
+  active?: boolean;
+  entryUrl?: string;
+}
+
+export type MiniAppChainContracts = Record<ChainId, MiniAppChainContract>;
+
 export interface MiniAppSDKConfig {
   baseUrl?: string;
   edgeBaseUrl?: string;
   appId?: string;
-  contractHash?: string | null;
-  network?: "testnet" | "mainnet";
+  /** Multi-chain support */
+  chainId?: ChainId | null;
+  chainType?: "neo-n3" | "evm";
+  /** Active chain contract address, if configured */
+  contractAddress?: string | null;
+  supportedChains?: ChainId[];
+  chainContracts?: MiniAppChainContracts;
   getAuthToken?: () => Promise<string | undefined>;
   getAPIKey?: () => Promise<string | undefined>;
 }
@@ -11,7 +26,15 @@ export interface MiniAppSDKConfig {
 export interface MiniAppSDK {
   // Required methods for SDK validation
   invoke?: (method: string, params?: Record<string, unknown>) => Promise<unknown>;
-  getConfig?: () => { appId: string; contractHash?: string | null; debug?: boolean };
+  getConfig?: () => {
+    appId: string;
+    chainId?: ChainId | null;
+    chainType?: "neo-n3" | "evm";
+    contractAddress?: string | null;
+    supportedChains?: ChainId[];
+    chainContracts?: MiniAppChainContracts;
+    debug?: boolean;
+  };
   getAddress?: () => Promise<string | null>;
   wallet?: {
     getAddress?: () => Promise<string | null>;

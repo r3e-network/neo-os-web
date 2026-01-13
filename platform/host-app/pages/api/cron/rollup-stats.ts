@@ -6,19 +6,32 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
-import { getContractStats, CONTRACTS } from "../../../lib/chain";
+import { getContractStats, getContractAddress } from "../../../lib/chain";
+import { getChainRegistry } from "../../../lib/chains/registry";
+import type { ChainId } from "../../../lib/chains/types";
+
+// Map app IDs to contract names
+const APP_CONTRACT_NAMES: Record<string, string> = {
+  "miniapp-lottery": "lottery",
+  "miniapp-coinflip": "coinFlip",
+  "miniapp-dicegame": "diceGame",
+  "miniapp-neo-crash": "neoCrash",
+  "miniapp-secretvote": "secretVote",
+  "miniapp-predictionmarket": "predictionMarket",
+  "miniapp-flashloan": "flashLoan",
+  "miniapp-redenvelope": "redEnvelope",
+};
 
 // All apps with deployed contracts
-const DEPLOYED_APPS = [
-  { appId: "miniapp-lottery", contract: CONTRACTS.lottery },
-  { appId: "miniapp-coinflip", contract: CONTRACTS.coinFlip },
-  { appId: "miniapp-dicegame", contract: CONTRACTS.diceGame },
-  { appId: "miniapp-neo-crash", contract: CONTRACTS.neoCrash },
-  { appId: "miniapp-secretvote", contract: CONTRACTS.secretVote },
-  { appId: "miniapp-predictionmarket", contract: CONTRACTS.predictionMarket },
-  { appId: "miniapp-flashloan", contract: CONTRACTS.flashLoan },
-  { appId: "miniapp-redenvelope", contract: CONTRACTS.redEnvelope },
-];
+const DEPLOYED_APPS = Object.keys(APP_CONTRACT_NAMES);
+
+/** Validate chain ID using registry */
+function validateChainId(value: string | undefined): ChainId | null {
+  if (!value) return null;
+  const registry = getChainRegistry();
+  const chain = registry.getChain(value as ChainId);
+  return chain ? chain.id : null;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Verify cron secret for security
@@ -31,39 +44,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Supabase not configured" });
   }
 
-  const results: { appId: string; success: boolean; error?: string }[] = [];
+  // Get active chains from registry dynamically
+  const registry = getChainRegistry();
+  const allActiveChains = registry.getActiveChains().map((c) => c.id);
 
-  for (const app of DEPLOYED_APPS) {
-    try {
-      const stats = await getContractStats(app.contract, "testnet");
+  // Support chain_id parameter or process all active chains
+  const rawChainId = (req.query.chain_id as string) || (req.query.network as string);
+  const chainIdParam = validateChainId(rawChainId);
+  const chainsToProcess = chainIdParam ? [chainIdParam] : allActiveChains;
 
-      await supabase.from("miniapp_stats").upsert(
-        {
-          app_id: app.appId,
-          contract_hash: app.contract,
-          total_unique_users: stats.uniqueUsers,
-          total_transactions: stats.totalTransactions,
-          total_volume_gas: stats.totalValueLocked,
-          last_rollup_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "app_id" },
-      );
+  const results: { appId: string; chainId: ChainId; success: boolean; error?: string }[] = [];
 
-      results.push({ appId: app.appId, success: true });
-    } catch (error) {
-      results.push({
-        appId: app.appId,
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+  for (const chainId of chainsToProcess) {
+    for (const appId of DEPLOYED_APPS) {
+      try {
+        const contractName = APP_CONTRACT_NAMES[appId];
+        const contractAddress = getContractAddress(contractName, chainId);
+
+        if (!contractAddress) {
+          continue; // Skip apps without contract on this chain
+        }
+
+        const stats = await getContractStats(contractAddress, chainId);
+
+        await supabase.from("miniapp_stats").upsert(
+          {
+            app_id: appId,
+            chain_id: chainId,
+            total_unique_users: stats.uniqueUsers,
+            total_transactions: stats.totalTransactions,
+            total_volume_gas: stats.totalValueLocked,
+            last_rollup_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "app_id,chain_id" },
+        );
+
+        results.push({ appId, chainId, success: true });
+      } catch (error) {
+        results.push({
+          appId,
+          chainId,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     }
   }
 
   const successCount = results.filter((r) => r.success).length;
 
   res.status(200).json({
-    message: `Rollup complete: ${successCount}/${DEPLOYED_APPS.length} apps updated`,
+    message: `Rollup complete: ${successCount}/${results.length} entries updated`,
+    chainsProcessed: chainsToProcess,
     results,
     timestamp: new Date().toISOString(),
   });

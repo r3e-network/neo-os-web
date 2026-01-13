@@ -2,7 +2,7 @@
  * NeoBurger Client Tests
  */
 
-import { getNeoBurgerStats, NEOBURGER_CONTRACT } from "@/lib/neoburger/client";
+import { getNeoBurgerStats, getNeoBurgerContract } from "@/lib/neoburger/client";
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -12,8 +12,13 @@ describe("NeoBurger Client", () => {
     jest.clearAllMocks();
   });
 
-  it("should export correct contract address", () => {
-    expect(NEOBURGER_CONTRACT).toBe("0x48c40d4666f93408be1bef038b6722404d9a4c2a");
+  it("should return correct contract address for mainnet", () => {
+    expect(getNeoBurgerContract("neo-n3-mainnet")).toBe("0x48c40d4666f93408be1bef038b6722404d9a4c2a");
+  });
+
+  it("should return null for non-Neo N3 chains", () => {
+    expect(getNeoBurgerContract("neox-mainnet")).toBeNull();
+    expect(getNeoBurgerContract("ethereum-mainnet")).toBeNull();
   });
 
   it("should fetch stats from mainnet", async () => {
@@ -27,7 +32,7 @@ describe("NeoBurger Client", () => {
         }),
     });
 
-    const stats = await getNeoBurgerStats("mainnet");
+    const stats = await getNeoBurgerStats("neo-n3-mainnet");
 
     expect(stats).toHaveProperty("apr");
     expect(stats).toHaveProperty("totalStakedFormatted");
@@ -42,7 +47,7 @@ describe("NeoBurger Client", () => {
         }),
     });
 
-    await expect(getNeoBurgerStats("mainnet")).rejects.toThrow("RPC error");
+    await expect(getNeoBurgerStats("neo-n3-mainnet")).rejects.toThrow("RPC error");
   });
 
   it("should throw on contract execution failure", async () => {
@@ -53,6 +58,6 @@ describe("NeoBurger Client", () => {
         }),
     });
 
-    await expect(getNeoBurgerStats("mainnet")).rejects.toThrow("Contract execution failed");
+    await expect(getNeoBurgerStats("neo-n3-mainnet")).rejects.toThrow("Contract execution failed");
   });
 });

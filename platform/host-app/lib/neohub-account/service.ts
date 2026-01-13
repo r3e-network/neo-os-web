@@ -10,6 +10,7 @@ import type {
   NeoHubAccountFull,
   LinkedIdentity,
   LinkedNeoAccount,
+  LinkedChainAccount,
   CreateAccountParams,
   LinkIdentityParams,
   LinkNeoAccountParams,
@@ -92,10 +93,17 @@ export async function getFullNeoHubAccount(accountId: string): Promise<NeoHubAcc
     .select("*")
     .eq("neohub_account_id", accountId);
 
+  // Get linked chain accounts (multi-chain)
+  const { data: chainAccounts } = await supabase
+    .from("linked_chain_accounts")
+    .select("*")
+    .eq("neohub_account_id", accountId);
+
   return {
     ...account,
     linkedIdentities: (identities || []).map(mapIdentity),
     linkedNeoAccounts: (neoAccounts || []).map(mapNeoAccount),
+    linkedChainAccounts: (chainAccounts || []).map(mapChainAccount),
   };
 }
 
@@ -124,6 +132,20 @@ function mapNeoAccount(row: any): LinkedNeoAccount {
     publicKey: row.public_key,
     isPrimary: row.is_primary,
     linkedAt: row.linked_at,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapChainAccount(row: any): LinkedChainAccount {
+  return {
+    id: row.id,
+    neohubAccountId: row.neohub_account_id,
+    address: row.address,
+    publicKey: row.public_key,
+    isPrimary: row.is_primary,
+    linkedAt: row.linked_at,
+    chainId: row.chain_id,
+    chainType: row.chain_type,
   };
 }
 

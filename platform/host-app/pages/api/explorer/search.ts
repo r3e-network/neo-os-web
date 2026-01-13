@@ -1,4 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { getChainRegistry } from "@/lib/chains/registry";
+import { chainRpcCall } from "@/lib/chain/rpc-client";
 
 // Explorer Search API - proxies to Edge Function or queries indexer directly
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -6,12 +8,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { q } = req.query;
+  const { q, chain_id } = req.query;
   if (!q || typeof q !== "string") {
     return res.status(400).json({ error: "Query parameter 'q' required" });
   }
 
   try {
+    const registry = getChainRegistry();
+    const requestedChainId = typeof chain_id === "string" ? chain_id : "";
+    const resolvedChainId = requestedChainId || "neo-n3-mainnet";
+    const chain = registry.getChain(resolvedChainId as any);
+    if (!chain) {
+      return res.status(400).json({ error: `Unknown chain_id: ${resolvedChainId}` });
+    }
+    const chainType = chain.type;
+
+    if (chainType === "evm") {
+      const searchType = detectSearchType(q, chainType);
+      let result;
+      switch (searchType) {
+        case "transaction":
+          result = await searchEvmTransaction(resolvedChainId, q);
+          break;
+        case "address":
+        case "contract":
+          result = await searchEvmAddress(resolvedChainId, q);
+          break;
+        default:
+          result = { type: "unknown", found: false, query: q };
+      }
+      return res.status(200).json(result);
+    }
+
     // Use INDEXER Supabase credentials (isolated from main platform)
     const indexerUrl = process.env.INDEXER_SUPABASE_URL;
     const indexerKey = process.env.INDEXER_SUPABASE_SERVICE_KEY;
@@ -20,21 +48,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: "Indexer not configured" });
     }
 
-    const searchType = detectSearchType(q);
+    const searchType = detectSearchType(q, chainType);
+    const neoNetwork = chainType === "neo-n3" && "isTestnet" in chain ? (chain.isTestnet ? "testnet" : "mainnet") : "";
     let result;
 
     switch (searchType) {
       case "transaction":
-        result = await searchTransaction(indexerUrl, indexerKey, q);
+        result = await searchTransaction(indexerUrl, indexerKey, q, neoNetwork);
         break;
       case "address":
-        result = await searchAddress(indexerUrl, indexerKey, q);
+        result = await searchAddress(indexerUrl, indexerKey, q, neoNetwork);
         break;
       case "contract":
         result = await searchContract(indexerUrl, indexerKey, q);
         break;
       default:
-        result = await searchAll(indexerUrl, indexerKey, q);
+        result = await searchAll(indexerUrl, indexerKey, q, neoNetwork);
     }
 
     return res.status(200).json(result);
@@ -44,10 +73,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-function detectSearchType(query: string): string {
+function detectSearchType(query: string, chainType: "neo-n3" | "evm"): string {
   if (query.startsWith("0x") && query.length === 66) return "transaction";
-  if (query.startsWith("N") && query.length === 34) return "address";
-  if (query.startsWith("0x") && query.length === 42) return "contract";
+  if (chainType === "neo-n3" && query.startsWith("N") && query.length === 34) return "address";
+  if (query.startsWith("0x") && query.length === 42) {
+    return chainType === "neo-n3" ? "contract" : "address";
+  }
   return "unknown";
 }
 
@@ -55,7 +86,7 @@ function detectSearchType(query: string): string {
  * Sanitize input to prevent SQL injection via Supabase REST API query parameters.
  * Validates format and encodes special characters that could be used for injection.
  */
-function sanitizeInput(input: string, type: "hash" | "address" | "contract"): string {
+function sanitizeInput(input: string, type: "hash" | "address" | "contract", chainType: "neo-n3" | "evm"): string {
   // Remove any whitespace
   const trimmed = input.trim();
 
@@ -68,15 +99,27 @@ function sanitizeInput(input: string, type: "hash" | "address" | "contract"): st
       }
       break;
     case "address":
-      // Neo address: N followed by 33 base58 characters
-      if (!/^N[1-9A-HJ-NP-Za-km-z]{33}$/.test(trimmed)) {
-        throw new Error("Invalid address format");
+      if (chainType === "evm") {
+        if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
+          throw new Error("Invalid EVM address format");
+        }
+      } else {
+        // Neo address: N followed by 33 base58 characters
+        if (!/^N[1-9A-HJ-NP-Za-km-z]{33}$/.test(trimmed)) {
+          throw new Error("Invalid address format");
+        }
       }
       break;
     case "contract":
-      // Contract hash: 0x followed by 40 hex characters
-      if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
-        throw new Error("Invalid contract hash format");
+      if (chainType === "evm") {
+        if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
+          throw new Error("Invalid contract address format");
+        }
+      } else {
+        // Contract address: 0x followed by 40 hex characters
+        if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
+          throw new Error("Invalid contract address format");
+        }
       }
       break;
   }
@@ -95,11 +138,17 @@ async function supabaseQuery(url: string, key: string, table: string, params: st
   return response.json();
 }
 
-async function searchTransaction(url: string, key: string, hash: string) {
+async function searchTransaction(url: string, key: string, hash: string, network: string) {
   // Sanitize hash input to prevent injection
-  const sanitizedHash = sanitizeInput(hash, "hash");
+  const sanitizedHash = sanitizeInput(hash, "hash", "neo-n3");
 
-  const tx = await supabaseQuery(url, key, "indexer_transactions", `hash=eq.${sanitizedHash}&limit=1`);
+  const networkFilter = network ? `&network=eq.${encodeURIComponent(network)}` : "";
+  const tx = await supabaseQuery(
+    url,
+    key,
+    "indexer_transactions",
+    `hash=eq.${sanitizedHash}${networkFilter}&limit=1`,
+  );
   if (!tx || tx.length === 0) return { type: "transaction", found: false };
 
   const [traces, calls, syscalls] = await Promise.all([
@@ -108,45 +157,79 @@ async function searchTransaction(url: string, key: string, hash: string) {
     supabaseQuery(url, key, "indexer_syscalls", `tx_hash=eq.${sanitizedHash}&order=call_index`),
   ]);
 
+  const mappedTraces = traces || [];
+  const mappedCalls = calls || [];
+  const mappedSyscalls = syscalls || [];
+
   return {
     type: "transaction",
     found: true,
-    data: { ...tx[0], opcode_traces: traces || [], contract_calls: calls || [], syscalls: syscalls || [] },
+    data: { ...tx[0], opcode_traces: mappedTraces, contract_calls: mappedCalls, syscalls: mappedSyscalls },
   };
 }
 
-async function searchAddress(url: string, key: string, address: string) {
+async function searchAddress(url: string, key: string, address: string, network: string) {
   // Sanitize address input to prevent injection
-  const sanitizedAddress = sanitizeInput(address, "address");
+  const sanitizedAddress = sanitizeInput(address, "address", "neo-n3");
+  const networkFilter = network ? `&network=eq.${encodeURIComponent(network)}` : "";
 
   const txs = await supabaseQuery(
     url,
     key,
     "indexer_address_txs",
-    `address=eq.${sanitizedAddress}&order=block_time.desc&limit=50`,
+    `address=eq.${sanitizedAddress}${networkFilter}&order=block_time.desc&limit=50`,
   );
   const count = txs?.length || 0;
   return { type: "address", found: count > 0, address, tx_count: count, transactions: txs || [] };
 }
 
-async function searchContract(url: string, key: string, contractHash: string) {
-  // Sanitize contract hash input to prevent injection
-  const sanitizedHash = sanitizeInput(contractHash, "contract");
+async function searchContract(url: string, key: string, contractAddress: string) {
+  // Sanitize contract address input to prevent injection
+  const sanitizedHash = sanitizeInput(contractAddress, "contract", "neo-n3");
 
   const calls = await supabaseQuery(
     url,
     key,
     "indexer_contract_calls",
-    `contract_hash=eq.${sanitizedHash}&order=id.desc&limit=50`,
+    `contract_address=eq.${sanitizedHash}&order=id.desc&limit=50`,
   );
   const count = calls?.length || 0;
-  return { type: "contract", found: count > 0, contract_hash: contractHash, call_count: count, calls: calls || [] };
+  return {
+    type: "contract",
+    found: count > 0,
+    contract_address: contractAddress,
+    call_count: count,
+    calls: calls || [],
+  };
 }
 
-async function searchAll(url: string, key: string, query: string) {
-  const txResult = await searchTransaction(url, key, query);
+async function searchAll(url: string, key: string, query: string, network: string) {
+  const txResult = await searchTransaction(url, key, query, network);
   if (txResult.found) return txResult;
-  const addrResult = await searchAddress(url, key, query);
+  const addrResult = await searchAddress(url, key, query, network);
   if (addrResult.found) return addrResult;
   return { type: "unknown", found: false, query };
+}
+
+async function searchEvmTransaction(chainId: string, hash: string) {
+  const sanitizedHash = sanitizeInput(hash, "hash", "evm");
+  const receipt = await chainRpcCall<unknown>("eth_getTransactionReceipt", [sanitizedHash], chainId as any);
+  if (!receipt) return { type: "transaction", found: false };
+  return { type: "transaction", found: true, data: receipt };
+}
+
+async function searchEvmAddress(chainId: string, address: string) {
+  const sanitizedAddress = sanitizeInput(address, "address", "evm");
+  const [balance, code] = await Promise.all([
+    chainRpcCall<string>("eth_getBalance", [sanitizedAddress, "latest"], chainId as any),
+    chainRpcCall<string>("eth_getCode", [sanitizedAddress, "latest"], chainId as any),
+  ]);
+  const isContract = Boolean(code && code !== "0x");
+  return {
+    type: isContract ? "contract" : "address",
+    found: true,
+    address: sanitizedAddress,
+    balance,
+    code: isContract ? code : undefined,
+  };
 }

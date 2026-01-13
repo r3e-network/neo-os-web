@@ -5,12 +5,14 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { VersionList, CreateVersionForm } from "@/components/features/developer";
 import { ArrowLeft, Plus, Settings, Trash2 } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
+import type { ChainId } from "@/lib/chains/types";
+import { getChainRegistry } from "@/lib/chains/registry";
 
 interface App {
   app_id: string;
@@ -19,6 +21,8 @@ interface App {
   category: string;
   status: string;
   visibility: string;
+  supported_chains?: ChainId[];
+  contracts_json?: Record<string, string>;
 }
 
 interface Version {
@@ -195,13 +199,90 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 }
 
 function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
+  const { address } = useWalletStore();
+  const [selectedChains, setSelectedChains] = useState<ChainId[]>(app.supported_chains || ["neo-n3-mainnet"]);
+  const [contractAddresses, setContractAddresses] = useState<Record<string, string>>(app.contracts_json || {});
+  const [saving, setSaving] = useState(false);
+
+  const availableChains = useMemo(() => {
+    const registry = getChainRegistry();
+    return registry.getActiveChains();
+  }, []);
+
+  const toggleChain = (chainId: ChainId) => {
+    setSelectedChains((prev) => (prev.includes(chainId) ? prev.filter((id) => id !== chainId) : [...prev, chainId]));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await fetch(`/api/developer/apps/${app.app_id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-developer-address": address || "",
+        },
+        body: JSON.stringify({
+          supported_chains: selectedChains,
+          contracts_json: contractAddresses,
+        }),
+      });
+      onUpdate();
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Chain Configuration */}
       <div className="rounded-2xl p-6 bg-white dark:bg-[#080808] border border-gray-200 dark:border-white/10">
-        <h3 className="font-bold text-gray-900 dark:text-white mb-4">App Settings</h3>
-        <p className="text-gray-500 text-sm">Settings panel coming soon...</p>
+        <h3 className="font-bold text-gray-900 dark:text-white mb-4">Supported Chains</h3>
+        <p className="text-gray-500 text-sm mb-4">Select the blockchain networks your app supports</p>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {availableChains.map((chain) => (
+            <button
+              key={chain.id}
+              type="button"
+              onClick={() => toggleChain(chain.id)}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                selectedChains.includes(chain.id)
+                  ? "border-neo bg-neo/10 text-neo"
+                  : "border-gray-200 dark:border-white/10 hover:border-gray-300"
+              }`}
+            >
+              <img src={chain.icon} alt={chain.name} className="w-6 h-6 rounded-full" />
+              <span className="text-sm font-medium">{chain.name}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Contract Addresses */}
+        <h4 className="font-medium text-gray-900 dark:text-white mb-3">Contract Addresses</h4>
+        <div className="space-y-3 mb-4">
+          {selectedChains.map((chainId) => {
+            const chain = availableChains.find((c) => c.id === chainId);
+            return (
+              <div key={chainId} className="flex items-center gap-3">
+                {chain && <img src={chain.icon} alt={chain.name} className="w-5 h-5 rounded-full" />}
+                <input
+                  type="text"
+                  value={contractAddresses[chainId] || ""}
+                  onChange={(e) => setContractAddresses((prev) => ({ ...prev, [chainId]: e.target.value }))}
+                  placeholder={`Contract on ${chain?.name || chainId}`}
+                  className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm"
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <Button onClick={handleSave} disabled={saving} className="bg-neo text-white">
+          {saving ? "Saving..." : "Save Changes"}
+        </Button>
       </div>
 
+      {/* Danger Zone */}
       <div className="rounded-2xl p-6 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
         <h3 className="font-bold text-red-700 dark:text-red-400 mb-2">Danger Zone</h3>
         <p className="text-red-600 dark:text-red-400 text-sm mb-4">

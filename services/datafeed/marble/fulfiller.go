@@ -19,7 +19,7 @@ func (s *Service) pushPricesToChain(ctx context.Context) {
 	}
 
 	// Anchor to the platform PriceFeed contract.
-	if s.priceFeed == nil || s.priceFeedHash == "" || s.txProxy == nil {
+	if s.priceFeed == nil || s.priceFeedAddress == "" || s.txProxy == nil {
 		return
 	}
 
@@ -28,7 +28,7 @@ func (s *Service) pushPricesToChain(ctx context.Context) {
 
 // PushSinglePrice pushes a single price update on-chain.
 func (s *Service) PushSinglePrice(ctx context.Context, feedID string) error {
-	if s.priceFeed == nil || s.priceFeedHash == "" || s.txProxy == nil {
+	if s.priceFeed == nil || s.priceFeedAddress == "" || s.txProxy == nil {
 		return fmt.Errorf("chain push not configured")
 	}
 

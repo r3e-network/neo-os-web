@@ -149,7 +149,7 @@ func runStatus(rpcURL, configFile string) {
 	}
 
 	log.Println("\n=== Platform Contracts ===")
-	fmt.Printf("%-20s %-50s %-12s\n", "Contract", "Hash", "Status")
+	fmt.Printf("%-20s %-50s %-12s\n", "Contract", "Address", "Status")
 	fmt.Println(strings.Repeat("-", 85))
 
 	for _, name := range platformContracts {
@@ -157,13 +157,13 @@ func runStatus(rpcURL, configFile string) {
 		hash := "-"
 		status := "NOT DEPLOYED"
 
-		if info != nil && info.Hash != "" {
-			hash = info.Hash
+		if info != nil && info.Address != "" {
+			hash = info.Address
 			status = "DEPLOYED"
 
 			// Verify on chain if deployer available
 			if deployer != nil {
-				state, err := deployer.GetContractState(info.Hash)
+				state, err := deployer.GetContractState(info.Address)
 				if err != nil {
 					status = "ERROR"
 				} else if state != nil {
@@ -236,8 +236,8 @@ func runDeploy(rpcURL, configFile, buildDir, contractName string, dryRun bool) {
 
 		// Check if already deployed
 		existing := registry.Get(name)
-		if existing != nil && existing.Hash != "" {
-			log.Printf("Already deployed at: %s", existing.Hash)
+		if existing != nil && existing.Address != "" {
+			log.Printf("Already deployed at: %s", existing.Address)
 			if !dryRun {
 				log.Printf("Skipping (use 'update' command to upgrade)")
 				continue
@@ -253,7 +253,7 @@ func runDeploy(rpcURL, configFile, buildDir, contractName string, dryRun bool) {
 
 		gasFloat := parseGas(deployed.GasConsumed)
 		totalGas += gasFloat
-		log.Printf("Expected hash: %s", deployed.Hash)
+		log.Printf("Expected address: %s", deployed.Address)
 		log.Printf("Estimated GAS: %.4f", gasFloat)
 
 		if dryRun {
@@ -295,11 +295,11 @@ func runUpdate(rpcURL, configFile, buildDir, contractName string) {
 	registry.LoadFromEnv()
 
 	info := registry.Get(contractName)
-	if info == nil || info.Hash == "" {
+	if info == nil || info.Address == "" {
 		log.Fatalf("Contract %s not found in registry", contractName)
 	}
 
-	log.Printf("Current hash: %s", info.Hash)
+	log.Printf("Current address: %s", info.Address)
 
 	nefPath := filepath.Join(buildDir, contractName+".nef")
 	manifestPath := filepath.Join(buildDir, contractName+".manifest.json")
@@ -309,7 +309,7 @@ func runUpdate(rpcURL, configFile, buildDir, contractName string) {
 	}
 
 	log.Println("\nTo update the contract, use neo-go CLI:")
-	log.Printf("neo-go contract update -i %s -m %s -r %s -w wallet.json --hash %s", nefPath, manifestPath, rpcURL, info.Hash)
+	log.Printf("neo-go contract update -i %s -m %s -r %s -w wallet.json --hash %s", nefPath, manifestPath, rpcURL, info.Address)
 	log.Println("\nNote: Update requires admin signature")
 }
 
@@ -340,13 +340,13 @@ func runVerify(rpcURL, configFile string) {
 
 	for _, name := range platformContracts {
 		info := registry.Get(name)
-		if info == nil || info.Hash == "" {
+		if info == nil || info.Address == "" {
 			log.Printf("%-20s: NOT DEPLOYED", name)
 			continue
 		}
 
 		// Check contract state
-		state, err := deployer.GetContractState(info.Hash)
+		state, err := deployer.GetContractState(info.Address)
 		if err != nil {
 			log.Printf("%-20s: ERROR - %v", name, err)
 			continue
@@ -373,7 +373,7 @@ func runVerify(rpcURL, configFile string) {
 		}
 
 		if testMethod != "" {
-			_, invokeErr := client.Call(ctx, "invokefunction", []interface{}{info.Hash, testMethod, []interface{}{}})
+			_, invokeErr := client.Call(ctx, "invokefunction", []interface{}{info.Address, testMethod, []interface{}{}})
 			if invokeErr != nil {
 				log.Printf("%-20s: DEPLOYED (invoke test failed: %v)", name, invokeErr)
 			} else {

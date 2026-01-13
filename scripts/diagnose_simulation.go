@@ -21,9 +21,9 @@ func main() {
 	// Check 1: Environment Variables
 	fmt.Println("--- Check 1: Required Environment Variables ---")
 	envVars := map[string]string{
-		"CONTRACT_PRICEFEED_HASH":     os.Getenv("CONTRACT_PRICEFEED_HASH"),
-		"CONTRACT_RANDOMNESSLOG_HASH": os.Getenv("CONTRACT_RANDOMNESSLOG_HASH"),
-		"CONTRACT_PAYMENTHUB_HASH":    os.Getenv("CONTRACT_PAYMENTHUB_HASH"),
+		"CONTRACT_PRICE_FEED_ADDRESS":     os.Getenv("CONTRACT_PRICE_FEED_ADDRESS"),
+		"CONTRACT_RANDOMNESS_LOG_ADDRESS": os.Getenv("CONTRACT_RANDOMNESS_LOG_ADDRESS"),
+		"CONTRACT_PAYMENT_HUB_ADDRESS":    os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS"),
 		"SIMULATION_ENABLED":          os.Getenv("SIMULATION_ENABLED"),
 		"NEOACCOUNTS_SERVICE_URL":     os.Getenv("NEOACCOUNTS_SERVICE_URL"),
 	}
@@ -32,13 +32,13 @@ func main() {
 	for name, value := range envVars {
 		if value == "" {
 			fmt.Printf("❌ %s: NOT SET\n", name)
-			if name == "CONTRACT_PAYMENTHUB_HASH" {
+			if name == "CONTRACT_PAYMENT_HUB_ADDRESS" {
 				paymentHubSet = false
 			}
 		} else {
 			// Mask sensitive values
 			displayValue := value
-			if strings.Contains(name, "HASH") && len(value) > 16 {
+			if strings.Contains(name, "ADDRESS") && len(value) > 16 {
 				displayValue = value[:8] + "..." + value[len(value)-8:]
 			}
 			fmt.Printf("✅ %s: %s\n", name, displayValue)
@@ -47,10 +47,10 @@ func main() {
 	fmt.Println()
 
 	if !paymentHubSet {
-		fmt.Println("⚠️  WARNING: PaymentHub hash not configured!")
+		fmt.Println("⚠️  WARNING: PaymentHub address not configured!")
 		fmt.Println("   The contract invoker and MiniApp simulator will be DISABLED.")
 		fmt.Println("   Set the following environment variables:")
-		fmt.Println("   - CONTRACT_PAYMENTHUB_HASH")
+		fmt.Println("   - CONTRACT_PAYMENT_HUB_ADDRESS")
 		fmt.Println()
 	}
 
@@ -88,9 +88,9 @@ func main() {
 	// Summary
 	fmt.Println("=== Summary ===")
 	if !paymentHubSet {
-		fmt.Println("❌ PaymentHub hash not configured - MiniApp simulator DISABLED")
+		fmt.Println("❌ PaymentHub address not configured - MiniApp simulator DISABLED")
 	} else {
-		fmt.Println("✅ PaymentHub hash configured (pricefeed/randomness optional)")
+		fmt.Println("✅ PaymentHub address configured (pricefeed/randomness optional)")
 	}
 
 	if !poolHealthy {
@@ -108,11 +108,11 @@ func main() {
 	fmt.Println()
 	fmt.Println("=== Recommendations ===")
 	if !paymentHubSet {
-		fmt.Println("1. Set the required contract hash environment variables")
+		fmt.Println("1. Set the required contract address environment variables")
 		fmt.Println("   Example:")
-		fmt.Println("   export CONTRACT_PAYMENTHUB_HASH=0x...")
-		fmt.Println("   (Optional) export CONTRACT_PRICEFEED_HASH=0x...")
-		fmt.Println("   (Optional) export CONTRACT_RANDOMNESSLOG_HASH=0x...")
+		fmt.Println("   export CONTRACT_PAYMENT_HUB_ADDRESS=0x...")
+		fmt.Println("   (Optional) export CONTRACT_PRICE_FEED_ADDRESS=0x...")
+		fmt.Println("   (Optional) export CONTRACT_RANDOMNESS_LOG_ADDRESS=0x...")
 	}
 	if !poolHealthy {
 		fmt.Println("2. Start the Account Pool service")

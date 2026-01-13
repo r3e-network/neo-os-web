@@ -6,7 +6,7 @@
  */
 
 import type { ChainConfig, ChainId, ChainType } from "./types";
-import { DEFAULT_CHAINS, DEFAULT_CHAIN_MAP } from "./defaults";
+import { SUPPORTED_CHAIN_CONFIGS } from "./defaults";
 
 // ============================================================================
 // Chain Registry Interface
@@ -50,8 +50,8 @@ class ChainRegistry implements IChainRegistry {
   private initialized = false;
 
   constructor() {
-    // Initialize with default chains
-    DEFAULT_CHAINS.forEach((chain) => {
+    // Initialize with platform supported chains
+    SUPPORTED_CHAIN_CONFIGS.forEach((chain) => {
       this.chains.set(chain.id, chain);
     });
   }
@@ -106,4 +106,34 @@ export const chainRegistry = new ChainRegistry();
 
 export function getChainRegistry(): IChainRegistry {
   return chainRegistry;
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Get native contract address for a chain
+ * @param chainId - Chain ID
+ * @param contractName - Contract name (e.g., 'neo', 'gas', 'multicall3')
+ * @returns Contract address or undefined
+ */
+export function getNativeContract(chainId: ChainId, contractName: string): string | undefined {
+  const chain = chainRegistry.getChain(chainId);
+  if (!chain) return undefined;
+  return (chain.contracts as Record<string, string>)?.[contractName];
+}
+
+/**
+ * Get NEO token contract address
+ */
+export function getNeoContract(chainId: ChainId): string | undefined {
+  return getNativeContract(chainId, "neo");
+}
+
+/**
+ * Get GAS token contract address
+ */
+export function getGasContract(chainId: ChainId): string | undefined {
+  return getNativeContract(chainId, "gas");
 }

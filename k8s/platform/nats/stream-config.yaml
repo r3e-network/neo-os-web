@@ -17,7 +17,7 @@ spec:
     # =============================================================================
     # Chain Events (from Indexer service)
     # =============================================================================
-    # Pattern: sl.chain.{chainId}.event.{contractHash}
+    # Pattern: sl.chain.{chainId}.event.{contractAddress}
     - sl.chain.*.event.*
     - sl.chain.*.block
 

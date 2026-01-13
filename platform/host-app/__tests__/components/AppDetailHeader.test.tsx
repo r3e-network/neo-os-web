@@ -17,11 +17,13 @@ const mockApp: MiniAppInfo = {
   icon: "🎮",
   category: "gaming",
   entry_url: "/test",
+  supportedChains: ["neo-n3-mainnet"],
   permissions: { payments: true },
 };
 
 const mockStats: MiniAppStats = {
   app_id: "test-app",
+  chain_id: "neo-n3-mainnet",
   total_transactions: 100,
   total_users: 50,
   total_gas_used: "10.5",

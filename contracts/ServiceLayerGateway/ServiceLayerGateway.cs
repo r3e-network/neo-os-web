@@ -20,8 +20,8 @@ namespace NeoMiniAppPlatform.Contracts
     // Custom delegates for events with named parameters
     public delegate void ServiceRequestedHandler(BigInteger requestId, string appId, string serviceType, UInt160 requester, UInt160 callbackContract, string callbackMethod, ByteString payload);
     public delegate void ServiceFulfilledHandler(BigInteger requestId, string appId, string serviceType, bool success, ByteString result, string error);
-    public delegate void CallbackAddedHandler(UInt160 contractHash);
-    public delegate void CallbackRemovedHandler(UInt160 contractHash);
+    public delegate void CallbackAddedHandler(UInt160 contractAddress);
+    public delegate void CallbackRemovedHandler(UInt160 contractAddress);
     public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
     public delegate void UpdaterChangedHandler(UInt160 oldUpdater, UInt160 newUpdater);
 
@@ -136,24 +136,24 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static StorageMap AllowedCallbackMap() => new StorageMap(Storage.CurrentContext, PREFIX_ALLOWED_CALLBACK);
 
-        public static void AddAllowedCallback(UInt160 contractHash)
+        public static void AddAllowedCallback(UInt160 contractAddress)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(contractHash != null && contractHash.IsValid, "invalid contract");
-            AllowedCallbackMap().Put((byte[])contractHash, 1);
-            OnCallbackAdded(contractHash);
+            ExecutionEngine.Assert(contractAddress != null && contractAddress.IsValid, "invalid contract");
+            AllowedCallbackMap().Put((byte[])contractAddress, 1);
+            OnCallbackAdded(contractAddress);
         }
 
-        public static void RemoveAllowedCallback(UInt160 contractHash)
+        public static void RemoveAllowedCallback(UInt160 contractAddress)
         {
             ValidateAdmin();
-            AllowedCallbackMap().Delete((byte[])contractHash);
-            OnCallbackRemoved(contractHash);
+            AllowedCallbackMap().Delete((byte[])contractAddress);
+            OnCallbackRemoved(contractAddress);
         }
 
-        public static bool IsAllowedCallback(UInt160 contractHash)
+        public static bool IsAllowedCallback(UInt160 contractAddress)
         {
-            return AllowedCallbackMap().Get((byte[])contractHash) != null;
+            return AllowedCallbackMap().Get((byte[])contractAddress) != null;
         }
 
         // ============ Stats Storage Maps ============

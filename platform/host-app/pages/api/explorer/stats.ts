@@ -1,16 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-
-const NEO_RPC_TESTNET = "https://testnet1.neo.coz.io:443";
-const NEO_RPC_MAINNET = "https://mainnet1.neo.coz.io:443";
+import { getChainRpcUrl } from "../../../lib/chain/rpc-client";
+import { getChainRegistry } from "../../../lib/chains/registry";
+import type { ChainId, ChainConfig } from "../../../lib/chains/types";
+import { isNeoN3Chain } from "../../../lib/chains/types";
 
 interface NetworkStats {
   height: number;
   txCount: number;
+  chainType: "neo-n3" | "evm";
 }
 
 interface ExplorerStats {
-  mainnet: NetworkStats;
-  testnet: NetworkStats;
+  chains: Record<ChainId, NetworkStats>;
   timestamp: number;
 }
 
@@ -20,14 +21,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const [mainnetStats, testnetStats] = await Promise.all([
-      getNetworkStats(NEO_RPC_MAINNET, "mainnet"),
-      getNetworkStats(NEO_RPC_TESTNET, "testnet"),
-    ]);
+    // Get active chains from registry dynamically
+    const registry = getChainRegistry();
+    const activeChains = registry.getActiveChains();
+
+    const chainStats = await Promise.all(
+      activeChains.map(async (chainConfig) => {
+        const stats = await getNetworkStats(chainConfig);
+        return { chainId: chainConfig.id, stats };
+      }),
+    );
+
+    const chains: Record<string, NetworkStats> = {};
+    for (const { chainId, stats } of chainStats) {
+      chains[chainId] = stats;
+    }
 
     const stats: ExplorerStats = {
-      mainnet: mainnetStats,
-      testnet: testnetStats,
+      chains: chains as Record<ChainId, NetworkStats>,
       timestamp: Date.now(),
     };
 
@@ -43,44 +54,72 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-async function getNetworkStats(rpcUrl: string, network: string): Promise<NetworkStats> {
-  // Get block count
+async function getNetworkStats(chainConfig: ChainConfig): Promise<NetworkStats> {
+  const chainId = chainConfig.id;
+  const rpcUrl = getChainRpcUrl(chainId);
+  const isNeo = isNeoN3Chain(chainConfig);
+
+  // Get block height based on chain type
   let height = 0;
   try {
-    const blockRes = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "getblockcount",
-        params: [],
-        id: 1,
-      }),
-    });
-    const blockData = await blockRes.json();
-    height = blockData.result || 0;
+    if (isNeo) {
+      const blockRes = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "getblockcount",
+          params: [],
+          id: 1,
+        }),
+      });
+      const blockData = await blockRes.json();
+      height = blockData.result || 0;
+    } else {
+      // EVM chain
+      const blockRes = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_blockNumber",
+          params: [],
+          id: 1,
+        }),
+      });
+      const blockData = await blockRes.json();
+      height = parseInt(blockData.result || "0x0", 16);
+    }
   } catch (err) {
-    console.error(`Failed to fetch block count for ${network}:`, err);
+    console.error(`Failed to fetch block count for ${chainId}:`, err);
   }
 
   // Get tx count from indexer if available
   let txCount = 0;
   try {
-    txCount = await getTxCountFromIndexer(network);
+    txCount = await getTxCountFromIndexer(chainConfig);
   } catch {
     // Ignore error, will fall back
   }
 
-  // Fallback: estimate from block height if indexer fails or returns 0 (unconfigured)
+  // Fallback: estimate from block height if indexer fails or returns 0
   if (txCount === 0 && height > 0) {
-    // Estimate based on network average (approx 2-5 tx/block historically)
-    txCount = Math.floor(height * 3.5);
+    // Different estimates for different chain types
+    const avgTxPerBlock = isNeo ? 3.5 : 150; // EVM chains typically have more tx/block
+    txCount = Math.floor(height * avgTxPerBlock);
   }
 
-  return { height, txCount };
+  return {
+    height,
+    txCount,
+    chainType: isNeo ? "neo-n3" : "evm",
+  };
 }
 
-async function getTxCountFromIndexer(network: string): Promise<number> {
+async function getTxCountFromIndexer(chainConfig: ChainConfig): Promise<number> {
+  if (!isNeoN3Chain(chainConfig)) {
+    return 0;
+  }
   const indexerUrl = process.env.INDEXER_SUPABASE_URL;
   const indexerKey = process.env.INDEXER_SUPABASE_SERVICE_KEY;
 
@@ -88,6 +127,8 @@ async function getTxCountFromIndexer(network: string): Promise<number> {
     console.warn("Indexer not configured, returning 0 for tx count");
     return 0; // Return 0 to trigger fallback calculation
   }
+
+  const network = chainConfig.isTestnet ? "testnet" : "mainnet";
 
   try {
     const response = await fetch(
@@ -107,7 +148,7 @@ async function getTxCountFromIndexer(network: string): Promise<number> {
     const data = await response.json();
     return data?.[0]?.total_tx_indexed || 0;
   } catch (e) {
-    console.warn("Failed to fetch tx count from indexer:", e);
+    console.warn(`Failed to fetch tx count from indexer for ${chainConfig.id}:`, e);
     return 0;
   }
 }

@@ -15,12 +15,12 @@ import (
 )
 
 func main() {
-	contractHash := flag.String("contract", "", "Contract hash to update (0x...)")
+	contractAddress := flag.String("contract", "", "Contract address to update (0x...)")
 	nefPath := flag.String("nef", "", "Path to NEF file")
 	manifestPath := flag.String("manifest", "", "Path to manifest JSON file")
 	flag.Parse()
 
-	if *contractHash == "" || *nefPath == "" || *manifestPath == "" {
+	if *contractAddress == "" || *nefPath == "" || *manifestPath == "" {
 		flag.Usage()
 		log.Fatal("All flags are required: -contract, -nef, -manifest")
 	}
@@ -51,7 +51,7 @@ func main() {
 	}
 
 	log.Printf("Updater address: %s", signer.Address)
-	log.Printf("Contract to update: %s", *contractHash)
+	log.Printf("Contract to update: %s", *contractAddress)
 
 	nefData, err := os.ReadFile(*nefPath)
 	if err != nil {
@@ -73,7 +73,7 @@ func main() {
 
 	log.Println("Simulating update...")
 
-	invokeResult, err := client.InvokeFunctionWithSigners(ctx, *contractHash, "update", params, signer.ScriptHash())
+	invokeResult, err := client.InvokeFunctionWithSigners(ctx, *contractAddress, "update", params, signer.ScriptHash())
 	if err != nil {
 		log.Fatalf("Update simulation failed: %v", err)
 	}
@@ -117,7 +117,7 @@ func main() {
 	}
 
 	log.Println("=== Update Successful ===")
-	log.Printf("Contract Hash: %s", *contractHash)
+	log.Printf("Contract Address: %s", *contractAddress)
 	log.Printf("Transaction: %s", txHashString)
 	log.Printf("GAS Consumed: %s", invokeResult.GasConsumed)
 

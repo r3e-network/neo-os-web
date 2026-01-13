@@ -12,10 +12,10 @@ import (
 type PoolClientInterface interface {
 	RequestAccounts(ctx context.Context, count int, purpose string) (*neoaccountsclient.RequestAccountsResponse, error)
 	ReleaseAccounts(ctx context.Context, accountIDs []string) (*neoaccountsclient.ReleaseAccountsResponse, error)
-	InvokeContract(ctx context.Context, accountID, contractHash, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error)
-	InvokeMaster(ctx context.Context, contractHash, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error)
+	InvokeContract(ctx context.Context, accountID, contractAddress, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error)
+	InvokeMaster(ctx context.Context, contractAddress, method string, params []neoaccountsclient.ContractParam, scope string) (*neoaccountsclient.InvokeContractResponse, error)
 	FundAccount(ctx context.Context, toAddress string, amount int64) (*neoaccountsclient.FundAccountResponse, error)
-	Transfer(ctx context.Context, accountID, toAddress string, amount int64, tokenHash string) (*neoaccountsclient.TransferResponse, error)
+	Transfer(ctx context.Context, accountID, toAddress string, amount int64, tokenAddress string) (*neoaccountsclient.TransferResponse, error)
 	TransferWithData(ctx context.Context, accountID, toAddress string, amount int64, data string) (*neoaccountsclient.TransferWithDataResponse, error)
 }
 
@@ -28,7 +28,7 @@ type ContractInvokerInterface interface {
 	PayoutToUser(ctx context.Context, appID string, userAddress string, amount int64, memo string) (string, error)
 	// MiniApp contract methods
 	HasMiniAppContract(appID string) bool
-	GetMiniAppContractHash(appID string) (string, error)
+	GetMiniAppContractAddress(appID string) (string, error)
 	InvokeMiniAppContract(ctx context.Context, appID, method string, params []neoaccountsclient.ContractParam) (string, error)
 	// Stats and management
 	GetStats() map[string]interface{}

@@ -64,6 +64,7 @@ type Simulation struct {
 	supabaseURL   string
 	supabaseKey   string
 	encryptionKey []byte
+	chainID       string
 
 	// Stats
 	txSent           int64
@@ -144,6 +145,10 @@ func NewSimulation() (*Simulation, error) {
 	encKeyHex := os.Getenv("POOL_ENCRYPTION_KEY")
 	encKey, _ := hex.DecodeString(encKeyHex)
 	contracts := loadContracts()
+	chainID := strings.TrimSpace(os.Getenv("CHAIN_ID"))
+	if chainID == "" {
+		chainID = "neo-n3-testnet"
+	}
 
 	fmt.Printf("📍 Funder: %s\n", funderAccount.Address)
 	fmt.Printf("📍 RPC: %s\n", rpcURL)
@@ -161,6 +166,7 @@ func NewSimulation() (*Simulation, error) {
 		supabaseURL:   os.Getenv("SUPABASE_URL"),
 		supabaseKey:   os.Getenv("SUPABASE_SERVICE_KEY"),
 		encryptionKey: encKey,
+		chainID:       chainID,
 		startTime:     time.Now(),
 	}, nil
 }
@@ -171,13 +177,13 @@ func loadContracts() map[string]util.Uint160 {
 		h, _ := util.Uint160DecodeStringLE(strings.TrimPrefix(os.Getenv(env), "0x"))
 		contracts[name] = h
 	}
-	load("PaymentHub", "CONTRACT_PAYMENTHUB_HASH")
-	load("PriceFeed", "CONTRACT_PRICEFEED_HASH")
-	load("RandomnessLog", "CONTRACT_RANDOMNESSLOG_HASH")
-	load("Governance", "CONTRACT_GOVERNANCE_HASH")
-	load("ServiceGateway", "CONTRACT_SERVICEGATEWAY_HASH")
-	load("AppRegistry", "CONTRACT_APPREGISTRY_HASH")
-	load("Consumer", "CONTRACT_CONSUMER_HASH")
+	load("PaymentHub", "CONTRACT_PAYMENT_HUB_ADDRESS")
+	load("PriceFeed", "CONTRACT_PRICE_FEED_ADDRESS")
+	load("RandomnessLog", "CONTRACT_RANDOMNESS_LOG_ADDRESS")
+	load("Governance", "CONTRACT_GOVERNANCE_ADDRESS")
+	load("ServiceGateway", "CONTRACT_SERVICE_GATEWAY_ADDRESS")
+	load("AppRegistry", "CONTRACT_APP_REGISTRY_ADDRESS")
+	load("Consumer", "CONTRACT_MINIAPP_CONSUMER_ADDRESS")
 	return contracts
 }
 
@@ -638,7 +644,8 @@ func (s *Simulation) storeTx(txHash, txType, appID, account, contract, method st
 		"tx_type":         txType,
 		"app_id":          appID,
 		"account_address": account,
-		"contract_hash":   contract,
+		"contract_address": contract,
+		"chain_id":        s.chainID,
 		"method_name":     method,
 		"amount":          amount,
 		"status":          status,
@@ -648,15 +655,14 @@ func (s *Simulation) storeTx(txHash, txType, appID, account, contract, method st
 
 // storeEvent stores a contract event in Supabase (matches actual contract_events table schema)
 func (s *Simulation) storeEvent(txHash string, blockIndex int64, contract, eventName, appID string, state map[string]interface{}) {
-	// Add contract_hash to state data for reference
-	state["contract_hash"] = contract
-
 	payload := map[string]interface{}{
-		"tx_hash":      txHash,
-		"app_id":       appID,
-		"event_name":   eventName,
-		"block_number": blockIndex,
-		"data":         state,
+		"tx_hash":          txHash,
+		"app_id":           appID,
+		"event_name":       eventName,
+		"chain_id":         s.chainID,
+		"contract_address": contract,
+		"block_index":      blockIndex,
+		"state":            state,
 	}
 	go s.postToSupabase("contract_events", payload)
 }
@@ -708,13 +714,13 @@ func (s *Simulation) fetchAndStoreEvents(txHashStr, appID string) {
 	// Process each notification/event
 	eventCount := 0
 	for _, notif := range exec.Events {
-		contractHash := notif.ScriptHash.StringLE()
+		contractAddress := notif.ScriptHash.StringLE()
 		eventName := notif.Name
 
 		// Extract event parameters as named map
-		state := s.extractEventState(notif.Item, eventName, contractHash)
+		state := s.extractEventState(notif.Item, eventName)
 
-		s.storeEvent(txHashStr, blockIndex, contractHash, eventName, appID, state)
+		s.storeEvent(txHashStr, blockIndex, contractAddress, eventName, appID, state)
 		eventCount++
 	}
 
@@ -724,7 +730,7 @@ func (s *Simulation) fetchAndStoreEvents(txHashStr, appID string) {
 }
 
 // extractEventState converts stack items to a named parameter map based on event type
-func (s *Simulation) extractEventState(item stackitem.Item, eventName, contractHash string) map[string]interface{} {
+func (s *Simulation) extractEventState(item stackitem.Item, eventName string) map[string]interface{} {
 	state := make(map[string]interface{})
 
 	arr, ok := item.Value().([]stackitem.Item)

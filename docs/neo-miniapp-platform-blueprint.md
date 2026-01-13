@@ -227,7 +227,7 @@ Canonical endpoints:
 
 - syncs blocks, handles reorgs with confirmation depth
 - parses `Platform_Notification` + `Platform_Metric` events
-- verifies event contract hash against on-chain `contract_hash` (strict mode)
+- verifies event contract address against on-chain `contracts.<chain>.address` (strict mode)
 - scans `System.Contract.Call` to attribute MiniApp tx activity
 - writes `miniapp_tx_events`, `miniapp_stats`, `miniapp_stats_daily`, `miniapp_notifications`
 - feeds realtime UX via Supabase Realtime

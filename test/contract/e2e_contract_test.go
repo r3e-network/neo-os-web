@@ -104,20 +104,20 @@ func TestE2EContractDeploymentFlow(t *testing.T) {
 	t.Run("service registration simulation", func(t *testing.T) {
 		type ServiceRegistration struct {
 			ServiceType    string
-			ContractHash   string
+			ContractAddress string
 			Fee            int64
 			TEEAccountHash string
 		}
 
 		registrations := []ServiceRegistration{
-			{"neofeeds", "CONTRACT_PRICEFEED_HASH", 0, "globalsigner/txproxy"},
-			{"neoflow", "CONTRACT_AUTOMATIONANCHOR_HASH", 0, "globalsigner/txproxy"},
+			{"neofeeds", "CONTRACT_PRICE_FEED_ADDRESS", 0, "globalsigner/txproxy"},
+			{"neoflow", "CONTRACT_AUTOMATION_ANCHOR_ADDRESS", 0, "globalsigner/txproxy"},
 			{"txproxy", "(no on-chain registry)", 0, "globalsigner"},
 		}
 
 		for _, reg := range registrations {
 			t.Logf("Register service: type=%s, contract=%s, fee=%d GAS fractions",
-				reg.ServiceType, reg.ContractHash, reg.Fee)
+				reg.ServiceType, reg.ContractAddress, reg.Fee)
 		}
 	})
 }

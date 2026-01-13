@@ -10,7 +10,7 @@ import { CollectionStar } from "./CollectionStar";
 import { useTranslation } from "@/lib/i18n/react";
 import { formatNumber } from "@/lib/utils";
 import type { AnyCardData } from "@/types/card-display";
-import { Users, Activity, Eye } from "lucide-react";
+import { Users, Activity, Eye, Star } from "lucide-react";
 import { WaterRipple } from "@/components/ui/WaterRipple";
 import { ChainBadgeGroup } from "@/components/ui/ChainBadgeGroup";
 import type { ChainId } from "@/lib/chains/types";
@@ -32,6 +32,8 @@ export interface MiniAppInfo {
     transactions?: number;
     volume?: string;
     views?: number;
+    rating?: number;
+    reviews?: number;
   };
   cardData?: AnyCardData;
   highlights?: HighlightData[];
@@ -57,7 +59,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
         }}
         className="block h-full"
       >
-        <Card className="h-full group relative flex flex-col overflow-hidden rounded-[28px] transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_30px_80px_rgba(159,157,243,0.25)]">
+        <Card className="h-full group relative flex flex-col overflow-hidden rounded-[28px] transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_30px_80px_rgba(159,157,243,0.25)] bg-white/10 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/5">
           {/* Card Header / Image Area */}
           {app.cardData ? (
             <div className="w-full h-52 relative overflow-hidden border-b border-white/60 dark:border-white/10">
@@ -68,6 +70,10 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
                 appId={app.app_id}
                 className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-[0_0_10px_rgba(255,223,89,0.5)]"
               />
+              {/* Chain badges in bottom-left corner */}
+              {app.supportedChains && app.supportedChains.length > 0 && (
+                <ChainBadgeGroup chainIds={app.supportedChains} className="absolute bottom-4 left-4 z-20" />
+              )}
             </div>
           ) : (
             <div className="w-full h-52 relative overflow-hidden border-b border-white/60 dark:border-white/10">
@@ -100,7 +106,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
                 <h3 className="font-bold text-lg text-erobo-ink dark:text-white truncate leading-tight mb-2 group-hover:text-erobo-purple transition-colors">
                   {appName}
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge
                     className="text-[10px] font-medium uppercase px-2.5 py-0.5 rounded-full border border-erobo-purple/30 bg-erobo-purple/10 text-erobo-purple-dark dark:text-erobo-purple"
                     variant="secondary"
@@ -109,15 +115,23 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
                   </Badge>
                   {showSourceBadge && (
                     <Badge
-                      className={`text-[10px] font-medium uppercase px-2.5 py-0.5 rounded-full border backdrop-blur-md ${
-                        app.source === "verified"
+                      className={`text-[10px] font-medium uppercase px-2.5 py-0.5 rounded-full border backdrop-blur-md ${app.source === "verified"
                           ? "bg-neo/10 text-neo border-neo/20"
                           : "bg-erobo-peach/40 text-erobo-ink border-erobo-peach/60"
-                      }`}
+                        }`}
                       variant="secondary"
                     >
                       {app.source === "community" ? "Community" : "Verified"}
                     </Badge>
+                  )}
+                  {/* Steam-style Rating Display */}
+                  {app.stats?.rating && (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-400/10 border border-yellow-400/30">
+                      <Star size={10} className="text-yellow-400 fill-yellow-400" />
+                      <span className="text-[10px] font-semibold text-yellow-600 dark:text-yellow-400">
+                        {app.stats.rating.toFixed(1)}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -128,7 +142,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
             </p>
 
             {/* Stats Section */}
-            <div className="grid grid-cols-3 gap-2 py-3 border-t border-white/60 dark:border-white/10 mt-auto bg-white/70 dark:bg-white/5 -mx-5 -mb-5 px-5">
+            <div className="grid grid-cols-3 gap-2 py-3 border-t border-white/10 dark:border-white/5 mt-auto bg-white/5 dark:bg-white/5 -mx-5 -mb-5 px-5">
               <div className="flex flex-col items-center justify-center gap-0.5 text-center" title="Active Users">
                 <Users size={14} className="text-erobo-purple mb-0.5" strokeWidth={2.5} />
                 <span className="text-xs font-bold text-erobo-ink dark:text-gray-200">

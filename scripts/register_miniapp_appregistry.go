@@ -158,13 +158,13 @@ func main() {
 		rpcURL = defaultRPC
 	}
 
-	contractHash, err := resolveContractHash("CONTRACT_APPREGISTRY_HASH", "CONTRACT_APP_REGISTRY_HASH")
+	contractAddress, err := resolveContractAddress("CONTRACT_APP_REGISTRY_ADDRESS")
 	if err != nil {
-		fmt.Printf("Invalid AppRegistry hash: %v\n", err)
+		fmt.Printf("Invalid AppRegistry address: %v\n", err)
 		os.Exit(1)
 	}
-	if contractHash == (util.Uint160{}) {
-		fmt.Println("CONTRACT_APPREGISTRY_HASH not set")
+	if contractAddress == (util.Uint160{}) {
+		fmt.Println("CONTRACT_APP_REGISTRY_ADDRESS not set")
 		os.Exit(1)
 	}
 
@@ -195,7 +195,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	existing, err := getAppInfo(devActor, contractHash, appID)
+	existing, err := getAppInfo(devActor, contractAddress, appID)
 	if err != nil {
 		fmt.Printf("Failed to query AppRegistry: %v\n", err)
 		os.Exit(1)
@@ -205,7 +205,7 @@ func main() {
 
 	if existing == nil || existing.AppID == "" {
 		fmt.Println("Registering new app...")
-		if err := registerApp(ctx, client, devActor, contractHash, appID, manifestHashBytes, entryURL, developerKeyBytes); err != nil {
+		if err := registerApp(ctx, client, devActor, contractAddress, appID, manifestHashBytes, entryURL, developerKeyBytes); err != nil {
 			fmt.Printf("Register failed: %v\n", err)
 			os.Exit(1)
 		}
@@ -214,7 +214,7 @@ func main() {
 		needsUpdate := !bytesEqual(existing.ManifestHash, manifestHashBytes) || strings.TrimSpace(existing.EntryURL) != entryURL
 		if needsUpdate {
 			fmt.Println("Updating manifest on-chain...")
-			if err := updateManifest(ctx, client, devActor, contractHash, appID, manifestHashBytes, entryURL); err != nil {
+			if err := updateManifest(ctx, client, devActor, contractAddress, appID, manifestHashBytes, entryURL); err != nil {
 				fmt.Printf("Update manifest failed: %v\n", err)
 				os.Exit(1)
 			}
@@ -225,7 +225,7 @@ func main() {
 	}
 
 	if needsApproval {
-		if err := approveApp(ctx, client, adminActor, contractHash, appID); err != nil {
+		if err := approveApp(ctx, client, adminActor, contractAddress, appID); err != nil {
 			fmt.Printf("SetStatus failed: %v\n", err)
 			os.Exit(1)
 		}
@@ -696,16 +696,16 @@ func mustString(obj map[string]any, key string) string {
 	return strings.TrimSpace(fmt.Sprint(raw))
 }
 
-func resolveContractHash(keys ...string) (util.Uint160, error) {
+func resolveContractAddress(keys ...string) (util.Uint160, error) {
 	for _, key := range keys {
 		if raw := strings.TrimSpace(os.Getenv(key)); raw != "" {
-			return parseHash160(raw)
+			return parseAddress160(raw)
 		}
 	}
 	return util.Uint160{}, nil
 }
 
-func parseHash160(raw string) (util.Uint160, error) {
+func parseAddress160(raw string) (util.Uint160, error) {
 	raw = strings.TrimPrefix(strings.TrimSpace(raw), "0x")
 	return util.Uint160DecodeStringLE(raw)
 }

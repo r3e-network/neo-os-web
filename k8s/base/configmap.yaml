@@ -27,15 +27,15 @@ data:
   NEO_RPC_URL: "https://testnet1.neo.coz.io:443"
   # Neo N3 network magic (Testnet). Mainnet: 860833102
   NEO_NETWORK_MAGIC: "894710606"
-  # On-chain MiniApp platform contract hashes (0x-prefixed Uint160 strings).
+  # On-chain MiniApp platform contract addresses (0x-prefixed Uint160 strings).
   # Set these per environment after deploying contracts.
-  CONTRACT_PAYMENTHUB_HASH: "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
-  CONTRACT_GOVERNANCE_HASH: "0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05"
-  CONTRACT_PRICEFEED_HASH: "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"
-  CONTRACT_RANDOMNESSLOG_HASH: "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"
-  CONTRACT_APPREGISTRY_HASH: "0x79d16bee03122e992bb80c478ad4ed405f33bc7f"
-  CONTRACT_AUTOMATIONANCHOR_HASH: "0x1c888d699ce76b0824028af310d90c3c18adeab5"
-  CONTRACT_SERVICEGATEWAY_HASH: "0x27b79cf631eff4b520dd9d95cd1425ec33025a53"
+  CONTRACT_PAYMENT_HUB_ADDRESS: "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
+  CONTRACT_GOVERNANCE_ADDRESS: "0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05"
+  CONTRACT_PRICE_FEED_ADDRESS: "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"
+  CONTRACT_RANDOMNESS_LOG_ADDRESS: "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"
+  CONTRACT_APP_REGISTRY_ADDRESS: "0x79d16bee03122e992bb80c478ad4ed405f33bc7f"
+  CONTRACT_AUTOMATION_ANCHOR_ADDRESS: "0x1c888d699ce76b0824028af310d90c3c18adeab5"
+  CONTRACT_SERVICE_GATEWAY_ADDRESS: "0x27b79cf631eff4b520dd9d95cd1425ec33025a53"
   # Oracle config
   ORACLE_HTTP_ALLOWLIST: "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com"
   # Optional Arbitrum RPC override for Chainlink (NeoFeeds). Defaults to https://arb1.arbitrum.io/rpc.

@@ -20,7 +20,7 @@ type DeployMasterInput struct {
 
 type DeployMasterResponse struct {
 	TxHash       string `json:"tx_hash"`
-	ContractHash string `json:"contract_hash"`
+	ContractAddress string `json:"contract_address"`
 	GasConsumed  string `json:"gas_consumed"`
 	AccountID    string `json:"account_id"`
 }
@@ -100,7 +100,7 @@ func main() {
 
 	fmt.Printf("\n✅ Contract deployed successfully!\n")
 	fmt.Printf("   TX Hash:       %s\n", result.TxHash)
-	fmt.Printf("   Contract Hash: %s\n", result.ContractHash)
+	fmt.Printf("   Contract Address: %s\n", result.ContractAddress)
 	fmt.Printf("   Gas Consumed:  %s\n", result.GasConsumed)
 	fmt.Printf("   Account:       %s\n", result.AccountID)
 }

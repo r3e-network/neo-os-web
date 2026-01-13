@@ -4,12 +4,12 @@
  */
 import { getServiceConfig } from "./k8s-config.ts";
 
-const GAS_CONTRACT_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+const GAS_CONTRACT_ADDRESS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
 interface InvokeRequest {
   request_id: string;
   intent?: string;
-  contract_hash: string;
+  contract_address: string;
   method: string;
   params: ContractParam[];
   wait?: boolean;
@@ -39,7 +39,7 @@ export async function transferGas(requestId: string, toAddress: string, amount: 
   const req: InvokeRequest = {
     request_id: requestId,
     intent: "gas-sponsor",
-    contract_hash: GAS_CONTRACT_HASH,
+    contract_address: GAS_CONTRACT_ADDRESS,
     method: "transfer",
     params: [
       { type: "Hash160", value: "PLATFORM_SPONSOR" },

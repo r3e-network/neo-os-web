@@ -17,7 +17,7 @@ interface StatsBarProps {
 export function StatsBar({ stats, className }: StatsBarProps) {
   return (
     <div className={cn("mx-auto max-w-[1600px]", className)}>
-      <div className="erobo-card p-8 rounded-[28px] backdrop-blur-2xl">
+      <div className="erobo-card p-8 rounded-[28px] backdrop-blur-2xl bg-white/5 dark:bg-black/10 border border-white/20 dark:border-white/5 shadow-2xl">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
@@ -28,7 +28,7 @@ export function StatsBar({ stats, className }: StatsBarProps) {
                 )}
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                   {Icon && (
-                    <div className="h-14 w-14 rounded-full bg-erobo-sky/80 dark:bg-white/5 border border-white/60 dark:border-white/10 flex items-center justify-center text-erobo-purple shadow-[0_0_20px_rgba(159,157,243,0.18)] group-hover:scale-110 transition-transform flex-shrink-0">
+                    <div className="h-14 w-14 rounded-full bg-erobo-sky/20 dark:bg-white/5 border border-white/30 dark:border-white/10 flex items-center justify-center text-erobo-purple shadow-[0_0_20px_rgba(159,157,243,0.2)] group-hover:scale-110 transition-transform flex-shrink-0 backdrop-blur-md">
                       <Icon size={24} strokeWidth={2.5} />
                     </div>
                   )}

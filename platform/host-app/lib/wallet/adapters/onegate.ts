@@ -1,3 +1,5 @@
+import type { ChainId } from "../../chains/types";
+
 /**
  * OneGate Wallet Adapter for Neo N3
  * https://onegate.space/
@@ -33,6 +35,7 @@ export class OneGateAdapter implements WalletAdapter {
   readonly name = "OneGate";
   readonly icon = "https://onegate.space/favicon.ico";
   readonly downloadUrl = "https://onegate.space/";
+  readonly supportedChainTypes = ["neo-n3"] as const;
 
   private getWindow(): OneGateWindow {
     return window as unknown as OneGateWindow;
@@ -63,13 +66,19 @@ export class OneGateAdapter implements WalletAdapter {
     // OneGate doesn't have explicit disconnect
   }
 
-  async getBalance(address: string): Promise<WalletBalance> {
-    if (!this.isInstalled()) return { neo: "0", gas: "0" };
+  async getBalance(address: string, _chainId: ChainId): Promise<WalletBalance> {
+    if (!this.isInstalled()) return { native: "0", nativeSymbol: "GAS", governance: "0", governanceSymbol: "NEO" };
 
     try {
-      return await this.getWindow().OneGate!.getBalance({ address });
+      const result = await this.getWindow().OneGate!.getBalance({ address });
+      return {
+        native: result.gas || "0",
+        nativeSymbol: "GAS",
+        governance: result.neo || "0",
+        governanceSymbol: "NEO",
+      };
     } catch {
-      return { neo: "0", gas: "0" };
+      return { native: "0", nativeSymbol: "GAS", governance: "0", governanceSymbol: "NEO" };
     }
   }
 

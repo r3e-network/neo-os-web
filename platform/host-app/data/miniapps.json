@@ -10,11 +10,24 @@
       "entry_url": "/miniapps/coin-flip/index.html",
       "category": "gaming",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": true,
+        "rng": true,
         "datafeed": false,
         "automation": false
       },
@@ -32,11 +45,24 @@
       "entry_url": "/miniapps/million-piece-map/index.html",
       "category": "gaming",
       "status": "active",
-      "contract_hash": "0xf4ab0fa6f245427482cb5c693a5f40baf6d58c71",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xf4ab0fa6f245427482cb5c693a5f40baf6d58c71",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xf4ab0fa6f245427482cb5c693a5f40baf6d58c71",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -54,11 +80,24 @@
       "entry_url": "/miniapps/lottery/index.html",
       "category": "gaming",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": true,
+        "rng": true,
         "datafeed": false,
         "automation": true
       },
@@ -78,11 +117,24 @@
       "entry_url": "/miniapps/compound-capsule/index.html",
       "category": "defi",
       "status": "active",
-      "contract_hash": "0x20397862ba24b84103a745ec2ed1f581126674dc",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x20397862ba24b84103a745ec2ed1f581126674dc",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x20397862ba24b84103a745ec2ed1f581126674dc",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": true
       },
@@ -100,11 +152,24 @@
       "entry_url": "/miniapps/flashloan/index.html",
       "category": "defi",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -122,11 +187,24 @@
       "entry_url": "/miniapps/gas-sponsor/index.html",
       "category": "defi",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": null,
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": null,
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -144,11 +222,24 @@
       "entry_url": "/miniapps/neo-swap/index.html",
       "category": "defi",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": null,
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": null,
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -166,11 +257,19 @@
       "entry_url": "/miniapps/neoburger/index.html",
       "category": "defi",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": null,
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -188,11 +287,24 @@
       "entry_url": "/miniapps/self-loan/index.html",
       "category": "defi",
       "status": "active",
-      "contract_hash": "0xb7522afccd80ad5b3cbc112033c22b3d8f2d120c",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xb7522afccd80ad5b3cbc112033c22b3d8f2d120c",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xb7522afccd80ad5b3cbc112033c22b3d8f2d120c",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -212,11 +324,24 @@
       "entry_url": "/miniapps/breakup-contract/index.html",
       "category": "social",
       "status": "active",
-      "contract_hash": "0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -234,11 +359,24 @@
       "entry_url": "/miniapps/dev-tipping/index.html",
       "category": "social",
       "status": "active",
-      "contract_hash": "0x93d2406a73e060d43cbe28fb26d863e5ac4744a2",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x93d2406a73e060d43cbe28fb26d863e5ac4744a2",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x93d2406a73e060d43cbe28fb26d863e5ac4744a2",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -256,11 +394,24 @@
       "entry_url": "/miniapps/ex-files/index.html",
       "category": "social",
       "status": "active",
-      "contract_hash": "0x6057934459f1ddc6c63a63bc816afed971514b43",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x6057934459f1ddc6c63a63bc816afed971514b43",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x6057934459f1ddc6c63a63bc816afed971514b43",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -278,11 +429,24 @@
       "entry_url": "/miniapps/grant-share/index.html",
       "category": "social",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": null,
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": null,
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -300,11 +464,24 @@
       "entry_url": "/miniapps/hall-of-fame/index.html",
       "category": "social",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": null,
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": null,
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -322,11 +499,24 @@
       "entry_url": "/miniapps/red-envelope/index.html",
       "category": "social",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": true,
+        "rng": true,
         "datafeed": false,
         "automation": false
       },
@@ -346,11 +536,24 @@
       "entry_url": "/miniapps/garden-of-neo/index.html",
       "category": "nft",
       "status": "active",
-      "contract_hash": "0x192e2a0a1e050440b97d449b7905f37516042faa",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x192e2a0a1e050440b97d449b7905f37516042faa",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x192e2a0a1e050440b97d449b7905f37516042faa",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": true
       },
@@ -368,11 +571,24 @@
       "entry_url": "/miniapps/graveyard/index.html",
       "category": "nft",
       "status": "active",
-      "contract_hash": "0x8cf45cdc1d879710c2b88fd8705696fe6f5aacb5",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x8cf45cdc1d879710c2b88fd8705696fe6f5aacb5",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x8cf45cdc1d879710c2b88fd8705696fe6f5aacb5",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -390,11 +606,24 @@
       "entry_url": "/miniapps/heritage-trust/index.html",
       "category": "nft",
       "status": "active",
-      "contract_hash": "0x6d910186e2eee3fc38fd027e5e77d50d6f8c429b",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x6d910186e2eee3fc38fd027e5e77d50d6f8c429b",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x6d910186e2eee3fc38fd027e5e77d50d6f8c429b",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": true
       },
@@ -412,11 +641,24 @@
       "entry_url": "/miniapps/on-chain-tarot/index.html",
       "category": "nft",
       "status": "active",
-      "contract_hash": "0xfff9616dd3d9e863bc72bf26ff0a0da2d698e767",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xfff9616dd3d9e863bc72bf26ff0a0da2d698e767",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xfff9616dd3d9e863bc72bf26ff0a0da2d698e767",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": true,
+        "rng": true,
         "datafeed": false,
         "automation": false
       },
@@ -434,11 +676,24 @@
       "entry_url": "/miniapps/time-capsule/index.html",
       "category": "nft",
       "status": "active",
-      "contract_hash": "0x0108b2d8d020f921d9bdc82ffda5e55f9b749823",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x0108b2d8d020f921d9bdc82ffda5e55f9b749823",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x0108b2d8d020f921d9bdc82ffda5e55f9b749823",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": true
       },
@@ -458,11 +713,24 @@
       "entry_url": "/miniapps/burn-league/index.html",
       "category": "governance",
       "status": "active",
-      "contract_hash": "0x8db1b8c67b52e02592d2ee7ceb47dea908ab0e46",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x8db1b8c67b52e02592d2ee7ceb47dea908ab0e46",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x8db1b8c67b52e02592d2ee7ceb47dea908ab0e46",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -474,17 +742,30 @@
       "app_id": "miniapp-candidate-vote",
       "name": "Candidate Vote",
       "name_zh": "候选人投票",
-      "description": "Vote for platform candidates and earn GAS rewards. Participate in governance by staking your tokens and supporting your preferred candidates with transparent on-chain voting.",
+      "description": "Vote for Neo N3 consensus node candidates. Participate in network governance by supporting trusted validators with transparent on-chain voting.",
       "description_zh": "为 Neo 共识节点候选人投票。参与网络治理，支持您信任的节点。",
       "icon": "/miniapps/candidate-vote/static/icon.svg",
       "entry_url": "/miniapps/candidate-vote/index.html",
       "category": "governance",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+          "active": true
+        }
+      },
       "permissions": {
-        "payments": true,
+        "payments": false,
         "governance": true,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -494,7 +775,7 @@
     },
     {
       "app_id": "miniapp-council-governance",
-      "name": "council-governance",
+      "name": "Council Governance",
       "name_zh": "议会治理",
       "description": "Create and vote on governance proposals as a council member. Submit text proposals or policy parameter changes, collect signatures, and execute approved decisions with multi-sig verification.",
       "description_zh": "作为议会成员创建和投票治理提案。提交文本提案或策略参数变更，收集签名，执行已批准的决议。",
@@ -502,11 +783,24 @@
       "entry_url": "/miniapps/council-governance/index.html",
       "category": "governance",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": null,
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xec2f6de766fcbca43e71d5d2f451d9349f351c79",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": true,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -524,11 +818,24 @@
       "entry_url": "/miniapps/doomsday-clock/index.html",
       "category": "governance",
       "status": "active",
-      "contract_hash": "0xe4f386057d6308b83a5fd2e84bc3eb9149adc719",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xe4f386057d6308b83a5fd2e84bc3eb9149adc719",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xe4f386057d6308b83a5fd2e84bc3eb9149adc719",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": true
       },
@@ -546,11 +853,24 @@
       "entry_url": "/miniapps/gov-merc/index.html",
       "category": "governance",
       "status": "active",
-      "contract_hash": "0x69a013c8fde3e835d642717ef1af71f7e02ade00",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x69a013c8fde3e835d642717ef1af71f7e02ade00",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x69a013c8fde3e835d642717ef1af71f7e02ade00",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": true,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -568,11 +888,24 @@
       "entry_url": "/miniapps/masquerade-dao/index.html",
       "category": "governance",
       "status": "active",
-      "contract_hash": "0x07ff6bac7e2824d1cec0e71a1383d131cdf86c65",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x07ff6bac7e2824d1cec0e71a1383d131cdf86c65",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x07ff6bac7e2824d1cec0e71a1383d131cdf86c65",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": true,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -592,11 +925,24 @@
       "entry_url": "/miniapps/daily-checkin/index.html",
       "category": "utility",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x5a3f580fc14cd5f4d7746306eec7e2b44727ae2c",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x5a3f580fc14cd5f4d7746306eec7e2b44727ae2c",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -614,11 +960,24 @@
       "entry_url": "/miniapps/guardian-policy/index.html",
       "category": "utility",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x893a774957244b83a0efed1d42771fe1e424cfec",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x893a774957244b83a0efed1d42771fe1e424cfec",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -636,11 +995,24 @@
       "entry_url": "/miniapps/explorer/index.html",
       "category": "utility",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": null,
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": null,
+          "active": true
+        }
+      },
       "permissions": {
         "payments": false,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": true,
         "automation": false
       },
@@ -658,11 +1030,24 @@
       "entry_url": "/miniapps/neo-ns/index.html",
       "category": "utility",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -680,11 +1065,24 @@
       "entry_url": "/miniapps/neo-news-today/index.html",
       "category": "utility",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": null,
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": null,
+          "active": true
+        }
+      },
       "permissions": {
         "payments": false,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },
@@ -702,11 +1100,24 @@
       "entry_url": "/miniapps/neo-treasury/index.html",
       "category": "utility",
       "status": "active",
-      "contract_hash": null,
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": null,
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": null,
+          "active": true
+        }
+      },
       "permissions": {
         "payments": false,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": true,
         "automation": false
       },
@@ -724,11 +1135,24 @@
       "entry_url": "/miniapps/unbreakable-vault/index.html",
       "category": "utility",
       "status": "active",
-      "contract_hash": "0xcf4c6eb16baad22292fb3ced6e570c31fadddd4e",
+      "supportedChains": [
+        "neo-n3-mainnet",
+        "neo-n3-testnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xcf4c6eb16baad22292fb3ced6e570c31fadddd4e",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xcf4c6eb16baad22292fb3ced6e570c31fadddd4e",
+          "active": true
+        }
+      },
       "permissions": {
         "payments": true,
         "governance": false,
-        "randomness": false,
+        "rng": false,
         "datafeed": false,
         "automation": false
       },

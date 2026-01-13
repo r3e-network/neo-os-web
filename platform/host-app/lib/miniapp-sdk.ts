@@ -1,19 +1,24 @@
 import { createMiniAppSDK } from "./sdk/client.js";
-import type { MiniAppSDK, MiniAppSDKConfig } from "./sdk/types.js";
-import { setRpcUrlOverride } from "./chain/rpc-client";
+import type { MiniAppSDK, MiniAppSDKConfig, MiniAppChainContracts } from "./sdk/types";
+import { setChainRpcUrl } from "./chain/rpc-client";
+import type { ChainId } from "./chains/types";
 
 type MiniAppPermissions = {
   payments?: boolean;
   governance?: boolean;
-  randomness?: boolean;
+  rng?: boolean;
   datafeed?: boolean;
   automation?: boolean;
 };
 
 type InstallOptions = {
   appId?: string;
-  contractHash?: string | null;
-  network?: "testnet" | "mainnet";
+  /** Chain ID - null if app has no chain support */
+  chainId: ChainId | null;
+  chainType?: "neo-n3" | "evm";
+  contractAddress?: string | null;
+  supportedChains?: ChainId[];
+  chainContracts?: MiniAppChainContracts;
   permissions?: MiniAppPermissions;
   authToken?: string;
   apiKey?: string;
@@ -26,7 +31,7 @@ type CacheEntry = {
   sdk: MiniAppSDK;
 };
 
-const AUTH_TOKEN_STORAGE_KEY = "neo_miniapp_auth_jwt";
+const AUTH_TOKEN_STORAGE_KEY = "miniapp_auth_jwt";
 
 let cached: CacheEntry | null = null;
 
@@ -66,19 +71,37 @@ function resolveAPIKey(options?: InstallOptions): (() => Promise<string | undefi
   return undefined;
 }
 
-function buildConfig(options?: InstallOptions): MiniAppSDKConfig {
+function buildConfig(options: InstallOptions): MiniAppSDKConfig {
   return {
     edgeBaseUrl: resolveEdgeBaseUrl(),
-    appId: options?.appId,
-    contractHash: options?.contractHash ?? null,
-    network: options?.network,
+    appId: options.appId,
+    chainId: options.chainId,
+    chainType: options.chainType,
+    contractAddress: options.contractAddress,
+    supportedChains: options.supportedChains,
+    chainContracts: options.chainContracts,
     getAuthToken: resolveAuthToken(options),
     getAPIKey: resolveAPIKey(options),
   };
 }
 
+function stableChainContractsKey(contracts?: MiniAppChainContracts): string {
+  if (!contracts) return "";
+  const entries = Object.entries(contracts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([chainId, contract]) => {
+      const address = contract?.address ?? "";
+      const active = contract?.active === false ? "0" : "1";
+      const entryUrl = contract?.entryUrl ?? "";
+      return `${chainId}:${address}:${active}:${entryUrl}`;
+    });
+  return entries.join("|");
+}
+
 function configKey(config: MiniAppSDKConfig): string {
-  return `${config.edgeBaseUrl}::${config.appId || ""}::${config.contractHash || ""}::${config.network || ""}`;
+  return `${config.edgeBaseUrl}::${config.appId || ""}::${config.chainId || ""}::${config.chainType || ""}::${
+    config.contractAddress || ""
+  }::${(config.supportedChains || []).slice().sort().join(",")}::${stableChainContractsKey(config.chainContracts)}`;
 }
 
 function permissionsKey(permissions?: MiniAppPermissions): string {
@@ -86,7 +109,7 @@ function permissionsKey(permissions?: MiniAppPermissions): string {
   return [
     `payments:${permissions.payments ? 1 : 0}`,
     `governance:${permissions.governance ? 1 : 0}`,
-    `randomness:${permissions.randomness ? 1 : 0}`,
+    `rng:${permissions.rng ? 1 : 0}`,
     `datafeed:${permissions.datafeed ? 1 : 0}`,
     `automation:${permissions.automation ? 1 : 0}`,
   ].join("|");
@@ -160,7 +183,7 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
     rng: {
       ...sdk.rng,
       requestRandom: async (requestedAppId: string) => {
-        requirePermission(permissions, "randomness");
+        requirePermission(permissions, "rng");
         const resolved = resolveAppId(requestedAppId, appId);
         if (!resolved) throw new Error("app_id required");
         return sdk.rng!.requestRandom!(resolved);
@@ -182,14 +205,14 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
     },
     events: {
       ...sdk.events,
-      list: async (params: Record<string, unknown>) => {
+      list: async (params: Record<string, unknown> = {}) => {
         const resolved = resolveAppId(params?.app_id as string | undefined, appId);
         return sdk.events!.list!({ ...params, app_id: resolved });
       },
     },
     transactions: {
       ...sdk.transactions,
-      list: async (params: Record<string, unknown>) => {
+      list: async (params: Record<string, unknown> = {}) => {
         const resolved = resolveAppId(params?.app_id as string | undefined, appId);
         return sdk.transactions!.list!({ ...params, app_id: resolved });
       },
@@ -283,11 +306,11 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
   return scoped;
 }
 
-export function getMiniAppSDK(options?: InstallOptions): MiniAppSDK | null {
+export function getMiniAppSDK(options: InstallOptions): MiniAppSDK | null {
   if (typeof window === "undefined") return null;
 
   const config = buildConfig(options);
-  const key = cacheKeyFor(config, options?.permissions);
+  const key = cacheKeyFor(config, options.permissions);
 
   if (!cached || cached.cacheKey !== key) {
     const base = createMiniAppSDK(config);
@@ -297,13 +320,16 @@ export function getMiniAppSDK(options?: InstallOptions): MiniAppSDK | null {
   return cached.sdk;
 }
 
-export function installMiniAppSDK(options?: InstallOptions): MiniAppSDK | null {
+export function installMiniAppSDK(options: InstallOptions): MiniAppSDK | null {
   if (typeof window === "undefined") return null;
 
   const sdk = getMiniAppSDK(options);
   if (!sdk) return null;
 
   (window as any).MiniAppSDK = sdk;
+  if (sdk.getConfig) {
+    (window as any).__MINIAPP_CONFIG__ = sdk.getConfig();
+  }
   window.dispatchEvent(new Event("miniapp-sdk-ready"));
   return sdk;
 }
@@ -314,6 +340,6 @@ export type { MiniAppSDK };
  * Sync network configuration from wallet store to RPC client
  * Call this when network config changes
  */
-export function syncNetworkConfig(rpcUrl: string | null): void {
-  setRpcUrlOverride(rpcUrl);
+export function syncNetworkConfig(chainId: ChainId, rpcUrl: string | null): void {
+  setChainRpcUrl(chainId, rpcUrl);
 }

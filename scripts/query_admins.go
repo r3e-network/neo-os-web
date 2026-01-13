@@ -43,12 +43,12 @@ func main() {
 
 	fmt.Println("\n=== Querying Contract Admins ===")
 
-	for name, hashStr := range contracts {
+	for name, addressStr := range contracts {
 		fmt.Printf("\n--- %s ---\n", name)
-		contractHash, _ := parseContractHash(hashStr)
+		contractAddress, _ := parseContractAddress(addressStr)
 
 		// Call admin() method
-		result, err := client.InvokeFunction(contractHash, "admin", nil, nil)
+		result, err := client.InvokeFunction(contractAddress, "admin", nil, nil)
 		if err != nil {
 			fmt.Printf("Error calling admin(): %v\n", err)
 			continue
@@ -77,7 +77,7 @@ func main() {
 	}
 }
 
-func parseContractHash(hashStr string) (util.Uint160, error) {
-	hashStr = strings.TrimPrefix(hashStr, "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+func parseContractAddress(addressStr string) (util.Uint160, error) {
+	addressStr = strings.TrimPrefix(addressStr, "0x")
+	return util.Uint160DecodeStringLE(addressStr)
 }

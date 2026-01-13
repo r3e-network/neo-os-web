@@ -136,7 +136,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 interface MiniAppLogoProps {
   appId: string;
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   className?: string;
   iconUrl?: string;
 }
@@ -152,12 +152,14 @@ export function MiniAppLogo({ appId, category, size = "md", className = "", icon
     sm: "w-8 h-8",
     md: "w-11 h-11",
     lg: "w-14 h-14",
+    xl: "w-24 h-24",
   };
 
   const iconSizes = {
     sm: 18,
     md: 24,
     lg: 32,
+    xl: 48,
   };
 
   // E-Robo style: Use rounded-full for circular icons with gradient background

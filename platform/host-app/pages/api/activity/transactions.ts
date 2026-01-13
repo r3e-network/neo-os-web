@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 /**
  * Fetch transactions from Supabase simulation_txs table (fallback)
  */
-async function fetchFromSupabase(appId?: string, limit = 20, afterId?: string) {
+async function fetchFromSupabase(appId?: string, limit = 20, afterId?: string, chainId?: string) {
   if (!supabaseAdmin) {
     console.error("Supabase admin client not configured");
     return { transactions: [], has_more: false };
@@ -22,6 +22,9 @@ async function fetchFromSupabase(appId?: string, limit = 20, afterId?: string) {
   }
   if (afterId) {
     query = query.lt("id", afterId);
+  }
+  if (chainId) {
+    query = query.eq("chain_id", chainId);
   }
 
   const { data, error } = await query;
@@ -53,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { app_id, limit, after_id } = req.query;
+    const { app_id, limit, after_id, chain_id } = req.query;
     const parsedLimit = limit ? parseInt(String(limit), 10) : 20;
     const limitNum = Number.isNaN(parsedLimit) ? 20 : Math.min(Math.max(parsedLimit, 1), 100);
 
@@ -64,6 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         app_id ? String(app_id) : undefined,
         limitNum,
         after_id ? String(after_id) : undefined,
+        chain_id ? String(chain_id) : undefined,
       );
       return res.status(200).json(result);
     }
@@ -72,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (app_id) params.set("app_id", String(app_id));
     params.set("limit", String(limitNum)); // Use validated limit
     if (after_id) params.set("after_id", String(after_id));
+    if (chain_id) params.set("chain_id", String(chain_id));
 
     const url = `${base}/transactions-list?${params}`;
     const upstream = await fetch(url, {

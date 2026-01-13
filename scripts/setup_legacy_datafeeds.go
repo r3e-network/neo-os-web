@@ -75,11 +75,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	dataFeedsHash, _ := parseContractHash(legacyContracts["DataFeeds"])
+	dataFeedsAddress, _ := parseContractAddress(legacyContracts["DataFeeds"])
 
 	// Step 1: Check if already registered as TEE account
 	fmt.Println("\n=== Checking TEE Registration ===")
-	result, err := act.Call(dataFeedsHash, "isTEEAccount", deployerHash)
+	result, err := act.Call(dataFeedsAddress, "isTEEAccount", deployerHash)
 	if err != nil {
 		fmt.Printf("Failed to check TEE account: %v\n", err)
 	} else if result.State == "HALT" && len(result.Stack) > 0 {
@@ -87,7 +87,7 @@ func main() {
 			fmt.Println("✅ Already registered as TEE account")
 		} else {
 			fmt.Println("❌ Not registered as TEE account, registering...")
-			if err := registerTEEAccount(ctx, client, act, dataFeedsHash, deployerHash, pubKey); err != nil {
+			if err := registerTEEAccount(ctx, client, act, dataFeedsAddress, deployerHash, pubKey); err != nil {
 				fmt.Printf("Failed to register TEE account: %v\n", err)
 				os.Exit(1)
 			}
@@ -98,10 +98,10 @@ func main() {
 	// Step 2: Register feeds if not already registered
 	fmt.Println("\n=== Checking Feed Registration ===")
 	for feedId := range priceFeeds {
-		result, err := act.Call(dataFeedsHash, "getFeedConfig", feedId)
+		result, err := act.Call(dataFeedsAddress, "getFeedConfig", feedId)
 		if err != nil || result.State != "HALT" {
 			fmt.Printf("Feed %s not found, registering...\n", feedId)
-			if err := registerFeed(ctx, client, act, dataFeedsHash, feedId); err != nil {
+			if err := registerFeed(ctx, client, act, dataFeedsAddress, feedId); err != nil {
 				fmt.Printf("Failed to register feed %s: %v\n", feedId, err)
 			} else {
 				fmt.Printf("✅ Feed %s registered\n", feedId)
@@ -125,7 +125,7 @@ func main() {
 		fmt.Printf("Updating %s: price=%d, timestamp=%d\n", feedId, price, timestamp)
 
 		txHash, _, err := act.SendCall(
-			dataFeedsHash,
+			dataFeedsAddress,
 			"updatePrice",
 			feedId,
 			price,
@@ -146,13 +146,13 @@ func main() {
 	fmt.Println("\n=== Done ===")
 }
 
-func parseContractHash(hashStr string) (util.Uint160, error) {
-	hashStr = strings.TrimPrefix(hashStr, "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+func parseContractAddress(address string) (util.Uint160, error) {
+	address = strings.TrimPrefix(address, "0x")
+	return util.Uint160DecodeStringLE(address)
 }
 
-func registerTEEAccount(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHash util.Uint160, teeAccount util.Uint160, pubKey *keys.PublicKey) error {
-	txHash, vub, err := act.SendCall(contractHash, "registerTEEAccount", teeAccount, pubKey.Bytes())
+func registerTEEAccount(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractAddress util.Uint160, teeAccount util.Uint160, pubKey *keys.PublicKey) error {
+	txHash, vub, err := act.SendCall(contractAddress, "registerTEEAccount", teeAccount, pubKey.Bytes())
 	if err != nil {
 		return fmt.Errorf("send transaction: %w", err)
 	}
@@ -161,11 +161,11 @@ func registerTEEAccount(ctx context.Context, client *rpcclient.Client, act *acto
 	return waitForTx(ctx, client, txHash)
 }
 
-func registerFeed(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHash util.Uint160, feedId string) error {
+func registerFeed(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractAddress util.Uint160, feedId string) error {
 	description := feedId + " Price Feed"
 	decimals := int64(8)
 
-	txHash, vub, err := act.SendCall(contractHash, "registerFeed", feedId, description, decimals)
+	txHash, vub, err := act.SendCall(contractAddress, "registerFeed", feedId, description, decimals)
 	if err != nil {
 		return fmt.Errorf("send transaction: %w", err)
 	}

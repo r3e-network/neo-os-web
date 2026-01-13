@@ -115,7 +115,7 @@ RequiredConfirmations    = 1              // Blocks to wait
 DepositCheckInterval     = 15 * time.Second
 DepositExpirationTime    = 24 * time.Hour
 MaxPendingDepositsPerRun = 100
-GASContractHash          = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+GASContractAddress       = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 ```
 
 ## Database Schema

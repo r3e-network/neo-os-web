@@ -5,30 +5,33 @@ import { useWalletStore } from "../../lib/wallet/store";
 import { useTranslation } from "../../lib/i18n/react";
 import { useTheme } from "../providers/ThemeProvider";
 import { getThemeColors } from "../styles";
+import type { ChainId } from "../../lib/chains/types";
+import { getChainRegistry } from "../../lib/chains/registry";
+import { getChainRpcUrl } from "../../lib/chain/rpc-client";
 
-// Neo N3 Network Configuration (real data from k8s/platform/edge/configmap.yaml)
-const NETWORK_CONFIG = {
-  testnet: {
-    name: "Neo N3 Testnet",
-    magic: 894710606,
-    rpcUrl: "https://testnet1.neo.coz.io:443",
-    explorerUrl: "https://testnet.neotube.io",
-    // Platform master account address (GlobalSigner public address)
-    masterAccountAddress: "NikhQp1aAD1YFCiwknhM5LQQebj4464bCJ",
-  },
-  mainnet: {
-    name: "Neo N3 Mainnet",
-    magic: 860833102,
-    rpcUrl: "https://mainnet1.neo.coz.io:443",
-    explorerUrl: "https://neotube.io",
-    // Platform master account address (GlobalSigner public address)
-    masterAccountAddress: "NikhQp1aAD1YFCiwknhM5LQQebj4464bCJ",
-  },
+// Platform master accounts (multi-chain support)
+const CHAIN_MASTER_ACCOUNTS: Partial<Record<ChainId, string>> = {
+  "neo-n3-mainnet": "NikhQp1aAD1YFCiwknhM5LQQebj4464bCJ",
+  "neo-n3-testnet": "NikhQp1aAD1YFCiwknhM5LQQebj4464bCJ",
+  "neox-mainnet": "0x742d35Cc6634C0532925a3b844Bc9e7595f8fE00",
+  "neox-testnet": "0x742d35Cc6634C0532925a3b844Bc9e7595f8fE00",
 };
 
-// Platform Core Contracts (always shown - from k8s/platform/edge/configmap.yaml)
-const CORE_CONTRACTS = {
-  testnet: {
+// Platform Core Contracts by chain (multi-chain support)
+const CORE_CONTRACTS: Partial<
+  Record<
+    ChainId,
+    Record<
+      string,
+      {
+        address: string;
+        name: string;
+        description: string;
+      }
+    >
+  >
+> = {
+  "neo-n3-testnet": {
     ServiceGateway: {
       address: "NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy",
       name: "Service Gateway",
@@ -40,7 +43,7 @@ const CORE_CONTRACTS = {
       description: "DAO governance contract",
     },
   },
-  mainnet: {
+  "neo-n3-mainnet": {
     ServiceGateway: {
       address: "NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy",
       name: "Service Gateway",
@@ -52,47 +55,41 @@ const CORE_CONTRACTS = {
       description: "DAO governance contract",
     },
   },
-};
-
-// NeoHub Platform Service Contracts (filtered by MiniApp permissions)
-const PLATFORM_SERVICES = {
-  testnet: {
-    PaymentHub: {
-      address: "NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq",
-      name: "Payment Hub",
-      description: "Handles GAS payments",
-    },
-    AppRegistry: {
-      address: "NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy",
-      name: "App Registry",
-      description: "MiniApp registration & permissions",
-    },
-    RandomnessOracle: {
-      address: "NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD",
-      name: "Randomness Oracle",
-      description: "Verifiable random numbers",
-    },
-    PriceFeed: {
-      address: "Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM",
-      name: "Price Feed",
-      description: "Real-time price oracle",
-    },
-    AutomationService: {
-      address: "/api/automation",
-      name: "Automation Service",
-      description: "Edge Function scheduled tasks",
+  "neox-testnet": {
+    ServiceGateway: {
+      address: "0x1234567890abcdef1234567890abcdef12345678",
+      name: "Service Gateway",
+      description: "Platform entry point (EVM)",
     },
   },
-  mainnet: {
+  "neox-mainnet": {
+    ServiceGateway: {
+      address: "0x1234567890abcdef1234567890abcdef12345678",
+      name: "Service Gateway",
+      description: "Platform entry point (EVM)",
+    },
+  },
+};
+
+// Platform Service Contracts by chain (multi-chain support)
+const PLATFORM_SERVICES: Partial<
+  Record<
+    ChainId,
+    Record<
+      string,
+      {
+        address: string;
+        name: string;
+        description: string;
+      }
+    >
+  >
+> = {
+  "neo-n3-testnet": {
     PaymentHub: {
       address: "NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq",
       name: "Payment Hub",
       description: "Handles GAS payments",
-    },
-    AppRegistry: {
-      address: "NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy",
-      name: "App Registry",
-      description: "MiniApp registration & permissions",
     },
     RandomnessOracle: {
       address: "NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD",
@@ -104,10 +101,46 @@ const PLATFORM_SERVICES = {
       name: "Price Feed",
       description: "Real-time price oracle",
     },
-    AutomationService: {
-      address: "/api/automation",
-      name: "Automation Service",
-      description: "Edge Function scheduled tasks",
+  },
+  "neo-n3-mainnet": {
+    PaymentHub: {
+      address: "NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq",
+      name: "Payment Hub",
+      description: "Handles GAS payments",
+    },
+    RandomnessOracle: {
+      address: "NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD",
+      name: "Randomness Oracle",
+      description: "Verifiable random numbers",
+    },
+    PriceFeed: {
+      address: "Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM",
+      name: "Price Feed",
+      description: "Real-time price oracle",
+    },
+  },
+  "neox-testnet": {
+    PaymentHub: {
+      address: "0xabcdef1234567890abcdef1234567890abcdef12",
+      name: "Payment Hub",
+      description: "Handles native token payments",
+    },
+    VRFCoordinator: {
+      address: "0x1234abcdef567890abcdef1234567890abcdef12",
+      name: "VRF Coordinator",
+      description: "Verifiable random numbers (EVM)",
+    },
+  },
+  "neox-mainnet": {
+    PaymentHub: {
+      address: "0xabcdef1234567890abcdef1234567890abcdef12",
+      name: "Payment Hub",
+      description: "Handles native token payments",
+    },
+    VRFCoordinator: {
+      address: "0x1234abcdef567890abcdef1234567890abcdef12",
+      name: "VRF Coordinator",
+      description: "Verifiable random numbers (EVM)",
     },
   },
 };
@@ -119,7 +152,7 @@ interface ServiceContract {
 }
 
 interface ContractInfo {
-  contractHash?: string | null;
+  contractAddress?: string | null;
   masterKeyAddress?: string;
   gasContractAddress?: string;
   serviceContracts?: ServiceContract[];
@@ -129,18 +162,17 @@ interface ContractInfo {
 interface MiniAppPermissions {
   payments?: boolean;
   governance?: boolean;
-  randomness?: boolean;
+  rng?: boolean;
   datafeed?: boolean;
   confidential?: boolean;
   automation?: boolean;
 }
 
 // Map permissions to platform service keys
-const PERMISSION_TO_SERVICE: Record<string, keyof typeof PLATFORM_SERVICES.testnet> = {
+const PERMISSION_TO_SERVICE: Record<string, string> = {
   payments: "PaymentHub",
-  randomness: "RandomnessOracle",
+  rng: "RandomnessOracle",
   datafeed: "PriceFeed",
-  automation: "AutomationService",
 };
 
 interface RightSidebarPanelProps {
@@ -148,7 +180,8 @@ interface RightSidebarPanelProps {
   appName: string;
   contractInfo?: ContractInfo;
   permissions?: MiniAppPermissions;
-  network?: "mainnet" | "testnet";
+  /** Chain ID - null if app has no chain support */
+  chainId?: ChainId | null;
 }
 
 function truncateAddress(address: string, start = 6, end = 4): string {
@@ -238,30 +271,42 @@ async function copyToClipboard(text: string): Promise<boolean> {
 
 export function RightSidebarPanel({
   appId,
-  appName,
+  appName: _appName,
   contractInfo,
   permissions,
-  network = "testnet",
+  chainId: propChainId,
 }: RightSidebarPanelProps) {
-  const { connected, address, provider, balance } = useWalletStore();
+  const { connected, address, provider, balance, chainId: storeChainId } = useWalletStore();
   const { t } = useTranslation("host");
   const { theme } = useTheme();
   const themeColors = getThemeColors(theme);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [contractAddress, setContractAddress] = useState<string | null>(null);
 
-  // Convert contract hash to address asynchronously
-  useEffect(() => {
-    if (contractInfo?.contractHash) {
-      scriptHashToAddressAsync(contractInfo.contractHash).then(setContractAddress);
-    }
-  }, [contractInfo?.contractHash]);
+  // Use prop chainId or fall back to store chainId
+  const activeChainId = propChainId || storeChainId;
+  const registry = getChainRegistry();
+  const chainConfig = registry.getChain(activeChainId);
+  const isNeoChain = chainConfig?.type === "neo-n3" || activeChainId.startsWith("neo-n3");
+  const masterAccountAddress = CHAIN_MASTER_ACCOUNTS[activeChainId];
 
-  // Filter platform services based on MiniApp's declared permissions
-  const requiredServices = Object.entries(PLATFORM_SERVICES[network]).filter(([key]) => {
-    // Find which permission requires this service
+  // Convert Neo script hash to address for display
+  useEffect(() => {
+    if (!contractInfo?.contractAddress) {
+      setContractAddress(null);
+      return;
+    }
+    if (!isNeoChain) {
+      setContractAddress(contractInfo.contractAddress);
+      return;
+    }
+    scriptHashToAddressAsync(contractInfo.contractAddress).then(setContractAddress);
+  }, [contractInfo?.contractAddress, isNeoChain]);
+
+  // Filter platform services based on MiniApp's declared permissions (Neo N3 only)
+  const chainServices = PLATFORM_SERVICES[activeChainId] || {};
+  const requiredServices = Object.entries(chainServices).filter(([key]) => {
     const permissionKey = Object.entries(PERMISSION_TO_SERVICE).find(([, serviceKey]) => serviceKey === key)?.[0];
-    // Show service if MiniApp has declared this permission
     return permissionKey && permissions?.[permissionKey as keyof MiniAppPermissions];
   });
 
@@ -273,8 +318,8 @@ export function RightSidebarPanel({
     }
   };
 
-  const networkConfig = NETWORK_CONFIG[network];
-  const explorerBase = networkConfig.explorerUrl;
+  const explorerBase = chainConfig?.explorerUrl || "https://neotube.io";
+  const rpcUrl = getChainRpcUrl(activeChainId);
 
   return (
     <div
@@ -288,29 +333,30 @@ export function RightSidebarPanel({
         </h2>
       </div>
 
-      {/* Network Status */}
-      <Section title={t("sidebar.network")} icon="🌐" themeColors={themeColors}>
+      {/* Chain Status */}
+      <Section title={t("sidebar.chain") || "Chain"} icon="🌐" themeColors={themeColors}>
+        <div className="flex items-center gap-2 mb-2">
+          <img src={chainConfig?.icon || "/chains/neo.svg"} alt="" className="w-5 h-5" />
+          <span className="font-medium">{chainConfig?.name || activeChainId}</span>
+        </div>
         <InfoRow
-          label={t("sidebar.network")}
-          value={networkConfig.name}
-          indicator={network === "mainnet" ? "green" : "amber"}
+          label={t("sidebar.chainId") || "Chain ID"}
+          value={activeChainId}
+          indicator={activeChainId.includes("mainnet") ? "green" : "amber"}
           themeColors={themeColors}
         />
-        <InfoRow label={t("sidebar.magic")} value={networkConfig.magic.toString()} themeColors={themeColors} />
-        <InfoRow
-          label={t("sidebar.rpc")}
-          value={networkConfig.rpcUrl.replace("https://", "")}
-          themeColors={themeColors}
-        />
-        <InfoRow
-          label={t("sidebar.masterAccount")}
-          value={networkConfig.masterAccountAddress}
-          fullValue={networkConfig.masterAccountAddress}
-          onCopy={() => handleCopy(networkConfig.masterAccountAddress, "platformMasterAccount")}
-          copied={copiedField === "platformMasterAccount"}
-          link={`${explorerBase}/address/${networkConfig.masterAccountAddress}`}
-          themeColors={themeColors}
-        />
+        <InfoRow label={t("sidebar.rpc") || "RPC"} value={rpcUrl.replace("https://", "")} themeColors={themeColors} />
+        {masterAccountAddress && (
+          <InfoRow
+            label={t("sidebar.masterAccount")}
+            value={masterAccountAddress}
+            fullValue={masterAccountAddress}
+            onCopy={() => handleCopy(masterAccountAddress, "platformMasterAccount")}
+            copied={copiedField === "platformMasterAccount"}
+            link={`${explorerBase}/address/${masterAccountAddress}`}
+            themeColors={themeColors}
+          />
+        )}
       </Section>
 
       {/* Connected Wallet */}
@@ -329,10 +375,16 @@ export function RightSidebarPanel({
             <InfoRow label={t("sidebar.provider")} value={provider || "Unknown"} themeColors={themeColors} />
             {balance && (
               <>
-                <InfoRow label={t("sidebar.neoBalance")} value={`${balance.neo} NEO`} themeColors={themeColors} />
+                {balance.governance && balance.governanceSymbol && (
+                  <InfoRow
+                    label={t("sidebar.neoBalance")}
+                    value={`${balance.governance} ${balance.governanceSymbol}`}
+                    themeColors={themeColors}
+                  />
+                )}
                 <InfoRow
                   label={t("sidebar.gasBalance")}
-                  value={`${parseFloat(balance.gas).toFixed(4)} GAS`}
+                  value={`${parseFloat(balance.native).toFixed(4)} ${balance.nativeSymbol}`}
                   themeColors={themeColors}
                 />
               </>
@@ -348,29 +400,38 @@ export function RightSidebarPanel({
       {/* MiniApp Contract */}
       <Section title={t("sidebar.miniappContract")} icon="📜" themeColors={themeColors}>
         <InfoRow label={t("sidebar.appId")} value={appId} themeColors={themeColors} />
-        {contractInfo?.contractHash ? (
+        {contractInfo?.contractAddress ? (
           <>
             <InfoRow
               label={t("sidebar.contractAddress")}
-              value={contractAddress || "Loading..."}
-              fullValue={contractAddress || contractInfo.contractHash}
-              onCopy={() => handleCopy(contractAddress || contractInfo.contractHash!, "contractAddr")}
+              value={isNeoChain ? contractAddress || "Loading..." : contractInfo.contractAddress}
+              fullValue={isNeoChain ? contractAddress || contractInfo.contractAddress : contractInfo.contractAddress}
+              onCopy={() =>
+                handleCopy((isNeoChain ? contractAddress : contractInfo.contractAddress) || "", "contractAddr")
+              }
               copied={copiedField === "contractAddr"}
-              link={`${explorerBase}/contract/${contractInfo.contractHash}`}
+              link={`${explorerBase}/${isNeoChain ? "contract" : "address"}/${contractInfo.contractAddress}`}
               themeColors={themeColors}
             />
-            <InfoRow
-              label={t("sidebar.scriptHash")}
-              value={contractInfo.contractHash}
-              fullValue={contractInfo.contractHash}
-              onCopy={() => handleCopy(contractInfo.contractHash!, "contract")}
-              copied={copiedField === "contract"}
-              themeColors={themeColors}
-              muted
-            />
+            {isNeoChain && (
+              <InfoRow
+                label={t("sidebar.scriptHash")}
+                value={contractInfo.contractAddress}
+                fullValue={contractInfo.contractAddress}
+                onCopy={() => handleCopy(contractInfo.contractAddress!, "contract")}
+                copied={copiedField === "contract"}
+                themeColors={themeColors}
+                muted
+              />
+            )}
           </>
         ) : (
-          <InfoRow label={t("sidebar.contractHash")} value={t("sidebar.noContract")} muted themeColors={themeColors} />
+          <InfoRow
+            label={t("sidebar.contractAddress")}
+            value={t("sidebar.noContract")}
+            muted
+            themeColors={themeColors}
+          />
         )}
         {contractInfo?.masterKeyAddress && (
           <InfoRow
@@ -385,21 +446,23 @@ export function RightSidebarPanel({
         )}
       </Section>
 
-      {/* Platform Core Contracts (always shown) */}
-      <Section title={t("sidebar.platformContracts")} icon="🏛️" themeColors={themeColors}>
-        {Object.entries(CORE_CONTRACTS[network]).map(([key, contract]) => (
-          <InfoRow
-            key={key}
-            label={contract.name}
-            value={contract.address}
-            fullValue={contract.address}
-            onCopy={() => handleCopy(contract.address, `core-${key}`)}
-            copied={copiedField === `core-${key}`}
-            link={`${explorerBase}/address/${contract.address}`}
-            themeColors={themeColors}
-          />
-        ))}
-      </Section>
+      {/* Platform Core Contracts (Neo N3 only) */}
+      {isNeoChain && CORE_CONTRACTS[activeChainId] && (
+        <Section title={t("sidebar.platformContracts")} icon="🏛️" themeColors={themeColors}>
+          {Object.entries(CORE_CONTRACTS[activeChainId]!).map(([key, contract]) => (
+            <InfoRow
+              key={key}
+              label={contract.name}
+              value={contract.address}
+              fullValue={contract.address}
+              onCopy={() => handleCopy(contract.address, `core-${key}`)}
+              copied={copiedField === `core-${key}`}
+              link={`${explorerBase}/address/${contract.address}`}
+              themeColors={themeColors}
+            />
+          ))}
+        </Section>
+      )}
 
       {/* Required Platform Services (based on MiniApp permissions) */}
       {requiredServices.length > 0 && (
@@ -443,9 +506,9 @@ export function RightSidebarPanel({
           <span>🔍</span>
           <span>{t("sidebar.viewWallet")}</span>
         </a>
-        {contractInfo?.contractHash && (
+        {contractInfo?.contractAddress && (
           <a
-            href={`${explorerBase}/contract/${contractInfo.contractHash}`}
+            href={`${explorerBase}/${isNeoChain ? "contract" : "address"}/${contractInfo.contractAddress}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors w-full"

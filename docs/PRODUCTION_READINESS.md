@@ -55,15 +55,15 @@ Injected via MarbleRun secrets (values depend on which services you run):
 
 ## Chain / Contract Configuration
 
-Contract hashes are configured via environment variables (0x-prefixed Uint160 strings):
+Contract addresses are configured via environment variables (0x-prefixed Uint160 strings):
 
-- `CONTRACT_PAYMENTHUB_HASH` (**payments/settlement = GAS only**, enforced on-chain)
-- `CONTRACT_GOVERNANCE_HASH` (**governance = NEO only**, enforced on-chain)
-- `CONTRACT_PRICEFEED_HASH` (datafeed anchoring)
-- `CONTRACT_RANDOMNESSLOG_HASH` (optional randomness anchoring)
-- `CONTRACT_APPREGISTRY_HASH` (app allowlist + manifest hashes)
-- `CONTRACT_AUTOMATIONANCHOR_HASH` (automation task registry + anti-replay)
-- `CONTRACT_SERVICEGATEWAY_HASH` (on-chain service requests + callbacks)
+- `CONTRACT_PAYMENT_HUB_ADDRESS` (**payments/settlement = GAS only**, enforced on-chain)
+- `CONTRACT_GOVERNANCE_ADDRESS` (**governance = NEO only**, enforced on-chain)
+- `CONTRACT_PRICE_FEED_ADDRESS` (datafeed anchoring)
+- `CONTRACT_RANDOMNESS_LOG_ADDRESS` (optional randomness anchoring)
+- `CONTRACT_APP_REGISTRY_ADDRESS` (app allowlist + manifest hashes)
+- `CONTRACT_AUTOMATION_ANCHOR_ADDRESS` (automation task registry + anti-replay)
+- `CONTRACT_SERVICE_GATEWAY_ADDRESS` (on-chain service requests + callbacks)
 
 The gateway for user workflows is **Supabase Edge** (there is no on-chain
 gateway contract in the current blueprint).

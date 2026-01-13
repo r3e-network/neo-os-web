@@ -72,42 +72,35 @@ func main() {
 	deployerAddr := address.Uint160ToString(deployerHash)
 	fmt.Printf("Deployer: %s\n", deployerAddr)
 
-	updaterHash := deployerHash
-	if raw := strings.TrimSpace(os.Getenv("UPDATER_HASH")); raw != "" {
-		if parsed, err := parseContractHash(raw); err != nil {
-			fmt.Printf("Invalid UPDATER_HASH: %v\n", err)
-			os.Exit(1)
-		} else {
-			updaterHash = parsed
-		}
-	} else if raw := strings.TrimSpace(os.Getenv("UPDATER_ADDRESS")); raw != "" {
-		if parsed, err := address.StringToUint160(raw); err != nil {
+	updaterAddress := deployerHash
+	if raw := strings.TrimSpace(os.Getenv("UPDATER_ADDRESS")); raw != "" {
+		parsed, err := parseUpdaterAddress(raw)
+		if err != nil {
 			fmt.Printf("Invalid UPDATER_ADDRESS: %v\n", err)
 			os.Exit(1)
-		} else {
-			updaterHash = parsed
 		}
+		updaterAddress = parsed
 	}
-	if updaterHash != deployerHash {
-		fmt.Printf("Updater: %s\n", address.Uint160ToString(updaterHash))
+	if updaterAddress != deployerHash {
+		fmt.Printf("Updater: %s\n", address.Uint160ToString(updaterAddress))
 	}
 
 	fmt.Println("\n=== Setting Up Updaters ===")
 	updaterTargets := map[string]string{
-		"PriceFeed":           os.Getenv("CONTRACT_PRICEFEED_HASH"),
-		"RandomnessLog":       os.Getenv("CONTRACT_RANDOMNESSLOG_HASH"),
-		"AutomationAnchor":    os.Getenv("CONTRACT_AUTOMATIONANCHOR_HASH"),
-		"ServiceLayerGateway": os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"),
+		"PriceFeed":           os.Getenv("CONTRACT_PRICE_FEED_ADDRESS"),
+		"RandomnessLog":       os.Getenv("CONTRACT_RANDOMNESS_LOG_ADDRESS"),
+		"AutomationAnchor":    os.Getenv("CONTRACT_AUTOMATION_ANCHOR_ADDRESS"),
+		"ServiceLayerGateway": os.Getenv("CONTRACT_SERVICE_GATEWAY_ADDRESS"),
 	}
 
-	for name, hash := range updaterTargets {
-		hash = strings.TrimSpace(hash)
-		if hash == "" {
-			fmt.Printf("- %s: hash not set, skipping\n", name)
+	for name, addr := range updaterTargets {
+		addr = strings.TrimSpace(addr)
+		if addr == "" {
+			fmt.Printf("- %s: address not set, skipping\n", name)
 			continue
 		}
 		fmt.Printf("- %s: setUpdater\n", name)
-		if err := setUpdater(ctx, client, act, hash, updaterHash); err != nil {
+		if err := setUpdater(ctx, client, act, addr, updaterAddress); err != nil {
 			fmt.Printf("  ❌ %s SetUpdater failed: %v\n", name, err)
 		} else {
 			fmt.Printf("  ✅ %s updater set\n", name)
@@ -115,16 +108,16 @@ func main() {
 		time.Sleep(2 * time.Second)
 	}
 
-	paymentHubHash := strings.TrimSpace(os.Getenv("CONTRACT_PAYMENTHUB_HASH"))
-	if paymentHubHash == "" {
-		fmt.Println("\nPaymentHub hash not set; skipping app configuration")
+	paymentHubAddress := strings.TrimSpace(os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS"))
+	if paymentHubAddress == "" {
+		fmt.Println("\nPaymentHub address not set; skipping app configuration")
 		return
 	}
 
 	fmt.Println("\n=== Configuring PaymentHub MiniApps ===")
-	paymentHub, err := parseContractHash(paymentHubHash)
+	paymentHub, err := parseContractAddress(paymentHubAddress)
 	if err != nil {
-		fmt.Printf("Invalid PaymentHub hash: %v\n", err)
+		fmt.Printf("Invalid PaymentHub address: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -144,18 +137,25 @@ func main() {
 	}
 }
 
-func parseContractHash(hashStr string) (util.Uint160, error) {
-	hashStr = strings.TrimPrefix(strings.TrimSpace(hashStr), "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+func parseContractAddress(addressStr string) (util.Uint160, error) {
+	addressStr = strings.TrimPrefix(strings.TrimSpace(addressStr), "0x")
+	return util.Uint160DecodeStringLE(addressStr)
 }
 
-func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHashStr string, updater util.Uint160) error {
-	contractHash, err := parseContractHash(contractHashStr)
+func parseUpdaterAddress(raw string) (util.Uint160, error) {
+	if strings.HasPrefix(raw, "0x") || strings.HasPrefix(raw, "0X") {
+		return parseContractAddress(raw)
+	}
+	return address.StringToUint160(raw)
+}
+
+func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractAddressStr string, updater util.Uint160) error {
+	contractAddress, err := parseContractAddress(contractAddressStr)
 	if err != nil {
-		return fmt.Errorf("parse contract hash: %w", err)
+		return fmt.Errorf("parse contract address: %w", err)
 	}
 
-	testResult, err := act.Call(contractHash, "setUpdater", updater)
+	testResult, err := act.Call(contractAddress, "setUpdater", updater)
 	if err != nil {
 		return fmt.Errorf("test invoke failed: %w", err)
 	}
@@ -163,7 +163,7 @@ func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor,
 		return fmt.Errorf("test invoke failed: %s (fault: %s)", testResult.State, testResult.FaultException)
 	}
 
-	txHash, vub, err := act.SendCall(contractHash, "setUpdater", updater)
+	txHash, vub, err := act.SendCall(contractAddress, "setUpdater", updater)
 	if err != nil {
 		return fmt.Errorf("send transaction: %w", err)
 	}
@@ -172,8 +172,8 @@ func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor,
 	return waitForTx(ctx, client, txHash)
 }
 
-func alreadyConfigured(act *actor.Actor, contractHash util.Uint160, appID string) bool {
-	result, err := act.Call(contractHash, "getApp", appID)
+func alreadyConfigured(act *actor.Actor, contractAddress util.Uint160, appID string) bool {
+	result, err := act.Call(contractAddress, "getApp", appID)
 	if err != nil || result.State != "HALT" || len(result.Stack) == 0 {
 		return false
 	}
@@ -183,11 +183,11 @@ func alreadyConfigured(act *actor.Actor, contractHash util.Uint160, appID string
 	return result.Stack[0].Value() != nil
 }
 
-func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHash util.Uint160, appID string, owner util.Uint160) error {
+func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractAddress util.Uint160, appID string, owner util.Uint160) error {
 	recipients := []util.Uint160{owner}
 	sharesBps := []int64{10000}
 
-	testResult, err := act.Call(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)
+	testResult, err := act.Call(contractAddress, "configureApp", appID, owner, recipients, sharesBps, true)
 	if err != nil {
 		return fmt.Errorf("test invoke failed: %w", err)
 	}
@@ -195,7 +195,7 @@ func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Acto
 		return fmt.Errorf("test invoke failed: %s (fault: %s)", testResult.State, testResult.FaultException)
 	}
 
-	txHash, vub, err := act.SendCall(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)
+	txHash, vub, err := act.SendCall(contractAddress, "configureApp", appID, owner, recipients, sharesBps, true)
 	if err != nil {
 		return fmt.Errorf("send transaction: %w", err)
 	}

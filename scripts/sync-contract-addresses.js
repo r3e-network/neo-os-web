@@ -8,6 +8,87 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
+const MINIAPPS_DIR = path.join(ROOT, "miniapps-uniapp/apps");
+
+// Contract name to miniapp folder mapping (for neo-manifest.json updates)
+const CONTRACT_TO_FOLDER = {
+  MiniAppLottery: "lottery",
+  MiniAppCoinFlip: "coin-flip",
+  MiniAppDiceGame: "dice-game",
+  MiniAppScratchCard: "scratch-card",
+  MiniAppGasSpin: "gas-spin",
+  MiniAppSecretPoker: "secret-poker",
+  MiniAppFogChess: "fog-chess",
+  MiniAppPredictionMarket: "prediction-market",
+  MiniAppFlashLoan: "flashloan",
+  MiniAppPriceTicker: "price-ticker",
+  MiniAppPricePredict: "price-predict",
+  MiniAppMicroPredict: "micro-predict",
+  MiniAppTurboOptions: "turbo-options",
+  MiniAppILGuard: "il-guard",
+  MiniAppAITrader: "ai-trader",
+  MiniAppGridBot: "grid-bot",
+  MiniAppRedEnvelope: "red-envelope",
+  MiniAppGasCircle: "gas-circle",
+  MiniAppSecretVote: "secret-vote",
+  MiniAppNFTEvolve: "nft-evolve",
+  MiniAppGovBooster: "gov-booster",
+  MiniAppBridgeGuardian: "bridge-guardian",
+  MiniAppGuardianPolicy: "guardian-policy",
+  MiniAppNeoCrash: "neo-crash",
+  MiniAppCandleWars: "candle-wars",
+  MiniAppDutchAuction: "dutch-auction",
+  MiniAppParasite: "parasite",
+  MiniAppThroneOfGas: "throne-of-gas",
+  MiniAppNoLossLottery: "no-loss-lottery",
+  MiniAppDoomsdayClock: "doomsday-clock",
+  MiniAppPayToView: "pay-to-view",
+  MiniAppAlgoBattle: "algo-battle",
+  MiniAppBountyHunter: "bounty-hunter",
+  MiniAppCryptoRiddle: "crypto-riddle",
+  MiniAppFogPuzzle: "fog-puzzle",
+  MiniAppOnChainTarot: "on-chain-tarot",
+  MiniAppPuzzleMining: "puzzle-mining",
+  MiniAppScreamToEarn: "scream-to-earn",
+  MiniAppWorldPiano: "world-piano",
+  MiniAppBurnLeague: "burn-league",
+  MiniAppCompoundCapsule: "compound-capsule",
+  MiniAppDarkPool: "dark-pool",
+  MiniAppMeltingAsset: "melting-asset",
+  MiniAppQuantumSwap: "quantum-swap",
+  MiniAppSelfLoan: "self-loan",
+  MiniAppBreakupContract: "breakup-contract",
+  MiniAppDevTipping: "dev-tipping",
+  MiniAppExFiles: "ex-files",
+  MiniAppGeoSpotlight: "geo-spotlight",
+  MiniAppMasqueradeDAO: "masquerade-dao",
+  MiniAppMillionPieceMap: "million-piece-map",
+  MiniAppWhisperChain: "whisper-chain",
+  MiniAppCanvas: "canvas",
+  MiniAppGardenOfNeo: "garden-of-neo",
+  MiniAppGraveyard: "graveyard",
+  MiniAppNFTChimera: "nft-chimera",
+  MiniAppSchrodingerNFT: "schrodinger-nft",
+  MiniAppAISoulmate: "ai-soulmate",
+  MiniAppDarkRadio: "dark-radio",
+  MiniAppGovMerc: "gov-merc",
+  MiniAppDeadSwitch: "dead-switch",
+  MiniAppHeritageTrust: "heritage-trust",
+  MiniAppTimeCapsule: "time-capsule",
+  MiniAppUnbreakableVault: "unbreakable-vault",
+  MiniAppZKBadge: "zk-badge",
+  MiniAppCouncilGovernance: "council-governance",
+  MiniAppCandidateVote: "candidate-vote",
+  MiniAppGrantShare: "grant-share",
+  MiniAppDailyCheckin: "daily-checkin",
+  MiniAppNeoNS: "neo-ns",
+  MiniAppNeoSwap: "neo-swap",
+  MiniAppNeoburger: "neoburger",
+  MiniAppGasSponsor: "gas-sponsor",
+  MiniAppNeoTreasury: "neo-treasury",
+  MiniAppExplorer: "explorer",
+  MiniAppHallOfFame: "hall-of-fame",
+};
 
 // All deployed contract addresses (existing + new)
 const ALL_ADDRESSES = {
@@ -78,6 +159,7 @@ const ALL_ADDRESSES = {
   MiniAppTimeCapsule: "0x119763e1402d7190728191d83c95c5b8e995abcd",
   MiniAppUnbreakableVault: "0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4",
   MiniAppZKBadge: "0x70915211c56fe3323b22043d3073765a7b633d3f",
+  MiniAppCouncilGovernance: "0xec2f6de766fcbca43e71d5d2f451d9349f351c79",
 };
 
 // Update .env file
@@ -92,12 +174,12 @@ function updateEnvFile() {
 # =============================================================================
 `;
 
-  Object.entries(ALL_ADDRESSES).forEach(([name, hash]) => {
-    const envKey = `CONTRACT_${name.replace("MiniApp", "MINIAPP_").toUpperCase()}_HASH`;
+  Object.entries(ALL_ADDRESSES).forEach(([name, address]) => {
+    const envKey = `CONTRACT_${name.replace("MiniApp", "MINIAPP_").toUpperCase()}_ADDRESS`;
     const regex = new RegExp(`^${envKey}=.*$`, "m");
 
     if (regex.test(content)) {
-      content = content.replace(regex, `${envKey}=${hash}`);
+      content = content.replace(regex, `${envKey}=${address}`);
     }
   });
 
@@ -110,10 +192,10 @@ function updateManifest() {
   const manifestPath = path.join(ROOT, "manifests/manifest.json");
   let content = fs.readFileSync(manifestPath, "utf-8");
 
-  Object.entries(ALL_ADDRESSES).forEach(([name, hash]) => {
-    const key = `CONTRACT_${name.replace("MiniApp", "MINIAPP_").toUpperCase()}_HASH`;
+  Object.entries(ALL_ADDRESSES).forEach(([name, address]) => {
+    const key = `CONTRACT_${name.replace("MiniApp", "MINIAPP_").toUpperCase()}_ADDRESS`;
     const regex = new RegExp(`"${key}":\\s*"0x[a-fA-F0-9]+"`, "g");
-    content = content.replace(regex, `"${key}": "${hash}"`);
+    content = content.replace(regex, `"${key}": "${address}"`);
   });
 
   fs.writeFileSync(manifestPath, content);
@@ -125,14 +207,48 @@ function updateReadme() {
   const readmePath = path.join(ROOT, "contracts/README.md");
   let content = fs.readFileSync(readmePath, "utf-8");
 
-  Object.entries(ALL_ADDRESSES).forEach(([name, hash]) => {
+  Object.entries(ALL_ADDRESSES).forEach(([name, address]) => {
     // Match pattern: | ContractName | `0x...` | Status |
     const regex = new RegExp(`\\| ${name}\\s*\\| \`0x[a-fA-F0-9]+\``, "g");
-    content = content.replace(regex, `| ${name.padEnd(23)} | \`${hash}\``);
+    content = content.replace(regex, `| ${name.padEnd(23)} | \`${address}\``);
   });
 
   fs.writeFileSync(readmePath, content);
   console.log("✅ Updated contracts/README.md");
+}
+
+// Update neo-manifest.json files in miniapps-uniapp/apps
+function updateNeoManifests() {
+  let updated = 0;
+  let skipped = 0;
+
+  Object.entries(ALL_ADDRESSES).forEach(([contractName, address]) => {
+    const folderName = CONTRACT_TO_FOLDER[contractName];
+    if (!folderName) {
+      return; // No mapping for this contract
+    }
+
+    const manifestPath = path.join(MINIAPPS_DIR, folderName, "neo-manifest.json");
+    if (!fs.existsSync(manifestPath)) {
+      return; // No neo-manifest.json for this miniapp
+    }
+
+    try {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+
+      // Update testnet address (all deployed addresses are testnet)
+      if (manifest.contracts && manifest.contracts["neo-n3-testnet"]) {
+        manifest.contracts["neo-n3-testnet"].address = address;
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+        updated++;
+      }
+    } catch (e) {
+      console.warn(`⚠️  Failed to update ${folderName}: ${e.message}`);
+      skipped++;
+    }
+  });
+
+  console.log(`✅ Updated ${updated} neo-manifest.json files (${skipped} skipped)`);
 }
 
 // Main
@@ -140,4 +256,5 @@ console.log("🔧 Syncing contract addresses...\n");
 updateEnvFile();
 updateManifest();
 updateReadme();
+updateNeoManifests();
 console.log("\n✅ All files updated!");

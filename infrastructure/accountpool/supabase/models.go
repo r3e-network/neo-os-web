@@ -43,7 +43,7 @@ type Account struct {
 type AccountBalance struct {
 	AccountID  string    `json:"account_id"`
 	TokenType  string    `json:"token_type"`  // "NEO", "GAS", or custom NEP-17
-	ScriptHash string    `json:"script_hash"` // NEP-17 contract hash
+	ScriptHash string    `json:"script_hash"` // NEP-17 contract address (script hash)
 	Amount     int64     `json:"amount"`
 	Decimals   int       `json:"decimals"`
 	UpdatedAt  time.Time `json:"updated_at"`

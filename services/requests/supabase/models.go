@@ -13,7 +13,8 @@ type MiniApp struct {
 	Status          string          `json:"status"`
 	ManifestHash    string          `json:"manifest_hash"`
 	EntryURL        string          `json:"entry_url"`
-	ContractHash    string          `json:"contract_hash"`
+	SupportedChains []string        `json:"supported_chains"`
+	Contracts       json.RawMessage `json:"contracts"`
 	Name            string          `json:"name"`
 	Description     string          `json:"description"`
 	Icon            string          `json:"icon"`
@@ -23,11 +24,12 @@ type MiniApp struct {
 
 // MiniAppRegistryUpdate represents a partial update from AppRegistry sync.
 type MiniAppRegistryUpdate struct {
+	ChainID         string    `json:"chain_id,omitempty"`
 	ManifestHash    string    `json:"manifest_hash,omitempty"`
 	EntryURL        string    `json:"entry_url,omitempty"`
 	DeveloperPubKey string    `json:"developer_pubkey,omitempty"`
 	Status          string    `json:"status,omitempty"`
-	ContractHash    string    `json:"contract_hash,omitempty"`
+	ContractAddress string    `json:"contract_address,omitempty"`
 	Name            string    `json:"name,omitempty"`
 	Description     string    `json:"description,omitempty"`
 	Icon            string    `json:"icon,omitempty"`
@@ -40,6 +42,7 @@ type MiniAppRegistryUpdate struct {
 type ServiceRequest struct {
 	ID          string          `json:"id,omitempty"`
 	UserID      string          `json:"user_id"`
+	ChainID     string          `json:"chain_id,omitempty"`
 	ServiceType string          `json:"service_type"`
 	Status      string          `json:"status"`
 	Payload     json.RawMessage `json:"payload"`
@@ -58,6 +61,7 @@ type ServiceRequest struct {
 type ChainTx struct {
 	ID              int64           `json:"id,omitempty"`
 	TxHash          string          `json:"tx_hash,omitempty"`
+	ChainID         string          `json:"chain_id,omitempty"`
 	RequestID       string          `json:"request_id"`
 	FromService     string          `json:"from_service"`
 	TxType          string          `json:"tx_type"`
@@ -75,14 +79,15 @@ type ChainTx struct {
 
 // ContractEvent represents a contract_events row.
 type ContractEvent struct {
-	ID           int64           `json:"id,omitempty"`
-	TxHash       string          `json:"tx_hash"`
-	BlockIndex   uint64          `json:"block_index"`
-	ContractHash string          `json:"contract_hash"`
-	EventName    string          `json:"event_name"`
-	AppID        *string         `json:"app_id,omitempty"`
-	State        json.RawMessage `json:"state,omitempty"`
-	CreatedAt    *time.Time      `json:"created_at,omitempty"`
+	ID              int64           `json:"id,omitempty"`
+	ChainID         string          `json:"chain_id,omitempty"`
+	TxHash          string          `json:"tx_hash"`
+	BlockIndex      uint64          `json:"block_index"`
+	ContractAddress string          `json:"contract_address"`
+	EventName       string          `json:"event_name"`
+	AppID           *string         `json:"app_id,omitempty"`
+	State           json.RawMessage `json:"state,omitempty"`
+	CreatedAt       *time.Time      `json:"created_at,omitempty"`
 }
 
 // ProcessedEvent represents a processed_events row for idempotency.
@@ -103,6 +108,7 @@ type ProcessedEvent struct {
 type Notification struct {
 	ID               string `json:"id,omitempty"`
 	AppID            string `json:"app_id"`
+	ChainID          string `json:"chain_id,omitempty"`
 	Title            string `json:"title"`
 	Content          string `json:"content"`
 	NotificationType string `json:"notification_type"`

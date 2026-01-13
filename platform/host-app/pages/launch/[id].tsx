@@ -6,25 +6,29 @@ import { FederatedMiniApp } from "../../components/FederatedMiniApp";
 import { LiveChat } from "../../components/features/chat";
 import { WalletState, MiniAppInfo } from "../../components/types";
 import { installMiniAppSDK } from "../../lib/miniapp-sdk";
+import { injectMiniAppViewportStyles } from "../../lib/miniapp-iframe";
+import { dispatchBridgeCall, resolveIframeOrigin } from "../../lib/miniapp-sdk-bridge";
 import type { MiniAppSDK } from "../../lib/miniapp-sdk";
-import { buildMiniAppEntryUrl, coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
+import type { ChainId } from "../../lib/chains/types";
+// Chain configuration comes from MiniApp manifest only - no environment defaults
+import {
+  buildMiniAppEntryUrl,
+  coerceMiniAppInfo,
+  getContractForChain,
+  resolveChainIdForApp,
+  getEntryUrlForChain,
+  getAllSupportedChains,
+  parseFederatedEntryUrl,
+} from "../../lib/miniapp";
 import { logger } from "../../lib/logger";
 import { resolveInternalBaseUrl } from "../../lib/edge";
 import { BUILTIN_APPS } from "../../lib/builtin-apps";
 import { useI18n } from "../../lib/i18n/react";
 import { useTheme } from "../../components/providers/ThemeProvider";
 import { MiniAppFrame } from "../../components/features/miniapp";
-import { injectMiniAppViewportStyles } from "../../lib/miniapp-iframe";
-import { MiniAppTransition } from "@/components/ui";
-
-/** NeoLine N3 wallet interface */
-interface NeoLineN3Wallet {
-  Init: new () => { getAccount: () => Promise<{ address: string }> };
-}
-
-interface WindowWithNeoLine extends Window {
-  NEOLineN3?: NeoLineN3Wallet;
-}
+import { MiniAppTransition } from "../../components/ui";
+import { useWalletStore } from "../../lib/wallet/store";
+import { getChainRegistry } from "../../lib/chains/registry";
 
 /** Window with MiniAppSDK for iframe injection */
 interface WindowWithMiniAppSDK {
@@ -46,19 +50,42 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   const router = useRouter();
   const { locale } = useI18n();
   const { theme } = useTheme();
-  const [wallet, setWallet] = useState<WalletState>({ connected: false, address: "", provider: null });
+  const { address, connected, provider, chainId: storeChainId, setChainId } = useWalletStore();
+  const requestedChainId = useMemo(() => {
+    const raw = router.query.chain ?? router.query.chainId;
+    if (Array.isArray(raw)) return (raw[0] || "") as ChainId;
+    if (typeof raw === "string" && raw.trim()) return raw as ChainId;
+    return null;
+  }, [router.query.chain, router.query.chainId]);
+  const supportedChainIds = useMemo(() => getAllSupportedChains(app), [app]);
+  const effectiveChainId = useMemo(
+    () => resolveChainIdForApp(app, requestedChainId || storeChainId),
+    [app, requestedChainId, storeChainId],
+  );
+  const contractAddress = useMemo(() => getContractForChain(app, effectiveChainId), [app, effectiveChainId]);
+  const chainType = useMemo(() => {
+    if (!effectiveChainId) return undefined;
+    return getChainRegistry().getChain(effectiveChainId)?.type;
+  }, [effectiveChainId]);
+  const entryUrl = useMemo(() => getEntryUrlForChain(app, effectiveChainId), [app, effectiveChainId]);
+  const wallet: WalletState = {
+    connected,
+    address,
+    provider: provider as WalletState["provider"],
+    chainId: effectiveChainId,
+  };
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
-  const federated = parseFederatedEntryUrl(app.entry_url, app.app_id);
+  const federated = parseFederatedEntryUrl(entryUrl, app.app_id);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sdkRef = useRef<MiniAppSDK | null>(null);
 
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
     const supportedLocale = locale === "zh" ? "zh" : "en";
-    return buildMiniAppEntryUrl(app.entry_url, { lang: supportedLocale, theme, embedded: "1" });
-  }, [app.entry_url, locale, theme]);
+    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1" });
+  }, [entryUrl, locale, theme]);
 
   useEffect(() => {
     if (federated) {
@@ -69,10 +96,22 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   useEffect(() => {
     sdkRef.current = installMiniAppSDK({
       appId: app.app_id,
-      contractHash: app.contract_hash ?? null,
+      chainId: effectiveChainId,
+      chainType,
+      contractAddress,
       permissions: app.permissions,
+      supportedChains: app.supportedChains,
+      chainContracts: app.chainContracts,
     });
-  }, [app.app_id, app.contract_hash, app.permissions]);
+  }, [app, effectiveChainId, contractAddress, chainType]);
+
+  useEffect(() => {
+    if (!effectiveChainId) return;
+    if (storeChainId === effectiveChainId) return;
+    if (!connected || provider === "auth0") {
+      setChainId(effectiveChainId);
+    }
+  }, [effectiveChainId, storeChainId, connected, provider, setChainId]);
 
   // Network latency monitoring
   useEffect(() => {
@@ -97,23 +136,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Wallet connection (same logic as index.tsx)
-  useEffect(() => {
-    const tryConnectWallet = async () => {
-      try {
-        const g = window as WindowWithNeoLine;
-        if (g?.NEOLineN3) {
-          const inst = new g.NEOLineN3.Init();
-          const acc = await inst.getAccount();
-          setWallet({ connected: true, address: acc.address, provider: "neoline" });
-        }
-      } catch (e) {
-        // Silent fail - user can connect manually from dock
-      }
-    };
-
-    tryConnectWallet();
-  }, []);
+  // Wallet state is managed by useWalletStore - no auto-connect needed here
 
   // ESC key handler
   useEffect(() => {
@@ -131,13 +154,13 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
-    const origin = resolveIframeOrigin(app.entry_url);
+    const origin = resolveIframeOrigin(entryUrl);
     if (!origin) return;
     const sandboxAttr = iframe.getAttribute("sandbox") || "";
     const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
     const targetOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
     iframe.contentWindow.postMessage({ type: "theme-change", theme }, targetOrigin);
-  }, [theme, app.entry_url]);
+  }, [theme, entryUrl]);
 
   useEffect(() => {
     if (federated) return;
@@ -146,7 +169,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    const expectedOrigin = resolveIframeOrigin(app.entry_url);
+    const expectedOrigin = resolveIframeOrigin(entryUrl);
     if (!expectedOrigin) return;
 
     const sandboxAttr = iframe.getAttribute("sandbox") || "";
@@ -158,11 +181,22 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       if (!sdkRef.current) {
         sdkRef.current = installMiniAppSDK({
           appId: app.app_id,
-          contractHash: app.contract_hash ?? null,
+          chainId: effectiveChainId,
+          chainType,
+          contractAddress,
           permissions: app.permissions,
+          supportedChains: app.supportedChains,
+          chainContracts: app.chainContracts,
         });
       }
       return sdkRef.current;
+    };
+
+    const sendConfig = (target: Window | null, responseOrigin: string) => {
+      if (!target) return;
+      const sdk = ensureSDK();
+      if (!sdk?.getConfig) return;
+      target.postMessage({ type: "miniapp_config", config: sdk.getConfig() }, responseOrigin);
     };
 
     const handleMessage = async (event: MessageEvent) => {
@@ -171,7 +205,12 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
-      if (data.type !== "neo_miniapp_sdk_request") return;
+      if (data.type === "miniapp_ready") {
+        const responseOrigin = event.origin === "null" ? "*" : expectedOrigin;
+        sendConfig(event.source as Window | null, responseOrigin);
+        return;
+      }
+      if (data.type !== "miniapp_sdk_request") return;
 
       const id = String(data.id ?? "").trim();
       if (!id) return;
@@ -185,7 +224,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         const responseOrigin = event.origin === "null" ? "*" : expectedOrigin;
         source.postMessage(
           {
-            type: "neo_miniapp_sdk_response",
+            type: "miniapp_sdk_response",
             id,
             ok,
             result,
@@ -207,6 +246,9 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     };
 
     const handleLoad = () => {
+      const responseOrigin = allowNullOrigin ? "*" : expectedOrigin;
+      sendConfig(iframe.contentWindow, responseOrigin);
+
       if (!allowSameOriginInjection) return;
       injectMiniAppViewportStyles(iframe);
       const sdk = ensureSDK();
@@ -229,7 +271,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-  }, [app.app_id, iframeSrc, app.permissions, federated]);
+  }, [app.app_id, iframeSrc, app.permissions, federated, entryUrl, effectiveChainId, chainType]);
 
   const handleExit = useCallback(() => {
     // Return to app detail page
@@ -242,7 +284,8 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   }, [router]);
 
   const handleShare = useCallback(() => {
-    const url = `${window.location.origin}/launch/${app.app_id}`;
+    const chainQuery = effectiveChainId ? `?chain=${encodeURIComponent(effectiveChainId)}` : "";
+    const url = `${window.location.origin}/launch/${app.app_id}${chainQuery}`;
     navigator.clipboard
       .writeText(url)
       .then(() => {
@@ -261,6 +304,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         appName={app.name}
         appId={app.app_id}
         wallet={wallet}
+        supportedChainIds={supportedChainIds}
         networkLatency={networkLatency}
         onBack={handleBack}
         onExit={handleExit}
@@ -333,115 +377,6 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   );
 }
 
-function resolveIframeOrigin(entryUrl: string): string | null {
-  const trimmed = String(entryUrl || "").trim();
-  if (!trimmed || trimmed.startsWith("mf://")) return null;
-  try {
-    return new URL(trimmed, window.location.origin).origin;
-  } catch {
-    return null;
-  }
-}
-
-function hasPermission(method: string, permissions: MiniAppInfo["permissions"]): boolean {
-  if (!permissions) return false;
-  switch (method) {
-    case "payments.payGAS":
-      return Boolean(permissions.payments);
-    case "governance.vote":
-      return Boolean(permissions.governance);
-    case "rng.requestRandom":
-      return Boolean(permissions.randomness);
-    case "datafeed.getPrice":
-      return Boolean(permissions.datafeed);
-    default:
-      return true;
-  }
-}
-
-function resolveScopedAppId(requested: unknown, appId: string): string {
-  const trimmed = String(requested ?? "").trim();
-  if (trimmed && trimmed !== appId) {
-    throw new Error("app_id mismatch");
-  }
-  return appId;
-}
-
-function normalizeListParams(raw: unknown, appId: string): Record<string, unknown> {
-  const base = raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
-  return { ...base, app_id: resolveScopedAppId(base.app_id, appId) };
-}
-
-async function dispatchBridgeCall(
-  sdk: MiniAppSDK,
-  method: string,
-  params: unknown[],
-  permissions: MiniAppInfo["permissions"],
-  appId: string,
-): Promise<unknown> {
-  if (!hasPermission(method, permissions)) {
-    throw new Error(`permission denied: ${method}`);
-  }
-
-  switch (method) {
-    case "wallet.getAddress":
-    case "getAddress": {
-      if (sdk.wallet?.getAddress) return sdk.wallet.getAddress();
-      if (sdk.getAddress) return sdk.getAddress();
-      throw new Error("wallet.getAddress not available");
-    }
-    case "wallet.invokeIntent": {
-      if (!sdk.wallet?.invokeIntent) throw new Error("wallet.invokeIntent not available");
-      const [requestId] = params;
-      return sdk.wallet.invokeIntent(String(requestId ?? ""));
-    }
-    case "payments.payGAS": {
-      if (!sdk.payments?.payGAS) throw new Error("payments.payGAS not available");
-      const [requestedAppId, amount, memo] = params;
-      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
-      const memoValue = memo === undefined || memo === null ? undefined : String(memo);
-      return sdk.payments.payGAS(scopedAppId, String(amount ?? ""), memoValue);
-    }
-    case "governance.vote": {
-      if (!sdk.governance?.vote) throw new Error("governance.vote not available");
-      const [requestedAppId, proposalId, neoAmount, support] = params;
-      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
-      const supportValue = typeof support === "boolean" ? support : undefined;
-      return sdk.governance.vote(scopedAppId, String(proposalId ?? ""), String(neoAmount ?? ""), supportValue);
-    }
-    case "rng.requestRandom": {
-      if (!sdk.rng?.requestRandom) throw new Error("rng.requestRandom not available");
-      const [requestedAppId] = params;
-      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
-      return sdk.rng.requestRandom(scopedAppId);
-    }
-    case "datafeed.getPrice": {
-      if (!sdk.datafeed?.getPrice) throw new Error("datafeed.getPrice not available");
-      const [symbol] = params;
-      return sdk.datafeed.getPrice(String(symbol ?? ""));
-    }
-    case "stats.getMyUsage": {
-      if (!sdk.stats?.getMyUsage) throw new Error("stats.getMyUsage not available");
-      const [requestedAppId, date] = params;
-      const resolvedAppId = resolveScopedAppId(requestedAppId, appId);
-      const dateValue = date === undefined || date === null ? undefined : String(date);
-      return sdk.stats.getMyUsage(resolvedAppId, dateValue);
-    }
-    case "events.list": {
-      if (!sdk.events?.list) throw new Error("events.list not available");
-      const [rawParams] = params;
-      return sdk.events.list(normalizeListParams(rawParams, appId));
-    }
-    case "transactions.list": {
-      if (!sdk.transactions?.list) throw new Error("transactions.list not available");
-      const [rawParams] = params;
-      return sdk.transactions.list(normalizeListParams(rawParams, appId));
-    }
-    default:
-      throw new Error(`unsupported method: ${method}`);
-  }
-}
-
 // SSR: Fetch app info from API or static catalog
 export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (context) => {
   const { id } = context.params as { id: string };
@@ -508,79 +443,4 @@ const toastStyle: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 14,
   zIndex: 9999,
-};
-
-const comingSoonStyle: React.CSSProperties = {
-  position: "absolute",
-  top: LAUNCH_DOCK_HEIGHT,
-  left: 0,
-  width: "100vw",
-  height: `calc(100vh - ${LAUNCH_DOCK_HEIGHT}px)`,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)",
-};
-
-const comingSoonContentStyle: React.CSSProperties = {
-  textAlign: "center",
-  padding: 40,
-  maxWidth: 500,
-};
-
-const comingSoonIconStyle: React.CSSProperties = {
-  fontSize: 80,
-  marginBottom: 24,
-};
-
-const comingSoonTitleStyle: React.CSSProperties = {
-  fontSize: 32,
-  fontWeight: 700,
-  marginBottom: 16,
-  background: "linear-gradient(90deg, #00E599, #00D4AA)",
-  WebkitBackgroundClip: "text",
-  WebkitTextFillColor: "transparent",
-};
-
-const comingSoonDescStyle: React.CSSProperties = {
-  color: "#888",
-  fontSize: 16,
-  lineHeight: 1.6,
-  marginBottom: 24,
-};
-
-const comingSoonBadgeStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "12px 24px",
-  background: "rgba(0, 229, 153, 0.1)",
-  border: "1px solid rgba(0, 229, 153, 0.3)",
-  borderRadius: 100,
-  fontSize: 14,
-  color: "#00E599",
-  marginBottom: 24,
-};
-
-const comingSoonDotStyle: React.CSSProperties = {
-  width: 8,
-  height: 8,
-  background: "#00E599",
-  borderRadius: "50%",
-};
-
-const comingSoonInfoStyle: React.CSSProperties = {
-  color: "#666",
-  fontSize: 14,
-  marginBottom: 24,
-};
-
-const backToAppsButtonStyle: React.CSSProperties = {
-  padding: "12px 24px",
-  borderRadius: 8,
-  border: "1px solid rgba(255,255,255,0.2)",
-  background: "transparent",
-  color: "#fff",
-  fontSize: 14,
-  cursor: "pointer",
 };

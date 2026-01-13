@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { getChainConfig } from "../_shared/chains.ts";
 import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { getEnv, mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
@@ -9,6 +10,8 @@ import { enforceUsageCaps, fetchMiniAppPolicy, permissionEnabled } from "../_sha
 
 type VoteBneoRequest = {
   app_id: string;
+  chain_id?: string;
+  chainId?: string;
   proposal_id: string;
   bneo_amount: string;
   support?: boolean;
@@ -60,10 +63,23 @@ export async function handler(req: Request): Promise<Response> {
   if (policy?.limits.governanceCap && amount > policy.limits.governanceCap) {
     return error(403, "bneo_amount exceeds manifest limit", "LIMIT_EXCEEDED", req);
   }
+
+  const requestedChainId = String(body.chain_id ?? body.chainId ?? "").trim().toLowerCase();
+  const chainId = requestedChainId || policy?.supportedChains?.[0] || "neo-n3-mainnet";
+  if (policy?.supportedChains?.length && !policy.supportedChains.includes(chainId)) {
+    return error(400, `chain_id not supported by app: ${chainId}`, "CHAIN_NOT_SUPPORTED", req);
+  }
+  const chain = getChainConfig(chainId);
+  if (!chain) return error(400, `unknown chain_id: ${chainId}`, "CHAIN_NOT_FOUND", req);
+  if (chain.type !== "neo-n3") {
+    return error(400, `governance is only supported on neo-n3 chains`, "CHAIN_TYPE_UNSUPPORTED", req);
+  }
+
   const usageMode = getEnv("MINIAPP_USAGE_MODE_GOVERNANCE");
   const usageErr = await enforceUsageCaps({
     appId,
     userId: auth.userId,
+    chainId,
     governanceDelta: amount,
     governanceCap: policy?.limits.governanceCap,
     mode: usageMode,
@@ -71,7 +87,9 @@ export async function handler(req: Request): Promise<Response> {
   });
   if (usageErr) return usageErr;
 
-  const governanceHash = normalizeUInt160(mustGetEnv("CONTRACT_GOVERNANCE_HASH"));
+  const governanceAddress = normalizeUInt160(
+    chain.contracts?.governance || mustGetEnv("CONTRACT_GOVERNANCE_ADDRESS"),
+  );
 
   const requestId = crypto.randomUUID();
 
@@ -81,8 +99,12 @@ export async function handler(req: Request): Promise<Response> {
       user_id: auth.userId,
       intent: "governance",
       constraints: { governance: "BNEO_ONLY" },
+      chain_id: chainId,
+      chain_type: chain.type,
       invocation: {
-        contract_hash: governanceHash,
+        chain_id: chainId,
+        chain_type: chain.type,
+        contract_address: governanceAddress,
         method: "vote",
         params: [
           { type: "String", value: proposalId },

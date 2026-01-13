@@ -1,11 +1,12 @@
 /**
  * useAppHighlights Hook
- * Fetches dynamic highlight data for MiniApp cards
+ * Fetches dynamic highlight data for MiniApp cards from Supabase
+ * No static/mock data - all data comes from database
  */
 
 import { useState, useEffect, useCallback } from "react";
 import type { HighlightData } from "@/components/features/miniapp/DynamicBanner";
-import { getAppHighlights } from "@/lib/app-highlights";
+import { updateHighlightsCache } from "@/lib/app-highlights";
 
 interface UseAppHighlightsResult {
   highlights: HighlightData[] | undefined;
@@ -15,8 +16,8 @@ interface UseAppHighlightsResult {
 }
 
 export function useAppHighlights(appId: string): UseAppHighlightsResult {
-  const [highlights, setHighlights] = useState<HighlightData[] | undefined>(() => getAppHighlights(appId));
-  const [loading, setLoading] = useState(false);
+  const [highlights, setHighlights] = useState<HighlightData[] | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -24,14 +25,20 @@ export function useAppHighlights(appId: string): UseAppHighlightsResult {
     setError(null);
 
     try {
-      const response = await fetch(`/api/app-highlights/${appId}`);
-      if (!response.ok) throw new Error("Failed to fetch");
+      const response = await fetch(`/api/miniapps/highlights?app_ids=${appId}`);
+      if (!response.ok) throw new Error("Failed to fetch highlights");
 
       const data = await response.json();
-      setHighlights(data.highlights);
+      const appHighlights = data.highlights?.[appId] || undefined;
+      setHighlights(appHighlights);
+
+      // Update cache for sync access
+      if (appHighlights) {
+        updateHighlightsCache(appId, appHighlights);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
-      // Keep static fallback on error
+      setHighlights(undefined);
     } finally {
       setLoading(false);
     }

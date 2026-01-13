@@ -1,7 +1,9 @@
 /**
  * MiniApp SDK Client
- * Implements bridge methods using NeoLine N3 provider
+ * Implements bridge methods for multi-chain providers.
  */
+
+import { getChainRegistry } from "../chains/registry";
 
 async function getNeoLine() {
   if (typeof window === "undefined") return null;
@@ -20,18 +22,64 @@ async function getNeoLine() {
 }
 
 const intentCache = new Map();
-const RPC_ENDPOINTS = {
+const DEFAULT_NEO_RPC_ENDPOINTS = {
   testnet: "https://testnet1.neo.coz.io:443",
   mainnet: "https://mainnet1.neo.coz.io:443",
 };
 let rpcRequestId = 0;
 
-function resolveNetwork(config) {
+function resolveNeoNetwork(chainId, config) {
+  if (chainId && String(chainId).includes("mainnet")) return "mainnet";
   return config?.network === "mainnet" ? "mainnet" : "testnet";
 }
 
-async function rpcCall(method, params, network) {
-  const endpoint = RPC_ENDPOINTS[network] || RPC_ENDPOINTS.testnet;
+function inferChainType(chainId, config) {
+  if (config?.chainType) return config.chainType;
+  if (chainId && String(chainId).startsWith("neo-n3")) return "neo-n3";
+  return "evm";
+}
+
+function resolveRpcUrl(chainId, chainType, config) {
+  const registry = getChainRegistry();
+  const chain = chainId ? registry.getChain(chainId) : null;
+  if (chain && Array.isArray(chain.rpcUrls) && chain.rpcUrls.length > 0) {
+    return chain.rpcUrls[0];
+  }
+  if (chainType === "neo-n3") {
+    const fallback = resolveNeoNetwork(chainId, config);
+    return DEFAULT_NEO_RPC_ENDPOINTS[fallback] || DEFAULT_NEO_RPC_ENDPOINTS.testnet;
+  }
+  return null;
+}
+
+function getEvmProvider() {
+  if (typeof window === "undefined") return null;
+  return window.ethereum || null;
+}
+
+async function getEvmAddress() {
+  const provider = getEvmProvider();
+  if (!provider) throw new Error("EVM wallet not detected");
+  const accounts = await provider.request({ method: "eth_requestAccounts" });
+  const address = accounts && accounts[0] ? String(accounts[0]) : "";
+  if (!address) throw new Error("EVM wallet address unavailable");
+  return address;
+}
+
+function toHexQuantity(value) {
+  if (!value) return undefined;
+  const raw = String(value).trim();
+  if (!raw) return undefined;
+  if (raw.startsWith("0x")) return raw;
+  const parsed = BigInt(raw);
+  return `0x${parsed.toString(16)}`;
+}
+
+async function rpcCall(method, params, chainId, chainType, config) {
+  const endpoint = resolveRpcUrl(chainId, chainType, config);
+  if (!endpoint) {
+    throw new Error("RPC endpoint unavailable");
+  }
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -52,8 +100,8 @@ async function rpcCall(method, params, network) {
   return data.result;
 }
 
-async function getApplicationLog(txid, network) {
-  return rpcCall("getapplicationlog", [txid], network);
+async function getApplicationLog(txid, chainId, chainType, config) {
+  return rpcCall("getapplicationlog", [txid], chainId, chainType, config);
 }
 
 function extractReceiptIdFromLog(log) {
@@ -75,10 +123,10 @@ function extractReceiptIdFromLog(log) {
   return null;
 }
 
-async function waitForReceipt(txid, network, attempts = 10, delayMs = 1200) {
+async function waitForReceipt(txid, chainId, chainType, config, attempts = 10, delayMs = 1200) {
   for (let i = 0; i < attempts; i++) {
     try {
-      const log = await getApplicationLog(txid, network);
+      const log = await getApplicationLog(txid, chainId, chainType, config);
       const receiptId = extractReceiptIdFromLog(log);
       if (receiptId) return receiptId;
     } catch (e) {
@@ -97,8 +145,11 @@ async function waitForReceipt(txid, network, attempts = 10, delayMs = 1200) {
 export function createMiniAppSDK(config) {
   const baseUrl = config?.edgeBaseUrl || config?.baseUrl || "/api/rpc";
   const appId = config?.appId || "";
-  const contractHash = config?.contractHash || null;
-  const network = resolveNetwork(config);
+  const chainId = config?.chainId || null;
+  const chainType = inferChainType(chainId, config);
+  const contractAddress = config?.contractAddress || null;
+  const supportedChains = Array.isArray(config?.supportedChains) ? config.supportedChains : [];
+  const chainContracts = config?.chainContracts || null;
 
   async function resolveAuthHeaders() {
     const headers = {};
@@ -147,10 +198,32 @@ export function createMiniAppSDK(config) {
   }
 
   async function invokeWithWallet(invocation) {
+    const invocationType = invocation?.chain_type || invocation?.chainType || chainType;
+    if (invocationType === "evm") {
+      const provider = getEvmProvider();
+      if (!provider) throw new Error("EVM wallet not connected");
+      const from = await getEvmAddress();
+      const to = invocation?.contract_address;
+      const data = invocation?.data;
+      if (!to || !data) {
+        throw new Error("EVM invocation missing contract_address or data");
+      }
+      const tx = {
+        from,
+        to,
+        data,
+        value: toHexQuantity(invocation?.value),
+        gas: toHexQuantity(invocation?.gas),
+        gasPrice: toHexQuantity(invocation?.gas_price),
+      };
+      const txHash = await provider.request({ method: "eth_sendTransaction", params: [tx] });
+      return { tx_hash: txHash };
+    }
+
     const n3 = await getNeoLine();
     if (!n3) throw new Error("Wallet provider not connected");
     return n3.invoke({
-      scriptHash: invocation.contract_hash,
+      scriptHash: invocation.contract_address,
       operation: invocation.method,
       args: invocation.params || [],
       broadcastOverride: false,
@@ -158,11 +231,15 @@ export function createMiniAppSDK(config) {
   }
 
   async function payGasWithReceipt(targetAppId, amount, memo) {
+    if (chainType === "evm") {
+      throw new Error("pay-gas is only supported on neo-n3 chains");
+    }
     const response = await callEdge("pay-gas", {
       params: {
         app_id: targetAppId,
         amount_gas: amount,
         memo: memo || undefined,
+        chain_id: chainId || undefined,
       },
     });
     if (!(response?.request_id && response?.invocation)) {
@@ -174,7 +251,7 @@ export function createMiniAppSDK(config) {
     const txid = tx?.txid || tx?.txHash || null;
     if (!txid) return response;
 
-    const receiptId = await waitForReceipt(txid, network).catch(() => null);
+    const receiptId = await waitForReceipt(txid, chainId, chainType, config).catch(() => null);
     return { ...response, txid, receipt_id: receiptId };
   }
 
@@ -188,6 +265,29 @@ export function createMiniAppSDK(config) {
 
       // Handle contract invocations via Wallet
       if (method === "invokeFunction" && params) {
+        const targetChainType = params.chainType || params.chain_type || chainType;
+        if (targetChainType === "evm") {
+          const provider = getEvmProvider();
+          if (!provider) throw new Error("EVM wallet provider not connected");
+          const from = await getEvmAddress();
+          const to = params.contract || params.to;
+          const data = params.data;
+          if (!to || !data) throw new Error("EVM invocation requires contract/to and data");
+          return provider.request({
+            method: "eth_sendTransaction",
+            params: [
+              {
+                from,
+                to,
+                data,
+                value: toHexQuantity(params.value),
+                gas: toHexQuantity(params.gas),
+                gasPrice: toHexQuantity(params.gas_price),
+              },
+            ],
+          });
+        }
+
         const n3 = await getNeoLine();
         if (!n3) throw new Error("Wallet provider not connected");
 
@@ -206,9 +306,19 @@ export function createMiniAppSDK(config) {
       }
 
       if (method === "invokeRead" && params) {
-        const contract = params.contract || contractHash;
-        if (!contract) throw new Error("contract hash required");
-        return rpcCall("invokefunction", [contract, params.method, params.args || []], params.network || network);
+        const targetChainId = params.chainId || params.chain_id || chainId;
+        const targetChainType = params.chainType || params.chain_type || chainType;
+        if (targetChainType === "evm") {
+          const provider = getEvmProvider();
+          if (!provider) throw new Error("EVM wallet provider not connected");
+          const to = params.contract || params.to;
+          const data = params.data;
+          if (!to || !data) throw new Error("EVM invokeRead requires contract/to and data");
+          return provider.request({ method: "eth_call", params: [{ to, data }, "latest"] });
+        }
+        const contract = params.contract;
+        if (!contract) throw new Error("contract address required");
+        return rpcCall("invokefunction", [contract, params.method, params.args || []], targetChainId, targetChainType, config);
       }
 
       throw new Error(`Unsupported invoke method: ${method}`);
@@ -216,11 +326,18 @@ export function createMiniAppSDK(config) {
 
     getConfig: () => ({
       appId,
-      contractHash,
+      chainId,
+      chainType,
+      contractAddress,
+      supportedChains,
+      chainContracts,
       debug: false,
     }),
 
     getAddress: async () => {
+      if (chainType === "evm") {
+        return getEvmAddress();
+      }
       const n3 = await getNeoLine();
       if (!n3) throw new Error("Wallet provider not connected");
       const { address } = await n3.getAccount();
@@ -229,6 +346,9 @@ export function createMiniAppSDK(config) {
 
     wallet: {
       getAddress: async () => {
+        if (chainType === "evm") {
+          return getEvmAddress();
+        }
         const n3 = await getNeoLine();
         if (!n3) throw new Error("Wallet provider not connected");
         const { address } = await n3.getAccount();
@@ -252,12 +372,16 @@ export function createMiniAppSDK(config) {
 
     governance: {
       vote: async (targetAppId, proposalId, neoAmount, support = true) => {
-        const response = await callEdge("vote-neo", {
+        if (chainType === "evm") {
+          throw new Error("governance voting is only supported on neo-n3 chains");
+        }
+        const response = await callEdge("vote-bneo", {
           params: {
             app_id: targetAppId,
             proposal_id: proposalId,
-            neo_amount: neoAmount,
+            bneo_amount: neoAmount,
             support,
+            chain_id: chainId || undefined,
           },
         });
         if (response?.request_id && response?.invocation) {
@@ -266,12 +390,16 @@ export function createMiniAppSDK(config) {
         return response;
       },
       voteAndInvoke: async (targetAppId, proposalId, neoAmount, support = true) => {
-        const response = await callEdge("vote-neo", {
+        if (chainType === "evm") {
+          throw new Error("governance voting is only supported on neo-n3 chains");
+        }
+        const response = await callEdge("vote-bneo", {
           params: {
             app_id: targetAppId,
             proposal_id: proposalId,
-            neo_amount: neoAmount,
+            bneo_amount: neoAmount,
             support,
+            chain_id: chainId || undefined,
           },
         });
         if (response?.request_id && response?.invocation) {
@@ -282,9 +410,12 @@ export function createMiniAppSDK(config) {
         return response;
       },
       getCandidates: async () => {
-        const candidates = await rpcCall("getcandidates", [], network);
-        const committee = await rpcCall("getcommittee", [], network).catch(() => []);
-        const blockHeight = await rpcCall("getblockcount", [], network).catch(() => 0);
+        if (chainType === "evm") {
+          throw new Error("governance candidates are only available on neo-n3 chains");
+        }
+        const candidates = await rpcCall("getcandidates", [], chainId, chainType, config);
+        const committee = await rpcCall("getcommittee", [], chainId, chainType, config).catch(() => []);
+        const blockHeight = await rpcCall("getblockcount", [], chainId, chainType, config).catch(() => 0);
         const committeeSet = new Set(Array.isArray(committee) ? committee : []);
         const list = Array.isArray(candidates)
           ? candidates.map((row) => ({
@@ -308,7 +439,7 @@ export function createMiniAppSDK(config) {
     rng: {
       requestRandom: async (targetAppId) => {
         return callEdge("rng-request", {
-          params: { app_id: targetAppId },
+          params: { app_id: targetAppId, chain_id: chainId || undefined },
         });
       },
     },
@@ -327,22 +458,41 @@ export function createMiniAppSDK(config) {
         return res.json();
       },
       getNetworkStats: async () => {
+        if (chainType === "evm") {
+          const provider = getEvmProvider();
+          if (!provider) throw new Error("EVM wallet provider not connected");
+          const blockHex = await provider.request({ method: "eth_blockNumber" });
+          const blockHeight = parseInt(String(blockHex || "0x0"), 16);
+          return {
+            blockHeight: Number.isFinite(blockHeight) ? blockHeight : 0,
+            validatorCount: 0,
+            network: chainId || "evm",
+            version: "evm",
+          };
+        }
         // Fetch network stats from Neo RPC
         const [blockCount, validators, version] = await Promise.all([
-          rpcCall("getblockcount", [], network),
-          rpcCall("getnextblockvalidators", [], network).catch(() => []),
-          rpcCall("getversion", [], network).catch(() => ({})),
+          rpcCall("getblockcount", [], chainId, chainType, config),
+          rpcCall("getnextblockvalidators", [], chainId, chainType, config).catch(() => []),
+          rpcCall("getversion", [], chainId, chainType, config).catch(() => ({})),
         ]);
         return {
           blockHeight: blockCount || 0,
           validatorCount: Array.isArray(validators) ? validators.length : 0,
-          network: network,
+          network: chainId || "neo-n3",
           version: version?.neoversion || version?.useragent || "unknown",
         };
       },
       getRecentTransactions: async (limit = 10) => {
+        if (chainType === "evm") {
+          const provider = getEvmProvider();
+          if (!provider) throw new Error("EVM wallet provider not connected");
+          const blockHex = await provider.request({ method: "eth_blockNumber" });
+          const blockHeight = parseInt(String(blockHex || "0x0"), 16);
+          return { transactions: [], blockHeight: Number.isFinite(blockHeight) ? blockHeight : 0 };
+        }
         // Fetch recent blocks and extract transactions
-        const blockCount = await rpcCall("getblockcount", [], network);
+        const blockCount = await rpcCall("getblockcount", [], chainId, chainType, config);
         const transactions = [];
         const blocksToFetch = Math.min(limit, 5);
 
@@ -350,7 +500,7 @@ export function createMiniAppSDK(config) {
           const blockHeight = blockCount - 1 - i;
           if (blockHeight < 0) break;
           try {
-            const block = await rpcCall("getblock", [blockHeight, true], network);
+            const block = await rpcCall("getblock", [blockHeight, true], chainId, chainType, config);
             if (block?.tx && Array.isArray(block.tx)) {
               for (const tx of block.tx) {
                 if (transactions.length >= limit) break;
@@ -377,31 +527,35 @@ export function createMiniAppSDK(config) {
       getMyUsage: async (targetAppId, date) => {
         return callEdge("miniapp-usage", {
           method: "GET",
-          query: { app_id: targetAppId || appId || undefined, date },
+          query: { app_id: targetAppId || appId || undefined, date, chain_id: chainId || undefined },
         });
       },
     },
 
     events: {
       list: async (params = {}) => {
+        const query = { ...params };
+        if (!query.chain_id && chainId) query.chain_id = chainId;
         return callEdge("events-list", {
           method: "GET",
-          query: params,
+          query,
         });
       },
       emit: async (eventName, data = {}) => {
         return callEdge("emit-event", {
           method: "POST",
-          body: { app_id: appId, event_name: eventName, data },
+          body: { app_id: appId, event_name: eventName, state: data, chain_id: chainId || undefined },
         });
       },
     },
 
     transactions: {
       list: async (params = {}) => {
+        const query = { ...params };
+        if (!query.chain_id && chainId) query.chain_id = chainId;
         return callEdge("transactions-list", {
           method: "GET",
-          query: params,
+          query,
         });
       },
     },
@@ -410,13 +564,13 @@ export function createMiniAppSDK(config) {
       send: async (title, message, opts = {}) => {
         return callEdge("send-notification", {
           method: "POST",
-          body: { app_id: appId, title, message, ...opts },
+          body: { app_id: appId, title, message, chain_id: chainId || undefined, ...opts },
         });
       },
       list: async (params = {}) => {
         return callEdge("miniapp-notifications", {
           method: "GET",
-          query: { app_id: appId, ...params },
+          query: { app_id: appId, chain_id: chainId || undefined, ...params },
         });
       },
     },

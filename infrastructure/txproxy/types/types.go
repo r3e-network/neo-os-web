@@ -18,11 +18,11 @@ type InvokeRequest struct {
 	// Supported values:
 	// - "payments": enforce GAS transfer to PaymentHub (GAS settlement)
 	// - "governance": enforce Governance-only methods (bNEO governance)
-	Intent       string                `json:"intent,omitempty"`
-	ContractHash string                `json:"contract_hash"`
-	Method       string                `json:"method"`
-	Params       []chain.ContractParam `json:"params,omitempty"`
-	Wait         bool                  `json:"wait,omitempty"`
+	Intent          string                `json:"intent,omitempty"`
+	ContractAddress string                `json:"contract_address"`
+	Method          string                `json:"method"`
+	Params          []chain.ContractParam `json:"params,omitempty"`
+	Wait            bool                  `json:"wait,omitempty"`
 }
 
 // InvokeResponse is returned by the TxProxy service when an invocation was accepted.

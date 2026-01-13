@@ -353,8 +353,8 @@ All 62 apps properly integrate `@neo/uniapp-sdk` with:
 
 ### Warnings (5)
 
-1. Hardcoded contract hashes in environment config
-2. Missing contract hash extraction mechanism
+1. Hardcoded contract addresses in environment config
+2. Missing contract address extraction mechanism
 3. Permission strings not validated against contract ABI
 4. Inconsistent app ID naming conventions
 5. No version tracking for manifests

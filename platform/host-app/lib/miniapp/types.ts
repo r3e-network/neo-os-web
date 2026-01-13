@@ -38,7 +38,7 @@ export type MultiChainContracts = Record<ChainId, ChainContractConfig>;
 export interface MiniappPermissions {
   payments: boolean;
   governance: boolean;
-  randomness: boolean;
+  rng: boolean;
   datafeed: boolean;
   automation: boolean;
   /** New: cross-chain operations */

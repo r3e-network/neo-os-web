@@ -270,11 +270,11 @@ func TestContractEventProcessing(t *testing.T) {
 
 	t.Run("service request event", func(t *testing.T) {
 		event := ContractEvent{
-			Contract:  "0xGatewayContractHash",
+			Contract:  "0xGatewayContractAddress",
 			EventName: "ServiceRequest",
 			State: map[string]interface{}{
 				"request_id":    int64(12345),
-				"user_contract": "0xUserContractHash",
+				"user_contract": "0xUserContractAddress",
 				"caller":        "NCallerAddress",
 				"service_type":  "neocompute",
 				"payload":       "base64EncodedPayload",
@@ -295,7 +295,7 @@ func TestContractEventProcessing(t *testing.T) {
 
 	t.Run("request fulfilled event", func(t *testing.T) {
 		event := ContractEvent{
-			Contract:  "0xGatewayContractHash",
+			Contract:  "0xGatewayContractAddress",
 			EventName: "RequestFulfilled",
 			State: map[string]interface{}{
 				"request_id": int64(12345),
@@ -310,11 +310,11 @@ func TestContractEventProcessing(t *testing.T) {
 
 	t.Run("callback executed event", func(t *testing.T) {
 		event := ContractEvent{
-			Contract:  "0xGatewayContractHash",
+			Contract:  "0xGatewayContractAddress",
 			EventName: "CallbackExecuted",
 			State: map[string]interface{}{
 				"request_id":    int64(12345),
-				"user_contract": "0xUserContractHash",
+				"user_contract": "0xUserContractAddress",
 				"method":        "onComputeCallback",
 				"success":       true,
 			},

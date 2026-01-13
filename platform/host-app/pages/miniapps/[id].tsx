@@ -23,19 +23,33 @@ import { LaunchDock } from "../../components/LaunchDock";
 import { FederatedMiniApp } from "../../components/FederatedMiniApp";
 import { LiveChat } from "../../components/features/chat";
 import { MiniAppFrame } from "../../components/features/miniapp";
-import { MiniAppTransition } from "@/components/ui";
+import { SimilarApps } from "../../components/features/discovery/SimilarApps";
+import { TagCloud } from "../../components/features/tags";
+import { MiniAppTransition } from "../../components/ui";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
-import { buildMiniAppEntryUrl, coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
+import {
+  buildMiniAppEntryUrl,
+  coerceMiniAppInfo,
+  parseFederatedEntryUrl,
+  getContractForChain,
+  resolveChainIdForApp,
+  getEntryUrlForChain,
+  getAllSupportedChains,
+} from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { getBuiltinApp } from "../../lib/builtin-apps";
 import { logger } from "../../lib/logger";
 import { useTranslation } from "../../lib/i18n/react";
 import { installMiniAppSDK } from "../../lib/miniapp-sdk";
 import { injectMiniAppViewportStyles } from "../../lib/miniapp-iframe";
+import { dispatchBridgeCall, resolveIframeOrigin } from "../../lib/miniapp-sdk-bridge";
 import type { MiniAppSDK } from "../../lib/miniapp-sdk";
+import type { ChainId } from "../../lib/chains/types";
+// Chain configuration comes from MiniApp manifest only - no environment defaults
 import { useI18n } from "../../lib/i18n/react";
 import { useWalletStore, getWalletAdapter } from "../../lib/wallet/store";
 import { useMiniAppStats } from "../../lib/query";
+import { getChainRegistry } from "../../lib/chains/registry";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -139,15 +153,6 @@ export type AppDetailPageProps = {
   error?: string;
 };
 
-/** NeoLine N3 wallet interface */
-interface NeoLineN3Wallet {
-  Init: new () => { getAccount: () => Promise<{ address: string }> };
-}
-
-interface WindowWithNeoLine extends Window {
-  NEOLineN3?: NeoLineN3Wallet;
-}
-
 interface WindowWithMiniAppSDK {
   MiniAppSDK?: MiniAppSDK;
 }
@@ -168,8 +173,36 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   const stats = cachedStats ?? ssrStats;
 
   // Use global wallet store
-  const { address, connected, provider } = useWalletStore();
-  const wallet = { connected, address, provider };
+  const { address, connected, provider, chainId: storeChainId, setChainId } = useWalletStore();
+  const requestedChainId = useMemo(() => {
+    const raw = router.query.chain ?? router.query.chainId;
+    if (Array.isArray(raw)) return (raw[0] || "") as ChainId;
+    if (typeof raw === "string" && raw.trim()) return raw as ChainId;
+    return null;
+  }, [router.query.chain, router.query.chainId]);
+  const supportedChainIds = useMemo(() => (app ? getAllSupportedChains(app) : []), [app]);
+  // Chain comes from: 1) URL param, 2) wallet store, 3) app manifest fallback
+  const walletChainId = app ? resolveChainIdForApp(app, requestedChainId || storeChainId) : null;
+  const wallet: WalletState = {
+    connected,
+    address,
+    provider: provider as WalletState["provider"],
+    chainId: walletChainId,
+  };
+  const contractAddress = useMemo(() => (app ? getContractForChain(app, walletChainId) : null), [app, walletChainId]);
+  const chainType = useMemo(() => {
+    if (!walletChainId) return undefined;
+    return getChainRegistry().getChain(walletChainId)?.type;
+  }, [walletChainId]);
+  const entryUrl = useMemo(() => (app ? getEntryUrlForChain(app, walletChainId) : ""), [app, walletChainId]);
+
+  useEffect(() => {
+    if (!app || !walletChainId) return;
+    if (storeChainId === walletChainId) return;
+    if (!connected || provider === "auth0") {
+      setChainId(walletChainId);
+    }
+  }, [app, walletChainId, storeChainId, connected, provider, setChainId]);
 
   // Ref for accessing wallet in callbacks
   const walletRef = useRef(wallet);
@@ -199,7 +232,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   });
 
   // MiniApp launch logic
-  const federated = app ? parseFederatedEntryUrl(app.entry_url, app.app_id) : null;
+  const federated = app ? parseFederatedEntryUrl(entryUrl, app.app_id) : null;
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sdkRef = useRef<MiniAppSDK | null>(null);
 
@@ -207,17 +240,17 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   const iframeSrc = useMemo(() => {
     if (!app) return "";
     const supportedLocale = locale === "zh" ? "zh" : "en";
-    return buildMiniAppEntryUrl(app.entry_url, { lang: supportedLocale, theme, embedded: "1" });
-  }, [app?.entry_url, locale, theme]);
+    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1" });
+  }, [entryUrl, locale, theme, app]);
 
   useEffect(() => {
     if (!app || federated) return;
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
-    const origin = resolveIframeOrigin(app.entry_url);
+    const origin = resolveIframeOrigin(entryUrl);
     if (!origin) return;
     iframe.contentWindow.postMessage({ type: "theme-change", theme }, origin);
-  }, [theme, app?.entry_url, federated]);
+  }, [theme, entryUrl, federated]);
 
   // Self-contained i18n: use MiniApp's own translations based on locale
   const appName = app ? (locale === "zh" && app.name_zh ? app.name_zh : app.name) : "";
@@ -234,10 +267,14 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     if (!app) return;
     sdkRef.current = installMiniAppSDK({
       appId: app.app_id,
-      contractHash: app.contract_hash ?? null,
+      chainId: walletChainId,
+      chainType,
+      contractAddress,
       permissions: app.permissions,
+      supportedChains: app.supportedChains,
+      chainContracts: app.chainContracts,
     });
-  }, [app?.app_id, app?.contract_hash, app?.permissions]);
+  }, [app, walletChainId, contractAddress, chainType]);
 
   // Iframe bridge for SDK communication
   useEffect(() => {
@@ -247,7 +284,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    const expectedOrigin = resolveIframeOrigin(app.entry_url);
+    const expectedOrigin = resolveIframeOrigin(entryUrl);
     if (!expectedOrigin) return;
 
     const allowSameOriginInjection = expectedOrigin === window.location.origin;
@@ -256,11 +293,22 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       if (!sdkRef.current) {
         sdkRef.current = installMiniAppSDK({
           appId: app.app_id,
-          contractHash: app.contract_hash ?? null,
+          chainId: walletChainId,
+          chainType,
+          contractAddress,
           permissions: app.permissions,
+          supportedChains: app.supportedChains,
+          chainContracts: app.chainContracts,
         });
       }
       return sdkRef.current;
+    };
+
+    const sendConfig = () => {
+      const sdk = ensureSDK();
+      if (!sdk?.getConfig) return;
+      if (!iframe.contentWindow) return;
+      iframe.contentWindow.postMessage({ type: "miniapp_config", config: sdk.getConfig() }, expectedOrigin);
     };
 
     const handleMessage = async (event: MessageEvent) => {
@@ -269,7 +317,11 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
 
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
-      if (data.type !== "neo_miniapp_sdk_request") return;
+      if (data.type === "miniapp_ready") {
+        sendConfig();
+        return;
+      }
+      if (data.type !== "miniapp_sdk_request") return;
 
       const id = String(data.id ?? "").trim();
       if (!id) return;
@@ -282,7 +334,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       const respond = (ok: boolean, result?: unknown, error?: string) => {
         source.postMessage(
           {
-            type: "neo_miniapp_sdk_response",
+            type: "miniapp_sdk_response",
             id,
             ok,
             result,
@@ -328,6 +380,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     };
 
     const handleLoad = () => {
+      sendConfig();
       if (!allowSameOriginInjection) return;
       injectMiniAppViewportStyles(iframe);
       const sdk = ensureSDK();
@@ -350,7 +403,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-  }, [app?.app_id, iframeSrc, app?.permissions, federated, app?.entry_url]);
+  }, [app?.app_id, iframeSrc, app?.permissions, federated, entryUrl, chainType]);
 
   // Network latency monitoring
   useEffect(() => {
@@ -359,9 +412,9 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         const start = performance.now();
 
         const adapter = getWalletAdapter();
-        if (connected && address && adapter) {
-          // Use wallet balance check as a ping to the blockchain node
-          await adapter.getBalance(address);
+        if (connected && address && adapter && "getBalance" in adapter && walletChainId) {
+          // Use wallet balance check as a ping to the blockchain node (Neo N3 only)
+          await adapter.getBalance(address, walletChainId);
         } else {
           // Fallback to internal health check
           await fetch("/api/health", { method: "HEAD" });
@@ -376,7 +429,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     measureLatency();
     const interval = setInterval(measureLatency, 5000);
     return () => clearInterval(interval);
-  }, [connected, address]);
+  }, [connected, address, walletChainId]);
 
   // Wallet connection is handled globally by useWalletStore
 
@@ -406,7 +459,8 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   };
 
   const handleShare = useCallback(() => {
-    const url = `${window.location.origin}/miniapps/${app.app_id}`;
+    const chainQuery = walletChainId ? `?chain=${encodeURIComponent(walletChainId)}` : "";
+    const url = `${window.location.origin}/miniapps/${app.app_id}${chainQuery}`;
     navigator.clipboard
       .writeText(url)
       .then(() => {
@@ -427,6 +481,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         {/* Hero Section */}
         <section style={heroStyle}>
           <p style={{ ...descriptionStyle, color: themeColors.textMuted }}>{appDesc}</p>
+          <TagCloud appId={app.app_id} onTagClick={(tagId) => router.push(`/miniapps?tag=${tagId}`)} className="mt-4" />
         </section>
 
         {/* Stats Grid */}
@@ -515,7 +570,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
           </div>
 
           <div style={tabContentStyle}>
-            {activeTab === "overview" && <OverviewTab app={app} t={t} />}
+            {activeTab === "overview" && <OverviewTab app={app} t={t} entryUrl={entryUrl} chainId={walletChainId} />}
             {activeTab === "reviews" && <ReviewsTab appId={app.app_id} />}
             {activeTab === "forum" && <ForumTab appId={app.app_id} />}
             {activeTab === "news" && showNews && <AppNewsList notifications={notifications} />}
@@ -523,6 +578,9 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             {!showNews && activeTab === "news" && <p style={newsDisabledStyle}>{t("detail.newsDisabled")}</p>}
           </div>
         </section>
+
+        {/* Similar Apps Section - Steam-style recommendation */}
+        <SimilarApps currentAppId={app.app_id} category={app.category} maxItems={4} />
       </main>
     </div>
   );
@@ -534,6 +592,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         appName={appName}
         appId={app.app_id}
         wallet={wallet}
+        supportedChainIds={supportedChainIds}
         networkLatency={networkLatency}
         onBack={handleBack}
         onExit={handleBack}
@@ -638,6 +697,9 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     </div>
   );
 
+  // Use walletChainId which is already computed from app manifest and wallet state
+  const effectiveChainId = walletChainId;
+
   return (
     <SplitViewLayout
       leftPanel={leftPanel}
@@ -646,10 +708,10 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         <RightSidebarPanel
           appId={app.app_id}
           appName={appName}
-          network="testnet"
+          chainId={effectiveChainId}
           permissions={app.permissions}
           contractInfo={{
-            contractHash: app.contract_hash,
+            contractAddress: getContractForChain(app, effectiveChainId),
             masterKeyAddress: app.developer?.address,
           }}
         />
@@ -660,7 +722,17 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   );
 }
 
-function OverviewTab({ app, t }: { app: MiniAppInfo; t: (key: string) => string }) {
+function OverviewTab({
+  app,
+  t,
+  entryUrl,
+  chainId,
+}: {
+  app: MiniAppInfo;
+  t: (key: string) => string;
+  entryUrl: string;
+  chainId: ChainId | null;
+}) {
   return (
     <div style={overviewContainerStyle}>
       <div style={sectionStyle}>
@@ -706,123 +778,12 @@ function OverviewTab({ app, t }: { app: MiniAppInfo; t: (key: string) => string 
           {t("detail.appId")}: <code style={codeStyle}>{app.app_id}</code>
         </p>
         <p style={infoTextStyle}>
-          {t("detail.entryUrl")}: <code style={codeStyle}>{app.entry_url}</code>
+          {t("detail.entryUrl")}
+          {chainId ? ` (${chainId})` : ""}: <code style={codeStyle}>{entryUrl}</code>
         </p>
       </div>
     </div>
   );
-}
-
-// Helper functions for iframe bridge
-function resolveIframeOrigin(entryUrl: string): string | null {
-  const trimmed = String(entryUrl || "").trim();
-  if (!trimmed || trimmed.startsWith("mf://")) return null;
-  try {
-    return new URL(trimmed, window.location.origin).origin;
-  } catch {
-    return null;
-  }
-}
-
-function hasPermission(method: string, permissions: MiniAppInfo["permissions"]): boolean {
-  if (!permissions) return false;
-  switch (method) {
-    case "payments.payGAS":
-      return Boolean(permissions.payments);
-    case "governance.vote":
-      return Boolean(permissions.governance);
-    case "rng.requestRandom":
-      return Boolean(permissions.randomness);
-    case "datafeed.getPrice":
-      return Boolean(permissions.datafeed);
-    default:
-      return true;
-  }
-}
-
-function resolveScopedAppId(requested: unknown, appId: string): string {
-  const trimmed = String(requested ?? "").trim();
-  if (trimmed && trimmed !== appId) {
-    throw new Error("app_id mismatch");
-  }
-  return appId;
-}
-
-function normalizeListParams(raw: unknown, appId: string): Record<string, unknown> {
-  const base = raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
-  return { ...base, app_id: resolveScopedAppId(base.app_id, appId) };
-}
-
-async function dispatchBridgeCall(
-  sdk: MiniAppSDK,
-  method: string,
-  params: unknown[],
-  permissions: MiniAppInfo["permissions"],
-  appId: string,
-  walletAddress?: string,
-): Promise<unknown> {
-  if (!hasPermission(method, permissions)) {
-    throw new Error(`permission denied: ${method}`);
-  }
-
-  switch (method) {
-    case "wallet.getAddress":
-    case "getAddress": {
-      if (walletAddress) return walletAddress;
-      if (sdk.wallet?.getAddress) return sdk.wallet.getAddress();
-      if (sdk.getAddress) return sdk.getAddress();
-      throw new Error("wallet.getAddress not available");
-    }
-    case "wallet.invokeIntent": {
-      if (!sdk.wallet?.invokeIntent) throw new Error("wallet.invokeIntent not available");
-      const [requestId] = params;
-      return sdk.wallet.invokeIntent(String(requestId ?? ""));
-    }
-    case "payments.payGAS": {
-      if (!sdk.payments?.payGAS) throw new Error("payments.payGAS not available");
-      const [requestedAppId, amount, memo] = params;
-      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
-      const memoValue = memo === undefined || memo === null ? undefined : String(memo);
-      return sdk.payments.payGAS(scopedAppId, String(amount ?? ""), memoValue);
-    }
-    case "governance.vote": {
-      if (!sdk.governance?.vote) throw new Error("governance.vote not available");
-      const [requestedAppId, proposalId, neoAmount, support] = params;
-      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
-      const supportValue = typeof support === "boolean" ? support : undefined;
-      return sdk.governance.vote(scopedAppId, String(proposalId ?? ""), String(neoAmount ?? ""), supportValue);
-    }
-    case "rng.requestRandom": {
-      if (!sdk.rng?.requestRandom) throw new Error("rng.requestRandom not available");
-      const [requestedAppId] = params;
-      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
-      return sdk.rng.requestRandom(scopedAppId);
-    }
-    case "datafeed.getPrice": {
-      if (!sdk.datafeed?.getPrice) throw new Error("datafeed.getPrice not available");
-      const [symbol] = params;
-      return sdk.datafeed.getPrice(String(symbol ?? ""));
-    }
-    case "stats.getMyUsage": {
-      if (!sdk.stats?.getMyUsage) throw new Error("stats.getMyUsage not available");
-      const [requestedAppId, date] = params;
-      const resolvedAppId = resolveScopedAppId(requestedAppId, appId);
-      const dateValue = date === undefined || date === null ? undefined : String(date);
-      return sdk.stats.getMyUsage(resolvedAppId, dateValue);
-    }
-    case "events.list": {
-      if (!sdk.events?.list) throw new Error("events.list not available");
-      const [rawParams] = params;
-      return sdk.events.list(normalizeListParams(rawParams, appId));
-    }
-    case "transactions.list": {
-      if (!sdk.transactions?.list) throw new Error("transactions.list not available");
-      const [rawParams] = params;
-      return sdk.transactions.list(normalizeListParams(rawParams, appId));
-    }
-    default:
-      throw new Error(`unsupported method: ${method}`);
-  }
 }
 
 function formatPermission(key: string): string {

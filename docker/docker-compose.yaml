@@ -54,7 +54,7 @@ services:
       - NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS
       - ARBITRUM_RPC
       - BINANCE_API_KEY
-      - CONTRACT_PRICEFEED_HASH
+      - CONTRACT_PRICE_FEED_ADDRESS
       - GASBANK_URL=${GASBANK_URL:-https://neogasbank:8091}
       # NeoFeeds delegates all on-chain writes to txproxy (single allowlist gate).
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
@@ -94,8 +94,8 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
-      - CONTRACT_PRICEFEED_HASH
-      - CONTRACT_AUTOMATIONANCHOR_HASH
+      - CONTRACT_PRICE_FEED_ADDRESS
+      - CONTRACT_AUTOMATION_ANCHOR_ADDRESS
       - NEOFLOW_SCHEDULER_USER_ID
       - GASBANK_URL=${GASBANK_URL:-https://neogasbank:8091}
       # NeoFlow delegates all on-chain writes to txproxy (single allowlist gate).
@@ -316,7 +316,7 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
-      - CONTRACT_SERVICEGATEWAY_HASH
+      - CONTRACT_SERVICE_GATEWAY_ADDRESS
       - NEOVRF_URL
       - NEOORACLE_URL
       - NEOCOMPUTE_URL
@@ -362,8 +362,8 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
-      - CONTRACT_PAYMENTHUB_HASH
-      - CONTRACT_GOVERNANCE_HASH
+      - CONTRACT_PAYMENT_HUB_ADDRESS
+      - CONTRACT_GOVERNANCE_ADDRESS
       - TXPROXY_ALLOWLIST
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     volumes:

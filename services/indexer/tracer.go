@@ -119,7 +119,7 @@ func (t *Tracer) ExtractContractCalls(txHash string, notifications []Notificatio
 		call := &ContractCall{
 			TxHash:       txHash,
 			CallIndex:    i,
-			ContractHash: n.ContractHash,
+			ContractAddress: n.ContractAddress,
 			Method:       n.EventName,
 			ArgsJSON:     n.StateJSON,
 			Success:      true,

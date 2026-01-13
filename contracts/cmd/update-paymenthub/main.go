@@ -26,9 +26,9 @@ func main() {
 		log.Fatal("NEO_TESTNET_WIF environment variable not set")
 	}
 
-	contractHash := os.Getenv("CONTRACT_PAYMENTHUB_HASH")
-	if contractHash == "" {
-		contractHash = "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
+	contractAddress := os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS")
+	if contractAddress == "" {
+		contractAddress = "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
 	}
 
 	client, err := chain.NewClient(chain.Config{
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	log.Printf("Updater address: %s", signer.Address)
-	log.Printf("Contract to update: %s", contractHash)
+	log.Printf("Contract to update: %s", contractAddress)
 
 	nefData, err := os.ReadFile("contracts/build/PaymentHubV2.nef")
 	if err != nil {
@@ -67,7 +67,7 @@ func main() {
 
 	log.Println("Simulating update...")
 
-	invokeResult, err := client.InvokeFunctionWithSigners(ctx, contractHash, "update", params, signer.ScriptHash())
+	invokeResult, err := client.InvokeFunctionWithSigners(ctx, contractAddress, "update", params, signer.ScriptHash())
 	if err != nil {
 		log.Fatalf("Update simulation failed: %v", err)
 	}
@@ -111,7 +111,7 @@ func main() {
 	}
 
 	log.Println("=== Update Successful ===")
-	log.Printf("Contract Hash: %s", contractHash)
+	log.Printf("Contract Address: %s", contractAddress)
 	log.Printf("Transaction: %s", txHashString)
 	log.Printf("GAS Consumed: %s", invokeResult.GasConsumed)
 

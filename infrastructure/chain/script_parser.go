@@ -14,7 +14,7 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/vm/opcode"
 )
 
-// ExtractContractCallTargets scans a Neo VM script and returns contract hashes
+// ExtractContractCallTargets scans a Neo VM script and returns contract addresses
 // invoked via System.Contract.Call (normalized as lowercase LE hex without 0x).
 func ExtractContractCallTargets(script string) ([]string, error) {
 	script = strings.TrimSpace(script)

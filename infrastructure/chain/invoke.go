@@ -121,8 +121,8 @@ func (c *Client) SendRawTransactionAndWait(ctx context.Context, txHex string, po
 // If wait is true, it waits for the transaction to be included in a block and returns the application log.
 // If wait is false, it returns immediately after broadcasting with only the TxHash populated.
 // Uses DefaultTxWaitTimeout (2 minutes) and DefaultPollInterval (2 seconds).
-func (c *Client) InvokeFunctionAndWait(ctx context.Context, contractHash, method string, params []ContractParam, wait bool) (*TxResult, error) {
-	invokeResult, err := c.InvokeFunction(ctx, contractHash, method, params)
+func (c *Client) InvokeFunctionAndWait(ctx context.Context, contractAddress, method string, params []ContractParam, wait bool) (*TxResult, error) {
+	invokeResult, err := c.InvokeFunction(ctx, contractAddress, method, params)
 	if err != nil {
 		return nil, fmt.Errorf("invoke %s: %w", method, err)
 	}
@@ -167,7 +167,7 @@ func (c *Client) InvokeFunctionAndWait(ctx context.Context, contractHash, method
 // This is the correct way to invoke contract functions that modify state.
 // Parameters:
 //   - ctx: context for RPC calls
-//   - contractHash: target contract script hash (hex string with or without 0x prefix)
+//   - contractAddress: target contract address (hex string with or without 0x prefix)
 //   - method: contract method name
 //   - params: contract parameters
 //   - account: neo-go wallet account for signing
@@ -177,14 +177,14 @@ func (c *Client) InvokeFunctionAndWait(ctx context.Context, contractHash, method
 // Returns TxResult with transaction hash and application log (if wait=true).
 func (c *Client) InvokeFunctionWithSignerAndWait(
 	ctx context.Context,
-	contractHash, method string,
+	contractAddress, method string,
 	params []ContractParam,
 	account TxSigner,
 	signerScopes transaction.WitnessScope,
 	wait bool,
 ) (*TxResult, error) {
 	// 1. Simulate the invocation to get script and gas estimate
-	invokeResult, err := c.InvokeFunctionWithSigners(ctx, contractHash, method, params, account.ScriptHash())
+	invokeResult, err := c.InvokeFunctionWithSigners(ctx, contractAddress, method, params, account.ScriptHash())
 	if err != nil {
 		return nil, fmt.Errorf("simulate %s: %w", method, err)
 	}

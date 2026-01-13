@@ -37,7 +37,7 @@
     "Deployment steps:",
     "  1. Ensure wallets have sufficient GAS for deployment",
     "  2. Deploy contracts (manual signing required for testnet)",
-    "  3. Update contract hashes in this file",
+    "  3. Update contract addresses in this file",
     "  4. Call setUpdater on PriceFeed/RandomnessLog/AutomationAnchor/ServiceLayerGateway from the admin wallet"
   ]
 }

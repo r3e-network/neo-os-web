@@ -1,4 +1,5 @@
-import type { MiniAppCategory, MiniAppInfo } from "../components/types";
+import type { MiniAppCategory, MiniAppInfo, MiniAppChainContracts } from "../components/types";
+import type { ChainId } from "./chains/types";
 
 function asObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -46,13 +47,13 @@ export function normalizePermissions(
   const has = (key: string) => Object.prototype.hasOwnProperty.call(raw, key);
   const payments = has("payments") ? raw.payments : fallback?.payments;
   const governance = has("governance") ? raw.governance : fallback?.governance;
-  const randomness = has("randomness") || has("rng") ? (raw.randomness ?? raw.rng) : fallback?.randomness;
+  const rng = has("rng") ? raw.rng : fallback?.rng;
   const datafeed = has("datafeed") ? raw.datafeed : fallback?.datafeed;
 
   return {
     payments: Boolean(payments),
     governance: Boolean(governance),
-    randomness: Boolean(randomness),
+    rng: Boolean(rng),
     datafeed: Boolean(datafeed),
   };
 }
@@ -82,6 +83,120 @@ export function normalizeStatus(value: unknown, fallback?: MiniAppInfo["status"]
   return fallback;
 }
 
+// ============================================================================
+// Multi-Chain Normalization
+// ============================================================================
+
+/** Valid chain ID pattern */
+const CHAIN_ID_PATTERN = /^[a-z0-9]+-[a-z0-9]+(-[a-z0-9]+)?$/;
+
+function isValidChainId(value: unknown): value is ChainId {
+  if (typeof value !== "string") return false;
+  return CHAIN_ID_PATTERN.test(value);
+}
+
+/**
+ * Normalize supportedChains array from raw data
+ */
+export function normalizeSupportedChains(value: unknown): ChainId[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const chains = value.map((v) => toString(v).trim().toLowerCase()).filter(isValidChainId);
+  return chains.length > 0 ? chains : undefined;
+}
+
+/**
+ * Normalize chainContracts mapping from raw data
+ * Supports both "contracts" (manifest format) and "chainContracts" (host format)
+ */
+export function normalizeChainContracts(value: unknown): MiniAppChainContracts | undefined {
+  const obj = asObject(value);
+  if (Object.keys(obj).length === 0) return undefined;
+
+  const result: MiniAppChainContracts = {};
+  for (const [chainId, config] of Object.entries(obj)) {
+    if (!isValidChainId(chainId)) continue;
+    const configObj = asObject(config);
+    const address = toString(configObj.address ?? "").trim() || null;
+    result[chainId] = {
+      address,
+      active: configObj.active !== false,
+      entryUrl: toString(configObj.entryUrl ?? configObj.entry_url ?? "").trim() || undefined,
+    };
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/**
+ * Get contract address for a specific chain
+ * Apps must use chainContracts for multi-chain support
+ * Returns null if chainId is null or no contract configured for the chain
+ */
+export function getContractForChain(app: MiniAppInfo, chainId: ChainId | null): string | null {
+  if (!chainId) return null;
+  const contract = app.chainContracts?.[chainId];
+  if (contract && contract.active !== false && contract.address) {
+    return contract.address;
+  }
+  return null;
+}
+
+/**
+ * Check if app supports a specific chain
+ * Apps must explicitly declare supported chains via supportedChains or chainContracts
+ */
+export function isChainSupported(app: MiniAppInfo, chainId: ChainId): boolean {
+  if (app.supportedChains?.includes(chainId)) return true;
+  const contract = app.chainContracts?.[chainId];
+  if (contract && contract.active !== false) return true;
+  return false;
+}
+
+/**
+ * Get all supported chains for an app
+ * Returns chains from supportedChains array and chainContracts keys
+ */
+export function getAllSupportedChains(app: MiniAppInfo): ChainId[] {
+  const chains = new Set<ChainId>();
+
+  // Add from supportedChains array
+  if (app.supportedChains) {
+    app.supportedChains.forEach((c) => chains.add(c));
+  }
+
+  // Add from chainContracts keys
+  if (app.chainContracts) {
+    Object.entries(app.chainContracts).forEach(([chainId, contract]) => {
+      if (contract?.active === false) return;
+      chains.add(chainId as ChainId);
+    });
+  }
+
+  return Array.from(chains);
+}
+
+/**
+ * Resolve the effective chain ID for a MiniApp.
+ * Falls back to the first supported chain if the requested chain is not supported.
+ */
+export function resolveChainIdForApp(app: MiniAppInfo, requested?: ChainId | null): ChainId | null {
+  const supported = getAllSupportedChains(app);
+  if (requested && supported.includes(requested)) return requested;
+  return supported[0] ?? null;
+}
+
+/**
+ * Get chain-specific entry URL if provided in chainContracts; fall back to app entry_url.
+ */
+export function getEntryUrlForChain(app: MiniAppInfo, chainId?: ChainId | null): string {
+  if (chainId) {
+    const contract = app.chainContracts?.[chainId];
+    if (contract && contract.active !== false && contract.entryUrl) {
+      return contract.entryUrl;
+    }
+  }
+  return app.entry_url;
+}
+
 export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniAppInfo | null {
   const obj = asObject(raw);
   const appId = toString(obj.app_id ?? obj.appid ?? fallback?.app_id).trim();
@@ -94,9 +209,15 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   const description = toString(obj.description ?? fallback?.description ?? "").trim();
   const icon = toString(obj.icon ?? fallback?.icon ?? "🧩").trim() || "🧩";
   const category = normalizeCategory(obj.category ?? fallback?.category);
-  const contractHash = toString(obj.contract_hash ?? fallback?.contract_hash ?? "").trim();
   const permissions = normalizePermissions(obj.permissions ?? fallback?.permissions, fallback?.permissions);
   const limits = normalizeLimits(obj.limits ?? fallback?.limits, fallback?.limits);
+
+  // Multi-chain support: normalize supportedChains and chainContracts
+  const supportedChains =
+    normalizeSupportedChains(obj.supportedChains ?? obj.supported_chains ?? fallback?.supportedChains) ?? [];
+  // Support both "contracts" (manifest format) and "chainContracts" (host format)
+  const chainContracts = normalizeChainContracts(obj.chainContracts ?? obj.contracts ?? fallback?.chainContracts);
+
   const newsIntegration =
     typeof obj.news_integration === "boolean" ? (obj.news_integration as boolean) : fallback?.news_integration;
   const statsDisplay = normalizeStatsDisplay(obj.stats_display) ?? fallback?.stats_display;
@@ -115,7 +236,9 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     icon,
     category,
     entry_url: entryUrl,
-    contract_hash: contractHash || null,
+    // Multi-chain fields - supportedChains is required
+    supportedChains,
+    chainContracts,
     status: status ?? null,
     permissions,
     limits: limits ?? null,

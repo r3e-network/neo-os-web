@@ -1,5 +1,7 @@
 // Automation Service Types
 
+import type { ChainId } from "../chains/types";
+
 export type AutomationTaskType = "scheduled" | "conditional" | "subscription";
 export type AutomationTaskStatus = "active" | "paused" | "completed" | "failed";
 
@@ -17,10 +19,11 @@ export interface CallApiPayload {
 
 export interface InvokeContractPayload {
   action: "invoke-contract";
-  contractHash: string;
+  contractAddress: string;
   method: string;
   args?: unknown[];
-  network?: "mainnet" | "testnet";
+  /** Chain ID - required for multi-chain contract invocation */
+  chainId: ChainId;
 }
 
 export interface EmitEventPayload {

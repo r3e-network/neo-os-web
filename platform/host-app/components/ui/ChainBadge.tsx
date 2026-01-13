@@ -4,18 +4,20 @@
  * Displays chain logo badges for miniapps.
  */
 
+import React from "react";
 import { cn } from "@/lib/utils";
 import type { ChainId } from "@/lib/chains/types";
 import { chainRegistry } from "@/lib/chains/registry";
 
 interface ChainBadgeProps {
   chainId: ChainId;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   showName?: boolean;
   className?: string;
 }
 
 const sizeClasses = {
+  xs: "w-3 h-3",
   sm: "w-4 h-4",
   md: "w-5 h-5",
   lg: "w-6 h-6",

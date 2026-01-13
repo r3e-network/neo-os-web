@@ -1,5 +1,7 @@
 // Email templates for notification system
 
+import type { ChainId } from "../chains/types";
+
 export interface VerificationEmailData {
   code: string;
   walletAddress: string;
@@ -62,27 +64,27 @@ export function transactionEmail(data: TransactionEmailData) {
 
 // Chain health alert template
 export interface ChainAlertEmailData {
-  network: "testnet" | "mainnet";
+  chainId: ChainId;
   alertType: "no_block" | "congestion";
   details: string;
 }
 
 export function chainAlertEmail(data: ChainAlertEmailData) {
-  const { network, alertType, details } = data;
+  const { chainId, alertType, details } = data;
   const alertTitles = {
     no_block: "⚠️ Block Production Stalled",
     congestion: "⚠️ Network Congestion Detected",
   };
 
   return {
-    subject: `R3E Network - ${alertTitles[alertType]} (${network})`,
-    text: `${alertTitles[alertType]}\nNetwork: ${network}\n${details}`,
+    subject: `R3E Network - ${alertTitles[alertType]} (${chainId})`,
+    text: `${alertTitles[alertType]}\nChain: ${chainId}\n${details}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #00E599;">R3E Network</h2>
         <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px;">
           <h3 style="margin: 0 0 10px 0;">${alertTitles[alertType]}</h3>
-          <p><strong>Network:</strong> ${network}</p>
+          <p><strong>Chain:</strong> ${chainId}</p>
           <p>${details}</p>
         </div>
       </div>

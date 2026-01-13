@@ -394,7 +394,8 @@ Invoke a Neo N3 smart contract method (requires on-chain anchoring).
 ```json
 {
     "type": "contract",
-    "contract_hash": "0x...",
+    "chain_id": "neo-n3-mainnet",
+    "contract_address": "0x...",
     "method": "methodName",
     "params": [
         { "type": "String", "value": "param1" },

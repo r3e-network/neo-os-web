@@ -20,18 +20,18 @@ import (
 // MiniAppContract defines a miniapp and its expected contract
 type MiniAppContract struct {
 	AppID        string
-	ContractHash string
 	EnvVar       string
 	Category     string
 }
 
 // ValidationResult holds validation outcome
 type ValidationResult struct {
-	AppID    string `json:"app_id"`
-	Hash     string `json:"contract_hash"`
-	Valid    bool   `json:"valid"`
-	Deployed bool   `json:"deployed"`
-	Error    string `json:"error,omitempty"`
+	AppID           string `json:"app_id"`
+	ChainID         string `json:"chain_id"`
+	ContractAddress string `json:"contract_address"`
+	Valid           bool   `json:"valid"`
+	Deployed        bool   `json:"deployed"`
+	Error           string `json:"error,omitempty"`
 }
 
 func main() {
@@ -58,13 +58,17 @@ func main() {
 
 	// Define all miniapp contracts to validate
 	contracts := getAllMiniAppContracts()
+	chainID := strings.TrimSpace(os.Getenv("CHAIN_ID"))
+	if chainID == "" {
+		chainID = "neo-n3-testnet"
+	}
 
 	results := make([]ValidationResult, 0, len(contracts))
 	validCount := 0
 	invalidCount := 0
 
 	for _, c := range contracts {
-		result := validateContract(ctx, rpc, c)
+		result := validateContract(ctx, rpc, c, chainID)
 		results = append(results, result)
 
 		status := "INVALID"
@@ -75,7 +79,11 @@ func main() {
 			invalidCount++
 		}
 
-		fmt.Printf("[%s] %s: %s\n", status, c.AppID, c.ContractHash[:20]+"...")
+		display := result.ContractAddress
+		if len(display) > 20 {
+			display = display[:20] + "..."
+		}
+		fmt.Printf("[%s] %s: %s\n", status, c.AppID, display)
 		if result.Error != "" {
 			fmt.Printf("    Error: %s\n", result.Error)
 		}
@@ -102,52 +110,53 @@ func main() {
 func getAllMiniAppContracts() []MiniAppContract {
 	return []MiniAppContract{
 		// Gaming
-		{AppID: "miniapp-lottery", EnvVar: "CONTRACT_MINIAPP_LOTTERY_HASH", Category: "gaming"},
-		{AppID: "miniapp-coin-flip", EnvVar: "CONTRACT_MINIAPP_COINFLIP_HASH", Category: "gaming"},
-		{AppID: "miniapp-dice-game", EnvVar: "CONTRACT_MINIAPP_DICEGAME_HASH", Category: "gaming"},
-		{AppID: "miniapp-scratch-card", EnvVar: "CONTRACT_MINIAPP_SCRATCHCARD_HASH", Category: "gaming"},
-		{AppID: "miniapp-neo-crash", EnvVar: "CONTRACT_MINIAPP_NEOCRASH_HASH", Category: "gaming"},
+		{AppID: "miniapp-lottery", EnvVar: "CONTRACT_MINIAPP_LOTTERY_ADDRESS", Category: "gaming"},
+		{AppID: "miniapp-coin-flip", EnvVar: "CONTRACT_MINIAPP_COINFLIP_ADDRESS", Category: "gaming"},
+		{AppID: "miniapp-dice-game", EnvVar: "CONTRACT_MINIAPP_DICEGAME_ADDRESS", Category: "gaming"},
+		{AppID: "miniapp-scratch-card", EnvVar: "CONTRACT_MINIAPP_SCRATCHCARD_ADDRESS", Category: "gaming"},
+		{AppID: "miniapp-neo-crash", EnvVar: "CONTRACT_MINIAPP_NEOCRASH_ADDRESS", Category: "gaming"},
 		// DeFi
-		{AppID: "miniapp-flashloan", EnvVar: "CONTRACT_MINIAPP_FLASHLOAN_HASH", Category: "defi"},
+		{AppID: "miniapp-flashloan", EnvVar: "CONTRACT_MINIAPP_FLASHLOAN_ADDRESS", Category: "defi"},
 		// Social
-		{AppID: "miniapp-red-envelope", EnvVar: "CONTRACT_MINIAPP_REDENVELOPE_HASH", Category: "social"},
-		{AppID: "miniapp-time-capsule", EnvVar: "CONTRACT_MINIAPP_TIMECAPSULE_HASH", Category: "social"},
-		{AppID: "miniapp-dev-tipping", EnvVar: "CONTRACT_MINIAPP_DEVTIPPING_HASH", Category: "social"},
+		{AppID: "miniapp-red-envelope", EnvVar: "CONTRACT_MINIAPP_REDENVELOPE_ADDRESS", Category: "social"},
+		{AppID: "miniapp-time-capsule", EnvVar: "CONTRACT_MINIAPP_TIMECAPSULE_ADDRESS", Category: "social"},
+		{AppID: "miniapp-dev-tipping", EnvVar: "CONTRACT_MINIAPP_DEVTIPPING_ADDRESS", Category: "social"},
 		// Governance
-		{AppID: "miniapp-govbooster", EnvVar: "CONTRACT_MINIAPP_GOVBOOSTER_HASH", Category: "governance"},
-		{AppID: "miniapp-guardian-policy", EnvVar: "CONTRACT_MINIAPP_GUARDIANPOLICY_HASH", Category: "governance"},
+		{AppID: "miniapp-govbooster", EnvVar: "CONTRACT_MINIAPP_GOVBOOSTER_ADDRESS", Category: "governance"},
+		{AppID: "miniapp-guardian-policy", EnvVar: "CONTRACT_MINIAPP_GUARDIANPOLICY_ADDRESS", Category: "governance"},
 		// Utility
-		{AppID: "miniapp-dailycheckin", EnvVar: "CONTRACT_MINIAPP_DAILYCHECKIN_HASH", Category: "utility"},
-		{AppID: "miniapp-garden-of-neo", EnvVar: "CONTRACT_MINIAPP_GARDENOFNEO_HASH", Category: "utility"},
-		{AppID: "miniapp-gas-circle", EnvVar: "CONTRACT_MINIAPP_GASCIRCLE_HASH", Category: "utility"},
+		{AppID: "miniapp-dailycheckin", EnvVar: "CONTRACT_MINIAPP_DAILYCHECKIN_ADDRESS", Category: "utility"},
+		{AppID: "miniapp-garden-of-neo", EnvVar: "CONTRACT_MINIAPP_GARDENOFNEO_ADDRESS", Category: "utility"},
+		{AppID: "miniapp-gas-circle", EnvVar: "CONTRACT_MINIAPP_GASCIRCLE_ADDRESS", Category: "utility"},
 	}
 }
 
 // validateContract checks if a contract exists on testnet
-func validateContract(ctx context.Context, rpc *rpcclient.Client, c MiniAppContract) ValidationResult {
+func validateContract(ctx context.Context, rpc *rpcclient.Client, c MiniAppContract, chainID string) ValidationResult {
 	result := ValidationResult{
-		AppID: c.AppID,
+		AppID:   c.AppID,
+		ChainID: chainID,
 	}
 
-	// Get contract hash from env
-	hash := strings.TrimSpace(os.Getenv(c.EnvVar))
-	if hash == "" {
+	// Get contract address from env
+	address := strings.TrimSpace(os.Getenv(c.EnvVar))
+	if address == "" {
 		result.Error = "env var not set: " + c.EnvVar
 		return result
 	}
 
-	result.Hash = hash
+	result.ContractAddress = address
 
-	// Parse hash
-	hashClean := strings.TrimPrefix(hash, "0x")
-	contractHash, err := util.Uint160DecodeStringLE(hashClean)
+	// Parse address
+	addressClean := strings.TrimPrefix(address, "0x")
+	contractAddress, err := util.Uint160DecodeStringLE(addressClean)
 	if err != nil {
-		result.Error = "invalid hash format"
+		result.Error = "invalid address format"
 		return result
 	}
 
 	// Check if contract exists
-	state, err := rpc.GetContractStateByHash(contractHash)
+	state, err := rpc.GetContractStateByHash(contractAddress)
 	if err != nil {
 		result.Error = "contract not found on chain"
 		return result
@@ -178,15 +187,20 @@ func updateSupabaseStats(results []ValidationResult) {
 			continue
 		}
 
-		// Update contract_hash in miniapp_stats_summary
-		url := fmt.Sprintf("%s/rest/v1/miniapp_stats_summary?app_id=eq.%s", supabaseURL, r.AppID)
-		body := fmt.Sprintf(`{"contract_hash":"%s","contract_valid":true}`, r.Hash)
+		// Upsert into miniapp_contracts for the validated chain
+		url := fmt.Sprintf("%s/rest/v1/miniapp_contracts?on_conflict=app_id,chain_id", supabaseURL)
+		body := fmt.Sprintf(
+			`[{"app_id":"%s","chain_id":"%s","contract_address":"%s","active":true}]`,
+			r.AppID,
+			r.ChainID,
+			r.ContractAddress,
+		)
 
-		req, _ := http.NewRequest("PATCH", url, strings.NewReader(body))
+		req, _ := http.NewRequest("POST", url, strings.NewReader(body))
 		req.Header.Set("apikey", supabaseKey)
 		req.Header.Set("Authorization", "Bearer "+supabaseKey)
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Prefer", "return=minimal")
+		req.Header.Set("Prefer", "resolution=merge-duplicates,return=minimal")
 
 		resp, err := client.Do(req)
 		if err != nil {

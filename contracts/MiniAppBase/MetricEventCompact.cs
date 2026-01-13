@@ -12,7 +12,7 @@ namespace NeoMiniAppPlatform.Contracts
 
     public partial class MiniAppContract : SmartContract
     {
-        // Compact event signature (no appId). Use only if manifest.contract_hash is set.
+        // Compact event signature (no appId). Use only if manifest.contracts.<chain>.address is set.
         [DisplayName("Platform_Metric")]
         public static event MetricCompactHandler OnMetricCompact;
 

@@ -24,7 +24,7 @@ import (
 const (
 	defaultRPC        = "https://testnet1.neo.coz.io:443"
 	defaultPaymentHub = "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
-	gasContractHashLE = "d2a4cff31913016155e38e474a2c06d08be276cf"
+	gasContractAddressLE = "d2a4cff31913016155e38e474a2c06d08be276cf"
 	defaultAppID      = "miniapp-lottery"
 	defaultAmount     = int64(100000) // 0.001 GAS (GAS has 8 decimals)
 	txWaitTimeout     = 2 * time.Minute
@@ -42,9 +42,9 @@ func main() {
 		rpcURL = defaultRPC
 	}
 
-	paymentHubHash := strings.TrimSpace(os.Getenv("CONTRACT_PAYMENTHUB_HASH"))
-	if paymentHubHash == "" {
-		paymentHubHash = defaultPaymentHub
+	paymentHubAddress := strings.TrimSpace(os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS"))
+	if paymentHubAddress == "" {
+		paymentHubAddress = defaultPaymentHub
 	}
 
 	appID := strings.TrimSpace(os.Getenv("PAY_APP_ID"))
@@ -90,12 +90,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	paymentHub, err := parseHash160(paymentHubHash)
+	paymentHub, err := parseAddress160(paymentHubAddress)
 	if err != nil {
-		fmt.Printf("Invalid PaymentHub hash: %v\n", err)
+		fmt.Printf("Invalid PaymentHub address: %v\n", err)
 		os.Exit(1)
 	}
-	gasHash, _ := util.Uint160DecodeStringLE(gasContractHashLE)
+	gasAddress, _ := util.Uint160DecodeStringLE(gasContractAddressLE)
 
 	fmt.Println("=== PaymentHub GAS Transfer ===")
 	fmt.Printf("RPC: %s\n", rpcURL)
@@ -104,7 +104,7 @@ func main() {
 	fmt.Printf("App ID: %s\n", appID)
 	fmt.Printf("Amount: %d (GAS fractions)\n", amount)
 
-	testResult, err := act.Call(gasHash, "transfer", payerHash, paymentHub, amount, appID)
+	testResult, err := act.Call(gasAddress, "transfer", payerHash, paymentHub, amount, appID)
 	if err != nil {
 		fmt.Printf("Test invoke failed: %v\n", err)
 		os.Exit(1)
@@ -114,7 +114,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	txHash, vub, err := act.SendCall(gasHash, "transfer", payerHash, paymentHub, amount, appID)
+	txHash, vub, err := act.SendCall(gasAddress, "transfer", payerHash, paymentHub, amount, appID)
 	if err != nil {
 		fmt.Printf("Send failed: %v\n", err)
 		os.Exit(1)
@@ -132,7 +132,7 @@ func main() {
 	printAppBalance(act, paymentHub, appID)
 }
 
-func parseHash160(raw string) (util.Uint160, error) {
+func parseAddress160(raw string) (util.Uint160, error) {
 	raw = strings.TrimPrefix(strings.TrimSpace(raw), "0x")
 	return util.Uint160DecodeStringLE(raw)
 }

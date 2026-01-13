@@ -16,6 +16,8 @@
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",
     "@cityofzion/neon-js": "^5.8.0",
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/nextjs": "^10.32.1",
     "@supabase/ssr": "^0.8.0",

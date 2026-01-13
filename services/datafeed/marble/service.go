@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -53,7 +52,7 @@ type Service struct {
 
 	// Chain interaction for push pattern
 	chainClient     *chain.Client
-	priceFeedHash   string
+	priceFeedAddress string
 	priceFeed       *chain.PriceFeedContract
 	txProxy         txproxytypes.Invoker
 	attestationHash []byte
@@ -77,7 +76,7 @@ type Config struct {
 
 	// Chain configuration for push pattern
 	ChainClient     *chain.Client
-	PriceFeedHash   string // Contract hash for platform PriceFeed (preferred)
+	PriceFeedAddress string // Contract address for platform PriceFeed (preferred)
 	TxProxy         txproxytypes.Invoker
 	UpdateInterval  time.Duration // How often to push prices on-chain (default: from config)
 	EnableChainPush bool          // Enable automatic on-chain price updates
@@ -164,7 +163,7 @@ func New(cfg Config) (*Service, error) {
 		config:          feedsConfig,
 		sources:         make(map[string]*SourceConfig),
 		chainClient:     cfg.ChainClient,
-		priceFeedHash:   cfg.PriceFeedHash,
+		priceFeedAddress: cfg.PriceFeedAddress,
 		txProxy:         cfg.TxProxy,
 		publishPolicy:   feedsConfig.PublishPolicy,
 		publishState:    make(map[string]*pricePublishState),
@@ -173,10 +172,10 @@ func New(cfg Config) (*Service, error) {
 		gasbank:         cfg.GasBank,
 	}
 
-	s.attestationHash = computeAttestationHash(cfg.Marble)
+	s.attestationHash = marble.ComputeAttestationHash(cfg.Marble, ServiceID)
 
-	if s.chainClient != nil && s.priceFeedHash != "" {
-		s.priceFeed = chain.NewPriceFeedContract(s.chainClient, s.priceFeedHash)
+	if s.chainClient != nil && s.priceFeedAddress != "" {
+		s.priceFeed = chain.NewPriceFeedContract(s.chainClient, s.priceFeedAddress)
 	}
 
 	// Load signing key
@@ -209,7 +208,7 @@ func New(cfg Config) (*Service, error) {
 
 	sourceConcurrency := cfg.SourceConcurrency
 	if sourceConcurrency <= 0 {
-		if parsed, ok := parseEnvInt("NEOFEEDS_SOURCE_CONCURRENCY"); ok && parsed > 0 {
+		if parsed, ok := runtime.ParseEnvInt("NEOFEEDS_SOURCE_CONCURRENCY"); ok && parsed > 0 {
 			sourceConcurrency = parsed
 		} else {
 			sourceConcurrency = 8
@@ -220,15 +219,15 @@ func New(cfg Config) (*Service, error) {
 	// Register chain push worker if enabled.
 	// The MiniApp platform uses PriceFeed as the on-chain anchor; legacy on-chain
 	// service contracts are intentionally not supported here.
-	if s.enableChainPush && strings.TrimSpace(s.priceFeedHash) == "" {
+	if s.enableChainPush && strings.TrimSpace(s.priceFeedAddress) == "" {
 		if strict {
-			return nil, fmt.Errorf("neofeeds: EnableChainPush requires PriceFeedHash configured")
+			return nil, fmt.Errorf("neofeeds: EnableChainPush requires PriceFeedAddress configured")
 		}
-		s.Logger().WithFields(nil).Warn("EnableChainPush enabled but PriceFeedHash not configured; disabling on-chain anchoring")
+		s.Logger().WithFields(nil).Warn("EnableChainPush enabled but PriceFeedAddress not configured; disabling on-chain anchoring")
 		s.enableChainPush = false
 	}
 
-	if s.enableChainPush && s.priceFeedHash != "" && s.priceFeed == nil {
+	if s.enableChainPush && s.priceFeedAddress != "" && s.priceFeed == nil {
 		if strict {
 			return nil, fmt.Errorf("neofeeds: EnableChainPush requires chain client configured")
 		}
@@ -236,7 +235,7 @@ func New(cfg Config) (*Service, error) {
 		s.enableChainPush = false
 	}
 
-	if s.enableChainPush && s.priceFeedHash != "" && s.txProxy == nil {
+	if s.enableChainPush && s.priceFeedAddress != "" && s.txProxy == nil {
 		if strict {
 			return nil, fmt.Errorf("neofeeds: EnableChainPush requires TxProxy configured")
 		}
@@ -244,8 +243,8 @@ func New(cfg Config) (*Service, error) {
 		s.enableChainPush = false
 	}
 
-	if s.enableChainPush && s.priceFeedHash != "" {
-		if s.priceFeedHash != "" {
+	if s.enableChainPush && s.priceFeedAddress != "" {
+		if s.priceFeedAddress != "" {
 			base.WithHydrate(s.hydratePriceFeedState)
 		}
 
@@ -265,18 +264,6 @@ func New(cfg Config) (*Service, error) {
 	return s, nil
 }
 
-func parseEnvInt(key string) (int, bool) {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return 0, false
-	}
-	value, err := strconv.Atoi(raw)
-	if err != nil {
-		return 0, false
-	}
-	return value, true
-}
-
 // statistics returns runtime statistics for the /info endpoint.
 func (s *Service) statistics() map[string]any {
 	enabledFeeds := s.GetEnabledFeeds()
@@ -293,8 +280,8 @@ func (s *Service) statistics() map[string]any {
 		"service_fee":     ServiceFeePerUpdate,
 	}
 
-	if s.priceFeedHash != "" {
-		stats["pricefeed_hash"] = s.priceFeedHash
+	if s.priceFeedAddress != "" {
+		stats["pricefeed_address"] = s.priceFeedAddress
 		stats["publish_policy"] = s.publishPolicySummary()
 	}
 
