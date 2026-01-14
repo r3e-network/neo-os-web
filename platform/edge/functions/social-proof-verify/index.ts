@@ -1,5 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
 
 interface VerifyRequest {
@@ -15,6 +16,8 @@ export async function handler(req: Request): Promise<Response> {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const rl = await requireRateLimit(req, "social-proof-verify", auth);
+  if (rl) return rl;
 
   let body: VerifyRequest;
   try {

@@ -870,8 +870,7 @@ func manifestContractAddress(raw json.RawMessage, chainID string) string {
 			if contractsMap, ok := contractsRaw.(map[string]interface{}); ok {
 				if entryRaw, ok := contractsMap[chainID]; ok {
 					if entryMap, ok := entryRaw.(map[string]interface{}); ok {
-						addrVal, ok := entryMap["address"]
-						if addrVal != nil {
+						if addrVal, ok := entryMap["address"]; ok && addrVal != nil {
 								return normalizeContractAddress(fmt.Sprintf("%v", addrVal))
 						}
 					}

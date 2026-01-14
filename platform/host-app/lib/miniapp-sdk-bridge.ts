@@ -14,10 +14,14 @@ import type { MiniAppInfo } from "../components/types";
 
 /**
  * Check if a method is allowed based on app permissions
+ *
+ * SECURITY: Default to DENY for unlisted methods (fail-secure).
+ * Safe methods that don't require special permissions must be explicitly whitelisted.
  */
 export function hasPermission(method: string, permissions: MiniAppInfo["permissions"]): boolean {
   if (!permissions) return false;
   switch (method) {
+    // Methods requiring specific permissions
     case "payments.payGAS":
       return Boolean(permissions.payments);
     case "governance.vote":
@@ -26,8 +30,18 @@ export function hasPermission(method: string, permissions: MiniAppInfo["permissi
       return Boolean(permissions.rng);
     case "datafeed.getPrice":
       return Boolean(permissions.datafeed);
-    default:
+    // Safe methods - no special permissions required (explicitly whitelisted)
+    case "getConfig":
+    case "wallet.getAddress":
+    case "getAddress":
+    case "wallet.invokeIntent":
+    case "stats.getMyUsage":
+    case "events.list":
+    case "transactions.list":
       return true;
+    // SECURITY: Deny by default for any unlisted method
+    default:
+      return false;
   }
 }
 

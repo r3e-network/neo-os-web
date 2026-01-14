@@ -1,6 +1,7 @@
 # Logs
 logs
 *.log
+*.bak
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -46,6 +47,7 @@ appserver
 
 # Local test/output artifacts
 apps/dashboard/test-results/
+.playwright-mcp/
 postgres.test
 test.neo-express
 deploy/wallets/*

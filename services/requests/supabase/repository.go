@@ -150,8 +150,9 @@ func (r *Repository) UpdateMiniAppRegistry(ctx context.Context, appID string, up
 	}
 
 	if len(payload) > 0 {
-		if err := database.GenericUpdate(r.base, ctx, miniappsTable, "app_id", appID, payload); err != nil {
-			return err
+		query := fmt.Sprintf("app_id=eq.%s", appID)
+		if _, err := r.base.Request(ctx, "PATCH", miniappsTable, payload, query); err != nil {
+			return fmt.Errorf("update miniapp: %w", err)
 		}
 	}
 
