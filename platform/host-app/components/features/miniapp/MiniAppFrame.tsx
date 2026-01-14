@@ -53,7 +53,7 @@ export function MiniAppFrame({ children, aspectRatio = DEFAULT_ASPECT_RATIO, cla
   const frameStyle =
     frameSize.width && frameSize.height
       ? { width: frameSize.width, height: frameSize.height }
-      : { height: "100%", maxWidth: "100%", maxHeight: "100%", aspectRatio: ratio };
+      : { width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", aspectRatio: ratio };
 
   return (
     <div

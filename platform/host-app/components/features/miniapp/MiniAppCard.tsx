@@ -59,7 +59,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
         }}
         className="block h-full"
       >
-        <Card className="h-full group relative flex flex-col overflow-hidden rounded-[28px] transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_30px_80px_rgba(159,157,243,0.25)] bg-white/10 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/5">
+        <Card className="h-full group relative flex flex-col overflow-hidden rounded-[28px] transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(159,157,243,0.2)] group-hover:border-erobo-purple/40 bg-white/10 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/5">
           {/* Card Header / Image Area */}
           {app.cardData ? (
             <div className="w-full h-52 relative overflow-hidden border-b border-white/60 dark:border-white/10">
@@ -102,22 +102,22 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
           <CardContent className="p-5 flex flex-col flex-1 relative z-10">
             <div className="flex items-start gap-4 mb-3">
               <MiniAppLogo appId={app.app_id} category={app.category} size="md" iconUrl={app.icon} />
-              <div className="flex-1 min-w-0 pt-1">
-                <h3 className="font-bold text-lg text-erobo-ink dark:text-white truncate leading-tight mb-2 group-hover:text-erobo-purple transition-colors">
+              <div className="flex-1 min-w-0 pt-0.5">
+                <h3 className="font-bold text-lg text-erobo-ink dark:text-white truncate leading-tight mb-2 group-hover:text-erobo-purple transition-colors tracking-tight">
                   {appName}
                 </h3>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <Badge
-                    className="text-[10px] font-medium uppercase px-2.5 py-0.5 rounded-full border border-erobo-purple/30 bg-erobo-purple/10 text-erobo-purple-dark dark:text-erobo-purple"
+                    className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full border border-erobo-purple/30 bg-erobo-purple/5 text-erobo-purple-dark dark:text-erobo-purple shadow-[0_0_10px_rgba(159,157,243,0.1)]"
                     variant="secondary"
                   >
                     {categoryLabel}
                   </Badge>
                   {showSourceBadge && (
                     <Badge
-                      className={`text-[10px] font-medium uppercase px-2.5 py-0.5 rounded-full border backdrop-blur-md ${app.source === "verified"
-                          ? "bg-neo/10 text-neo border-neo/20"
-                          : "bg-erobo-peach/40 text-erobo-ink border-erobo-peach/60"
+                      className={`text-[10px] font-medium uppercase px-2 py-0.5 rounded-full border backdrop-blur-md ${app.source === "verified"
+                        ? "bg-neo/10 text-neo border-neo/20"
+                        : "bg-erobo-peach/40 text-erobo-ink border-erobo-peach/60"
                         }`}
                       variant="secondary"
                     >
@@ -126,9 +126,9 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
                   )}
                   {/* Steam-style Rating Display */}
                   {app.stats?.rating && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-400/10 border border-yellow-400/30">
-                      <Star size={10} className="text-yellow-400 fill-yellow-400" />
-                      <span className="text-[10px] font-semibold text-yellow-600 dark:text-yellow-400">
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-yellow-400/10 border border-yellow-400/20">
+                      <Star size={9} className="text-yellow-400 fill-yellow-400" />
+                      <span className="text-[10px] font-bold text-yellow-600 dark:text-yellow-400 leading-none">
                         {app.stats.rating.toFixed(1)}
                       </span>
                     </div>
@@ -137,32 +137,50 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
               </div>
             </div>
 
-            <p className="text-sm text-erobo-ink-soft/80 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4 flex-1 font-light">
+            <p className="text-sm text-erobo-ink-soft/80 dark:text-gray-400 line-clamp-2 leading-relaxed mb-6 flex-1 font-normal">
               {appDesc}
             </p>
 
-            {/* Stats Section */}
-            <div className="grid grid-cols-3 gap-2 py-3 border-t border-white/10 dark:border-white/5 mt-auto bg-white/5 dark:bg-white/5 -mx-5 -mb-5 px-5">
-              <div className="flex flex-col items-center justify-center gap-0.5 text-center" title="Active Users">
-                <Users size={14} className="text-erobo-purple mb-0.5" strokeWidth={2.5} />
-                <span className="text-xs font-bold text-erobo-ink dark:text-gray-200">
-                  {formatNumber(app.stats?.users)}
-                </span>
-                <span className="text-[9px] text-erobo-ink-soft/70 uppercase tracking-wider font-medium">Users</span>
+            {/* Stats Section - Clean & Minimal */}
+            <div className="flex items-center justify-between py-3 border-t border-erobo-purple/10 dark:border-white/5 mt-auto bg-transparent px-1">
+              <div className="flex items-center gap-1.5" title="Active Users">
+                <div className="p-1 rounded-full bg-erobo-purple/10">
+                  <Users size={12} className="text-erobo-purple" strokeWidth={2.5} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
+                    {formatNumber(app.stats?.users)}
+                  </span>
+                  <span className="text-[9px] text-erobo-ink-soft/60 uppercase font-medium leading-none mt-0.5">Users</span>
+                </div>
               </div>
-              <div className="flex flex-col items-center justify-center gap-0.5 text-center" title="Transactions">
-                <Activity size={14} className="text-erobo-pink mb-0.5" strokeWidth={2.5} />
-                <span className="text-xs font-bold text-erobo-ink dark:text-gray-200">
-                  {formatNumber(app.stats?.transactions)}
-                </span>
-                <span className="text-[9px] text-erobo-ink-soft/70 uppercase tracking-wider font-medium">TXs</span>
+
+              <div className="w-px h-6 bg-gradient-to-b from-transparent via-erobo-purple/10 to-transparent mx-2" />
+
+              <div className="flex items-center gap-1.5" title="Transactions">
+                <div className="p-1 rounded-full bg-erobo-pink/10">
+                  <Activity size={12} className="text-erobo-pink" strokeWidth={2.5} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
+                    {formatNumber(app.stats?.transactions)}
+                  </span>
+                  <span className="text-[9px] text-erobo-ink-soft/60 uppercase font-medium leading-none mt-0.5">TXs</span>
+                </div>
               </div>
-              <div className="flex flex-col items-center justify-center gap-0.5 text-center" title="Views">
-                <Eye size={14} className="text-erobo-sky mb-0.5" strokeWidth={2.5} />
-                <span className="text-xs font-bold text-erobo-ink dark:text-gray-200">
-                  {formatNumber(app.stats?.views)}
-                </span>
-                <span className="text-[9px] text-erobo-ink-soft/70 uppercase tracking-wider font-medium">Views</span>
+
+              <div className="w-px h-6 bg-gradient-to-b from-transparent via-erobo-purple/10 to-transparent mx-2" />
+
+              <div className="flex items-center gap-1.5" title="Views">
+                <div className="p-1 rounded-full bg-erobo-sky/10">
+                  <Eye size={12} className="text-erobo-sky" strokeWidth={2.5} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
+                    {formatNumber(app.stats?.views)}
+                  </span>
+                  <span className="text-[9px] text-erobo-ink-soft/60 uppercase font-medium leading-none mt-0.5">Views</span>
+                </div>
               </div>
             </div>
           </CardContent>

@@ -23,10 +23,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return recordTip(req, res);
   }
 
+
   return res.status(405).json({ error: "Method not allowed" });
+
+}
+
+// Simple in-memory cache
+let cachedDevelopers: Developer[] | null = null;
+let lastCacheTime = 0;
+const CACHE_TTL = 60 * 1000; // 1 minute
+
+function getCachedDevelopers(): Developer[] | null {
+  if (cachedDevelopers && Date.now() - lastCacheTime < CACHE_TTL) {
+    return cachedDevelopers;
+  }
+  return null;
 }
 
 async function getDevelopers(res: NextApiResponse) {
+  const cached = getCachedDevelopers();
+  if (cached) {
+    return res.status(200).json({ developers: cached });
+  }
+
   const { data, error } = await supabase
     .from("dev_tipping_developers")
     .select("*")
@@ -46,6 +65,10 @@ async function getDevelopers(res: NextApiResponse) {
     tip_count: dev.tip_count || 0,
     rank: `#${index + 1}`,
   }));
+
+  // Update Cache
+  cachedDevelopers = developers;
+  lastCacheTime = Date.now();
 
   return res.status(200).json({ developers });
 }
@@ -81,6 +104,9 @@ async function recordTip(req: NextApiRequest, res: NextApiResponse) {
   if (updateError) {
     console.warn("[dev-tipping] Failed to update developer stats:", updateError);
   }
+
+  // Invalidate cache
+  cachedDevelopers = null;
 
   return res.status(201).json({ success: true });
 }

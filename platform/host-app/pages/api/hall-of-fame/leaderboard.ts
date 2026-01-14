@@ -8,6 +8,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 
 type HallOfFameCategory = "people" | "community" | "developer";
+type Period = "day" | "week" | "month" | "all";
 
 interface HallOfFameEntry {
   id: string;
@@ -27,6 +28,28 @@ function normalizeCategory(value: string | undefined): HallOfFameCategory | null
     return normalized;
   }
   return null;
+}
+
+function normalizePeriod(value: string | undefined): Period {
+  if (!value) return "all";
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "day" || normalized === "week" || normalized === "month") {
+    return normalized;
+  }
+  return "all";
+}
+
+function getPeriodStart(period: Period): Date | null {
+  if (period === "all") return null;
+  const start = new Date();
+  if (period === "day") {
+    start.setDate(start.getDate() - 1);
+  } else if (period === "week") {
+    start.setDate(start.getDate() - 7);
+  } else if (period === "month") {
+    start.setMonth(start.getMonth() - 1);
+  }
+  return start;
 }
 
 async function loadEntries(): Promise<HallOfFameEntry[]> {
@@ -72,19 +95,65 @@ async function loadEntries(): Promise<HallOfFameEntry[]> {
   }
 }
 
+async function loadPeriodScores(period: Period): Promise<Record<string, number>> {
+  const start = getPeriodStart(period);
+  if (!start) return {};
+  const { data, error } = await supabase
+    .from("hall_of_fame_votes")
+    .select("entrant_id, score_added, created_at")
+    .gte("created_at", start.toISOString());
+
+  if (error) {
+    throw error;
+  }
+
+  const totals: Record<string, number> = {};
+  (data || []).forEach((row: any) => {
+    const id = String(row.entrant_id);
+    const added = Number(row.score_added) || 0;
+    totals[id] = (totals[id] || 0) + added;
+  });
+  return totals;
+}
+
+
+export function invalidateCache() {
+  cachedEntries = null;
+  cacheTimestamp = 0;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const category = normalizeCategory(req.query.category as string | undefined);
+  const period = normalizePeriod(req.query.period as string | undefined);
   const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 100));
 
-  const entries = await loadEntries();
+  let entries = await loadEntries();
+
+  if (period !== "all") {
+    try {
+      const scores = await loadPeriodScores(period);
+      entries = entries
+        .map((entry) => ({
+          ...entry,
+          score: scores[entry.id] ?? 0,
+        }))
+        .filter((entry) => entry.score > 0);
+    } catch (err) {
+      console.error("Failed to compute period scores:", err);
+      return res.status(500).json({ error: "Failed to load leaderboard" });
+    }
+  }
+
   const filtered = category ? entries.filter((entry) => entry.category === category) : entries;
+  const sorted = filtered.slice().sort((a, b) => b.score - a.score);
 
   return res.status(200).json({
-    entrants: filtered.slice(0, limit),
-    total: filtered.length,
+    entrants: sorted.slice(0, limit),
+    total: sorted.length,
   });
 }
