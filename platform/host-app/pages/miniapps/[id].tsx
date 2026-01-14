@@ -5,8 +5,6 @@ import {
   MiniAppInfo,
   MiniAppStats,
   MiniAppNotification,
-  colors,
-  getThemeColors,
   AppDetailHeader,
   AppStatsCard,
   AppNewsList,
@@ -91,11 +89,11 @@ function createStatCardBuilders(
     total_transactions: (stats) =>
       stats.total_transactions != null
         ? {
-            title: t("detail.totalTxs"),
-            value: stats.total_transactions.toLocaleString(),
-            icon: "📊",
-            trend: "neutral",
-          }
+          title: t("detail.totalTxs"),
+          value: stats.total_transactions.toLocaleString(),
+          icon: "📊",
+          trend: "neutral",
+        }
         : null,
     total_users: (stats) =>
       stats.total_users != null
@@ -116,20 +114,20 @@ function createStatCardBuilders(
     daily_active_users: (stats) =>
       stats.daily_active_users != null
         ? {
-            title: t("detail.dailyActiveUsers"),
-            value: stats.daily_active_users.toLocaleString(),
-            icon: "👥",
-            trend: "up",
-          }
+          title: t("detail.dailyActiveUsers"),
+          value: stats.daily_active_users.toLocaleString(),
+          icon: "👥",
+          trend: "up",
+        }
         : null,
     weekly_active_users: (stats) =>
       stats.weekly_active_users != null
         ? {
-            title: t("detail.weeklyActive"),
-            value: stats.weekly_active_users.toLocaleString(),
-            icon: "📈",
-            trend: "up",
-          }
+          title: t("detail.weeklyActive"),
+          value: stats.weekly_active_users.toLocaleString(),
+          icon: "📈",
+          trend: "up",
+        }
         : null,
     view_count: (stats) => ({
       title: t("detail.views"),
@@ -162,7 +160,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   const { t } = useTranslation("host");
   const { locale } = useI18n();
   const { theme } = useTheme();
-  const themeColors = getThemeColors(theme);
+
   const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "forum" | "news" | "secrets">("overview");
 
   // Use cached stats with SSR data as initial value (prevents reload on navigation)
@@ -259,7 +257,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   // Track view count on page load
   useEffect(() => {
     if (!app?.app_id) return;
-    fetch(`/api/miniapps/${app.app_id}/view`, { method: "POST" }).catch(() => {});
+    fetch(`/api/miniapps/${app.app_id}/view`, { method: "POST" }).catch(() => { });
   }, [app?.app_id]);
 
   // Initialize SDK
@@ -435,12 +433,12 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
 
   if (error || !app) {
     return (
-      <div style={{ ...containerStyle, background: themeColors.bg, color: themeColors.text }}>
-        <div style={errorContainerStyle}>
-          <h1 style={{ ...errorTitleStyle, color: themeColors.text }}>{t("detail.appNotFound")}</h1>
-          <p style={{ ...errorMessageStyle, color: themeColors.textMuted }}>{error || t("detail.appNotFoundDesc")}</p>
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="flex flex-col items-center justify-center min-h-screen p-8">
+          <h1 className="text-3xl font-bold text-foreground mb-4">{t("detail.appNotFound")}</h1>
+          <p className="text-base text-muted-foreground mb-6">{error || t("detail.appNotFoundDesc")}</p>
           <button
-            style={{ ...backButtonStyle, color: themeColors.text, borderColor: themeColors.border }}
+            className="px-6 py-3 rounded-lg border border-border bg-transparent text-foreground text-sm cursor-pointer hover:bg-white/5 transition-colors"
             onClick={() => router.push("/miniapps")}
           >
             ← {t("detail.backToMiniApps")}
@@ -474,19 +472,19 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
 
   // Left panel: App details
   const leftPanel = (
-    <div style={{ ...leftPanelStyle, background: themeColors.bg }}>
+    <div className="h-full overflow-auto bg-background">
       <AppDetailHeader app={app} stats={stats || undefined} />
 
-      <main style={mainStyle}>
+      <main className="max-w-[1200px] mx-auto px-6 py-8">
         {/* Hero Section */}
-        <section style={heroStyle}>
-          <p style={{ ...descriptionStyle, color: themeColors.textMuted }}>{appDesc}</p>
+        <section className="mb-8">
+          <p className="text-base text-muted-foreground leading-relaxed m-0">{appDesc}</p>
           <TagCloud appId={app.app_id} onTagClick={(tagId) => router.push(`/miniapps?tag=${tagId}`)} className="mt-4" />
         </section>
 
         {/* Stats Grid */}
         {stats && statCards.length > 0 && (
-          <section style={statsGridStyle}>
+          <section className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4 mb-8">
             {statCards.map((card) => (
               <AppStatsCard
                 key={card.title}
@@ -501,7 +499,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         )}
 
         {/* App Activity Ticker */}
-        <section style={activitySectionStyle}>
+        <section className="mb-6">
           <ActivityTicker
             activities={appActivities}
             title={`${appName} ${t("detail.activity")}`}
@@ -511,45 +509,41 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         </section>
 
         {/* Tabs */}
-        <section style={tabsContainerStyle}>
-          <div style={{ ...tabsHeaderStyle, borderColor: themeColors.border }}>
+        <section className="mb-8">
+          <div className="flex gap-2 border-b border-border mb-6">
             <button
-              style={
-                activeTab === "overview"
-                  ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
-                  : { ...tabButtonStyle, color: themeColors.textMuted }
-              }
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "overview"
+                ? "border-neo text-neo"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
               onClick={() => setActiveTab("overview")}
             >
               {t("detail.overview")}
             </button>
             <button
-              style={
-                activeTab === "reviews"
-                  ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
-                  : { ...tabButtonStyle, color: themeColors.textMuted }
-              }
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "reviews"
+                ? "border-neo text-neo"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
               onClick={() => setActiveTab("reviews")}
             >
               ⭐ {t("detail.reviews")}
             </button>
             <button
-              style={
-                activeTab === "forum"
-                  ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
-                  : { ...tabButtonStyle, color: themeColors.textMuted }
-              }
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "forum"
+                ? "border-neo text-neo"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
               onClick={() => setActiveTab("forum")}
             >
               💬 {t("detail.forum")}
             </button>
             {showNews && (
               <button
-                style={
-                  activeTab === "news"
-                    ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
-                    : { ...tabButtonStyle, color: themeColors.textMuted }
-                }
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "news"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                 onClick={() => setActiveTab("news")}
               >
                 {t("detail.news")} ({notifications.length})
@@ -557,11 +551,10 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             )}
             {showSecrets && (
               <button
-                style={
-                  activeTab === "secrets"
-                    ? { ...tabButtonActiveStyle, color: themeColors.primary, borderBottomColor: themeColors.primary }
-                    : { ...tabButtonStyle, color: themeColors.textMuted }
-                }
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "secrets"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                 onClick={() => setActiveTab("secrets")}
               >
                 🔐 {t("detail.secrets")}
@@ -569,13 +562,13 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             )}
           </div>
 
-          <div style={tabContentStyle}>
+          <div className="min-h-[200px]">
             {activeTab === "overview" && <OverviewTab app={app} t={t} entryUrl={entryUrl} chainId={walletChainId} />}
             {activeTab === "reviews" && <ReviewsTab appId={app.app_id} />}
             {activeTab === "forum" && <ForumTab appId={app.app_id} />}
             {activeTab === "news" && showNews && <AppNewsList notifications={notifications} />}
             {activeTab === "secrets" && showSecrets && <AppSecretsTab appId={app.app_id} appName={appName} />}
-            {!showNews && activeTab === "news" && <p style={newsDisabledStyle}>{t("detail.newsDisabled")}</p>}
+            {!showNews && activeTab === "news" && <p className="mt-4 text-xs text-muted-foreground">{t("detail.newsDisabled")}</p>}
           </div>
         </section>
 
@@ -586,8 +579,9 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   );
 
   // Right panel: MiniApp iframe
+  // Right panel: MiniApp iframe
   const rightPanel = (
-    <div style={rightPanelContainerStyle}>
+    <div className="relative h-full bg-transparent flex flex-col overflow-hidden">
       <LaunchDock
         appName={appName}
         appId={app.app_id}
@@ -598,7 +592,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         onExit={handleBack}
         onShare={handleShare}
       />
-      <div style={iframeWrapperStyle}>
+      <div className="flex-1 w-full min-h-0 overflow-hidden relative">
         <MiniAppTransition>
           <MiniAppFrame>
             {federated ? (
@@ -643,9 +637,8 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
                   src={iframeSrc}
                   ref={iframeRef}
                   onLoad={() => setIsIframeLoading(false)}
-                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
-                    isIframeLoading ? "opacity-0" : "opacity-100"
-                  }`}
+                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${isIframeLoading ? "opacity-0" : "opacity-100"
+                    }`}
                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                   title={`${appName} MiniApp`}
                   allowFullScreen
@@ -655,37 +648,44 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
           </MiniAppFrame>
         </MiniAppTransition>
       </div>
-      {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#00ff88]/90 text-black px-6 py-3 rounded-lg font-semibold text-sm z-[9999] shadow-lg">
+          {toastMessage}
+        </div>
+      )}
 
       {/* TEE Verification Overlay */}
       {teeVerification && (
-        <div style={teeOverlayStyle}>
-          <div style={teeHeaderStyle}>
-            <div style={teePulseStyle} />
-            <span style={teeTitleStyle}>{t("miniapp.tee.verified")}</span>
-            <button onClick={() => setTeeVerification(null)} style={teeCloseStyle}>
+        <div className="absolute bottom-6 right-6 w-[340px] bg-[#0a0f1a]/95 backdrop-blur-xl rounded-2xl border border-[#00ff88]/30 shadow-[0_12px_40px_rgba(0,0,0,0.4)] text-white z-[1000] overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+          <div className="px-4 py-3 bg-[#00ff88]/10 border-b border-[#00ff88]/20 flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#00ff88] shadow-[0_0_10px_#00ff88] animate-pulse" />
+            <span className="text-[11px] font-bold text-[#00ff88] uppercase tracking-wider flex-1">{t("miniapp.tee.verified")}</span>
+            <button
+              onClick={() => setTeeVerification(null)}
+              className="bg-transparent border-none text-white text-xl cursor-pointer opacity-60 hover:opacity-100 leading-none transition-opacity"
+            >
               ×
             </button>
           </div>
-          <div style={teeBodyStyle}>
-            <div style={teeFieldStyle}>
-              <span style={teeLabelStyle}>{t("miniapp.tee.method")}</span>
-              <span style={teeValueStyle}>{teeVerification.method}</span>
+          <div className="p-4 flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] text-white/40 uppercase font-semibold">{t("miniapp.tee.method")}</span>
+              <span className="text-[11px] text-white/90 break-all">{teeVerification.method}</span>
             </div>
-            <div style={teeFieldStyle}>
-              <span style={teeLabelStyle}>{t("miniapp.tee.txHash")}</span>
-              <span style={{ ...teeValueStyle, fontFamily: "monospace", fontSize: "11px" }}>
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] text-white/40 uppercase font-semibold">{t("miniapp.tee.txHash")}</span>
+              <span className="text-[11px] text-white/90 break-all font-mono">
                 {teeVerification.txHash}
               </span>
             </div>
-            <div style={teeFieldStyle}>
-              <span style={teeLabelStyle}>{t("miniapp.tee.attestation")}</span>
-              <span style={{ ...teeValueStyle, color: "#00ff88", fontWeight: "bold" }}>
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] text-white/40 uppercase font-semibold">{t("miniapp.tee.attestation")}</span>
+              <span className="text-[11px] font-bold text-[#00ff88]">
                 {teeVerification.attestation}
               </span>
             </div>
           </div>
-          <div style={teeFooterStyle}>{t("miniapp.tee.footer")}</div>
+          <div className="px-4 py-2 text-[9px] text-white/30 border-t border-white/5 text-center bg-white/5">{t("miniapp.tee.footer")}</div>
         </div>
       )}
 
@@ -734,15 +734,15 @@ function OverviewTab({
   chainId: ChainId | null;
 }) {
   return (
-    <div style={overviewContainerStyle}>
-      <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>{t("detail.permissions")}</h3>
-        <div style={permissionsGridStyle}>
+    <div className="flex flex-col gap-6">
+      <div className="bg-card rounded-xl p-6 border border-border">
+        <h3 className="text-lg font-semibold text-foreground mt-0 mb-4">{t("detail.permissions")}</h3>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
           {Object.entries(app.permissions).map(([key, value]) =>
             value ? (
-              <div key={key} style={permissionItemStyle}>
-                <span style={permissionIconStyle}>✓</span>
-                <span style={permissionTextStyle}>{formatPermission(key)}</span>
+              <div key={key} className="flex items-center gap-2">
+                <span className="text-neo font-bold text-base">✓</span>
+                <span className="text-sm text-foreground">{formatPermission(key)}</span>
               </div>
             ) : null,
           )}
@@ -750,21 +750,21 @@ function OverviewTab({
       </div>
 
       {app.limits && (
-        <div style={sectionStyle}>
-          <h3 style={sectionTitleStyle}>{t("detail.limits")}</h3>
-          <ul style={limitListStyle}>
+        <div className="bg-card rounded-xl p-6 border border-border">
+          <h3 className="text-lg font-semibold text-foreground mt-0 mb-4">{t("detail.limits")}</h3>
+          <ul className="list-none p-0 m-0">
             {app.limits.max_gas_per_tx && (
-              <li style={limitItemStyle}>
+              <li className="text-sm text-muted-foreground py-2 border-b border-border">
                 {t("detail.maxGasPerTx")}: {app.limits.max_gas_per_tx}
               </li>
             )}
             {app.limits.daily_gas_cap_per_user && (
-              <li style={limitItemStyle}>
+              <li className="text-sm text-muted-foreground py-2 border-b border-border">
                 {t("detail.dailyGasCap")}: {app.limits.daily_gas_cap_per_user}
               </li>
             )}
             {app.limits.governance_cap && (
-              <li style={limitItemStyle}>
+              <li className="text-sm text-muted-foreground py-2 border-b border-border">
                 {t("detail.governanceCap")}: {app.limits.governance_cap}
               </li>
             )}
@@ -772,14 +772,14 @@ function OverviewTab({
         </div>
       )}
 
-      <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>{t("detail.appInfo")}</h3>
-        <p style={infoTextStyle}>
-          {t("detail.appId")}: <code style={codeStyle}>{app.app_id}</code>
+      <div className="bg-card rounded-xl p-6 border border-border">
+        <h3 className="text-lg font-semibold text-foreground mt-0 mb-4">{t("detail.appInfo")}</h3>
+        <p className="text-sm text-muted-foreground my-2">
+          {t("detail.appId")}: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo">{app.app_id}</code>
         </p>
-        <p style={infoTextStyle}>
+        <p className="text-sm text-muted-foreground my-2">
           {t("detail.entryUrl")}
-          {chainId ? ` (${chainId})` : ""}: <code style={codeStyle}>{entryUrl}</code>
+          {chainId ? ` (${chainId})` : ""}: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo">{entryUrl}</code>
         </p>
       </div>
     </div>
@@ -893,309 +893,3 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
   }
 };
 
-// Styles
-const containerStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: colors.bg,
-  color: colors.text,
-};
-
-const leftPanelStyle: React.CSSProperties = {
-  height: "100%",
-  overflow: "auto",
-  background: colors.bg,
-};
-
-const rightPanelContainerStyle: React.CSSProperties = {
-  position: "relative",
-  height: "100%",
-  background: "transparent",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-};
-
-// Wrapper for iframe - fills remaining space after LaunchDock
-const iframeWrapperStyle: React.CSSProperties = {
-  flex: 1,
-  width: "100%",
-  minHeight: 0,
-  overflow: "hidden",
-};
-
-const errorContainerStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: "100vh",
-  padding: 32,
-};
-
-const errorTitleStyle: React.CSSProperties = {
-  fontSize: 32,
-  fontWeight: 700,
-  color: colors.text,
-  marginBottom: 16,
-};
-
-const errorMessageStyle: React.CSSProperties = {
-  fontSize: 16,
-  color: colors.textMuted,
-  marginBottom: 24,
-};
-
-const backButtonStyle: React.CSSProperties = {
-  padding: "12px 24px",
-  borderRadius: 8,
-  border: `1px solid ${colors.border}`,
-  background: "transparent",
-  color: colors.text,
-  fontSize: 14,
-  cursor: "pointer",
-};
-
-const mainStyle: React.CSSProperties = {
-  maxWidth: 1200,
-  margin: "0 auto",
-  padding: "32px 24px",
-};
-
-const heroStyle: React.CSSProperties = {
-  marginBottom: 32,
-};
-
-const descriptionStyle: React.CSSProperties = {
-  fontSize: 16,
-  color: colors.textMuted,
-  lineHeight: 1.6,
-  margin: 0,
-};
-
-const statsGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: 16,
-  marginBottom: 32,
-};
-
-const activitySectionStyle: React.CSSProperties = {
-  marginBottom: 24,
-};
-
-const tabsContainerStyle: React.CSSProperties = {
-  marginBottom: 32,
-};
-
-const tabsHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 8,
-  borderBottom: `1px solid ${colors.border}`,
-  marginBottom: 24,
-};
-
-const tabButtonStyle: React.CSSProperties = {
-  padding: "12px 24px",
-  background: "transparent",
-  border: "none",
-  borderBottom: "2px solid transparent",
-  color: colors.textMuted,
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: "pointer",
-  transition: "all 0.2s",
-};
-
-const tabButtonActiveStyle: React.CSSProperties = {
-  padding: "12px 24px",
-  background: "transparent",
-  border: "none",
-  borderBottom: `2px solid ${colors.primary}`,
-  color: colors.primary,
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: "pointer",
-  transition: "all 0.2s",
-};
-
-const tabContentStyle: React.CSSProperties = {
-  minHeight: 200,
-};
-
-const newsDisabledStyle: React.CSSProperties = {
-  marginTop: 16,
-  fontSize: 13,
-  color: colors.textMuted,
-};
-
-const toastStyle: React.CSSProperties = {
-  position: "fixed",
-  bottom: 24,
-  left: "50%",
-  transform: "translateX(-50%)",
-  background: "rgba(0, 255, 136, 0.9)",
-  color: "#000",
-  padding: "12px 24px",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  zIndex: 9999,
-};
-
-const overviewContainerStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 24,
-};
-
-const sectionStyle: React.CSSProperties = {
-  background: colors.bgCard,
-  borderRadius: 12,
-  padding: 24,
-  border: `1px solid ${colors.border}`,
-};
-
-const sectionTitleStyle: React.CSSProperties = {
-  fontSize: 18,
-  fontWeight: 600,
-  color: colors.text,
-  marginTop: 0,
-  marginBottom: 16,
-};
-
-const permissionsGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-  gap: 12,
-};
-
-const permissionItemStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-};
-
-const permissionIconStyle: React.CSSProperties = {
-  color: colors.primary,
-  fontSize: 16,
-  fontWeight: 700,
-};
-
-const permissionTextStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: colors.text,
-};
-
-const limitListStyle: React.CSSProperties = {
-  listStyle: "none",
-  padding: 0,
-  margin: 0,
-};
-
-const limitItemStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: colors.textMuted,
-  padding: "8px 0",
-  borderBottom: `1px solid ${colors.border}`,
-};
-
-const infoTextStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: colors.textMuted,
-  margin: "8px 0",
-};
-
-const codeStyle: React.CSSProperties = {
-  background: "rgba(0,212,170,0.1)",
-  padding: "2px 6px",
-  borderRadius: 4,
-  fontSize: 13,
-  fontFamily: "monospace",
-  color: colors.primary,
-};
-
-const teeOverlayStyle: React.CSSProperties = {
-  position: "absolute",
-  bottom: 24,
-  right: 24,
-  width: 340,
-  background: "rgba(10, 15, 26, 0.95)",
-  backdropFilter: "blur(12px)",
-  borderRadius: 16,
-  border: "1px solid rgba(0, 255, 136, 0.3)",
-  boxShadow: "0 12px 40px rgba(0, 0, 0, 0.4)",
-  color: "#fff",
-  zIndex: 1000,
-  overflow: "hidden",
-};
-
-const teeHeaderStyle: React.CSSProperties = {
-  padding: "12px 16px",
-  background: "rgba(0, 255, 136, 0.1)",
-  borderBottom: "1px solid rgba(0, 255, 136, 0.2)",
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-};
-
-const teePulseStyle: React.CSSProperties = {
-  width: 10,
-  height: 10,
-  borderRadius: "50%",
-  background: "#00ff88",
-  boxShadow: "0 0 10px #00ff88",
-};
-
-const teeTitleStyle: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 700,
-  color: "#00ff88",
-  textTransform: "uppercase",
-  letterSpacing: "0.5px",
-  flex: 1,
-};
-
-const teeCloseStyle: React.CSSProperties = {
-  background: "transparent",
-  border: "none",
-  color: "#fff",
-  fontSize: 20,
-  cursor: "pointer",
-  opacity: 0.6,
-  lineHeight: 1,
-};
-
-const teeBodyStyle: React.CSSProperties = {
-  padding: 16,
-  display: "flex",
-  flexDirection: "column",
-  gap: 12,
-};
-
-const teeFieldStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 4,
-};
-
-const teeLabelStyle: React.CSSProperties = {
-  fontSize: 9,
-  color: "rgba(255, 255, 255, 0.4)",
-  textTransform: "uppercase",
-  fontWeight: 600,
-};
-
-const teeValueStyle: React.CSSProperties = {
-  fontSize: 11,
-  color: "rgba(255, 255, 255, 0.9)",
-  wordBreak: "break-all",
-};
-
-const teeFooterStyle: React.CSSProperties = {
-  padding: "10px 16px",
-  fontSize: 9,
-  color: "rgba(255, 255, 255, 0.3)",
-  borderTop: "1px solid rgba(255, 255, 255, 0.05)",
-  textAlign: "center",
-  background: "rgba(255, 255, 255, 0.02)",
-};

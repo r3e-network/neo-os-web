@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface MiniAppTransitionProps {
@@ -42,14 +42,26 @@ interface RippleOverlayProps {
   onComplete: () => void;
 }
 
+const RIPPLE_RING_COUNT = 5;
+const RIPPLE_BASE_DELAY_S = 0.3;
+const RIPPLE_DELAY_STEP_S = 0.2;
+const RIPPLE_DURATION_S = 1.5;
+const RIPPLE_TOTAL_MS = Math.round(
+  (RIPPLE_BASE_DELAY_S + RIPPLE_DELAY_STEP_S * (RIPPLE_RING_COUNT - 1) + RIPPLE_DURATION_S) * 1000,
+);
+
 function RippleOverlay({ onComplete }: RippleOverlayProps) {
+  useEffect(() => {
+    const timer = window.setTimeout(onComplete, RIPPLE_TOTAL_MS);
+    return () => window.clearTimeout(timer);
+  }, [onComplete]);
+
   return (
     <motion.div
       className="absolute inset-0 z-50 flex items-center justify-center bg-background"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
-      onAnimationComplete={onComplete}
     >
       {/* Stone drop effect */}
       <motion.div
@@ -60,7 +72,7 @@ function RippleOverlay({ onComplete }: RippleOverlayProps) {
       />
 
       {/* Concentric ripple rings */}
-      {[0, 1, 2, 3, 4].map((i) => (
+      {Array.from({ length: RIPPLE_RING_COUNT }, (_, i) => (
         <motion.div
           key={i}
           className="absolute rounded-full border-2 border-erobo-purple/40"
@@ -71,8 +83,8 @@ function RippleOverlay({ onComplete }: RippleOverlayProps) {
             opacity: [0.8, 0],
           }}
           transition={{
-            duration: 1.5,
-            delay: 0.3 + i * 0.2,
+            duration: RIPPLE_DURATION_S,
+            delay: RIPPLE_BASE_DELAY_S + i * RIPPLE_DELAY_STEP_S,
             ease: "easeOut",
           }}
         />

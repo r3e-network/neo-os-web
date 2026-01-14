@@ -86,11 +86,11 @@
       ],
       "chainContracts": {
         "neo-n3-mainnet": {
-          "address": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+          "address": "0xc56f33fc6ec47edbd594472833cf57505d5f99aa",
           "active": true
         },
         "neo-n3-testnet": {
-          "address": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+          "address": "0xc56f33fc6ec47edbd594472833cf57505d5f99aa",
           "active": true
         }
       },
