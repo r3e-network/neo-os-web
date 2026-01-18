@@ -2,7 +2,6 @@
 
 import React from "react";
 import { useI18n } from "./react";
-import { locales, localeNames, Locale } from "./index";
 
 interface LanguageSwitcherProps {
   className?: string;
@@ -10,14 +9,14 @@ interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ className = "", showLabel = true }: LanguageSwitcherProps) {
-  const { locale, setLocale, t } = useI18n();
+  const { locale, locales, localeNames, setLocale, t } = useI18n();
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {showLabel && <span className="text-sm text-gray-500">{t("language.language")}</span>}
       <select
         value={locale}
-        onChange={(e) => setLocale(e.target.value as Locale)}
+        onChange={(e) => setLocale(e.target.value as typeof locale)}
         className="px-2 py-1 text-sm border rounded bg-white dark:bg-gray-800"
       >
         {locales.map((loc) => (
@@ -31,7 +30,7 @@ export function LanguageSwitcher({ className = "", showLabel = true }: LanguageS
 }
 
 export function LanguageToggle({ className = "" }: { className?: string }) {
-  const { locale, setLocale } = useI18n();
+  const { locale, locales, localeNames, setLocale } = useI18n();
 
   const toggle = () => {
     const currentIndex = locales.indexOf(locale);

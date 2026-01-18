@@ -28,6 +28,22 @@ Blockchain fortune telling with verifiable randomness and transparent interpreta
 - **存储**: 问题、抽到的牌、时间戳
 - **RNG服务**: TEE提供可验证的随机数
 
+### 合约方法
+
+#### RequestReading
+
+```csharp
+public static BigInteger RequestReading(UInt160 user, string question, BigInteger spreadType, BigInteger category, BigInteger receiptId)
+```
+
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `user` | Hash160 | 用户钱包地址 |
+| `question` | String | 占卜问题 (最多200字符) |
+| `spreadType` | Integer | 牌阵类型 (0=单牌) |
+| `category` | Integer | 问题类别 (0=通用) |
+| `receiptId` | Integer | PaymentHub 支付收据 ID |
+
 ## English
 
 ### Features
@@ -51,6 +67,22 @@ Blockchain fortune telling with verifiable randomness and transparent interpreta
 - **Spread**: 3 cards per reading
 - **Storage**: Question, drawn cards, timestamp
 - **RNG Service**: TEE provides verifiable randomness
+
+### Contract Methods
+
+#### RequestReading
+
+```csharp
+public static BigInteger RequestReading(UInt160 user, string question, BigInteger spreadType, BigInteger category, BigInteger receiptId)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `user` | Hash160 | User wallet address |
+| `question` | String | Reading question (max 200 chars) |
+| `spreadType` | Integer | Spread type (0=single card) |
+| `category` | Integer | Question category (0=general) |
+| `receiptId` | Integer | PaymentHub payment receipt ID |
 
 ## Technical
 

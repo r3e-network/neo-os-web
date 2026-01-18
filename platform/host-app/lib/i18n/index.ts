@@ -1,6 +1,5 @@
 /**
- * Shared i18n library for Neo MiniApp Platform
- * Supports both React (Next.js) and vanilla JS applications
+ * i18n helpers for the host app.
  */
 
 export type Locale = "en" | "zh";

@@ -190,7 +190,7 @@ NeoVRF Service
 NeoRequests
   └─ TxProxy.FulfillRequest(requestId, result)
       └─ ServiceLayerGateway.fulfillRequest
-          └─ MiniApp.OnServiceCallback(requestId, result)
+          └─ MiniApp.OnServiceCallback(requestId, appId, serviceType, success, result, error)
           └─ RandomnessLog.recordRandomness (optional)
 ```
 
@@ -224,7 +224,7 @@ NeoOracle Service
 
 NeoRequests
   └─ TxProxy.FulfillRequest(requestId, result)
-      └─ MiniApp.OnServiceCallback(requestId, result)
+      └─ MiniApp.OnServiceCallback(requestId, appId, serviceType, success, result, error)
 ```
 
 ### NeoOracle Lifecycle
@@ -257,7 +257,7 @@ NeoCompute Service
 
 NeoRequests
   └─ TxProxy.FulfillRequest(requestId, result)
-      └─ MiniApp.OnServiceCallback(requestId, result)
+      └─ MiniApp.OnServiceCallback(requestId, appId, serviceType, success, result, error)
 ```
 
 ### NeoCompute Lifecycle

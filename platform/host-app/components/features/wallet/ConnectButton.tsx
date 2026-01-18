@@ -22,7 +22,6 @@ export function ConnectButton() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    console.log("[ConnectButton] Manually refreshing balance...");
     await refreshBalance();
     setRefreshing(false);
   };

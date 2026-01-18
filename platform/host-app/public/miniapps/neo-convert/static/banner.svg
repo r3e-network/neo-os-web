@@ -1,0 +1,26 @@
+<svg width="1200" height="400" viewBox="0 0 1200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111"/>
+      <stop offset="100%" stop-color="#222"/>
+    </linearGradient>
+    <linearGradient id="primary" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00E599"/>
+      <stop offset="100%" stop-color="#29A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#bg)"/>
+  
+  <g opacity="0.3">
+    <!-- Stream Lines -->
+    <path d="M0 100 Q 300 50 600 200 T 1200 300" stroke="url(#primary)" stroke-width="20" fill="none"/>
+    <path d="M0 200 Q 300 150 600 300 T 1200 400" stroke="url(#primary)" stroke-width="10" fill="none"/>
+    <path d="M0 300 Q 300 250 600 400 T 1200 500" stroke="url(#primary)" stroke-width="5" fill="none"/>
+  </g>
+  
+  <g transform="translate(600,200)">
+     <!-- Transformation Icon Abstract -->
+     <rect x="-40" y="-40" width="80" height="80" rx="10" stroke="#00E599" stroke-width="4" fill="none" transform="rotate(45)"/>
+     <rect x="-30" y="-30" width="60" height="60" rx="8" fill="#00E599" transform="rotate(22.5)"/>
+  </g>
+</svg>

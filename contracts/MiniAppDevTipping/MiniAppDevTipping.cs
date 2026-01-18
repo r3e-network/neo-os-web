@@ -10,247 +10,201 @@ using Neo.SmartContract.Framework.Services;
 namespace NeoMiniAppPlatform.Contracts
 {
     public delegate void DeveloperRegisteredHandler(BigInteger devId, UInt160 wallet, string name, string role);
+    public delegate void DeveloperUpdatedHandler(BigInteger devId, string field, string newValue);
+    public delegate void DeveloperDeactivatedHandler(BigInteger devId, UInt160 wallet);
     public delegate void TipSentHandler(UInt160 tipper, BigInteger devId, BigInteger amount, string message, string tipperName);
     public delegate void TipWithdrawnHandler(BigInteger devId, UInt160 wallet, BigInteger amount);
+    public delegate void MilestoneReachedHandler(BigInteger devId, BigInteger milestone, BigInteger totalTips);
+    public delegate void TipperBadgeEarnedHandler(UInt160 tipper, BigInteger badgeType, string badgeName);
+    public delegate void DevBadgeEarnedHandler(BigInteger devId, BigInteger badgeType, string badgeName);
 
-    /// <summary>
-    /// EcoBoost - CoreDev Tipping Station.
-    ///
-    /// GAME MECHANICS:
-    /// - Admin registers core developers with wallet addresses
-    /// - Users can tip any registered developer with GAS
-    /// - Developers can withdraw accumulated tips
-    /// - Simple point-to-point donation experience
-    /// </summary>
     [DisplayName("MiniAppDevTipping")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. DevTipping is a developer support platform for ecosystem contributions. Use it to tip core developers, you can directly reward builders who power the Neo ecosystem.")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. DevTipping is a complete developer support platform.")]
     [ContractPermission("*", "*")]
-    public partial class MiniAppContract : SmartContract
+    public partial class MiniAppDevTipping : MiniAppBase
     {
         #region App Constants
         private const string APP_ID = "miniapp-dev-tipping";
-        private const long MIN_TIP = 100000; // 0.001 GAS minimum tip
+        private const long MIN_TIP = 100000;
+        private const long BRONZE_TIP = 10000000;
+        private const long SILVER_TIP = 100000000;
+        private const long GOLD_TIP = 1000000000;
+        private const long MILESTONE_1 = 1000000000;
+        private const long MILESTONE_2 = 10000000000;
+        private const long MILESTONE_3 = 100000000000;
+        private const int MAX_BIO_LENGTH = 500;
+        private const int MAX_LINK_LENGTH = 200;
+        private const int MAX_MESSAGE_LENGTH = 500;
         #endregion
 
         #region App Prefixes
-        private static readonly byte[] PREFIX_DEV_ID = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_DEV_WALLET = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_DEV_NAME = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_DEV_ROLE = new byte[] { 0x13 };
-        private static readonly byte[] PREFIX_DEV_BALANCE = new byte[] { 0x14 };
-        private static readonly byte[] PREFIX_DEV_TOTAL_TIPS = new byte[] { 0x15 };
-        private static readonly byte[] PREFIX_DEV_TIP_COUNT = new byte[] { 0x16 };
-        private static readonly byte[] PREFIX_TOTAL_DONATED = new byte[] { 0x17 };
-        // Tipper ranking by name
-        private static readonly byte[] PREFIX_TIPPER_TOTAL = new byte[] { 0x18 };
-        private static readonly byte[] PREFIX_TIPPER_COUNT = new byte[] { 0x19 };
-        private static readonly byte[] PREFIX_TIP_ID = new byte[] { 0x1A };
-        private static readonly byte[] PREFIX_TIP_DATA = new byte[] { 0x1B };
+        private static readonly byte[] PREFIX_DEV_ID = new byte[] { 0x20 };
+        private static readonly byte[] PREFIX_DEVELOPERS = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_TOTAL_DONATED = new byte[] { 0x22 };
+        private static readonly byte[] PREFIX_TIP_ID = new byte[] { 0x23 };
+        private static readonly byte[] PREFIX_TIPS = new byte[] { 0x24 };
+        private static readonly byte[] PREFIX_TIPPER_STATS = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_TIPPER_BADGES = new byte[] { 0x26 };
+        private static readonly byte[] PREFIX_DEV_BADGES = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_DEV_TIPS = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_DEV_TIP_COUNT = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_ACTIVE_DEVS = new byte[] { 0x2A };
+        #endregion
+
+        #region Data Structures
+        public struct DeveloperData
+        {
+            public UInt160 Wallet;
+            public string Name;
+            public string Role;
+            public string Bio;
+            public string Link;
+            public BigInteger Balance;
+            public BigInteger TotalReceived;
+            public BigInteger TipCount;
+            public BigInteger TipperCount;
+            public BigInteger WithdrawCount;
+            public BigInteger TotalWithdrawn;
+            public BigInteger RegisterTime;
+            public BigInteger LastTipTime;
+            public BigInteger BadgeCount;
+            public bool Active;
+        }
+
+        public struct TipData
+        {
+            public UInt160 Tipper;
+            public BigInteger DevId;
+            public BigInteger Amount;
+            public string Message;
+            public string TipperName;
+            public BigInteger Timestamp;
+            public BigInteger TipTier;
+            public bool Anonymous;
+        }
+
+        public struct TipperStats
+        {
+            public BigInteger TotalTipped;
+            public BigInteger TipCount;
+            public BigInteger DevsSupported;
+            public BigInteger BadgeCount;
+            public BigInteger JoinTime;
+            public BigInteger LastTipTime;
+            public BigInteger HighestTip;
+            public BigInteger FavoriteDevId;
+        }
         #endregion
 
         #region Events
         [DisplayName("DeveloperRegistered")]
         public static event DeveloperRegisteredHandler OnDeveloperRegistered;
 
+        [DisplayName("DeveloperUpdated")]
+        public static event DeveloperUpdatedHandler OnDeveloperUpdated;
+
+        [DisplayName("DeveloperDeactivated")]
+        public static event DeveloperDeactivatedHandler OnDeveloperDeactivated;
+
         [DisplayName("TipSent")]
         public static event TipSentHandler OnTipSent;
 
         [DisplayName("TipWithdrawn")]
         public static event TipWithdrawnHandler OnTipWithdrawn;
-        #endregion
 
-        #region Getters
-        [Safe]
-        public static BigInteger TotalDevelopers() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_DEV_ID);
+        [DisplayName("MilestoneReached")]
+        public static event MilestoneReachedHandler OnMilestoneReached;
 
-        [Safe]
-        public static BigInteger TotalDonated() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_DONATED);
+        [DisplayName("TipperBadgeEarned")]
+        public static event TipperBadgeEarnedHandler OnTipperBadgeEarned;
 
-        [Safe]
-        public static BigInteger TotalTips() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TIP_ID);
-
-        [Safe]
-        public static BigInteger GetTipperTotal(string tipperName)
-        {
-            byte[] key = Helper.Concat(PREFIX_TIPPER_TOTAL, tipperName);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger GetTipperCount(string tipperName)
-        {
-            byte[] key = Helper.Concat(PREFIX_TIPPER_COUNT, tipperName);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static UInt160 GetDevWallet(BigInteger devId)
-        {
-            byte[] key = Helper.Concat(PREFIX_DEV_WALLET, (ByteString)devId.ToByteArray());
-            return (UInt160)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static string GetDevName(BigInteger devId)
-        {
-            byte[] key = Helper.Concat(PREFIX_DEV_NAME, (ByteString)devId.ToByteArray());
-            return Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static string GetDevRole(BigInteger devId)
-        {
-            byte[] key = Helper.Concat(PREFIX_DEV_ROLE, (ByteString)devId.ToByteArray());
-            return Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger GetDevBalance(BigInteger devId)
-        {
-            byte[] key = Helper.Concat(PREFIX_DEV_BALANCE, (ByteString)devId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger GetDevTotalTips(BigInteger devId)
-        {
-            byte[] key = Helper.Concat(PREFIX_DEV_TOTAL_TIPS, (ByteString)devId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger GetDevTipCount(BigInteger devId)
-        {
-            byte[] key = Helper.Concat(PREFIX_DEV_TIP_COUNT, (ByteString)devId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
+        [DisplayName("DevBadgeEarned")]
+        public static event DevBadgeEarnedHandler OnDevBadgeEarned;
         #endregion
 
         #region Lifecycle
         public static void _deploy(object data, bool update)
         {
             if (update) return;
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
             Storage.Put(Storage.CurrentContext, PREFIX_DEV_ID, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TIP_ID, 0);
             Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_DONATED, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_ACTIVE_DEVS, 0);
         }
         #endregion
 
-        #region Admin Methods
-
-        /// <summary>
-        /// Register a new developer (admin only).
-        /// </summary>
-        public static void RegisterDeveloper(UInt160 wallet, string name, string role)
+        #region Read Methods
+        [Safe]
+        public static BigInteger TotalDevelopers()
         {
-            ValidateAdmin();
-            ExecutionEngine.Assert(wallet.IsValid, "invalid wallet");
-            ExecutionEngine.Assert(name.Length > 0 && name.Length <= 64, "invalid name");
-            ExecutionEngine.Assert(role.Length > 0 && role.Length <= 64, "invalid role");
-
-            BigInteger devId = TotalDevelopers() + 1;
-            Storage.Put(Storage.CurrentContext, PREFIX_DEV_ID, devId);
-
-            byte[] walletKey = Helper.Concat(PREFIX_DEV_WALLET, (ByteString)devId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, walletKey, wallet);
-
-            byte[] nameKey = Helper.Concat(PREFIX_DEV_NAME, (ByteString)devId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, nameKey, name);
-
-            byte[] roleKey = Helper.Concat(PREFIX_DEV_ROLE, (ByteString)devId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, roleKey, role);
-
-            OnDeveloperRegistered(devId, wallet, name, role);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_DEV_ID);
         }
 
-        #endregion
-
-        #region User Methods
-
-        /// <summary>
-        /// Send a tip to a developer.
-        /// </summary>
-        public static void Tip(UInt160 tipper, BigInteger devId, BigInteger amount, string message, string tipperName, BigInteger receiptId)
+        [Safe]
+        public static BigInteger ActiveDevelopers()
         {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(devId > 0 && devId <= TotalDevelopers(), "invalid dev");
-            ExecutionEngine.Assert(amount >= MIN_TIP, "tip too small");
-            ExecutionEngine.Assert(message.Length <= 256, "message too long");
-            ExecutionEngine.Assert(tipperName.Length <= 64, "name too long");
-
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(tipper), "unauthorized");
-
-            ValidatePaymentReceipt(APP_ID, tipper, amount, receiptId);
-
-            // Use tipper address if name not provided
-            string displayName = tipperName.Length > 0 ? tipperName : tipper.ToAddress(53);
-
-            // Update developer balance
-            byte[] balanceKey = Helper.Concat(PREFIX_DEV_BALANCE, (ByteString)devId.ToByteArray());
-            BigInteger currentBalance = (BigInteger)Storage.Get(Storage.CurrentContext, balanceKey);
-            Storage.Put(Storage.CurrentContext, balanceKey, currentBalance + amount);
-
-            // Update developer total tips
-            byte[] totalKey = Helper.Concat(PREFIX_DEV_TOTAL_TIPS, (ByteString)devId.ToByteArray());
-            BigInteger totalTips = (BigInteger)Storage.Get(Storage.CurrentContext, totalKey);
-            Storage.Put(Storage.CurrentContext, totalKey, totalTips + amount);
-
-            // Update tip count
-            byte[] countKey = Helper.Concat(PREFIX_DEV_TIP_COUNT, (ByteString)devId.ToByteArray());
-            BigInteger tipCount = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
-            Storage.Put(Storage.CurrentContext, countKey, tipCount + 1);
-
-            // Update global total
-            BigInteger globalTotal = TotalDonated();
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_DONATED, globalTotal + amount);
-
-            // Update tipper ranking by name
-            byte[] tipperTotalKey = Helper.Concat(PREFIX_TIPPER_TOTAL, displayName);
-            BigInteger tipperTotal = (BigInteger)Storage.Get(Storage.CurrentContext, tipperTotalKey);
-            Storage.Put(Storage.CurrentContext, tipperTotalKey, tipperTotal + amount);
-
-            byte[] tipperCountKey = Helper.Concat(PREFIX_TIPPER_COUNT, displayName);
-            BigInteger tipperCount = (BigInteger)Storage.Get(Storage.CurrentContext, tipperCountKey);
-            Storage.Put(Storage.CurrentContext, tipperCountKey, tipperCount + 1);
-
-            // Store tip record
-            BigInteger tipId = TotalTips() + 1;
-            Storage.Put(Storage.CurrentContext, PREFIX_TIP_ID, tipId);
-
-            OnTipSent(tipper, devId, amount, message, displayName);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_ACTIVE_DEVS);
         }
 
-        /// <summary>
-        /// Withdraw accumulated tips (developer only).
-        /// </summary>
-        public static void Withdraw(BigInteger devId)
+        [Safe]
+        public static BigInteger TotalDonated()
         {
-            ValidateNotGloballyPaused(APP_ID);
-
-            UInt160 devWallet = GetDevWallet(devId);
-            ExecutionEngine.Assert(devWallet != null && devWallet.IsValid, "invalid dev");
-            ExecutionEngine.Assert(Runtime.CheckWitness(devWallet), "not developer");
-
-            byte[] balanceKey = Helper.Concat(PREFIX_DEV_BALANCE, (ByteString)devId.ToByteArray());
-            BigInteger balance = (BigInteger)Storage.Get(Storage.CurrentContext, balanceKey);
-            ExecutionEngine.Assert(balance > 0, "no balance");
-
-            // Clear balance
-            Storage.Put(Storage.CurrentContext, balanceKey, 0);
-
-            // Transfer GAS to developer
-            GAS.Transfer(Runtime.ExecutingScriptHash, devWallet, balance);
-
-            OnTipWithdrawn(devId, devWallet, balance);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_DONATED);
         }
 
+        [Safe]
+        public static BigInteger TotalTips()
+        {
+            return (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TIP_ID);
+        }
+
+        [Safe]
+        public static DeveloperData GetDeveloper(BigInteger devId)
+        {
+            byte[] key = Helper.Concat(PREFIX_DEVELOPERS, (ByteString)devId.ToByteArray());
+            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            if (data == null) return new DeveloperData();
+            return (DeveloperData)StdLib.Deserialize(data);
+        }
+
+        [Safe]
+        public static TipData GetTip(BigInteger tipId)
+        {
+            byte[] key = Helper.Concat(PREFIX_TIPS, (ByteString)tipId.ToByteArray());
+            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            if (data == null) return new TipData();
+            return (TipData)StdLib.Deserialize(data);
+        }
+
+        [Safe]
+        public static TipperStats GetTipperStats(UInt160 tipper)
+        {
+            byte[] key = Helper.Concat(PREFIX_TIPPER_STATS, tipper);
+            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            if (data == null) return new TipperStats();
+            return (TipperStats)StdLib.Deserialize(data);
+        }
+
+        [Safe]
+        public static bool HasTipperBadge(UInt160 tipper, BigInteger badgeType)
+        {
+            byte[] key = Helper.Concat(
+                Helper.Concat(PREFIX_TIPPER_BADGES, tipper),
+                (ByteString)badgeType.ToByteArray());
+            return Storage.Get(Storage.CurrentContext, key) != null;
+        }
+
+        [Safe]
+        public static bool HasDevBadge(BigInteger devId, BigInteger badgeType)
+        {
+            byte[] key = Helper.Concat(
+                Helper.Concat(PREFIX_DEV_BADGES, (ByteString)devId.ToByteArray()),
+                (ByteString)badgeType.ToByteArray());
+            return Storage.Get(Storage.CurrentContext, key) != null;
+        }
         #endregion
     }
 }

@@ -26,7 +26,7 @@ const providerNames: Record<string, string> = {
 };
 
 export function LinkedIdentitiesList({ identities, canUnlink, onUnlink, onLinkNew }: LinkedIdentitiesListProps) {
-  const { t } = useTranslation("host");
+  const { t, locale } = useTranslation("host");
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
 
   const handleUnlinkConfirm = async (password: string) => {
@@ -63,7 +63,7 @@ export function LinkedIdentitiesList({ identities, canUnlink, onUnlink, onLinkNe
             {identity.lastUsedAt && (
               <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">
                 <Clock size={12} />
-                {new Date(identity.lastUsedAt).toLocaleDateString()}
+                {new Date(identity.lastUsedAt).toLocaleDateString(locale)}
               </div>
             )}
 

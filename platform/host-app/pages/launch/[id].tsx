@@ -29,6 +29,7 @@ import { MiniAppFrame } from "../../components/features/miniapp";
 import { MiniAppTransition } from "../../components/ui";
 import { useWalletStore } from "../../lib/wallet/store";
 import { getChainRegistry } from "../../lib/chains/registry";
+import { getMiniappLocale } from "@neo/shared/i18n";
 
 /** Window with MiniAppSDK for iframe injection */
 interface WindowWithMiniAppSDK {
@@ -83,7 +84,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
-    const supportedLocale = locale === "zh" ? "zh" : "en";
+    const supportedLocale = getMiniappLocale(locale);
     return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1" });
   }, [entryUrl, locale, theme]);
 

@@ -153,11 +153,14 @@ MiniApp contract (or `ServiceLayerGateway`) via the wallet. The callback target
 is configured per chain in the manifest (`contracts.<chain>.callback`) and
 executed on-chain by the gateway when the TEE result is ready.
 
-If you are using the shared **UniversalMiniApp** contract (recommended), you do
-not need to deploy a custom contract. For on-chain events or callbacks, set
-`manifest.contracts.<chain>.address` to the UniversalMiniApp address for each
-supported chain. If you do not emit on-chain events, `contracts` can omit
-addresses and `news_integration` should be disabled.
+If you are using a **dedicated MiniApp contract** (recommended for production),
+set `manifest.contracts.<chain>.address` to your deployed contract address for
+each supported chain. The shared **UniversalMiniApp** contract is still
+available for lightweight prototypes; in that case set
+`manifest.contracts.<chain>.address` to the UniversalMiniApp address.
+
+If you do not emit on-chain events, `contracts` can omit addresses and
+`news_integration` should be disabled.
 When using `useWallet.invokeRead`/`invokeContract` without passing an explicit
 hash, the SDK uses the active chain's `manifest.contracts.<chain>.address`. Ensure `manifest.app_id` matches
 the `APP_ID` used in your MiniApp code so SDK scoping and payments target the

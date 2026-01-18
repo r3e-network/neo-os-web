@@ -9,46 +9,121 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
-    public delegate void PlantSeededHandler(UInt160 owner, BigInteger plantId, int seedType);
-    public delegate void PlantGrownHandler(BigInteger plantId, int color, int size);
+    // Event delegates for garden lifecycle
+    public delegate void PlantSeededHandler(UInt160 owner, BigInteger plantId, BigInteger seedType, string name);
+    public delegate void PlantGrownHandler(BigInteger plantId, BigInteger growthStage, BigInteger size);
     public delegate void PlantHarvestedHandler(UInt160 owner, BigInteger plantId, BigInteger reward);
+    public delegate void PlantWateredHandler(BigInteger plantId, UInt160 waterer, BigInteger waterBonus);
+    public delegate void PlantFertilizedHandler(BigInteger plantId, UInt160 fertilizer, BigInteger growthBoost);
+    public delegate void GardenCreatedHandler(UInt160 owner, BigInteger gardenId, string name);
+    public delegate void SeasonChangedHandler(BigInteger seasonId, BigInteger seasonType, BigInteger startTime);
+    public delegate void AchievementUnlockedHandler(UInt160 user, BigInteger achievementId, string name);
 
     /// <summary>
-    /// Garden of NEO - Plants grow based on blockchain data.
-    ///
-    /// GAME MECHANICS:
-    /// - Users plant seeds that grow based on chain metrics
-    /// - Growth factors: TPS, block height, GAS burned
-    /// - Plant appearance changes with network activity
-    /// - Harvest rewards based on plant maturity
+    /// Garden of NEO MiniApp - Complete blockchain-powered virtual gardening platform.
     /// </summary>
     [DisplayName("MiniAppGardenOfNeo")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. GardenOfNeo is an interactive gaming application for blockchain-powered gardening. Use it to plant and grow virtual seeds, you can harvest rewards based on network activity and plant maturity.")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. GardenOfNeo is a complete blockchain-powered gardening platform with multiple seed types, garden plots, seasonal events, watering/fertilizing mechanics, achievements, and plant trading.")]
     [ContractPermission("*", "*")]
-    public partial class MiniAppContract : SmartContract
+    public partial class MiniAppGardenOfNeo : MiniAppBase
     {
         #region App Constants
         private const string APP_ID = "miniapp-garden-of-neo";
-        private const long PLANT_FEE = 10000000; // 0.1 GAS
-        private const int GROWTH_BLOCKS = 100; // Blocks to mature
+        private const long PLANT_FEE = 10000000;
+        private const long WATER_FEE = 5000000;
+        private const long FERTILIZE_FEE = 20000000;
+        private const long GARDEN_FEE = 100000000;
+        private const int GROWTH_BLOCKS = 100;
+        private const int MAX_PLANTS_PER_GARDEN = 20;
+        private const int MAX_WATER_PER_DAY = 3;
+        private const int WATER_GROWTH_BONUS = 10;
+        private const int FERTILIZE_REWARD_BONUS = 20;
+        private const int MAX_NAME_LENGTH = 50;
+        private const int SEASON_DURATION_SECONDS = 604800;
         #endregion
 
-        #region Seed Types
+        #region Seed Types and Rewards
         private const int SEED_FIRE = 1;
         private const int SEED_ICE = 2;
         private const int SEED_EARTH = 3;
         private const int SEED_WIND = 4;
         private const int SEED_LIGHT = 5;
+        private const int SEED_DARK = 6;
+        private const int SEED_RARE = 7;
+        private const long REWARD_FIRE = 15000000;
+        private const long REWARD_ICE = 15000000;
+        private const long REWARD_EARTH = 20000000;
+        private const long REWARD_WIND = 20000000;
+        private const long REWARD_LIGHT = 30000000;
+        private const long REWARD_DARK = 30000000;
+        private const long REWARD_RARE = 100000000;
         #endregion
 
         #region App Prefixes
-        private static readonly byte[] PREFIX_PLANT_ID = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_PLANT_OWNER = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_PLANT_SEED = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_PLANT_BLOCK = new byte[] { 0x13 };
-        private static readonly byte[] PREFIX_PLANT_HARVESTED = new byte[] { 0x14 };
+        private static readonly byte[] PREFIX_PLANT_ID = new byte[] { 0x20 };
+        private static readonly byte[] PREFIX_PLANTS = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_GARDEN_ID = new byte[] { 0x22 };
+        private static readonly byte[] PREFIX_GARDENS = new byte[] { 0x23 };
+        private static readonly byte[] PREFIX_USER_STATS = new byte[] { 0x24 };
+        private static readonly byte[] PREFIX_USER_PLANTS = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_USER_PLANT_COUNT = new byte[] { 0x26 };
+        private static readonly byte[] PREFIX_SEASON = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_TOTAL_HARVESTED = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_TOTAL_REWARDS = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_WATER_COUNT = new byte[] { 0x2A };
+        #endregion
+
+        #region Data Structures
+        public struct PlantData
+        {
+            public UInt160 Owner;
+            public string Name;
+            public BigInteger SeedType;
+            public BigInteger PlantedBlock;
+            public BigInteger PlantedTime;
+            public BigInteger WaterCount;
+            public BigInteger FertilizeCount;
+            public BigInteger GrowthBonus;
+            public BigInteger RewardBonus;
+            public bool Harvested;
+            public BigInteger HarvestTime;
+            public BigInteger HarvestReward;
+        }
+
+        public struct GardenData
+        {
+            public UInt160 Owner;
+            public string Name;
+            public BigInteger CreatedTime;
+            public BigInteger PlantCount;
+            public BigInteger TotalHarvested;
+            public BigInteger TotalRewards;
+            public bool Active;
+        }
+
+        public struct UserStats
+        {
+            public BigInteger TotalPlanted;
+            public BigInteger TotalHarvested;
+            public BigInteger TotalRewards;
+            public BigInteger TotalSpent;
+            public BigInteger FavoriteSeed;
+            public BigInteger GardenCount;
+            public BigInteger LastPlantTime;
+            public BigInteger CurrentStreak;
+        }
+
+        public struct SeasonData
+        {
+            public BigInteger Id;
+            public BigInteger SeasonType;
+            public BigInteger StartTime;
+            public BigInteger EndTime;
+            public BigInteger BonusSeedType;
+        }
         #endregion
 
         #region Events
@@ -60,25 +135,80 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("PlantHarvested")]
         public static event PlantHarvestedHandler OnPlantHarvested;
+
+        [DisplayName("PlantWatered")]
+        public static event PlantWateredHandler OnPlantWatered;
+
+        [DisplayName("PlantFertilized")]
+        public static event PlantFertilizedHandler OnPlantFertilized;
+
+        [DisplayName("GardenCreated")]
+        public static event GardenCreatedHandler OnGardenCreated;
+
+        [DisplayName("SeasonChanged")]
+        public static event SeasonChangedHandler OnSeasonChanged;
+
+        [DisplayName("AchievementUnlocked")]
+        public static event AchievementUnlockedHandler OnAchievementUnlocked;
         #endregion
 
-        #region Getters
+        #region Read Methods
         [Safe]
         public static BigInteger TotalPlants() =>
             (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_PLANT_ID);
 
         [Safe]
-        public static BigInteger PlantBlock(BigInteger plantId)
+        public static BigInteger TotalGardens() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_GARDEN_ID);
+
+        [Safe]
+        public static BigInteger TotalHarvested() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_HARVESTED);
+
+        [Safe]
+        public static BigInteger TotalRewardsDistributed() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_REWARDS);
+
+        [Safe]
+        public static PlantData GetPlant(BigInteger plantId)
         {
-            byte[] key = Helper.Concat(PREFIX_PLANT_BLOCK, (ByteString)plantId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_PLANTS, (ByteString)plantId.ToByteArray()));
+            if (data == null) return new PlantData();
+            return (PlantData)StdLib.Deserialize(data);
         }
 
         [Safe]
-        public static bool IsHarvested(BigInteger plantId)
+        public static GardenData GetGarden(BigInteger gardenId)
         {
-            byte[] key = Helper.Concat(PREFIX_PLANT_HARVESTED, (ByteString)plantId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_GARDENS, (ByteString)gardenId.ToByteArray()));
+            if (data == null) return new GardenData();
+            return (GardenData)StdLib.Deserialize(data);
+        }
+
+        [Safe]
+        public static UserStats GetUserStats(UInt160 user)
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_USER_STATS, user));
+            if (data == null) return new UserStats();
+            return (UserStats)StdLib.Deserialize(data);
+        }
+
+        [Safe]
+        public static SeasonData GetCurrentSeason()
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_SEASON);
+            if (data == null) return new SeasonData();
+            return (SeasonData)StdLib.Deserialize(data);
+        }
+
+        [Safe]
+        public static BigInteger GetUserPlantCount(UInt160 user)
+        {
+            byte[] key = Helper.Concat(PREFIX_USER_PLANT_COUNT, user);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
         #endregion
 
@@ -88,91 +218,20 @@ namespace NeoMiniAppPlatform.Contracts
             if (update) return;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
             Storage.Put(Storage.CurrentContext, PREFIX_PLANT_ID, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_GARDEN_ID, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_HARVESTED, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_REWARDS, 0);
+
+            SeasonData season = new SeasonData
+            {
+                Id = 1,
+                SeasonType = 1,
+                StartTime = Runtime.Time,
+                EndTime = Runtime.Time + SEASON_DURATION_SECONDS,
+                BonusSeedType = SEED_EARTH
+            };
+            Storage.Put(Storage.CurrentContext, PREFIX_SEASON, StdLib.Serialize(season));
         }
-        #endregion
-
-        #region User Methods
-
-        /// <summary>
-        /// Plant a new seed.
-        /// </summary>
-        public static void Plant(UInt160 owner, int seedType, BigInteger receiptId)
-        {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(seedType >= SEED_FIRE && seedType <= SEED_LIGHT, "invalid seed");
-
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
-
-            ValidatePaymentReceipt(APP_ID, owner, PLANT_FEE, receiptId);
-
-            BigInteger plantId = TotalPlants() + 1;
-            Storage.Put(Storage.CurrentContext, PREFIX_PLANT_ID, plantId);
-
-            byte[] ownerKey = Helper.Concat(PREFIX_PLANT_OWNER, (ByteString)plantId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, ownerKey, owner);
-
-            byte[] seedKey = Helper.Concat(PREFIX_PLANT_SEED, (ByteString)plantId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, seedKey, seedType);
-
-            byte[] blockKey = Helper.Concat(PREFIX_PLANT_BLOCK, (ByteString)plantId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, blockKey, Ledger.CurrentIndex);
-
-            OnPlantSeeded(owner, plantId, seedType);
-        }
-
-        /// <summary>
-        /// Check plant growth status.
-        /// </summary>
-        [Safe]
-        public static object[] GetPlantStatus(BigInteger plantId)
-        {
-            BigInteger birthBlock = PlantBlock(plantId);
-            BigInteger currentBlock = Ledger.CurrentIndex;
-            BigInteger age = currentBlock - birthBlock;
-
-            // Calculate growth based on block data
-            int size = (int)(age * 100 / GROWTH_BLOCKS);
-            if (size > 100) size = 100;
-
-            // Color based on current block hash
-            int color = (int)(currentBlock % 6);
-
-            return new object[] { size, color, age >= GROWTH_BLOCKS };
-        }
-
-        /// <summary>
-        /// Harvest a mature plant.
-        /// </summary>
-        public static void Harvest(UInt160 owner, BigInteger plantId)
-        {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(!IsHarvested(plantId), "already harvested");
-
-            byte[] ownerKey = Helper.Concat(PREFIX_PLANT_OWNER, (ByteString)plantId.ToByteArray());
-            UInt160 plantOwner = (UInt160)Storage.Get(Storage.CurrentContext, ownerKey);
-            ExecutionEngine.Assert(plantOwner == owner, "not owner");
-
-            BigInteger birthBlock = PlantBlock(plantId);
-            BigInteger age = Ledger.CurrentIndex - birthBlock;
-            ExecutionEngine.Assert(age >= GROWTH_BLOCKS, "not mature");
-
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
-
-            byte[] harvestKey = Helper.Concat(PREFIX_PLANT_HARVESTED, (ByteString)plantId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, harvestKey, 1);
-
-            // Reward based on seed type and growth time
-            byte[] seedKey = Helper.Concat(PREFIX_PLANT_SEED, (ByteString)plantId.ToByteArray());
-            int seedType = (int)(BigInteger)Storage.Get(Storage.CurrentContext, seedKey);
-            BigInteger reward = seedType * 5000000; // 0.05 GAS per seed level
-
-            OnPlantHarvested(owner, plantId, reward);
-        }
-
         #endregion
     }
 }

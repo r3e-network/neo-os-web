@@ -537,10 +537,10 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         private static BigInteger ParseIntervalSchedule(string schedule)
         {
-            if (schedule == "hourly") return 3600;
-            if (schedule == "daily") return 86400;
-            if (schedule == "weekly") return 604800;
-            if (schedule == "monthly") return 2592000; // 30 days
+            if (schedule == "hourly") return 3600;      // 1 hour in seconds
+            if (schedule == "daily") return 86400;      // 24 hours in seconds
+            if (schedule == "weekly") return 604800;    // 7 days in seconds
+            if (schedule == "monthly") return 2592000;  // 30 days in seconds
 
             // Try to parse as numeric seconds
             // Neo N3 doesn't have built-in string to int conversion, so we'll validate format
@@ -557,7 +557,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <param name="schedule">Schedule expression</param>
         /// <param name="lastExecution">Last execution timestamp (0 if never executed)</param>
         /// <param name="intervalSeconds">Pre-calculated interval in seconds (for interval type)</param>
-        /// <returns>Next execution timestamp</returns>
+        /// <returns>Next execution timestamp in seconds</returns>
         private static BigInteger CalculateNextExecution(string triggerType, string schedule, BigInteger lastExecution, BigInteger intervalSeconds)
         {
             if (triggerType == "interval")
@@ -569,7 +569,7 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 // Cron expression parsing delegated to off-chain TEE updater service
                 // On-chain stores schedule string; TEE calculates actual execution times
-                // Default fallback: 24 hours from current time
+                // Default fallback: 24 hours from current time (in seconds)
                 return Runtime.Time + 86400;
             }
 

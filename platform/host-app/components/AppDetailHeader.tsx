@@ -3,9 +3,10 @@ import { MiniAppInfo, MiniAppStats } from "./types";
 import { useI18n, useTranslation } from "@/lib/i18n/react";
 import { MiniAppLogo } from "./features/miniapp/MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
-import { ChainBadge } from "@/components/ui/ChainBadge";
+import { ChainBadgeGroup } from "@/components/ui/ChainBadgeGroup";
 import { WishlistButton } from "./features/wishlist";
 import { Users, Activity, Eye } from "lucide-react";
+import { getLocalizedField } from "@neo/shared/i18n";
 import type { ChainId } from "@/lib/chains/types";
 
 function isIconUrl(icon: string): boolean {
@@ -22,18 +23,22 @@ type Props = {
 export function AppDetailHeader({ app, stats }: Props) {
   const { locale } = useI18n();
   const { t } = useTranslation("host");
-  const appName = locale === "zh" && app.name_zh ? app.name_zh : app.name;
+  const appName = getLocalizedField(app, "name", locale);
   const supportedChains = (app.supportedChains || []) as ChainId[];
 
-  let statusBadge = stats?.last_activity_at ? "Active" : "Inactive";
+  let statusKey: "active" | "inactive" | "online" | "maintenance" | "pending" = stats?.last_activity_at
+    ? "active"
+    : "inactive";
 
   if (app.status === "active") {
-    statusBadge = "Online";
+    statusKey = "online";
   } else if (app.status === "disabled") {
-    statusBadge = "Maintenance";
+    statusKey = "maintenance";
   } else if (app.status === "pending") {
-    statusBadge = "Pending";
+    statusKey = "pending";
   }
+
+  const statusLabel = t(`detail.status.${statusKey}`);
 
   return (
     <header className="pt-28 pb-10 px-8 relative z-10 overflow-hidden bg-white/70 dark:bg-[#0b0c16]/90 backdrop-blur-xl border-b border-white/60 dark:border-white/10 transition-all duration-300">
@@ -68,21 +73,21 @@ export function AppDetailHeader({ app, stats }: Props) {
             </Badge>
             <div
               className={`px-3 py-1 rounded-full font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 border shadow-sm backdrop-blur-sm ${
-                statusBadge === "Online"
+                statusKey === "online"
                   ? "bg-erobo-purple/10 text-erobo-purple border-erobo-purple/30"
-                  : statusBadge === "Maintenance"
+                  : statusKey === "maintenance"
                     ? "bg-erobo-peach/40 text-erobo-ink border-white/60"
                     : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft/70 dark:text-gray-400 border-white/60 dark:border-white/10"
               }`}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  statusBadge === "Online"
+                  statusKey === "online"
                     ? "bg-erobo-purple animate-pulse shadow-[0_0_8px_currentColor]"
                     : "bg-current opacity-50"
                 }`}
               />
-              {statusBadge}
+              {statusLabel}
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -100,43 +105,34 @@ export function AppDetailHeader({ app, stats }: Props) {
                 {stats.total_users != null && stats.total_users > 0 && (
                   <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-gray-400">
                     <Users size={14} className="text-erobo-purple" />
-                    <span className="font-medium">{stats.total_users.toLocaleString()}</span>
-                    <span className="text-xs">{t("detail.users") || "users"}</span>
+                    <span className="font-medium">{stats.total_users.toLocaleString(locale)}</span>
+                    <span className="text-xs">{t("detail.users")}</span>
                   </div>
                 )}
                 {stats.total_transactions != null && stats.total_transactions > 0 && (
                   <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-gray-400">
                     <Activity size={14} className="text-erobo-pink" />
-                    <span className="font-medium">{stats.total_transactions.toLocaleString()}</span>
-                    <span className="text-xs">{t("detail.txs") || "txs"}</span>
+                    <span className="font-medium">{stats.total_transactions.toLocaleString(locale)}</span>
+                    <span className="text-xs">{t("detail.txs")}</span>
                   </div>
                 )}
                 {stats.view_count != null && stats.view_count > 0 && (
                   <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-gray-400">
                     <Eye size={14} className="text-erobo-mint" />
-                    <span className="font-medium">{stats.view_count.toLocaleString()}</span>
-                    <span className="text-xs">{t("detail.views") || "views"}</span>
+                    <span className="font-medium">{stats.view_count.toLocaleString(locale)}</span>
+                    <span className="text-xs">{t("detail.views")}</span>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Supported Chains */}
+            {/* Supported Chains - deduplicated by base chain */}
             {supportedChains.length > 0 && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-white/50 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">
                 <span className="text-xs text-erobo-ink-soft/60 dark:text-gray-500 font-medium">
-                  {t("detail.chains") || "Chains"}:
+                  {t("detail.chains")}:
                 </span>
-                <div className="flex items-center gap-1">
-                  {supportedChains.slice(0, 4).map((chainId) => (
-                    <ChainBadge key={chainId} chainId={chainId} size="sm" />
-                  ))}
-                  {supportedChains.length > 4 && (
-                    <span className="text-xs text-erobo-ink-soft/60 dark:text-gray-500">
-                      +{supportedChains.length - 4}
-                    </span>
-                  )}
-                </div>
+                <ChainBadgeGroup chainIds={supportedChains} maxDisplay={4} size="sm" />
               </div>
             )}
           </div>

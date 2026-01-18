@@ -47,6 +47,8 @@
     "success": "成功",
     "error": "错误",
     "warning": "警告",
+    "confirmed": "已确认",
+    "failed": "失败",
     "online": "在线",
     "offline": "离线",
     "healthy": "健康",
@@ -113,7 +115,21 @@
     "hours": "小时",
     "days": "天",
     "weeks": "周",
-    "months": "月"
+    "months": "月",
+    "recently": "最近",
+    "minutesAgo": "{count}分钟前",
+    "hoursAgo": "{count}小时前",
+    "daysAgo": "{count}天前",
+    "weeksAgo": "{count}周前",
+    "monthsAgo": "{count}个月前",
+    "short": {
+      "seconds": "秒",
+      "minutes": "分",
+      "hours": "小时",
+      "days": "天",
+      "weeks": "周",
+      "months": "月"
+    }
   },
   "language": {
     "language": "语言",

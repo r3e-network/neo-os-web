@@ -9,33 +9,46 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
-    public delegate void RecordCreatedHandler(BigInteger recordId, UInt160 creator, ByteString dataHash);
-    public delegate void RecordQueriedHandler(BigInteger recordId, UInt160 querier);
+    // Event delegates for ExFiles lifecycle
+    public delegate void RecordCreatedHandler(BigInteger recordId, UInt160 creator, ByteString dataHash, BigInteger category);
+    public delegate void RecordQueriedHandler(BigInteger recordId, UInt160 querier, BigInteger queryType);
     public delegate void RecordDeletedHandler(BigInteger recordId, UInt160 owner);
+    public delegate void RecordUpdatedHandler(BigInteger recordId, BigInteger newRating, string updateReason);
+    public delegate void RecordVerifiedHandler(BigInteger recordId, UInt160 verifier, bool verified);
+    public delegate void ReportSubmittedHandler(BigInteger recordId, UInt160 reporter, string reason);
+    public delegate void UserBadgeEarnedHandler(UInt160 user, BigInteger badgeType, string badgeName);
 
-    /// <summary>
-    /// ExFiles MiniApp - Anonymous ex-partner database with encrypted records.
-    /// Users can anonymously record and query relationship history.
-    /// TEE ensures privacy while enabling pattern matching.
-    /// </summary>
     [DisplayName("MiniAppExFiles")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. ExFiles is a privacy-preserving database application for anonymous records. Use it to store and query encrypted relationship data, you can access pattern matching with TEE-protected privacy.")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. ExFiles is a complete anonymous relationship database with encrypted records, categories, verification, reporting, user badges, and TEE-protected privacy.")]
     [ContractPermission("*", "*")]
-    public partial class MiniAppContract : SmartContract
+    public partial class MiniAppExFiles : MiniAppBase
     {
         #region App Constants
         private const string APP_ID = "miniapp-exfiles";
-        private const long CREATE_FEE = 10000000; // 0.1 GAS
-        private const long QUERY_FEE = 5000000; // 0.05 GAS
+        private const long CREATE_FEE = 10000000;
+        private const long QUERY_FEE = 5000000;
+        private const long UPDATE_FEE = 5000000;
+        private const long VERIFY_FEE = 20000000;
+        private const long REPORT_FEE = 10000000;
+        private const int MAX_REASON_LENGTH = 500;
         #endregion
 
         #region App Prefixes
-        private static readonly byte[] PREFIX_RECORD_ID = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_RECORDS = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_HASH_INDEX = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_AUTOMATION_ANCHOR = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_RECORD_ID = new byte[] { 0x20 };
+        private static readonly byte[] PREFIX_RECORDS = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_HASH_INDEX = new byte[] { 0x22 };
+        private static readonly byte[] PREFIX_USER_STATS = new byte[] { 0x23 };
+        private static readonly byte[] PREFIX_USER_RECORDS = new byte[] { 0x24 };
+        private static readonly byte[] PREFIX_USER_RECORD_COUNT = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_REPORTS = new byte[] { 0x26 };
+        private static readonly byte[] PREFIX_TOTAL_QUERIES = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_TOTAL_VERIFIED = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_USER_BADGES = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_TOTAL_USERS = new byte[] { 0x2A };
+        private static readonly byte[] PREFIX_TOTAL_REPORTS = new byte[] { 0x2B };
         #endregion
 
         #region Data Structures
@@ -44,9 +57,40 @@ namespace NeoMiniAppPlatform.Contracts
             public UInt160 Creator;
             public ByteString DataHash;
             public BigInteger Rating;
+            public BigInteger Category;
             public BigInteger QueryCount;
             public BigInteger CreateTime;
+            public BigInteger UpdateTime;
             public bool Active;
+            public bool Verified;
+            public UInt160 Verifier;
+            public BigInteger ReportCount;
+        }
+
+        public struct UserStats
+        {
+            public BigInteger RecordsCreated;
+            public BigInteger RecordsVerified;
+            public BigInteger QueriesMade;
+            public BigInteger TotalSpent;
+            public BigInteger ReputationScore;
+            public BigInteger BadgeCount;
+            public BigInteger JoinTime;
+            public BigInteger LastActivityTime;
+            public BigInteger ReportsSubmitted;
+            public BigInteger RecordsDeleted;
+            public BigInteger RecordsUpdated;
+            public BigInteger HighestRating;
+            public BigInteger VerifiedRecordsOwned;
+        }
+
+        public struct ReportData
+        {
+            public BigInteger RecordId;
+            public UInt160 Reporter;
+            public string Reason;
+            public BigInteger ReportTime;
+            public bool Resolved;
         }
         #endregion
 
@@ -59,6 +103,18 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("RecordDeleted")]
         public static event RecordDeletedHandler OnRecordDeleted;
+
+        [DisplayName("RecordUpdated")]
+        public static event RecordUpdatedHandler OnRecordUpdated;
+
+        [DisplayName("RecordVerified")]
+        public static event RecordVerifiedHandler OnRecordVerified;
+
+        [DisplayName("ReportSubmitted")]
+        public static event ReportSubmittedHandler OnReportSubmitted;
+
+        [DisplayName("UserBadgeEarned")]
+        public static event UserBadgeEarnedHandler OnUserBadgeEarned;
         #endregion
 
         #region Lifecycle
@@ -67,123 +123,96 @@ namespace NeoMiniAppPlatform.Contracts
             if (update) return;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
             Storage.Put(Storage.CurrentContext, PREFIX_RECORD_ID, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_QUERIES, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_VERIFIED, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_USERS, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_REPORTS, 0);
         }
         #endregion
 
-        #region User-Facing Methods
+        #region Read Methods
+        [Safe]
+        public static BigInteger TotalRecords() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_RECORD_ID);
 
-        public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigInteger rating, BigInteger receiptId)
-        {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(dataHash.Length == 32, "invalid hash");
-            ExecutionEngine.Assert(rating >= 1 && rating <= 5, "rating 1-5");
+        [Safe]
+        public static BigInteger TotalQueries() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_QUERIES);
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
+        [Safe]
+        public static BigInteger TotalVerified() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_VERIFIED);
 
-            ValidatePaymentReceipt(APP_ID, creator, CREATE_FEE, receiptId);
+        [Safe]
+        public static BigInteger TotalUsers() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_USERS);
 
-            BigInteger recordId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_RECORD_ID) + 1;
-            Storage.Put(Storage.CurrentContext, PREFIX_RECORD_ID, recordId);
-
-            RecordData record = new RecordData
-            {
-                Creator = creator,
-                DataHash = dataHash,
-                Rating = rating,
-                QueryCount = 0,
-                CreateTime = Runtime.Time,
-                Active = true
-            };
-            StoreRecord(recordId, record);
-
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_HASH_INDEX, dataHash), recordId);
-
-            OnRecordCreated(recordId, creator, dataHash);
-            return recordId;
-        }
-
-        public static RecordData QueryByHash(UInt160 querier, ByteString dataHash, BigInteger receiptId)
-        {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(querier), "unauthorized");
-
-            ValidatePaymentReceipt(APP_ID, querier, QUERY_FEE, receiptId);
-
-            ByteString recordIdData = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_HASH_INDEX, dataHash));
-            if (recordIdData == null) return new RecordData();
-
-            BigInteger recordId = (BigInteger)recordIdData;
-            RecordData record = GetRecord(recordId);
-
-            if (record.Active)
-            {
-                record.QueryCount += 1;
-                StoreRecord(recordId, record);
-                OnRecordQueried(recordId, querier);
-            }
-
-            return record;
-        }
-
-        public static void DeleteRecord(BigInteger recordId, UInt160 owner)
-        {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
-
-            RecordData record = GetRecord(recordId);
-            ExecutionEngine.Assert(record.Creator == owner, "not owner");
-
-            record.Active = false;
-            StoreRecord(recordId, record);
-
-            OnRecordDeleted(recordId, owner);
-        }
+        [Safe]
+        public static BigInteger TotalReports() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_REPORTS);
 
         [Safe]
         public static RecordData GetRecord(BigInteger recordId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_RECORDS, (ByteString)recordId.ToByteArray()));
+            byte[] key = GetRecordKey(recordId);
+            ByteString data = Storage.Get(Storage.CurrentContext, Helper.Concat(key, RECORD_FIELD_CREATOR));
             if (data == null) return new RecordData();
-            return (RecordData)StdLib.Deserialize(data);
+
+            return new RecordData
+            {
+                Creator = GetUInt160(Helper.Concat(key, RECORD_FIELD_CREATOR)),
+                DataHash = GetByteString(Helper.Concat(key, RECORD_FIELD_DATA_HASH)),
+                Rating = GetBigInteger(Helper.Concat(key, RECORD_FIELD_RATING)),
+                Category = GetBigInteger(Helper.Concat(key, RECORD_FIELD_CATEGORY)),
+                QueryCount = GetBigInteger(Helper.Concat(key, RECORD_FIELD_QUERY_COUNT)),
+                CreateTime = GetBigInteger(Helper.Concat(key, RECORD_FIELD_CREATE_TIME)),
+                UpdateTime = GetBigInteger(Helper.Concat(key, RECORD_FIELD_UPDATE_TIME)),
+                Active = GetBool(Helper.Concat(key, RECORD_FIELD_ACTIVE)),
+                Verified = GetBool(Helper.Concat(key, RECORD_FIELD_VERIFIED)),
+                Verifier = GetUInt160(Helper.Concat(key, RECORD_FIELD_VERIFIER)),
+                ReportCount = GetBigInteger(Helper.Concat(key, RECORD_FIELD_REPORT_COUNT))
+            };
         }
 
-        #endregion
-
-        #region Internal Helpers
-
-        private static void StoreRecord(BigInteger recordId, RecordData record)
-        {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_RECORDS, (ByteString)recordId.ToByteArray()),
-                StdLib.Serialize(record));
-        }
-
-        #endregion
-
-        #region Automation
         [Safe]
-        public static UInt160 AutomationAnchor()
+        public static UserStats GetUserStats(UInt160 user)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR);
-            return data != null ? (UInt160)data : UInt160.Zero;
+            byte[] key = GetUserStatsKey(user);
+            ByteString data = Storage.Get(Storage.CurrentContext, Helper.Concat(key, USER_STATS_FIELD_RECORDS_CREATED));
+            if (data == null) return new UserStats();
+
+            return new UserStats
+            {
+                RecordsCreated = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_RECORDS_CREATED)),
+                RecordsVerified = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_RECORDS_VERIFIED)),
+                QueriesMade = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_QUERIES_MADE)),
+                TotalSpent = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_TOTAL_SPENT)),
+                ReputationScore = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_REPUTATION)),
+                BadgeCount = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_BADGE_COUNT)),
+                JoinTime = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_JOIN_TIME)),
+                LastActivityTime = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_LAST_ACTIVITY)),
+                ReportsSubmitted = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_REPORTS_SUBMITTED)),
+                RecordsDeleted = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_RECORDS_DELETED)),
+                RecordsUpdated = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_RECORDS_UPDATED)),
+                HighestRating = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_HIGHEST_RATING)),
+                VerifiedRecordsOwned = GetBigInteger(Helper.Concat(key, USER_STATS_FIELD_VERIFIED_OWNED))
+            };
         }
 
-        public static void SetAutomationAnchor(UInt160 anchor)
+        [Safe]
+        public static BigInteger GetUserRecordCount(UInt160 user)
         {
-            ValidateAdmin();
-            ValidateAddress(anchor);
-            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR, anchor);
+            byte[] key = Helper.Concat(PREFIX_USER_RECORD_COUNT, user);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
 
-        public static void OnPeriodicExecution(BigInteger taskId, ByteString payload)
+        [Safe]
+        public static bool HasBadge(UInt160 user, BigInteger badgeType)
         {
-            UInt160 anchor = AutomationAnchor();
-            ExecutionEngine.Assert(anchor != UInt160.Zero && Runtime.CallingScriptHash == anchor, "unauthorized");
+            byte[] key = Helper.Concat(
+                Helper.Concat(PREFIX_USER_BADGES, user),
+                (ByteString)badgeType.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }
         #endregion
     }

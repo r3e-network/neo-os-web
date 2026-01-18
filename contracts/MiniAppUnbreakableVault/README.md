@@ -61,9 +61,9 @@ UnbreakableVault is a **hacker bounty challenge game** on the Neo N3 blockchain.
 | Mechanic           | Value    | Description                      |
 | ------------------ | -------- | -------------------------------- |
 | **Min Bounty**     | 1 GAS    | Minimum initial vault bounty     |
-| **Attempt Fee**    | 0.1 GAS  | Cost per break attempt           |
+| **Attempt Fee**    | 0.1 / 0.5 / 1 GAS | Cost per break attempt (Easy/Medium/Hard) |
 | **Hash Algorithm** | SHA256   | 32-byte hash protection          |
-| **Bounty Growth**  | +0.1 GAS | Each attempt adds to bounty      |
+| **Bounty Growth**  | +attempt fee | Each attempt adds to bounty   |
 | **Winner Takes**   | 100%     | Full bounty to successful hacker |
 
 ---
@@ -85,10 +85,17 @@ const secretHash = await crypto.subtle.digest(
 const bounty = 5; // 5 GAS initial bounty
 
 const receipt = await paymentHub.payGAS(bounty);
+const difficulty = 1; // 1=Easy, 2=Medium, 3=Hard
+const title = "Genesis Vault";
+const description = "Optional hints or lore";
+
 const vaultId = await contract.invoke("CreateVault", [
   walletAddress,
   secretHash,
   bounty * 100000000,
+  difficulty,
+  title,
+  description,
   receipt.id,
 ]);
 
@@ -101,11 +108,11 @@ console.log(`Vault #${vaultId} created with ${bounty} GAS bounty`);
 #### Check Vault Status
 
 ```javascript
-const vault = await contract.call("GetVault", [vaultId]);
+const vault = await contract.call("GetVaultDetails", [vaultId]);
 
-console.log(`Current Bounty: ${vault.Bounty / 100000000} GAS`);
-console.log(`Attempts Made: ${vault.AttemptCount}`);
-console.log(`Broken: ${vault.Broken}`);
+console.log(`Current Bounty: ${vault.bounty / 100000000} GAS`);
+console.log(`Attempts Made: ${vault.attemptCount}`);
+console.log(`Broken: ${vault.broken}`);
 ```
 
 #### Attempt to Break
@@ -150,7 +157,7 @@ if (success) {
 | **App ID**        | `miniapp-unbreakablevault`  |
 | **Category**      | Gaming / Security Challenge |
 | **Min Bounty**    | 1 GAS (100000000)           |
-| **Attempt Fee**   | 0.1 GAS (10000000)          |
+| **Attempt Fee**   | 0.1 / 0.5 / 1 GAS (Easy/Medium/Hard) |
 | **Hash**          | SHA256 (32 bytes)           |
 
 ### Data Structure
@@ -161,8 +168,15 @@ struct VaultData {
     BigInteger Bounty;      // Current bounty amount
     ByteString SecretHash;  // SHA256 hash of secret
     BigInteger AttemptCount;// Number of attempts
+    BigInteger Difficulty;  // 1=Easy, 2=Medium, 3=Hard
+    BigInteger CreatedTime;
+    BigInteger ExpiryTime;
+    BigInteger HintsRevealed;
     bool Broken;            // True when cracked
+    bool Expired;           // True when expired
     UInt160 Winner;         // Winner's address
+    string Title;
+    string Description;
 }
 ```
 
@@ -177,13 +191,16 @@ BigInteger CreateVault(
     UInt160 creator,
     ByteString secretHash,
     BigInteger bounty,
+    BigInteger difficulty,
+    string title,
+    string description,
     BigInteger receiptId
 )
 ```
 
 **Returns:** `vaultId`
 
-**Events:** `VaultCreated(vaultId, creator, bounty)`
+**Events:** `VaultCreated(vaultId, creator, bounty, difficulty)`
 
 #### AttemptBreak
 
@@ -202,15 +219,15 @@ bool AttemptBreak(
 
 **Events:**
 
-- `AttemptMade(vaultId, attacker, success)`
+- `AttemptMade(vaultId, attacker, success, attemptNumber)`
 - `VaultBroken(vaultId, winner, reward)` - if successful
 
 ### Events
 
 | Event          | Parameters                 | Description     |
 | -------------- | -------------------------- | --------------- |
-| `VaultCreated` | vaultId, creator, bounty   | New vault made  |
-| `AttemptMade`  | vaultId, attacker, success | Break attempted |
+| `VaultCreated` | vaultId, creator, bounty, difficulty | New vault made  |
+| `AttemptMade`  | vaultId, attacker, success, attemptNumber | Break attempted |
 | `VaultBroken`  | vaultId, winner, reward    | Vault cracked   |
 
 ---
@@ -228,4 +245,4 @@ bool AttemptBreak(
 
 **Contract**: MiniAppUnbreakableVault
 **Author**: R3E Network
-**Version**: 1.0.0
+**Version**: 2.0.0

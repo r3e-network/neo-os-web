@@ -23,6 +23,7 @@ import { useWalletStore, type WalletStore } from "@/lib/wallet/store";
 import { MiniAppFrame } from "./MiniAppFrame";
 import { WaterWaveBackground } from "../../ui/WaterWaveBackground";
 import { getChainRegistry } from "@/lib/chains/registry";
+import { getMiniappLocale } from "@neo/shared/i18n";
 
 interface MiniAppViewerProps {
   app: MiniAppInfo;
@@ -154,7 +155,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
 
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
-    const supportedLocale = locale === "zh" ? "zh" : "en";
+    const supportedLocale = getMiniappLocale(locale);
     return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1" });
   }, [entryUrl, locale, theme]);
 
@@ -440,15 +441,34 @@ function hasPermission(method: string, permissions: MiniAppInfo["permissions"]):
   if (!permissions) return false;
   switch (method) {
     case "payments.payGAS":
+    case "payments.payGASAndInvoke":
       return Boolean(permissions.payments);
     case "governance.vote":
+    case "governance.voteAndInvoke":
+    case "governance.getCandidates":
       return Boolean(permissions.governance);
     case "rng.requestRandom":
       return Boolean(permissions.rng);
     case "datafeed.getPrice":
+    case "datafeed.getPrices":
+    case "datafeed.getNetworkStats":
+    case "datafeed.getRecentTransactions":
       return Boolean(permissions.datafeed);
-    default:
+    case "wallet.signMessage":
+      return Boolean(permissions.confidential);
+    case "getConfig":
+    case "wallet.getAddress":
+    case "getAddress":
+    case "wallet.switchChain":
+    case "wallet.invokeIntent":
+    case "invokeRead":
+    case "invokeFunction":
+    case "stats.getMyUsage":
+    case "events.list":
+    case "transactions.list":
       return true;
+    default:
+      return false;
   }
 }
 
@@ -501,6 +521,27 @@ async function dispatchBridgeCall(
       const [requestId] = params;
       return sdk.wallet.invokeIntent(String(requestId ?? ""));
     }
+    case "wallet.signMessage": {
+      if (!sdk.wallet?.signMessage) throw new Error("wallet.signMessage not available");
+      const [payload] = params;
+      const message =
+        typeof payload === "string"
+          ? payload
+          : payload && typeof payload === "object"
+            ? String((payload as { message?: unknown }).message ?? "")
+            : "";
+      if (!message) throw new Error("message required");
+      return sdk.wallet.signMessage(message);
+    }
+    case "invokeRead":
+    case "invokeFunction": {
+      if (!sdk.invoke) throw new Error("invoke not available");
+      const [payload] = params;
+      if (!payload || typeof payload !== "object") {
+        throw new Error(`${method} params required`);
+      }
+      return sdk.invoke(method, payload);
+    }
     case "payments.payGAS": {
       if (!sdk.payments?.payGAS) throw new Error("payments.payGAS not available");
       const [requestedAppId, amount, memo] = params;
@@ -508,12 +549,26 @@ async function dispatchBridgeCall(
       const memoValue = memo === undefined || memo === null ? undefined : String(memo);
       return sdk.payments.payGAS(scopedAppId, String(amount ?? ""), memoValue);
     }
+    case "payments.payGASAndInvoke": {
+      if (!sdk.payments?.payGASAndInvoke) throw new Error("payments.payGASAndInvoke not available");
+      const [requestedAppId, amount, memo] = params;
+      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
+      const memoValue = memo === undefined || memo === null ? undefined : String(memo);
+      return sdk.payments.payGASAndInvoke(scopedAppId, String(amount ?? ""), memoValue);
+    }
     case "governance.vote": {
       if (!sdk.governance?.vote) throw new Error("governance.vote not available");
       const [requestedAppId, proposalId, neoAmount, support] = params;
       const scopedAppId = resolveScopedAppId(requestedAppId, appId);
       const supportValue = typeof support === "boolean" ? support : undefined;
       return sdk.governance.vote(scopedAppId, String(proposalId ?? ""), String(neoAmount ?? ""), supportValue);
+    }
+    case "governance.voteAndInvoke": {
+      if (!sdk.governance?.voteAndInvoke) throw new Error("governance.voteAndInvoke not available");
+      const [requestedAppId, proposalId, neoAmount, support] = params;
+      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
+      const supportValue = typeof support === "boolean" ? support : undefined;
+      return sdk.governance.voteAndInvoke(scopedAppId, String(proposalId ?? ""), String(neoAmount ?? ""), supportValue);
     }
     case "governance.getCandidates": {
       if (!sdk.governance?.getCandidates) throw new Error("governance.getCandidates not available");
@@ -529,6 +584,20 @@ async function dispatchBridgeCall(
       if (!sdk.datafeed?.getPrice) throw new Error("datafeed.getPrice not available");
       const [symbol] = params;
       return sdk.datafeed.getPrice(String(symbol ?? ""));
+    }
+    case "datafeed.getPrices": {
+      if (!sdk.datafeed?.getPrices) throw new Error("datafeed.getPrices not available");
+      return sdk.datafeed.getPrices();
+    }
+    case "datafeed.getNetworkStats": {
+      if (!sdk.datafeed?.getNetworkStats) throw new Error("datafeed.getNetworkStats not available");
+      return sdk.datafeed.getNetworkStats();
+    }
+    case "datafeed.getRecentTransactions": {
+      if (!sdk.datafeed?.getRecentTransactions) throw new Error("datafeed.getRecentTransactions not available");
+      const [limit] = params;
+      const limitValue = typeof limit === "number" ? limit : undefined;
+      return sdk.datafeed.getRecentTransactions(limitValue);
     }
     case "stats.getMyUsage": {
       if (!sdk.stats?.getMyUsage) throw new Error("stats.getMyUsage not available");

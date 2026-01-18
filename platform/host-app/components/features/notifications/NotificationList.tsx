@@ -2,7 +2,8 @@
 
 import { Check } from "lucide-react";
 import type { Notification } from "@/pages/api/notifications";
-import { cn } from "@/lib/utils";
+import { cn, formatTimeAgoShort } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/react";
 
 interface NotificationListProps {
   notifications: Notification[];
@@ -11,18 +12,27 @@ interface NotificationListProps {
 }
 
 export function NotificationList({ notifications, loading, onMarkRead }: NotificationListProps) {
+  const { t } = useTranslation("host");
+  const { t: tCommon, locale } = useTranslation("common");
   if (loading) {
-    return <div className="p-4 text-center text-gray-500">Loading...</div>;
+    return <div className="p-4 text-center text-gray-500">{tCommon("actions.loading")}</div>;
   }
 
   if (notifications.length === 0) {
-    return <div className="p-8 text-center text-gray-500">No notifications</div>;
+    return <div className="p-8 text-center text-gray-500">{t("notifications.empty")}</div>;
   }
 
   return (
     <div className="max-h-96 overflow-y-auto">
       {notifications.map((n) => (
-        <NotificationItem key={n.id} notification={n} onMarkRead={onMarkRead} />
+        <NotificationItem
+          key={n.id}
+          notification={n}
+          onMarkRead={onMarkRead}
+          tCommon={tCommon}
+          locale={locale}
+          markReadLabel={t("notifications.markRead")}
+        />
       ))}
     </div>
   );
@@ -31,11 +41,17 @@ export function NotificationList({ notifications, loading, onMarkRead }: Notific
 function NotificationItem({
   notification,
   onMarkRead,
+  tCommon,
+  locale,
+  markReadLabel,
 }: {
   notification: Notification;
   onMarkRead: (id: string) => void;
+  tCommon: (key: string, options?: Record<string, string | number>) => string;
+  locale: string;
+  markReadLabel: string;
 }) {
-  const timeAgo = getTimeAgo(notification.created_at);
+  const timeAgo = formatTimeAgoShort(notification.created_at, { t: tCommon, locale, maxRelativeDays: 14 });
 
   return (
     <div
@@ -54,7 +70,7 @@ function NotificationItem({
           <button
             onClick={() => onMarkRead(notification.id)}
             className="p-1 text-gray-400 hover:text-emerald-600"
-            title="Mark as read"
+            title={markReadLabel}
           >
             <Check size={14} />
           </button>
@@ -62,19 +78,4 @@ function NotificationItem({
       </div>
     </div>
   );
-}
-
-function getTimeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString();
 }

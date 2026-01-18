@@ -26,6 +26,22 @@ Anonymous ex-partner database with encrypted records and privacy-preserving quer
 - **存储**: 数据哈希、评分、查询计数、创建时间
 - **隐私**: TEE确保隐私的同时支持模式匹配
 
+### 合约方法
+
+#### CreateRecord
+
+```csharp
+public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigInteger rating, BigInteger category, BigInteger receiptId)
+```
+
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `creator` | Hash160 | 创建者钱包地址 |
+| `dataHash` | ByteString | 数据哈希 |
+| `rating` | Integer | 评分 (1-5) |
+| `category` | Integer | 类别 (0=默认) |
+| `receiptId` | Integer | PaymentHub 支付收据 ID |
+
 ## English
 
 ### Features
@@ -47,6 +63,22 @@ Anonymous ex-partner database with encrypted records and privacy-preserving quer
 - **Fees**: 0.1 GAS creation, 0.05 GAS query
 - **Storage**: Data hash, rating, query count, creation time
 - **Privacy**: TEE ensures privacy while enabling pattern matching
+
+### Contract Methods
+
+#### CreateRecord
+
+```csharp
+public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigInteger rating, BigInteger category, BigInteger receiptId)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `creator` | Hash160 | Creator wallet address |
+| `dataHash` | ByteString | Data hash |
+| `rating` | Integer | Rating (1-5) |
+| `category` | Integer | Category (0=default) |
+| `receiptId` | Integer | PaymentHub payment receipt ID |
 
 ## Technical
 

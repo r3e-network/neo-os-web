@@ -8,6 +8,34 @@
 import type { ChainConfig, ChainId, ChainType } from "./types";
 import { SUPPORTED_CHAIN_CONFIGS } from "./defaults";
 
+const STORAGE_KEY = "neohub-chain-registry-v1";
+
+type StoredChainRegistry = {
+  version: 1;
+  chains: ChainConfig[];
+};
+
+function loadStoredChains(): ChainConfig[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as StoredChainRegistry;
+    if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.chains)) {
+      return [];
+    }
+    return parsed.chains;
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredChains(chains: ChainConfig[]): void {
+  if (typeof window === "undefined") return;
+  const payload: StoredChainRegistry = { version: 1, chains };
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
 // ============================================================================
 // Chain Registry Interface
 // ============================================================================
@@ -54,6 +82,9 @@ class ChainRegistry implements IChainRegistry {
     SUPPORTED_CHAIN_CONFIGS.forEach((chain) => {
       this.chains.set(chain.id, chain);
     });
+    if (typeof window !== "undefined") {
+      void this.refresh();
+    }
   }
 
   getChains(): ChainConfig[] {
@@ -81,8 +112,14 @@ class ChainRegistry implements IChainRegistry {
   }
 
   async registerChain(config: ChainConfig): Promise<void> {
-    this.chains.set(config.id, config);
-    // TODO: Persist to database
+    const now = new Date().toISOString();
+    const normalized: ChainConfig = {
+      ...config,
+      createdAt: config.createdAt || now,
+      updatedAt: config.updatedAt || now,
+    };
+    this.chains.set(config.id, normalized);
+    saveStoredChains(this.getChains());
   }
 
   async updateChain(chainId: ChainId, updates: Partial<ChainConfig>): Promise<void> {
@@ -92,11 +129,22 @@ class ChainRegistry implements IChainRegistry {
     }
     const updated = { ...existing, ...updates, updatedAt: new Date().toISOString() };
     this.chains.set(chainId, updated as ChainConfig);
-    // TODO: Persist to database
+    saveStoredChains(this.getChains());
   }
 
   async refresh(): Promise<void> {
-    // TODO: Load from database and merge with defaults
+    const merged = new Map<ChainId, ChainConfig>();
+    SUPPORTED_CHAIN_CONFIGS.forEach((chain) => {
+      merged.set(chain.id, chain);
+    });
+
+    const stored = loadStoredChains();
+    stored.forEach((chain) => {
+      const existing = merged.get(chain.id);
+      merged.set(chain.id, existing ? ({ ...existing, ...chain } as ChainConfig) : chain);
+    });
+
+    this.chains = merged;
     this.initialized = true;
   }
 }

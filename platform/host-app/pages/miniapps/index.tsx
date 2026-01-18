@@ -15,6 +15,7 @@ import { useTranslation } from "@/lib/i18n/react";
 import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
 import { getChainRegistry } from "@/lib/chains/registry";
 import { PREDEFINED_TAGS, APP_TAGS } from "@/components/features/tags";
+import { getLocalizedField } from "@neo/shared/i18n";
 
 const categories = ["all", "gaming", "defi", "social", "nft", "governance", "utility"] as const;
 
@@ -85,10 +86,10 @@ export default function MiniAppsPage() {
       },
       {
         id: "tags",
-        label: t("miniapps.filters.tags") || "Tags",
+        label: t("miniapps.filters.tags"),
         options: PREDEFINED_TAGS.map((tag) => ({
           value: tag.id,
-          label: locale === "zh" && tag.name_zh ? tag.name_zh : tag.name,
+          label: getLocalizedField(tag, "name", locale),
         })),
       },
     ],

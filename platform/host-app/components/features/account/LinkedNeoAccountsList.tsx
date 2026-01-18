@@ -40,7 +40,7 @@ export function LinkedNeoAccountsList({
   onUnlink,
   onAddNew,
 }: LinkedNeoAccountsListProps) {
-  const { t } = useTranslation("host");
+  const { t, locale } = useTranslation("host");
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -109,7 +109,7 @@ export function LinkedNeoAccountsList({
                 <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 mt-0.5">
                   <span className={chainDisplay.color}>{chainDisplay.name}</span>
                   <span>•</span>
-                  <span>Linked {new Date(account.linkedAt).toLocaleDateString()}</span>
+                  <span>Linked {new Date(account.linkedAt).toLocaleDateString(locale)}</span>
                 </div>
               </div>
             </div>

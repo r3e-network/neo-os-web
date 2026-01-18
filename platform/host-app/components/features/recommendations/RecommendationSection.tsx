@@ -10,6 +10,7 @@ import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
 import { getAppIcon } from "@/components/features/miniapp/AppIcons";
+import { getLocalizedField } from "@neo/shared/i18n";
 import type { RecommendationSection as SectionType } from "./types";
 
 interface Props {
@@ -54,7 +55,7 @@ export function RecommendationSection({ section, className }: Props) {
       {/* Horizontal Scroll */}
       <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
         {section.apps.map((app) => {
-          const name = locale === "zh" && app.name_zh ? app.name_zh : app.name;
+          const name = getLocalizedField(app, "name", locale);
           const IconComponent = getAppIcon(app.app_id);
           const bgClass = CATEGORY_BG[app.category] || CATEGORY_BG.utility;
 

@@ -1,6 +1,5 @@
 /**
- * Shared i18n library for Neo MiniApp Platform
- * Supports both React (Next.js) and vanilla JS applications
+ * Shared i18n helpers for Neo MiniApp Platform (React-focused).
  */
 
 export type Locale = "en" | "zh" | "ja" | "ko";
@@ -53,6 +52,46 @@ export function interpolate(template: string, values: Record<string, string | nu
   return template.replace(/\{(\w+)\}/g, (_, key) => {
     return values[key]?.toString() ?? `{${key}}`;
   });
+}
+
+/**
+ * Normalize a locale-like value to a supported locale.
+ */
+export function normalizeLocale(value?: string | null): Locale {
+  if (!value) return defaultLocale;
+  const lower = value.toLowerCase();
+  if (lower.startsWith("zh")) return "zh";
+  if (lower.startsWith("ja")) return "ja";
+  if (lower.startsWith("ko")) return "ko";
+  return "en";
+}
+
+/**
+ * MiniApps currently support English + Chinese only.
+ */
+export function getMiniappLocale(value?: string | null): "en" | "zh" {
+  return normalizeLocale(value) === "zh" ? "zh" : "en";
+}
+
+/**
+ * Get a localized field value for objects that store translated fields.
+ * Falls back to the base field when a localized value is unavailable.
+ */
+export function getLocalizedField<T extends Record<string, unknown>>(
+  item: T,
+  field: string,
+  locale?: string | null,
+): string {
+  const normalized = normalizeLocale(locale);
+  if (normalized !== "en") {
+    const localizedField = `${field}_${normalized}` as keyof T;
+    const localizedValue = item[localizedField];
+    if (localizedValue !== undefined && localizedValue !== null && localizedValue !== "") {
+      return String(localizedValue);
+    }
+  }
+  const baseValue = item[field as keyof T];
+  return baseValue == null ? "" : String(baseValue);
 }
 
 export * from "./types";

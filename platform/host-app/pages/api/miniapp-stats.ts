@@ -141,20 +141,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       offset += pageSize;
     }
 
-    // 2. Get views from summary table
-    let summaryQuery = supabase
+    // 2. Get views from summary table - ALWAYS aggregate across all chains for totals
+    const { data: summaryData } = await supabase
       .from("miniapp_stats_summary")
-      .select("app_id, view_count, total_transactions, total_unique_users");
+      .select("app_id, view_count, total_transactions, total_unique_users, chain_id");
 
-    if (chainIdFilter) {
-      summaryQuery = summaryQuery.eq("chain_id", chainIdFilter);
-    }
-
-    const { data: summaryData } = await summaryQuery;
     if (summaryData) {
       for (const row of summaryData) {
         ensureApp(row.app_id);
-        appStatsMap[row.app_id].views = row.view_count || 0;
+        // Aggregate views and transactions across ALL chains (not filtered by chainIdFilter)
+        appStatsMap[row.app_id].views += row.view_count || 0;
         appStatsMap[row.app_id].txCount += row.total_transactions || 0;
         appStatsMap[row.app_id].sources.add("stats_summary");
       }

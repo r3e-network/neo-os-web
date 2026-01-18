@@ -42,6 +42,7 @@ interface RecentEvent {
 
 export default function EnhancedStatsPage() {
   const { t } = useTranslation("host");
+  const { t: tCommon } = useTranslation("common");
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [stats, setStats] = useState<PlatformStats | null>(null);
@@ -293,7 +294,7 @@ export default function EnhancedStatsPage() {
                     <div className="text-right">
                       <p className="text-sm font-mono text-erobo-ink dark:text-gray-200">{event.gasUsed || "0"} GAS</p>
                       <p className="text-[10px] text-erobo-ink-soft/70 dark:text-gray-400">
-                        {formatTimeAgo(event.timestamp)}
+                        {formatTimeAgo(event.timestamp, { t: tCommon })}
                       </p>
                     </div>
                   </div>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FC } from "react";
 import { useRouter } from "next/router";
 import type { OnChainActivity } from "./types";
-import { cn } from "@/lib/utils";
+import { cn, formatTimeAgoShort } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
 
 interface ActivityTickerProps {
@@ -20,17 +20,6 @@ const ACTIVITY_ICONS: Record<string, string> = {
   notification: "🔔",
 };
 
-function formatTimeAgo(timestamp: string): string {
-  const now = Date.now();
-  const then = new Date(timestamp).getTime();
-  const diff = Math.floor((now - then) / 1000);
-
-  if (diff < 60) return `${diff}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
-}
-
 function truncateHash(hash: string | undefined): string {
   if (!hash) return "";
   if (hash.length <= 16) return hash;
@@ -46,6 +35,7 @@ export const ActivityTicker: FC<ActivityTickerProps> = ({
   onItemClick,
 }) => {
   const { t } = useTranslation("host");
+  const { t: tCommon, locale } = useTranslation("common");
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -110,6 +100,8 @@ export const ActivityTicker: FC<ActivityTickerProps> = ({
               <ActivityItem
                 key={activity.id}
                 activity={activity}
+                tCommon={tCommon}
+                locale={locale}
                 onClick={() => {
                   if (onItemClick) {
                     onItemClick(activity);
@@ -126,8 +118,21 @@ export const ActivityTicker: FC<ActivityTickerProps> = ({
   );
 };
 
-const ActivityItem: FC<{ activity: OnChainActivity; onClick?: () => void }> = ({ activity, onClick }) => {
+const ActivityItem: FC<{
+  activity: OnChainActivity;
+  onClick?: () => void;
+  tCommon: (key: string, options?: Record<string, string | number>) => string;
+  locale: string;
+}> = ({ activity, onClick, tCommon, locale }) => {
   const icon = ACTIVITY_ICONS[activity.type] || "📌";
+  const statusLabel =
+    activity.status === "pending"
+      ? tCommon("status.pending")
+      : activity.status === "confirmed"
+        ? tCommon("status.confirmed")
+        : activity.status === "failed"
+          ? tCommon("status.failed")
+          : activity.status ?? "";
 
   // Adjusted status classes for glass theme
   const GLASS_STATUS_CLASSES: Record<string, string> = {
@@ -159,7 +164,7 @@ const ActivityItem: FC<{ activity: OnChainActivity; onClick?: () => void }> = ({
             {activity.title}
           </span>
           <span className="text-[10px] font-bold font-mono text-gray-400 dark:text-white/50 px-1 leading-4">
-            {formatTimeAgo(activity.timestamp)}
+            {formatTimeAgoShort(activity.timestamp, { t: tCommon, locale })}
           </span>
         </div>
         <div className="text-[11px] font-medium text-gray-500 dark:text-white/60 truncate mt-1 group-hover:text-gray-700 dark:group-hover:text-white/80">
@@ -177,7 +182,7 @@ const ActivityItem: FC<{ activity: OnChainActivity; onClick?: () => void }> = ({
                   statusClass,
                 )}
               >
-                {activity.status}
+                {statusLabel}
               </span>
             )}
           </div>

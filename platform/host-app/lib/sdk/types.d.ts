@@ -39,6 +39,8 @@ export interface MiniAppSDK {
   wallet?: {
     getAddress?: () => Promise<string | null>;
     invokeIntent?: (requestId: string) => Promise<unknown>;
+    switchChain?: (chainId: ChainId) => Promise<void>;
+    signMessage?: (message: string) => Promise<unknown>;
   };
   payments?: {
     payGAS?: (appId: string, amount: string, memo?: string) => Promise<Record<string, unknown>>;
@@ -64,6 +66,9 @@ export interface MiniAppSDK {
   };
   datafeed?: {
     getPrice?: (symbol: string) => Promise<{ price: string }>;
+    getPrices?: () => Promise<Record<string, unknown>>;
+    getNetworkStats?: () => Promise<Record<string, unknown>>;
+    getRecentTransactions?: (limit?: number) => Promise<Record<string, unknown>>;
   };
   stats?: {
     getMyUsage?: (appId: string, date?: string) => Promise<Record<string, unknown>>;

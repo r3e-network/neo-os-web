@@ -354,6 +354,17 @@ export function createMiniAppSDK(config) {
         const { address } = await n3.getAccount();
         return address;
       },
+      signMessage: async (message) => {
+        if (chainType === "evm") {
+          const provider = getEvmProvider();
+          if (!provider) throw new Error("EVM wallet provider not connected");
+          const from = await getEvmAddress();
+          return provider.request({ method: "personal_sign", params: [message, from] });
+        }
+        const n3 = await getNeoLine();
+        if (!n3) throw new Error("Wallet provider not connected");
+        return n3.signMessage({ message });
+      },
       invokeIntent: async (requestId) => {
         const invocation = intentCache.get(requestId);
         if (!invocation) throw new Error("Unknown intent request_id");
@@ -544,7 +555,7 @@ export function createMiniAppSDK(config) {
       emit: async (eventName, data = {}) => {
         return callEdge("emit-event", {
           method: "POST",
-          body: { app_id: appId, event_name: eventName, state: data, chain_id: chainId || undefined },
+          params: { app_id: appId, event_name: eventName, state: data, chain_id: chainId || undefined },
         });
       },
     },
@@ -564,7 +575,7 @@ export function createMiniAppSDK(config) {
       send: async (title, message, opts = {}) => {
         return callEdge("send-notification", {
           method: "POST",
-          body: { app_id: appId, title, message, chain_id: chainId || undefined, ...opts },
+          params: { app_id: appId, title, message, chain_id: chainId || undefined, ...opts },
         });
       },
       list: async (params = {}) => {

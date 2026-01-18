@@ -47,6 +47,8 @@
     "success": "Success",
     "error": "Error",
     "warning": "Warning",
+    "confirmed": "Confirmed",
+    "failed": "Failed",
     "online": "Online",
     "offline": "Offline",
     "healthy": "Healthy",
@@ -113,7 +115,21 @@
     "hours": "hours",
     "days": "days",
     "weeks": "weeks",
-    "months": "months"
+    "months": "months",
+    "recently": "Recently",
+    "minutesAgo": "{count} minutes ago",
+    "hoursAgo": "{count} hours ago",
+    "daysAgo": "{count} days ago",
+    "weeksAgo": "{count} weeks ago",
+    "monthsAgo": "{count} months ago",
+    "short": {
+      "seconds": "s",
+      "minutes": "m",
+      "hours": "h",
+      "days": "d",
+      "weeks": "w",
+      "months": "mo"
+    }
   },
   "language": {
     "language": "Language",

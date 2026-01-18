@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { Locale, defaultLocale, getStoredLocale, setStoredLocale } from "./index";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { Locale, defaultLocale, getStoredLocale, localeNames, locales, setStoredLocale } from "./index";
 
 // Import translations
 import enCommon from "./locales/en/common.json";
@@ -28,66 +28,135 @@ const translations = {
   ko: { common: koCommon, host: koHost, admin: koAdmin, miniapp: koMiniapp },
 };
 
-type TranslationNamespace = "common" | "host" | "admin" | "miniapp";
+export type TranslationNamespace = "common" | "host" | "admin" | "miniapp";
 
-interface I18nContextType {
-  locale: Locale;
-  setLocale: (locale: Locale) => void;
-  t: (key: string, ns?: TranslationNamespace) => string;
+type TranslationSet = Record<TranslationNamespace, Record<string, unknown>>;
+type TranslationCatalog<LocaleType extends string> = Record<LocaleType, TranslationSet>;
+
+export interface I18nContextType<LocaleType extends string> {
+  locale: LocaleType;
+  locales: readonly LocaleType[];
+  localeNames: Record<LocaleType, string>;
+  setLocale: (locale: LocaleType) => void;
+  t: (key: string, ns?: TranslationNamespace, options?: Record<string, string | number>) => string;
 }
 
-const I18nContext = createContext<I18nContextType | undefined>(undefined);
+export interface I18nConfig<LocaleType extends string> {
+  defaultLocale: LocaleType;
+  locales: readonly LocaleType[];
+  localeNames: Record<LocaleType, string>;
+  getStoredLocale: () => LocaleType;
+  setStoredLocale: (locale: LocaleType) => void;
+  translations: TranslationCatalog<LocaleType>;
+}
 
-export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
-  const [mounted, setMounted] = useState(false);
+export function createI18n<LocaleType extends string>(config: I18nConfig<LocaleType>) {
+  const I18nContext = createContext<I18nContextType<LocaleType> | undefined>(undefined);
 
-  useEffect(() => {
-    setLocaleState(getStoredLocale());
-    setMounted(true);
-  }, []);
+  const defaultT = (key: string): string => key;
 
-  const setLocale = useCallback((newLocale: Locale) => {
-    setLocaleState(newLocale);
-    setStoredLocale(newLocale);
-    document.documentElement.lang = newLocale;
-  }, []);
+  function I18nProvider({ children }: { children: React.ReactNode }) {
+    const [locale, setLocaleState] = useState<LocaleType>(config.defaultLocale);
 
-  const t = useCallback(
-    (key: string, ns: TranslationNamespace = "common"): string => {
-      const keys = key.split(".");
-      let value: unknown = translations[locale][ns];
+    useEffect(() => {
+      setLocaleState(config.getStoredLocale());
+    }, []);
 
-      for (const k of keys) {
-        if (value && typeof value === "object") {
-          value = (value as Record<string, unknown>)[k];
-        } else {
+    const setLocale = useCallback((newLocale: LocaleType) => {
+      setLocaleState(newLocale);
+      config.setStoredLocale(newLocale);
+      if (typeof document !== "undefined") {
+        document.documentElement.lang = newLocale;
+      }
+    }, []);
+
+    const t = useCallback(
+      (key: string, ns: TranslationNamespace = "common", options?: Record<string, string | number>): string => {
+        const localeTranslations =
+          config.translations[locale] ?? config.translations[config.defaultLocale];
+        let value: unknown = localeTranslations?.[ns];
+
+        for (const k of key.split(".")) {
+          if (value && typeof value === "object") {
+            value = (value as Record<string, unknown>)[k];
+          } else {
+            return key;
+          }
+        }
+
+        if (typeof value !== "string") {
           return key;
         }
-      }
 
-      return typeof value === "string" ? value : key;
-    },
-    [locale],
-  );
+        if (!options) {
+          return value;
+        }
 
-  if (!mounted) {
-    return <>{children}</>;
+        return Object.entries(options).reduce(
+          (result, [optionKey, optionValue]) =>
+            result.replace(new RegExp(`{${optionKey}}`, "g"), String(optionValue)),
+          value,
+        );
+      },
+      [locale],
+    );
+
+    return (
+      <I18nContext.Provider
+        value={{
+          locale,
+          locales: config.locales,
+          localeNames: config.localeNames,
+          setLocale,
+          t,
+        }}
+      >
+        {children}
+      </I18nContext.Provider>
+    );
   }
 
-  return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
-}
-
-export function useI18n() {
-  const context = useContext(I18nContext);
-  if (!context) {
-    throw new Error("useI18n must be used within I18nProvider");
+  function useI18n() {
+    const context = useContext(I18nContext);
+    if (!context) {
+      return {
+        locale: config.defaultLocale,
+        locales: config.locales,
+        localeNames: config.localeNames,
+        setLocale: () => {},
+        t: defaultT,
+      };
+    }
+    return context;
   }
-  return context;
+
+  function useTranslation(ns: TranslationNamespace = "common") {
+    const { t, locale, locales: availableLocales, localeNames: availableLocaleNames, setLocale } = useI18n();
+    const translate = useCallback(
+      (key: string, options?: Record<string, string | number>) => t(key, ns, options),
+      [t, ns],
+    );
+    return {
+      t: translate,
+      locale,
+      locales: availableLocales,
+      localeNames: availableLocaleNames,
+      setLocale,
+    };
+  }
+
+  return { I18nProvider, useI18n, useTranslation };
 }
 
-export function useTranslation(ns: TranslationNamespace = "common") {
-  const { t, locale, setLocale } = useI18n();
-  const translate = useCallback((key: string) => t(key, ns), [t, ns]);
-  return { t: translate, locale, setLocale };
-}
+const sharedI18n = createI18n<Locale>({
+  defaultLocale,
+  locales,
+  localeNames,
+  getStoredLocale,
+  setStoredLocale,
+  translations,
+});
+
+export const I18nProvider = sharedI18n.I18nProvider;
+export const useI18n = sharedI18n.useI18n;
+export const useTranslation = sharedI18n.useTranslation;

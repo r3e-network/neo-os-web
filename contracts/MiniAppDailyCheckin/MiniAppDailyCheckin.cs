@@ -12,53 +12,60 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void CheckedInHandler(UInt160 user, BigInteger streak, BigInteger reward, BigInteger nextEligibleTs);
     public delegate void RewardsClaimedHandler(UInt160 user, BigInteger amount, BigInteger totalClaimed);
     public delegate void StreakResetHandler(UInt160 user, BigInteger previousStreak, BigInteger highestStreak);
+    public delegate void MilestoneReachedHandler(UInt160 user, BigInteger milestoneType, BigInteger streak);
+    public delegate void BadgeEarnedHandler(UInt160 user, BigInteger badgeType, string badgeName);
+    public delegate void BonusRewardHandler(UInt160 user, BigInteger bonusAmount, string bonusType);
 
-    /// <summary>
-    /// Daily Check-in MiniApp Contract.
-    ///
-    /// GAME MECHANICS:
-    /// - Users check in once per UTC day (global 24h cycle, resets at UTC 00:00)
-    /// - Build consecutive day streaks to earn GAS rewards
-    /// - Day 7: 1 GAS, Day 14+: +1.5 GAS every 7 days (cumulative)
-    /// - Miss a day = streak resets to 0, but highest streak is recorded
-    /// - Requires valid payment receipt to prevent direct contract calls
-    ///
-    /// REWARD STRUCTURE:
-    /// - Day 7:  1.0 GAS (cumulative: 1.0)
-    /// - Day 14: 1.5 GAS (cumulative: 2.5)
-    /// - Day 21: 1.5 GAS (cumulative: 4.0)
-    /// - Day 28: 1.5 GAS (cumulative: 5.5)
-    /// - And so on...
-    ///
-    /// UTC DAY CALCULATION:
-    /// - currentDay = Runtime.Time / 86400 (seconds since epoch / seconds per day)
-    /// - All users share the same countdown to next UTC midnight
-    /// </summary>
     [DisplayName("MiniAppDailyCheckin")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Daily Check-in MiniApp. Check in every day to build streaks and earn GAS rewards.")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Description", "Daily Check-in engagement platform with streak tracking and rewards")]
     [ContractPermission("*", "*")]
-    public partial class MiniAppContract : SmartContract
+    public partial class MiniAppDailyCheckin : MiniAppBase
     {
         #region App Constants
         private const string APP_ID = "miniapp-dailycheckin";
-        private const long TWENTY_FOUR_HOURS = 86400; // seconds
-        private const long CHECK_IN_FEE = 100000; // 0.001 GAS
-        private const long FIRST_REWARD = 100000000; // 1 GAS at day 7
-        private const long SUBSEQUENT_REWARD = 150000000; // 1.5 GAS for day 14+
+        private const long TWENTY_FOUR_HOURS_SECONDS = 86400;
+        private const long CHECK_IN_FEE = 100000;
+        private const long FIRST_REWARD = 100000000;
+        private const long SUBSEQUENT_REWARD = 150000000;
+        private const long MILESTONE_30_BONUS = 500000000;
+        private const long MILESTONE_100_BONUS = 2000000000;
+        private const long MILESTONE_365_BONUS = 10000000000;
         #endregion
 
-        #region App Prefixes (0x10+ for app-specific)
-        private static readonly byte[] PREFIX_USER_STREAK = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_USER_HIGHEST = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_USER_LAST_CHECKIN = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_USER_UNCLAIMED = new byte[] { 0x13 };
-        private static readonly byte[] PREFIX_USER_CLAIMED = new byte[] { 0x14 };
-        private static readonly byte[] PREFIX_USER_CHECKINS = new byte[] { 0x15 };
-        private static readonly byte[] PREFIX_TOTAL_USERS = new byte[] { 0x20 };
-        private static readonly byte[] PREFIX_TOTAL_CHECKINS = new byte[] { 0x21 };
-        private static readonly byte[] PREFIX_TOTAL_REWARDED = new byte[] { 0x22 };
+        #region App Prefixes
+        private static readonly byte[] PREFIX_USER_STREAK = new byte[] { 0x20 };
+        private static readonly byte[] PREFIX_USER_HIGHEST = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_USER_LAST_CHECKIN = new byte[] { 0x22 };
+        private static readonly byte[] PREFIX_USER_UNCLAIMED = new byte[] { 0x23 };
+        private static readonly byte[] PREFIX_USER_CLAIMED = new byte[] { 0x24 };
+        private static readonly byte[] PREFIX_USER_CHECKINS = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_TOTAL_USERS = new byte[] { 0x26 };
+        private static readonly byte[] PREFIX_TOTAL_CHECKINS = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_TOTAL_REWARDED = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_USER_BADGES = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_USER_STATS = new byte[] { 0x2A };
+        private static readonly byte[] PREFIX_USER_RESETS = new byte[] { 0x2B };
+        private static readonly byte[] PREFIX_USER_JOIN_TIME = new byte[] { 0x2C };
+        private static readonly byte[] PREFIX_USER_BADGE_COUNT = new byte[] { 0x2D };
+        #endregion
+
+        #region Data Structures
+        public struct UserStats
+        {
+            public BigInteger TotalCheckins;
+            public BigInteger CurrentStreak;
+            public BigInteger HighestStreak;
+            public BigInteger TotalRewardsClaimed;
+            public BigInteger UnclaimedRewards;
+            public BigInteger StreakResets;
+            public BigInteger BadgeCount;
+            public BigInteger JoinTime;
+            public BigInteger LastCheckinTime;
+            public BigInteger ComebackCount;
+        }
         #endregion
 
         #region Events
@@ -70,293 +77,15 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("StreakReset")]
         public static event StreakResetHandler OnStreakReset;
-        #endregion
 
-        #region Global Stats Getters
-        [Safe]
-        public static BigInteger TotalUsers() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_USERS);
+        [DisplayName("MilestoneReached")]
+        public static event MilestoneReachedHandler OnMilestoneReached;
 
-        [Safe]
-        public static BigInteger TotalCheckins() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_CHECKINS);
+        [DisplayName("DailyBadgeEarned")]
+        public static event BadgeEarnedHandler OnBadgeEarned;
 
-        [Safe]
-        public static BigInteger TotalRewarded() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_REWARDED);
-
-        [Safe]
-        public static object[] GetGlobalStats()
-        {
-            return new object[] {
-                TotalUsers(),
-                TotalCheckins(),
-                TotalRewarded()
-            };
-        }
-        #endregion
-
-        #region User Stats Getters
-        [Safe]
-        public static BigInteger GetUserStreak(UInt160 user)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_STREAK, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger GetUserHighestStreak(UInt160 user)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_HIGHEST, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger GetUserLastCheckin(UInt160 user)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_LAST_CHECKIN, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger GetUserUnclaimed(UInt160 user)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_UNCLAIMED, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger GetUserClaimed(UInt160 user)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_CLAIMED, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger GetUserCheckins(UInt160 user)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_CHECKINS, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static object[] GetUserStats(UInt160 user)
-        {
-            return new object[] {
-                GetUserStreak(user),
-                GetUserHighestStreak(user),
-                GetUserLastCheckin(user),
-                GetUserUnclaimed(user),
-                GetUserClaimed(user),
-                GetUserCheckins(user)
-            };
-        }
-        #endregion
-
-        #region Receipt Validation
-        /// <summary>
-        /// Validates and marks a receipt as used.
-        /// SECURITY: Prevents replay attacks and ensures payment went through miniapp.
-        /// </summary>
-        private static void ValidateAndUseReceipt(BigInteger receiptId)
-        {
-            ExecutionEngine.Assert(receiptId > 0, "invalid receipt");
-            byte[] key = Helper.Concat(PREFIX_RECEIPT_USED, receiptId.ToByteArray());
-            ExecutionEngine.Assert(Storage.Get(Storage.CurrentContext, key) == null, "receipt used");
-            Storage.Put(Storage.CurrentContext, key, 1);
-        }
-        #endregion
-
-        #region Check-in Logic
-        /// <summary>
-        /// Performs daily check-in for a user.
-        /// SECURITY: Requires valid receipt from miniapp payment flow.
-        /// UTC DAY: Uses global UTC day number instead of per-user rolling window.
-        /// </summary>
-        public static void CheckIn(UInt160 user, BigInteger receiptId)
-        {
-            ValidateGateway();
-            ValidateNotPaused();
-            ValidateAddress(user);
-            ValidateAndUseReceipt(receiptId);
-
-            // Calculate current UTC day number (seconds since epoch / seconds per day)
-            BigInteger currentDay = Runtime.Time / TWENTY_FOUR_HOURS;
-            BigInteger lastCheckinDay = GetUserLastCheckin(user);
-            BigInteger currentStreak = GetUserStreak(user);
-            BigInteger highestStreak = GetUserHighestStreak(user);
-            BigInteger userCheckins = GetUserCheckins(user);
-
-            // Check if this is a new user
-            bool isNewUser = lastCheckinDay == 0;
-
-            if (!isNewUser)
-            {
-                // Must be a new UTC day to check in
-                ExecutionEngine.Assert(currentDay > lastCheckinDay, "already checked in today");
-
-                // Check if streak should reset (missed more than 1 day)
-                if (currentDay > lastCheckinDay + 1)
-                {
-                    // Streak broken - reset
-                    if (currentStreak > highestStreak)
-                    {
-                        highestStreak = currentStreak;
-                        SetUserHighestStreak(user, highestStreak);
-                    }
-                    OnStreakReset(user, currentStreak, highestStreak);
-                    currentStreak = 0;
-                }
-            }
-
-            // Increment streak
-            currentStreak += 1;
-
-            // Calculate reward if milestone reached
-            BigInteger reward = CalculateReward(currentStreak);
-            if (reward > 0)
-            {
-                BigInteger unclaimed = GetUserUnclaimed(user);
-                SetUserUnclaimed(user, unclaimed + reward);
-            }
-
-            // Update user stats (store day number, not timestamp)
-            SetUserStreak(user, currentStreak);
-            SetUserLastCheckin(user, currentDay);
-            SetUserCheckins(user, userCheckins + 1);
-
-            // Update highest streak if needed
-            if (currentStreak > highestStreak)
-            {
-                SetUserHighestStreak(user, currentStreak);
-            }
-
-            // Update global stats
-            if (isNewUser)
-            {
-                IncrementTotalUsers();
-            }
-            IncrementTotalCheckins();
-
-            // Calculate next eligible timestamp (next UTC midnight)
-            BigInteger nextEligible = (currentDay + 1) * TWENTY_FOUR_HOURS;
-
-            OnCheckedIn(user, currentStreak, reward, nextEligible);
-        }
-        #endregion
-
-        #region Reward Calculation
-        /// <summary>
-        /// Calculates reward for a given streak day.
-        /// Day 7: 1 GAS, Day 14+: 1.5 GAS every 7 days
-        /// </summary>
-        private static BigInteger CalculateReward(BigInteger streak)
-        {
-            if (streak < 7) return 0;
-            if (streak == 7) return FIRST_REWARD;
-            if (streak % 7 == 0) return SUBSEQUENT_REWARD;
-            return 0;
-        }
-        #endregion
-
-        #region Claim Rewards
-        /// <summary>
-        /// Claims accumulated rewards for a user.
-        /// </summary>
-        public static void ClaimRewards(UInt160 user)
-        {
-            ValidateGateway();
-            ValidateNotPaused();
-            ValidateAddress(user);
-
-            BigInteger unclaimed = GetUserUnclaimed(user);
-            ExecutionEngine.Assert(unclaimed > 0, "no rewards");
-
-            // Transfer GAS to user
-            UInt160 hub = PaymentHub();
-            ExecutionEngine.Assert(hub != null && hub.IsValid, "hub not set");
-
-            bool success = (bool)Contract.Call(hub, "TransferReward", CallFlags.All,
-                new object[] { user, unclaimed, APP_ID });
-            ExecutionEngine.Assert(success, "transfer failed");
-
-            // Update user stats
-            BigInteger claimed = GetUserClaimed(user);
-            SetUserClaimed(user, claimed + unclaimed);
-            SetUserUnclaimed(user, 0);
-
-            // Update global stats
-            IncrementTotalRewarded(unclaimed);
-
-            OnRewardsClaimed(user, unclaimed, claimed + unclaimed);
-        }
-        #endregion
-
-        #region Storage Setters
-        private static void SetUserStreak(UInt160 user, BigInteger value)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_STREAK, user);
-            Storage.Put(Storage.CurrentContext, key, value);
-        }
-
-        private static void SetUserHighestStreak(UInt160 user, BigInteger value)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_HIGHEST, user);
-            Storage.Put(Storage.CurrentContext, key, value);
-        }
-
-        private static void SetUserLastCheckin(UInt160 user, BigInteger value)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_LAST_CHECKIN, user);
-            Storage.Put(Storage.CurrentContext, key, value);
-        }
-
-        private static void SetUserUnclaimed(UInt160 user, BigInteger value)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_UNCLAIMED, user);
-            Storage.Put(Storage.CurrentContext, key, value);
-        }
-
-        private static void SetUserClaimed(UInt160 user, BigInteger value)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_CLAIMED, user);
-            Storage.Put(Storage.CurrentContext, key, value);
-        }
-
-        private static void SetUserCheckins(UInt160 user, BigInteger value)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_CHECKINS, user);
-            Storage.Put(Storage.CurrentContext, key, value);
-        }
-
-        private static void IncrementTotalUsers()
-        {
-            BigInteger current = TotalUsers();
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_USERS, current + 1);
-        }
-
-        private static void IncrementTotalCheckins()
-        {
-            BigInteger current = TotalCheckins();
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_CHECKINS, current + 1);
-        }
-
-        private static void IncrementTotalRewarded(BigInteger amount)
-        {
-            BigInteger current = TotalRewarded();
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_REWARDED, current + amount);
-        }
-        #endregion
-
-        #region Deployment
-        public static void _deploy(object data, bool update)
-        {
-            if (update) return;
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_USERS, 0);
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_CHECKINS, 0);
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_REWARDED, 0);
-        }
+        [DisplayName("BonusReward")]
+        public static event BonusRewardHandler OnBonusReward;
         #endregion
     }
 }

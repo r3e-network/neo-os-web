@@ -8,6 +8,7 @@ type MiniAppPermissions = {
   governance?: boolean;
   rng?: boolean;
   datafeed?: boolean;
+  confidential?: boolean;
   automation?: boolean;
 };
 
@@ -111,6 +112,7 @@ function permissionsKey(permissions?: MiniAppPermissions): string {
     `governance:${permissions.governance ? 1 : 0}`,
     `rng:${permissions.rng ? 1 : 0}`,
     `datafeed:${permissions.datafeed ? 1 : 0}`,
+    `confidential:${permissions.confidential ? 1 : 0}`,
     `automation:${permissions.automation ? 1 : 0}`,
   ].join("|");
 }
@@ -179,6 +181,12 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
             return sdk.governance!.voteAndInvoke!(resolved, proposalId, neoAmount, support);
           }
         : undefined,
+      getCandidates: sdk.governance?.getCandidates
+        ? async () => {
+            requirePermission(permissions, "governance");
+            return sdk.governance!.getCandidates!();
+          }
+        : undefined,
     },
     rng: {
       ...sdk.rng,
@@ -195,6 +203,24 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         requirePermission(permissions, "datafeed");
         return sdk.datafeed!.getPrice!(symbol);
       },
+      getPrices: sdk.datafeed?.getPrices
+        ? async () => {
+            requirePermission(permissions, "datafeed");
+            return sdk.datafeed!.getPrices!();
+          }
+        : undefined,
+      getNetworkStats: sdk.datafeed?.getNetworkStats
+        ? async () => {
+            requirePermission(permissions, "datafeed");
+            return sdk.datafeed!.getNetworkStats!();
+          }
+        : undefined,
+      getRecentTransactions: sdk.datafeed?.getRecentTransactions
+        ? async (limit?: number) => {
+            requirePermission(permissions, "datafeed");
+            return sdk.datafeed!.getRecentTransactions!(limit);
+          }
+        : undefined,
     },
     stats: {
       ...sdk.stats,

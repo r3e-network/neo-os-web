@@ -18,28 +18,28 @@
 #### 1. 创建信托 (CreateTrust)
 
 ```csharp
-public static void CreateTrust(UInt160 owner, UInt160 heir, BigInteger neoAmount)
+public static void CreateTrust(UInt160 owner, UInt160 heir, BigInteger neoAmount, BigInteger heartbeatIntervalDays, string trustName, string notes, BigInteger receiptId)
 ```
 
 - 存入 NEO 创建信托
-- 设置继承人地址
-- 开始心跳倒计时
+- 设置继承人地址与心跳间隔（天）
+- 可填写信托名称与备注
 - 触发 `TrustCreated` 事件
 
 #### 2. 发送心跳 (Heartbeat)
 
 ```csharp
-public static void Heartbeat(UInt160 owner, BigInteger trustId)
+public static void Heartbeat(BigInteger trustId)
 ```
 
-- 重置 30 天倒计时
+- 重置心跳倒计时
 - 证明所有者仍然存活
 - 必须定期执行
 
 #### 3. 领取收益 (ClaimYield)
 
 ```csharp
-public static void ClaimYield(UInt160 owner, BigInteger trustId)
+public static void ClaimYield(BigInteger trustId)
 ```
 
 - 领取 NEO 产生的 GAS 收益
@@ -65,7 +65,7 @@ public static void ExecuteTrust(BigInteger trustId)
 
 ### 技术特性
 
-- **心跳间隔**：30 天
+- **心跳间隔**：可配置（天）
 - **平台费率**：5%
 - **自动执行**：超时自动触发
 - **收益分离**：本金和收益分开管理
@@ -102,28 +102,28 @@ Heritage Trust DAO is a living trust system where users deposit NEO assets, enjo
 #### 1. Create Trust
 
 ```csharp
-public static void CreateTrust(UInt160 owner, UInt160 heir, BigInteger neoAmount)
+public static void CreateTrust(UInt160 owner, UInt160 heir, BigInteger neoAmount, BigInteger heartbeatIntervalDays, string trustName, string notes, BigInteger receiptId)
 ```
 
 - Deposit NEO to create trust
-- Set heir address
-- Start heartbeat countdown
+- Set heir address and heartbeat interval (days)
+- Optional trust name and notes
 - Triggers `TrustCreated` event
 
 #### 2. Send Heartbeat
 
 ```csharp
-public static void Heartbeat(UInt160 owner, BigInteger trustId)
+public static void Heartbeat(BigInteger trustId)
 ```
 
-- Reset 30-day countdown
+- Reset heartbeat countdown
 - Prove owner still alive
 - Must execute periodically
 
 #### 3. Claim Yield
 
 ```csharp
-public static void ClaimYield(UInt160 owner, BigInteger trustId)
+public static void ClaimYield(BigInteger trustId)
 ```
 
 - Claim GAS yields from NEO
@@ -149,7 +149,7 @@ public static void ExecuteTrust(BigInteger trustId)
 
 ### Technical Features
 
-- **Heartbeat Interval**: 30 days
+- **Heartbeat Interval**: Configurable (days)
 - **Platform Fee**: 5%
 - **Auto Execution**: Timeout triggers automatically
 - **Yield Separation**: Principal and yields managed separately

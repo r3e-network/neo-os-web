@@ -9,44 +9,83 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
-    public delegate void CapsuleBuriedHandler(UInt160 owner, BigInteger capsuleId, BigInteger unlockTime, bool isPublic);
-    public delegate void CapsuleRevealedHandler(BigInteger capsuleId, UInt160 revealer);
-    public delegate void CapsuleFishedHandler(UInt160 fisher, BigInteger capsuleId);
-    public delegate void CapsuleEncryptedHandler(BigInteger capsuleId, ByteString encryptedContent);
-    public delegate void CapsuleDecryptedHandler(BigInteger capsuleId, ByteString decryptedContent);
+    // Event delegates for TimeCapsule lifecycle
+    public delegate void CapsuleBuriedHandler(UInt160 owner, BigInteger capsuleId, BigInteger unlockTime, bool isPublic, BigInteger category);
+    public delegate void CapsuleRevealedHandler(BigInteger capsuleId, UInt160 revealer, string contentHash);
+    public delegate void CapsuleFishedHandler(UInt160 fisher, BigInteger capsuleId, BigInteger reward);
+    public delegate void CapsuleGiftedHandler(BigInteger capsuleId, UInt160 from, UInt160 to);
+    public delegate void CapsuleExtendedHandler(BigInteger capsuleId, BigInteger newUnlockTime);
+    public delegate void RecipientAddedHandler(BigInteger capsuleId, UInt160 recipient);
 
     /// <summary>
-    /// TEE Time Capsule - Encrypted messages unlocked by time or conditions.
-    ///
-    /// GAME MECHANICS:
-    /// - Users bury encrypted messages with unlock conditions
-    /// - Content encrypted by TEE, no one can read until unlock
-    /// - Conditions: time-based or price-based triggers
-    /// - Public capsules can be "fished" by others
+    /// TEE Time Capsule - Complete encrypted message platform.
     /// </summary>
     [DisplayName("MiniAppTimeCapsule")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. TimeCapsule is a time-locked message system for future delivery. Use it to bury encrypted messages, you can reveal content after time conditions are met.")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "3.0.0")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. TimeCapsule is a complete encrypted message platform with categories, recipients, fishing rewards, gifting, and TEE-protected privacy.")]
     [ContractPermission("*", "*")]
-    public partial class MiniAppContract : SmartContract
+    public partial class MiniAppTimeCapsule : MiniAppTimeLockBase
     {
         #region App Constants
         private const string APP_ID = "miniapp-time-capsule";
-        private const long BURY_FEE = 20000000; // 0.2 GAS
-        private const long FISH_FEE = 5000000; // 0.05 GAS
+        private const long BURY_FEE = 20000000;         // 0.2 GAS
+        private const long FISH_FEE = 5000000;          // 0.05 GAS
+        private const long EXTEND_FEE = 10000000;       // 0.1 GAS
+        private const long GIFT_FEE = 15000000;         // 0.15 GAS
+        private const long FISH_REWARD = 2000000;       // 0.02 GAS reward
+        private const long MIN_LOCK_DURATION_SECONDS = 86400;  // 1 day minimum
+        private const long MAX_LOCK_DURATION_SECONDS = 31536000; // 10 years max
         #endregion
 
-        #region App Prefixes
-        private static readonly byte[] PREFIX_CAPSULE_ID = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_CAPSULE_OWNER = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_CAPSULE_HASH = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_CAPSULE_UNLOCK = new byte[] { 0x13 };
-        private static readonly byte[] PREFIX_CAPSULE_PUBLIC = new byte[] { 0x14 };
-        private static readonly byte[] PREFIX_CAPSULE_REVEALED = new byte[] { 0x15 };
-        private static readonly byte[] PREFIX_PUBLIC_CAPSULES = new byte[] { 0x16 };
-        private static readonly byte[] PREFIX_CAPSULE_ENCRYPTED = new byte[] { 0x17 };
-        private static readonly byte[] PREFIX_REQUEST_TO_CAPSULE = new byte[] { 0x18 };
+        #region App Storage Prefixes (0x20+)
+        private static readonly byte[] PREFIX_CAPSULES = new byte[] { 0x20 };
+        private static readonly byte[] PREFIX_HASH_INDEX = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_USER_STATS = new byte[] { 0x22 };
+        private static readonly byte[] PREFIX_USER_CAPSULES = new byte[] { 0x23 };
+        private static readonly byte[] PREFIX_USER_CAPSULE_COUNT = new byte[] { 0x24 };
+        private static readonly byte[] PREFIX_RECIPIENTS = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_RECIPIENT_COUNT = new byte[] { 0x26 };
+        private static readonly byte[] PREFIX_CATEGORY_COUNT = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_PUBLIC_COUNT = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_TOTAL_REVEALED = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_TOTAL_FISHED = new byte[] { 0x2A };
+        private static readonly byte[] PREFIX_TOTAL_GIFTED = new byte[] { 0x2B };
+        #endregion
+
+        #region Data Structures
+        public struct CapsuleData
+        {
+            public UInt160 Owner;
+            public string ContentHash;
+            public BigInteger Category;
+            public BigInteger UnlockTime;
+            public BigInteger CreateTime;
+            public bool IsPublic;
+            public bool IsRevealed;
+            public UInt160 Revealer;
+            public BigInteger RevealTime;
+            public BigInteger RecipientCount;
+            public BigInteger ExtensionCount;
+            public string Title;
+            public bool IsGifted;
+            public UInt160 OriginalOwner;
+        }
+
+        public struct UserStats
+        {
+            public BigInteger CapsulesBuried;
+            public BigInteger CapsulesRevealed;
+            public BigInteger CapsulesFished;
+            public BigInteger CapsulesGifted;
+            public BigInteger CapsulesReceived;
+            public BigInteger TotalSpent;
+            public BigInteger TotalEarned;
+            public BigInteger FishingRewards;
+            public BigInteger JoinTime;
+            public BigInteger FavCategory;
+        }
         #endregion
 
         #region Events
@@ -59,65 +98,14 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("CapsuleFished")]
         public static event CapsuleFishedHandler OnCapsuleFished;
 
-        [DisplayName("CapsuleEncrypted")]
-        public static event CapsuleEncryptedHandler OnCapsuleEncrypted;
+        [DisplayName("CapsuleGifted")]
+        public static event CapsuleGiftedHandler OnCapsuleGifted;
 
-        [DisplayName("CapsuleDecrypted")]
-        public static event CapsuleDecryptedHandler OnCapsuleDecrypted;
-        #endregion
+        [DisplayName("CapsuleExtended")]
+        public static event CapsuleExtendedHandler OnCapsuleExtended;
 
-        #region Getters
-        [Safe]
-        public static BigInteger TotalCapsules() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_CAPSULE_ID);
-
-        [Safe]
-        public static BigInteger UnlockTime(BigInteger capsuleId)
-        {
-            byte[] key = Helper.Concat(PREFIX_CAPSULE_UNLOCK, (ByteString)capsuleId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static bool IsRevealed(BigInteger capsuleId)
-        {
-            byte[] key = Helper.Concat(PREFIX_CAPSULE_REVEALED, (ByteString)capsuleId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
-        }
-
-        [Safe]
-        public static UInt160 GetOwner(BigInteger capsuleId)
-        {
-            byte[] key = Helper.Concat(PREFIX_CAPSULE_OWNER, (ByteString)capsuleId.ToByteArray());
-            return (UInt160)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static string GetContentHash(BigInteger capsuleId)
-        {
-            byte[] key = Helper.Concat(PREFIX_CAPSULE_HASH, (ByteString)capsuleId.ToByteArray());
-            return Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static bool IsPublic(BigInteger capsuleId)
-        {
-            byte[] key = Helper.Concat(PREFIX_CAPSULE_PUBLIC, (ByteString)capsuleId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
-        }
-
-        [Safe]
-        public static Map<string, object> GetCapsule(BigInteger capsuleId)
-        {
-            Map<string, object> capsule = new Map<string, object>();
-            capsule["id"] = capsuleId;
-            capsule["owner"] = GetOwner(capsuleId);
-            capsule["contentHash"] = GetContentHash(capsuleId);
-            capsule["unlockTime"] = UnlockTime(capsuleId);
-            capsule["isPublic"] = IsPublic(capsuleId);
-            capsule["isRevealed"] = IsRevealed(capsuleId);
-            return capsule;
-        }
+        [DisplayName("RecipientAdded")]
+        public static event RecipientAddedHandler OnRecipientAdded;
         #endregion
 
         #region Lifecycle
@@ -125,166 +113,80 @@ namespace NeoMiniAppPlatform.Contracts
         {
             if (update) return;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
-            Storage.Put(Storage.CurrentContext, PREFIX_CAPSULE_ID, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_PUBLIC_COUNT, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_REVEALED, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_FISHED, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_GIFTED, 0);
         }
         #endregion
 
-        #region User Methods
+        #region Read Methods
+        [Safe]
+        public static BigInteger TotalCapsules() => TotalItems();
 
-        /// <summary>
-        /// Bury a new time capsule.
-        /// </summary>
-        public static void Bury(UInt160 owner, string contentHash, BigInteger unlockTime, bool isPublic, BigInteger receiptId)
+        [Safe]
+        public static BigInteger TotalPublicCapsules() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_PUBLIC_COUNT);
+
+        [Safe]
+        public static BigInteger TotalRevealed() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_REVEALED);
+
+        [Safe]
+        public static BigInteger TotalFished() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_FISHED);
+
+        [Safe]
+        public static BigInteger TotalGifted() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_GIFTED);
+
+        [Safe]
+        public static CapsuleData GetCapsuleData(BigInteger capsuleId)
         {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(unlockTime > Runtime.Time, "unlock must be future");
-
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
-
-            ValidatePaymentReceipt(APP_ID, owner, BURY_FEE, receiptId);
-
-            BigInteger capsuleId = TotalCapsules() + 1;
-            Storage.Put(Storage.CurrentContext, PREFIX_CAPSULE_ID, capsuleId);
-
-            byte[] ownerKey = Helper.Concat(PREFIX_CAPSULE_OWNER, (ByteString)capsuleId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, ownerKey, owner);
-
-            byte[] hashKey = Helper.Concat(PREFIX_CAPSULE_HASH, (ByteString)capsuleId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, hashKey, contentHash);
-
-            byte[] unlockKey = Helper.Concat(PREFIX_CAPSULE_UNLOCK, (ByteString)capsuleId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, unlockKey, unlockTime);
-
-            byte[] publicKey = Helper.Concat(PREFIX_CAPSULE_PUBLIC, (ByteString)capsuleId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, publicKey, isPublic ? 1 : 0);
-
-            OnCapsuleBuried(owner, capsuleId, unlockTime, isPublic);
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_CAPSULES, (ByteString)capsuleId.ToByteArray()));
+            if (data == null) return new CapsuleData();
+            return (CapsuleData)StdLib.Deserialize(data);
         }
 
-        /// <summary>
-        /// Reveal capsule content (only after unlock time).
-        /// </summary>
-        public static void Reveal(UInt160 revealer, BigInteger capsuleId)
+        [Safe]
+        public static UserStats GetUserStats(UInt160 user)
         {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(!IsRevealed(capsuleId), "already revealed");
-
-            BigInteger unlock = UnlockTime(capsuleId);
-            ExecutionEngine.Assert(Runtime.Time >= unlock, "not yet unlocked");
-
-            byte[] ownerKey = Helper.Concat(PREFIX_CAPSULE_OWNER, (ByteString)capsuleId.ToByteArray());
-            UInt160 owner = (UInt160)Storage.Get(Storage.CurrentContext, ownerKey);
-
-            byte[] publicKey = Helper.Concat(PREFIX_CAPSULE_PUBLIC, (ByteString)capsuleId.ToByteArray());
-            bool isPublic = (BigInteger)Storage.Get(Storage.CurrentContext, publicKey) == 1;
-
-            ExecutionEngine.Assert(revealer == owner || isPublic, "not authorized");
-
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(revealer), "unauthorized");
-
-            byte[] revealedKey = Helper.Concat(PREFIX_CAPSULE_REVEALED, (ByteString)capsuleId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, revealedKey, 1);
-
-            OnCapsuleRevealed(capsuleId, revealer);
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_USER_STATS, user));
+            if (data == null) return new UserStats();
+            return (UserStats)StdLib.Deserialize(data);
         }
 
-        /// <summary>
-        /// Fish for a random public capsule.
-        /// </summary>
-        public static void Fish(UInt160 fisher, BigInteger receiptId)
+        [Safe]
+        public static BigInteger GetUserCapsuleCount(UInt160 user)
         {
-            ValidateNotGloballyPaused(APP_ID);
-
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(fisher), "unauthorized");
-
-            ValidatePaymentReceipt(APP_ID, fisher, FISH_FEE, receiptId);
-
-            // Find a random public unrevealed capsule
-            BigInteger total = TotalCapsules();
-            BigInteger capsuleId = (Runtime.Time % total) + 1;
-
-            byte[] publicKey = Helper.Concat(PREFIX_CAPSULE_PUBLIC, (ByteString)capsuleId.ToByteArray());
-            bool isPublic = (BigInteger)Storage.Get(Storage.CurrentContext, publicKey) == 1;
-
-            if (isPublic && !IsRevealed(capsuleId))
-            {
-                OnCapsuleFished(fisher, capsuleId);
-            }
+            byte[] key = Helper.Concat(PREFIX_USER_CAPSULE_COUNT, user);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
 
-        /// <summary>
-        /// SECURITY FIX: Allow admin to withdraw collected fees.
-        /// </summary>
-        public static void WithdrawFees(UInt160 recipient, BigInteger amount)
+        [Safe]
+        public static BigInteger GetCategoryCount(BigInteger category)
         {
-            ValidateAdmin();
-            ValidateAddress(recipient);
-            ExecutionEngine.Assert(amount > 0, "amount must be positive");
-
-            BigInteger balance = GAS.BalanceOf(Runtime.ExecutingScriptHash);
-            ExecutionEngine.Assert(balance >= amount, "insufficient balance");
-
-            bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, recipient, amount);
-            ExecutionEngine.Assert(transferred, "withdraw failed");
+            byte[] key = Helper.Concat(PREFIX_CATEGORY_COUNT, (ByteString)category.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
 
-        #endregion
-
-        #region TEE Service Methods
-
-        /// <summary>
-        /// Request TEE to encrypt capsule content.
-        /// </summary>
-        private static BigInteger RequestTeeEncrypt(BigInteger capsuleId, ByteString content)
+        [Safe]
+        public static bool IsRecipient(BigInteger capsuleId, UInt160 user)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
-
-            ByteString payload = StdLib.Serialize(new object[] { "encrypt", capsuleId, content });
-            BigInteger requestId = (BigInteger)Contract.Call(
-                gateway, "requestService", CallFlags.All,
-                APP_ID, "tee-compute", payload,
-                Runtime.ExecutingScriptHash, "OnTeeCallback"
-            );
-
-            // Map request to capsule
-            byte[] key = Helper.Concat(PREFIX_REQUEST_TO_CAPSULE, (ByteString)requestId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, key, capsuleId);
-
-            return requestId;
+            byte[] key = Helper.Concat(
+                Helper.Concat(PREFIX_RECIPIENTS, (ByteString)capsuleId.ToByteArray()),
+                user);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }
 
-        /// <summary>
-        /// TEE service callback handler.
-        /// </summary>
-        public static void OnTeeCallback(
-            BigInteger requestId, string appId, string serviceType,
-            bool success, ByteString result, string error)
+        [Safe]
+        public static BigInteger GetRecipientCount(BigInteger capsuleId)
         {
-            ValidateGateway();
-
-            byte[] key = Helper.Concat(PREFIX_REQUEST_TO_CAPSULE, (ByteString)requestId.ToByteArray());
-            ByteString capsuleIdData = Storage.Get(Storage.CurrentContext, key);
-            ExecutionEngine.Assert(capsuleIdData != null, "unknown request");
-
-            BigInteger capsuleId = (BigInteger)capsuleIdData;
-            Storage.Delete(Storage.CurrentContext, key);
-
-            if (success && result != null && result.Length > 0)
-            {
-                // Store encrypted content
-                byte[] encKey = Helper.Concat(PREFIX_CAPSULE_ENCRYPTED, (ByteString)capsuleId.ToByteArray());
-                Storage.Put(Storage.CurrentContext, encKey, result);
-                OnCapsuleEncrypted(capsuleId, result);
-            }
+            byte[] key = Helper.Concat(PREFIX_RECIPIENT_COUNT, (ByteString)capsuleId.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
-
         #endregion
     }
 }

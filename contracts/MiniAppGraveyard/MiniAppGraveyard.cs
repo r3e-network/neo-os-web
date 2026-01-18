@@ -9,30 +9,89 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
-    public delegate void MemoryBuriedHandler(BigInteger memoryId, UInt160 owner, string contentHash);
-    public delegate void MemoryForgottenHandler(BigInteger memoryId);
+    // Event delegates for memory lifecycle
+    public delegate void MemoryBuriedHandler(BigInteger memoryId, UInt160 owner, string contentHash, BigInteger memoryType);
+    public delegate void MemoryForgottenHandler(BigInteger memoryId, UInt160 owner, BigInteger forgetTime);
+    public delegate void MemoryUpdatedHandler(BigInteger memoryId, string newHash);
+    public delegate void EpitaphAddedHandler(BigInteger memoryId, string epitaph);
+    public delegate void MemorialCreatedHandler(BigInteger memorialId, UInt160 creator, string title);
+    public delegate void TributeAddedHandler(BigInteger memorialId, UInt160 sender, BigInteger amount);
+    public delegate void UserBadgeEarnedHandler(UInt160 user, BigInteger badgeType, string badgeName);
 
     /// <summary>
-    /// Digital Graveyard - Pay to permanently delete encrypted data.
+    /// Digital Graveyard MiniApp - Encrypted data burial and deletion platform.
     /// </summary>
     [DisplayName("MiniAppGraveyard")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. Graveyard is a data management application for permanent deletion. Use it to bury encrypted memories on-chain, you can permanently forget data with verified deletion proofs.")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Description", "Neo R3E Network MiniApp. Graveyard is an encrypted data burial platform.")]
     [ContractPermission("*", "*")]
-    public partial class MiniAppContract : SmartContract
+    public partial class MiniAppGraveyard : MiniAppBase
     {
         #region App Constants
         private const string APP_ID = "miniapp-graveyard";
-        private const long BURY_FEE = 10000000; // 0.1 GAS
-        private const long FORGET_FEE = 100000000; // 1 GAS
+        private const long BURY_FEE = 10000000;        // 0.1 GAS
+        private const long FORGET_FEE = 100000000;     // 1 GAS
+        private const long MEMORIAL_FEE = 500000000;   // 5 GAS
+        private const long MIN_TRIBUTE = 10000000;     // 0.1 GAS
+        private const int MAX_EPITAPH_LENGTH = 500;
+        private const int MAX_TITLE_LENGTH = 100;
         #endregion
 
-        #region App Prefixes
-        private static readonly byte[] PREFIX_MEMORY_ID = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_MEMORY_OWNER = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_MEMORY_HASH = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_MEMORY_FORGOTTEN = new byte[] { 0x13 };
+        #region App Prefixes (0x20+)
+        private static readonly byte[] PREFIX_MEMORY_ID = new byte[] { 0x20 };
+        private static readonly byte[] PREFIX_MEMORIES = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_USER_MEMORIES = new byte[] { 0x22 };
+        private static readonly byte[] PREFIX_USER_MEMORY_COUNT = new byte[] { 0x23 };
+        private static readonly byte[] PREFIX_MEMORIAL_ID = new byte[] { 0x24 };
+        private static readonly byte[] PREFIX_MEMORIALS = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_TOTAL_BURIED = new byte[] { 0x26 };
+        private static readonly byte[] PREFIX_TOTAL_FORGOTTEN = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_TOTAL_TRIBUTES = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_USER_STATS = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_USER_BADGES = new byte[] { 0x2A };
+        private static readonly byte[] PREFIX_TOTAL_USERS = new byte[] { 0x2B };
+        #endregion
+
+        #region Data Structures
+        public struct Memory
+        {
+            public UInt160 Owner;
+            public string ContentHash;
+            public BigInteger MemoryType;
+            public BigInteger BuriedTime;
+            public BigInteger ForgottenTime;
+            public string Epitaph;
+            public bool Forgotten;
+        }
+
+        public struct Memorial
+        {
+            public UInt160 Creator;
+            public string Title;
+            public string Description;
+            public BigInteger CreatedTime;
+            public BigInteger TotalTributes;
+            public BigInteger TributeCount;
+            public bool Active;
+        }
+
+        public struct UserStats
+        {
+            public BigInteger MemoriesBuried;
+            public BigInteger MemoriesForgotten;
+            public BigInteger MemorialsCreated;
+            public BigInteger TributesSent;
+            public BigInteger TributesReceived;
+            public BigInteger TotalSpent;
+            public BigInteger BadgeCount;
+            public BigInteger JoinTime;
+            public BigInteger LastActivityTime;
+            public BigInteger SecretsBuried;
+            public BigInteger RegretsBuried;
+            public BigInteger WishesBuried;
+        }
         #endregion
 
         #region Events
@@ -41,19 +100,21 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("MemoryForgotten")]
         public static event MemoryForgottenHandler OnMemoryForgotten;
-        #endregion
 
-        #region Getters
-        [Safe]
-        public static BigInteger TotalMemories() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_MEMORY_ID);
+        [DisplayName("MemoryUpdated")]
+        public static event MemoryUpdatedHandler OnMemoryUpdated;
 
-        [Safe]
-        public static bool IsForgotten(BigInteger memoryId)
-        {
-            byte[] key = Helper.Concat(PREFIX_MEMORY_FORGOTTEN, (ByteString)memoryId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
-        }
+        [DisplayName("EpitaphAdded")]
+        public static event EpitaphAddedHandler OnEpitaphAdded;
+
+        [DisplayName("MemorialCreated")]
+        public static event MemorialCreatedHandler OnMemorialCreated;
+
+        [DisplayName("TributeAdded")]
+        public static event TributeAddedHandler OnTributeAdded;
+
+        [DisplayName("UserBadgeEarned")]
+        public static event UserBadgeEarnedHandler OnUserBadgeEarned;
         #endregion
 
         #region Lifecycle
@@ -62,74 +123,77 @@ namespace NeoMiniAppPlatform.Contracts
             if (update) return;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
             Storage.Put(Storage.CurrentContext, PREFIX_MEMORY_ID, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_MEMORIAL_ID, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_BURIED, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_FORGOTTEN, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_TRIBUTES, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_USERS, 0);
         }
         #endregion
 
-        #region User Methods
+        #region Read Methods
+        [Safe]
+        public static BigInteger TotalMemories() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_MEMORY_ID);
 
-        public static void BuryMemory(UInt160 owner, string contentHash, BigInteger receiptId)
+        [Safe]
+        public static BigInteger TotalMemorials() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_MEMORIAL_ID);
+
+        [Safe]
+        public static BigInteger TotalBuried() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_BURIED);
+
+        [Safe]
+        public static BigInteger TotalForgotten() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_FORGOTTEN);
+
+        [Safe]
+        public static Memory GetMemory(BigInteger memoryId)
         {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(contentHash.Length > 0, "invalid content");
-
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
-
-            ValidatePaymentReceipt(APP_ID, owner, BURY_FEE, receiptId);
-
-            BigInteger memoryId = TotalMemories() + 1;
-            Storage.Put(Storage.CurrentContext, PREFIX_MEMORY_ID, memoryId);
-
-            byte[] ownerKey = Helper.Concat(PREFIX_MEMORY_OWNER, (ByteString)memoryId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, ownerKey, owner);
-
-            byte[] hashKey = Helper.Concat(PREFIX_MEMORY_HASH, (ByteString)memoryId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, hashKey, contentHash);
-
-            OnMemoryBuried(memoryId, owner, contentHash);
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_MEMORIES, (ByteString)memoryId.ToByteArray()));
+            if (data == null) return new Memory();
+            return (Memory)StdLib.Deserialize(data);
         }
 
-        public static void ForgetMemory(UInt160 owner, BigInteger memoryId, BigInteger receiptId)
+        [Safe]
+        public static Memorial GetMemorial(BigInteger memorialId)
         {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(!IsForgotten(memoryId), "already forgotten");
-
-            byte[] ownerKey = Helper.Concat(PREFIX_MEMORY_OWNER, (ByteString)memoryId.ToByteArray());
-            ExecutionEngine.Assert((UInt160)Storage.Get(Storage.CurrentContext, ownerKey) == owner, "not owner");
-
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
-
-            ValidatePaymentReceipt(APP_ID, owner, FORGET_FEE, receiptId);
-
-            byte[] forgottenKey = Helper.Concat(PREFIX_MEMORY_FORGOTTEN, (ByteString)memoryId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, forgottenKey, 1);
-
-            // Clear content hash (TEE will destroy encryption key)
-            byte[] hashKey = Helper.Concat(PREFIX_MEMORY_HASH, (ByteString)memoryId.ToByteArray());
-            Storage.Delete(Storage.CurrentContext, hashKey);
-
-            OnMemoryForgotten(memoryId);
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_MEMORIALS, (ByteString)memorialId.ToByteArray()));
+            if (data == null) return new Memorial();
+            return (Memorial)StdLib.Deserialize(data);
         }
 
-        /// <summary>
-        /// SECURITY FIX: Allow admin to withdraw collected fees.
-        /// </summary>
-        public static void WithdrawFees(UInt160 recipient, BigInteger amount)
+        [Safe]
+        public static BigInteger GetUserMemoryCount(UInt160 user)
         {
-            ValidateAdmin();
-            ValidateAddress(recipient);
-            ExecutionEngine.Assert(amount > 0, "amount must be positive");
-
-            BigInteger balance = GAS.BalanceOf(Runtime.ExecutingScriptHash);
-            ExecutionEngine.Assert(balance >= amount, "insufficient balance");
-
-            bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, recipient, amount);
-            ExecutionEngine.Assert(transferred, "withdraw failed");
+            byte[] key = Helper.Concat(PREFIX_USER_MEMORY_COUNT, user);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
 
+        [Safe]
+        public static BigInteger TotalUsers() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_USERS);
+
+        [Safe]
+        public static UserStats GetUserStatsData(UInt160 user)
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_USER_STATS, user));
+            if (data == null) return new UserStats();
+            return (UserStats)StdLib.Deserialize(data);
+        }
+
+        [Safe]
+        public static bool HasUserBadge(UInt160 user, BigInteger badgeType)
+        {
+            byte[] key = Helper.Concat(
+                Helper.Concat(PREFIX_USER_BADGES, user),
+                (ByteString)badgeType.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
+        }
         #endregion
     }
 }

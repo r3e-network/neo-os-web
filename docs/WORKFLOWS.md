@@ -298,7 +298,7 @@ workflow on Neo N3 testnet.
         - `app_id` matching the request (e.g., `com.test.consumer`).
         - `permissions.rng=true` (or `oracle` / `compute`).
         - `callback_contract` set to the deployed MiniApp contract address.
-        - `callback_method` set to `onServiceCallback`.
+        - `callback_method` set to `OnServiceCallback`.
 3. **Register + Approve in AppRegistry**
     - Register the manifest on-chain and approve it:
         ```bash

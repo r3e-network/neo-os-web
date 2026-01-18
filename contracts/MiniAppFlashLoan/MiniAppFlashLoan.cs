@@ -13,9 +13,12 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void LoanRequestedHandler(BigInteger loanId, UInt160 borrower, BigInteger amount);
     public delegate void LoanVerificationHandler(BigInteger loanId, BigInteger requestId);
     public delegate void LoanExecutedHandler(BigInteger loanId, UInt160 borrower, BigInteger amount, BigInteger fee, bool success);
-    public delegate void AutomationRegisteredHandler(BigInteger taskId, string triggerType, string schedule);
-    public delegate void AutomationCancelledHandler(BigInteger taskId);
     public delegate void PeriodicExecutionTriggeredHandler(BigInteger taskId);
+    public delegate void LiquidityDepositedHandler(UInt160 provider, BigInteger amount, BigInteger totalDeposited);
+    public delegate void LiquidityWithdrawnHandler(UInt160 provider, BigInteger amount, BigInteger remaining);
+    public delegate void BorrowerBadgeEarnedHandler(UInt160 borrower, BigInteger badgeType, string badgeName);
+    public delegate void ProviderBadgeEarnedHandler(UInt160 provider, BigInteger badgeType, string badgeName);
+    public delegate void FeesDistributedHandler(BigInteger totalFees, BigInteger providerShare);
 
     /// <summary>
     /// Flash Loan - Atomic borrow and repay with TEE verification.
@@ -33,29 +36,36 @@ namespace NeoMiniAppPlatform.Contracts
     /// </summary>
     [DisplayName("MiniAppFlashLoan")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Version", "3.0.0")]
     [ManifestExtra("Description", "This is Neo R3E Network MiniApp. FlashLoan is a flash lending protocol for atomic borrowing. Use it to borrow and repay in one transaction, you can access instant liquidity without collateral.")]
     [ContractPermission("*", "*")]
-    public partial class MiniAppContract : SmartContract
+    public partial class MiniAppFlashLoan : MiniAppServiceBase
     {
         #region App Constants
         private const string APP_ID = "miniapp-flashloan";
         private const long MIN_LOAN = 100000000; // 1 GAS
         private const long MAX_LOAN = 10000000000000; // 100,000 GAS
         private const int FEE_BASIS_POINTS = 9; // 0.09%
-        private const ulong LOAN_COOLDOWN = 300000; // 5 minutes between loans (anti-abuse)
-        private const int MAX_DAILY_LOANS = 10; // Max 10 loans per day per borrower
+        private const ulong LOAN_COOLDOWN_SECONDS = 300; // 5 minutes
+        private const int MAX_DAILY_LOANS = 10;
+        private const int PROVIDER_FEE_SHARE = 80; // 80% to providers
         #endregion
 
-        #region App Prefixes (start from 0x10)
-        private static readonly byte[] PREFIX_LOAN_ID = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_LOANS = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_REQUEST_TO_LOAN = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_POOL_BALANCE = new byte[] { 0x13 };
-        private static readonly byte[] PREFIX_BORROWER_LAST_LOAN = new byte[] { 0x14 };
-        private static readonly byte[] PREFIX_BORROWER_DAILY_COUNT = new byte[] { 0x15 };
-        private static readonly byte[] PREFIX_AUTOMATION_TASK = new byte[] { 0x20 };
-        private static readonly byte[] PREFIX_AUTOMATION_ANCHOR = new byte[] { 0x21 };
+        #region App Prefixes (0x20+)
+        private static readonly byte[] PREFIX_LOAN_ID = new byte[] { 0x20 };
+        private static readonly byte[] PREFIX_LOANS = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_REQUEST_TO_LOAN = new byte[] { 0x22 };
+        private static readonly byte[] PREFIX_POOL_BALANCE = new byte[] { 0x23 };
+        private static readonly byte[] PREFIX_BORROWER_LAST_LOAN = new byte[] { 0x24 };
+        private static readonly byte[] PREFIX_BORROWER_DAILY_COUNT = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_BORROWER_STATS = new byte[] { 0x26 };
+        private static readonly byte[] PREFIX_PROVIDER_STATS = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_BORROWER_BADGES = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_PROVIDER_BADGES = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_TOTAL_BORROWED = new byte[] { 0x2A };
+        private static readonly byte[] PREFIX_TOTAL_FEES = new byte[] { 0x2B };
+        private static readonly byte[] PREFIX_TOTAL_BORROWERS = new byte[] { 0x2C };
+        private static readonly byte[] PREFIX_TOTAL_PROVIDERS = new byte[] { 0x2D };
         #endregion
 
         #region Data Structures
@@ -70,6 +80,30 @@ namespace NeoMiniAppPlatform.Contracts
             public bool Executed;
             public bool Success;
         }
+
+        public struct BorrowerStats
+        {
+            public BigInteger TotalLoans;
+            public BigInteger SuccessfulLoans;
+            public BigInteger FailedLoans;
+            public BigInteger TotalBorrowed;
+            public BigInteger TotalFeesPaid;
+            public BigInteger HighestLoan;
+            public BigInteger BadgeCount;
+            public BigInteger JoinTime;
+            public BigInteger LastLoanTime;
+        }
+
+        public struct ProviderStats
+        {
+            public BigInteger TotalDeposited;
+            public BigInteger CurrentBalance;
+            public BigInteger TotalWithdrawn;
+            public BigInteger TotalFeesEarned;
+            public BigInteger BadgeCount;
+            public BigInteger JoinTime;
+            public BigInteger LastActivityTime;
+        }
         #endregion
 
         #region App Events
@@ -82,14 +116,23 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("LoanExecuted")]
         public static event LoanExecutedHandler OnLoanExecuted;
 
-        [DisplayName("AutomationRegistered")]
-        public static event AutomationRegisteredHandler OnAutomationRegistered;
-
-        [DisplayName("AutomationCancelled")]
-        public static event AutomationCancelledHandler OnAutomationCancelled;
-
         [DisplayName("PeriodicExecutionTriggered")]
         public static event PeriodicExecutionTriggeredHandler OnPeriodicExecutionTriggered;
+
+        [DisplayName("LiquidityDeposited")]
+        public static event LiquidityDepositedHandler OnLiquidityDeposited;
+
+        [DisplayName("LiquidityWithdrawn")]
+        public static event LiquidityWithdrawnHandler OnLiquidityWithdrawn;
+
+        [DisplayName("BorrowerBadgeEarned")]
+        public static event BorrowerBadgeEarnedHandler OnBorrowerBadgeEarned;
+
+        [DisplayName("ProviderBadgeEarned")]
+        public static event ProviderBadgeEarnedHandler OnProviderBadgeEarned;
+
+        [DisplayName("FeesDistributed")]
+        public static event FeesDistributedHandler OnFeesDistributed;
         #endregion
 
         #region Lifecycle
@@ -99,322 +142,69 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
             Storage.Put(Storage.CurrentContext, PREFIX_LOAN_ID, 0);
             Storage.Put(Storage.CurrentContext, PREFIX_POOL_BALANCE, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_BORROWED, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_FEES, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_BORROWERS, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_PROVIDERS, 0);
         }
         #endregion
 
-        #region User-Facing Methods
-
-        /// <summary>
-        /// Request a flash loan with callback verification.
-        /// </summary>
-        public static BigInteger RequestLoan(UInt160 borrower, BigInteger amount, UInt160 callbackContract, string callbackMethod)
-        {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(borrower), "unauthorized");
-            ExecutionEngine.Assert(amount >= MIN_LOAN, "min loan 1 GAS");
-            ExecutionEngine.Assert(amount <= MAX_LOAN, "max loan 100000 GAS");
-            ExecutionEngine.Assert(callbackContract != null && callbackContract.IsValid, "callback contract required");
-            ExecutionEngine.Assert(callbackMethod != null && callbackMethod.Length > 0, "callback method required");
-
-            // Anti-abuse: Check loan cooldown
-            ValidateLoanCooldown(borrower);
-
-            BigInteger poolBalance = GetPoolBalance();
-            ExecutionEngine.Assert(amount <= poolBalance, "insufficient pool balance");
-
-            // Record loan for rate limiting
-            RecordLoanRequest(borrower);
-
-            BigInteger loanId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_LOAN_ID) + 1;
-            Storage.Put(Storage.CurrentContext, PREFIX_LOAN_ID, loanId);
-
-            BigInteger fee = amount * FEE_BASIS_POINTS / 10000;
-
-            LoanData loan = new LoanData
-            {
-                Borrower = borrower,
-                Amount = amount,
-                Fee = fee,
-                CallbackContract = callbackContract,
-                CallbackMethod = callbackMethod,
-                Timestamp = Runtime.Time,
-                Executed = false,
-                Success = false
-            };
-            StoreLoan(loanId, loan);
-
-            // Request TEE to verify callback will repay
-            BigInteger requestId = RequestTeeVerification(loanId, amount, callbackContract, callbackMethod);
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_LOAN, (ByteString)requestId.ToByteArray()),
-                loanId);
-
-            OnLoanRequested(loanId, borrower, amount);
-            OnLoanVerification(loanId, requestId);
-            return loanId;
-        }
+        #region Read Methods
 
         [Safe]
-        public static LoanData GetLoan(BigInteger loanId)
+        public static BigInteger GetLoanCount() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_LOAN_ID);
+
+        [Safe]
+        public static BigInteger GetTotalBorrowed() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_BORROWED);
+
+        [Safe]
+        public static BigInteger GetTotalFees() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_FEES);
+
+        [Safe]
+        public static BigInteger GetTotalBorrowers() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_BORROWERS);
+
+        [Safe]
+        public static BigInteger GetTotalProviders() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_PROVIDERS);
+
+        [Safe]
+        public static BorrowerStats GetBorrowerStats(UInt160 borrower)
         {
             ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat(PREFIX_LOANS, (ByteString)loanId.ToByteArray()));
-            if (data == null) return new LoanData();
-            return (LoanData)StdLib.Deserialize(data);
+                Helper.Concat((ByteString)PREFIX_BORROWER_STATS, borrower));
+            if (data == null) return new BorrowerStats();
+            return (BorrowerStats)StdLib.Deserialize(data);
         }
 
         [Safe]
-        public static BigInteger GetPoolBalance()
+        public static ProviderStats GetProviderStats(UInt160 provider)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_POOL_BALANCE);
-            if (data == null) return 0;
-            return (BigInteger)data;
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_PROVIDER_STATS, provider));
+            if (data == null) return new ProviderStats();
+            return (ProviderStats)StdLib.Deserialize(data);
         }
 
-        /// <summary>
-        /// Deposit liquidity to the flash loan pool.
-        /// </summary>
-        public static void Deposit(UInt160 depositor, BigInteger amount)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(depositor), "unauthorized");
-            ExecutionEngine.Assert(amount > 0, "amount required");
-
-            BigInteger poolBalance = GetPoolBalance();
-            Storage.Put(Storage.CurrentContext, PREFIX_POOL_BALANCE, poolBalance + amount);
-        }
-
-        #endregion
-
-        #region Service Request Methods
-
-        private static BigInteger RequestTeeVerification(BigInteger loanId, BigInteger amount, UInt160 callbackContract, string callbackMethod)
-        {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
-
-            ByteString payload = StdLib.Serialize(new object[] { loanId, amount, callbackContract, callbackMethod });
-            return (BigInteger)Contract.Call(
-                gateway, "requestService", CallFlags.All,
-                APP_ID, "tee-compute", payload,
-                Runtime.ExecutingScriptHash, "onServiceCallback"
-            );
-        }
-
-        public static void OnServiceCallback(
-            BigInteger requestId, string appId, string serviceType,
-            bool success, ByteString result, string error)
-        {
-            ValidateGateway();
-
-            ByteString loanIdData = Storage.Get(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_LOAN, (ByteString)requestId.ToByteArray()));
-            ExecutionEngine.Assert(loanIdData != null, "unknown request");
-
-            BigInteger loanId = (BigInteger)loanIdData;
-            LoanData loan = GetLoan(loanId);
-            ExecutionEngine.Assert(!loan.Executed, "already executed");
-            ExecutionEngine.Assert(loan.Borrower != null, "loan not found");
-
-            Storage.Delete(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_LOAN, (ByteString)requestId.ToByteArray()));
-
-            loan.Executed = true;
-
-            if (success && result != null && result.Length > 0)
-            {
-                // TEE verified callback will repay
-                bool verified = (bool)StdLib.Deserialize(result);
-
-                if (verified)
-                {
-                    // Execute the flash loan
-                    // In real implementation: transfer funds, call callback, verify repayment
-                    loan.Success = true;
-
-                    // Collect fee into pool
-                    BigInteger poolBalance = GetPoolBalance();
-                    Storage.Put(Storage.CurrentContext, PREFIX_POOL_BALANCE, poolBalance + loan.Fee);
-                }
-            }
-
-            StoreLoan(loanId, loan);
-            OnLoanExecuted(loanId, loan.Borrower, loan.Amount, loan.Fee, loan.Success);
-        }
-
-        #endregion
-
-        #region Internal Helpers
-
-        private static void StoreLoan(BigInteger loanId, LoanData loan)
-        {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat(PREFIX_LOANS, (ByteString)loanId.ToByteArray()),
-                StdLib.Serialize(loan));
-        }
-
-        /// <summary>
-        /// Validates borrower hasn't exceeded loan frequency limits.
-        /// Anti-abuse: 5 min cooldown + max 10 loans/day.
-        /// </summary>
-        private static void ValidateLoanCooldown(UInt160 borrower)
-        {
-            // Check cooldown
-            byte[] lastLoanKey = Helper.Concat(PREFIX_BORROWER_LAST_LOAN, (ByteString)borrower);
-            ByteString lastLoanData = Storage.Get(Storage.CurrentContext, lastLoanKey);
-            if (lastLoanData != null)
-            {
-                BigInteger lastLoan = (BigInteger)lastLoanData;
-                BigInteger elapsed = Runtime.Time - lastLoan;
-                ExecutionEngine.Assert(elapsed >= LOAN_COOLDOWN, "wait 5 min between loans");
-            }
-
-            // Check daily limit
-            BigInteger dailyCount = GetBorrowerDailyCount(borrower);
-            ExecutionEngine.Assert(dailyCount < MAX_DAILY_LOANS, "max 10 loans per day");
-        }
-
-        /// <summary>
-        /// Records loan request for rate limiting.
-        /// </summary>
-        private static void RecordLoanRequest(UInt160 borrower)
-        {
-            // Update last loan time
-            byte[] lastLoanKey = Helper.Concat(PREFIX_BORROWER_LAST_LOAN, (ByteString)borrower);
-            Storage.Put(Storage.CurrentContext, lastLoanKey, Runtime.Time);
-
-            // Update daily count
-            BigInteger currentDay = Runtime.Time / 86400000;
-            byte[] countKey = Helper.Concat(PREFIX_BORROWER_DAILY_COUNT, (ByteString)borrower);
-            ByteString countData = Storage.Get(Storage.CurrentContext, countKey);
-
-            BigInteger count = 1;
-            if (countData != null)
-            {
-                object[] stored = (object[])StdLib.Deserialize(countData);
-                BigInteger storedDay = (BigInteger)stored[0];
-                if (storedDay == currentDay)
-                {
-                    count = (BigInteger)stored[1] + 1;
-                }
-            }
-            Storage.Put(Storage.CurrentContext, countKey,
-                StdLib.Serialize(new object[] { currentDay, count }));
-        }
-
-        /// <summary>
-        /// Gets borrower's loan count for current day.
-        /// </summary>
-        private static BigInteger GetBorrowerDailyCount(UInt160 borrower)
-        {
-            byte[] countKey = Helper.Concat(PREFIX_BORROWER_DAILY_COUNT, (ByteString)borrower);
-            ByteString countData = Storage.Get(Storage.CurrentContext, countKey);
-            if (countData == null) return 0;
-
-            object[] stored = (object[])StdLib.Deserialize(countData);
-            BigInteger storedDay = (BigInteger)stored[0];
-            BigInteger currentDay = Runtime.Time / 86400000;
-
-            if (storedDay != currentDay) return 0;
-            return (BigInteger)stored[1];
-        }
-
-        #endregion
-
-        #region Periodic Automation
-
-        /// <summary>
-        /// Returns the AutomationAnchor contract address.
-        /// </summary>
         [Safe]
-        public static UInt160 AutomationAnchor()
+        public static bool HasBorrowerBadge(UInt160 borrower, BigInteger badgeType)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR);
-            return data != null ? (UInt160)data : UInt160.Zero;
+            byte[] key = Helper.Concat(
+                Helper.Concat(PREFIX_BORROWER_BADGES, borrower),
+                (ByteString)badgeType.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }
 
-        /// <summary>
-        /// Sets the AutomationAnchor contract address.
-        /// SECURITY: Only admin can set the automation anchor.
-        /// </summary>
-        public static void SetAutomationAnchor(UInt160 anchor)
+        [Safe]
+        public static bool HasProviderBadge(UInt160 provider, BigInteger badgeType)
         {
-            ValidateAdmin();
-            ValidateAddress(anchor);
-            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR, anchor);
-        }
-
-        /// <summary>
-        /// Periodic execution callback invoked by AutomationAnchor.
-        /// SECURITY: Only AutomationAnchor can invoke this method.
-        /// LOGIC: Checks for defaulted loans and processes liquidation.
-        /// </summary>
-        public static void OnPeriodicExecution(BigInteger taskId, ByteString payload)
-        {
-            // Verify caller is AutomationAnchor
-            UInt160 anchor = AutomationAnchor();
-            ExecutionEngine.Assert(anchor != UInt160.Zero && Runtime.CallingScriptHash == anchor, "unauthorized");
-
-            OnPeriodicExecutionTriggered(taskId);
-
-            // Process automated liquidation
-            ProcessAutomatedLiquidation();
-        }
-
-        /// <summary>
-        /// Registers this MiniApp for periodic automation.
-        /// SECURITY: Only admin can register.
-        /// CORRECTNESS: AutomationAnchor must be set first.
-        /// </summary>
-        public static BigInteger RegisterAutomation(string triggerType, string schedule)
-        {
-            ValidateAdmin();
-            UInt160 anchor = AutomationAnchor();
-            ExecutionEngine.Assert(anchor != UInt160.Zero, "automation anchor not set");
-
-            // Call AutomationAnchor.RegisterPeriodicTask
-            BigInteger taskId = (BigInteger)Contract.Call(anchor, "registerPeriodicTask", CallFlags.All,
-                Runtime.ExecutingScriptHash, "onPeriodicExecution", triggerType, schedule, 1000000); // 0.01 GAS limit
-
-            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_TASK, taskId);
-            OnAutomationRegistered(taskId, triggerType, schedule);
-            return taskId;
-        }
-
-        /// <summary>
-        /// Cancels the registered automation task.
-        /// SECURITY: Only admin can cancel.
-        /// </summary>
-        public static void CancelAutomation()
-        {
-            ValidateAdmin();
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
-            ExecutionEngine.Assert(data != null, "no automation registered");
-
-            BigInteger taskId = (BigInteger)data;
-            UInt160 anchor = AutomationAnchor();
-            Contract.Call(anchor, "cancelPeriodicTask", CallFlags.All, taskId);
-
-            Storage.Delete(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
-            OnAutomationCancelled(taskId);
-        }
-
-        /// <summary>
-        /// Internal method to process automated loan liquidation.
-        /// Called by OnPeriodicExecution.
-        /// Liquidates loans that have defaulted or exceeded collateral thresholds.
-        /// </summary>
-        private static void ProcessAutomatedLiquidation()
-        {
-            // In a production implementation, this would:
-            // 1. Iterate through active loans
-            // 2. Check collateral ratios or time-based defaults
-            // 3. Liquidate loans that meet liquidation criteria
-            // 4. Update pool balances accordingly
-
-            // For this implementation, we emit an event to indicate
-            // automated liquidation processing has been triggered.
-            // The actual liquidation logic would be implemented based on
-            // specific loan terms and collateral requirements.
+            byte[] key = Helper.Concat(
+                Helper.Concat(PREFIX_PROVIDER_BADGES, provider),
+                (ByteString)badgeType.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }
 
         #endregion

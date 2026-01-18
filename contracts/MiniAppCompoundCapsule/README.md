@@ -8,7 +8,7 @@
 
 ### 核心机制
 
-- **时间锁定**：用户设定解锁时间，期间无法提取
+- **时间锁定**：用户设定锁定天数，解锁时间为链上 Unix 时间戳（秒）
 - **自动复利**：NEO 产生的 GAS 自动累积复利
 - **强制储蓄**：到期前无法提前解锁，培养储蓄习惯
 - **平台手续费**：解锁时收取 2% 手续费
@@ -18,20 +18,21 @@
 #### 1. 创建胶囊 (CreateCapsule)
 
 ```csharp
-public static void CreateCapsule(UInt160 owner, BigInteger neoAmount, BigInteger unlockTime)
+public static BigInteger CreateCapsule(UInt160 owner, BigInteger neoAmount, BigInteger lockDays)
 ```
 
-- 存入 NEO 并设定解锁时间
+- 存入 NEO 并设定锁定天数
 - 创建唯一胶囊 ID
 - 触发 `CapsuleCreated` 事件
 
 #### 2. 解锁胶囊 (UnlockCapsule)
 
 ```csharp
-public static void UnlockCapsule(UInt160 owner, BigInteger capsuleId)
+public static void UnlockCapsule(BigInteger capsuleId)
 ```
 
 - 到期后提取本金和复利收益
+- 合约内部验证所有者身份
 - 扣除 2% 平台手续费
 - 触发 `CapsuleUnlocked` 事件
 
@@ -61,11 +62,11 @@ public static BigInteger TotalCapsules()
 
 - **最低存款**：无最低限制
 - **平台费率**：2%
-- **解锁条件**：必须达到设定的解锁时间
+- **解锁条件**：必须达到设定的解锁时间（秒）
 
 ### 事件
 
-- `CapsuleCreated(capsuleId, owner, principal, unlockTime)` - 胶囊创建事件
+- `CapsuleCreated(capsuleId, owner, principal, unlockTime)` - 胶囊创建事件（unlockTime 为秒）
 - `CapsuleUnlocked(capsuleId, owner, total)` - 胶囊解锁事件
 
 ---
@@ -78,7 +79,7 @@ Compound Time Capsule is a forced savings contract where users lock NEO assets w
 
 ### Core Mechanics
 
-- **Time Lock**: Users set unlock time, cannot withdraw during lock period
+- **Time Lock**: Users set lock duration in days; unlock time is a Unix timestamp (seconds)
 - **Auto-Compounding**: GAS generated from NEO automatically compounds
 - **Forced Savings**: Cannot unlock early, cultivating savings habits
 - **Platform Fee**: 2% fee charged upon unlock
@@ -88,20 +89,21 @@ Compound Time Capsule is a forced savings contract where users lock NEO assets w
 #### 1. Create Capsule
 
 ```csharp
-public static void CreateCapsule(UInt160 owner, BigInteger neoAmount, BigInteger unlockTime)
+public static BigInteger CreateCapsule(UInt160 owner, BigInteger neoAmount, BigInteger lockDays)
 ```
 
-- Deposit NEO and set unlock time
+- Deposit NEO and set lock duration in days
 - Create unique capsule ID
 - Triggers `CapsuleCreated` event
 
 #### 2. Unlock Capsule
 
 ```csharp
-public static void UnlockCapsule(UInt160 owner, BigInteger capsuleId)
+public static void UnlockCapsule(BigInteger capsuleId)
 ```
 
 - Withdraw principal and compound earnings after maturity
+- Contract internally verifies owner identity
 - Deduct 2% platform fee
 - Triggers `CapsuleUnlocked` event
 
@@ -135,7 +137,7 @@ public static BigInteger TotalCapsules()
 
 ### Events
 
-- `CapsuleCreated(capsuleId, owner, principal, unlockTime)` - Capsule creation event
+- `CapsuleCreated(capsuleId, owner, principal, unlockTime)` - Capsule creation event (unlockTime in seconds)
 - `CapsuleUnlocked(capsuleId, owner, total)` - Capsule unlock event
 
 ### Contract Information

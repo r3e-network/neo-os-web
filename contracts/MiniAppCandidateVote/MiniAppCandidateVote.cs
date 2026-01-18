@@ -9,263 +9,236 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
+    // Event delegates for CandidateVote lifecycle
     public delegate void VoteRegisteredHandler(UInt160 voter, BigInteger epochId, BigInteger voteWeight);
+    public delegate void VoteWithdrawnHandler(UInt160 voter, BigInteger epochId, BigInteger voteWeight);
     public delegate void RewardsDepositedHandler(BigInteger epochId, BigInteger amount);
     public delegate void RewardsClaimedHandler(UInt160 voter, BigInteger epochId, BigInteger amount);
     public delegate void EpochAdvancedHandler(BigInteger oldEpoch, BigInteger newEpoch);
     public delegate void StrategyChangedHandler(BigInteger epochId, string strategy, BigInteger totalVotes);
+    public delegate void VoterBadgeEarnedHandler(UInt160 voter, BigInteger badgeType, string badgeName);
+    public delegate void DelegationChangedHandler(UInt160 delegator, UInt160 delegatee, BigInteger epochId);
 
+    /// <summary>
+    /// CandidateVote MiniApp - Complete platform candidate voting and rewards system.
+    ///
+    /// FEATURES:
+    /// - Epoch-based voting cycles with configurable duration
+    /// - Vote weight tracking and delegation
+    /// - Proportional GAS rewards distribution
+    /// - Multiple voting strategies (self, neoburger)
+    /// - Voter statistics and badges
+    /// - Vote delegation between users
+    /// - Historical epoch data tracking
+    ///
+    /// MECHANICS:
+    /// - Users register votes with NEO weight
+    /// - Rewards distributed proportionally at epoch end
+    /// - Strategy determined by total votes vs threshold
+    /// - Voters earn badges for participation milestones
+    /// </summary>
     [DisplayName("MiniAppCandidateVote")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Vote for platform candidate and earn proportional GAS rewards")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. CandidateVote is a complete platform candidate voting system with epoch cycles, proportional rewards, delegation, badges, and multiple voting strategies.")]
     [ContractPermission("*", "*")]
-    public class MiniAppCandidateVote : SmartContract
+    public partial class MiniAppCandidateVote : MiniAppBase
     {
+        #region App Constants
         private const string APP_ID = "miniapp-candidate-vote";
-        private const long EPOCH_DURATION = 604800000;
-        private const long MIN_VOTE_WEIGHT = 100000000;
-
-        private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
-        private static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
-        private static readonly byte[] PREFIX_CANDIDATE = new byte[] { 0x04 };
-        private static readonly byte[] PREFIX_EPOCH_ID = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_EPOCH_START = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_EPOCH_REWARDS = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_EPOCH_TOTAL_VOTES = new byte[] { 0x13 };
-        private static readonly byte[] PREFIX_VOTER_WEIGHT = new byte[] { 0x20 };
-        private static readonly byte[] PREFIX_VOTER_CLAIMED = new byte[] { 0x21 };
-        private static readonly byte[] PREFIX_CANDIDATE_THRESHOLD = new byte[] { 0x30 };
-        private static readonly byte[] PREFIX_NEOBURGER = new byte[] { 0x31 };
-        private static readonly byte[] PREFIX_EPOCH_STRATEGY = new byte[] { 0x32 };
-
+        private const long EPOCH_DURATION_SECONDS = 604800;    // 7 days
+        private const long MIN_VOTE_WEIGHT = 100000000;   // 1 NEO minimum
+        private const long DEFAULT_THRESHOLD = 500000000000; // 5000 NEO
         private const string STRATEGY_SELF = "self";
         private const string STRATEGY_NEOBURGER = "neoburger";
+        // Voter badges: 1=FirstVote, 2=Consistent(5 epochs), 3=Whale(1000 NEO), 4=Veteran(20 epochs)
+        #endregion
 
+        #region App Prefixes (0x20+ to avoid collision with MiniAppBase)
+        private static readonly byte[] PREFIX_CANDIDATE = new byte[] { 0x20 };
+        private static readonly byte[] PREFIX_EPOCH_ID = new byte[] { 0x21 };
+        private static readonly byte[] PREFIX_EPOCHS = new byte[] { 0x22 };
+        private static readonly byte[] PREFIX_VOTER_STATS = new byte[] { 0x23 };
+        private static readonly byte[] PREFIX_VOTER_EPOCH = new byte[] { 0x24 };
+        private static readonly byte[] PREFIX_VOTER_CLAIMED = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_DELEGATIONS = new byte[] { 0x26 };
+        private static readonly byte[] PREFIX_VOTER_BADGES = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_NEOBURGER = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_THRESHOLD = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_TOTAL_REWARDS = new byte[] { 0x2A };
+        private static readonly byte[] PREFIX_TOTAL_VOTERS = new byte[] { 0x2B };
+        #endregion
+
+        #region Data Structures
+
+        public struct EpochData
+        {
+            public BigInteger Id;
+            public BigInteger StartTime;
+            public BigInteger EndTime;
+            public BigInteger TotalVotes;
+            public BigInteger TotalRewards;
+            public BigInteger VoterCount;
+            public string Strategy;
+            public bool Finalized;
+            public BigInteger RewardsClaimed;
+        }
+
+        public struct VoterStats
+        {
+            public BigInteger TotalVoted;
+            public BigInteger EpochsParticipated;
+            public BigInteger TotalRewardsClaimed;
+            public BigInteger HighestVote;
+            public BigInteger BadgeCount;
+            public BigInteger JoinTime;
+            public BigInteger LastVoteTime;
+            public UInt160 DelegatedTo;
+        }
+
+        public struct VoterEpochData
+        {
+            public BigInteger VoteWeight;
+            public BigInteger DelegatedWeight;
+            public BigInteger RewardsClaimed;
+            public BigInteger VoteTime;
+            public bool Claimed;
+        }
+
+        #endregion
+
+        #region App Events
         [DisplayName("VoteRegistered")]
         public static event VoteRegisteredHandler OnVoteRegistered;
+
+        [DisplayName("VoteWithdrawn")]
+        public static event VoteWithdrawnHandler OnVoteWithdrawn;
+
         [DisplayName("RewardsDeposited")]
         public static event RewardsDepositedHandler OnRewardsDeposited;
+
         [DisplayName("RewardsClaimed")]
         public static event RewardsClaimedHandler OnRewardsClaimed;
+
         [DisplayName("EpochAdvanced")]
         public static event EpochAdvancedHandler OnEpochAdvanced;
+
         [DisplayName("StrategyChanged")]
         public static event StrategyChangedHandler OnStrategyChanged;
 
+        [DisplayName("VoterBadgeEarned")]
+        public static event VoterBadgeEarnedHandler OnVoterBadgeEarned;
+
+        [DisplayName("DelegationChanged")]
+        public static event DelegationChangedHandler OnDelegationChanged;
+        #endregion
+
+        #region Read Methods
+
+        [Safe]
+        public static UInt160 PlatformCandidate() =>
+            (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_CANDIDATE);
+
+        [Safe]
+        public static BigInteger CurrentEpoch() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_EPOCH_ID);
+
+        [Safe]
+        public static BigInteger TotalRewardsDistributed() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_REWARDS);
+
+        [Safe]
+        public static BigInteger TotalVoters() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_VOTERS);
+
+        [Safe]
+        public static BigInteger CandidateThreshold()
+        {
+            var data = Storage.Get(Storage.CurrentContext, PREFIX_THRESHOLD);
+            return data == null ? DEFAULT_THRESHOLD : (BigInteger)data;
+        }
+
+        [Safe]
+        public static UInt160 NeoBurger() =>
+            (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_NEOBURGER);
+
+        [Safe]
+        public static EpochData GetEpoch(BigInteger epochId)
+        {
+            byte[] key = GetEpochKey(epochId);
+            ByteString data = Storage.Get(Storage.CurrentContext, Helper.Concat(key, EPOCH_FIELD_ID));
+            if (data == null) return new EpochData();
+
+            return new EpochData
+            {
+                Id = GetBigInteger(Helper.Concat(key, EPOCH_FIELD_ID)),
+                StartTime = GetBigInteger(Helper.Concat(key, EPOCH_FIELD_START_TIME)),
+                EndTime = GetBigInteger(Helper.Concat(key, EPOCH_FIELD_END_TIME)),
+                TotalVotes = GetBigInteger(Helper.Concat(key, EPOCH_FIELD_TOTAL_VOTES)),
+                TotalRewards = GetBigInteger(Helper.Concat(key, EPOCH_FIELD_TOTAL_REWARDS)),
+                VoterCount = GetBigInteger(Helper.Concat(key, EPOCH_FIELD_VOTER_COUNT)),
+                Strategy = GetString(Helper.Concat(key, EPOCH_FIELD_STRATEGY)),
+                Finalized = GetBool(Helper.Concat(key, EPOCH_FIELD_FINALIZED)),
+                RewardsClaimed = GetBigInteger(Helper.Concat(key, EPOCH_FIELD_REWARDS_CLAIMED))
+            };
+        }
+
+        [Safe]
+        public static VoterStats GetVoterStats(UInt160 voter)
+        {
+            byte[] key = GetVoterStatsKey(voter);
+            ByteString data = Storage.Get(Storage.CurrentContext, Helper.Concat(key, VOTER_STATS_FIELD_TOTAL_VOTED));
+            if (data == null) return new VoterStats();
+
+            return new VoterStats
+            {
+                TotalVoted = GetBigInteger(Helper.Concat(key, VOTER_STATS_FIELD_TOTAL_VOTED)),
+                EpochsParticipated = GetBigInteger(Helper.Concat(key, VOTER_STATS_FIELD_EPOCHS_PARTICIPATED)),
+                TotalRewardsClaimed = GetBigInteger(Helper.Concat(key, VOTER_STATS_FIELD_TOTAL_REWARDS)),
+                HighestVote = GetBigInteger(Helper.Concat(key, VOTER_STATS_FIELD_HIGHEST_VOTE)),
+                BadgeCount = GetBigInteger(Helper.Concat(key, VOTER_STATS_FIELD_BADGE_COUNT)),
+                JoinTime = GetBigInteger(Helper.Concat(key, VOTER_STATS_FIELD_JOIN_TIME)),
+                LastVoteTime = GetBigInteger(Helper.Concat(key, VOTER_STATS_FIELD_LAST_VOTE)),
+                DelegatedTo = GetUInt160(Helper.Concat(key, VOTER_STATS_FIELD_DELEGATED_TO))
+            };
+        }
+
+        [Safe]
+        public static bool HasVoterBadge(UInt160 voter, BigInteger badgeType)
+        {
+            byte[] key = Helper.Concat(
+                Helper.Concat(PREFIX_VOTER_BADGES, voter),
+                (ByteString)badgeType.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
+        }
+
+        #endregion
+
+        #region Lifecycle
         public static void _deploy(object data, bool update)
         {
             if (update) return;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
             Storage.Put(Storage.CurrentContext, PREFIX_EPOCH_ID, 1);
-            Storage.Put(Storage.CurrentContext, PREFIX_EPOCH_START, Runtime.Time);
-        }
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_REWARDS, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_VOTERS, 0);
 
-        [Safe]
-        public static UInt160 Admin() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
-        [Safe]
-        public static UInt160 Gateway() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_GATEWAY);
-        [Safe]
-        public static UInt160 PlatformCandidate() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_CANDIDATE);
-        [Safe]
-        public static BigInteger CurrentEpoch() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_EPOCH_ID);
-        [Safe]
-        public static BigInteger EpochStartTime() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_EPOCH_START);
-        [Safe]
-        public static BigInteger EpochEndTime() => EpochStartTime() + EPOCH_DURATION;
-
-        public static void SetGateway(UInt160 gateway)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(Admin()), "admin only");
-            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, gateway);
-        }
-
-        public static void SetPlatformCandidate(UInt160 candidate)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(Admin()), "admin only");
-            Storage.Put(Storage.CurrentContext, PREFIX_CANDIDATE, candidate);
-        }
-
-        public static void SetCandidateThreshold(BigInteger threshold)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(Admin()), "admin only");
-            Storage.Put(Storage.CurrentContext, PREFIX_CANDIDATE_THRESHOLD, threshold);
-        }
-
-        public static void SetNeoBurger(UInt160 neoburger)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(Admin()), "admin only");
-            Storage.Put(Storage.CurrentContext, PREFIX_NEOBURGER, neoburger);
-        }
-
-        [Safe]
-        public static BigInteger CandidateThreshold()
-        {
-            var data = Storage.Get(Storage.CurrentContext, PREFIX_CANDIDATE_THRESHOLD);
-            return data == null ? 500000000000 : (BigInteger)data; // Default 5000 NEO
-        }
-
-        [Safe]
-        public static UInt160 NeoBurger()
-        {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_NEOBURGER);
-        }
-
-        [Safe]
-        public static string EpochStrategy(BigInteger epochId)
-        {
-            var key = Helper.Concat((ByteString)PREFIX_EPOCH_STRATEGY, (ByteString)epochId.ToByteArray());
-            var data = Storage.Get(Storage.CurrentContext, key);
-            return data == null ? STRATEGY_NEOBURGER : (string)data;
-        }
-
-        [Safe]
-        public static string CurrentStrategy()
-        {
-            return EpochStrategy(CurrentEpoch());
-        }
-
-        [Safe]
-        public static BigInteger EpochRewards(BigInteger epochId)
-        {
-            var key = Helper.Concat((ByteString)PREFIX_EPOCH_REWARDS, (ByteString)epochId.ToByteArray());
-            var data = Storage.Get(Storage.CurrentContext, key);
-            return data == null ? 0 : (BigInteger)data;
-        }
-
-        [Safe]
-        public static BigInteger EpochTotalVotes(BigInteger epochId)
-        {
-            var key = Helper.Concat((ByteString)PREFIX_EPOCH_TOTAL_VOTES, (ByteString)epochId.ToByteArray());
-            var data = Storage.Get(Storage.CurrentContext, key);
-            return data == null ? 0 : (BigInteger)data;
-        }
-
-        public static void AdvanceEpoch()
-        {
-            ExecutionEngine.Assert(Runtime.Time >= EpochEndTime(), "epoch not ended");
-            BigInteger oldEpoch = CurrentEpoch();
-            BigInteger newEpoch = oldEpoch + 1;
-            Storage.Put(Storage.CurrentContext, PREFIX_EPOCH_ID, newEpoch);
-            Storage.Put(Storage.CurrentContext, PREFIX_EPOCH_START, Runtime.Time);
-
-            // Determine strategy for new epoch based on total votes
-            BigInteger totalVotes = EpochTotalVotes(oldEpoch);
-            string strategy = totalVotes >= CandidateThreshold() ? STRATEGY_SELF : STRATEGY_NEOBURGER;
-
-            var strategyKey = Helper.Concat((ByteString)PREFIX_EPOCH_STRATEGY, (ByteString)newEpoch.ToByteArray());
-            Storage.Put(Storage.CurrentContext, strategyKey, strategy);
-
-            OnEpochAdvanced(oldEpoch, newEpoch);
-            OnStrategyChanged(newEpoch, strategy, totalVotes);
-        }
-
-        public static void RegisterVote(UInt160 voter, BigInteger voteWeight)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(voter), "unauthorized");
-            ExecutionEngine.Assert(voteWeight >= MIN_VOTE_WEIGHT, "min 1 NEO");
-
-            BigInteger epochId = CurrentEpoch();
-            var voterKey = GetVoterKey(voter, epochId);
-            var existingWeight = Storage.Get(Storage.CurrentContext, voterKey);
-
-            if (existingWeight != null)
+            // Initialize first epoch
+            EpochData epoch = new EpochData
             {
-                BigInteger oldWeight = (BigInteger)existingWeight;
-                UpdateTotalVotes(epochId, -oldWeight);
-            }
-
-            Storage.Put(Storage.CurrentContext, voterKey, voteWeight);
-            UpdateTotalVotes(epochId, voteWeight);
-            OnVoteRegistered(voter, epochId, voteWeight);
+                Id = 1,
+                StartTime = Runtime.Time,
+                EndTime = Runtime.Time + EPOCH_DURATION_SECONDS,
+                TotalVotes = 0,
+                TotalRewards = 0,
+                VoterCount = 0,
+                Strategy = STRATEGY_NEOBURGER,
+                Finalized = false,
+                RewardsClaimed = 0
+            };
+            StoreEpoch(1, epoch);
         }
-
-        public static void DepositRewards(BigInteger epochId, BigInteger amount)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(Admin()), "admin only");
-            ExecutionEngine.Assert(amount > 0, "amount must be positive");
-
-            var key = Helper.Concat((ByteString)PREFIX_EPOCH_REWARDS, (ByteString)epochId.ToByteArray());
-            BigInteger current = EpochRewards(epochId);
-            Storage.Put(Storage.CurrentContext, key, current + amount);
-            OnRewardsDeposited(epochId, amount);
-        }
-
-        public static void ClaimRewards(UInt160 voter, BigInteger epochId)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(voter), "unauthorized");
-            ExecutionEngine.Assert(epochId < CurrentEpoch(), "epoch not ended");
-
-            var claimedKey = GetClaimedKey(voter, epochId);
-            ExecutionEngine.Assert(Storage.Get(Storage.CurrentContext, claimedKey) == null, "already claimed");
-
-            BigInteger reward = GetPendingRewards(voter, epochId);
-            ExecutionEngine.Assert(reward > 0, "no rewards");
-
-            Storage.Put(Storage.CurrentContext, claimedKey, 1);
-
-            bool success = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
-                Runtime.ExecutingScriptHash, voter, reward, null);
-            ExecutionEngine.Assert(success, "transfer failed");
-
-            OnRewardsClaimed(voter, epochId, reward);
-        }
-
-        [Safe]
-        public static BigInteger GetVoterWeight(UInt160 voter, BigInteger epochId)
-        {
-            var key = GetVoterKey(voter, epochId);
-            var data = Storage.Get(Storage.CurrentContext, key);
-            return data == null ? 0 : (BigInteger)data;
-        }
-
-        [Safe]
-        public static BigInteger GetPendingRewards(UInt160 voter, BigInteger epochId)
-        {
-            BigInteger voterWeight = GetVoterWeight(voter, epochId);
-            if (voterWeight == 0) return 0;
-
-            BigInteger totalVotes = EpochTotalVotes(epochId);
-            if (totalVotes == 0) return 0;
-
-            BigInteger rewards = EpochRewards(epochId);
-            return (rewards * voterWeight) / totalVotes;
-        }
-
-        [Safe]
-        public static bool HasClaimed(UInt160 voter, BigInteger epochId)
-        {
-            var key = GetClaimedKey(voter, epochId);
-            return Storage.Get(Storage.CurrentContext, key) != null;
-        }
-
-        private static ByteString GetVoterKey(UInt160 voter, BigInteger epochId)
-        {
-            return Helper.Concat(
-                Helper.Concat((ByteString)PREFIX_VOTER_WEIGHT, (ByteString)(byte[])voter),
-                (ByteString)epochId.ToByteArray());
-        }
-
-        private static ByteString GetClaimedKey(UInt160 voter, BigInteger epochId)
-        {
-            return Helper.Concat(
-                Helper.Concat((ByteString)PREFIX_VOTER_CLAIMED, (ByteString)(byte[])voter),
-                (ByteString)epochId.ToByteArray());
-        }
-
-        private static void UpdateTotalVotes(BigInteger epochId, BigInteger delta)
-        {
-            var key = Helper.Concat((ByteString)PREFIX_EPOCH_TOTAL_VOTES, (ByteString)epochId.ToByteArray());
-            BigInteger current = EpochTotalVotes(epochId);
-            Storage.Put(Storage.CurrentContext, key, current + delta);
-        }
-
-        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
-        {
-            if (Runtime.CallingScriptHash == GAS.Hash)
-            {
-                // Accept GAS deposits for rewards
-            }
-        }
+        #endregion
     }
 }

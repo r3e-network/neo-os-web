@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChainBadge } from "@/components/ui/ChainBadge";
 import { useTranslation } from "@/lib/i18n/react";
 import { formatNumber, formatTimeAgo } from "@/lib/utils";
+import { getLocalizedField } from "@neo/shared/i18n";
 import type { MiniAppInfo } from "./MiniAppCard";
 import type { ChainId } from "@/lib/chains/types";
 
@@ -16,11 +17,12 @@ interface MiniAppListItemProps {
 
 export function MiniAppListItem({ app }: MiniAppListItemProps) {
   const { t, locale } = useTranslation("host");
-  const categoryLabel = t(`categories.${app.category}`) || app.category;
+  const { t: tCommon } = useTranslation("common");
+  const categoryLabel = t(`categories.${app.category}`);
 
   // Self-contained i18n: use MiniApp's own translations based on locale
-  const appName = locale === "zh" && app.name_zh ? app.name_zh : app.name;
-  const appDesc = locale === "zh" && app.description_zh ? app.description_zh : app.description;
+  const appName = getLocalizedField(app, "name", locale);
+  const appDesc = getLocalizedField(app, "description", locale);
 
   // Multi-chain support: get supported chains
   const supportedChains = (app.supportedChains || []) as ChainId[];
@@ -74,7 +76,7 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
           <div className="hidden sm:flex items-center gap-8 text-[11px] font-bold uppercase text-erobo-ink-soft/70 dark:text-gray-400">
             <div
               className="flex items-center gap-2 group-hover:text-erobo-purple transition-colors"
-              title="Active Users"
+              title={t("miniapps.stats.activeUsers")}
             >
               <Globe
                 size={16}
@@ -83,7 +85,10 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
               />
               <span>{formatNumber(app.stats?.users)}</span>
             </div>
-            <div className="flex items-center gap-2 group-hover:text-erobo-pink transition-colors" title="Transactions">
+            <div
+              className="flex items-center gap-2 group-hover:text-erobo-pink transition-colors"
+              title={t("miniapps.stats.transactions")}
+            >
               <Zap
                 size={16}
                 strokeWidth={2.5}
@@ -93,9 +98,9 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
             </div>
             <div
               className="flex items-center gap-2 w-24 justify-end font-medium opacity-60 group-hover:opacity-100 transition-opacity"
-              title="Updated"
+              title={t("miniapps.stats.updated")}
             >
-              <span>{formatTimeAgo()}</span>
+              <span>{formatTimeAgo(app.created_at ?? null, { t: tCommon })}</span>
             </div>
           </div>
         </div>

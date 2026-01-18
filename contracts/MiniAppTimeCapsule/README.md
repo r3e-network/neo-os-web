@@ -53,22 +53,26 @@
 
 ### User Functions | 用户函数
 
-#### `Bury(owner, contentHash, unlockTime, isPublic, receiptId)`
+#### `Bury(owner, contentHash, title, unlockTime, isPublic, category, receiptId)`
 
 **English**: Bury a new time capsule.
 
 - `owner`: Owner address
 - `contentHash`: Encrypted content hash
-- `unlockTime`: Unix timestamp for unlock
+- `title`: Capsule title (max 100 chars)
+- `unlockTime`: Unix timestamp for unlock (seconds)
 - `isPublic`: true for public, false for private
+- `category`: 1=personal, 2=gift, 3=memorial, 4=announcement, 5=secret
 - `receiptId`: Payment receipt (0.2 GAS)
 
 **中文**: 埋藏新时间胶囊。
 
 - `owner`: 所有者地址
 - `contentHash`: 加密内容哈希
-- `unlockTime`: 解锁的Unix时间戳
+- `title`: 胶囊标题（最多100字符）
+- `unlockTime`: 解锁的Unix时间戳（秒）
 - `isPublic`: true为公开，false为私密
+- `category`: 1=私人, 2=礼物, 3=纪念, 4=公告, 5=秘密
 - `receiptId`: 支付收据（0.2 GAS）
 
 #### `Reveal(revealer, capsuleId)`
@@ -105,9 +109,9 @@
 
 #### `UnlockTime(capsuleId)`
 
-**English**: Get capsule unlock time.
+**English**: Get capsule unlock time (Unix seconds).
 
-**中文**: 获取胶囊解锁时间。
+**中文**: 获取胶囊解锁时间（秒）。
 
 #### `IsRevealed(capsuleId)`
 

@@ -23,7 +23,10 @@ export function useBridgeListener(iframeRef: React.RefObject<HTMLIFrameElement>)
       if (!event.data.type.startsWith("MULTICHAIN_")) return;
 
       const message = event.data as BridgeMessage;
-      const response = await handleBridgeMessage(message);
+      const response = await handleBridgeMessage(message, {
+        source: event.source,
+        origin: event.origin,
+      });
       sendResponse(response);
     };
 

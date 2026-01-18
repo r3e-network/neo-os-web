@@ -12,6 +12,7 @@ import { ChainBadgeGroup } from "@/components/ui/ChainBadgeGroup";
 import { useTranslation } from "@/lib/i18n/react";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { ChevronRight } from "lucide-react";
+import { getLocalizedField } from "@neo/shared/i18n";
 import type { ChainId } from "@/lib/chains/types";
 
 interface SimilarAppsProps {
@@ -44,7 +45,7 @@ export function SimilarApps({ currentAppId, category, maxItems = 4 }: SimilarApp
 
       <div className="grid grid-cols-2 gap-3">
         {similarApps.map((app) => {
-          const appName = locale === "zh" && app.name_zh ? app.name_zh : app.name;
+          const appName = getLocalizedField(app, "name", locale);
           return (
             <Link
               key={app.app_id}

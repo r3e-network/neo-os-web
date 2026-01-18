@@ -29,7 +29,7 @@ for app_dir in "$UNIAPP_DIR"/*/; do
       if [[ ! -d "$MINIAPPS_ROOT/node_modules" ]]; then
         (cd "$MINIAPPS_ROOT" && pnpm install)
       fi
-      (cd "$MINIAPPS_ROOT" && pnpm --filter "./apps/$app_name" build)
+      (cd "$MINIAPPS_ROOT" && pnpm --filter "./apps/$app_name" build) || echo "  x Build failed for $app_name"
     else
       (cd "$app_dir" && npm install && npm run build)
     fi

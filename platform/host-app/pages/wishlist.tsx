@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation, useI18n } from "@/lib/i18n/react";
 import { formatTimeAgo } from "@/lib/utils";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
+import { getLocalizedField } from "@neo/shared/i18n";
 import type { ChainId } from "@/lib/chains/types";
 
 interface WishlistItem {
@@ -196,11 +197,12 @@ function WishlistCard({
   onRemove: () => void;
   t: any;
 }) {
+  const { t: tCommon } = useTranslation("common");
   // Get localized app name and description
-  const appName = app ? (locale === "zh" && app.name_zh ? app.name_zh : app.name) : item.app_id;
-  const appDesc = app ? (locale === "zh" && app.description_zh ? app.description_zh : app.description) : "";
+  const appName = app ? getLocalizedField(app, "name", locale) : item.app_id;
+  const appDesc = app ? getLocalizedField(app, "description", locale) : "";
   const category = app?.category || "utility";
-  const categoryLabel = t(`categories.${category}`) || category;
+  const categoryLabel = t(`categories.${category}`);
 
   return (
     <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/80 dark:bg-white/5 border border-white/60 dark:border-white/10 hover:border-erobo-purple/40 transition-all backdrop-blur-sm group">
@@ -221,7 +223,7 @@ function WishlistCard({
           {appDesc && <p className="text-sm text-erobo-ink-soft/70 dark:text-white/60 line-clamp-1 mb-1">{appDesc}</p>}
           <div className="flex items-center gap-2">
             <span className="text-xs text-erobo-ink-soft/50 dark:text-white/40">
-              {t("wishlist.added")} {formatTimeAgo(item.created_at)}
+              {t("wishlist.added")} {formatTimeAgo(item.created_at, { t: tCommon })}
             </span>
             {app?.supportedChains && app.supportedChains.length > 0 && (
               <ChainBadgeGroup chainIds={app.supportedChains as ChainId[]} size="sm" maxDisplay={3} />

@@ -6,10 +6,12 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Wallet, LayoutGrid, Clock } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
+import { useTranslation } from "@/lib/i18n/react";
 import { ActivityChart, AppUsageChart, StatCard } from "@/components/features/analytics";
 import type { UserAnalytics } from "@/pages/api/analytics/user";
 
 export default function AnalyticsPage() {
+  const { t, locale } = useTranslation("host");
   const { address } = useWalletStore();
   const [analytics, setAnalytics] = useState<UserAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,11 +43,11 @@ export default function AnalyticsPage() {
     return (
       <Layout>
         <Head>
-          <title>Analytics - NeoHub</title>
+          <title>{t("analytics.title")} - NeoHub</title>
         </Head>
         <div className="mx-auto max-w-4xl px-4 py-12 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Connect Wallet</h1>
-          <p className="text-gray-500">Connect your wallet to view your analytics</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t("analytics.connectWallet")}</h1>
+          <p className="text-gray-500">{t("analytics.connectWalletDesc")}</p>
         </div>
       </Layout>
     );
@@ -54,41 +56,41 @@ export default function AnalyticsPage() {
   return (
     <Layout>
       <Head>
-        <title>Analytics - NeoHub</title>
+        <title>{t("analytics.title")} - NeoHub</title>
       </Head>
       <div className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Your Analytics</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">{t("analytics.yourAnalytics")}</h1>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-500">Loading...</div>
+          <div className="text-center py-12 text-gray-500">{t("analytics.loading")}</div>
         ) : analytics ? (
-          <AnalyticsDashboard analytics={analytics} />
+          <AnalyticsDashboard analytics={analytics} t={t} />
         ) : (
-          <div className="text-center py-12 text-gray-500">No data available</div>
+          <div className="text-center py-12 text-gray-500">{t("analytics.noData")}</div>
         )}
       </div>
     </Layout>
   );
 }
 
-function AnalyticsDashboard({ analytics }: { analytics: UserAnalytics }) {
+function AnalyticsDashboard({ analytics, t }: { analytics: UserAnalytics; t: (key: string) => string }) {
   const { summary, activity, appBreakdown } = analytics;
 
   return (
     <div className="space-y-8">
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Transactions" value={summary.totalTx} change={12} icon={<Activity size={16} />} />
-        <StatCard title="Total Volume" value={`${summary.totalVolume} GAS`} change={8} icon={<Wallet size={16} />} />
-        <StatCard title="Apps Used" value={summary.appsUsed} icon={<LayoutGrid size={16} />} />
-        <StatCard title="Active Days" value={activity.filter((a) => a.txCount > 0).length} icon={<Clock size={16} />} />
+        <StatCard title={t("analytics.totalTransactions")} value={summary.totalTx} change={12} icon={<Activity size={16} />} />
+        <StatCard title={t("analytics.totalVolume")} value={`${summary.totalVolume} GAS`} change={8} icon={<Wallet size={16} />} />
+        <StatCard title={t("analytics.appsUsed")} value={summary.appsUsed} icon={<LayoutGrid size={16} />} />
+        <StatCard title={t("analytics.activeDays")} value={activity.filter((a) => a.txCount > 0).length} icon={<Clock size={16} />} />
       </div>
 
       {/* Charts Row */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
           <CardHeader>
-            <CardTitle className="text-sm text-gray-900 dark:text-white">Activity (30 Days)</CardTitle>
+            <CardTitle className="text-sm text-gray-900 dark:text-white">{t("analytics.activity30Days")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ActivityChart data={activity} height={220} />
@@ -97,7 +99,7 @@ function AnalyticsDashboard({ analytics }: { analytics: UserAnalytics }) {
 
         <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
           <CardHeader>
-            <CardTitle className="text-sm text-gray-900 dark:text-white">App Usage</CardTitle>
+            <CardTitle className="text-sm text-gray-900 dark:text-white">{t("analytics.appUsage")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -111,10 +113,10 @@ function AnalyticsDashboard({ analytics }: { analytics: UserAnalytics }) {
       {/* App Breakdown Table */}
       <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
         <CardHeader>
-          <CardTitle className="text-sm text-gray-900 dark:text-white">App Breakdown</CardTitle>
+          <CardTitle className="text-sm text-gray-900 dark:text-white">{t("analytics.appBreakdown")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <AppBreakdownTable apps={appBreakdown} />
+          <AppBreakdownTable apps={appBreakdown} t={t} />
         </CardContent>
       </Card>
     </div>
@@ -138,18 +140,20 @@ function AppLegend({ apps }: { apps: { appName: string; txCount: number }[] }) {
 
 function AppBreakdownTable({
   apps,
+  t,
 }: {
   apps: { appId: string; appName: string; txCount: number; volume: string; lastUsed: string }[];
+  t: (key: string) => string;
 }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-700">
-            <th className="text-left py-2 text-gray-500 font-medium">App</th>
-            <th className="text-right py-2 text-gray-500 font-medium">Transactions</th>
-            <th className="text-right py-2 text-gray-500 font-medium">Volume</th>
-            <th className="text-right py-2 text-gray-500 font-medium">Last Used</th>
+            <th className="text-left py-2 text-gray-500 font-medium">{t("analytics.app")}</th>
+            <th className="text-right py-2 text-gray-500 font-medium">{t("analytics.transactions")}</th>
+            <th className="text-right py-2 text-gray-500 font-medium">{t("analytics.volume")}</th>
+            <th className="text-right py-2 text-gray-500 font-medium">{t("analytics.lastUsed")}</th>
           </tr>
         </thead>
         <tbody>
@@ -158,7 +162,9 @@ function AppBreakdownTable({
               <td className="py-3 text-gray-900 dark:text-white">{app.appName}</td>
               <td className="py-3 text-right text-gray-600 dark:text-gray-400">{app.txCount}</td>
               <td className="py-3 text-right text-gray-600 dark:text-gray-400">{app.volume} GAS</td>
-              <td className="py-3 text-right text-gray-500 text-xs">{new Date(app.lastUsed).toLocaleDateString()}</td>
+              <td className="py-3 text-right text-gray-500 text-xs">
+                {new Date(app.lastUsed).toLocaleDateString(locale)}
+              </td>
             </tr>
           ))}
         </tbody>

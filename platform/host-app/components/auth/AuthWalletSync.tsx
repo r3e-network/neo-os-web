@@ -18,7 +18,6 @@ export function AuthWalletSync() {
     // Only handle disconnect when social user logs out
     // Do NOT auto-connect - let user manually choose to connect
     if (!user && connected && provider === "auth0") {
-      console.log("[AuthWalletSync] Social user logged out. Disconnecting wallet.");
       disconnect();
     }
   }, [user, isLoading, connected, provider, disconnect]);

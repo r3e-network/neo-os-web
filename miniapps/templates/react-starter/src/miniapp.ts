@@ -38,10 +38,12 @@ export type PayGASResponse = {
   request_id: string;
   user_id: string;
   intent: "payments";
-  constraints: { settlement: "GAS_ONLY" };
+  constraints: { settlement: "GAS_ONLY" | "NATIVE_TOKEN" };
   chain_id: ChainId;
   chain_type: ChainType;
   invocation: InvocationIntent;
+  txid?: string | null;
+  receipt_id?: string | null;
 };
 
 export type VoteBNEOResponse = {
@@ -52,6 +54,7 @@ export type VoteBNEOResponse = {
   chain_id: ChainId;
   chain_type: ChainType;
   invocation: InvocationIntent;
+  txid?: string | null;
 };
 
 export type VoteNEOResponse = VoteBNEOResponse;
@@ -87,7 +90,7 @@ export type MiniAppSDK = {
   };
   payments: {
     payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse>;
-    payGASAndInvoke?: (appId: string, amount: string, memo?: string) => Promise<{ intent: PayGASResponse; tx: TxResult }>;
+    payGASAndInvoke?: (appId: string, amount: string, memo?: string) => Promise<PayGASResponse>;
   };
   governance: {
     vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteBNEOResponse>;
@@ -96,7 +99,7 @@ export type MiniAppSDK = {
       proposalId: string,
       neoAmount: string,
       support?: boolean,
-    ) => Promise<{ intent: VoteBNEOResponse; tx: TxResult }>;
+    ) => Promise<VoteBNEOResponse>;
   };
   rng: {
     requestRandom(appId: string): Promise<RNGResponse>;

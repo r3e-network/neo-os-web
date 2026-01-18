@@ -23,9 +23,10 @@ export const statsKeys = {
 };
 
 /**
- * Fetch single app stats
+ * Fetch single app stats (aggregated across all chains)
  */
 async function fetchAppStats(appId: string): Promise<MiniAppStats | null> {
+  // Fetch aggregated stats across all chains
   const res = await fetch(`/api/miniapp-stats?app_id=${encodeURIComponent(appId)}`);
   if (!res.ok) return null;
   const data = await res.json();
@@ -33,10 +34,11 @@ async function fetchAppStats(appId: string): Promise<MiniAppStats | null> {
 }
 
 /**
- * Fetch batch stats
+ * Fetch batch stats (aggregated across all chains)
  */
 async function fetchBatchStats(appIds: string[]): Promise<Record<string, MiniAppStats>> {
-  const res = await fetch("/api/miniapps/batch-stats", {
+  // Use chain_id=all to get aggregated stats across all chains
+  const res = await fetch(`/api/miniapps/batch-stats?chain_id=all`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ appIds }),

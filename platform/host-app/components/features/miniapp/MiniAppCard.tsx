@@ -13,6 +13,7 @@ import type { AnyCardData } from "@/types/card-display";
 import { Users, Activity, Eye, Star } from "lucide-react";
 import { WaterRipple } from "@/components/ui/WaterRipple";
 import { ChainBadgeGroup } from "@/components/ui/ChainBadgeGroup";
+import { getLocalizedField } from "@neo/shared/i18n";
 import type { ChainId } from "@/lib/chains/types";
 
 export interface MiniAppInfo {
@@ -37,6 +38,8 @@ export interface MiniAppInfo {
   };
   cardData?: AnyCardData;
   highlights?: HighlightData[];
+  banner?: string;
+  [key: string]: any;
 }
 
 export function MiniAppCard({ app }: { app: MiniAppInfo }) {
@@ -44,11 +47,11 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
   const showSourceBadge = app.source && app.source !== "builtin";
 
   // Get translated category name
-  const categoryLabel = t(`categories.${app.category}`) || app.category;
+  const categoryLabel = t(`categories.${app.category}`);
 
   // Self-contained i18n: use MiniApp's own translations based on locale
-  const appName = locale === "zh" && app.name_zh ? app.name_zh : app.name;
-  const appDesc = locale === "zh" && app.description_zh ? app.description_zh : app.description;
+  const appName = getLocalizedField(app, "name", locale);
+  const appDesc = getLocalizedField(app, "description", locale);
 
   return (
     <WaterRipple className="h-full w-full" rippleColor="rgba(159, 157, 243, 0.35)">
@@ -78,13 +81,17 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
           ) : (
             <div className="w-full h-52 relative overflow-hidden border-b border-white/60 dark:border-white/10">
               <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
-                <DynamicBanner
-                  category={app.category}
-                  icon={app.icon}
-                  appId={app.app_id}
-                  appName={appName}
-                  highlights={app.highlights}
-                />
+                {app.banner ? (
+                  <img src={app.banner} alt={appName} className="w-full h-full object-cover" />
+                ) : (
+                  <DynamicBanner
+                    category={app.category}
+                    icon={app.icon}
+                    appId={app.app_id}
+                    appName={appName}
+                    highlights={app.highlights}
+                  />
+                )}
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-white/70 dark:from-black/80 to-transparent z-10 pointer-events-none" />
               <CollectionStar

@@ -6,7 +6,7 @@ import { FC } from "react";
 import { useRouter } from "next/router";
 import { useNNTNews, type NNTArticle } from "@/hooks/useNNTNews";
 import { useTranslation } from "@/lib/i18n/react";
-import { cn } from "@/lib/utils";
+import { cn, formatTimeAgoShort } from "@/lib/utils";
 import { ExternalLink, Newspaper, Clock } from "lucide-react";
 
 interface NNTNewsFeedProps {
@@ -15,19 +15,9 @@ interface NNTNewsFeedProps {
   onArticleClick?: (article: NNTArticle) => void;
 }
 
-function formatTimeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = Math.floor((now - then) / 1000);
-
-  if (diff < 60) return `${diff}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
-}
-
 export const NNTNewsFeed: FC<NNTNewsFeedProps> = ({ limit = 5, className, onArticleClick }) => {
   const { t } = useTranslation("host");
+  const { t: tCommon, locale } = useTranslation("common");
   const router = useRouter();
   const { articles, loading, error } = useNNTNews({ limit });
 
@@ -61,7 +51,7 @@ export const NNTNewsFeed: FC<NNTNewsFeedProps> = ({ limit = 5, className, onArti
         <div className="flex items-center gap-2">
           <Newspaper size={16} className="text-neo" />
           <span className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">
-            {t("news.latestNews") || "Latest News"}
+            {t("news.latestNews")}
           </span>
         </div>
         <a
@@ -112,7 +102,7 @@ const NNTArticleItem: FC<{ article: NNTArticle; onClick: () => void }> = ({ arti
             <span className="text-[10px] font-medium text-neo bg-neo/10 px-1.5 py-0.5 rounded">{article.category}</span>
             <span className="text-[10px] text-gray-400 dark:text-white/40 flex items-center gap-1">
               <Clock size={10} />
-              {formatTimeAgo(article.pubDate)}
+              {formatTimeAgoShort(article.pubDate, { t: tCommon, locale })}
             </span>
           </div>
         </div>

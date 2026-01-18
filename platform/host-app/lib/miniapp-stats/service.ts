@@ -27,14 +27,77 @@ export async function ensureStatsExist(appId: string, chainId: ChainId): Promise
       return false;
     }
 
-    if (data === true) {
-      console.log(`[stats] Lazy-created stats for ${appId}/${chainId}`);
-    }
     return data === true;
   } catch (err) {
     console.warn(`[stats] Exception in lazy creation:`, err);
     return false;
   }
+}
+
+/**
+ * Get aggregated stats for a MiniApp across ALL chains
+ * Used for displaying total transactions and views
+ */
+export async function getAggregatedMiniAppStats(appId: string): Promise<MiniAppStats | null> {
+  const cacheKey = `${appId}:all-chains`;
+  // Check cache first
+  const cached = statsCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.stats;
+  }
+
+  if (!isSupabaseConfigured) return null;
+
+  // Fetch stats from all chains for this app
+  const { data } = await supabase.from("miniapp_stats").select("*").eq("app_id", appId);
+
+  if (!data || data.length === 0) return null;
+
+  // Aggregate stats across all chains
+  const aggregated = data.reduce(
+    (acc, row) => {
+      acc.totalTransactions += (row.total_transactions as number) || 0;
+      acc.viewCount += (row.view_count as number) || 0;
+      acc.activeUsersDaily += (row.active_users_daily as number) || 0;
+      acc.activeUsersWeekly += (row.active_users_weekly as number) || 0;
+      acc.activeUsersMonthly += (row.active_users_monthly as number) || 0;
+      acc.transactionsDaily += (row.transactions_24h as number) || 0;
+      acc.transactionsWeekly += (row.transactions_7d as number) || 0;
+      // For volume, parse and sum
+      const vol = parseFloat(row.total_volume_gas as string) || 0;
+      acc.totalVolumeGas = (parseFloat(acc.totalVolumeGas) + vol).toString();
+      // Rating: use weighted average or max
+      if ((row.rating as number) > acc.rating) {
+        acc.rating = row.rating as number;
+        acc.reviewCount = (row.rating_count as number) || 0;
+      }
+      return acc;
+    },
+    {
+      appId,
+      totalTransactions: 0,
+      viewCount: 0,
+      activeUsersDaily: 0,
+      activeUsersWeekly: 0,
+      activeUsersMonthly: 0,
+      transactionsDaily: 0,
+      transactionsWeekly: 0,
+      totalVolumeGas: "0",
+      volumeWeeklyGas: "0",
+      volumeDailyGas: "0",
+      rating: 0,
+      reviewCount: 0,
+      retentionD1: 0,
+      retentionD7: 0,
+      avgSessionDuration: 0,
+      funnelViewToConnect: 0,
+      funnelConnectToTx: 0,
+      lastUpdated: Date.now(),
+    } as MiniAppStats,
+  );
+
+  statsCache.set(cacheKey, { stats: aggregated, timestamp: Date.now() });
+  return aggregated;
 }
 
 /**
@@ -114,6 +177,111 @@ export async function getBatchStats(appIds: string[], chainId: ChainId): Promise
 
   // No fallback - only return data that exists in database
   return result;
+}
+
+/**
+ * Get aggregated stats for multiple MiniApps across ALL chains
+ * Returns stats summed across all chains for each app
+ * Performance: Checks cache first, only queries DB for uncached apps
+ */
+export async function getAggregatedBatchStats(appIds: string[]): Promise<Record<string, MiniAppStats>> {
+  const result: Record<string, MiniAppStats> = {};
+  const uncachedAppIds: string[] = [];
+
+  if (!isSupabaseConfigured) {
+    return result;
+  }
+
+  // Check cache first for each app
+  for (const appId of appIds) {
+    const cacheKey = `${appId}:all-chains`;
+    const cached = statsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      result[appId] = cached.stats;
+    } else {
+      uncachedAppIds.push(appId);
+    }
+  }
+
+  // If all apps are cached, return early
+  if (uncachedAppIds.length === 0) {
+    return result;
+  }
+
+  // Fetch only uncached apps from database
+  const { data, error } = await supabase.from("miniapp_stats").select("*").in("app_id", uncachedAppIds);
+
+  if (error) {
+    console.error("Failed to fetch aggregated batch stats:", error);
+    return result;
+  }
+
+  if (data) {
+    // Group and aggregate by app_id
+    for (const row of data) {
+      const appId = row.app_id as string;
+      if (!result[appId]) {
+        result[appId] = createEmptyStats(appId);
+      }
+      // Aggregate values
+      aggregateStatsRow(result[appId], row);
+    }
+
+    // Cache newly fetched aggregated results
+    for (const appId of uncachedAppIds) {
+      if (result[appId]) {
+        statsCache.set(`${appId}:all-chains`, { stats: result[appId], timestamp: Date.now() });
+      }
+    }
+  }
+
+  return result;
+}
+
+/** Create empty stats object for aggregation */
+function createEmptyStats(appId: string): MiniAppStats {
+  return {
+    appId,
+    totalTransactions: 0,
+    viewCount: 0,
+    activeUsersDaily: 0,
+    activeUsersWeekly: 0,
+    activeUsersMonthly: 0,
+    transactionsDaily: 0,
+    transactionsWeekly: 0,
+    totalVolumeGas: "0",
+    volumeWeeklyGas: "0",
+    volumeDailyGas: "0",
+    rating: 0,
+    reviewCount: 0,
+    retentionD1: 0,
+    retentionD7: 0,
+    avgSessionDuration: 0,
+    funnelViewToConnect: 0,
+    funnelConnectToTx: 0,
+    lastUpdated: Date.now(),
+  };
+}
+
+/** Aggregate a single row into existing stats */
+function aggregateStatsRow(stats: MiniAppStats, row: Record<string, unknown>): void {
+  stats.totalTransactions += (row.total_transactions as number) || 0;
+  stats.viewCount = (stats.viewCount || 0) + ((row.view_count as number) || 0);
+  stats.activeUsersDaily += (row.active_users_daily as number) || 0;
+  stats.activeUsersWeekly += (row.active_users_weekly as number) || 0;
+  stats.activeUsersMonthly += (row.active_users_monthly as number) || 0;
+  stats.transactionsDaily += (row.transactions_24h as number) || 0;
+  stats.transactionsWeekly += (row.transactions_7d as number) || 0;
+
+  // Sum volumes
+  const vol = parseFloat(row.total_volume_gas as string) || 0;
+  stats.totalVolumeGas = (parseFloat(stats.totalVolumeGas) + vol).toString();
+
+  // Use max rating
+  if ((row.rating as number) > stats.rating) {
+    stats.rating = row.rating as number;
+    stats.reviewCount = (row.rating_count as number) || 0;
+  }
 }
 
 /**

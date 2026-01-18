@@ -1,35 +1,62 @@
-<p align="center">
-  <img src="assets/logo-icon.png" alt="NeoHub Logo" width="160px"/>
-</p>
+<div align="center">
+  <a name="readme-top"></a>
 
-<h1 align="center">NeoHub</h1>
-<p align="center"><b>The Multi-Chain MiniApp Platform</b></p>
+  [![NeoHub Banner](assets/neohub-banner.png)](https://github.com/R3E-Network)
+  
+  [![Separator](assets/neohub-separator.png)](https://github.com/R3E-Network)
 
-<p align="center">
-  <a href="https://neo.org"><img src="https://img.shields.io/badge/Powered%20by-Neo-00E599?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMwMEU1OTkiLz48cGF0aCBkPSJNMTAgOGg0bDggMTB2NmgtNGwtOC0xMFY4eiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjIgOGgtNHY2bDQgNVY4eiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNiIvPjwvc3ZnPgo=" alt="Powered by Neo"/></a>
-</p>
+  <h3>The Multi-Chain MiniApp Platform for the Neo Economy</h3>
 
-<p align="center">
-  <a href="https://neomini.app"><img src="https://img.shields.io/badge/Live-neomini.app-00E599?style=flat-square" alt="Live"/></a>
-  <a href="#quick-start"><img src="https://img.shields.io/badge/Quick%20Start-Guide-00E599?style=flat-square" alt="Quick Start"/></a>
-  <a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/Docs-Architecture-00D9FF?style=flat-square" alt="Architecture"/></a>
-  <a href="#supported-chains"><img src="https://img.shields.io/badge/Chains-Neo%20N3%20|%20NeoX%20|%20Ethereum-green?style=flat-square" alt="Multi-Chain"/></a>
-  <a href="https://github.com/R3E-Network"><img src="https://img.shields.io/badge/R3E-Network-00E599?style=flat-square" alt="R3E Network"/></a>
-</p>
+  [![Powered by Neo](https://img.shields.io/badge/Powered%20by-Neo-00E599?style=plastic&logo=neo&logoColor=white)](https://neo.org)
+  [![Live](https://img.shields.io/badge/Live-neomini.app-00E599?style=plastic&logo=google-chrome&logoColor=white)](https://neomini.app)
+  [![Docs](https://img.shields.io/badge/Docs-Architecture-00D9FF?style=plastic&logo=gitbook&logoColor=white)](docs/ARCHITECTURE.md)
+  [![License](https://img.shields.io/badge/License-MIT-green?style=plastic)](LICENSE)
+  [![GitHub](https://img.shields.io/badge/GitHub-R3E--Network-181717?style=plastic&logo=github&logoColor=white)](https://github.com/R3E-Network)
 
----
+</div>
 
-# NeoHub
+<hr/>
 
-A TEE-powered multi-chain MiniApp platform that combines a user-facing **Gateway** (Supabase Edge) with enclave workloads (MarbleRun + EGo) for secure signing and confidential computation. **Powered by Neo** and supporting Neo N3, NeoX, and Ethereum networks.
+<div align="center">
 
-## Supported Chains
+**[English](README.md)** · [Documentation](docs/ARCHITECTURE.md) · [Report Bug](https://github.com/R3E-Network/service_layer/issues) · [Request Feature](https://github.com/R3E-Network/service_layer/issues)
 
-| Chain        | Type           | Status        |
-| ------------ | -------------- | ------------- |
-| **Neo N3**   | Native         | ✅ Production |
-| **NeoX**     | EVM-Compatible | ✅ Production |
-| **Ethereum** | EVM            | ✅ Production |
+</div>
+
+<br/>
+
+**NeoHub** is a TEE-powered multi-chain MiniApp platform that combines a user-facing **Gateway** (Supabase Edge) with enclave workloads (MarbleRun + EGo) for secure signing and confidential computation. **Powered by Neo** and supporting Neo N3, NeoX, and Ethereum networks.
+
+<div align="center">
+
+### 🚀 Multi-Chain Support - 🔒 TEE Security - 🎲 Provable Randomness
+
+</div>
+
+- ✅ **Multi-Chain** - Native support for Neo N3, NeoX, and Ethereum
+- ✅ **Secure** - Intel SGX Enclaves for Trusted Execution Environments (TEE)
+- ✅ **Fair** - Verifiable Random Function (VRF) with on-chain attestation
+- ✅ **Automation** - Cron-based task scheduling and execution
+- ✅ **Confidential** - Privacy-preserving computation for sensitive logic
+
+<br/>
+
+[![Separator](assets/neohub-separator.png)](https://github.com/R3E-Network)
+
+<details>
+<summary><kbd>Table of Contents</kbd></summary>
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Services](#services)
+- [Platform Contracts](#platform-contracts)
+- [MiniApps](#miniapps)
+- [Quick Start](#quick-start)
+- [Repository Structure](#repository-structure)
+- [Documentation](#documentation)
+- [License](#license)
+
+</details>
 
 ## Overview
 
@@ -40,34 +67,27 @@ The NeoHub MiniApp Platform provides infrastructure for building decentralized M
 - **Provable Randomness** through VRF with on-chain attestation
 - **Real-time Price Feeds** from multiple oracle sources
 - **Automated Workflows** with cron-based task scheduling
-- **Confidential Computing** enables confidential preserving operations
+
+### Supported Chains
+
+| Chain        | Type           | Status        |
+| ------------ | -------------- | ------------- |
+| **Neo N3**   | Native         | ✅ Production |
+| **NeoX**     | EVM-Compatible | ✅ Production |
+| **Ethereum** | EVM            | ✅ Production |
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        MiniApp Frontend                         │
-│                    (React/Next.js + SDK)                        │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     Supabase Edge Gateway                       │
-│              (Auth, Rate Limiting, Request Routing)             │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│   TEE Services  │ │  TEE Services   │ │  TEE Services   │
-│   (VRF, Oracle) │ │ (Compute, Auto) │ │  (GlobalSigner) │
-└─────────────────┘ └─────────────────┘ └─────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Neo N3 Blockchain                          │
-│        (Platform Contracts + MiniApp Contracts)                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    User[UserId / MiniApp Frontend] --> Gateway[Supabase Edge Gateway]
+    Gateway --> VRF[TEE Services: VRF/Oracle]
+    Gateway --> Compute[TEE Services: Compute/Auto]
+    Gateway --> Signer[TEE Services: GlobalSigner]
+    VRF --> Blockchain[Neo N3 Blockchain]
+    Compute --> Blockchain
+    Signer --> Blockchain
+    Blockchain --> Contracts[Platform & MiniApp Contracts]
 ```
 
 For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -86,7 +106,6 @@ For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | **Simulation** | `neosimulation` | Development and testing environment                  |
 
 **Infrastructure:**
-
 - `globalsigner` - Enclave-held signing keys
 - `neoaccounts` - HD-derived account pool (10,000+ accounts)
 
@@ -281,9 +300,9 @@ Copyright © 2024 R3E Network. All rights reserved.
 
 ---
 
-<p align="center">
+<div align="center">
   <b>Proudly powered by</b><br/><br/>
   <a href="https://neo.org">
     <img src="platform/host-app/public/chains/neo.svg" alt="Neo" height="48"/>
   </a>
-</p>
+</div>

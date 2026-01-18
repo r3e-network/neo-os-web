@@ -116,7 +116,7 @@ Trusted Execution Environment services provide:
           ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                        Blockchain Layer (Neo N3)                        │
-│  • UniversalMiniApp smart contract                                      │
+│  • MiniApp smart contracts (per-app) + optional UniversalMiniApp         │
 │  • On-chain verification & settlement                                   │
 │  • Monotonic counters for anti-replay                                   │
 └─────────────────────────────────────────────────────────────────────────┘

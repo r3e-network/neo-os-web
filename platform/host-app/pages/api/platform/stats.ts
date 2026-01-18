@@ -87,7 +87,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
     } else {
       // Fallback: Aggregate from miniapp_stats table
-      console.log("platform_stats not available, aggregating from miniapp_stats");
       let aggregateQuery = supabase.from("miniapp_stats").select("*");
       if (chainId) {
         aggregateQuery = aggregateQuery.eq("chain_id", chainId);

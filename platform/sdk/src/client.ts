@@ -24,6 +24,8 @@ import type {
   MiniAppUsageResponse,
   NeoInvocationIntent,
   ComputeExecuteRequest,
+  ComputeVerifiedRequest,
+  ComputeVerifiedResponse,
   ComputeJob,
   OracleQueryRequest,
   OracleQueryResponse,
@@ -482,6 +484,12 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
     compute: {
       async execute(params: ComputeExecuteRequest): Promise<ComputeJob> {
         return requestHostJSON<ComputeJob>(cfg, "/compute-execute", {
+          method: "POST",
+          body: JSON.stringify(params),
+        });
+      },
+      async executeVerified(params: ComputeVerifiedRequest): Promise<ComputeVerifiedResponse> {
+        return requestHostJSON<ComputeVerifiedResponse>(cfg, "/compute-verified", {
           method: "POST",
           body: JSON.stringify(params),
         });

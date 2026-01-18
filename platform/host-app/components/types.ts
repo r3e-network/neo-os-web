@@ -84,8 +84,8 @@ export type MiniAppInfo = {
 
 export type MiniAppStats = {
   app_id: string;
-  /** Chain ID for chain-specific stats */
-  chain_id: ChainId;
+  /** Chain ID for chain-specific stats, or undefined/null for aggregated stats */
+  chain_id?: ChainId | null;
   total_transactions: number;
   total_users: number;
   total_gas_used: string;

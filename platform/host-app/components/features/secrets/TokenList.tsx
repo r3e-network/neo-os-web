@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { SecretToken } from "@/lib/secrets";
+import { useTranslation } from "@/lib/i18n/react";
 
 interface TokenListProps {
   tokens: SecretToken[];
@@ -7,6 +8,7 @@ interface TokenListProps {
 }
 
 export function TokenList({ tokens, onRevoke }: TokenListProps) {
+  const { t, locale } = useTranslation("host");
   return (
     <div className="space-y-3">
       {tokens.map((token) => (
@@ -14,18 +16,20 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-medium">{token.name}</span>
-              <StatusBadge status={token.status} />
+              <StatusBadge status={token.status} label={t(`secrets.status.${token.status}`)} />
             </div>
-            <div className="mt-1 text-sm text-gray-500">App: {token.appName || token.appId}</div>
+            <div className="mt-1 text-sm text-gray-500">
+              {t("secrets.app")}: {token.appName || token.appId}
+            </div>
             <div className="text-xs text-gray-400">
-              Created: {formatDate(token.createdAt)}
-              {token.lastUsed && ` • Last used: ${formatDate(token.lastUsed)}`}
+              {t("secrets.created")}: {formatDate(token.createdAt, locale)}
+              {token.lastUsed && ` • ${t("secrets.lastUsed")}: ${formatDate(token.lastUsed, locale)}`}
             </div>
           </div>
 
           {token.status === "active" && (
             <button onClick={() => onRevoke(token.id)} className="text-sm text-red-600 hover:underline">
-              Revoke
+              {t("secrets.revoke")}
             </button>
           )}
         </div>
@@ -34,17 +38,17 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
   );
 }
 
-function StatusBadge({ status }: { status: SecretToken["status"] }) {
+function StatusBadge({ status, label }: { status: SecretToken["status"]; label: string }) {
   const variants: Record<SecretToken["status"], "default" | "secondary" | "destructive"> = {
     active: "default",
     expired: "secondary",
     revoked: "destructive",
   };
 
-  return <Badge variant={variants[status]}>{status}</Badge>;
+  return <Badge variant={variants[status]}>{label}</Badge>;
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleDateString();
+  return date.toLocaleDateString(locale);
 }

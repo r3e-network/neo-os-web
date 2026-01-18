@@ -46,7 +46,7 @@ export type PayGASResponse = {
   request_id: string;
   user_id: string;
   intent: "payments";
-  constraints: { settlement: "GAS_ONLY" };
+  constraints: { settlement: "GAS_ONLY" | "NATIVE_TOKEN" };
   chain_id: ChainId;
   chain_type: ChainType;
   invocation: InvocationIntent;
@@ -230,6 +230,32 @@ export type ComputeJob = {
   encrypted_output?: string;
   output_hash?: string;
   signature?: string;
+};
+
+/**
+ * Verified compute request - executes script with on-chain hash verification.
+ */
+export type ComputeVerifiedRequest = {
+  app_id: string;
+  contract_hash: string;
+  script_name: string;
+  seed: string;
+  input?: Record<string, unknown>;
+  chain_id?: string;
+};
+
+/**
+ * Verified compute response - includes script verification info.
+ */
+export type ComputeVerifiedResponse = {
+  success: boolean;
+  result: Record<string, unknown>;
+  verification: {
+    script_name: string;
+    script_hash: string;
+    script_version?: number;
+    verified: boolean;
+  };
 };
 
 // Automation Types (PostgreSQL-based)
@@ -422,6 +448,7 @@ export interface HostSDK {
   };
   compute: {
     execute(params: ComputeExecuteRequest): Promise<ComputeJob>;
+    executeVerified(params: ComputeVerifiedRequest): Promise<ComputeVerifiedResponse>;
     listJobs(): Promise<ComputeJob[]>;
     getJob(id: string): Promise<ComputeJob>;
   };

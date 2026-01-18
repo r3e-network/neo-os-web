@@ -8,6 +8,7 @@
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
 import { PREDEFINED_TAGS, APP_TAGS } from "./types";
+import { getLocalizedField } from "@neo/shared/i18n";
 
 interface Props {
   appId: string;
@@ -27,7 +28,7 @@ export function TagCloud({ appId, onTagClick, className }: Props) {
     <div className={cn("flex flex-wrap gap-2", className)}>
       {tags.map((tag) => {
         if (!tag) return null;
-        const name = locale === "zh" && tag.name_zh ? tag.name_zh : tag.name;
+        const name = getLocalizedField(tag, "name", locale);
         return (
           <button
             key={tag.id}

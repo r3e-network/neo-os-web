@@ -428,7 +428,6 @@ export const useWalletStore = create<WalletStore>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.provider === "auth0") {
-          console.log("[WalletStore] Clearing stale auth0 provider on rehydration");
           state.provider = null;
         }
       },

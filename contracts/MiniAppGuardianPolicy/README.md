@@ -28,29 +28,35 @@ The contract follows the standard MiniApp architecture:
 ### Core Mechanism
 
 1. **Policy Management**: Policies are identified by unique `policyId` strings
-2. **Claim Processing**: The Gateway validates claims and triggers `ClaimPolicy()`
-3. **Payout Execution**: Contract emits `PolicyClaimed` event with payout details
+2. **Claim Processing**: Holder or automation triggers `RequestClaim()`, which requests price validation via the Gateway
+3. **Payout Execution**: Contract emits `ClaimProcessed` event with payout details
 4. **Service Integration**: Supports async callbacks for external validation services
 
 ## Key Methods
 
 ### Public Methods
 
-#### `ClaimPolicy(UInt160 holder, ByteString policyId, BigInteger payout)`
+#### `CreatePolicy(UInt160 holder, string assetType, BigInteger policyType, BigInteger coverage, BigInteger startPrice, BigInteger thresholdPercent, BigInteger receiptId)`
 
-Processes an insurance claim and records the payout.
+Creates a new on-chain insurance policy and charges the premium via PaymentHub.
 
 **Parameters:**
 
-- `holder`: Address of the policy holder making the claim
-- `policyId`: Unique identifier of the insurance policy
-- `payout`: Amount to be paid out to the holder
+- `holder`: Address of the policy holder
+- `assetType`: Asset pair (e.g., `NEO-USD`)
+- `policyType`: 1-3 tiered policy types
+- `coverage`: Coverage amount (GAS base units)
+- `startPrice`: Starting price (oracle decimals)
+- `thresholdPercent`: Trigger threshold (1-50%)
+- `receiptId`: Payment receipt ID
 
-**Access Control:** Gateway only
+**Events Emitted:** `PolicyCreated`, `PremiumPaid`
 
-**Events Emitted:** `PolicyClaimed(holder, policyId, payout)`
+#### `RequestClaim(BigInteger policyId)`
 
-**Usage:** Called by Gateway after validating claim conditions (e.g., oracle data, proof of loss)
+Requests a claim to be processed (async oracle validation).
+
+**Events Emitted:** `ClaimRequested`, `ClaimProcessed`
 
 #### `OnServiceCallback(BigInteger requestId, string appId, string serviceType, bool success, ByteString result, string error)`
 
@@ -102,18 +108,19 @@ Returns whether the contract is paused.
 
 ## Events
 
-### `PolicyClaimed`
+### `ClaimProcessed`
 
 ```csharp
-event PolicyClaimed(UInt160 holder, ByteString policyId, BigInteger payout)
+event ClaimProcessed(BigInteger policyId, UInt160 holder, bool approved, BigInteger payout)
 ```
 
-Emitted when a policy claim is successfully processed.
+Emitted when a policy claim is processed (approved or rejected).
 
 **Parameters:**
 
-- `holder`: Address of the policy holder
 - `policyId`: Unique policy identifier
+- `holder`: Address of the policy holder
+- `approved`: Whether the claim was approved
 - `payout`: Payout amount in base units
 
 ## Automation Support
@@ -138,11 +145,11 @@ The automation service automatically processes insurance claims when policy cond
 1. Oracle service monitors insured events
 2. When qualifying event detected
 3. Service validates policy conditions and coverage
-4. Service calculates payout amount
-5. Service calls Gateway with claim details
-6. Gateway invokes `ClaimPolicy()` with payout
-7. `PolicyClaimed` event emitted
-8. PaymentHub transfers funds to policy holder
+4. Service triggers `RequestClaim()` for the policy
+5. Contract requests price verification via Gateway
+6. Gateway calls back with price data
+7. Contract computes payout and emits `ClaimProcessed`
+8. Off-chain services settle payouts based on the event
 
 **Benefits:**
 
@@ -168,35 +175,29 @@ The automation service automatically processes insurance claims when policy cond
    - Policy ID assigned and linked to user address
 
 2. **Claim Submission**
-   - User submits claim through frontend with evidence
-   - Frontend calls ServiceLayerGateway
-   - Gateway validates claim conditions (may use oracles)
+   - User submits claim through frontend
+   - Frontend calls `RequestClaim()` on the contract
 
 3. **Claim Processing**
-   - Gateway calls `ClaimPolicy()` with validated payout amount
-   - Contract emits `PolicyClaimed` event
-   - PaymentHub processes the actual token transfer
+   - Contract requests price verification via Gateway
+   - Gateway returns price data via `OnServiceCallback`
+   - Contract emits `ClaimProcessed` event
 
 4. **Payout Execution**
-   - Off-chain services listen for `PolicyClaimed` event
-   - PaymentHub transfers funds to policy holder
+   - Off-chain services listen for `ClaimProcessed` event
+   - PaymentHub can be used to settle payouts to the policy holder
    - Frontend updates UI to show claim status
 
 ### Example Integration
 
 ```csharp
-// Gateway validates claim and triggers payout
-var policyId = "POLICY-2024-001";
-var payoutAmount = 1000_00000000; // 1000 tokens
-
-Contract.Call(guardianPolicyAddress, "claimPolicy",
-    holderAddress,
-    policyId,
-    payoutAmount);
+// User or automation requests claim verification
+var policyId = 1; // BigInteger policy id
+Contract.Call(guardianPolicyAddress, "RequestClaim", policyId);
 
 // Listen for claim event
-OnPolicyClaimed += (holder, policyId, payout) => {
-    // Trigger PaymentHub transfer
+OnClaimProcessed += (policyId, holder, approved, payout) => {
+    // Trigger PaymentHub transfer (off-chain)
     // Update policy status to "claimed"
     // Notify user of successful claim
 };
@@ -208,29 +209,29 @@ OnPolicyClaimed += (holder, policyId, payout) => {
 // Request oracle data for claim validation
 var requestId = Gateway.RequestService(
     "guardian-policy",
-    "oracle",
+    "pricefeed",
     claimData
 );
 
-// OnServiceCallback receives oracle response
-OnServiceCallback(requestId, appId, "oracle", true, oracleResult, "") => {
-    // Parse oracle result
-    // If valid, call ClaimPolicy()
+// OnServiceCallback receives price feed response
+OnServiceCallback(requestId, appId, "pricefeed", true, oracleResult, "") => {
+    // Parse price data
+    // Calculate payout and emit ClaimProcessed
 };
 ```
 
 ## Security Considerations
 
-1. **Gateway-Only Access**: Only the configured Gateway can process claims
+1. **Gateway-Only Callbacks**: Only the configured Gateway can call `OnServiceCallback`
 2. **Admin Controls**: Critical configuration requires admin signature
 3. **Pause Mechanism**: Admin can halt operations in emergencies
 4. **Event Transparency**: All claims are publicly recorded on-chain
-5. **Payout Validation**: Gateway must validate claims before calling contract
+5. **Payout Validation**: Contract validates price drops using oracle data and thresholds
 
 ## Integration Points
 
 - **ServiceLayerGateway**: Primary entry point for all operations
-- **PaymentHub**: Handles actual token transfers for payouts
+- **PaymentHub**: Handles premium receipts; can be used to settle payouts
 - **Oracle Services**: External data validation for claim verification
 - **Frontend**: User interface for policy management and claims
 
@@ -245,7 +246,7 @@ OnServiceCallback(requestId, appId, "oracle", true, oracleResult, "") => {
 
 ## Version
 
-**Version:** 1.0.0
+**Version:** 3.0.0
 **Author:** R3E Network
 **Description:** Guardian Policy - Decentralized insurance policies
 
@@ -275,11 +276,11 @@ Guardian Policy 合约管理去中心化保险策略,用户可以:
 用户通过 `CreatePolicy()` 方法创建保险策略:
 
 ```csharp
-CreatePolicy(holder, assetType, coverage, startPrice, thresholdPercent)
+CreatePolicy(holder, assetType, policyType, coverage, startPrice, thresholdPercent, receiptId)
 ```
 
-- 用户指定资产类型、保额、起始价格和触发阈值
-- 系统自动计算保费(保额的 5%)
+- 用户指定资产类型、保单类型、保额、起始价格和触发阈值
+- 系统自动计算保费(保额的 5%)并通过 PaymentHub 收款
 - 保单有效期为 30 天
 
 #### 申请理赔
@@ -288,7 +289,7 @@ CreatePolicy(holder, assetType, coverage, startPrice, thresholdPercent)
 
 1. 用户提交理赔请求
 2. 合约向预言机请求当前价格验证
-3. Gateway 验证价格数据
+3. Gateway 返回价格数据
 4. 如果价格下跌超过阈值,自动批准理赔
 5. 赔付金额与价格下跌幅度成正比(上限为保额)
 
@@ -299,8 +300,8 @@ CreatePolicy(holder, assetType, coverage, startPrice, thresholdPercent)
 - 预言机服务监控保险事件
 - 当符合条件的事件被检测到时
 - 服务验证保单条件和覆盖范围
-- 自动触发 `ClaimPolicy()` 进行赔付
-- PaymentHub 将资金转账给保单持有人
+- 自动触发 `RequestClaim()` 进行验证
+- 通过 `ClaimProcessed` 事件触发后续赔付
 
 ### 参数说明
 
@@ -309,15 +310,17 @@ CreatePolicy(holder, assetType, coverage, startPrice, thresholdPercent)
 - **APP_ID**: `"miniapp-guardianpolicy"`
 - **MIN_COVERAGE**: `100000000` (1 GAS) - 最低保额
 - **PREMIUM_RATE_PERCENT**: `5` - 保费费率为保额的 5%
-- **POLICY_DURATION**: `2592000000` (30 天,以毫秒为单位)
+- **POLICY_DURATION**: `2592000` (30 天,以秒为单位)
 
 #### CreatePolicy 参数
 
 - `holder`: 保单持有人地址
 - `assetType`: 资产类型(如 "NEO", "GAS")
+- `policyType`: 保单类型(1-3)
 - `coverage`: 保额(最低 1 GAS)
 - `startPrice`: 起始价格
 - `thresholdPercent`: 价格下跌触发阈值(1-50%)
+- `receiptId`: 支付收据ID
 
 #### 理赔计算逻辑
 
@@ -343,8 +346,8 @@ CreatePolicy(holder, assetType, coverage, startPrice, thresholdPercent)
 
 ### 安全考虑
 
-1. **Gateway 专属访问**: 只有配置的 Gateway 可以处理理赔
+1. **Gateway 回调权限**: 只有配置的 Gateway 可以调用 `OnServiceCallback`
 2. **管理员控制**: 关键配置需要管理员签名
 3. **暂停机制**: 管理员可以在紧急情况下暂停操作
 4. **事件透明性**: 所有理赔都在链上公开记录
-5. **赔付验证**: Gateway 必须在调用合约前验证理赔
+5. **赔付验证**: 合约使用预言机数据与阈值进行验证

@@ -34,6 +34,8 @@ export interface MiniAppSDKConfig {
 export interface SDKWallet {
   getAddress?: () => Promise<string>;
   invokeIntent?: (requestId: string) => Promise<unknown>;
+  switchChain?: (chainId: ChainId) => Promise<void>;
+  signMessage?: (message: string) => Promise<unknown>;
 }
 
 export interface SDKPayments {

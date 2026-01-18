@@ -13,6 +13,7 @@ import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import { ChainBadgeGroup } from "@/components/ui/ChainBadgeGroup";
 import { useTranslation } from "@/lib/i18n/react";
 import { formatNumber } from "@/lib/utils";
+import { getLocalizedField } from "@neo/shared/i18n";
 import type { ChainId } from "@/lib/chains/types";
 
 export interface FeaturedApp {
@@ -66,10 +67,9 @@ export function FeaturedHeroCarousel({ apps, autoPlayInterval = 5000 }: Featured
   if (apps.length === 0) return null;
 
   const currentApp = apps[currentIndex];
-  const appName = locale === "zh" && currentApp.name_zh ? currentApp.name_zh : currentApp.name;
-  const appDesc = locale === "zh" && currentApp.description_zh ? currentApp.description_zh : currentApp.description;
-  const tagline =
-    locale === "zh" && currentApp.featured?.tagline_zh ? currentApp.featured.tagline_zh : currentApp.featured?.tagline;
+  const appName = getLocalizedField(currentApp, "name", locale);
+  const appDesc = getLocalizedField(currentApp, "description", locale);
+  const tagline = currentApp.featured ? getLocalizedField(currentApp.featured, "tagline", locale) : undefined;
 
   return (
     <div
@@ -220,7 +220,7 @@ function ThumbnailStrip({
   return (
     <div className="flex gap-2 p-4 bg-black/40 backdrop-blur-sm overflow-x-auto">
       {apps.map((app, i) => {
-        const name = locale === "zh" && app.name_zh ? app.name_zh : app.name;
+        const name = getLocalizedField(app, "name", locale);
         const isActive = i === currentIndex;
         return (
           <button

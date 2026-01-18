@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { Package, Clock, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/react";
 
 interface AppCardProps {
   app: {
@@ -18,15 +19,16 @@ interface AppCardProps {
   };
 }
 
-const statusConfig: Record<string, { color: string; icon: typeof Clock; label: string }> = {
-  draft: { color: "bg-gray-500", icon: Clock, label: "Draft" },
-  pending_review: { color: "bg-yellow-500", icon: Clock, label: "In Review" },
-  approved: { color: "bg-blue-500", icon: CheckCircle, label: "Approved" },
-  published: { color: "bg-green-500", icon: CheckCircle, label: "Published" },
-  suspended: { color: "bg-red-500", icon: AlertCircle, label: "Suspended" },
+const statusConfig: Record<string, { color: string; icon: typeof Clock; labelKey: string }> = {
+  draft: { color: "bg-gray-500", icon: Clock, labelKey: "developer.status.draft" },
+  pending_review: { color: "bg-yellow-500", icon: Clock, labelKey: "developer.status.inReview" },
+  approved: { color: "bg-blue-500", icon: CheckCircle, labelKey: "developer.status.approved" },
+  published: { color: "bg-green-500", icon: CheckCircle, labelKey: "developer.status.published" },
+  suspended: { color: "bg-red-500", icon: AlertCircle, labelKey: "developer.status.suspended" },
 };
 
 export function AppCard({ app }: AppCardProps) {
+  const { t, locale } = useTranslation("host");
   const status = statusConfig[app.status] || statusConfig.draft;
   const StatusIcon = status.icon;
 
@@ -49,24 +51,24 @@ export function AppCard({ app }: AppCardProps) {
               <h3 className="font-bold text-gray-900 dark:text-white truncate">{app.name}</h3>
               <span className={`px-2 py-0.5 rounded-full text-xs text-white ${status.color} flex items-center gap-1`}>
                 <StatusIcon size={12} />
-                {status.label}
+                {t(status.labelKey)}
               </span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2">{app.description}</p>
             <div className="flex items-center gap-3 text-xs text-gray-400">
-              <span className="capitalize">{app.category}</span>
+              <span className="capitalize">{t(`categories.${app.category}`)}</span>
               <span>•</span>
               {app.visibility === "public" ? (
                 <span className="flex items-center gap-1">
-                  <Eye size={12} /> Public
+                  <Eye size={12} /> {t("developer.visibility.public")}
                 </span>
               ) : (
                 <span className="flex items-center gap-1">
-                  <EyeOff size={12} /> Private
+                  <EyeOff size={12} /> {t("developer.visibility.private")}
                 </span>
               )}
               <span>•</span>
-              <span>Updated {new Date(app.updated_at).toLocaleDateString()}</span>
+              <span>{t("developer.updated", { date: new Date(app.updated_at).toLocaleDateString(locale) })}</span>
             </div>
           </div>
         </div>

@@ -95,34 +95,17 @@ build_sources() {
     return 0
 }
 
-# MiniApp base files (shared partial classes)
-# Core module - required by ALL MiniApps
-MINIAPP_CORE_FILES=(
-    "MiniAppBase/MiniAppBase.Core.cs"
+# MiniApp DevPack - Abstract Base Classes (Inheritance Pattern)
+# All MiniApp contracts inherit from appropriate base class
+DEVPACK_FILES=(
+    "MiniApp.DevPack/ServiceInterfaces.cs"
+    "MiniApp.DevPack/MiniAppBase.cs"
+    "MiniApp.DevPack/MiniAppGameBase.cs"
+    "MiniApp.DevPack/MiniAppServiceBase.cs"
+    "MiniApp.DevPack/MiniAppTimeLockBase.cs"
+    "MiniApp.DevPack/MiniAppComputeBase.cs"
+    "MiniApp.DevPack/MiniAppGameComputeBase.cs"
 )
-
-# BetLimits module - only for Gaming MiniApps (~13%)
-MINIAPP_BETLIMITS_FILES=(
-    "MiniAppBase/MiniAppBase.BetLimits.cs"
-)
-
-# Gaming contracts that need BetLimits
-GAMING_CONTRACTS=(
-    "MiniAppCoinFlip"
-    "MiniAppDiceGame"
-    "MiniAppScratchCard"
-    "MiniAppLottery"
-)
-
-is_gaming_contract() {
-    local name=$1
-    for gaming in "${GAMING_CONTRACTS[@]}"; do
-        if [ "$gaming" = "$name" ]; then
-            return 0
-        fi
-    done
-    return 1
-}
 
 build_miniapp() {
     local label=$1
@@ -135,28 +118,17 @@ build_miniapp() {
         return 0
     fi
 
-    # Add Core files (always)
+    # Add DevPack Base files (inheritance pattern)
     local all_sources=()
-    for base_file in "${MINIAPP_CORE_FILES[@]}"; do
-        if [ -f "$base_file" ]; then
-            all_sources+=("$base_file")
+    for devpack_file in "${DEVPACK_FILES[@]}"; do
+        if [ -f "$devpack_file" ]; then
+            all_sources+=("$devpack_file")
         fi
     done
 
-    # Add BetLimits only for Gaming contracts
-    if is_gaming_contract "$label"; then
-        for bet_file in "${MINIAPP_BETLIMITS_FILES[@]}"; do
-            if [ -f "$bet_file" ]; then
-                all_sources+=("$bet_file")
-            fi
-        done
-        echo "Building $label (Core + BetLimits)..."
-    else
-        echo "Building $label (Core only)..."
-    fi
-
     all_sources+=("${sources[@]}")
 
+    echo "Building $label (inherits MiniAppBase)..."
     mkdir -p "$outdir"
 
     if ! "$NCCS_BIN" "${all_sources[@]}" -o "$outdir"; then
@@ -199,6 +171,8 @@ miniapp_contracts_phase1=(
     "MiniAppCoinFlip:MiniAppCoinFlip"
     "MiniAppDiceGame:MiniAppDiceGame"
     "MiniAppScratchCard:MiniAppScratchCard"
+    "MiniAppNeoGacha:MiniAppNeoGacha"
+    "MiniAppTurtleMatch:MiniAppTurtleMatch"
 )
 
 # MiniApp contracts - Phase 2 (DeFi/Social)
@@ -237,9 +211,12 @@ miniapp_contracts_phase6=(
 # MiniApp contracts - Phase 7 (Advanced DeFi & Social)
 miniapp_contracts_phase7=(
     "MiniAppHeritageTrust:MiniAppHeritageTrust"
+    "MiniAppMemorialShrine:MiniAppMemorialShrine"
     "MiniAppGraveyard:MiniAppGraveyard"
     "MiniAppBurnLeague:MiniAppBurnLeague"
     "MiniAppGovMerc:MiniAppGovMerc"
+    "MiniAppHallOfFame:MiniAppHallOfFame"
+    "MiniAppGasSponsor:MiniAppGasSponsor"
 )
 
 # MiniApp contracts - Phase 8 (Creative & Social)
@@ -252,6 +229,15 @@ miniapp_contracts_phase8=(
     "MiniAppMillionPieceMap:MiniAppMillionPieceMap"
     "MiniAppFogPuzzle:MiniAppFogPuzzle"
     "MiniAppCryptoRiddle:MiniAppCryptoRiddle"
+)
+
+# MiniApp contracts - Phase 9 (Additional)
+miniapp_contracts_phase9=(
+    "MiniAppCompoundCapsule:MiniAppCompoundCapsule"
+    "MiniAppDoomsdayClock:MiniAppDoomsdayClock"
+    "MiniAppGardenOfNeo:MiniAppGardenOfNeo"
+    "MiniAppMasqueradeDAO:MiniAppMasqueradeDAO"
+    "MiniAppSelfLoan:MiniAppSelfLoan"
 )
 
 echo "=== Building Platform Contracts ==="
@@ -391,6 +377,21 @@ done
 echo ""
 echo "=== Building MiniApp Contracts - Phase 8 (Creative & Social) ==="
 for entry in "${miniapp_contracts_phase8[@]}"; do
+    dir="${entry%%:*}"
+    name="${entry##*:}"
+
+    if [ -d "$dir" ]; then
+        cs_files=$(find "$dir" -maxdepth 1 -name "*.cs" -type f | sort)
+        # shellcheck disable=SC2086
+        build_miniapp "$name" "build/${name}" $cs_files
+    else
+        echo "  ⚠ Directory $dir not found, skipping"
+    fi
+done
+
+echo ""
+echo "=== Building MiniApp Contracts - Phase 9 (Additional) ==="
+for entry in "${miniapp_contracts_phase9[@]}"; do
     dir="${entry%%:*}"
     name="${entry##*:}"
 

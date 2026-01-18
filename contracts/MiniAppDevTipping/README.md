@@ -71,7 +71,7 @@
 
 ### User Functions | 用户函数
 
-#### `Tip(tipper, devId, amount, message, tipperName, receiptId)`
+#### `Tip(tipper, devId, amount, message, tipperName, anonymous, receiptId)`
 
 **English**: Send a tip to a developer.
 
@@ -80,6 +80,7 @@
 - `amount`: Tip amount (minimum 0.001 GAS)
 - `message`: Optional message (max 256 chars)
 - `tipperName`: Display name (max 64 chars, uses address if empty)
+- `anonymous`: Whether to hide tipper identity
 - `receiptId`: Payment receipt ID
 
 **中文**: 向开发者发送打赏。
@@ -89,6 +90,7 @@
 - `amount`: 打赏金额（最低0.001 GAS）
 - `message`: 可选消息（最多256字符）
 - `tipperName`: 显示名称（最多64字符，为空则使用地址）
+- `anonymous`: 是否匿名打赏
 - `receiptId`: 支付收据ID
 
 #### `Withdraw(devId)`
@@ -115,17 +117,15 @@
 
 **中文**: 获取所有开发者的总捐赠金额。
 
-#### `GetDevWallet(devId)`
+#### `GetDeveloperDetails(devId)`
 
-**English**: Get developer's wallet address.
+**English**: Get developer profile + tip stats in one call.
 
-**中文**: 获取开发者钱包地址。
+- `name`, `role`, `wallet`
+- `balance`, `totalReceived`, `tipCount`
+- `active`, `bio`, `link`
 
-#### `GetDevBalance(devId)`
-
-**English**: Get developer's current withdrawable balance.
-
-**中文**: 获取开发者当前可提取余额。
+**中文**: 一次获取开发者资料与打赏统计。
 
 #### `GetTipperTotal(tipperName)`
 

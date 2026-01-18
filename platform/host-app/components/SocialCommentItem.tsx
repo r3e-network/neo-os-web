@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "@/lib/i18n/react";
 import type { SocialComment, VoteType } from "./types";
 
 interface CommentItemProps {
@@ -14,6 +15,8 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
   const [replyContent, setReplyContent] = useState("");
   const [replies, setReplies] = useState<SocialComment[]>([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
+  const { t, locale } = useTranslation("host");
+  const { t: tCommon } = useTranslation("common");
 
   const handleLoadReplies = async () => {
     if (!onLoadReplies || loadingReplies) return;
@@ -40,11 +43,11 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
         <div className="flex items-center gap-2 mb-2">
           {comment.is_developer_reply && (
             <span className="px-2 py-0.5 bg-neo/10 text-neo text-[10px] font-bold uppercase rounded-full border border-neo/20">
-              Core Dev
+              {t("reviews.developerReply")}
             </span>
           )}
           <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-            {new Date(comment.created_at).toLocaleDateString()}
+            {new Date(comment.created_at).toLocaleDateString(locale)}
           </span>
         </div>
 
@@ -76,7 +79,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
               onClick={() => setShowReplyForm(!showReplyForm)}
               className="text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              Reply
+              {t("reviews.reply")}
             </button>
           )}
 
@@ -86,7 +89,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
               className="text-xs font-bold text-neo hover:underline decoration-neo underline-offset-4 disabled:opacity-50"
               disabled={loadingReplies}
             >
-              {loadingReplies ? "Loading..." : `${comment.reply_count} replies`}
+              {loadingReplies ? tCommon("actions.loading") : t("reviews.repliesCount", { count: comment.reply_count })}
             </button>
           )}
         </div>
@@ -98,7 +101,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
           <textarea
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
-            placeholder="Write your reply..."
+            placeholder={t("reviews.replyPlaceholder")}
             className="w-full p-3 text-sm bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-neo/20 focus:border-neo outline-none text-gray-900 dark:text-white placeholder-gray-400 min-h-[80px]"
             maxLength={2000}
           />
@@ -107,13 +110,13 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
               onClick={() => setShowReplyForm(false)}
               className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              Cancel
+              {tCommon("actions.cancel")}
             </button>
             <button
               onClick={handleSubmitReply}
               className="px-4 py-2 bg-neo text-black font-bold text-xs rounded-lg hover:bg-neo-dark transition-colors shadow-sm"
             >
-              Reply
+              {t("reviews.reply")}
             </button>
           </div>
         </div>

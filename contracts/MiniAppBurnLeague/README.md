@@ -29,7 +29,7 @@ public static void BurnGas(UInt160 burner, BigInteger amount, BigInteger receipt
 
 ```csharp
 public static BigInteger TotalBurned()
-public static BigInteger GetUserBurned(UInt160 user)
+public static BigInteger GetUserTotalBurned(UInt160 user)
 ```
 
 - 查询全局总燃烧量
@@ -85,7 +85,7 @@ public static void BurnGas(UInt160 burner, BigInteger amount, BigInteger receipt
 
 ```csharp
 public static BigInteger TotalBurned()
-public static BigInteger GetUserBurned(UInt160 user)
+public static BigInteger GetUserTotalBurned(UInt160 user)
 ```
 
 - Query total global burn amount

@@ -9,70 +9,48 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
-    /// <summary>
-    /// Event delegates for bet lifecycle tracking.
-    /// </summary>
-    public delegate void BetPlacedHandler(UInt160 player, BigInteger amount, bool choice, BigInteger betId);
-    public delegate void BetResolvedHandler(UInt160 player, BigInteger payout, bool won, BigInteger betId);
-    public delegate void RngRequestedHandler(BigInteger betId, BigInteger requestId);
-    public delegate void AutomationRegisteredHandler(BigInteger taskId, string triggerType, string schedule);
-    public delegate void AutomationCancelledHandler(BigInteger taskId);
-    public delegate void PeriodicExecutionTriggeredHandler(BigInteger taskId);
+    public delegate void BetPlacedHandler(UInt160 player, BigInteger betId, BigInteger amount, bool choice);
+    public delegate void BetInitiatedHandler(UInt160 player, BigInteger betId, BigInteger amount, bool choice, string seed);
+    public delegate void BetResolvedHandler(UInt160 player, BigInteger betId, bool won, BigInteger payout);
+    public delegate void JackpotWonHandler(UInt160 player, BigInteger amount);
+    public delegate void AchievementUnlockedHandler(UInt160 player, BigInteger achievementId, string name);
+    public delegate void StreakUpdatedHandler(UInt160 player, BigInteger streakType, BigInteger streakCount);
 
-    /// <summary>
-    /// CoinFlip MiniApp - 50/50 double-or-nothing betting game.
-    ///
-    /// ARCHITECTURE (Chainlink-style):
-    /// - User invokes PlaceBet → Contract requests RNG from ServiceLayerGateway
-    /// - Gateway fulfills request → Contract receives callback → Settles bet
-    ///
-    /// GAME MECHANICS:
-    /// - Player chooses heads (true) or tails (false)
-    /// - VRF randomness determines outcome
-    /// - Win: 2x bet minus 5% platform fee
-    /// - Lose: Forfeit entire bet
-    ///
-    /// SECURITY:
-    /// - PlaceBet: Requires player signature (CheckWitness)
-    /// - OnServiceCallback: Only gateway can call (ValidateGateway)
-    /// - Randomness from TEE prevents manipulation
-    /// - Bet data stored on-chain, preventing callback manipulation
-    ///
-    /// WORKFLOW (NEW - MiniApp initiates service request):
-    /// 1. User pays via PaymentHub (SDK.payGAS)
-    /// 2. User calls PlaceBet → bet stored + RNG requested
-    /// 3. ServiceLayerGateway processes RNG request
-    /// 4. Gateway calls OnServiceCallback with VRF result
-    /// 5. Contract settles bet + emits payout event
-    /// 6. Platform sends payout via PaymentHub
-    /// </summary>
     [DisplayName("MiniAppCoinFlip")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. CoinFlip is a provably fair gaming application for 50/50 betting. Use it to place heads or tails bets, you can win 2x your stake with verifiable on-chain randomness.")]
+    [ManifestExtra("Description", "Provably fair coin flip game with jackpot and achievements")]
     [ContractPermission("*", "*")]
-    public partial class MiniAppContract : SmartContract
+    public partial class MiniAppCoinFlip : MiniAppGameComputeBase
     {
         #region App Constants
         private const string APP_ID = "miniapp-coinflip";
-        private const int PLATFORM_FEE_PERCENT = 5;
-        private const long MIN_BET = 5000000;    // 0.05 GAS
-        private const long MAX_BET = 5000000000; // 50 GAS (anti-Martingale)
+        private const int PLATFORM_FEE_PERCENT = 3;
+        private const long MIN_BET = 10000000;
+        private const long MAX_BET = 5000000000;
+        private const int JACKPOT_CONTRIBUTION_BPS = 100;
+        private const int JACKPOT_CHANCE_BPS = 50;
+        private const long JACKPOT_THRESHOLD = 100000000;
+        private const long HIGH_ROLLER_THRESHOLD = 1000000000;
+        private const int STREAK_BONUS_BPS = 50;
+        private const int MAX_STREAK_BONUS = 500;
         #endregion
 
-        #region App Prefixes (start from 0x10)
-        private static readonly byte[] PREFIX_BET_ID = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_BETS = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_REQUEST_TO_BET = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_AUTOMATION_TASK = new byte[] { 0x20 };
-        private static readonly byte[] PREFIX_AUTOMATION_ANCHOR = new byte[] { 0x21 };
+        #region App Prefixes (0x40+ to avoid collision with MiniAppGameComputeBase)
+        private static readonly byte[] PREFIX_BET_ID = new byte[] { 0x40 };
+        private static readonly byte[] PREFIX_BETS = new byte[] { 0x41 };
+        private static readonly byte[] PREFIX_PLAYER_STATS = new byte[] { 0x42 };
+        private static readonly byte[] PREFIX_TOTAL_WAGERED = new byte[] { 0x43 };
+        private static readonly byte[] PREFIX_TOTAL_PAID = new byte[] { 0x44 };
+        private static readonly byte[] PREFIX_JACKPOT_POOL = new byte[] { 0x45 };
+        private static readonly byte[] PREFIX_ACHIEVEMENTS = new byte[] { 0x46 };
+        private static readonly byte[] PREFIX_USER_BETS = new byte[] { 0x47 };
+        private static readonly byte[] PREFIX_USER_BET_COUNT = new byte[] { 0x48 };
+        private static readonly byte[] PREFIX_TOTAL_PLAYERS = new byte[] { 0x49 };
         #endregion
 
-        #region Bet Data Structure
-        /// <summary>
-        /// Stores all bet details for callback resolution.
-        /// </summary>
+        #region Data Structures
         public struct BetData
         {
             public UInt160 Player;
@@ -80,27 +58,52 @@ namespace NeoMiniAppPlatform.Contracts
             public bool Choice;
             public BigInteger Timestamp;
             public bool Resolved;
+            public bool Won;
+            public BigInteger Payout;
+            public BigInteger StreakBonus;
+            public ByteString Seed;        // Deterministic seed for hybrid mode
+            public bool HybridMode;        // True if using hybrid (seed-based) resolution
+        }
+
+        public struct PlayerStats
+        {
+            public BigInteger TotalBets;
+            public BigInteger TotalWins;
+            public BigInteger TotalLosses;
+            public BigInteger TotalWagered;
+            public BigInteger TotalWon;
+            public BigInteger TotalLost;
+            public BigInteger CurrentWinStreak;
+            public BigInteger CurrentLossStreak;
+            public BigInteger BestWinStreak;
+            public BigInteger WorstLossStreak;
+            public BigInteger HighestWin;
+            public BigInteger HighestBet;
+            public BigInteger AchievementCount;
+            public BigInteger JackpotsWon;
+            public BigInteger JoinTime;
+            public BigInteger LastBetTime;
         }
         #endregion
 
-        #region App Events
+        #region Events
         [DisplayName("BetPlaced")]
         public static event BetPlacedHandler OnBetPlaced;
+
+        [DisplayName("BetInitiated")]
+        public static event BetInitiatedHandler OnBetInitiated;
 
         [DisplayName("BetResolved")]
         public static event BetResolvedHandler OnBetResolved;
 
-        [DisplayName("RngRequested")]
-        public static event RngRequestedHandler OnRngRequested;
+        [DisplayName("JackpotWon")]
+        public static event JackpotWonHandler OnJackpotWon;
 
-        [DisplayName("AutomationRegistered")]
-        public static event AutomationRegisteredHandler OnAutomationRegistered;
+        [DisplayName("AchievementUnlocked")]
+        public static event AchievementUnlockedHandler OnAchievementUnlocked;
 
-        [DisplayName("AutomationCancelled")]
-        public static event AutomationCancelledHandler OnAutomationCancelled;
-
-        [DisplayName("PeriodicExecutionTriggered")]
-        public static event PeriodicExecutionTriggeredHandler OnPeriodicExecutionTriggered;
+        [DisplayName("StreakUpdated")]
+        public static event StreakUpdatedHandler OnStreakUpdated;
         #endregion
 
         #region Lifecycle
@@ -109,295 +112,60 @@ namespace NeoMiniAppPlatform.Contracts
             if (update) return;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
             Storage.Put(Storage.CurrentContext, PREFIX_BET_ID, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_WAGERED, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_PAID, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_JACKPOT_POOL, 0);
+            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_PLAYERS, 0);
         }
         #endregion
 
-        #region User-Facing Methods
+        #region Read Methods
+        [Safe]
+        public static BigInteger GetBetCount() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_BET_ID);
 
-        /// <summary>
-        /// Places a new bet and requests RNG from ServiceLayerGateway.
-        ///
-        /// FLOW:
-        /// 1. Validate player signature and bet amount
-        /// 2. Store bet data on-chain
-        /// 3. Call gateway.requestService("rng") with callback
-        /// 4. Store request-to-bet mapping for callback resolution
-        ///
-        /// SECURITY:
-        /// - CheckWitness ensures player authorized this bet
-        /// - Bet data stored BEFORE requesting RNG (prevents manipulation)
-        /// - Minimum bet prevents dust attacks
-        ///
-        /// RETURNS: betId for tracking
-        /// </summary>
-        public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice, BigInteger receiptId)
-        {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(amount >= MIN_BET, "min bet 0.05 GAS");
-            ExecutionEngine.Assert(amount <= MAX_BET, "max bet 50 GAS (anti-Martingale)");
+        [Safe]
+        public static BigInteger GetTotalWagered() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_WAGERED);
 
-            // Anti-Martingale: Validate bet limits (daily cap, cooldown, consecutive)
-            ValidateBetLimits(player, amount);
+        [Safe]
+        public static BigInteger GetTotalPaid() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_PAID);
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+        [Safe]
+        public static BigInteger GetJackpotPool() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_JACKPOT_POOL);
 
-            ValidatePaymentReceipt(APP_ID, player, amount, receiptId);
+        [Safe]
+        public static BigInteger GetTotalPlayers() =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_PLAYERS);
 
-            // Generate bet ID
-            BigInteger betId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_BET_ID) + 1;
-            Storage.Put(Storage.CurrentContext, PREFIX_BET_ID, betId);
-
-            // Store bet data (BEFORE requesting RNG for security)
-            BetData bet = new BetData
-            {
-                Player = player,
-                Amount = amount,
-                Choice = choice,
-                Timestamp = Runtime.Time,
-                Resolved = false
-            };
-            StoreBet(betId, bet);
-
-            // Record bet for anti-Martingale tracking
-            RecordBet(player, amount);
-
-            // Request RNG from gateway
-            BigInteger requestId = RequestRng(betId);
-
-            // Map request to bet for callback resolution
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_BET, ((ByteString)requestId.ToByteArray())),
-                betId);
-
-            OnBetPlaced(player, amount, choice, betId);
-            OnRngRequested(betId, requestId);
-            return betId;
-        }
-
-        /// <summary>
-        /// Gets bet details by ID.
-        /// </summary>
         [Safe]
         public static BetData GetBet(BigInteger betId)
         {
             ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat(PREFIX_BETS, (ByteString)betId.ToByteArray()));
+                Helper.Concat((ByteString)PREFIX_BETS, (ByteString)betId.ToByteArray()));
             if (data == null) return new BetData();
             return (BetData)StdLib.Deserialize(data);
         }
 
-        #endregion
-
-        #region Service Request Methods
-
-        /// <summary>
-        /// Requests RNG from ServiceLayerGateway.
-        ///
-        /// CHAINLINK-STYLE:
-        /// - Contract actively calls gateway.requestService
-        /// - Provides callback contract and method
-        /// - Gateway will call OnServiceCallback when RNG is ready
-        /// </summary>
-        private static BigInteger RequestRng(BigInteger betId)
-        {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
-
-            // Payload contains betId for reference
-            ByteString payload = StdLib.Serialize(new object[] { betId });
-
-            return (BigInteger)Contract.Call(
-                gateway,
-                "requestService",
-                CallFlags.All,
-                APP_ID,
-                "rng",
-                payload,
-                Runtime.ExecutingScriptHash,
-                "onServiceCallback"
-            );
-        }
-
-        /// <summary>
-        /// Callback from ServiceLayerGateway with RNG result.
-        ///
-        /// SECURITY:
-        /// - ValidateGateway ensures only TEE-attested gateway can call
-        /// - Bet data retrieved from storage (not from callback params)
-        /// - Prevents replay via Resolved flag
-        ///
-        /// FLOW:
-        /// 1. Validate gateway caller
-        /// 2. Lookup bet by requestId
-        /// 3. Parse RNG result
-        /// 4. Determine outcome and payout
-        /// 5. Emit BetResolved event
-        /// </summary>
-        public static void OnServiceCallback(
-            BigInteger requestId,
-            string appId,
-            string serviceType,
-            bool success,
-            ByteString result,
-            string error)
-        {
-            ValidateGateway();
-
-            // Lookup bet from request mapping
-            ByteString betIdData = Storage.Get(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_BET, (ByteString)requestId.ToByteArray()));
-            ExecutionEngine.Assert(betIdData != null, "unknown request");
-
-            BigInteger betId = (BigInteger)betIdData;
-            BetData bet = GetBet(betId);
-            ExecutionEngine.Assert(!bet.Resolved, "already resolved");
-            ExecutionEngine.Assert(bet.Player != UInt160.Zero, "bet not found");
-
-            // Handle failure
-            if (!success)
-            {
-                // Mark as resolved but with 0 payout (refund handled off-chain)
-                bet.Resolved = true;
-                StoreBet(betId, bet);
-                OnBetResolved(bet.Player, 0, false, betId);
-                return;
-            }
-
-            // Parse RNG and determine outcome with SHA256 entropy mixing
-            ExecutionEngine.Assert(result != null && result.Length > 0, "no rng data");
-            ByteString hash = CryptoLib.Sha256((ByteString)result);
-            byte firstByte = ((byte[])hash)[0];
-            bool outcome = firstByte % 2 == 0;
-            bool won = outcome == bet.Choice;
-
-            // Calculate payout
-            BigInteger payout = won ? bet.Amount * 2 * (100 - PLATFORM_FEE_PERCENT) / 100 : 0;
-
-            // Mark bet as resolved
-            bet.Resolved = true;
-            StoreBet(betId, bet);
-
-            // Clean up request mapping
-            Storage.Delete(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_BET, (ByteString)requestId.ToByteArray()));
-
-            OnBetResolved(bet.Player, payout, won, betId);
-        }
-
-        #endregion
-
-        #region Internal Storage Helpers
-
-        private static void StoreBet(BigInteger betId, BetData bet)
-        {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat(PREFIX_BETS, (ByteString)betId.ToByteArray()),
-                StdLib.Serialize(bet));
-        }
-
-        #endregion
-
-        #region Periodic Automation
-
-        /// <summary>
-        /// Returns the AutomationAnchor contract address.
-        /// </summary>
         [Safe]
-        public static UInt160 AutomationAnchor()
+        public static PlayerStats GetPlayerStats(UInt160 player)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR);
-            return data != null ? (UInt160)data : UInt160.Zero;
+            ByteString data = Storage.Get(Storage.CurrentContext,
+                Helper.Concat((ByteString)PREFIX_PLAYER_STATS, player));
+            if (data == null) return new PlayerStats();
+            return (PlayerStats)StdLib.Deserialize(data);
         }
 
-        /// <summary>
-        /// Sets the AutomationAnchor contract address.
-        /// SECURITY: Only admin can set the automation anchor.
-        /// </summary>
-        public static void SetAutomationAnchor(UInt160 anchor)
+        [Safe]
+        public static bool HasAchievement(UInt160 player, BigInteger achievementId)
         {
-            ValidateAdmin();
-            ValidateAddress(anchor);
-            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR, anchor);
+            byte[] key = Helper.Concat(
+                Helper.Concat(PREFIX_ACHIEVEMENTS, player),
+                (ByteString)achievementId.ToByteArray());
+            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }
-
-        /// <summary>
-        /// Periodic execution callback invoked by AutomationAnchor.
-        /// SECURITY: Only AutomationAnchor can invoke this method.
-        /// LOGIC: Processes automated settlement for expired bets.
-        /// </summary>
-        public static void OnPeriodicExecution(BigInteger taskId, ByteString payload)
-        {
-            // Verify caller is AutomationAnchor
-            UInt160 anchor = AutomationAnchor();
-            ExecutionEngine.Assert(anchor != UInt160.Zero && Runtime.CallingScriptHash == anchor, "unauthorized");
-
-            OnPeriodicExecutionTriggered(taskId);
-
-            // Process automated settlement of expired bets
-            ProcessAutomatedSettlement();
-        }
-
-        /// <summary>
-        /// Registers this MiniApp for periodic automation.
-        /// SECURITY: Only admin can register.
-        /// CORRECTNESS: AutomationAnchor must be set first.
-        /// </summary>
-        public static BigInteger RegisterAutomation(string triggerType, string schedule)
-        {
-            ValidateAdmin();
-            UInt160 anchor = AutomationAnchor();
-            ExecutionEngine.Assert(anchor != UInt160.Zero, "automation anchor not set");
-
-            // Call AutomationAnchor.RegisterPeriodicTask
-            BigInteger taskId = (BigInteger)Contract.Call(anchor, "registerPeriodicTask", CallFlags.All,
-                Runtime.ExecutingScriptHash, "onPeriodicExecution", triggerType, schedule, 1000000); // 0.01 GAS limit
-
-            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_TASK, taskId);
-            OnAutomationRegistered(taskId, triggerType, schedule);
-            return taskId;
-        }
-
-        /// <summary>
-        /// Cancels the registered automation task.
-        /// SECURITY: Only admin can cancel.
-        /// </summary>
-        public static void CancelAutomation()
-        {
-            ValidateAdmin();
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
-            ExecutionEngine.Assert(data != null, "no automation registered");
-
-            BigInteger taskId = (BigInteger)data;
-            UInt160 anchor = AutomationAnchor();
-            Contract.Call(anchor, "cancelPeriodicTask", CallFlags.All, taskId);
-
-            Storage.Delete(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
-            OnAutomationCancelled(taskId);
-        }
-
-        /// <summary>
-        /// Internal method to process automated settlement for expired bets.
-        /// Called by OnPeriodicExecution.
-        /// Finds bets that are unresolved and past timeout threshold.
-        /// </summary>
-        private static void ProcessAutomatedSettlement()
-        {
-            // In a production implementation, this would iterate through pending bets
-            // and settle those that have exceeded a timeout threshold.
-            // For this reference implementation, we demonstrate the structure:
-
-            // Example: Check if there are any unresolved bets past a timeout (e.g., 1 hour = 3600000 ms)
-            BigInteger currentBetId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_BET_ID);
-            BigInteger currentTime = Runtime.Time;
-            BigInteger timeout = 3600000; // 1 hour timeout
-
-            // In production, maintain a list of pending bets to avoid full iteration
-            // For demonstration purposes, we skip the iteration logic here
-            // Real implementation would maintain PREFIX_PENDING_BETS queue
-        }
-
         #endregion
     }
 }

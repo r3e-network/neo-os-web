@@ -96,21 +96,10 @@ export function DynamicBanner({ category, appId, appName, highlights }: DynamicB
       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)] bg-[size:10px_10px]" />
 
       {/* App Name with Icons - Centered */}
-      {appName && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 px-4">
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center gap-4">
-              <IconComponent className={`w-12 h-12 ${categoryStyle.text} drop-shadow-[2px_2px_0_#000]`} />
-              <h2
-                className={`text-2xl sm:text-3xl font-black uppercase tracking-wider text-center ${categoryStyle.text} drop-shadow-[2px_2px_0_#000]`}
-                style={{ fontFamily: categoryStyle.fontFamily }}
-              >
-                {appName}
-              </h2>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* App Icon Only - Centered */}
+      <div className="absolute inset-0 flex items-center justify-center z-10 px-4">
+        <IconComponent className={`w-16 h-16 ${categoryStyle.text} drop-shadow-[2px_2px_0_#000]`} />
+      </div>
 
       {/* Special Countdown for Daily Check-in */}
       {appId === "miniapp-dailycheckin" && timeLeft && (

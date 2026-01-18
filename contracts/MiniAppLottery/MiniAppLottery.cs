@@ -12,52 +12,60 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void TicketPurchasedHandler(UInt160 player, BigInteger ticketCount, BigInteger roundId);
     public delegate void DrawInitiatedHandler(BigInteger roundId, BigInteger requestId);
     public delegate void WinnerDrawnHandler(UInt160 winner, BigInteger prize, BigInteger roundId);
-    public delegate void AutomationRegisteredHandler(BigInteger taskId, string triggerType, string schedule);
-    public delegate void AutomationCancelledHandler(BigInteger taskId);
-    public delegate void PeriodicExecutionTriggeredHandler(BigInteger taskId);
+    public delegate void RoundCompletedHandler(BigInteger roundId, UInt160 winner, BigInteger prize, BigInteger totalTickets);
+    public delegate void AchievementUnlockedHandler(UInt160 player, BigInteger achievementId, string achievementName);
+    public delegate void JackpotRolloverHandler(BigInteger roundId, BigInteger rolloverAmount);
 
-    /// <summary>
-    /// Lottery MiniApp with provable VRF randomness.
-    ///
-    /// ARCHITECTURE (Chainlink-style):
-    /// - Users buy tickets via BuyTickets
-    /// - Admin initiates draw via InitiateDraw → Contract requests RNG
-    /// - Gateway fulfills request → Contract receives callback → Selects winner
-    ///
-    /// MECHANICS:
-    /// - Ticket price: 0.1 GAS
-    /// - Platform fee: 10%
-    /// - Winner takes 90% of prize pool
-    /// </summary>
+    // Multi-type lottery event delegates
+    public delegate void ScratchTicketPurchasedHandler(UInt160 player, BigInteger ticketId, byte lotteryType, BigInteger price);
+    public delegate void ScratchTicketRevealedHandler(UInt160 player, BigInteger ticketId, BigInteger prize, bool isWinner);
+    public delegate void TypeTicketPurchasedHandler(UInt160 player, byte lotteryType, BigInteger ticketCount, BigInteger roundId);
+
     [DisplayName("MiniAppLottery")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
-    [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "This is Neo R3E Network MiniApp. Lottery is a jackpot gaming application for prize pool betting. Use it to buy lottery tickets, you can win massive jackpot prizes through provable random draws.")]
+    [ManifestExtra("Version", "3.0.0")]
+    [ManifestExtra("Description", "Lottery jackpot gaming with provable random draws")]
     [ContractPermission("*", "*")]
-    public partial class MiniAppContract : SmartContract
+    public partial class MiniAppLottery : MiniAppGameComputeBase
     {
         #region App Constants
         private const string APP_ID = "miniapp-lottery";
-        private const long TICKET_PRICE = 10000000; // 0.1 GAS
+        private const long TICKET_PRICE = 10000000;
         private const int PLATFORM_FEE_PERCENT = 10;
-        private const int MAX_TICKETS_PER_TX = 100;  // Max 100 tickets per transaction (anti-Martingale)
-        private const int MAX_TICKETS_PER_ROUND = 500; // Max 500 tickets per player per round
+        private const int MAX_TICKETS_PER_TX = 100;
+        private const int MIN_PARTICIPANTS = 3;
+        private const long BIG_WIN_THRESHOLD = 1000000000;
         #endregion
 
-        #region App Prefixes (start from 0x10)
-        private static readonly byte[] PREFIX_ROUND = new byte[] { 0x10 };
-        private static readonly byte[] PREFIX_POOL = new byte[] { 0x11 };
-        private static readonly byte[] PREFIX_TICKETS = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_TICKET_COUNT = new byte[] { 0x13 };
-        private static readonly byte[] PREFIX_PARTICIPANTS = new byte[] { 0x14 };
-        private static readonly byte[] PREFIX_DRAW_PENDING = new byte[] { 0x15 };
-        private static readonly byte[] PREFIX_REQUEST_TO_ROUND = new byte[] { 0x16 };
-        private static readonly byte[] PREFIX_AUTOMATION_TASK = new byte[] { 0x20 };
-        private static readonly byte[] PREFIX_AUTOMATION_ANCHOR = new byte[] { 0x21 };
+        #region App Storage Prefixes (0x40+ to avoid collision with MiniAppGameComputeBase)
+        private static readonly byte[] PREFIX_ROUND = new byte[] { 0x40 };
+        private static readonly byte[] PREFIX_POOL = new byte[] { 0x41 };
+        private static readonly byte[] PREFIX_TICKETS = new byte[] { 0x42 };
+        private static readonly byte[] PREFIX_TICKET_COUNT = new byte[] { 0x43 };
+        private static readonly byte[] PREFIX_PARTICIPANTS = new byte[] { 0x44 };
+        private static readonly byte[] PREFIX_DRAW_PENDING = new byte[] { 0x45 };
+        private static readonly byte[] PREFIX_PARTICIPANT_COUNT = new byte[] { 0x46 };
+        private static readonly byte[] PREFIX_PLAYER_STATS = new byte[] { 0x47 };
+        private static readonly byte[] PREFIX_ROUND_DATA = new byte[] { 0x48 };
+        private static readonly byte[] PREFIX_ACHIEVEMENTS = new byte[] { 0x49 };
+        private static readonly byte[] PREFIX_TOTAL_PLAYERS = new byte[] { 0x4A };
+        private static readonly byte[] PREFIX_TOTAL_PRIZES = new byte[] { 0x4B };
+        private static readonly byte[] PREFIX_ROLLOVER = new byte[] { 0x4C };
+
+        // Multi-type lottery storage prefixes (0x50-0x5F)
+        private static readonly byte[] PREFIX_LOTTERY_CONFIG = new byte[] { 0x50 };
+        private static readonly byte[] PREFIX_SCRATCH_TICKET = new byte[] { 0x51 };
+        private static readonly byte[] PREFIX_SCRATCH_ID = new byte[] { 0x52 };
+        private static readonly byte[] PREFIX_TYPE_POOL = new byte[] { 0x53 };
+        private static readonly byte[] PREFIX_TYPE_STATS = new byte[] { 0x54 };
+        private static readonly byte[] PREFIX_PLAYER_SCRATCH = new byte[] { 0x55 };
+        private static readonly byte[] PREFIX_TYPE_ROUND = new byte[] { 0x56 };
+        private static readonly byte[] PREFIX_PLAYER_SCRATCH_COUNT = new byte[] { 0x57 };
         #endregion
 
         #region App Events
+
         [DisplayName("TicketPurchased")]
         public static event TicketPurchasedHandler OnTicketPurchased;
 
@@ -67,317 +75,121 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("WinnerDrawn")]
         public static event WinnerDrawnHandler OnWinnerDrawn;
 
-        [DisplayName("AutomationRegistered")]
-        public static event AutomationRegisteredHandler OnAutomationRegistered;
+        [DisplayName("RoundCompleted")]
+        public static event RoundCompletedHandler OnRoundCompleted;
 
-        [DisplayName("AutomationCancelled")]
-        public static event AutomationCancelledHandler OnAutomationCancelled;
+        [DisplayName("AchievementUnlocked")]
+        public static event AchievementUnlockedHandler OnAchievementUnlocked;
 
-        [DisplayName("PeriodicExecutionTriggered")]
-        public static event PeriodicExecutionTriggeredHandler OnPeriodicExecutionTriggered;
+        [DisplayName("JackpotRollover")]
+        public static event JackpotRolloverHandler OnJackpotRollover;
+
+        // Multi-type lottery events
+        [DisplayName("ScratchTicketPurchased")]
+        public static event ScratchTicketPurchasedHandler OnScratchTicketPurchased;
+
+        [DisplayName("ScratchTicketRevealed")]
+        public static event ScratchTicketRevealedHandler OnScratchTicketRevealed;
+
+        [DisplayName("TypeTicketPurchased")]
+        public static event TypeTicketPurchasedHandler OnTypeTicketPurchased;
+
         #endregion
 
-        #region App Getters
-        [Safe]
-        public static BigInteger CurrentRound() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_ROUND);
+        #region Data Structures
 
-        [Safe]
-        public static BigInteger PrizePool() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_POOL);
-
-        [Safe]
-        public static BigInteger TotalTickets() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TICKET_COUNT);
-
-        [Safe]
-        public static bool IsDrawPending() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_DRAW_PENDING) == 1;
-        #endregion
-
-        #region Lifecycle
-        public static void _deploy(object data, bool update)
+        public struct PlayerStats
         {
-            if (update) return;
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
-            Storage.Put(Storage.CurrentContext, PREFIX_ROUND, 1);
-            Storage.Put(Storage.CurrentContext, PREFIX_POOL, 0);
-            Storage.Put(Storage.CurrentContext, PREFIX_TICKET_COUNT, 0);
-            Storage.Put(Storage.CurrentContext, PREFIX_DRAW_PENDING, 0);
-        }
-        #endregion
-
-        #region User-Facing Methods
-
-        public static void BuyTickets(UInt160 player, BigInteger ticketCount, BigInteger receiptId)
-        {
-            ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(ticketCount > 0 && ticketCount <= MAX_TICKETS_PER_TX, "1-100 tickets max");
-            ExecutionEngine.Assert(!IsDrawPending(), "draw in progress");
-
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
-
-            BigInteger totalCost = ticketCount * TICKET_PRICE;
-            BigInteger roundId = CurrentRound();
-
-            // Anti-Martingale: Validate bet limits
-            ValidateBetLimits(player, totalCost);
-
-            ValidatePaymentReceipt(APP_ID, player, totalCost, receiptId);
-
-            // Update player tickets
-            byte[] ticketKey = Helper.Concat(PREFIX_TICKETS, player);
-            ticketKey = Helper.Concat(ticketKey, (ByteString)roundId.ToByteArray());
-            BigInteger existing = (BigInteger)Storage.Get(Storage.CurrentContext, ticketKey);
-            Storage.Put(Storage.CurrentContext, ticketKey, existing + ticketCount);
-
-            // Track participant
-            if (existing == 0)
-            {
-                BigInteger participantCount = GetParticipantCount(roundId);
-                byte[] participantKey = Helper.Concat(PREFIX_PARTICIPANTS, (ByteString)roundId.ToByteArray());
-                participantKey = Helper.Concat(participantKey, (ByteString)participantCount.ToByteArray());
-                Storage.Put(Storage.CurrentContext, participantKey, player);
-                SetParticipantCount(roundId, participantCount + 1);
-            }
-
-            // Update totals
-            BigInteger currentTotal = TotalTickets();
-            Storage.Put(Storage.CurrentContext, PREFIX_TICKET_COUNT, currentTotal + ticketCount);
-            BigInteger pool = PrizePool();
-            Storage.Put(Storage.CurrentContext, PREFIX_POOL, pool + totalCost);
-
-            OnTicketPurchased(player, ticketCount, roundId);
+            public BigInteger TotalTickets;
+            public BigInteger TotalSpent;
+            public BigInteger TotalWins;
+            public BigInteger TotalWon;
+            public BigInteger RoundsPlayed;
+            public BigInteger ConsecutiveWins;
+            public BigInteger BestWinStreak;
+            public BigInteger HighestWin;
+            public BigInteger AchievementCount;
+            public BigInteger JoinTime;
+            public BigInteger LastPlayTime;
         }
 
-        /// <summary>
-        /// Admin initiates draw - requests RNG from gateway.
-        /// </summary>
-        public static void InitiateDraw()
+        public struct RoundData
         {
-            ValidateAdmin();
-            ExecutionEngine.Assert(!IsDrawPending(), "draw already pending");
-
-            BigInteger pool = PrizePool();
-            ExecutionEngine.Assert(pool > 0, "no prize pool");
-
-            BigInteger roundId = CurrentRound();
-            Storage.Put(Storage.CurrentContext, PREFIX_DRAW_PENDING, 1);
-
-            BigInteger requestId = RequestRng(roundId);
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_ROUND, (ByteString)requestId.ToByteArray()),
-                roundId);
-
-            OnDrawInitiated(roundId, requestId);
+            public BigInteger Id;
+            public BigInteger TotalTickets;
+            public BigInteger PrizePool;
+            public BigInteger ParticipantCount;
+            public UInt160 Winner;
+            public BigInteger WinnerPrize;
+            public BigInteger StartTime;
+            public BigInteger EndTime;
+            public bool Completed;
         }
 
         #endregion
 
-        #region Service Request Methods
-
-        private static BigInteger RequestRng(BigInteger roundId)
-        {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
-
-            ByteString payload = StdLib.Serialize(new object[] { roundId });
-            return (BigInteger)Contract.Call(
-                gateway, "requestService", CallFlags.All,
-                APP_ID, "rng", payload,
-                Runtime.ExecutingScriptHash, "onServiceCallback"
-            );
-        }
-
-        public static void OnServiceCallback(
-            BigInteger requestId, string appId, string serviceType,
-            bool success, ByteString result, string error)
-        {
-            ValidateGateway();
-
-            ByteString roundIdData = Storage.Get(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_ROUND, (ByteString)requestId.ToByteArray()));
-            ExecutionEngine.Assert(roundIdData != null, "unknown request");
-
-            BigInteger roundId = (BigInteger)roundIdData;
-
-            if (!success)
-            {
-                Storage.Put(Storage.CurrentContext, PREFIX_DRAW_PENDING, 0);
-                OnWinnerDrawn(UInt160.Zero, 0, roundId);
-                return;
-            }
-
-            ExecutionEngine.Assert(result != null && result.Length > 0, "no rng data");
-
-            BigInteger pool = PrizePool();
-            BigInteger prize = pool * (100 - PLATFORM_FEE_PERCENT) / 100;
-            BigInteger totalTickets = TotalTickets();
-
-            // Select winner based on RNG
-            UInt160 winner = SelectWinner(roundId, result, totalTickets);
-
-            // Reset for next round
-            Storage.Put(Storage.CurrentContext, PREFIX_ROUND, roundId + 1);
-            Storage.Put(Storage.CurrentContext, PREFIX_POOL, 0);
-            Storage.Put(Storage.CurrentContext, PREFIX_TICKET_COUNT, 0);
-            Storage.Put(Storage.CurrentContext, PREFIX_DRAW_PENDING, 0);
-            Storage.Delete(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_ROUND, (ByteString)requestId.ToByteArray()));
-
-            OnWinnerDrawn(winner, prize, roundId);
-        }
-
-        #endregion
-
-        #region Internal Helpers
-
-        private static UInt160 SelectWinner(BigInteger roundId, ByteString randomness, BigInteger totalTickets)
-        {
-            if (totalTickets == 0) return Admin();
-
-            // SHA256 entropy mixing for secure randomness
-            ByteString hash = CryptoLib.Sha256(randomness);
-            byte[] hashBytes = (byte[])hash;
-            BigInteger winningTicket = 0;
-            for (int i = 0; i < 8; i++)
-            {
-                winningTicket = winningTicket * 256 + hashBytes[i];
-            }
-            winningTicket = winningTicket % totalTickets;
-
-            BigInteger participantCount = GetParticipantCount(roundId);
-            BigInteger ticketsSoFar = 0;
-
-            for (BigInteger i = 0; i < participantCount; i++)
-            {
-                byte[] participantKey = Helper.Concat(PREFIX_PARTICIPANTS, (ByteString)roundId.ToByteArray());
-                participantKey = Helper.Concat(participantKey, (ByteString)i.ToByteArray());
-                UInt160 participant = (UInt160)Storage.Get(Storage.CurrentContext, participantKey);
-
-                byte[] ticketKey = Helper.Concat(PREFIX_TICKETS, participant);
-                ticketKey = Helper.Concat(ticketKey, (ByteString)roundId.ToByteArray());
-                BigInteger tickets = (BigInteger)Storage.Get(Storage.CurrentContext, ticketKey);
-
-                ticketsSoFar += tickets;
-                if (winningTicket < ticketsSoFar)
-                {
-                    return participant;
-                }
-            }
-
-            return Admin();
-        }
-
-        private static BigInteger GetParticipantCount(BigInteger roundId)
-        {
-            byte[] key = Helper.Concat(new byte[] { 0x17 }, (ByteString)roundId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        private static void SetParticipantCount(BigInteger roundId, BigInteger count)
-        {
-            byte[] key = Helper.Concat(new byte[] { 0x17 }, (ByteString)roundId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, key, count);
-        }
-
-        #endregion
-
-        #region Periodic Automation
+        #region Multi-Type Lottery System
 
         /// <summary>
-        /// Returns the AutomationAnchor contract address.
+        /// Lottery types - 中国福彩风格
         /// </summary>
-        [Safe]
-        public static UInt160 AutomationAnchor()
+        public enum LotteryType : byte
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR);
-            return data != null ? (UInt160)data : UInt160.Zero;
+            ScratchWin = 0,      // 福彩刮刮乐 - Instant
+            DoubleColor = 1,     // 双色球 - Scheduled
+            Happy8 = 2,          // 快乐8 - Instant
+            Lucky7 = 3,          // 七乐彩 - Scheduled
+            SuperLotto = 4,      // 大乐透 - Scheduled
+            Supreme = 5          // 至尊彩 - Scheduled
         }
 
         /// <summary>
-        /// Sets the AutomationAnchor contract address.
-        /// SECURITY: Only admin can set the automation anchor.
+        /// Configuration for each lottery type
         /// </summary>
-        public static void SetAutomationAnchor(UInt160 anchor)
+        public struct LotteryConfig
         {
-            ValidateAdmin();
-            ValidateAddress(anchor);
-            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR, anchor);
+            public byte Type;
+            public BigInteger TicketPrice;
+            public bool IsInstant;
+            public BigInteger MaxJackpot;
+            public bool Enabled;
+            public BigInteger PrizePool;
+            public BigInteger JackpotRate;
+            public BigInteger Tier1Rate;
+            public BigInteger Tier2Rate;
+            public BigInteger Tier3Rate;
+            public BigInteger JackpotPrize;
+            public BigInteger Tier1Prize;
+            public BigInteger Tier2Prize;
+            public BigInteger Tier3Prize;
         }
 
         /// <summary>
-        /// Periodic execution callback invoked by AutomationAnchor.
-        /// SECURITY: Only AutomationAnchor can invoke this method.
-        /// LOGIC: Checks if current round has tickets; if yes, initiates draw.
+        /// Scratch ticket data
         /// </summary>
-        public static void OnPeriodicExecution(BigInteger taskId, ByteString payload)
+        public struct ScratchTicket
         {
-            // Verify caller is AutomationAnchor
-            UInt160 anchor = AutomationAnchor();
-            ExecutionEngine.Assert(anchor != UInt160.Zero && Runtime.CallingScriptHash == anchor, "unauthorized");
-
-            OnPeriodicExecutionTriggered(taskId);
-
-            // Check if draw is already pending
-            if (IsDrawPending())
-            {
-                return; // Skip if draw is in progress
-            }
-
-            // Check if there are tickets in the current round
-            BigInteger pool = PrizePool();
-            if (pool == 0)
-            {
-                return; // No tickets, skip draw
-            }
-
-            // Initiate draw
-            BigInteger roundId = CurrentRound();
-            Storage.Put(Storage.CurrentContext, PREFIX_DRAW_PENDING, 1);
-
-            BigInteger requestId = RequestRng(roundId);
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_ROUND, (ByteString)requestId.ToByteArray()),
-                roundId);
-
-            OnDrawInitiated(roundId, requestId);
+            public BigInteger Id;
+            public UInt160 Player;
+            public byte Type;
+            public BigInteger PurchaseTime;
+            public bool Scratched;
+            public BigInteger Prize;
+            public BigInteger Seed;
         }
 
         /// <summary>
-        /// Registers this MiniApp for periodic automation.
-        /// SECURITY: Only admin can register.
-        /// CORRECTNESS: AutomationAnchor must be set first.
+        /// Type-specific round data
         /// </summary>
-        public static BigInteger RegisterAutomation(string triggerType, string schedule)
+        public struct TypeRoundData
         {
-            ValidateAdmin();
-            UInt160 anchor = AutomationAnchor();
-            ExecutionEngine.Assert(anchor != UInt160.Zero, "automation anchor not set");
-
-            // Call AutomationAnchor.RegisterPeriodicTask
-            BigInteger taskId = (BigInteger)Contract.Call(anchor, "registerPeriodicTask", CallFlags.All,
-                Runtime.ExecutingScriptHash, "onPeriodicExecution", triggerType, schedule, 1000000); // 0.01 GAS limit
-
-            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_TASK, taskId);
-            OnAutomationRegistered(taskId, triggerType, schedule);
-            return taskId;
-        }
-
-        /// <summary>
-        /// Cancels the registered automation task.
-        /// SECURITY: Only admin can cancel.
-        /// </summary>
-        public static void CancelAutomation()
-        {
-            ValidateAdmin();
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
-            ExecutionEngine.Assert(data != null, "no automation registered");
-
-            BigInteger taskId = (BigInteger)data;
-            UInt160 anchor = AutomationAnchor();
-            Contract.Call(anchor, "cancelPeriodicTask", CallFlags.All, taskId);
-
-            Storage.Delete(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
-            OnAutomationCancelled(taskId);
+            public byte Type;
+            public BigInteger RoundId;
+            public BigInteger TotalTickets;
+            public BigInteger PrizePool;
+            public BigInteger ParticipantCount;
+            public BigInteger StartTime;
+            public bool DrawPending;
         }
 
         #endregion

@@ -49,12 +49,16 @@ export function normalizePermissions(
   const governance = has("governance") ? raw.governance : fallback?.governance;
   const rng = has("rng") ? raw.rng : fallback?.rng;
   const datafeed = has("datafeed") ? raw.datafeed : fallback?.datafeed;
+  const confidential = has("confidential") ? raw.confidential : fallback?.confidential;
+  const automation = has("automation") ? raw.automation : fallback?.automation;
 
   return {
     payments: Boolean(payments),
     governance: Boolean(governance),
     rng: Boolean(rng),
     datafeed: Boolean(datafeed),
+    confidential: Boolean(confidential),
+    automation: Boolean(automation),
   };
 }
 

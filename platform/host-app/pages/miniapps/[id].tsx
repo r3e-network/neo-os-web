@@ -48,6 +48,8 @@ import { useI18n } from "../../lib/i18n/react";
 import { useWalletStore, getWalletAdapter } from "../../lib/wallet/store";
 import { useMiniAppStats } from "../../lib/query";
 import { getChainRegistry } from "../../lib/chains/registry";
+import { CelebrationEffects, WaterRippleEffect, useSpecialEffects } from "../../components/effects";
+import { getLocalizedField, getMiniappLocale } from "@neo/shared/i18n";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -89,11 +91,11 @@ function createStatCardBuilders(
     total_transactions: (stats) =>
       stats.total_transactions != null
         ? {
-          title: t("detail.totalTxs"),
-          value: stats.total_transactions.toLocaleString(),
-          icon: "📊",
-          trend: "neutral",
-        }
+            title: t("detail.totalTxs"),
+            value: stats.total_transactions.toLocaleString(),
+            icon: "📊",
+            trend: "neutral",
+          }
         : null,
     total_users: (stats) =>
       stats.total_users != null
@@ -114,20 +116,20 @@ function createStatCardBuilders(
     daily_active_users: (stats) =>
       stats.daily_active_users != null
         ? {
-          title: t("detail.dailyActiveUsers"),
-          value: stats.daily_active_users.toLocaleString(),
-          icon: "👥",
-          trend: "up",
-        }
+            title: t("detail.dailyActiveUsers"),
+            value: stats.daily_active_users.toLocaleString(),
+            icon: "👥",
+            trend: "up",
+          }
         : null,
     weekly_active_users: (stats) =>
       stats.weekly_active_users != null
         ? {
-          title: t("detail.weeklyActive"),
-          value: stats.weekly_active_users.toLocaleString(),
-          icon: "📈",
-          trend: "up",
-        }
+            title: t("detail.weeklyActive"),
+            value: stats.weekly_active_users.toLocaleString(),
+            icon: "📈",
+            trend: "up",
+          }
         : null,
     view_count: (stats) => ({
       title: t("detail.views"),
@@ -194,6 +196,16 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   }, [walletChainId]);
   const entryUrl = useMemo(() => (app ? getEntryUrlForChain(app, walletChainId) : ""), [app, walletChainId]);
 
+  // Special effects for miniapp operations
+  const {
+    celebrationType,
+    celebrationActive,
+    celebrationIntensity,
+    celebrationDuration,
+    rippleActive,
+    triggerEvent: triggerSpecialEffect,
+  } = useSpecialEffects();
+
   useEffect(() => {
     if (!app || !walletChainId) return;
     if (storeChainId === walletChainId) return;
@@ -237,7 +249,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   // Build iframe URL with language parameter
   const iframeSrc = useMemo(() => {
     if (!app) return "";
-    const supportedLocale = locale === "zh" ? "zh" : "en";
+    const supportedLocale = getMiniappLocale(locale);
     return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1" });
   }, [entryUrl, locale, theme, app]);
 
@@ -251,14 +263,15 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   }, [theme, entryUrl, federated]);
 
   // Self-contained i18n: use MiniApp's own translations based on locale
-  const appName = app ? (locale === "zh" && app.name_zh ? app.name_zh : app.name) : "";
-  const appDesc = app ? (locale === "zh" && app.description_zh ? app.description_zh : app.description) : "";
+  const appName = app ? getLocalizedField(app, "name", locale) : "";
+  const appDesc = app ? getLocalizedField(app, "description", locale) : "";
 
-  // Track view count on page load
+  // Track view count on page load (with multi-chain support)
   useEffect(() => {
-    if (!app?.app_id) return;
-    fetch(`/api/miniapps/${app.app_id}/view`, { method: "POST" }).catch(() => { });
-  }, [app?.app_id]);
+    if (!app?.app_id || !walletChainId) return;
+    const chainQuery = `?chain_id=${encodeURIComponent(walletChainId)}`;
+    fetch(`/api/miniapps/${app.app_id}/view${chainQuery}`, { method: "POST" }).catch(() => {});
+  }, [app?.app_id, walletChainId]);
 
   // Initialize SDK
   useEffect(() => {
@@ -343,6 +356,18 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       };
 
       try {
+        // Handle special effect trigger method directly (no SDK needed)
+        if (method === "triggerEffect" || method === "celebrate") {
+          const eventName = String(params[0] || "").trim();
+          if (eventName) {
+            triggerSpecialEffect(eventName);
+            respond(true, { triggered: eventName });
+            return;
+          }
+          respond(false, undefined, "Event name required");
+          return;
+        }
+
         const sdk = ensureSDK();
         if (!sdk) throw new Error("MiniAppSDK unavailable");
         // Pass the current wallet address from the ref
@@ -367,6 +392,17 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             });
             // Auto-hide after 10 seconds
             setTimeout(() => setTeeVerification(null), 10000);
+          }
+
+          // Trigger special effects based on result type
+          if (res.success !== false) {
+            if (res.win || res.jackpot || method.includes("claim_prize")) {
+              triggerSpecialEffect("jackpot");
+            } else if (res.reward || res.bonus || method.includes("reward")) {
+              triggerSpecialEffect("reward");
+            } else if (res.txHash || res.txid) {
+              triggerSpecialEffect("transaction_success");
+            }
           }
         }
 
@@ -512,38 +548,42 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         <section className="mb-8">
           <div className="flex gap-2 border-b border-border mb-6">
             <button
-              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "overview"
-                ? "border-neo text-neo"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                activeTab === "overview"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
               onClick={() => setActiveTab("overview")}
             >
               {t("detail.overview")}
             </button>
             <button
-              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "reviews"
-                ? "border-neo text-neo"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                activeTab === "reviews"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
               onClick={() => setActiveTab("reviews")}
             >
               ⭐ {t("detail.reviews")}
             </button>
             <button
-              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "forum"
-                ? "border-neo text-neo"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                activeTab === "forum"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
               onClick={() => setActiveTab("forum")}
             >
               💬 {t("detail.forum")}
             </button>
             {showNews && (
               <button
-                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "news"
-                  ? "border-neo text-neo"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                  activeTab === "news"
+                    ? "border-neo text-neo"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
                 onClick={() => setActiveTab("news")}
               >
                 {t("detail.news")} ({notifications.length})
@@ -551,10 +591,11 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             )}
             {showSecrets && (
               <button
-                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "secrets"
-                  ? "border-neo text-neo"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                  activeTab === "secrets"
+                    ? "border-neo text-neo"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
                 onClick={() => setActiveTab("secrets")}
               >
                 🔐 {t("detail.secrets")}
@@ -568,7 +609,9 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             {activeTab === "forum" && <ForumTab appId={app.app_id} />}
             {activeTab === "news" && showNews && <AppNewsList notifications={notifications} />}
             {activeTab === "secrets" && showSecrets && <AppSecretsTab appId={app.app_id} appName={appName} />}
-            {!showNews && activeTab === "news" && <p className="mt-4 text-xs text-muted-foreground">{t("detail.newsDisabled")}</p>}
+            {!showNews && activeTab === "news" && (
+              <p className="mt-4 text-xs text-muted-foreground">{t("detail.newsDisabled")}</p>
+            )}
           </div>
         </section>
 
@@ -637,8 +680,9 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
                   src={iframeSrc}
                   ref={iframeRef}
                   onLoad={() => setIsIframeLoading(false)}
-                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${isIframeLoading ? "opacity-0" : "opacity-100"
-                    }`}
+                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
+                    isIframeLoading ? "opacity-0" : "opacity-100"
+                  }`}
                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                   title={`${appName} MiniApp`}
                   allowFullScreen
@@ -659,7 +703,9 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         <div className="absolute bottom-6 right-6 w-[340px] bg-[#0a0f1a]/95 backdrop-blur-xl rounded-2xl border border-[#00ff88]/30 shadow-[0_12px_40px_rgba(0,0,0,0.4)] text-white z-[1000] overflow-hidden animate-in fade-in slide-in-from-bottom-4">
           <div className="px-4 py-3 bg-[#00ff88]/10 border-b border-[#00ff88]/20 flex items-center gap-2.5">
             <div className="w-2.5 h-2.5 rounded-full bg-[#00ff88] shadow-[0_0_10px_#00ff88] animate-pulse" />
-            <span className="text-[11px] font-bold text-[#00ff88] uppercase tracking-wider flex-1">{t("miniapp.tee.verified")}</span>
+            <span className="text-[11px] font-bold text-[#00ff88] uppercase tracking-wider flex-1">
+              {t("miniapp.tee.verified")}
+            </span>
             <button
               onClick={() => setTeeVerification(null)}
               className="bg-transparent border-none text-white text-xl cursor-pointer opacity-60 hover:opacity-100 leading-none transition-opacity"
@@ -674,18 +720,16 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-[9px] text-white/40 uppercase font-semibold">{t("miniapp.tee.txHash")}</span>
-              <span className="text-[11px] text-white/90 break-all font-mono">
-                {teeVerification.txHash}
-              </span>
+              <span className="text-[11px] text-white/90 break-all font-mono">{teeVerification.txHash}</span>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-[9px] text-white/40 uppercase font-semibold">{t("miniapp.tee.attestation")}</span>
-              <span className="text-[11px] font-bold text-[#00ff88]">
-                {teeVerification.attestation}
-              </span>
+              <span className="text-[11px] font-bold text-[#00ff88]">{teeVerification.attestation}</span>
             </div>
           </div>
-          <div className="px-4 py-2 text-[9px] text-white/30 border-t border-white/5 text-center bg-white/5">{t("miniapp.tee.footer")}</div>
+          <div className="px-4 py-2 text-[9px] text-white/30 border-t border-white/5 text-center bg-white/5">
+            {t("miniapp.tee.footer")}
+          </div>
         </div>
       )}
 
@@ -694,6 +738,23 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         walletAddress={wallet.address}
         userName={wallet.address ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}` : undefined}
       />
+
+      {/* Celebration Effects Overlay */}
+      <CelebrationEffects
+        type={celebrationType}
+        active={celebrationActive}
+        intensity={celebrationIntensity}
+        duration={celebrationDuration}
+      />
+
+      {/* Water Ripple Effect for transactions */}
+      {rippleActive && (
+        <div className="absolute inset-0 pointer-events-none z-[1001]">
+          <WaterRippleEffect active={rippleActive} intensity={25} duration={1200}>
+            <div className="w-full h-full" />
+          </WaterRippleEffect>
+        </div>
+      )}
     </div>
   );
 
@@ -775,11 +836,13 @@ function OverviewTab({
       <div className="bg-card rounded-xl p-6 border border-border">
         <h3 className="text-lg font-semibold text-foreground mt-0 mb-4">{t("detail.appInfo")}</h3>
         <p className="text-sm text-muted-foreground my-2">
-          {t("detail.appId")}: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo">{app.app_id}</code>
+          {t("detail.appId")}:{" "}
+          <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo">{app.app_id}</code>
         </p>
         <p className="text-sm text-muted-foreground my-2">
           {t("detail.entryUrl")}
-          {chainId ? ` (${chainId})` : ""}: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo">{entryUrl}</code>
+          {chainId ? ` (${chainId})` : ""}:{" "}
+          <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo">{entryUrl}</code>
         </p>
       </div>
     </div>
@@ -843,6 +906,7 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
 
   try {
     // Parallel fetch with shorter timeout (2s) for faster page load
+    // Note: /api/miniapp-stats returns aggregated stats across ALL chains by default
     const [statsRes, notifRes] = await Promise.all([
       fetchWithTimeout(`${baseUrl}/api/miniapp-stats?app_id=${encodedId}`, {}, 2000).catch(() => null),
       fetchWithTimeout(`${baseUrl}/api/app/${encodedId}/news?limit=20`, {}, 2000).catch(() => null),
@@ -892,4 +956,3 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
     };
   }
 };
-

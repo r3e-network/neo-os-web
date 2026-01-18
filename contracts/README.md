@@ -58,35 +58,39 @@ gateway + TEE services, with final enforcement at the contract layer.
 
 ## MiniApp Contracts (60 Deployed)
 
-Each MiniApp has its own smart contract that handles app-specific logic using the **Chainlink-style oracle pattern**. Contracts actively request services from ServiceLayerGateway and receive callbacks with results. All MiniApp contracts use the shared `MiniAppContract` partial class pattern for common functionality.
+Each MiniApp has its own smart contract that handles app-specific logic using the **Chainlink-style oracle pattern**. Contracts actively request services from ServiceLayerGateway and receive callbacks with results. All MiniApp contracts inherit from the MiniApp DevPack base classes (`MiniAppBase`, `MiniAppGameBase`, `MiniAppServiceBase`, `MiniAppTimeLockBase`) for shared security, storage layout, and service/automation helpers. All on-chain timestamps and durations are Unix seconds (`Runtime.Time`).
 
 ### Contract Pattern
 
-All MiniApp contracts use the `MiniAppContract` partial class pattern with service request capability:
+All MiniApp contracts inherit from a DevPack base class and reserve `0x01-0x1F` for shared storage. App-specific prefixes start at `0x20`. Service-based apps typically extend `MiniAppServiceBase` and use its helpers:
 
 ```csharp
-// Base configuration (from MiniAppBase)
-private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
-private static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
-
-// App-specific storage prefixes (start from 0x10)
-private static readonly byte[] PREFIX_BET_ID = new byte[] { 0x10 };
-private static readonly byte[] PREFIX_BETS = new byte[] { 0x11 };
-private static readonly byte[] PREFIX_REQUEST_TO_BET = new byte[] { 0x12 };
-
-// Request service from Gateway
-private static BigInteger RequestRng(BigInteger betId)
+public partial class MiniAppExample : MiniAppServiceBase
 {
-    return Contract.Call(Gateway(), "requestService", CallFlags.All,
-        APP_ID, "rng", payload, Runtime.ExecutingScriptHash, "onServiceCallback");
-}
+    // App-specific storage prefixes (start from 0x20)
+    private static readonly byte[] PREFIX_BET_ID = new byte[] { 0x20 };
+    private static readonly byte[] PREFIX_BETS = new byte[] { 0x21 };
+    private static readonly byte[] PREFIX_REQUEST_TO_BET = new byte[] { 0x22 };
 
-// Receive callback from Gateway
-public static void OnServiceCallback(BigInteger requestId, string appId,
-    string serviceType, bool success, ByteString result, string error)
-{
-    ValidateGateway();
-    // Resolve business logic using result
+    // Request service from Gateway via DevPack helper
+    private static BigInteger RequestRngService(ByteString payload)
+    {
+        BigInteger requestId = RequestService(APP_ID, ServiceTypes.RNG, payload);
+        StoreRequestData(requestId, payload);
+        return requestId;
+    }
+
+    // Receive callback from Gateway
+    public static void OnServiceCallback(BigInteger requestId, string appId,
+        string serviceType, bool success, ByteString result, string error)
+    {
+        ExecutionEngine.Assert(appId == APP_ID, "app mismatch");
+        ExecutionEngine.Assert(serviceType == ServiceTypes.RNG, "service mismatch");
+
+        ByteString data = ValidateCallback(requestId);
+        // Resolve business logic using result
+        FinalizeCallback(requestId);
+    }
 }
 ```
 
@@ -99,7 +103,7 @@ MiniApp contracts follow a **Chainlink-style oracle pattern** where contracts ac
 │  1. USER ACTION: Invoke MiniApp Contract                        │
 │     User calls MiniApp method (e.g., PlaceBet, CreateGrid)      │
 │     → Contract stores bet/position data                         │
-│     → Contract calls Gateway.requestService(appId, serviceType) │
+│     → Contract calls RequestService(appId, serviceType)         │
 ├─────────────────────────────────────────────────────────────────┤
 │  2. GATEWAY ACTION: Route to TEE Service                        │
 │     ServiceLayerGateway routes request to off-chain service     │
@@ -107,7 +111,8 @@ MiniApp contracts follow a **Chainlink-style oracle pattern** where contracts ac
 │     → Returns result via callback                               │
 ├─────────────────────────────────────────────────────────────────┤
 │  3. GATEWAY ACTION: Fulfill Callback                            │
-│     Gateway calls MiniApp.OnServiceCallback(requestId, result)  │
+│     Gateway calls MiniApp.OnServiceCallback(                    │
+│       requestId, appId, serviceType, success, result, error)    │
 │     → Contract resolves bet/position using service result       │
 │     → Emits result event                                        │
 ├─────────────────────────────────────────────────────────────────┤
@@ -141,28 +146,47 @@ MiniApp contracts handle **complete business logic with async service requests**
 
 ```csharp
 // Step 1: User initiates action, contract stores state
-public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice)
+public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice, BigInteger receiptId)
 {
+    ValidateNotGloballyPaused(APP_ID);
+    ValidatePaymentReceipt(APP_ID, player, amount, receiptId);
     BetData bet = new BetData { Player = player, Amount = amount, Choice = choice };
     StoreBet(betId, bet);
 
     // Request service via Gateway
-    BigInteger requestId = Contract.Call(gateway, "requestService", ...);
-    Storage.Put(PREFIX_REQUEST_TO_BET + requestId, betId);
+    BigInteger requestId = RequestService(APP_ID, ServiceTypes.RNG, payload);
+    StoreRequestData(requestId, (ByteString)betId.ToByteArray());
     return betId;
 }
 
 // Step 2: Gateway calls back with result
-public static void OnServiceCallback(BigInteger requestId, bool success, ByteString result)
+public static void OnServiceCallback(BigInteger requestId, string appId, string serviceType,
+    bool success, ByteString result, string error)
 {
-    ValidateGateway();
-    BigInteger betId = Storage.Get(PREFIX_REQUEST_TO_BET + requestId);
+    ExecutionEngine.Assert(appId == APP_ID, "app mismatch");
+    ExecutionEngine.Assert(serviceType == ServiceTypes.RNG, "service mismatch");
+
+    ByteString data = ValidateCallback(requestId);
+    BigInteger betId = (BigInteger)data;
     BetData bet = GetBet(betId);
 
     // Process result and emit settlement event
-    BigInteger randomValue = StdLib.Deserialize(result);
+    ByteString hash = CryptoLib.Sha256(result);
+    BigInteger randomValue = ToPositiveInteger((byte[])hash);
     bool won = (randomValue % 2 == 0) == bet.Choice;
     OnBetResult(bet.Player, won, payout, betId);
+    FinalizeCallback(requestId);
+}
+
+private static BigInteger ToPositiveInteger(byte[] bytes)
+{
+    // Ensure the RNG bytes are interpreted as a positive BigInteger.
+    byte[] unsigned = new byte[bytes.Length + 1];
+    for (int i = 0; i < bytes.Length; i++)
+    {
+        unsigned[i] = bytes[i];
+    }
+    return new BigInteger(unsigned);
 }
 ```
 
@@ -175,15 +199,93 @@ Deploy all MiniApp contracts to testnet:
 go run scripts/deploy_miniapp_contracts.go
 ```
 
+## MiniApp DevPack v3.0.0
+
+All MiniApp contracts inherit from the **MiniApp DevPack** base classes, providing a clean inheritance hierarchy with specialized functionality:
+
+### Inheritance Hierarchy
+
+```
+SmartContract (Neo Framework)
+    └── MiniAppBase (Core functionality)
+            ├── MiniAppGameBase (Gaming/betting)
+            ├── MiniAppServiceBase (Service callbacks)
+            └── MiniAppTimeLockBase (Time-locked operations)
+```
+
+### Base Class Selection Guide
+
+| Base Class           | Use Case                                      | Examples                                    |
+| -------------------- | --------------------------------------------- | ------------------------------------------- |
+| `MiniAppBase`        | General MiniApps without special requirements | DailyCheckin, DevTipping, Graveyard         |
+| `MiniAppGameBase`    | Gaming/betting with RNG and bet limits        | CoinFlip, Lottery, DoomsdayClock, NeoGacha  |
+| `MiniAppServiceBase` | Service callbacks and automation              | OnChainTarot, ExFiles, GuardianPolicy       |
+| `MiniAppTimeLockBase`| Time-locked item operations                   | TimeCapsule, UnbreakableVault, HeritageTrust|
+
+### Storage Layout (Reserved Prefixes)
+
+```
+0x01-0x09: MiniAppBase Core
+  - 0x01: Admin
+  - 0x02: Gateway
+  - 0x03: PaymentHub
+  - 0x04: Paused
+  - 0x05: PauseRegistry
+  - 0x06: ReceiptUsed
+  - 0x07: PendingAdmin (TimeLock)
+  - 0x08: AdminChangeTime (TimeLock)
+  - 0x09: TimeLockDelay
+
+0x0A-0x0E: MiniAppBase Optional
+  - 0x0A: AutomationAnchor
+  - 0x0B: AutomationTask
+  - 0x0C: UserBadges
+  - 0x0D: UserBadgeCount
+  - 0x0E: TotalUsers
+
+0x10-0x17: MiniAppGameBase
+  - 0x10: PlayerDailyBet
+  - 0x11: PlayerLastBet
+  - 0x12: PlayerBetCount
+  - 0x13: BetLimitsConfig
+  - 0x14: RequestToData
+
+0x18-0x1B: MiniAppServiceBase
+  - 0x18-0x1B: ServiceRequestData
+
+0x1C-0x1F: MiniAppTimeLockBase
+  - 0x1C: ItemUnlockTime
+  - 0x1D: ItemRevealed
+  - 0x1E: ItemCounter
+
+0x20+: App-specific storage (available for all MiniApps)
+```
+
+### Security Features (v3.0.0)
+
+| Feature                | Description                                           |
+| ---------------------- | ----------------------------------------------------- |
+| **TimeLock Admin**     | 24-hour delay for admin changes (min 1 hour)          |
+| **Gateway Validation** | Service callbacks require gateway authorization       |
+| **Payment Receipts**   | Prevents double-spending via receipt validation       |
+| **Bet Limits**         | Anti-Martingale protection (daily, cooldown, streak)  |
+| **Global Pause**       | Emergency stop via PauseRegistry                      |
+| **Badge System**       | Built-in achievement tracking with events             |
+
 ## Common Contract Features
 
-All platform contracts include:
+All MiniApp contracts (via DevPack base classes) include:
 
-| Feature          | Method                      | Description                   |
-| ---------------- | --------------------------- | ----------------------------- |
-| Admin Transfer   | `SetAdmin(newAdmin)`        | Transfer admin to new address |
-| Contract Upgrade | `Update(nefFile, manifest)` | Upgrade contract code         |
-| Admin Validation | `ValidateAdmin()`           | Internal admin check          |
+| Feature              | Method                                    | Description                                |
+| -------------------- | ----------------------------------------- | ------------------------------------------ |
+| **Admin Proposal**   | `ProposeAdmin(newAdmin)`                  | Propose new admin (24h TimeLock)           |
+| **Admin Execute**    | `ExecuteAdminChange()`                    | Execute after TimeLock expires             |
+| **Admin Cancel**     | `CancelAdminChange()`                     | Cancel pending admin change                |
+| **TimeLock Config**  | `SetTimeLockDelay(seconds)`               | Set delay (min 1 hour)                     |
+| **Contract Upgrade** | `Update(nefFile, manifest, data)`         | Upgrade contract code (admin only)         |
+| **Pause Control**    | `SetPaused(paused, appId)`                | Pause/unpause contract                     |
+| **Gateway Setup**    | `SetGateway(gateway)`                     | Set service gateway address                |
+| **PaymentHub Setup** | `SetPaymentHub(hub)`                      | Set payment hub address                    |
 
 ## Build
 
@@ -463,10 +565,10 @@ public static void OnPeriodicExecution(BigInteger taskId, ByteString payload)
 
 ### Storage Prefixes
 
-Automation uses dedicated storage prefixes to avoid conflicts:
+Automation uses dedicated storage prefixes from MiniAppBase (see DevPack v3.0.0 section):
 
-- `PREFIX_AUTOMATION_TASK (0x20)` - Stores registered task ID
-- `PREFIX_AUTOMATION_ANCHOR (0x21)` - Stores anchor contract address
+- `PREFIX_AUTOMATION_ANCHOR (0x0A)` - Stores anchor contract address
+- `PREFIX_AUTOMATION_TASK (0x0B)` - Stores registered task ID
 
 ## Security Considerations
 

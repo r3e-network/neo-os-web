@@ -18,10 +18,11 @@
 #### 1. 埋葬记忆 (BuryMemory)
 
 ```csharp
-public static void BuryMemory(UInt160 owner, string contentHash, BigInteger receiptId)
+public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigInteger memoryType, BigInteger receiptId)
 ```
 
 - 支付 0.1 GAS 存储数据哈希
+- `memoryType`: 记忆类型 (0=默认)
 - 创建唯一记忆 ID
 - 触发 `MemoryBuried` 事件
 
@@ -84,10 +85,11 @@ Digital Graveyard is a paid data deletion service where users pay GAS to permane
 #### 1. Bury Memory
 
 ```csharp
-public static void BuryMemory(UInt160 owner, string contentHash, BigInteger receiptId)
+public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigInteger memoryType, BigInteger receiptId)
 ```
 
 - Pay 0.1 GAS to store data hash
+- `memoryType`: Memory type (0=default)
 - Create unique memory ID
 - Triggers `MemoryBuried` event
 

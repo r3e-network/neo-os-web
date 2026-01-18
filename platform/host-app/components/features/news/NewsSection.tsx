@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Newspaper, TrendingUp, Zap, Calendar } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatTimeAgoShort } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
 
 interface NewsItem {
@@ -25,6 +25,7 @@ const categoryConfig = {
 
 export function NewsSection() {
   const { t } = useTranslation("host");
+  const { t: tCommon, locale } = useTranslation("common");
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,13 +46,6 @@ export function NewsSection() {
     }
     fetchNews();
   }, []);
-
-  const formatTimeAgo = (timestamp: string) => {
-    const seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
-  };
 
   if (loading) {
     return (
@@ -86,7 +80,9 @@ export function NewsSection() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h4 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-1">{item.title}</h4>
-                  <span className="text-xs text-gray-500 whitespace-nowrap">{formatTimeAgo(item.timestamp)}</span>
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                    {formatTimeAgoShort(item.timestamp, { t: tCommon, locale })}
+                  </span>
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{item.summary}</p>
               </div>
