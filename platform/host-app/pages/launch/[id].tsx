@@ -395,7 +395,11 @@ export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (co
           ? [payload]
           : [];
     const raw = statsList.find((item: Record<string, unknown>) => item?.app_id === id) ?? statsList[0];
-    const app = coerceMiniAppInfo(raw, fallback) ?? fallback ?? null;
+    let app = coerceMiniAppInfo(raw, fallback) ?? fallback ?? null;
+    if (!app) {
+      const { fetchCommunityAppById } = await import("../../lib/community-apps");
+      app = await fetchCommunityAppById(id);
+    }
     if (!app) {
       return { notFound: true };
     }

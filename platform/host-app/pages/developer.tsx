@@ -11,7 +11,9 @@ const categories = ["gaming", "defi", "social", "nft", "governance", "utility"] 
 
 type FormData = {
   name: string;
+  name_zh: string;
   description: string;
+  description_zh: string;
   icon: string;
   category: (typeof categories)[number];
   entry_url: string;
@@ -23,7 +25,9 @@ type FormData = {
 
 const initialForm: FormData = {
   name: "",
+  name_zh: "",
   description: "",
+  description_zh: "",
   icon: "📦",
   category: "utility",
   entry_url: "",
@@ -366,6 +370,34 @@ export default function DeveloperPage() {
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                   />
+                </div>
+
+                {/* Optional Chinese Metadata */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t("developer.form.appNameZh")}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={t("developer.form.appNameZhPlaceholder")}
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                      value={form.name_zh}
+                      onChange={(e) => setForm({ ...form, name_zh: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t("developer.form.descriptionZh")}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={t("developer.form.descriptionZhPlaceholder")}
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                      value={form.description_zh}
+                      onChange={(e) => setForm({ ...form, description_zh: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 {/* Icon & Category */}

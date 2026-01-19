@@ -45,7 +45,7 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-start mb-1">
           <h4 className="font-bold text-gray-900 dark:text-white text-sm tracking-tight truncate pr-4">{notification.title}</h4>
-          <span className="text-[10px] font-semibold text-gray-400 uppercase">{getTimeAgo(notification.created_at)}</span>
+          <span suppressHydrationWarning className="text-[10px] font-semibold text-gray-400 uppercase">{getTimeAgo(notification.created_at)}</span>
         </div>
         <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed mb-3">{notification.content}</p>
         {notification.tx_hash && (

@@ -343,12 +343,19 @@ export default function MiniAppsPage() {
     // Search filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (app) =>
-          app.name.toLowerCase().includes(q) ||
-          app.description.toLowerCase().includes(q) ||
-          app.category.toLowerCase().includes(q),
-      );
+      result = result.filter((app) => {
+        const name = getLocalizedField(app, "name", locale).toLowerCase();
+        const description = getLocalizedField(app, "description", locale).toLowerCase();
+        const nameZh = app.name_zh ? app.name_zh.toLowerCase() : "";
+        const descriptionZh = app.description_zh ? app.description_zh.toLowerCase() : "";
+        return (
+          name.includes(q) ||
+          description.includes(q) ||
+          nameZh.includes(q) ||
+          descriptionZh.includes(q) ||
+          app.category.toLowerCase().includes(q)
+        );
+      });
     }
 
     // Category filter

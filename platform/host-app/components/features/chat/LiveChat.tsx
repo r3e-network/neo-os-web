@@ -211,7 +211,7 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
           <span className={cn("text-xs font-medium text-gray-700 dark:text-gray-300", isOwn && "order-2")}>
             {message.userName}
           </span>
-          <span className={cn("text-xs text-gray-400", isOwn && "order-1")}>{timeAgo(message.timestamp)}</span>
+          <span suppressHydrationWarning className={cn("text-xs text-gray-400", isOwn && "order-1")}>{timeAgo(message.timestamp)}</span>
         </div>
         <div
           className={cn(

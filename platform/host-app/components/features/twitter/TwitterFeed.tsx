@@ -58,7 +58,7 @@ export function TwitterFeed() {
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-900">{tweet.author}</span>
                 <span className="text-sm text-gray-500">@Neo_Blockchain</span>
-                <span className="text-sm text-gray-400">· {formatTime(tweet.created_at)}</span>
+                <span suppressHydrationWarning className="text-sm text-gray-400">· {formatTime(tweet.created_at)}</span>
               </div>
               <p className="mt-1 text-gray-700">{tweet.text}</p>
             </div>

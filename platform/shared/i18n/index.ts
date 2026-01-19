@@ -77,20 +77,20 @@ export function getMiniappLocale(value?: string | null): "en" | "zh" {
  * Get a localized field value for objects that store translated fields.
  * Falls back to the base field when a localized value is unavailable.
  */
-export function getLocalizedField<T extends Record<string, unknown>>(
-  item: T,
+export function getLocalizedField(
+  item: any,
   field: string,
   locale?: string | null,
 ): string {
   const normalized = normalizeLocale(locale);
   if (normalized !== "en") {
-    const localizedField = `${field}_${normalized}` as keyof T;
+    const localizedField = `${field}_${normalized}`;
     const localizedValue = item[localizedField];
     if (localizedValue !== undefined && localizedValue !== null && localizedValue !== "") {
       return String(localizedValue);
     }
   }
-  const baseValue = item[field as keyof T];
+  const baseValue = item[field];
   return baseValue == null ? "" : String(baseValue);
 }
 

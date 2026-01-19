@@ -8,7 +8,7 @@ const ContentSecurityPolicy = `
   style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
   img-src 'self' data: blob: https:;
   font-src 'self' data: https://fonts.gstatic.com;
-  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.auth0.com https://*.sentry.io https://api.coingecko.com https://*.neo.org;
+  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.auth0.com https://*.sentry.io https://api.coingecko.com https://*.neo.org https://*.neo.coz.io https://*.banelabs.org https://*.ngd.network https://*.ngd.network:* https://*.alchemy.com https://*.llamarpc.com https://*.polygon-rpc.com;
   frame-src 'self' https://*.auth0.com;
   frame-ancestors 'self';
   form-action 'self';

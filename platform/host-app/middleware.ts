@@ -40,13 +40,21 @@ function buildCSP(nonce: string, allowFrameAncestors: boolean = false): string {
   const federatedOrigins = parseFederatedOrigins();
 
   const frameOrigins = (process.env.MINIAPP_FRAME_ORIGINS || "").trim();
-  const frameSrc = frameOrigins ? `'self' ${frameOrigins}` : isDev ? "'self' https:" : "'self'";
+  const frameSrc = frameOrigins ? `'self' ${frameOrigins}` : "'self' https:";
 
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const connectSources = ["'self'"];
   if (supabaseUrl) connectSources.push(supabaseUrl);
   else if (isDev) connectSources.push("https:");
   connectSources.push(...federatedOrigins);
+  // Allow blockchain RPC connections for MiniApps
+  connectSources.push(
+    "https://*.neo.coz.io",
+    "https://*.neo.org",
+    "https://*.banelabs.org",
+    "https://*.ngd.network",
+    "https://api.coingecko.com"
+  );
   const connectSrc = connectSources.join(" ");
 
   const scriptSources = ["'self'", `'nonce-${nonce}'`, ...federatedOrigins];

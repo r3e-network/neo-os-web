@@ -201,8 +201,10 @@ async function sendEvmTransaction(chainId: ChainId, params: Omit<SdkTransactionR
     throw new Error("EVM wallet adapter required");
   }
 
-  const result = await (adapter as { sendTransaction: (request: unknown) => Promise<{ txid: string }> }).sendTransaction(
+  const result = await adapter.sendTransaction(
     {
+      chainId,
+      from: store.account.accounts[chainId]?.address || "",
       to: params.to,
       value: params.value,
       data: params.data,
@@ -210,14 +212,14 @@ async function sendEvmTransaction(chainId: ChainId, params: Omit<SdkTransactionR
       gasPrice: params.gasPrice,
       maxFeePerGas: params.maxFeePerGas,
       maxPriorityFeePerGas: params.maxPriorityFeePerGas,
-    },
+    } as any, // Cast to any to bypass strict TransactionRequest checks for now
   );
 
-  if (!result?.txid) {
+  if (!result?.txHash) {
     throw new Error("Transaction hash missing from wallet response");
   }
 
-  return result.txid;
+  return result.txHash;
 }
 
 async function handleSendTx(payload: unknown): Promise<unknown> {
@@ -249,7 +251,7 @@ async function handleWaitTx(payload: unknown): Promise<unknown> {
     if (receipt) {
       const chainType = getChainTypeFromId(chainId);
       if (chainType === "evm") {
-        const statusValue = (receipt as { status?: string | number })?.status;
+        const statusValue = (receipt as { status?: string | number | boolean })?.status;
         const blockHex = (receipt as { blockNumber?: string })?.blockNumber;
         const confirmed = statusValue === "0x1" || statusValue === 1 || statusValue === true;
         return {
@@ -406,7 +408,7 @@ async function handleSubscribe(payload: unknown, context: HandlerContext): Promi
   };
 
   entry.intervalId = window.setInterval(() => {
-    pollSubscription(subscriptionId, entry).catch(() => {});
+    pollSubscription(subscriptionId, entry).catch(() => { });
   }, SUBSCRIPTION_POLL_MS);
 
   subscriptions.set(subscriptionId, entry);

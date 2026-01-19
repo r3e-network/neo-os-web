@@ -124,9 +124,9 @@ export function FeaturedHeroCarousel({ apps, autoPlayInterval = 5000 }: Featured
             {currentApp.stats?.rating && (
               <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                <span className="text-white font-semibold">{currentApp.stats.rating.toFixed(1)}</span>
+                <span suppressHydrationWarning className="text-white font-semibold">{currentApp.stats.rating.toFixed(1)}</span>
                 {currentApp.stats.reviews && (
-                  <span className="text-white/60 text-sm">({formatNumber(currentApp.stats.reviews)})</span>
+                  <span suppressHydrationWarning className="text-white/60 text-sm">({formatNumber(currentApp.stats.reviews)})</span>
                 )}
               </div>
             )}
@@ -135,7 +135,7 @@ export function FeaturedHeroCarousel({ apps, autoPlayInterval = 5000 }: Featured
             {currentApp.stats?.users && (
               <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
                 <Users className="w-4 h-4 text-erobo-purple" />
-                <span className="text-white font-semibold">{formatNumber(currentApp.stats.users)}</span>
+                <span suppressHydrationWarning className="text-white font-semibold">{formatNumber(currentApp.stats.users)}</span>
                 <span className="text-white/60 text-sm">{t("featured.users")}</span>
               </div>
             )}
@@ -196,9 +196,8 @@ function NavArrow({ direction, onClick }: { direction: "left" | "right"; onClick
   return (
     <button
       onClick={onClick}
-      className={`absolute top-1/2 -translate-y-1/2 ${
-        direction === "left" ? "left-4" : "right-4"
-      } w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-black/60 transition-all cursor-pointer opacity-0 group-hover:opacity-100 hover:opacity-100`}
+      className={`absolute top-1/2 -translate-y-1/2 ${direction === "left" ? "left-4" : "right-4"
+        } w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-black/60 transition-all cursor-pointer opacity-0 group-hover:opacity-100 hover:opacity-100`}
       style={{ opacity: 0.7 }}
     >
       <Icon size={24} className="text-white" />
@@ -226,11 +225,10 @@ function ThumbnailStrip({
           <button
             key={app.app_id}
             onClick={() => onSelect(i)}
-            className={`flex-shrink-0 flex items-center gap-3 px-4 py-2 rounded-xl transition-all cursor-pointer ${
-              isActive
-                ? "bg-erobo-purple/30 border border-erobo-purple"
-                : "bg-white/5 border border-transparent hover:bg-white/10"
-            }`}
+            className={`flex-shrink-0 flex items-center gap-3 px-4 py-2 rounded-xl transition-all cursor-pointer ${isActive
+              ? "bg-erobo-purple/30 border border-erobo-purple"
+              : "bg-white/5 border border-transparent hover:bg-white/10"
+              }`}
           >
             <MiniAppLogo
               appId={app.app_id}

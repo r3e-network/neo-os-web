@@ -75,6 +75,7 @@ export const NNTNewsFeed: FC<NNTNewsFeedProps> = ({ limit = 5, className, onArti
 };
 
 const NNTArticleItem: FC<{ article: NNTArticle; onClick: () => void }> = ({ article, onClick }) => {
+  const { t: tCommon, locale } = useTranslation("common");
   return (
     <button
       onClick={onClick}

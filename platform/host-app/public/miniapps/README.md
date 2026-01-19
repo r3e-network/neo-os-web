@@ -13,7 +13,7 @@ miniapps-uniapp/apps/
 Each app contains:
 
 - `src/pages/` - Vue components
-- `src/static/` - Static assets (icon.svg, banner.svg)
+- `src/static/` - Static assets (logo.png, banner.png)
 - `src/manifest.json` - App configuration
 
 ## Build Process

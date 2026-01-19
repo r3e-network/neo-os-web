@@ -83,7 +83,7 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
                 strokeWidth={2.5}
                 className="text-erobo-purple/70 group-hover:text-erobo-purple transition-colors"
               />
-              <span>{formatNumber(app.stats?.users)}</span>
+              <span suppressHydrationWarning>{formatNumber(app.stats?.users)}</span>
             </div>
             <div
               className="flex items-center gap-2 group-hover:text-erobo-pink transition-colors"
@@ -94,13 +94,13 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
                 strokeWidth={2.5}
                 className="text-erobo-pink/70 group-hover:text-erobo-pink transition-colors"
               />
-              <span>{formatNumber(app.stats?.transactions)}</span>
+              <span suppressHydrationWarning>{formatNumber(app.stats?.transactions)}</span>
             </div>
             <div
               className="flex items-center gap-2 w-24 justify-end font-medium opacity-60 group-hover:opacity-100 transition-opacity"
               title={t("miniapps.stats.updated")}
             >
-              <span>{formatTimeAgo(app.created_at ?? null, { t: tCommon })}</span>
+              <span suppressHydrationWarning>{formatTimeAgo(app.created_at ?? null, { t: tCommon })}</span>
             </div>
           </div>
         </div>

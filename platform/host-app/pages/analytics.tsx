@@ -64,7 +64,7 @@ export default function AnalyticsPage() {
         {loading ? (
           <div className="text-center py-12 text-gray-500">{t("analytics.loading")}</div>
         ) : analytics ? (
-          <AnalyticsDashboard analytics={analytics} t={t} />
+          <AnalyticsDashboard analytics={analytics} t={t} locale={locale} />
         ) : (
           <div className="text-center py-12 text-gray-500">{t("analytics.noData")}</div>
         )}
@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
   );
 }
 
-function AnalyticsDashboard({ analytics, t }: { analytics: UserAnalytics; t: (key: string) => string }) {
+function AnalyticsDashboard({ analytics, t, locale }: { analytics: UserAnalytics; t: (key: string) => string; locale: string }) {
   const { summary, activity, appBreakdown } = analytics;
 
   return (
@@ -116,7 +116,7 @@ function AnalyticsDashboard({ analytics, t }: { analytics: UserAnalytics; t: (ke
           <CardTitle className="text-sm text-gray-900 dark:text-white">{t("analytics.appBreakdown")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <AppBreakdownTable apps={appBreakdown} t={t} />
+          <AppBreakdownTable apps={appBreakdown} t={t} locale={locale} />
         </CardContent>
       </Card>
     </div>
@@ -141,9 +141,11 @@ function AppLegend({ apps }: { apps: { appName: string; txCount: number }[] }) {
 function AppBreakdownTable({
   apps,
   t,
+  locale,
 }: {
   apps: { appId: string; appName: string; txCount: number; volume: string; lastUsed: string }[];
   t: (key: string) => string;
+  locale: string;
 }) {
   return (
     <div className="overflow-x-auto">

@@ -108,7 +108,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="border-t border-white/60 dark:border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm font-medium text-erobo-ink-soft/70 dark:text-gray-500">
+          <p suppressHydrationWarning className="text-sm font-medium text-erobo-ink-soft/70 dark:text-gray-500">
             © {new Date().getFullYear()} R3E Network. {t("footer.rights")}
           </p>
           {/* Powered by Neo Badge */}

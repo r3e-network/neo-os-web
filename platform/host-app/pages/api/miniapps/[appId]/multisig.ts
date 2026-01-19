@@ -100,14 +100,14 @@ async function handleCreate(req: NextApiRequest, res: NextApiResponse, appId: st
         return res.status(400).json({ error: "Script hash does not match signers" });
     }
 
-    let transaction: tx.Transaction;
+    let transaction: any;
     try {
         transaction = tx.Transaction.deserialize(stripHexPrefix(transactionHex));
     } catch {
         return res.status(400).json({ error: "Invalid transaction hex" });
     }
 
-    const signerAccounts = transaction.signers.map((signer) => signer.account.toBigEndian().toLowerCase());
+    const signerAccounts = transaction.signers.map((signer: any) => signer.account.toBigEndian().toLowerCase());
     if (!signerAccounts.includes(expectedScriptHash)) {
         return res.status(400).json({ error: "Transaction signer does not match multisig" });
     }
@@ -271,7 +271,7 @@ async function handleUpdate(req: NextApiRequest, res: NextApiResponse, appId: st
         return res.status(400).json({ error: "Unsupported chain" });
     }
 
-    let transaction: tx.Transaction;
+    let transaction: any;
     try {
         transaction = tx.Transaction.deserialize(request.transaction_hex);
     } catch {

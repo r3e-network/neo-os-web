@@ -91,11 +91,11 @@ function createStatCardBuilders(
     total_transactions: (stats) =>
       stats.total_transactions != null
         ? {
-            title: t("detail.totalTxs"),
-            value: stats.total_transactions.toLocaleString(),
-            icon: "📊",
-            trend: "neutral",
-          }
+          title: t("detail.totalTxs"),
+          value: stats.total_transactions.toLocaleString(),
+          icon: "📊",
+          trend: "neutral",
+        }
         : null,
     total_users: (stats) =>
       stats.total_users != null
@@ -116,20 +116,20 @@ function createStatCardBuilders(
     daily_active_users: (stats) =>
       stats.daily_active_users != null
         ? {
-            title: t("detail.dailyActiveUsers"),
-            value: stats.daily_active_users.toLocaleString(),
-            icon: "👥",
-            trend: "up",
-          }
+          title: t("detail.dailyActiveUsers"),
+          value: stats.daily_active_users.toLocaleString(),
+          icon: "👥",
+          trend: "up",
+        }
         : null,
     weekly_active_users: (stats) =>
       stats.weekly_active_users != null
         ? {
-            title: t("detail.weeklyActive"),
-            value: stats.weekly_active_users.toLocaleString(),
-            icon: "📈",
-            trend: "up",
-          }
+          title: t("detail.weeklyActive"),
+          value: stats.weekly_active_users.toLocaleString(),
+          icon: "📈",
+          trend: "up",
+        }
         : null,
     view_count: (stats) => ({
       title: t("detail.views"),
@@ -270,7 +270,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   useEffect(() => {
     if (!app?.app_id || !walletChainId) return;
     const chainQuery = `?chain_id=${encodeURIComponent(walletChainId)}`;
-    fetch(`/api/miniapps/${app.app_id}/view${chainQuery}`, { method: "POST" }).catch(() => {});
+    fetch(`/api/miniapps/${app.app_id}/view${chainQuery}`, { method: "POST" }).catch(() => { });
   }, [app?.app_id, walletChainId]);
 
   // Initialize SDK
@@ -330,6 +330,8 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       if (!data || typeof data !== "object") return;
       if (data.type === "miniapp_ready") {
         sendConfig();
+        // Dismiss the loading overlay when MiniApp signals it's ready
+        setIsIframeLoading(false);
         return;
       }
       if (data.type !== "miniapp_sdk_request") return;
@@ -439,6 +441,16 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     };
   }, [app?.app_id, iframeSrc, app?.permissions, federated, entryUrl, chainType]);
 
+  // Safety timeout: dismiss loading overlay after 10 seconds even if signals fail
+  // This handles cases where CSP violations or network issues prevent normal load signals
+  useEffect(() => {
+    if (!app || federated || !isIframeLoading) return;
+    const timer = setTimeout(() => {
+      setIsIframeLoading(false);
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [app?.app_id, federated, isIframeLoading]);
+
   // Network latency monitoring
   useEffect(() => {
     const measureLatency = async () => {
@@ -509,30 +521,16 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   // Left panel: App details
   const leftPanel = (
     <div className="h-full overflow-auto bg-background">
-      <AppDetailHeader app={app} stats={stats || undefined} />
+      <AppDetailHeader app={app} stats={stats || undefined} description={appDesc} />
 
       <main className="max-w-[1200px] mx-auto px-6 py-8">
         {/* Hero Section */}
+        {/* Hero Section - Description moved to Header */}
         <section className="mb-8">
-          <p className="text-base text-muted-foreground leading-relaxed m-0">{appDesc}</p>
           <TagCloud appId={app.app_id} onTagClick={(tagId) => router.push(`/miniapps?tag=${tagId}`)} className="mt-4" />
         </section>
 
-        {/* Stats Grid */}
-        {stats && statCards.length > 0 && (
-          <section className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4 mb-8">
-            {statCards.map((card) => (
-              <AppStatsCard
-                key={card.title}
-                title={card.title}
-                value={card.value}
-                icon={card.icon}
-                trend={card.trend}
-                trendValue={card.trendValue}
-              />
-            ))}
-          </section>
-        )}
+        {/* Stats Grid - Removed as per request (redundant with header stats) */}
 
         {/* App Activity Ticker */}
         <section className="mb-6">
@@ -548,42 +546,38 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
         <section className="mb-8">
           <div className="flex gap-2 border-b border-border mb-6">
             <button
-              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
-                activeTab === "overview"
-                  ? "border-neo text-neo"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "overview"
+                ? "border-neo text-neo"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
               onClick={() => setActiveTab("overview")}
             >
               {t("detail.overview")}
             </button>
             <button
-              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
-                activeTab === "reviews"
-                  ? "border-neo text-neo"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "reviews"
+                ? "border-neo text-neo"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
               onClick={() => setActiveTab("reviews")}
             >
               ⭐ {t("detail.reviews")}
             </button>
             <button
-              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
-                activeTab === "forum"
-                  ? "border-neo text-neo"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "forum"
+                ? "border-neo text-neo"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
               onClick={() => setActiveTab("forum")}
             >
               💬 {t("detail.forum")}
             </button>
             {showNews && (
               <button
-                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
-                  activeTab === "news"
-                    ? "border-neo text-neo"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "news"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                 onClick={() => setActiveTab("news")}
               >
                 {t("detail.news")} ({notifications.length})
@@ -591,11 +585,10 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             )}
             {showSecrets && (
               <button
-                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
-                  activeTab === "secrets"
-                    ? "border-neo text-neo"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "secrets"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                 onClick={() => setActiveTab("secrets")}
               >
                 🔐 {t("detail.secrets")}
@@ -680,9 +673,8 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
                   src={iframeSrc}
                   ref={iframeRef}
                   onLoad={() => setIsIframeLoading(false)}
-                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
-                    isIframeLoading ? "opacity-0" : "opacity-100"
-                  }`}
+                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${isIframeLoading ? "opacity-0" : "opacity-100"
+                    }`}
                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                   title={`${appName} MiniApp`}
                   allowFullScreen
@@ -796,7 +788,7 @@ function OverviewTab({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-card rounded-xl p-6 border border-border">
+      <div className="bg-white dark:bg-[#1a1b26] rounded-xl p-6 border border-border">
         <h3 className="text-lg font-semibold text-foreground mt-0 mb-4">{t("detail.permissions")}</h3>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
           {Object.entries(app.permissions).map(([key, value]) =>
@@ -811,7 +803,7 @@ function OverviewTab({
       </div>
 
       {app.limits && (
-        <div className="bg-card rounded-xl p-6 border border-border">
+        <div className="bg-white dark:bg-[#1a1b26] rounded-xl p-6 border border-border">
           <h3 className="text-lg font-semibold text-foreground mt-0 mb-4">{t("detail.limits")}</h3>
           <ul className="list-none p-0 m-0">
             {app.limits.max_gas_per_tx && (
@@ -833,7 +825,7 @@ function OverviewTab({
         </div>
       )}
 
-      <div className="bg-card rounded-xl p-6 border border-border">
+      <div className="bg-white dark:bg-[#1a1b26] rounded-xl p-6 border border-border">
         <h3 className="text-lg font-semibold text-foreground mt-0 mb-4">{t("detail.appInfo")}</h3>
         <p className="text-sm text-muted-foreground my-2">
           {t("detail.appId")}:{" "}
@@ -924,7 +916,11 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
           : [];
 
     const rawStats = statsList.find((s: Record<string, unknown>) => s?.app_id === id) ?? statsList[0] ?? null;
-    const app = rawStats ? coerceMiniAppInfo(rawStats, fallback) : (fallback ?? null);
+    let app = rawStats ? coerceMiniAppInfo(rawStats, fallback) : (fallback ?? null);
+    if (!app) {
+      const { fetchCommunityAppById } = await import("../../lib/community-apps");
+      app = await fetchCommunityAppById(id);
+    }
 
     if (!app) {
       return {

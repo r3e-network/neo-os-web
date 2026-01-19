@@ -8,6 +8,7 @@ import type {
   AutomationLog,
   ChainId,
   ChainType,
+  ContractParam,
   EVMInvocationIntent,
   RegisterTaskRequest,
   RegisterTaskResponse,
@@ -150,7 +151,7 @@ function toHexQuantity(value?: string): string | undefined {
 
 // Resolve SENDER placeholder in invocation params with the user's wallet address.
 // This is used for GAS.Transfer where the 'from' parameter must be the user's address.
-function resolveInvocationParams(params: InvocationIntent["params"], userAddress: string): InvocationIntent["params"] {
+function resolveInvocationParams(params: ContractParam[], userAddress: string): ContractParam[] {
   return params.map((param) => {
     if (param.type === "Hash160" && param.value === "SENDER") {
       return { type: "Hash160", value: userAddress };
@@ -290,7 +291,6 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
 
   const resolveInvocationChainType = (invocation?: InvocationIntent): ChainType => {
     if (invocation?.chain_type) return invocation.chain_type;
-    if (invocation?.chain_id) return inferChainType(invocation.chain_id);
     return fallbackChainType;
   };
 
@@ -428,6 +428,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
 
 export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
   const mini = createMiniAppSDK(cfg);
+  const resolvedChainId = cfg.chainId ?? null;
 
   return {
     ...mini,

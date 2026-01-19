@@ -135,7 +135,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
                   {app.stats?.rating && (
                     <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-yellow-400/10 border border-yellow-400/20">
                       <Star size={9} className="text-yellow-400 fill-yellow-400" />
-                      <span className="text-[10px] font-bold text-yellow-600 dark:text-yellow-400 leading-none">
+                      <span suppressHydrationWarning className="text-[10px] font-bold text-yellow-600 dark:text-yellow-400 leading-none">
                         {app.stats.rating.toFixed(1)}
                       </span>
                     </div>
@@ -155,7 +155,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
                   <Users size={12} className="text-erobo-purple" strokeWidth={2.5} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
+                  <span suppressHydrationWarning className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
                     {formatNumber(app.stats?.users)}
                   </span>
                   <span className="text-[9px] text-erobo-ink-soft/60 uppercase font-medium leading-none mt-0.5">Users</span>
@@ -169,7 +169,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
                   <Activity size={12} className="text-erobo-pink" strokeWidth={2.5} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
+                  <span suppressHydrationWarning className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
                     {formatNumber(app.stats?.transactions)}
                   </span>
                   <span className="text-[9px] text-erobo-ink-soft/60 uppercase font-medium leading-none mt-0.5">TXs</span>
@@ -183,7 +183,7 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
                   <Eye size={12} className="text-erobo-sky" strokeWidth={2.5} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
+                  <span suppressHydrationWarning className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
                     {formatNumber(app.stats?.views)}
                   </span>
                   <span className="text-[9px] text-erobo-ink-soft/60 uppercase font-medium leading-none mt-0.5">Views</span>

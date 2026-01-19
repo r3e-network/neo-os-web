@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
+import type { MiniAppInfo } from "@/components/types";
+import { fetchCommunityApps } from "@/lib/community-apps";
 import { createClient } from "@supabase/supabase-js";
 
 export interface TrendingApp {
@@ -7,6 +9,9 @@ export interface TrendingApp {
   name: string;
   icon: string;
   category: string;
+  entry_url: string;
+  supportedChains?: string[];
+  source?: string;
   score: number;
   stats: {
     users_24h: number;
@@ -38,7 +43,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 /** Calculate trending score based on Supabase stats */
 async function calculateTrending(category: string | undefined, limit: number): Promise<TrendingApp[]> {
-  const apps = category ? BUILTIN_APPS.filter((a) => a.category === category) : BUILTIN_APPS;
+  const builtinApps = category ? BUILTIN_APPS.filter((a) => a.category === category) : BUILTIN_APPS;
+  const communityApps = await fetchCommunityApps({ status: "active", category });
+  const apps = mergeApps(builtinApps, communityApps);
 
   // Fetch stats from Supabase if configured
   const statsMap = await fetchStatsFromSupabase(apps.map((a) => a.app_id));
@@ -47,12 +54,16 @@ async function calculateTrending(category: string | undefined, limit: number): P
     .map((app) => {
       const stats = statsMap.get(app.app_id) || getDefaultStats();
       const score = calculateScore(stats);
+      const entryUrl = app.entry_url || `/miniapps/${app.app_id}/index.html`;
 
       return {
         app_id: app.app_id,
         name: app.name,
         icon: app.icon,
         category: app.category,
+        entry_url: entryUrl,
+        supportedChains: app.supportedChains || [],
+        source: app.source ?? "builtin",
         score,
         stats: {
           users_24h: stats.users,
@@ -66,11 +77,26 @@ async function calculateTrending(category: string | undefined, limit: number): P
     .slice(0, limit);
 }
 
+function mergeApps(builtinApps: MiniAppInfo[], communityApps: MiniAppInfo[]): MiniAppInfo[] {
+  const byId = new Map<string, MiniAppInfo>();
+  for (const app of builtinApps) {
+    byId.set(app.app_id, app);
+  }
+  for (const app of communityApps) {
+    if (!byId.has(app.app_id)) byId.set(app.app_id, app);
+  }
+  return Array.from(byId.values());
+}
+
 /** Fetch stats from Supabase miniapp_stats table */
 async function fetchStatsFromSupabase(
   appIds: string[],
 ): Promise<Map<string, { users: number; txs: number; volume: number; growth: number }>> {
   const statsMap = new Map<string, { users: number; txs: number; volume: number; growth: number }>();
+
+  if (!appIds.length) {
+    return statsMap;
+  }
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return statsMap;

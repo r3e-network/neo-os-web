@@ -17,7 +17,7 @@ test.describe("MiniApp Icons and Banners", () => {
 
   test("should load banner images correctly", async ({ page }) => {
     // Find all banner images
-    const bannerImages = page.locator('img[src*="/static/banner.svg"]');
+    const bannerImages = page.locator('img[src*="/static/banner.png"]');
     const count = await bannerImages.count();
     console.log(`Found ${count} banner images`);
 
@@ -36,7 +36,7 @@ test.describe("MiniApp Icons and Banners", () => {
 
   test("should load icon images correctly", async ({ page }) => {
     // Find all icon images
-    const iconImages = page.locator('img[src*="/static/icon.svg"]');
+    const iconImages = page.locator('img[src*="/static/logo.png"]');
     const count = await iconImages.count();
     console.log(`Found ${count} icon images`);
 
@@ -51,7 +51,7 @@ test.describe("MiniApp Icons and Banners", () => {
     const testApps = ["lottery", "coin-flip", "neo-swap", "canvas"];
 
     for (const app of testApps) {
-      const response = await page.request.get(`/miniapps/${app}/static/icon.svg`);
+      const response = await page.request.get(`/miniapps/${app}/static/logo.png`);
       expect(response.status()).toBe(200);
       console.log(`✓ ${app} icon: HTTP ${response.status()}`);
     }
@@ -61,7 +61,7 @@ test.describe("MiniApp Icons and Banners", () => {
     const testApps = ["lottery", "coin-flip", "neo-swap", "canvas"];
 
     for (const app of testApps) {
-      const response = await page.request.get(`/miniapps/${app}/static/banner.svg`);
+      const response = await page.request.get(`/miniapps/${app}/static/banner.png`);
       expect(response.status()).toBe(200);
       console.log(`✓ ${app} banner: HTTP ${response.status()}`);
     }

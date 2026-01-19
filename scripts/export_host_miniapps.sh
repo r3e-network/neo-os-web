@@ -59,6 +59,6 @@ fi
 
 echo ""
 echo "Auto-discovering MiniApps..."
-node "$PROJECT_ROOT/miniapps-uniapp/scripts/auto-discover-miniapps.js"
+node "$PROJECT_ROOT/miniapps-uniapp/scripts/auto-discover.js"
 
 echo "Done."

@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
+import type { MiniAppInfo } from "@/components/types";
+import { fetchCommunityApps } from "@/lib/community-apps";
 
 export interface SearchResult {
   app_id: string;
@@ -7,6 +9,9 @@ export interface SearchResult {
   description: string;
   category: string;
   icon: string;
+  entry_url: string;
+  supportedChains?: string[];
+  source?: string;
   score: number;
   highlights?: { field: string; snippet: string }[];
 }
@@ -31,7 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(200).json({ results: [], total: 0, query: "", suggestions: getPopularSearches() });
   }
 
-  const results = searchApps(query, category as string, maxResults);
+  const communityApps = await fetchCommunityApps({ status: "active", category: category as string | undefined });
+  const results = searchApps(query, category as string, maxResults, [...BUILTIN_APPS, ...communityApps]);
   const suggestions = generateSuggestions(query);
 
   return res.status(200).json({
@@ -43,10 +49,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 }
 
 /** Full-text search across apps */
-function searchApps(query: string, category: string | undefined, limit: number): SearchResult[] {
+function searchApps(query: string, category: string | undefined, limit: number, apps: MiniAppInfo[]): SearchResult[] {
   const terms = query.split(/\s+/).filter(Boolean);
 
-  const scored = BUILTIN_APPS.map((app) => {
+  const scored = apps.map((app) => {
     let score = 0;
     const highlights: { field: string; snippet: string }[] = [];
 
@@ -59,10 +65,18 @@ function searchApps(query: string, category: string | undefined, limit: number):
         score += 10;
         highlights.push({ field: "name", snippet: highlightTerm(app.name, term) });
       }
+      if (app.name_zh && app.name_zh.toLowerCase().includes(term)) {
+        score += 8;
+        highlights.push({ field: "name_zh", snippet: highlightTerm(app.name_zh, term) });
+      }
       // Description match
       if (app.description.toLowerCase().includes(term)) {
         score += 5;
         highlights.push({ field: "description", snippet: highlightTerm(app.description, term) });
+      }
+      if (app.description_zh && app.description_zh.toLowerCase().includes(term)) {
+        score += 4;
+        highlights.push({ field: "description_zh", snippet: highlightTerm(app.description_zh, term) });
       }
       // Category match
       if (app.category.toLowerCase().includes(term)) {
@@ -72,12 +86,17 @@ function searchApps(query: string, category: string | undefined, limit: number):
 
     if (score === 0) return null;
 
+    const entryUrl = app.entry_url || `/miniapps/${app.app_id}/index.html`;
+
     return {
       app_id: app.app_id,
       name: app.name,
       description: app.description,
       category: app.category as string,
       icon: app.icon,
+      entry_url: entryUrl,
+      supportedChains: app.supportedChains || [],
+      source: app.source ?? "builtin",
       score,
       highlights,
     } as SearchResult;

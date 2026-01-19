@@ -119,7 +119,11 @@ export const getServerSideProps: GetServerSideProps<UnifiedAppPageProps> = async
           : [];
 
     const rawStats = statsList.find((s: Record<string, unknown>) => s?.app_id === id) ?? statsList[0] ?? null;
-    const app = rawStats ? coerceMiniAppInfo(rawStats, fallback) : (fallback ?? null);
+    let app = rawStats ? coerceMiniAppInfo(rawStats, fallback) : (fallback ?? null);
+    if (!app) {
+      const { fetchCommunityAppById } = await import("../../lib/community-apps");
+      app = await fetchCommunityAppById(id);
+    }
 
     if (!app) {
       return {

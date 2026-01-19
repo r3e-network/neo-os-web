@@ -34,16 +34,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Unset current for all versions
-    await supabaseAdmin.from("miniapp_versions").update({ is_current: false }).eq("app_id", appId);
-
-    // Set new current version
+    // Submit version for admin review (do not auto-publish)
     const { data, error } = await supabaseAdmin
       .from("miniapp_versions")
       .update({
-        is_current: true,
-        status: "published",
-        published_at: new Date().toISOString(),
+        is_current: false,
+        status: "pending_review",
       })
       .eq("id", versionId)
       .eq("app_id", appId)
@@ -56,22 +52,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const contractMap =
       data?.contracts && typeof data.contracts === "object" && !Array.isArray(data.contracts) ? data.contracts : {};
 
-    // Update registry status
+    // Update registry status for review queue
     await supabaseAdmin
       .from("miniapp_registry")
       .update({
-        status: "published",
-        visibility: "public",
-        published_at: new Date().toISOString(),
+        status: "pending_review",
+        visibility: "unlisted",
         updated_at: new Date().toISOString(),
         supported_chains: supportedChains,
         contracts: contractMap,
       })
       .eq("app_id", appId);
 
-    return res.status(200).json({ version: data, message: "Version published" });
+    return res.status(200).json({ version: data, message: "Version submitted for review" });
   } catch (error) {
     console.error("Publish version error:", error);
-    return res.status(500).json({ error: "Failed to publish version" });
+    return res.status(500).json({ error: "Failed to submit version for review" });
   }
 }

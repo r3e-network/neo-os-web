@@ -33,6 +33,57 @@ export interface MiniApp {
   updated_at: string;
 }
 
+export interface RegistryMiniAppVersion {
+  id: string;
+  app_id: string;
+  version?: string | null;
+  version_code?: number | null;
+  entry_url?: string | null;
+  status?: string | null;
+  is_current?: boolean | null;
+  supported_chains?: string[] | null;
+  contracts?: Record<string, unknown> | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  review_notes?: string | null;
+  created_at?: string | null;
+  published_at?: string | null;
+}
+
+export interface RegistryMiniAppBuild {
+  id: string;
+  version_id: string;
+  build_number?: number | null;
+  storage_path?: string | null;
+  storage_provider?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface RegistryMiniApp {
+  app_id: string;
+  name: string;
+  name_zh?: string | null;
+  description?: string | null;
+  description_zh?: string | null;
+  short_description?: string | null;
+  icon_url?: string | null;
+  banner_url?: string | null;
+  category?: string | null;
+  permissions?: Record<string, unknown> | null;
+  supported_chains?: string[] | null;
+  contracts?: Record<string, unknown> | null;
+  status?: string | null;
+  visibility?: string | null;
+  developer_name?: string | null;
+  developer_address?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  latest_version?: RegistryMiniAppVersion | null;
+  latest_build?: RegistryMiniAppBuild | null;
+}
+
 export interface User {
   id: string;
   address: string;
