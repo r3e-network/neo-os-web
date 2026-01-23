@@ -72,6 +72,7 @@ sdk/typescript/client/dist/
 .trae/
 .cursor/
 coverage.out
+.worktrees/
 
 # Snapshot files
 snapshots/
