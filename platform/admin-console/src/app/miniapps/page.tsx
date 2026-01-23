@@ -17,11 +17,7 @@ import type { RegistryMiniApp } from "@/types";
 
 export default function MiniAppsPage() {
   const { data: miniapps, isLoading, error } = useMiniApps();
-  const {
-    data: registryApps,
-    isLoading: registryLoading,
-    error: registryError,
-  } = useRegistryMiniApps();
+  const { data: registryApps, isLoading: registryLoading, error: registryError } = useRegistryMiniApps();
   const approveMutation = useApproveMiniAppVersion();
   const rejectMutation = useRejectMiniAppVersion();
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
@@ -29,6 +25,8 @@ export default function MiniAppsPage() {
   const [reviewNotes, setReviewNotes] = useState("");
   const [previewTheme, setPreviewTheme] = useState<"dark" | "light">("dark");
   const [previewLocale, setPreviewLocale] = useState<"en" | "zh">("en");
+  const [testTheme, setTestTheme] = useState<"dark" | "light">("dark");
+  const [testLocale, setTestLocale] = useState<"en" | "zh">("en");
 
   useEffect(() => {
     setReviewNotes("");
@@ -36,9 +34,14 @@ export default function MiniAppsPage() {
     setPreviewLocale("en");
   }, [selectedRegistryApp?.app_id]);
 
+  useEffect(() => {
+    setTestTheme("dark");
+    setTestLocale("en");
+  }, [selectedApp]);
+
   const pendingApps = useMemo(
     () => (registryApps || []).filter((app) => app.status === "pending_review"),
-    [registryApps],
+    [registryApps]
   );
   const permissionList = useMemo(() => {
     const perms = selectedRegistryApp?.permissions;
@@ -48,16 +51,18 @@ export default function MiniAppsPage() {
       .map(([key]) => key);
   }, [selectedRegistryApp?.permissions]);
   const supportedChains =
-    selectedRegistryApp?.latest_version?.supported_chains ||
-    selectedRegistryApp?.supported_chains ||
-    [];
+    selectedRegistryApp?.latest_version?.supported_chains || selectedRegistryApp?.supported_chains || [];
+  const selectedMiniApp = useMemo(
+    () => (miniapps || []).find((app) => app.app_id === selectedApp) || null,
+    [miniapps, selectedApp]
+  );
 
   const resolveBuildUrl = (storagePath?: string | null) => {
     if (!storagePath) return "";
     if (storagePath.startsWith("http")) return storagePath;
     const base = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     if (!base) return storagePath;
-    return `${base.replace(/\\/$/, "")}/storage/v1/object/${storagePath.replace(/^\\/+/, "")}`;
+    return `${base.replace(/\/$/, "")}/storage/v1/object/${storagePath.replace(/^\//, "")}`;
   };
 
   const resolveBuildDownloadUrl = (storagePath?: string | null) => {
@@ -67,10 +72,25 @@ export default function MiniAppsPage() {
     return `${url}${separator}download=1`;
   };
 
-  const buildPreviewUrl = (url: string) => {
-    if (!url) return "";
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}lang=${previewLocale}&theme=${previewTheme}&embedded=1`;
+  const resolveEntryUrl = (url: string) => {
+    const trimmed = String(url || "").trim();
+    if (!trimmed) return "";
+    if (trimmed.startsWith("/")) {
+      const base = process.env.NEXT_PUBLIC_HOST_APP_URL?.trim().replace(/\/$/, "");
+      if (base) return `${base}${trimmed}`;
+      if (typeof window !== "undefined") return `${window.location.origin}${trimmed}`;
+      return trimmed;
+    }
+    return trimmed;
+  };
+
+  const buildPreviewUrl = (url: string, locale = previewLocale, theme = previewTheme) => {
+    const trimmed = String(url || "").trim();
+    if (!trimmed || trimmed.startsWith("mf://")) return "";
+    const resolved = resolveEntryUrl(trimmed);
+    if (!resolved) return "";
+    const separator = resolved.includes("?") ? "&" : "?";
+    return `${resolved}${separator}lang=${locale}&theme=${theme}&embedded=1`;
   };
 
   const statusVariant = (status?: string | null) => {
@@ -85,6 +105,12 @@ export default function MiniAppsPage() {
   const buildUrl = resolveBuildUrl(selectedRegistryApp?.latest_build?.storage_path || null);
   const buildDownloadUrl = resolveBuildDownloadUrl(selectedRegistryApp?.latest_build?.storage_path || null);
   const previewUrl = buildPreviewUrl(entryUrl);
+  const testEntryUrl = selectedMiniApp?.entry_url || "";
+  const canTestPreview = Boolean(testEntryUrl) && !testEntryUrl.startsWith("mf://");
+  const testPreviewUrl = canTestPreview ? buildPreviewUrl(testEntryUrl, testLocale, testTheme) : "";
+  const missingBilingualDetails = Boolean(
+    selectedRegistryApp && (!selectedRegistryApp.name_zh || !selectedRegistryApp.description_zh)
+  );
 
   return (
     <div className="space-y-6">
@@ -128,15 +154,11 @@ export default function MiniAppsPage() {
                     <TableCell>
                       <Badge variant={statusVariant(app.status)}>{app.status || "unknown"}</Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">
-                      {app.latest_version?.version || "—"}
-                    </TableCell>
+                    <TableCell className="text-sm text-gray-500">{app.latest_version?.version || "—"}</TableCell>
                     <TableCell className="text-sm text-gray-500">
                       {truncate(app.latest_version?.entry_url || "", 36)}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">
-                      {truncate(app.developer_address || "", 12)}
-                    </TableCell>
+                    <TableCell className="text-sm text-gray-500">{truncate(app.developer_address || "", 12)}</TableCell>
                     <TableCell className="text-sm text-gray-500">
                       {app.updated_at ? formatDate(app.updated_at) : "—"}
                     </TableCell>
@@ -169,13 +191,32 @@ export default function MiniAppsPage() {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div className="text-xs text-gray-500">Entry URL</div>
-                  <div className="text-sm text-gray-700 break-all">{entryUrl || "—"}</div>
+                  <div className="break-all text-sm text-gray-700">{entryUrl || "—"}</div>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div className="text-xs text-gray-500">Build Artifact</div>
-                  <div className="text-sm text-gray-700 break-all">
+                  <div className="break-all text-sm text-gray-700">
                     {selectedRegistryApp.latest_build?.storage_path || "—"}
                   </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs text-gray-500">Name (EN)</div>
+                  <div className="text-sm font-medium text-gray-900">{selectedRegistryApp.name || "—"}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs text-gray-500">Name (ZH)</div>
+                  <div className="text-sm font-medium text-gray-900">{selectedRegistryApp.name_zh || "—"}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 md:col-span-2">
+                  <div className="text-xs text-gray-500">Description (EN)</div>
+                  <div className="text-sm text-gray-700">{selectedRegistryApp.description || "—"}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 md:col-span-2">
+                  <div className="text-xs text-gray-500">Description (ZH)</div>
+                  <div className="text-sm text-gray-700">{selectedRegistryApp.description_zh || "—"}</div>
                 </div>
               </div>
 
@@ -192,9 +233,7 @@ export default function MiniAppsPage() {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div className="text-xs text-gray-500">Permissions</div>
-                  <div className="text-sm text-gray-700">
-                    {permissionList.length ? permissionList.join(", ") : "—"}
-                  </div>
+                  <div className="text-sm text-gray-700">{permissionList.length ? permissionList.join(", ") : "—"}</div>
                 </div>
               </div>
 
@@ -202,7 +241,7 @@ export default function MiniAppsPage() {
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => entryUrl && window.open(entryUrl, "_blank", "noopener,noreferrer")}
+                  onClick={() => entryUrl && window.open(resolveEntryUrl(entryUrl), "_blank", "noopener,noreferrer")}
                   disabled={!entryUrl}
                 >
                   Open Entry URL
@@ -289,6 +328,7 @@ export default function MiniAppsPage() {
                   size="sm"
                   variant="primary"
                   isLoading={approveMutation.isPending}
+                  disabled={missingBilingualDetails}
                   onClick={() =>
                     selectedRegistryApp.latest_version?.id &&
                     approveMutation.mutate({
@@ -320,16 +360,27 @@ export default function MiniAppsPage() {
                 </Button>
               </div>
 
+              {missingBilingualDetails && (
+                <div className="text-sm text-amber-600">
+                  Missing Chinese name or description. Require bilingual metadata before approval.
+                </div>
+              )}
+
               {previewUrl ? (
                 <div className="rounded-lg border border-gray-200">
                   <iframe
                     title={`preview-${selectedRegistryApp.app_id}`}
                     src={previewUrl}
                     className="h-[520px] w-full"
+                    sandbox="allow-scripts allow-forms allow-popups"
+                    referrerPolicy="no-referrer"
+                    allowFullScreen
                   />
                 </div>
               ) : (
-                <div className="text-sm text-gray-500">Preview unavailable (missing entry URL).</div>
+                <div className="text-sm text-gray-500">
+                  Preview unavailable (missing entry URL or non-iframe entry).
+                </div>
               )}
             </div>
           </CardContent>
@@ -364,9 +415,7 @@ export default function MiniAppsPage() {
                     <TableCell className="text-sm text-gray-500">{truncate(app.entry_url, 40)}</TableCell>
                     <TableCell>
                       <Badge
-                        variant={
-                          app.status === "active" ? "success" : app.status === "pending" ? "warning" : "danger"
-                        }
+                        variant={app.status === "active" ? "success" : app.status === "pending" ? "warning" : "danger"}
                       >
                         {app.status}
                       </Badge>
@@ -393,14 +442,111 @@ export default function MiniAppsPage() {
             <CardTitle>MiniApp Test Harness: {selectedApp}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <p className="text-sm text-gray-600">
-                Test harness for loading MiniApp in iframe (implementation pending)
-              </p>
-              <Button className="mt-4" variant="secondary" onClick={() => setSelectedApp(null)}>
-                Close
-              </Button>
-            </div>
+            {!selectedMiniApp ? (
+              <div className="text-sm text-gray-500">MiniApp details unavailable.</div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="text-xs text-gray-500">Entry URL</div>
+                    <div className="break-all text-sm text-gray-700">{selectedMiniApp.entry_url || "—"}</div>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="text-xs text-gray-500">Status</div>
+                    <div className="text-sm text-gray-700">{selectedMiniApp.status || "—"}</div>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="text-xs text-gray-500">Updated</div>
+                    <div className="text-sm text-gray-700">
+                      {selectedMiniApp.updated_at ? formatDate(selectedMiniApp.updated_at) : "—"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      selectedMiniApp.entry_url &&
+                      window.open(resolveEntryUrl(selectedMiniApp.entry_url), "_blank", "noopener,noreferrer")
+                    }
+                    disabled={!selectedMiniApp.entry_url}
+                  >
+                    Open Entry URL
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => testPreviewUrl && window.open(testPreviewUrl, "_blank", "noopener,noreferrer")}
+                    disabled={!testPreviewUrl}
+                  >
+                    Open Preview
+                  </Button>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="mb-3 text-sm font-medium text-gray-700">Preview Controls</div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Theme</span>
+                      <Button
+                        size="sm"
+                        variant={testTheme === "dark" ? "primary" : "secondary"}
+                        onClick={() => setTestTheme("dark")}
+                      >
+                        Dark
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={testTheme === "light" ? "primary" : "secondary"}
+                        onClick={() => setTestTheme("light")}
+                      >
+                        Light
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Locale</span>
+                      <Button
+                        size="sm"
+                        variant={testLocale === "en" ? "primary" : "secondary"}
+                        onClick={() => setTestLocale("en")}
+                      >
+                        EN
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={testLocale === "zh" ? "primary" : "secondary"}
+                        onClick={() => setTestLocale("zh")}
+                      >
+                        ZH
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {canTestPreview ? (
+                  <div className="rounded-lg border border-gray-200">
+                    <iframe
+                      title={`test-${selectedMiniApp.app_id}`}
+                      src={testPreviewUrl}
+                      className="h-[520px] w-full"
+                      sandbox="allow-scripts allow-forms allow-popups"
+                      referrerPolicy="no-referrer"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">
+                    Preview unavailable (entry URL missing or non-iframe entry).
+                  </div>
+                )}
+
+                <Button size="sm" variant="ghost" onClick={() => setSelectedApp(null)}>
+                  Close
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

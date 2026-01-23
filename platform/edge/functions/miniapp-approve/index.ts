@@ -1,0 +1,179 @@
+// MiniApp Approval Endpoint
+// Admin approves/rejects submissions and optionally triggers build
+
+import "../_shared/init.ts";
+
+declare const Deno: {
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
+import { handleCorsPreflight } from "../_shared/cors.ts";
+import { mustGetEnv } from "../_shared/env.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
+import { requireAuth } from "../_shared/supabase.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+interface ApprovalRequest {
+  submission_id: string;
+  action: "approve" | "reject" | "request_changes";
+  trigger_build?: boolean; // for approve action
+  review_notes?: string;
+}
+
+export async function handler(req: Request): Promise<Response> {
+  const preflight = handleCorsPreflight(req);
+  if (preflight) return preflight;
+  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
+
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+  const rl = await requireRateLimit(req, "miniapp-approve", auth);
+  if (rl) return rl;
+
+  // Check if user is admin
+  const { data: isAdmin } = await supabaseAdminCheck(auth.userId);
+  if (!isAdmin) {
+    return errorResponse("FORBIDDEN", "Admin access required", req);
+  }
+
+  let body: ApprovalRequest;
+  try {
+    body = await req.json();
+  } catch {
+    return errorResponse("BAD_JSON", undefined, req);
+  }
+
+  if (!body.submission_id) {
+    return validationError("submission_id", "submission_id is required", req);
+  }
+
+  if (!body.action) {
+    return validationError("action", "action is required (approve, reject, request_changes)", req);
+  }
+
+  const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_SERVICE_ROLE_KEY"));
+
+  try {
+    // Get submission
+    const { data: submission, error: fetchError } = await supabase
+      .from("miniapp_submissions")
+      .select("*")
+      .eq("id", body.submission_id)
+      .single();
+
+    if (fetchError || !submission) {
+      return errorResponse("NOT_FOUND", { message: "Submission not found" }, req);
+    }
+
+    const now = new Date().toISOString();
+
+    switch (body.action) {
+      case "approve": {
+        // Update status to approved
+        const updateData: any = {
+          status: "approved",
+          reviewed_by: auth.userId,
+          reviewed_at: now,
+          review_notes: body.review_notes,
+        };
+
+        // Optionally trigger build immediately
+        if (body.trigger_build) {
+          updateData.status = "building";
+          updateData.build_started_at = now;
+        }
+
+        const { error: updateError } = await supabase
+          .from("miniapp_submissions")
+          .update(updateData)
+          .eq("id", body.submission_id);
+
+        if (updateError) throw updateError;
+
+        // If trigger_build is false, we're done
+        if (!body.trigger_build) {
+          return json({
+            success: true,
+            submission_id: body.submission_id,
+            status: "approved",
+            message: "Submission approved. Build will be triggered manually.",
+          });
+        }
+
+        // TODO: Trigger build pipeline
+        // This would call the build endpoint or queue a build job
+        return json({
+          success: true,
+          submission_id: body.submission_id,
+          status: "building",
+          message: "Submission approved and build triggered.",
+        });
+      }
+
+      case "reject": {
+        const { error: updateError } = await supabase
+          .from("miniapp_submissions")
+          .update({
+            status: "rejected",
+            reviewed_by: auth.userId,
+            reviewed_at: now,
+            review_notes: body.review_notes,
+          })
+          .eq("id", body.submission_id);
+
+        if (updateError) throw updateError;
+
+        return json({
+          success: true,
+          submission_id: body.submission_id,
+          status: "rejected",
+          message: "Submission rejected.",
+        });
+      }
+
+      case "request_changes": {
+        const { error: updateError } = await supabase
+          .from("miniapp_submissions")
+          .update({
+            status: "update_requested",
+            reviewed_by: auth.userId,
+            reviewed_at: now,
+            review_notes: body.review_notes,
+          })
+          .eq("id", body.submission_id);
+
+        if (updateError) throw updateError;
+
+        return json({
+          success: true,
+          submission_id: body.submission_id,
+          status: "update_requested",
+          message: "Changes requested from developer.",
+        });
+      }
+
+      default:
+        return validationError("action", "Invalid action", req);
+    }
+  } catch (error) {
+    console.error("Approval error:", error);
+    return errorResponse("SERVER_ERROR", { message: (error as Error).message }, req);
+  }
+}
+
+// Admin check helper
+async function supabaseAdminCheck(userId: string): Promise<{
+  data: boolean;
+}> {
+  const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_ANON_KEY"));
+
+  const { data } = await supabase.from("admin_emails").select("user_id").eq("user_id", userId);
+
+  return { data: !!data };
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
+}

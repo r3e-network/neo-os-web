@@ -80,14 +80,13 @@
 }
 
 @layer components {
-
   /* Light mode: subtle gray glass, Dark mode: white glass on dark bg */
   .glass {
-    @apply bg-gray-100/80 dark:bg-white/[0.03] backdrop-blur-2xl border border-gray-200 dark:border-white/5 shadow-lg dark:shadow-2xl;
+    @apply border border-gray-200 bg-gray-100/80 shadow-lg backdrop-blur-2xl dark:border-white/5 dark:bg-white/[0.03] dark:shadow-2xl;
   }
 
   .glass-card {
-    @apply bg-gray-50/90 dark:bg-white/[0.05] backdrop-blur-xl border border-gray-200 dark:border-white/5 hover:border-neo/30 hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-all duration-500 shadow-lg dark:shadow-2xl;
+    @apply border border-gray-200 bg-gray-50/90 shadow-lg backdrop-blur-xl transition-all duration-500 hover:border-neo/30 hover:bg-gray-100 dark:border-white/5 dark:bg-white/[0.05] dark:shadow-2xl dark:hover:bg-white/[0.08];
   }
 
   .neo-glow {
@@ -99,28 +98,28 @@
   }
 
   .neo-gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#00E599] to-[#7000FF];
+    @apply bg-gradient-to-r from-[#00E599] to-[#7000FF] bg-clip-text text-transparent;
   }
 
   /* E-Robo Global Style Components */
   .erobo-card {
-    @apply rounded-[24px] backdrop-blur-[40px] border transition-all duration-300;
+    @apply rounded-[24px] border backdrop-blur-[40px] transition-all duration-300;
     background: var(--erobo-card-bg);
     border-color: var(--erobo-card-border);
     box-shadow: var(--erobo-card-shadow);
   }
 
   .erobo-card:hover {
-    @apply border-[rgba(159, 157, 243, 0.4)];
+    border-color: rgba(159, 157, 243, 0.4);
     box-shadow: 0 30px 90px rgba(159, 157, 243, 0.2);
   }
 
   .erobo-btn {
-    @apply rounded-full bg-[#1b1b2f] text-white font-bold shadow-[0_20px_50px_rgba(27, 27, 47, 0.35)] transition-all duration-300;
+    @apply shadow-[0_20px_50px_rgba(27, 27, 47, 0.35)] rounded-full bg-[#1b1b2f] font-bold text-white transition-all duration-300;
   }
 
   .erobo-btn:hover {
-    @apply shadow-[0_28px_70px_rgba(27, 27, 47, 0.45)] brightness-110 translate-y-[-2px];
+    @apply shadow-[0_28px_70px_rgba(27, 27, 47, 0.45)] translate-y-[-2px] brightness-110;
   }
 }
 
@@ -140,5 +139,5 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-white/10 hover:bg-white/20 rounded-full transition-colors;
+  @apply rounded-full bg-white/10 transition-colors hover:bg-white/20;
 }

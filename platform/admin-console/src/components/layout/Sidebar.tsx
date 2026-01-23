@@ -18,6 +18,7 @@ export function Sidebar() {
     { name: t("navigation.dashboard"), href: "/", icon: "📊" },
     { name: t("navigation.services"), href: "/services", icon: "🔧" },
     { name: t("navigation.miniapps"), href: "/miniapps", icon: "📱" },
+    { name: "Distributed Apps", href: "/admin/miniapps", icon: "🌐" },
     { name: t("navigation.users"), href: "/users", icon: "👥" },
     { name: t("navigation.analytics"), href: "/analytics", icon: "📈" },
     { name: t("navigation.contracts"), href: "/contracts", icon: "📄" },
@@ -37,7 +38,7 @@ export function Sidebar() {
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                isActive ? "bg-gray-800 text-white" : "text-gray-300 hover:bg-gray-800 hover:text-white",
+                isActive ? "bg-gray-800 text-white" : "text-gray-300 hover:bg-gray-800 hover:text-white"
               )}
               aria-current={isActive ? "page" : undefined}
             >
