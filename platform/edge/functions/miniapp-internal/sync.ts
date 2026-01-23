@@ -1,5 +1,6 @@
-// Internal Miniapps Sync
+// Internal Miniapps Sync & Update
 // Scans internal repository for pre-built miniapps and syncs to registry
+// Also handles updates from GitHub Actions for auto-publish workflow
 
 import "../_shared/init.ts";
 
@@ -49,6 +50,33 @@ interface SyncResponse {
     status: string;
     action: "created" | "updated" | "skipped";
   }>;
+}
+
+interface UpdateRequest {
+  app_id: string;
+  name?: string;
+  category: string;
+  subfolder: string;
+  manifest: any;
+  entry_url: string;
+  icon_url?: string;
+  banner_url?: string;
+  current_version: string;
+  commit_sha: string;
+}
+
+interface UpdateResponse {
+  success: boolean;
+  app_id: string;
+  action: "created" | "updated";
+  entry_url: string;
+  version: string;
+}
+
+// URL helper to parse path from request
+function getUrlPath(req: Request): string {
+  const url = new URL(req.url);
+  return url.pathname;
 }
 
 // Scan internal miniapps directory
@@ -210,12 +238,98 @@ async function syncMiniapps(miniapps: InternalMiniapp[]): Promise<SyncResponse> 
   return response;
 }
 
+// Update single miniapp (called from GitHub Actions)
+async function updateMiniapp(data: UpdateRequest): Promise<UpdateResponse> {
+  const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_SERVICE_ROLE_KEY"));
+
+  try {
+    // Check if app already exists
+    const { data: existing } = await supabase.from("miniapp_internal").select("*").eq("app_id", data.app_id).single();
+
+    const updateData = {
+      git_url: INTERNAL_REPO_URL,
+      subfolder: data.subfolder,
+      branch: "master",
+      app_id: data.app_id,
+      manifest: data.manifest,
+      manifest_hash: data.commit_sha, // Use commit SHA as hash
+      entry_url: data.entry_url,
+      icon_url: data.icon_url || data.manifest.icon || "",
+      banner_url: data.banner_url || data.manifest.banner || "",
+      category: data.category,
+      status: "active",
+      current_version: data.current_version,
+      previous_version: existing?.current_version,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (existing) {
+      // Update existing
+      const { error } = await supabase.from("miniapp_internal").update(updateData).eq("app_id", data.app_id);
+
+      if (error) throw error;
+
+      console.log(`Updated miniapp: ${data.app_id} -> ${data.entry_url}`);
+
+      return {
+        success: true,
+        app_id: data.app_id,
+        action: "updated",
+        entry_url: data.entry_url,
+        version: data.current_version,
+      };
+    } else {
+      // Insert new
+      const { error } = await supabase.from("miniapp_internal").insert({
+        ...updateData,
+        created_at: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+
+      console.log(`Created miniapp: ${data.app_id} -> ${data.entry_url}`);
+
+      return {
+        success: true,
+        app_id: data.app_id,
+        action: "created",
+        entry_url: data.entry_url,
+        version: data.current_version,
+      };
+    }
+  } catch (error) {
+    console.error(`Failed to update ${data.app_id}:`, error);
+    throw error;
+  }
+}
+
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
-  // GET /functions/v1/miniapp-internal/sync - Trigger sync
-  if (req.method === "POST") {
+  const path = getUrlPath(req);
+
+  // POST /functions/v1/miniapp-internal/update - Update single miniapp (from GitHub Actions)
+  if (req.method === "POST" && path.endsWith("/update")) {
+    // Service role only (bypass auth for GitHub Actions)
+    const serviceRoleKey = mustGetEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || authHeader !== `Bearer ${serviceRoleKey}`) {
+      return errorResponse("AUTH_004", "Service role required", req);
+    }
+
+    try {
+      const body = await req.json();
+      const result = await updateMiniapp(body);
+      return json(result, {}, req);
+    } catch (error) {
+      console.error("Update error:", error);
+      return errorResponse("SERVER_001", { message: (error as Error).message }, req);
+    }
+  }
+
+  // POST /functions/v1/miniapp-internal/sync - Trigger sync (admin)
+  if (req.method === "POST" && path.endsWith("/sync")) {
     const auth = await requireAuth(req);
     if (auth instanceof Response) return auth;
     const rl = await requireRateLimit(req, "miniapp-sync", auth);
