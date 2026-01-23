@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  process.env.SUPABASE_URL ||
-  "https://supabase.localhost";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "https://supabase.localhost";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 type ApprovePayload = {
@@ -13,16 +10,64 @@ type ApprovePayload = {
   reviewNotes?: string;
 };
 
-type VersionRow = {
-  id: string;
+type EdgeFunctionRequest = {
   app_id: string;
-  entry_url?: string | null;
-  supported_chains?: string[] | null;
-  contracts?: Record<string, unknown> | null;
+  action: "approve" | "reject" | "disable";
+  reason?: string;
 };
 
-function getReviewer(req: Request): string {
-  return req.headers.get("x-admin-user") || "admin";
+type EdgeFunctionResponse = {
+  request_id: string;
+  app_id: string;
+  action: string;
+  previous_status: string;
+  new_status: string;
+  reviewed_by: string;
+  reviewed_at: string;
+  reason?: string;
+  chainTxId?: string;
+};
+
+function isRetryable(status: number): boolean {
+  return status >= 500 || status === 408 || status === 429;
+}
+
+function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError) {
+    return (
+      error.message.includes("ECONNRESET") ||
+      error.message.includes("ETIMEDOUT") ||
+      error.message.includes("ENOTFOUND") ||
+      error.message.includes("ECONNREFUSED")
+    );
+  }
+  return false;
+}
+
+async function callWithRetry(url: string, body: EdgeFunctionRequest, retries = 1): Promise<Response> {
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok && retries > 0 && isRetryable(response.status)) {
+      console.warn(`Edge function returned ${response.status}, retrying... (${retries} retries left)`);
+      return callWithRetry(url, body, retries - 1);
+    }
+
+    return response;
+  } catch (error) {
+    if (retries > 0 && isNetworkError(error)) {
+      console.warn(`Network error, retrying... (${retries} retries left)`, error);
+      return callWithRetry(url, body, retries - 1);
+    }
+    throw error;
+  }
 }
 
 export async function POST(req: Request) {
@@ -41,102 +86,46 @@ export async function POST(req: Request) {
   }
 
   const appId = String(payload.appId || "").trim();
-  const versionId = String(payload.versionId || "").trim();
-  const reviewNotes = payload.reviewNotes ? String(payload.reviewNotes).trim() : null;
-
   if (!appId) {
     return NextResponse.json({ error: "appId is required" }, { status: 400 });
   }
 
-  const versionUrl = versionId
-    ? `${SUPABASE_URL}/rest/v1/miniapp_versions?id=eq.${encodeURIComponent(versionId)}`
-    : `${SUPABASE_URL}/rest/v1/miniapp_versions?app_id=eq.${encodeURIComponent(appId)}&status=eq.pending_review&order=version_code.desc&limit=1`;
-
-  const versionRes = await fetch(versionUrl, {
-    headers: {
-      apikey: SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-    },
-  });
-
-  if (!versionRes.ok) {
-    const detail = await versionRes.text();
-    return NextResponse.json({ error: "Failed to load version", detail }, { status: versionRes.status });
-  }
-
-  const versionPayload = (await versionRes.json()) as VersionRow[] | VersionRow;
-  const version = Array.isArray(versionPayload) ? versionPayload[0] : versionPayload;
-
-  if (!version?.id) {
-    return NextResponse.json({ error: "Version not found" }, { status: 404 });
-  }
-
-  await fetch(`${SUPABASE_URL}/rest/v1/miniapp_versions?app_id=eq.${encodeURIComponent(appId)}`, {
-    method: "PATCH",
-    headers: {
-      apikey: SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify({ is_current: false }),
-  });
-
-  const reviewPayload: Record<string, unknown> = {
-    status: "published",
-    is_current: true,
-    published_at: new Date().toISOString(),
-    reviewed_by: getReviewer(req),
-    reviewed_at: new Date().toISOString(),
+  const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/app-approve`;
+  const requestBody: EdgeFunctionRequest = {
+    app_id: appId,
+    action: "approve",
   };
-  if (reviewNotes) reviewPayload.review_notes = reviewNotes;
 
-  const updateVersionRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/miniapp_versions?id=eq.${encodeURIComponent(version.id)}`,
-    {
-      method: "PATCH",
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "return=representation",
-      },
-      body: JSON.stringify(reviewPayload),
-    },
-  );
+  try {
+    const response = await callWithRetry(edgeFunctionUrl, requestBody);
 
-  if (!updateVersionRes.ok) {
-    const detail = await updateVersionRes.text();
-    return NextResponse.json({ error: "Failed to update version", detail }, { status: updateVersionRes.status });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Edge function error: ${response.status} - ${errorText}`);
+
+      // Pass through Edge Function error response
+      try {
+        const errorJson = JSON.parse(errorText);
+        return NextResponse.json(errorJson, { status: response.status });
+      } catch {
+        return NextResponse.json({ error: `Edge function error: ${response.status}` }, { status: response.status });
+      }
+    }
+
+    const result: EdgeFunctionResponse = await response.json();
+    console.log(`MiniApp approved: ${appId}`, {
+      request_id: result.request_id,
+      previous_status: result.previous_status,
+      new_status: result.new_status,
+      chain_tx_id: result.chainTxId,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to call Edge function:", error);
+    return NextResponse.json(
+      { error: isNetworkError(error) ? "Edge function unavailable" : "Internal server error" },
+      { status: isNetworkError(error) ? 503 : 500 }
+    );
   }
-
-  const registryPayload: Record<string, unknown> = {
-    status: "published",
-    visibility: "public",
-    published_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  if (version.supported_chains) registryPayload.supported_chains = version.supported_chains;
-  if (version.contracts) registryPayload.contracts = version.contracts;
-
-  const registryRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/miniapp_registry?app_id=eq.${encodeURIComponent(appId)}`,
-    {
-      method: "PATCH",
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "return=representation",
-      },
-      body: JSON.stringify(registryPayload),
-    },
-  );
-
-  if (!registryRes.ok) {
-    const detail = await registryRes.text();
-    return NextResponse.json({ error: "Failed to update registry", detail }, { status: registryRes.status });
-  }
-
-  return NextResponse.json({ success: true });
 }
