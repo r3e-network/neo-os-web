@@ -1,5 +1,6 @@
 import { parseDecimalToInt } from "./amount.ts";
 import { getEnv, isProductionEnv } from "./env.ts";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import {
   canonicalizeMiniAppManifest,
   enforceMiniAppAssetPolicy,
@@ -75,6 +76,35 @@ export function permissionEnabled(permissions: Record<string, unknown> | undefin
   if (typeof value === "boolean") return value;
   if (Array.isArray(value)) return value.length > 0;
   return false;
+}
+
+export async function isAppOwnerOrAdmin(
+  supabase: SupabaseClient,
+  appId: string,
+  userId: string,
+): Promise<boolean> {
+  const normalizedAppId = String(appId ?? "").trim();
+  const normalizedUserId = String(userId ?? "").trim();
+  if (!normalizedAppId || !normalizedUserId) return false;
+
+  const { data: appRow, error: appErr } = await supabase
+    .from("miniapps")
+    .select("developer_user_id")
+    .eq("app_id", normalizedAppId)
+    .maybeSingle();
+
+  if (!appErr && appRow?.developer_user_id === normalizedUserId) {
+    return true;
+  }
+
+  const { data: adminRow, error: adminErr } = await supabase
+    .from("admin_emails")
+    .select("user_id")
+    .eq("user_id", normalizedUserId)
+    .maybeSingle();
+
+  if (adminErr) return false;
+  return Boolean(adminRow);
 }
 
 function parseUsageMode(raw: string | undefined): UsageMode | null {

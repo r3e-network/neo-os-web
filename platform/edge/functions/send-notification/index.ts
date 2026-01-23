@@ -1,7 +1,8 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
-import { supabaseClient, requireAuth } from "../_shared/supabase.ts";
+import { supabaseServiceClient, requireAuth } from "../_shared/supabase.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
+import { isAppOwnerOrAdmin } from "../_shared/apps.ts";
 
 interface NotificationBody {
   app_id?: string;
@@ -38,7 +39,11 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "app_id, title, message required", "MISSING_FIELDS", req);
   }
 
-  const supabase = supabaseClient();
+  const supabase = supabaseServiceClient();
+  const ownerCheck = await isAppOwnerOrAdmin(supabase, app_id, auth.userId);
+  if (!ownerCheck) {
+    return errorResponse("AUTH_004", { message: "app owner or admin required" }, req);
+  }
   const { error: dbErr } = await supabase.from("miniapp_notifications").insert({
     app_id,
     title,

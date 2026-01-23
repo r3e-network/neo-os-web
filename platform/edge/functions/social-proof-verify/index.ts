@@ -1,7 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
+import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
 
 interface VerifyRequest {
   app_id: string;
@@ -31,8 +31,8 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "app_id is required", "MISSING_APP_ID", req);
   }
 
-  const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const supabase = supabaseServiceClient();
+  const userId = auth.userId;
 
   // Check existing proof cache
   const { data: cached } = await supabase

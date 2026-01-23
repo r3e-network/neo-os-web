@@ -1,6 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
-import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
+import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
 import { checkSpamLimit, logSpamAction } from "../_shared/community.ts";
 
 interface VoteRequest {
@@ -34,8 +34,8 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "vote_type must be upvote or downvote", "INVALID_VOTE_TYPE", req);
   }
 
-  const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const supabase = supabaseServiceClient();
+  const userId = auth.userId;
 
   // Check spam limit for voting
   const spamCheck = await checkSpamLimit(supabase, userId, "vote", undefined, req);
