@@ -65,7 +65,7 @@ data:
 
   # CDN Configuration for MiniApp publishing
   CDN_BASE_URL: "https://cdn.example.com"
-  CDN_PROVIDER: "r2" # Options: r2, s3, cloudflare
+  CDN_PROVIDER: "vercel" # Options: r2, s3, cloudflare, vercel
 
   # Cloudflare R2 Configuration (if CDN_PROVIDER=r2)
   R2_ACCOUNT_ID: "your-r2-account-id"
@@ -86,3 +86,7 @@ data:
   # Supabase Keys for Admin Console API proxy
   SUPABASE_ANON_KEY: "your-supabase-anon-key"
   SUPABASE_SERVICE_ROLE_KEY: "your-***REMOVED***"
+
+  # Vercel Blob Storage Configuration (if CDN_PROVIDER=vercel)
+  VERCEL_BLOB_TOKEN: "your-vercel-blob-token"
+  VERCEL_BLOB_STORE_ID: "your-blob-store-id"

@@ -155,7 +155,7 @@ export async function handler(req: Request): Promise<Response> {
   // Check if user is admin
   const { data: isAdmin } = await supabaseAdminCheck(auth.userId);
   if (!isAdmin) {
-    return errorResponse("FORBIDDEN", "Admin access required", req);
+    return errorResponse("AUTH_004", "Admin access required", req);
   }
 
   let body: BuildRequest;
@@ -191,7 +191,7 @@ export async function handler(req: Request): Promise<Response> {
     // 2. Check if can be built
     if (submission.status !== "approved") {
       return errorResponse(
-        "INVALID_STATUS",
+        "VAL_011",
         { message: `Submission must be approved first (current: ${submission.status})` },
         req
       );
@@ -304,7 +304,7 @@ export async function handler(req: Request): Promise<Response> {
       .eq("id", body.submission_id);
 
     console.error("Build error:", error);
-    return errorResponse("SERVER_ERROR", { message: (error as Error).message }, req);
+    return errorResponse("SERVER_001", { message: (error as Error).message }, req);
   }
 }
 

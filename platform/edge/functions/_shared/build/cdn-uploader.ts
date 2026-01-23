@@ -5,7 +5,7 @@
 
 import { mustGetEnv } from "../env.ts";
 
-export type CDNProvider = "r2" | "s3" | "cloudflare";
+export type CDNProvider = "r2" | "s3" | "cloudflare" | "vercel";
 
 // Directory entry type for Deno.readDirSync
 interface DirEntry {
@@ -45,6 +45,8 @@ export async function uploadFile(
       return uploadToS3(key, body, contentType);
     case "cloudflare":
       return uploadToCloudflare(key, body, contentType);
+    case "vercel":
+      return uploadToVercel(key, body, contentType);
     default:
       throw new Error(`Unsupported CDN provider: ${provider}`);
   }
@@ -166,6 +168,42 @@ async function uploadToCloudflare(
     // Use R2 for other files
     return uploadToR2(key, body, contentType);
   }
+}
+
+/**
+ * Upload to Vercel Blob Storage
+ */
+async function uploadToVercel(
+  key: string,
+  body: Uint8Array,
+  contentType: string
+): Promise<{ url: string; key: string }> {
+  const blobToken = mustGetEnv("VERCEL_BLOB_TOKEN");
+  const blobStoreId = mustGetEnv("VERCEL_BLOB_STORE_ID");
+  const cdnBaseUrl = mustGetEnv("CDN_BASE_URL");
+
+  // Vercel Blob API endpoint
+  const url = `https://blob.vercel-storage.com/${blobStoreId}`;
+
+  const formData = new FormData();
+  formData.append("file", new Blob([new Uint8Array(body)], { type: contentType }), key);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${blobToken}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Vercel Blob upload failed: ${response.status} ${errorText}`);
+  }
+
+  const result = await response.json();
+  // Vercel Blob returns the URL in the result
+  return { url: result.url || `${cdnBaseUrl}/${key}`, key };
 }
 
 /**

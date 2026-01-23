@@ -224,7 +224,7 @@ export async function handler(req: Request): Promise<Response> {
     // Check if user is admin
     const { data: isAdmin } = await supabaseAdminCheck(auth.userId);
     if (!isAdmin) {
-      return errorResponse("FORBIDDEN", "Admin access required", req);
+      return errorResponse("AUTH_004", "Admin access required", req);
     }
 
     try {
@@ -237,7 +237,7 @@ export async function handler(req: Request): Promise<Response> {
       return json(result, {}, req);
     } catch (error) {
       console.error("Sync error:", error);
-      return errorResponse("SERVER_ERROR", { message: (error as Error).message }, req);
+      return errorResponse("SERVER_001", { message: (error as Error).message }, req);
     }
   }
 
@@ -248,7 +248,7 @@ export async function handler(req: Request): Promise<Response> {
     const { data, error } = await supabase.from("miniapp_internal").select("*").eq("status", "active").order("app_id");
 
     if (error) {
-      return errorResponse("SERVER_ERROR", { message: error.message }, req);
+      return errorResponse("SERVER_001", { message: error.message }, req);
     }
 
     return json({ miniapps: data || [] }, {}, req);
