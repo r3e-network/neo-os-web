@@ -5,6 +5,12 @@ import "../_shared/init.ts";
 
 declare const Deno: {
   serve(handler: (req: Request) => Promise<Response>): void;
+  cwd(): string;
+  readDirSync(path: string): Iterable<{ name: string; isDirectory: boolean; isSymlink: boolean }>;
+  readTextFile(path: string): Promise<string>;
+  env: {
+    get(key: string): string | undefined;
+  };
 };
 
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";

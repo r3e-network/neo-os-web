@@ -47,6 +47,42 @@ data:
 
   # Neo network configuration
   NEO_NETWORK_MAGIC: "894710606"
+  # TEE signer address (shared between testnet and mainnet).
+  NEO_TESTNET_TEE_ADDRESS: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK"
+  NEO_MAINNET_TEE_ADDRESS: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK"
 
   # Kubernetes cluster detection flag
   K8S_CLUSTER: "true"
+
+  # =============================================================================
+  # Distributed MiniApp System Configuration
+  # =============================================================================
+
+  # Internal MiniApps (pre-built in platform repository)
+  INTERNAL_MINIAPPS_REPO_URL: "https://github.com/R3E-Network/service_layer.git"
+  INTERNAL_MINIAPPS_PATH: "miniapps-uniapp/apps"
+  INTERNAL_CDN_BASE_URL: "https://cdn.example.com"
+
+  # CDN Configuration for MiniApp publishing
+  CDN_BASE_URL: "https://cdn.example.com"
+  CDN_PROVIDER: "r2" # Options: r2, s3, cloudflare
+
+  # Cloudflare R2 Configuration (if CDN_PROVIDER=r2)
+  R2_ACCOUNT_ID: "your-r2-account-id"
+  R2_ACCESS_KEY_ID: "your-r2-access-key-id"
+  R2_SECRET_ACCESS_KEY: "your-r2-secret-access-key"
+  R2_BUCKET: "miniapps"
+
+  # AWS S3 Configuration (if CDN_PROVIDER=s3)
+  AWS_ACCESS_KEY_ID: "your-aws-access-key-id"
+  AWS_SECRET_ACCESS_KEY: "your-aws-secret-access-key"
+  AWS_REGION: "us-east-1"
+  S3_BUCKET: "miniapps"
+
+  # Cloudflare Images Configuration (if CDN_PROVIDER=cloudflare)
+  CLOUDFLARE_ACCOUNT_ID: "your-cloudflare-account-id"
+  CLOUDFLARE_API_TOKEN: "your-cloudflare-api-token"
+
+  # Supabase Keys for Admin Console API proxy
+  SUPABASE_ANON_KEY: "your-supabase-anon-key"
+  SUPABASE_SERVICE_ROLE_KEY: "your-***REMOVED***"
