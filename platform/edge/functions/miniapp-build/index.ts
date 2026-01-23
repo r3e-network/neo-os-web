@@ -5,6 +5,14 @@ import "../_shared/init.ts";
 
 declare const Deno: {
   serve(handler: (req: Request) => Promise<Response>): void;
+  Command: new (
+    cmd: string,
+    args?: { args?: string[]; stdout?: string; stderr?: string }
+  ) => {
+    output(): Promise<{ code: number; stdout: Uint8Array; stderr: Uint8Array }>;
+  };
+  readDirSync(path: string): Iterable<{ name: string; isDirectory: boolean; isSymlink: boolean }>;
+  readFile(path: string): Promise<Uint8Array>;
 };
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
@@ -16,6 +24,7 @@ import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { cloneRepo, getCommitInfo, cleanup, normalizeGitUrl } from "../_shared/build/git-manager.ts";
 import { detectAssets } from "../_shared/build/asset-detector.ts";
 import { detectBuildConfig, readPackageScripts } from "../_shared/build/build-detector.ts";
+import { uploadDirectory, uploadFile } from "../_shared/build/cdn-uploader.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface BuildRequest {
@@ -30,44 +39,71 @@ interface BuildResponse {
   error?: string;
 }
 
-// CDN upload function (placeholder - implement based on your CDN provider)
-async function uploadToCDN(projectDir: string, outputDir: string, appId: string, version: string): Promise<string> {
-  // TODO: Implement CDN upload based on your provider
-  // For R2: Use R2 SDK
-  // For S3: Use AWS SDK
-  // For Cloudflare: Workers CLI
-
+// CDN upload function - uploads build output to configured CDN provider
+async function uploadToCDN(buildPath: string, appId: string, version: string): Promise<string> {
   const cdnBaseUrl = mustGetEnv("CDN_BASE_URL");
-  const cdnPath = `${cdnBaseUrl}/miniapps/${appId}/${version}`;
+  const cdnKey = `miniapps/${appId}/${version}`;
 
-  // Placeholder implementation
-  console.log(`Would upload to ${cdnPath}`);
-  return cdnPath;
+  // Upload entire build directory recursively
+  const result = await uploadDirectory(buildPath, cdnKey);
+
+  if (result.failed > 0) {
+    console.warn(`Upload completed with ${result.failed} failures`);
+  }
+
+  console.log(`Uploaded ${result.uploaded} files to CDN`);
+
+  return `${cdnBaseUrl}/${cdnKey}`;
 }
 
 // Upload assets separately
 async function uploadAssets(
   projectDir: string,
   assets: any,
-  appId: string,
-  version: string
+  appId: string
 ): Promise<{ icon?: string; banner?: string }> {
-  const cdnBaseUrl = mustGetEnv("CDN_BASE_URL");
-
   const result: { icon?: string; banner?: string } = {};
+
+  // Helper to get content type for file extension
+  const getContentType = (filePath: string): string => {
+    const ext = filePath.split(".").pop()?.toLowerCase();
+    const types: Record<string, string> = {
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      gif: "image/gif",
+      svg: "image/svg+xml",
+      webp: "image/webp",
+    };
+    return types[ext || ""] || "application/octet-stream";
+  };
 
   // Upload icon if found
   if (assets.icon && assets.icon.length > 0) {
     const iconPath = assets.icon[0];
-    // TODO: Upload icon file
-    result.icon = `${cdnBaseUrl}/miniapps/${appId}/assets/icon.png`;
+    const fullPath = `${projectDir}/${iconPath}`;
+    try {
+      const fileData = await Deno.readFile(fullPath);
+      const iconKey = `miniapps/${appId}/assets/icon${iconPath.substring(iconPath.lastIndexOf("."))}`;
+      const uploadResult = await uploadFile(iconKey, fileData, getContentType(iconPath));
+      result.icon = uploadResult.url;
+    } catch (error) {
+      console.error(`Failed to upload icon:`, error);
+    }
   }
 
   // Upload banner if found
   if (assets.banner && assets.banner.length > 0) {
     const bannerPath = assets.banner[0];
-    // TODO: Upload banner file
-    result.banner = `${cdnBaseUrl}/miniapps/${appId}/assets/banner.png`;
+    const fullPath = `${projectDir}/${bannerPath}`;
+    try {
+      const fileData = await Deno.readFile(fullPath);
+      const bannerKey = `miniapps/${appId}/assets/banner${bannerPath.substring(bannerPath.lastIndexOf("."))}`;
+      const uploadResult = await uploadFile(bannerKey, fileData, getContentType(bannerPath));
+      result.banner = uploadResult.url;
+    } catch (error) {
+      console.error(`Failed to upload banner:`, error);
+    }
   }
 
   return result;
@@ -136,14 +172,17 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_SERVICE_ROLE_KEY"));
 
   let tempDir: string | null = null;
+  let submission: any = null;
 
   try {
     // 1. Get submission
-    const { data: submission, error: fetchError } = await supabase
+    const { data: submissionData, error: fetchError } = await supabase
       .from("miniapp_submissions")
       .select("*")
       .eq("id", body.submission_id)
       .single();
+
+    submission = submissionData;
 
     if (fetchError || !submission) {
       return notFoundError("Submission", req);
@@ -216,10 +255,10 @@ export async function handler(req: Request): Promise<Response> {
     // 8. Upload to CDN
     const outputDir = buildConfig.outputDir;
     const buildPath = `${projectDir}/${outputDir}`;
-    const cdnUrl = await uploadToCDN(buildPath, outputDir, submission.app_id, submission.git_commit_sha);
+    const cdnUrl = await uploadToCDN(buildPath, submission.app_id, submission.git_commit_sha);
 
     // 9. Upload assets
-    const assetUrls = await uploadAssets(projectDir, assets, submission.app_id, submission.git_commit_sha);
+    const assetUrls = await uploadAssets(projectDir, assets, submission.app_id);
 
     // 10. Update registry
     await supabase
