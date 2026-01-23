@@ -675,7 +675,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
                   onLoad={() => setIsIframeLoading(false)}
                   className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${isIframeLoading ? "opacity-0" : "opacity-100"
                     }`}
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  sandbox="allow-scripts allow-forms allow-popups"
                   title={`${appName} MiniApp`}
                   allowFullScreen
                 />
