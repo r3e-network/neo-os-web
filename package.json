@@ -1,6 +1,43 @@
 {
+  "name": "neo-service-layer",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:host": "turbo dev --filter=meshminiapp-host",
+    "dev:mobile": "turbo dev --filter=neo-miniapp-wallet",
+    "dev:miniapps": "turbo dev --filter='./miniapps-uniapp/apps/*'",
+    "build": "turbo build",
+    "build:host": "turbo build --filter=meshminiapp-host",
+    "build:mobile": "turbo build --filter=neo-miniapp-wallet",
+    "build:miniapps": "turbo build --filter='./miniapps-uniapp/apps/*'",
+    "test": "turbo test",
+    "test:run": "turbo test:run",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "clean": "turbo clean && rm -rf node_modules/.cache"
+  },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.29.8",
     "dotenv": "^17.2.3",
-    "pg": "^8.16.3"
+    "eslint-config-prettier": "^10.1.8",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "turbo": "^2.7.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^19.1.0",
+      "@types/react-dom": "^19.1.0",
+      "jspdf": ">=4.0.0",
+      "@intlify/core-base": ">=9.1.11",
+      "@intlify/message-resolver": ">=9.1.11",
+      "@intlify/vue-devtools>@intlify/message-resolver": ">=9.1.11",
+      "esbuild": ">=0.25.0",
+      "dompurify": ">=3.2.4",
+      "lodash": ">=4.17.23",
+      "elliptic": "npm:@noble/curves@^2.0.1"
+    }
   }
 }
