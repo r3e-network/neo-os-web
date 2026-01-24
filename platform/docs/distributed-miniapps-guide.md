@@ -7,7 +7,7 @@
 - 外部开发者可在自己的 Git 仓库中独立开发 MiniApp
 - 通过 Git URL 提交源代码进行审查
 - 平台管理员手动触发构建和发布
-- 内部 MiniApps 通过同一提交流程自动审批与构建
+- 内部 MiniApps 通过同一提交流程自动审批与构建（服务端校验）
 
 ## 系统架构
 
@@ -81,6 +81,7 @@ supabase migration up --file platform/supabase/migrations/20250123_miniapp_regis
 | `/functions/v1/miniapp-submit`        | POST | 提交 Git URL 进行审查 | 用户 + scope |
 | `/functions/v1/miniapp-approve`       | POST | 审批/拒绝/请求修改    | 管理员       |
 | `/functions/v1/miniapp-build`         | POST | 手动触发构建          | 管理员       |
+| `/functions/v1/miniapp-publish`       | POST | 发布构建结果          | Service role |
 | `/functions/v1/miniapp-list`          | GET  | Host App 发现         | 公开         |
 
 ### Admin Console API (代理)

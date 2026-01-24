@@ -17,6 +17,7 @@ import { requireScope } from "../_shared/scopes.ts";
 import { cloneRepo, getCommitInfo, cleanup, normalizeGitUrl, parseGitUrl } from "../_shared/build/git-manager.ts";
 import { detectAssets, readManifest, validateManifest, hasPrebuiltFiles } from "../_shared/build/asset-detector.ts";
 import { detectBuildConfig, validateBuildSetup } from "../_shared/build/build-detector.ts";
+import { isAutoApprovedInternalRepo, isServiceRoleRequest } from "./internal-approval.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface SubmitRequest {
@@ -51,12 +52,15 @@ export async function handler(req: Request): Promise<Response> {
   if (preflight) return preflight;
   if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-  const rl = await requireRateLimit(req, "miniapp-submit", auth);
+  const isServiceRole = isServiceRoleRequest(req);
+  const auth = isServiceRole ? null : await requireAuth(req);
+  if (!isServiceRole && auth instanceof Response) return auth;
+  const rl = await requireRateLimit(req, "miniapp-submit", auth ?? undefined);
   if (rl) return rl;
-  const scopeCheck = requireScope(req, auth, "miniapp-submit");
-  if (scopeCheck) return scopeCheck;
+  if (auth) {
+    const scopeCheck = requireScope(req, auth, "miniapp-submit");
+    if (scopeCheck) return scopeCheck;
+  }
 
   let body: SubmitRequest;
   try {
@@ -82,6 +86,9 @@ export async function handler(req: Request): Promise<Response> {
     const gitInfo = parseGitUrl(body.git_url);
     const branch = body.branch || "main";
     const subfolder = body.subfolder || "";
+    const autoApproved = isServiceRole && isAutoApprovedInternalRepo(normalizedUrl);
+    const reviewedAt = autoApproved ? new Date().toISOString() : null;
+    const reviewNotes = autoApproved ? "auto-approved internal repo submission" : null;
 
     // 2. Clone repository temporarily
     tempDir = await cloneRepo(normalizedUrl, branch, true);
@@ -168,8 +175,10 @@ export async function handler(req: Request): Promise<Response> {
         manifest_hash,
         assets_detected: assets,
         build_config: buildConfig,
-        status: "pending_review",
-        submitted_by: auth.userId,
+        status: autoApproved ? "building" : "pending_review",
+        submitted_by: auth?.userId ?? null,
+        reviewed_at: reviewedAt,
+        review_notes: reviewNotes,
         current_version: commitInfo.sha,
       })
       .select("id")
@@ -187,7 +196,7 @@ export async function handler(req: Request): Promise<Response> {
     // 10. Return submission response
     const response: SubmissionResponse = {
       submission_id: submission.id,
-      status: "pending_review",
+      status: autoApproved ? "building" : "pending_review",
       detected: {
         manifest: !!assets.manifest,
         assets: {
