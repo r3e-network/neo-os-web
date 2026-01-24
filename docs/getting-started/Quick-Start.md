@@ -46,6 +46,8 @@ pnpm add @neo/uniapp-sdk
 bun add @neo/uniapp-sdk
 ```
 
+The SDK source is maintained in the platform repo under `packages/@neo/uniapp-sdk` and published to npm.
+
 ## Step 2: Initialize the SDK
 
 ```typescript

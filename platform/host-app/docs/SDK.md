@@ -4,6 +4,7 @@ The MiniApp SDK is injected by the host app and provides a safe bridge to MiniAp
 MiniApps should **never** construct or sign transactions directly.
 
 Use `@neo/uniapp-sdk` in UniApp/Vue, or access `window.MiniAppSDK` directly in other frameworks.
+The SDK source is maintained in this repo at `packages/@neo/uniapp-sdk` and published to npm.
 
 ## Installation (UniApp/Vue)
 

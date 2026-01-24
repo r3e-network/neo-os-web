@@ -4,6 +4,8 @@ MiniApps must not construct or sign transactions directly. All sensitive actions
 
 `MiniApp → Host SDK → Supabase Edge (auth/limits) → TEE services (attested) → chain (Neo N3 / EVM)`
 
+The SDK source lives in this repo at `packages/@neo/uniapp-sdk` and is published to npm as `@neo/uniapp-sdk`.
+
 ## Runtime Model
 
 - The host provides `window.MiniAppSDK` (or use `@neo/uniapp-sdk` helpers).
