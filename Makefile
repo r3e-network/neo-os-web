@@ -219,30 +219,32 @@ edge-dev: ## Run local Edge dev server (requires deno)
 # =============================================================================
 
 miniapps-build: ## Build all MiniApps
-	@echo "Building all MiniApps..."
-	cd miniapps-uniapp && pnpm run build:all
+	@echo "MiniApps now live in git@github.com:r3e-network/miniapps.git"
+	@echo "Run builds from the miniapps repo."
 
 miniapps-dev: ## Start MiniApps development server
-	@echo "Starting MiniApps dev server..."
-	cd miniapps-uniapp && pnpm run dev
+	@echo "MiniApps now live in git@github.com:r3e-network/miniapps.git"
+	@echo "Run dev server from the miniapps repo."
 
 miniapps-test: ## Run MiniApps tests
-	@echo "Running MiniApps tests..."
-	cd miniapps-uniapp && pnpm run test:run
+	@echo "MiniApps now live in git@github.com:r3e-network/miniapps.git"
+	@echo "Run tests from the miniapps repo."
 
 miniapps-test-watch: ## Run MiniApps tests in watch mode
-	cd miniapps-uniapp && pnpm run test
+	@echo "MiniApps now live in git@github.com:r3e-network/miniapps.git"
+	@echo "Run tests from the miniapps repo."
 
 miniapps-test-coverage: ## Run MiniApps tests with coverage
-	cd miniapps-uniapp && pnpm run test:coverage
+	@echo "MiniApps now live in git@github.com:r3e-network/miniapps.git"
+	@echo "Run tests from the miniapps repo."
 
 miniapps-clean: ## Clean MiniApps build artifacts
-	@echo "Cleaning MiniApps..."
-	rm -rf miniapps-uniapp/apps/*/dist
-	rm -rf platform/host-app/public/miniapps/*/static
+	@echo "MiniApps now live in git@github.com:r3e-network/miniapps.git"
+	@echo "Clean artifacts from the miniapps repo."
 
 miniapps-generate: ## Generate MiniApp templates
-	cd miniapps-uniapp && node scripts/generate-templates.js
+	@echo "MiniApps now live in git@github.com:r3e-network/miniapps.git"
+	@echo "Generate templates from the miniapps repo."
 
 # =============================================================================
 # Platform SDK
@@ -426,8 +428,6 @@ install: ## Install all dependencies
 	go mod download
 	@echo "→ Host App (npm)..."
 	cd platform/host-app && npm install
-	@echo "→ MiniApps (pnpm)..."
-	cd miniapps-uniapp && pnpm install
 	@echo "→ SDK (npm)..."
 	cd platform/sdk && npm install
 	@echo "All dependencies installed"
@@ -440,8 +440,6 @@ test-all: ## Run all tests (Go + Host App + MiniApps)
 	go test -v ./...
 	@echo "→ Host App tests..."
 	cd platform/host-app && npm run test
-	@echo "→ MiniApps tests..."
-	cd miniapps-uniapp && pnpm run test:run
 	@echo "All tests complete"
 
 build-all: ## Build all components
@@ -461,8 +459,6 @@ clean-all-deep: ## Deep clean everything (build artifacts, node_modules, Docker)
 	rm -rf node_modules
 	rm -rf platform/host-app/node_modules
 	rm -rf platform/sdk/node_modules
-	rm -rf miniapps-uniapp/node_modules
-	rm -rf miniapps-uniapp/apps/*/node_modules
 	$(DOCKER_COMPOSE) down -v --rmi local 2>/dev/null || true
 	docker system prune -f 2>/dev/null || true
 	@echo "Deep clean complete"
