@@ -1,5 +1,9 @@
 require("@testing-library/jest-dom");
 
+jest.mock("@sentry/nextjs", () => ({
+  withSentryConfig: (config) => config,
+}));
+
 jest.mock("@t3-oss/env-nextjs", () => ({
   createEnv: (config) => ({
     ...config.runtimeEnv,
@@ -9,27 +13,35 @@ jest.mock("@t3-oss/env-nextjs", () => ({
 }));
 
 // Mock Supabase client
+const createMockQuery = ({ data = [], error = null } = {}) => {
+  const query = {
+    select: jest.fn(() => query),
+    eq: jest.fn(() => query),
+    in: jest.fn(() => query),
+    is: jest.fn(() => query),
+    order: jest.fn(() => query),
+    limit: jest.fn(() => query),
+    single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    then: (resolve, reject) => Promise.resolve({ data, error }).then(resolve, reject),
+  };
+  return query;
+};
+
 const mockSupabaseClient = {
-  from: jest.fn(() => ({
-    select: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-        order: jest.fn(() => ({
-          limit: jest.fn(() => Promise.resolve({ data: [], error: null })),
-        })),
+  from: jest.fn(() => {
+    const query = createMockQuery();
+    return {
+      ...query,
+      insert: jest.fn(() => Promise.resolve({ data: null, error: null })),
+      update: jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
       })),
-      order: jest.fn(() => ({
-        limit: jest.fn(() => Promise.resolve({ data: [], error: null })),
+      delete: jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
       })),
-    })),
-    insert: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    update: jest.fn(() => ({
-      eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
-    delete: jest.fn(() => ({
-      eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
-  })),
+    };
+  }),
   auth: {
     getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
     getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),

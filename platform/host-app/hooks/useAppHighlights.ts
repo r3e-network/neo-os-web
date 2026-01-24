@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { HighlightData } from "@/components/features/miniapp/DynamicBanner";
-import { updateHighlightsCache } from "@/lib/app-highlights";
+import { getAppHighlights, updateHighlightsCache } from "@/lib/app-highlights";
 
 interface UseAppHighlightsResult {
   highlights: HighlightData[] | undefined;
@@ -16,7 +16,7 @@ interface UseAppHighlightsResult {
 }
 
 export function useAppHighlights(appId: string): UseAppHighlightsResult {
-  const [highlights, setHighlights] = useState<HighlightData[] | undefined>(undefined);
+  const [highlights, setHighlights] = useState<HighlightData[] | undefined>(() => getAppHighlights(appId));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,15 +38,16 @@ export function useAppHighlights(appId: string): UseAppHighlightsResult {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
-      setHighlights(undefined);
+      setHighlights((current) => current ?? getAppHighlights(appId));
     } finally {
       setLoading(false);
     }
   }, [appId]);
 
   useEffect(() => {
+    setHighlights(getAppHighlights(appId));
     refresh();
-  }, [refresh]);
+  }, [appId, refresh]);
 
   return { highlights, loading, error, refresh };
 }

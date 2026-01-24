@@ -218,12 +218,10 @@ describe("LaunchPage", () => {
   });
 
   describe("Wallet Connection", () => {
-    it("should attempt to connect wallet on mount", async () => {
+    it("should not auto-connect wallet on mount", async () => {
       await renderLaunchPage();
 
-      await waitFor(() => {
-        expect((window as any).NEOLineN3.Init).toHaveBeenCalled();
-      });
+      expect((window as any).NEOLineN3.Init).not.toHaveBeenCalled();
     });
 
     it("should handle wallet connection failure silently", async () => {
@@ -466,7 +464,7 @@ describe("getServerSideProps", () => {
 
   it("should return props with correct entry_url", async () => {
     const context = {
-      params: { id: "miniapp-coinflip" },
+      params: { id: "miniapp-coin-flip" },
       req: { headers: { host: "localhost:3000" } },
     } as any;
 
