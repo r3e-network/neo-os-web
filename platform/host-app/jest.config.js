@@ -6,6 +6,8 @@ module.exports = {
   moduleFileExtensions: ["ts", "tsx", "js", "jsx"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
+    "^@neo/shared$": "<rootDir>/../shared",
+    "^@neo/shared/(.*)$": "<rootDir>/../shared/$1",
   },
   collectCoverageFrom: [
     "components/**/*.{ts,tsx}",

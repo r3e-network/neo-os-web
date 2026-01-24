@@ -3,33 +3,30 @@ require("@testing-library/jest-dom");
 jest.mock("@t3-oss/env-nextjs", () => ({
   createEnv: (config) => ({
     ...config.runtimeEnv,
-    NEXT_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: "test-anon-key",
   }),
 }));
 
 // Mock Supabase client
+const createQueryBuilder = (data = []) => {
+  const builder = {};
+  builder.select = jest.fn(() => builder);
+  builder.eq = jest.fn(() => builder);
+  builder.in = jest.fn(() => builder);
+  builder.not = jest.fn(() => builder);
+  builder.order = jest.fn(() => builder);
+  builder.limit = jest.fn(() => builder);
+  builder.range = jest.fn(() => builder);
+  builder.insert = jest.fn(() => builder);
+  builder.update = jest.fn(() => builder);
+  builder.delete = jest.fn(() => builder);
+  builder.single = jest.fn(() => Promise.resolve({ data: null, error: null }));
+  builder.maybeSingle = jest.fn(() => Promise.resolve({ data: null, error: null }));
+  builder.then = (resolve, reject) => Promise.resolve({ data, error: null }).then(resolve, reject);
+  return builder;
+};
+
 const mockSupabaseClient = {
-  from: jest.fn(() => ({
-    select: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-        order: jest.fn(() => ({
-          limit: jest.fn(() => Promise.resolve({ data: [], error: null })),
-        })),
-      })),
-      order: jest.fn(() => ({
-        limit: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      })),
-    })),
-    insert: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    update: jest.fn(() => ({
-      eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
-    delete: jest.fn(() => ({
-      eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
-  })),
+  from: jest.fn(() => createQueryBuilder([])),
   auth: {
     getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
     getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
