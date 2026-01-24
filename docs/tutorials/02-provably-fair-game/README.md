@@ -486,7 +486,7 @@ Same deployment process as Tutorial 1:
 
 ## Full Code Reference
 
-- `miniapps-uniapp/apps/coin-flip/` - Production example
+- `https://github.com/r3e-network/miniapps/tree/main/apps/coin-flip` - Production example
 - `docs/tutorials/01-payment-miniapp/code/final/` - Tutorial 1 reference
 
 ## Next Steps

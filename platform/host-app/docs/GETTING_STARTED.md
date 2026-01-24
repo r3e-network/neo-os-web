@@ -48,22 +48,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 3. Click any app to launch it
 4. Interact using your connected wallet
 
-## Build or Add a MiniApp (Auto-Registration)
+## Build or Submit a MiniApp (Submission Pipeline)
 
-1. Create a new app folder in `miniapps-uniapp/apps/<your-app>`.
-2. Add a `neo-manifest.json` (source of truth for permissions + metadata).
-3. Run auto-discovery (or let host `predev` handle it):
+1. Build your MiniApp in your own repo and include a `neo-manifest.json`.
+2. Submit the GitHub repo URL for review and approval.
+3. Internal miniapps in `git@github.com:r3e-network/miniapps.git` are auto-approved.
 
-```bash
-node miniapps-uniapp/scripts/auto-discover-miniapps.js
-```
-
-The host app also runs `scripts/export_host_miniapps.sh` on `predev`/`prebuild`,
-which copies built MiniApps and refreshes the registry automatically.
-Keep `app_id` aligned with your MiniApp `APP_ID` constant so SDK calls are
-scoped correctly.
-If a MiniApp has no `dist/build/h5` output yet, the export script will build it
-on-demand so newly added apps work without extra manual steps.
+Keep `app_id` aligned with your MiniApp `APP_ID` constant so SDK calls are scoped correctly.
 
 ## UniversalMiniApp Contract
 

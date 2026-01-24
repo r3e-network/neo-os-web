@@ -99,16 +99,10 @@ events, you may omit addresses for those chains.
 Ensure `app_id` matches the `APP_ID` constant used in your MiniApp so SDK calls
 and payment workflows resolve correctly.
 
-## Auto-Registration
+## Submission Pipeline
 
-MiniApps are auto-registered. Add a folder under `miniapps-uniapp/apps/<your-app>` with a
-manifest file (`neo-manifest.json`) and run:
-
-```bash
-node miniapps-uniapp/scripts/auto-discover-miniapps.js
-```
-
-The host app runs this automatically during `predev` and `prebuild`.
+MiniApps are registered through the submission pipeline. Submit your GitHub repo for review and
+approval; internal miniapps in `git@github.com:r3e-network/miniapps.git` are auto-approved and published.
 
 ## See Also
 

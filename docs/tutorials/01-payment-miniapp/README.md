@@ -533,7 +533,7 @@ Once approved, your status becomes **approved** and your MiniApp is live!
 
 The complete code for this tutorial is available at:
 
-- `miniapps-uniapp/apps/dev-tipping/` - Production example
+- `https://github.com/r3e-network/miniapps/tree/main/apps/dev-tipping` - Production example
 - `docs/tutorials/01-payment-miniapp/code/final/` - Tutorial solution
 
 ## Troubleshooting

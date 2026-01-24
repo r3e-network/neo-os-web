@@ -57,7 +57,7 @@ Before starting any tutorial, ensure you have:
 
 1. Start with **Tutorial 1** if you're new to MiniApps
 2. Complete tutorials in order (each builds on the previous)
-3. Reference the production examples in `miniapps-uniapp/apps/`
+3. Reference the production examples in `r3e-network/miniapps` (`apps/` folder)
 4. Check the [SDK API Documentation](../API_DOCUMENTATION.md) for details
 
 ## Tutorial Features
@@ -77,10 +77,10 @@ After completing the tutorials, explore the full production examples:
 
 | Category   | Example                                                      | Description            |
 | ---------- | ------------------------------------------------------------ | ---------------------- |
-| Games      | [coin-flip](../../miniapps-uniapp/apps/coin-flip/)           | Provably fair gambling |
-| Social     | [ex-files](../../miniapps-uniapp/apps/ex-files/)             | Encrypted file storage |
-| Finance    | [dev-tipping](../../miniapps-uniapp/apps/dev-tipping/)       | Developer tips         |
-| Governance | [candidate-vote](../../miniapps-uniapp/apps/candidate-vote/) | Candidate voting       |
+| Games      | [coin-flip](https://github.com/r3e-network/miniapps/tree/main/apps/coin-flip)           | Provably fair gambling |
+| Social     | [ex-files](https://github.com/r3e-network/miniapps/tree/main/apps/ex-files)             | Encrypted file storage |
+| Finance    | [dev-tipping](https://github.com/r3e-network/miniapps/tree/main/apps/dev-tipping)       | Developer tips         |
+| Governance | [candidate-vote](https://github.com/r3e-network/miniapps/tree/main/apps/candidate-vote) | Candidate voting       |
 
 ## Need Help?
 

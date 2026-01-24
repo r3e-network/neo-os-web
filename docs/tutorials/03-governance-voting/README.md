@@ -786,7 +786,7 @@ Same deployment process as previous tutorials:
 
 ## Full Code Reference
 
-- `miniapps-uniapp/apps/candidate-vote/` - Production example
+- `https://github.com/r3e-network/miniapps/tree/main/apps/candidate-vote` - Production example
 - `contracts/MiniAppCandidateVote/` - Smart contract source
 
 ## Next Steps
