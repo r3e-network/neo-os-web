@@ -39,31 +39,77 @@ function parseOrigin(value) {
   }
 }
 
+function parseOriginList(raw) {
+  if (!raw) return [];
+  return raw
+    .split(/[,\s]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => parseOrigin(entry))
+    .filter(Boolean);
+}
+
 // Content Security Policy (static baseline for routes that bypass middleware CSP)
 function buildContentSecurityPolicy({ allowFrameAncestors }) {
   const isDev = process.env.NODE_ENV !== "production";
   const federatedOrigins = parseFederatedOrigins();
   const frameOrigins = (process.env.MINIAPP_FRAME_ORIGINS || "").trim();
-  const frameSrc = frameOrigins ? `'self' ${frameOrigins}` : "'self' https:";
+  const frameSrc = frameOrigins ? `'self' ${frameOrigins}` : isDev ? "'self' http: https:" : "'self'";
 
   const scriptSources = dedupe(["'self'", "'unsafe-inline'", ...federatedOrigins]);
   const styleSources = dedupe(["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"]);
   const fontSources = dedupe(["'self'", "data:", "https://fonts.gstatic.com"]);
   const imgSources = dedupe(["'self'", "data:", "blob:", "https:"]);
 
-  const connectSources = dedupe([
-    "'self'",
-    "https:",
-    "wss:",
-    isDev ? "http:" : null,
-    isDev ? "ws:" : null,
-  ]);
+  const connectSources = ["'self'"];
+  if (isDev) {
+    connectSources.push("http:", "https:", "ws:", "wss:");
+  }
+
+  const rpcOrigins = [
+    "https://mainnet1.neo.coz.io",
+    "https://mainnet2.neo.coz.io",
+    "https://neo1.neo.coz.io",
+    "https://testnet1.neo.coz.io",
+    "https://testnet2.neo.coz.io",
+    "https://mainnet-1.rpc.banelabs.org",
+    "https://neoxt4seed1.ngd.network",
+    "https://eth.llamarpc.com",
+    "https://rpc.ankr.com",
+    "https://rpc.sepolia.org",
+    "https://rpc2.sepolia.org",
+    "https://polygon-rpc.com",
+    "https://rpc-amoy.polygon.technology",
+    "https://bsc-dataseed.binance.org",
+    "https://data-seed-prebsc-1-s1.binance.org:8545",
+    "https://eth-mainnet.g.alchemy.com",
+    "https://eth-sepolia.g.alchemy.com",
+    "https://polygon-mainnet.g.alchemy.com",
+    "https://polygon-amoy.g.alchemy.com",
+    "https://bnb-mainnet.g.alchemy.com",
+    "https://bnb-testnet.g.alchemy.com",
+  ];
+
+  const rpcWsOrigins = ["wss://mainnet-1.rpc.banelabs.org", "wss://neoxt4wss1.ngd.network"];
+
+  connectSources.push(
+    "https://api.coingecko.com",
+    ...rpcOrigins,
+    ...rpcWsOrigins,
+    ...parseOriginList(process.env.RPC_ALLOWED_ORIGINS || ""),
+  );
 
   const supabaseOrigin = parseOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
   if (supabaseOrigin) {
     connectSources.push(supabaseOrigin);
     connectSources.push(supabaseOrigin.replace(/^https:/, "wss:"));
   }
+
+  const edgeOrigin = parseOrigin(process.env.EDGE_BASE_URL);
+  if (edgeOrigin) connectSources.push(edgeOrigin);
+
+  const apiOrigin = parseOrigin(process.env.NEXT_PUBLIC_API_URL);
+  if (apiOrigin) connectSources.push(apiOrigin);
 
   const auth0Origin = parseOrigin(process.env.AUTH0_ISSUER_BASE_URL || process.env.AUTH0_BASE_URL);
   if (auth0Origin) connectSources.push(auth0Origin);

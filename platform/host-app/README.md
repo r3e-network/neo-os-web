@@ -30,6 +30,7 @@ Current capabilities:
 - `MINIAPP_FRAME_ORIGINS`: space-separated `frame-src` allowlist for embedded iframes.
 - `NEXT_PUBLIC_MF_REMOTES`: comma-separated Module Federation remotes (e.g. `builtin@https://cdn.miniapps.com/miniapps/builtin-mf`).
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL for `connect-src` allowlist.
+- `RPC_ALLOWED_ORIGINS`: space- or comma-separated RPC origins to append to `connect-src` (for custom RPC endpoints).
 - `EDGE_RPC_ALLOWLIST`: comma-separated Edge function names that `/api/rpc/*` may call (`*` to allow all).
 
 ## `/api/rpc/*` Proxy (Blueprint Path)
