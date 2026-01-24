@@ -624,13 +624,29 @@ func SkipIfNoNeoExpress(t *testing.T) {
 
 func SkipIfNoCompiledContracts(t *testing.T) {
 	t.Helper()
-	contractDir := filepath.Join("..", "..", "contracts", "build")
-	legacyPath := filepath.Join(contractDir, "PaymentHub.nef")
-	v2Path := filepath.Join(contractDir, "PaymentHubV2.nef")
-	if _, err := os.Stat(legacyPath); err == nil {
-		return
+
+	required := []string{
+		"PaymentHub",
+		"Governance",
+		"PriceFeed",
+		"RandomnessLog",
+		"AppRegistry",
+		"AutomationAnchor",
+		"ServiceLayerGateway",
+		"PauseRegistry",
 	}
-	if _, err := os.Stat(v2Path); err == nil {
+
+	missingArtifacts := func() []string {
+		var missing []string
+		for _, name := range required {
+			if _, _, err := FindContractArtifacts(name); err != nil {
+				missing = append(missing, name)
+			}
+		}
+		return missing
+	}
+
+	if len(missingArtifacts()) == 0 {
 		return
 	}
 
@@ -651,10 +667,8 @@ func SkipIfNoCompiledContracts(t *testing.T) {
 		t.Fatalf("contracts build failed: %v", err)
 	}
 
-	if _, err := os.Stat(legacyPath); os.IsNotExist(err) {
-		if _, err := os.Stat(v2Path); os.IsNotExist(err) {
-			t.Fatalf("contracts build completed but PaymentHub artifacts are still missing")
-		}
+	if missing := missingArtifacts(); len(missing) > 0 {
+		t.Fatalf("contracts build completed but artifacts are still missing: %s", strings.Join(missing, ", "))
 	}
 }
 

@@ -99,6 +99,7 @@ build_sources() {
 # Format: "directory:ContractName"
 platform_contracts=(
     "PaymentHub:PaymentHub"
+    "Governance:Governance"
     "PriceFeed:PriceFeed"
     "RandomnessLog:RandomnessLog"
     "AppRegistry:AppRegistry"
