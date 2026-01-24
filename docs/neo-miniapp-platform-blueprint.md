@@ -5,7 +5,7 @@ converging to. It explicitly locks the technology choices and enforces the hard
 constraints:
 
 - **Settlement:** **GAS only** (payments/settlement must reject other assets)
-- **Governance:** **bNEO only** (voting/staking)
+- **Governance:** **NEO only** (voting/staking)
 - **Confidential services:** **MarbleRun + EGo (SGX TEE)** with attested TLS
 - **Gateway/Data:** **Supabase** (Auth + Postgres + RLS + Edge Functions)
 - **Frontend host:** **Vercel + Next.js** + micro‑frontends
@@ -89,9 +89,9 @@ Target platform shape:
 
 ```text
 neo-miniapp-platform/
-├── contracts/                  # [C#] Neo N3 Contracts (GAS-only / bNEO-only enforced)
+├── contracts/                  # [C#] Neo N3 Contracts (GAS-only / NEO-only enforced)
 │   ├── PaymentHub/             # Payments & settlement (GAS ONLY)
-│   ├── Governance/             # Voting & staking (bNEO ONLY)
+│   ├── Governance/             # Voting & staking (NEO ONLY)
 │   ├── PriceFeed/              # On-chain datafeed anchor (0.1% trigger)
 │   ├── RandomnessLog/          # Randomness anchoring (TEE report hash)
 │   ├── AppRegistry/            # On-chain metadata + manifest hash + allowlist anchors
@@ -152,7 +152,7 @@ The repository also contains an explicit shared **infrastructure** layer:
     - Rejects non‑GAS payments (NEP‑17 callback checks `Runtime.CallingScriptHash`)
     - Supports app config + split settlement + receipts
 2. **Governance**
-    - Accepts **bNEO only** for staking
+    - Accepts **NEO only** for staking
     - Supports proposal skeleton + vote tracking (stake‑weighted)
 3. **PriceFeed**
     - Stores `(symbol, round_id, price, ts, attestation_hash, sourceset_id)`
@@ -213,7 +213,7 @@ Supabase Edge is a stateless thin router:
 Canonical endpoints:
 
 - `POST /functions/v1/pay-gas`
-- `POST /functions/v1/vote-bneo`
+- `POST /functions/v1/vote-neo` (legacy alias: `vote-bneo`)
 - `POST /functions/v1/rng-request`
 - `POST /functions/v1/wallet-nonce`, `POST /functions/v1/wallet-bind`
 - `POST /functions/v1/app-register`, `POST /functions/v1/app-update-manifest`
@@ -256,7 +256,7 @@ MiniApps that require confidential services use on-chain requests:
 ## 5. Security Checklist (4-Layer Defense)
 
 1. **SDK:** strict typed APIs (no asset param for `payGAS`/`vote`)
-2. **Edge:** auth + nonce + caps + routing (GAS-only / bNEO-only enforced)
+2. **Edge:** auth + nonce + caps + routing (GAS-only / NEO-only enforced)
 3. **TEE:** allowlists + enclave-held keys + attested origin
 4. **Contracts:** hardcoded asset checks and monotonicity checks (replay resistance)
 

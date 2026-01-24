@@ -2,13 +2,13 @@
 
 This document is the **reviewed, polished, and fully expanded** design blueprint.
 It explicitly lists the technology stack, open-source tools, and platforms to use
-for every layer, ensuring the **Payment = GAS / Governance = bNEO** constraint is
+for every layer, ensuring the **Payment = GAS / Governance = NEO** constraint is
 strictly enforced.
 
 > **Core Constraints:**
 >
 > - **Settlement:** **GAS Only** (PaymentHub rejects all other assets).
-> - **Governance:** **bNEO Only** (Voting/Staking).
+> - **Governance:** **NEO Only** (Voting/Staking).
 > - **Confidentiality:** Service layer via **MarbleRun + EGo (SGX TEE)**.
 > - **Gateway:** **Supabase** (Auth, DB, Edge).
 > - **Frontend:** **Vercel** + **Next.js** + **Micro-frontends**.
@@ -120,8 +120,8 @@ neo-miniapp-platform/
     - Hardcoded check: reject any non-GAS asset.
     - Manages developer revenue splits.
 2. **Governance.cs**
-    - Hardcoded check: reject any non-bNEO asset.
-    - Uses bNEO (wrapped NEO) for governance staking and voting.
+    - Hardcoded check: reject any non-NEO asset.
+    - Uses NEO for governance staking and voting.
 3. **PriceFeed.cs**
     - Stores `(Symbol, Price, Timestamp, RoundID, AttestationHash)`.
     - Enforces `RoundID` monotonicity.
@@ -163,7 +163,7 @@ All services run inside EGo enclaves. Keys **never** leave the enclave.
 
 - Stateless router + rate limiter.
 - Validates Supabase Auth JWT / API keys.
-- Enforces **GAS-only** (payments) and **bNEO-only** (governance).
+- Enforces **GAS-only** (payments) and **NEO-only** (governance).
 - Uses mTLS when calling TEE services.
 - Read-only market APIs: `miniapp-stats`, `miniapp-notifications`, `market-trending`.
 

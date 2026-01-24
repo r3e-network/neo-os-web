@@ -48,10 +48,14 @@ Create a `.env.local` file:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://supabase.localhost
 NEXT_PUBLIC_EDGE_URL=https://edge.localhost
+NEXT_PUBLIC_HOST_APP_URL=https://neomini.app
 SUPABASE_SERVICE_ROLE_KEY=***REMOVED***
 NEXTAUTH_SECRET=your-nextauth-secret
 ADMIN_CONSOLE_API_KEY=your-admin-api-key
 ```
+
+`NEXT_PUBLIC_HOST_APP_URL` is optional and is used to resolve `/miniapps/...` preview URLs
+when the admin console is hosted on a different domain from the host app.
 
 The admin API routes require a matching key in `X-Admin-Key` (or `Authorization: Bearer`).
 For browser calls, either set `NEXT_PUBLIC_ADMIN_CONSOLE_API_KEY` at build time or store

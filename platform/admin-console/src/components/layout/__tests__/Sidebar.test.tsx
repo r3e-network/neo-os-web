@@ -5,6 +5,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Sidebar } from "../Sidebar";
+import { I18nProvider } from "../../../../../shared/i18n/react";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -21,13 +22,20 @@ vi.mock("next/link", () => ({
 }));
 
 describe("Sidebar Component", () => {
+  const renderWithI18n = () =>
+    render(
+      <I18nProvider>
+        <Sidebar />
+      </I18nProvider>,
+    );
+
   it("should render sidebar", () => {
-    render(<Sidebar />);
-    expect(screen.getByText("Admin Console")).toBeInTheDocument();
+    renderWithI18n();
+    expect(screen.getByText("Admin Dashboard")).toBeInTheDocument();
   });
 
   it("should render all navigation items", () => {
-    render(<Sidebar />);
+    renderWithI18n();
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Services")).toBeInTheDocument();
     expect(screen.getByText("MiniApps")).toBeInTheDocument();
@@ -37,7 +45,7 @@ describe("Sidebar Component", () => {
   });
 
   it("should render navigation links with correct hrefs", () => {
-    render(<Sidebar />);
+    renderWithI18n();
     expect(screen.getByRole("link", { name: /Dashboard/i })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: /Services/i })).toHaveAttribute("href", "/services");
     expect(screen.getByRole("link", { name: /MiniApps/i })).toHaveAttribute("href", "/miniapps");
@@ -47,19 +55,19 @@ describe("Sidebar Component", () => {
   });
 
   it("should display version info", () => {
-    render(<Sidebar />);
+    renderWithI18n();
     expect(screen.getByText("Neo MiniApp Platform")).toBeInTheDocument();
     expect(screen.getByText("v0.1.0")).toBeInTheDocument();
   });
 
   it("should mark active link with aria-current", () => {
-    render(<Sidebar />);
+    renderWithI18n();
     const dashboardLink = screen.getByRole("link", { name: /Dashboard/i });
     expect(dashboardLink).toHaveAttribute("aria-current", "page");
   });
 
   it("should have correct sidebar width", () => {
-    const { container } = render(<Sidebar />);
+    const { container } = renderWithI18n();
     const sidebar = container.firstChild;
     expect(sidebar).toHaveClass("w-64");
   });

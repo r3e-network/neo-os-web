@@ -47,7 +47,8 @@ func (s *Service) handleRandom(w http.ResponseWriter, r *http.Request) {
 
 	signature, err := crypto.Sign(s.privateKey, []byte(requestID))
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to sign randomness")
+		httputil.InternalError(w, "failed to generate randomness")
 		return
 	}
 

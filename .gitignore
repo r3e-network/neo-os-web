@@ -103,6 +103,8 @@ prod-ca-*.crt
 
 # Secrets and credentials
 secrets/
+!infrastructure/secrets/
+!infrastructure/secrets/**
 !**/components/**/secrets/
 credentials/
 *.secret

@@ -1,52 +1,50 @@
-/**
- * useAppHighlights Hook
- * Fetches dynamic highlight data for MiniApp cards from Supabase
- * No static/mock data - all data comes from database
- */
+import { useEffect, useState } from "react";
+import { AppHighlight, getAppHighlights } from "@/lib/app-highlights";
 
-import { useState, useEffect, useCallback } from "react";
-import type { HighlightData } from "@/components/features/miniapp/DynamicBanner";
-import { updateHighlightsCache } from "@/lib/app-highlights";
-
-interface UseAppHighlightsResult {
-  highlights: HighlightData[] | undefined;
-  loading: boolean;
+export type UseAppHighlightsResult = {
+  highlights: AppHighlight[];
   error: string | null;
-  refresh: () => Promise<void>;
-}
+};
 
-export function useAppHighlights(appId: string): UseAppHighlightsResult {
-  const [highlights, setHighlights] = useState<HighlightData[] | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+export function useAppHighlights(appId?: string): UseAppHighlightsResult {
+  const [highlights, setHighlights] = useState<AppHighlight[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    if (!appId) {
+      setHighlights([]);
+      setError(null);
+      return;
+    }
+
+    const fallbackHighlights = getAppHighlights(appId);
+    setHighlights(fallbackHighlights);
     setError(null);
 
-    try {
-      const response = await fetch(`/api/miniapps/highlights?app_ids=${appId}`);
-      if (!response.ok) throw new Error("Failed to fetch highlights");
+    let cancelled = false;
 
-      const data = await response.json();
-      const appHighlights = data.highlights?.[appId] || undefined;
-      setHighlights(appHighlights);
+    fetch(`/api/app-highlights/${encodeURIComponent(appId)}`)
+      .then((res) => {
+        if (res && typeof res.ok === "boolean" && !res.ok) {
+          throw new Error(`Request failed (${res.status})`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        if (data && Array.isArray(data.highlights) && data.highlights.length > 0) {
+          setHighlights(data.highlights);
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : String(err));
+      });
 
-      // Update cache for sync access
-      if (appHighlights) {
-        updateHighlightsCache(appId, appHighlights);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-      setHighlights(undefined);
-    } finally {
-      setLoading(false);
-    }
+    return () => {
+      cancelled = true;
+    };
   }, [appId]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  return { highlights, loading, error, refresh };
+  return { highlights, error };
 }

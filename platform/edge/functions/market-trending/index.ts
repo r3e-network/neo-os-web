@@ -1,6 +1,16 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse } from "../_shared/error-codes.ts";
 import { supabaseClient } from "../_shared/supabase.ts";
 
 /**
@@ -81,7 +91,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
 
   // Only accept GET requests
   if (req.method !== "GET") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const rateLimited = await requireRateLimit(req, "market-trending");
@@ -105,7 +115,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       .order("tx_count", { ascending: false });
 
     if (todayErr) {
-      return error(500, `Failed to fetch today's stats: ${todayErr.message}`, "DB_ERROR", req);
+      return errorResponse("SERVER_002", { message: `Failed to fetch today's stats: ${todayErr.message}` }, req);
     }
 
     // If no data for today, return empty results
@@ -116,7 +126,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
           updated_at: new Date().toISOString(),
         } as TrendingResponse,
         {},
-        req,
+        req
       );
     }
 
@@ -134,7 +144,11 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       .lt("date", todayDateStr);
 
     if (historicalErr) {
-      return error(500, `Failed to fetch historical stats: ${historicalErr.message}`, "DB_ERROR", req);
+      return errorResponse(
+        "SERVER_002",
+        { message: `Failed to fetch historical stats: ${historicalErr.message}` },
+        req
+      );
     }
 
     // Calculate average per app
@@ -199,7 +213,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
           updated_at: new Date().toISOString(),
         } as TrendingResponse,
         {},
-        req,
+        req
       );
     }
 
@@ -221,7 +235,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       .in("app_id", topAppIds);
 
     if (statsErr) {
-      return error(500, `Failed to fetch app stats: ${statsErr.message}`, "DB_ERROR", req);
+      return errorResponse("SERVER_002", { message: `Failed to fetch app stats: ${statsErr.message}` }, req);
     }
 
     // Build lookup maps
@@ -235,7 +249,9 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
           name: name || app.app_id,
           icon,
         };
-        const status = String(app.status ?? "").trim().toLowerCase();
+        const status = String(app.status ?? "")
+          .trim()
+          .toLowerCase();
         if (status) {
           appStatusMap[app.app_id] = status;
         }
@@ -281,11 +297,11 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
         updated_at: new Date().toISOString(),
       } as TrendingResponse,
       {},
-      req,
+      req
     );
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    return error(500, `Internal server error: ${errMsg}`, "INTERNAL_ERROR", req);
+    return errorResponse("SERVER_001", { message: `Internal server error: ${errMsg}` }, req);
   }
 }
 

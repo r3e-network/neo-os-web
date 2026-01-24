@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { decryptSecretValue } from "../_shared/secrets.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
@@ -9,7 +19,7 @@ import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -25,7 +35,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const url = new URL(req.url);
   const name = (url.searchParams.get("name") ?? "").trim();
-  if (!name) return error(400, "name required", "NAME_REQUIRED", req);
+  if (!name) return validationError("name", "name required", req);
 
   const supabase = supabaseServiceClient();
   const { data, error: getErr } = await supabase
@@ -35,17 +45,17 @@ export async function handler(req: Request): Promise<Response> {
     .eq("name", name)
     .limit(1);
 
-  if (getErr) return error(500, `failed to load secret: ${getErr.message}`, "DB_ERROR", req);
-  if (!data || data.length === 0) return error(404, "secret not found", "NOT_FOUND", req);
+  if (getErr) return errorResponse("SERVER_002", { message: `failed to load secret: ${getErr.message}` }, req);
+  if (!data || data.length === 0) return notFoundError("secret", req);
 
   const encryptedBase64 = String(data[0]?.encrypted_value ?? "").trim();
-  if (!encryptedBase64) return error(500, "secret stored without ciphertext", "DB_ERROR", req);
+  if (!encryptedBase64) return errorResponse("SERVER_002", { message: "secret stored without ciphertext" }, req);
 
   let value: string;
   try {
     value = await decryptSecretValue(encryptedBase64);
   } catch (e) {
-    return error(500, `failed to decrypt secret: ${(e as Error).message}`, "DECRYPT_FAILED", req);
+    return errorResponse("SERVER_001", { message: `failed to decrypt secret: ${(e as Error).message}` }, req);
   }
 
   return json(
@@ -55,7 +65,7 @@ export async function handler(req: Request): Promise<Response> {
       version: data[0]?.version ?? 0,
     },
     {},
-    req,
+    req
   );
 }
 

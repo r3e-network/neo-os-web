@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Finish decoupling contracts from the platform repo and add an npm publish workflow for `@neo/uniapp-sdk`.
+**Goal:** Finish decoupling contracts from the platform repo and add an npm publish workflow for `@r3e/uniapp-sdk`.
 
-**Architecture:** Keep only platform contracts in this repo (all miniapp contracts + frameworks live in the miniapps repo). Publish the SDK from `packages/@neo/uniapp-sdk` via a dedicated GitHub Actions workflow using an `NPM_TOKEN` secret.
+**Architecture:** Keep only platform contracts in this repo (all miniapp contracts + frameworks live in the miniapps repo). Publish the SDK from `packages/@r3e/uniapp-sdk` via a dedicated GitHub Actions workflow using an `NPM_TOKEN` secret.
 
 **Tech Stack:** Bash, TypeScript/Vitest, GitHub Actions.
 
@@ -44,13 +44,13 @@ git commit -m "chore: keep platform contracts only"
 ### Task 2: Add SDK publish workflow (TDD)
 
 **Files:**
-- Create: `packages/@neo/uniapp-sdk/__tests__/package-json.test.ts`
-- Modify: `packages/@neo/uniapp-sdk/package.json`
+- Create: `packages/@r3e/uniapp-sdk/__tests__/package-json.test.ts`
+- Modify: `packages/@r3e/uniapp-sdk/package.json`
 - Create: `.github/workflows/publish-uniapp-sdk.yml`
 
 **Step 1: Write the failing test**
 
-Create `packages/@neo/uniapp-sdk/__tests__/package-json.test.ts`:
+Create `packages/@r3e/uniapp-sdk/__tests__/package-json.test.ts`:
 
 ```ts
 import { readFileSync } from 'node:fs';
@@ -70,32 +70,32 @@ describe('package.json', () => {
 
 **Step 2: Run the test to verify it fails**
 
-Run: `npx vitest run packages/@neo/uniapp-sdk/__tests__/package-json.test.ts`  
+Run: `npx vitest run packages/@r3e/uniapp-sdk/__tests__/package-json.test.ts`  
 Expected: FAIL with `Expected: not true` if `private` is still set.
 
 **Step 3: Make minimal change to pass**
 
-Edit `packages/@neo/uniapp-sdk/package.json` to remove `private: true` (or set it to `false`).
+Edit `packages/@r3e/uniapp-sdk/package.json` to remove `private: true` (or set it to `false`).
 
 **Step 4: Re-run the test to verify it passes**
 
-Run: `npx vitest run packages/@neo/uniapp-sdk/__tests__/package-json.test.ts`  
+Run: `npx vitest run packages/@r3e/uniapp-sdk/__tests__/package-json.test.ts`  
 Expected: PASS.
 
 **Step 5: Add publish workflow**
 
 Create `.github/workflows/publish-uniapp-sdk.yml` that:
-- Runs on `workflow_dispatch` and on `push` tags like `@neo/uniapp-sdk@*`
+- Runs on `workflow_dispatch` and on `push` tags like `@r3e/uniapp-sdk@*`
 - Uses `actions/setup-node` with `registry-url: https://registry.npmjs.org`
 - Installs deps with `pnpm install --frozen-lockfile`
-- Runs SDK tests (`pnpm -C packages/@neo/uniapp-sdk test`)
-- Publishes with `npm publish` in `packages/@neo/uniapp-sdk`
+- Runs SDK tests (`pnpm -C packages/@r3e/uniapp-sdk test`)
+- Publishes with `npm publish` in `packages/@r3e/uniapp-sdk`
 - Uses `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` (never hardcode the token)
 
 **Step 6: Commit**
 
 ```bash
-git add packages/@neo/uniapp-sdk/__tests__/package-json.test.ts packages/@neo/uniapp-sdk/package.json .github/workflows/publish-uniapp-sdk.yml
+git add packages/@r3e/uniapp-sdk/__tests__/package-json.test.ts packages/@r3e/uniapp-sdk/package.json .github/workflows/publish-uniapp-sdk.yml
 git commit -m "ci: add npm publish workflow for uniapp sdk"
 ```
 
@@ -103,7 +103,7 @@ git commit -m "ci: add npm publish workflow for uniapp sdk"
 
 **Files:**
 - Test: `contracts/__tests__/platform-contracts-only.test.ts`
-- Test: `packages/@neo/uniapp-sdk/__tests__/package-json.test.ts`
+- Test: `packages/@r3e/uniapp-sdk/__tests__/package-json.test.ts`
 
 **Step 1: Run contract scope test**
 
@@ -112,5 +112,5 @@ Expected: PASS.
 
 **Step 2: Run SDK package test**
 
-Run: `npx vitest run packages/@neo/uniapp-sdk/__tests__/package-json.test.ts`  
+Run: `npx vitest run packages/@r3e/uniapp-sdk/__tests__/package-json.test.ts`  
 Expected: PASS.

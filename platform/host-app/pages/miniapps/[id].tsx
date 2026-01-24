@@ -24,6 +24,7 @@ import { MiniAppFrame } from "../../components/features/miniapp";
 import { SimilarApps } from "../../components/features/discovery/SimilarApps";
 import { TagCloud } from "../../components/features/tags";
 import { MiniAppTransition } from "../../components/ui";
+import { ShareModal } from "../../components/features/share";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import {
   buildMiniAppEntryUrl,
@@ -225,6 +226,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   const [isIframeLoading, setIsIframeLoading] = useState(true);
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // TEE Verification State
   const [teeVerification, setTeeVerification] = useState<{
@@ -259,8 +261,24 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     if (!iframe?.contentWindow) return;
     const origin = resolveIframeOrigin(entryUrl);
     if (!origin) return;
-    iframe.contentWindow.postMessage({ type: "theme-change", theme }, origin);
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const responseOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
+    iframe.contentWindow.postMessage({ type: "theme-change", theme }, responseOrigin);
   }, [theme, entryUrl, federated]);
+
+  useEffect(() => {
+    if (!app || federated) return;
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    const origin = resolveIframeOrigin(entryUrl);
+    if (!origin) return;
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const responseOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
+    const supportedLocale = getMiniappLocale(locale);
+    iframe.contentWindow.postMessage({ type: "language-change", language: supportedLocale }, responseOrigin);
+  }, [locale, entryUrl, federated, app]);
 
   // Self-contained i18n: use MiniApp's own translations based on locale
   const appName = app ? getLocalizedField(app, "name", locale) : "";
@@ -298,7 +316,10 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     const expectedOrigin = resolveIframeOrigin(entryUrl);
     if (!expectedOrigin) return;
 
-    const allowSameOriginInjection = expectedOrigin === window.location.origin;
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const allowNullOrigin = sandboxAttr.length > 0 && !sandboxAllowsSameOrigin;
+    const allowSameOriginInjection = sandboxAllowsSameOrigin && expectedOrigin === window.location.origin;
 
     const ensureSDK = () => {
       if (!sdkRef.current) {
@@ -315,21 +336,23 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       return sdkRef.current;
     };
 
-    const sendConfig = () => {
+    const sendConfig = (targetOrigin?: string) => {
       const sdk = ensureSDK();
       if (!sdk?.getConfig) return;
       if (!iframe.contentWindow) return;
-      iframe.contentWindow.postMessage({ type: "miniapp_config", config: sdk.getConfig() }, expectedOrigin);
+      const responseOrigin = targetOrigin ?? (allowNullOrigin ? "*" : expectedOrigin);
+      iframe.contentWindow.postMessage({ type: "miniapp_config", config: sdk.getConfig() }, responseOrigin);
     };
 
     const handleMessage = async (event: MessageEvent) => {
       if (event.source !== iframe.contentWindow) return;
-      if (event.origin !== expectedOrigin) return;
+      if (event.origin !== expectedOrigin && !(allowNullOrigin && event.origin === "null")) return;
 
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
       if (data.type === "miniapp_ready") {
-        sendConfig();
+        const responseOrigin = event.origin === "null" ? "*" : expectedOrigin;
+        sendConfig(responseOrigin);
         // Dismiss the loading overlay when MiniApp signals it's ready
         setIsIframeLoading(false);
         return;
@@ -345,6 +368,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       if (!source || typeof source.postMessage !== "function") return;
 
       const respond = (ok: boolean, result?: unknown, error?: string) => {
+        const responseOrigin = event.origin === "null" ? "*" : expectedOrigin;
         source.postMessage(
           {
             type: "miniapp_sdk_response",
@@ -353,7 +377,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             result,
             error,
           },
-          expectedOrigin,
+          responseOrigin,
         );
       };
 
@@ -451,6 +475,19 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     return () => clearTimeout(timer);
   }, [app?.app_id, federated, isIframeLoading]);
 
+  // Listen for share requests from SDK
+  useEffect(() => {
+    if (!app) return;
+    const handleShareRequest = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail?.appId === app.app_id) {
+        setIsShareModalOpen(true);
+      }
+    };
+    window.addEventListener("miniapp-share-request", handleShareRequest);
+    return () => window.removeEventListener("miniapp-share-request", handleShareRequest);
+  }, [app?.app_id]);
+
   // Network latency monitoring
   useEffect(() => {
     const measureLatency = async () => {
@@ -497,24 +534,19 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   }
 
   const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 2) {
-      router.back();
-    } else {
-      router.push("/miniapps");
-    }
+    // Force exit to the main directory to ensure we don't get stuck in internal history states
+    // or query parameter changes. This ensures the back button strictly "exits" the MiniApp.
+    router.push("/miniapps");
   };
 
-  const handleShare = useCallback(() => {
+  const shareUrl = useMemo(() => {
     const chainQuery = walletChainId ? `?chain=${encodeURIComponent(walletChainId)}` : "";
-    const url = `${window.location.origin}/miniapps/${app.app_id}${chainQuery}`;
-    navigator.clipboard
-      .writeText(url)
-      .then(() => {
-        setToastMessage("Link copied!");
-        setTimeout(() => setToastMessage(null), 2000);
-      })
-      .catch((e) => logger.error("Failed to copy link", e));
-  }, [app.app_id]);
+    return `${typeof window !== "undefined" ? window.location.origin : ""}/miniapps/${app.app_id}${chainQuery}`;
+  }, [app.app_id, walletChainId]);
+
+  const handleShare = useCallback(() => {
+    setIsShareModalOpen(true);
+  }, []);
 
   const statCards = stats ? buildStatCards(stats, app.stats_display ?? undefined, t) : [];
 
@@ -675,7 +707,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
                   onLoad={() => setIsIframeLoading(false)}
                   className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${isIframeLoading ? "opacity-0" : "opacity-100"
                     }`}
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
                   title={`${appName} MiniApp`}
                   allowFullScreen
                 />
@@ -740,6 +772,17 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       />
 
       {/* Water Ripple Effect for transactions */}
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        url={shareUrl}
+        title={appName}
+        description={appDesc}
+        iconUrl={app.icon}
+        locale={locale}
+      />
+
       {rippleActive && (
         <div className="absolute inset-0 pointer-events-none z-[1001]">
           <WaterRippleEffect active={rippleActive} intensity={25} duration={1200}>

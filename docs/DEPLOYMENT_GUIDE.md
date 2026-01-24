@@ -137,6 +137,11 @@ TOPUP_ENABLED=false
 # CONTRACT_RANDOMNESS_LOG_ADDRESS=0x... (optional; for RNG anchoring)
 ```
 
+Mainnet deployments must use mainnet RPC + contract addresses. In K8s, use
+`k8s/overlays/production` for service-layer and `k8s/platform/edge/overlays/mainnet`
+for the edge gateway. For Compose, set `NEO_RPC_URL`, `NEO_NETWORK_MAGIC`, and
+`CONTRACT_*_ADDRESS` to the mainnet values from `deploy/config/mainnet_contracts.json`.
+
 #### 3. Start Services
 
 ```bash

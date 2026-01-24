@@ -10,19 +10,17 @@ import { env } from "./env";
 
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase environment variables are required. " +
-      "Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
-  );
-}
+const isSupabaseConfigured = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+);
+const resolvedUrl = supabaseUrl || "https://supabase.localhost";
+const resolvedAnonKey = supabaseAnonKey || "public-anon-key";
 
 /**
  * Singleton Supabase client instance
  * Configured for realtime subscriptions and public data access
  */
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase: SupabaseClient = createClient(resolvedUrl, resolvedAnonKey, {
   auth: {
     persistSession: false,
   },
@@ -33,8 +31,8 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
   },
 });
 
-/** Whether Supabase is properly configured (always true since config is required) */
-export const isSupabaseConfigured = true;
+/** Whether Supabase is properly configured for real data access */
+export { isSupabaseConfigured };
 
 /**
  * Service Role Client for server-side write operations
@@ -42,7 +40,7 @@ export const isSupabaseConfigured = true;
  */
 const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
-export const supabaseAdmin: SupabaseClient | null = serviceRoleKey
+export const supabaseAdmin: SupabaseClient | null = serviceRoleKey && supabaseUrl
   ? createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     })

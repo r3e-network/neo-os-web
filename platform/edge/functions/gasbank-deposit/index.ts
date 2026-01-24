@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
@@ -14,7 +24,7 @@ type CreateDepositRequest = {
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -29,16 +39,16 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const fromAddress = String(body.from_address ?? "").trim();
-  if (!fromAddress) return error(400, "from_address required", "FROM_ADDRESS_REQUIRED", req);
+  if (!fromAddress) return validationError("from_address", "from_address required", req);
 
   const rawAmount = String(body.amount ?? "").trim();
-  if (!/^\d+$/.test(rawAmount)) return error(400, "amount must be an integer string", "AMOUNT_INVALID", req);
+  if (!/^\d+$/.test(rawAmount)) return validationError("amount", "amount must be an integer string", req);
   const amount = BigInt(rawAmount);
-  if (amount <= 0n) return error(400, "amount must be > 0", "AMOUNT_INVALID", req);
+  if (amount <= 0n) return validationError("amount", "amount must be > 0", req);
 
   const txHash = String(body.tx_hash ?? "").trim() || null;
 
@@ -53,7 +63,11 @@ export async function handler(req: Request): Promise<Response> {
     .select("id")
     .maybeSingle();
   if (accErr || !(account as any)?.id) {
-    return error(500, `failed to ensure gasbank account: ${accErr?.message ?? "unknown error"}`, "DB_ERROR", req);
+    return errorResponse(
+      "SERVER_002",
+      { message: `failed to ensure gasbank account: ${accErr?.message ?? "unknown error"}` },
+      req
+    );
   }
 
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -72,7 +86,8 @@ export async function handler(req: Request): Promise<Response> {
     .select("*")
     .maybeSingle();
 
-  if (depErr) return error(500, `failed to create deposit request: ${depErr.message}`, "DB_ERROR", req);
+  if (depErr)
+    return errorResponse("SERVER_002", { message: `failed to create deposit request: ${depErr.message}` }, req);
 
   return json({ deposit: inserted }, { status: 201 }, req);
 }

@@ -27,7 +27,7 @@ func TestAllMiniApps(t *testing.T) {
 
 	// Core Gaming (5)
 	assert.True(t, appIDs["miniapp-lottery"])
-	assert.True(t, appIDs["miniapp-coin-flip"])
+	assert.True(t, appIDs["miniapp-coinflip"])
 	assert.True(t, appIDs["miniapp-dice-game"])
 	assert.True(t, appIDs["miniapp-scratch-card"])
 	assert.True(t, appIDs["miniapp-neo-crash"])
@@ -183,13 +183,13 @@ func TestMiniAppSimulator_SimulateCoinFlip_Success(t *testing.T) {
 	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 	require.GreaterOrEqual(t, len(payToAppCalls), 1)
-	assert.Equal(t, "miniapp-coin-flip", payToAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-coinflip", payToAppCalls[0].AppID)
 	assert.Equal(t, int64(5000000), payToAppCalls[0].Amount) // 0.05 GAS
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
-	assert.Equal(t, "miniapp-coin-flip", miniAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-coinflip", miniAppCalls[0].AppID)
 	assert.Equal(t, "PlaceBet", miniAppCalls[0].Method)
 
 	// Verify stats updated
@@ -474,7 +474,7 @@ func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
 	}
 
 	assert.Greater(t, appPayments["miniapp-lottery"], 0)
-	assert.Greater(t, appPayments["miniapp-coin-flip"], 0)
+	assert.Greater(t, appPayments["miniapp-coinflip"], 0)
 	assert.Greater(t, appPayments["miniapp-dice-game"], 0)
 	assert.Greater(t, appPayments["miniapp-scratch-card"], 0)
 	assert.Greater(t, appPayments["miniapp-flashloan"], 0)
@@ -490,7 +490,7 @@ func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
 	}
 
 	assert.Greater(t, invokeCounts["miniapp-lottery"], 0)
-	assert.Greater(t, invokeCounts["miniapp-coin-flip"], 0)
+	assert.Greater(t, invokeCounts["miniapp-coinflip"], 0)
 	assert.Greater(t, invokeCounts["miniapp-dice-game"], 0)
 	assert.Greater(t, invokeCounts["miniapp-scratch-card"], 0)
 	assert.Greater(t, invokeCounts["miniapp-flashloan"], 0)

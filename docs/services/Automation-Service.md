@@ -66,7 +66,7 @@ onEvent("transfer", {
 ## Integration Example
 
 ```typescript
-import { useAutomation } from "@neo/uniapp-sdk";
+import { useAutomation } from "@r3e/uniapp-sdk";
 
 const { schedule, cancel } = useAutomation();
 

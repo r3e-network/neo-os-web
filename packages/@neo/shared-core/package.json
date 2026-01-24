@@ -1,0 +1,39 @@
+{
+  "name": "@neo/shared-core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "react-native": "./src/index.native.ts",
+        "default": "./src/index.web.ts"
+      },
+      "types": "./src/index.ts"
+    },
+    "./crypto": {
+      "import": {
+        "react-native": "./src/crypto/index.native.ts",
+        "default": "./src/crypto/index.web.ts"
+      }
+    },
+    "./utils": "./src/utils/index.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "scripts": {
+    "build": "echo 'shared-core: source-only package, no build required'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

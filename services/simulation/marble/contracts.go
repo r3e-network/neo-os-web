@@ -605,7 +605,7 @@ func loadMiniAppContractsFromEnv() map[string]string {
 	// Define mapping from env var suffix to app ID
 	miniAppEnvMapping := map[string]string{
 		"LOTTERY":           "miniapp-lottery",
-		"COINFLIP":          "miniapp-coin-flip",
+		"COINFLIP":          "miniapp-coinflip",
 		"DICEGAME":          "miniapp-dice-game",
 		"SCRATCHCARD":       "miniapp-scratch-card",
 		"FLASHLOAN":         "miniapp-flashloan",

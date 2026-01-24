@@ -45,13 +45,20 @@ const address = await sdk.wallet.getAddress();
 
 // Invoke a transaction intent (optional, host-specific)
 const result = await sdk.wallet.invokeIntent(requestId);
+
+// Sign an arbitrary message (requires confidential permission)
+const signature = await sdk.wallet.signMessage("hello");
 ```
 
 ### Payments
 
 ```typescript
-// Pay GAS to the app
-const tx = await sdk.payments.payGAS(appId, amount, memo);
+// Create a payment intent (returns invocation details)
+const intent = await sdk.payments.payGAS(appId, amount, memo);
+await sdk.wallet.invokeIntent(intent.request_id);
+
+// Or, submit in one step
+const tx = await sdk.payments.payGASAndInvoke(appId, amount, memo);
 ```
 
 ### Randomness (VRF)

@@ -61,7 +61,9 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		req.Wait,
 	)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		// SECURITY: Do not leak internal error details to client
+		s.Logger().WithContext(r.Context()).WithError(err).Error("chain invocation failed")
+		httputil.InternalError(w, "chain invocation failed")
 		return
 	}
 

@@ -1,0 +1,463 @@
+{
+  "network": "mainnet",
+  "updated_at": "2026-01-21T10:19:03.508752+00:00",
+  "rpc_endpoints": [
+    "https://mainnet1.neo.coz.io:443",
+    "https://mainnet2.neo.coz.io:443",
+    "https://neo1.neo.coz.io:443"
+  ],
+  "network_magic": 860833102,
+  "contracts": {
+    "PaymentHub": {
+      "name": "PaymentHub",
+      "address": "0xc700fa6001a654efcd63e15a3833fbea7baaa3a3",
+      "version": "2.0.0",
+      "deployed_at": "2026-01-21T02:07:02+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "notes": "New MiniApp platform PaymentHub contract",
+      "tx_hash": "0x3601b375dcb000eeff742a5bda25d64f4fc95e5440c5ec54fc7caf17408b5e28"
+    },
+    "Governance": {
+      "name": "Governance",
+      "address": "0x705615e903d92abf8f6f459086b83f51096aa413",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:07:14+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "notes": "New Governance contract for platform management",
+      "tx_hash": "0x808c5293d9782dbc08b90c519c25e107cc91098c91eea37bebe198cc1a408cce"
+    },
+    "PriceFeed": {
+      "name": "PriceFeed",
+      "address": "0x9e889922d2f64fa0c06a28d179c60fe1af915d27",
+      "version": "2.0.0",
+      "deployed_at": "2026-01-21T02:07:33+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "notes": "New MiniApp platform PriceFeed contract",
+      "tx_hash": "0x7649920293eaa032284bf4c1dbc5d01458ccec2798f1ea3f27475b540b919fae"
+    },
+    "RandomnessLog": {
+      "name": "RandomnessLog",
+      "address": "0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25",
+      "version": "2.0.0",
+      "deployed_at": "2026-01-21T02:07:52+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "notes": "New MiniApp platform RandomnessLog contract",
+      "tx_hash": "0x340b12ebcba454a8ce142b48dcc89f829844f97a34b5e164be1c77d419106054"
+    },
+    "AppRegistry": {
+      "name": "AppRegistry",
+      "address": "0x583cabba8beff13e036230de844c2fb4118ee38c",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:08:03+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "notes": "New AppRegistry contract for MiniApp registration",
+      "tx_hash": "0x9147c8a59eaacaeb9bc1f829278ae42e79f1d2c3326fa03f207c3083cb17c351"
+    },
+    "AutomationAnchor": {
+      "name": "AutomationAnchor",
+      "address": "0x0fd51557facee54178a5d48181dcfa1b61956144",
+      "version": "2.0.0",
+      "deployed_at": "2026-01-21T02:08:15+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "notes": "New MiniApp platform AutomationAnchor contract",
+      "tx_hash": "0x23699a0ec365346ae5b98ab31c3fb0a2593cfcce52aab832a05ace3486292c25"
+    },
+    "ServiceLayerGateway": {
+      "name": "ServiceLayerGateway",
+      "address": "0x7f73ae3036c1ca57cad0d4e4291788653b0fa7d7",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:08:34+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "notes": "On-chain service request router + callback dispatcher",
+      "tx_hash": "0x882f613fff67b31a3da7a5e03bd3e73dbbd715c767748f59598d777365740879"
+    },
+    "PauseRegistry": {
+      "name": "PauseRegistry",
+      "address": "0x377ca7c56dea5e2c2fbdc109fe4eabb6ade69a66",
+      "network": "mainnet",
+      "status": "deployed",
+      "deployed_at": "2026-01-21T02:08:45+00:00",
+      "tx_hash": "0x1cb873cb4be96960096806f930ffaf0ea74a20936f48662b69f6513297162aaa"
+    },
+    "ForeverAlbum": {
+      "name": "ForeverAlbum",
+      "address": "0x5b252bcf01126ed5a6e4c521aa30e50447111084",
+      "network": "mainnet",
+      "status": "deployed",
+      "deployed_at": "2026-01-21T02:09:04+00:00",
+      "tx_hash": "0x4ddd965cc6ed9ae90ee1353a4674080339f12296ff261b53d41da6426268d8df"
+    }
+  },
+  "miniapp_contracts": {
+    "MiniAppBreakupContract": {
+      "name": "MiniAppBreakupContract",
+      "address": "0x7742a80565ef04c0b7487d1679e6efbeb2d0c6a9",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:09:15+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-breakupcontract",
+      "tx_hash": "0x5c0aeb71fb1997612620b80a22a0d830096bb699f58ffc11a45d951575c37b60",
+      "notes": "Relationship dissolution smart contract"
+    },
+    "MiniAppBurnLeague": {
+      "name": "MiniAppBurnLeague",
+      "address": "0xd829b7a8c0d9fa3c67a29c703a277de3f922f173",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:09:35+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-burn-league",
+      "tx_hash": "0x88490f03e779a7edf8f2b63abf18ce73c9a75a493b870bffe0eafc023c2fb018",
+      "notes": "Burn-to-earn deflationary rewards"
+    },
+    "MiniAppCandidateVote": {
+      "name": "MiniAppCandidateVote",
+      "address": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      "version": "native",
+      "deployed_at": "native",
+      "network": "mainnet",
+      "status": "external",
+      "app_id": "miniapp-candidate-vote",
+      "notes": "Neo native NEO contract (governance voting)"
+    },
+    "MiniAppCoinFlip": {
+      "name": "MiniAppCoinFlip",
+      "address": "0x0a39f71c274dc944cd20cb49e4a38ce10f3ceea1",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:10:06+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-coinflip",
+      "notes": "Imported from miniapp manifest; verified via testnet RPC",
+      "tx_hash": "0xa06a3cf62a9c527e225ed4cc10d43834cec2a396e3b11a2c86feee3cc6a75f85"
+    },
+    "MiniAppCompoundCapsule": {
+      "name": "MiniAppCompoundCapsule",
+      "address": "0x46852726d7c4a347991606ef1135e61d8112a175",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:10:18+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-compound-capsule",
+      "tx_hash": "0x92dcb7fbaee26495d3773bf41dbec5b5c53ab3f4317458908c3f767e37dd7fca",
+      "notes": "Auto-compounding time-locked savings"
+    },
+    "MiniAppCouncilGovernance": {
+      "name": "MiniAppCouncilGovernance",
+      "address": "0xc7e50e67589df63302cbea1a6b00beb649ee74d8",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:10:37+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-council-governance",
+      "notes": "Imported from miniapp manifest; verified via testnet RPC | Updated on testnet via make update",
+      "tx_hash": "0xe30e73693316e2030358b1c1daf439fb01e2ee8246cecd2b8fcbb36f30a10cbb"
+    },
+    "MiniAppDailyCheckin": {
+      "name": "MiniAppDailyCheckin",
+      "address": "0x908867b23ab551a598723ceeaaedd70c54e10c76",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:10:48+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-dailycheckin",
+      "notes": "Deployed on testnet via make deploy | Updated on testnet via make update",
+      "tx_hash": "0x5f905c65ae7a509b8719dfbf43c4f99836e7579f3d9776662543a58ab7ef0a55"
+    },
+    "MiniAppDevTipping": {
+      "name": "MiniAppDevTipping",
+      "address": "0x1d476b067a180bc54ee4f90c91489ffa123759a4",
+      "version": "1.1.0",
+      "deployed_at": "2026-01-21T02:11:08+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-dev-tipping",
+      "notes": "EcoBoost - Support the builders who power the ecosystem | Updated on testnet via make update",
+      "tx_hash": "0xa567309e6dcaf5aa3b81fa7bce077325ec70fbfe7bf148dbf8554d3d85ea150d"
+    },
+    "MiniAppDoomsdayClock": {
+      "name": "MiniAppDoomsdayClock",
+      "address": "0x8f46753fd7123bd276d77ef1100839004b9a3440",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:11:20+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-doomsday-clock",
+      "tx_hash": "0x04f0bf6671f828993d9489a09abf40cde09deba56fc07f4a35fe75e781a23963",
+      "notes": "FOMO3D style - last buyer wins the pot"
+    },
+    "MiniAppExFiles": {
+      "name": "MiniAppExFiles",
+      "address": "0x9cfc02ad75691521cceb2ec0550e6a227251ad35",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:11:32+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-exfiles",
+      "tx_hash": "0x730a5ababf21f6fba3cf27d564ccb5875190b44dfbf116c1b6ebff53a392e52e",
+      "notes": "Encrypted file sharing with expiry"
+    },
+    "MiniAppFlashLoan": {
+      "name": "MiniAppFlashLoan",
+      "address": "0xb5d8fb0dc2319edc4be3104304b4136b925df6e4",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:11:51+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-flashloan",
+      "notes": "Imported from miniapp manifest; verified via testnet RPC",
+      "tx_hash": "0xe18ff232d3ac72b3b445994280297d781b6db1ae9912557292f4f1866277dc1d"
+    },
+    "MiniAppForeverAlbum": {
+      "name": "MiniAppForeverAlbum",
+      "address": "0x254421a4aeb4e731f89182776b7bc6042c40c797",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:12:09+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-forever-album",
+      "tx_hash": "0x6f682268c49ca3260d97053154c11e4d65f4b19569fb61d1bcac9e28bb0da935",
+      "notes": "On-chain per-user photo album with optional AES-GCM encryption | Updated on testnet via make update"
+    },
+    "MiniAppGardenOfNeo": {
+      "name": "MiniAppGardenOfNeo",
+      "address": "0x72aa16fd44305eabe8b85ca397b9bfcdc718dce8",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:12:21+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-garden-of-neo",
+      "tx_hash": "0x58135a6ea7ac79edbab423110c1396ed61320a52b75f64f3d0ee6c78a7af87dd",
+      "notes": "Plants grow based on blockchain data"
+    },
+    "MiniAppGasSponsor": {
+      "name": "MiniAppGasSponsor",
+      "address": "0x80ea8435a88334b9b80077220097d88c440615f1",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:12:33+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-gas-sponsor",
+      "tx_hash": "0xa03783c077d1ac997f3f7c8a46c77407e6538fc2e213d1af707baa5900a6ee86",
+      "notes": "Sponsor GAS fees for other users | Updated on testnet via make update"
+    },
+    "MiniAppGovMerc": {
+      "name": "MiniAppGovMerc",
+      "address": "0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:12:52+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-gov-merc",
+      "tx_hash": "0xece7e176508939f28811cb89787e64c1135a880d7d80fb8da386588bba95547b",
+      "notes": "Governance mercenary - vote rental market"
+    },
+    "MiniAppGraveyard": {
+      "name": "MiniAppGraveyard",
+      "address": "0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:13:03+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-graveyard",
+      "tx_hash": "0x4f3d40b5c3bb690034c396f3bb7b24196fc9b1c92504de6a0abfee009cefc8f7",
+      "notes": "Digital graveyard - paid data deletion"
+    },
+    "MiniAppGuardianPolicy": {
+      "name": "MiniAppGuardianPolicy",
+      "address": "0x451422cfb5a16e26a12f3222aa04fb669d978229",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:13:23+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-guardianpolicy",
+      "notes": "Imported from miniapp manifest; verified via testnet RPC",
+      "tx_hash": "0xc83f84351d70790529d117312311de3837a57becdbf2de20d943e861a5feb3c5"
+    },
+    "MiniAppHallOfFame": {
+      "name": "MiniAppHallOfFame",
+      "address": "0x3c00cbea1c4e502bafae4c6ce7a56237a7d71ded",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:13:34+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-hall-of-fame",
+      "tx_hash": "0xa70858b508de527368d2cdde6c3bbd41836315cc988cd32b4bde64224b96c033",
+      "notes": "Vote for Neo legends using GAS volume | Updated on testnet via make update"
+    },
+    "MiniAppHeritageTrust": {
+      "name": "MiniAppHeritageTrust",
+      "address": "0xd260b66f646a49c15f572aa827e5eb36f7756563",
+      "version": "2.0.0",
+      "deployed_at": "2026-01-21T02:13:54+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-heritage-trust",
+      "tx_hash": "0x14245384da8805a6a884454d143f9502d7cc5d8d062a9efa5afc186a0be4d2c3",
+      "notes": "Updated on testnet with monthly release + NeoBurger bNEO rewards | Updated on testnet via make update"
+    },
+    "MiniAppLottery": {
+      "name": "MiniAppLottery",
+      "address": "0xb3c0ca9950885c5bf4d0556e84bc367473c3475e",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:14:06+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-lottery",
+      "notes": "Imported from miniapp manifest; verified via testnet RPC",
+      "tx_hash": "0xbd9bae3c18cfccad0ddae539cd7c16e80c840e0d0ff68fc97d8249f1e439beac"
+    },
+    "MiniAppMasqueradeDAO": {
+      "name": "MiniAppMasqueradeDAO",
+      "address": "0xc5e3e2e481af11dc823ae4ebcd8f791b9ba9b6f9",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:14:25+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-masqueradedao",
+      "tx_hash": "0x490fcdf1ca5385dac5a5a2ad2ca99f18dbbc1514c630c125005db335852d41c2",
+      "notes": "Anonymous masked voting DAO"
+    },
+    "MiniAppMemorialShrine": {
+      "name": "MiniAppMemorialShrine",
+      "address": "0xee7a548b71c69364fcb0e45a63a40f141b938e42",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:14:37+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-memorial-shrine",
+      "notes": "Deployed on testnet via make deploy",
+      "tx_hash": "0x55d891e7359bb9b50679bda472f236dddaef8da9afa91815b279b574fa4585a6"
+    },
+    "MiniAppMillionPieceMap": {
+      "name": "MiniAppMillionPieceMap",
+      "address": "0xdae609b67e51634a95badea92bae585459fe83a4",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:14:49+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-millionpiecemap",
+      "tx_hash": "0x21c9fd01456895a46cb1fc127c843ccd644b722141bb441f75219b15aec26dc1",
+      "notes": "Collaborative pixel map ownership"
+    },
+    "MiniAppNeoGacha": {
+      "name": "MiniAppNeoGacha",
+      "address": "0xc9af7c9de5b0963e6514b6462b293f0179eb3798",
+      "version": "2.0.0",
+      "deployed_at": "2026-01-21T02:15:08+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-neo-gacha",
+      "tx_hash": "0x6e33bf236ed22df9f2e9bdd78a6ff483a9f0f05bb23fa398fe48ea7fcad52f0d",
+      "notes": "On-chain blind box marketplace with escrowed prizes and verifiable RNG"
+    },
+    "MiniAppNeoSwap": {
+      "name": "MiniAppNeoSwap",
+      "address": "0xf970f4ccecd765b63732b821775dc38c25d74f23",
+      "version": "external",
+      "deployed_at": "external",
+      "network": "mainnet",
+      "status": "external",
+      "app_id": "miniapp-neo-swap",
+      "notes": "Flamingo DEX router contract (third-party)"
+    },
+    "MiniAppNeoburger": {
+      "name": "MiniAppNeoburger",
+      "address": "0x48c40d4666f93408be1bef038b6722404d9a4c2a",
+      "version": "external",
+      "deployed_at": "external",
+      "network": "mainnet",
+      "status": "external",
+      "app_id": "miniapp-neoburger",
+      "notes": "NeoBurger bNEO token contract (third-party)"
+    },
+    "MiniAppOnChainTarot": {
+      "name": "MiniAppOnChainTarot",
+      "address": "0xfb5d6b25c974a301e34c570dd038de8c25f3ae56",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:15:20+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-onchaintarot",
+      "tx_hash": "0xe2cc2dbc131aee3aef38b11f4eaa984651eae0636927d516dfeec9f14c9914ba",
+      "notes": "On-chain tarot card readings"
+    },
+    "MiniAppRedEnvelope": {
+      "name": "MiniAppRedEnvelope",
+      "address": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:15:39+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-redenvelope",
+      "notes": "Imported from miniapp manifest; verified via testnet RPC",
+      "tx_hash": "0x26510151ca6182b1b54327d15771b66c29235f89d712b7a124b23d547e28ae05"
+    },
+    "MiniAppSelfLoan": {
+      "name": "MiniAppSelfLoan",
+      "address": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:15:51+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-self-loan",
+      "tx_hash": "0x565565a4e4eb5cf3dc09d156ece5e416cf38430d5d5f58346ce55e8177cdc2e2",
+      "notes": "Alchemix-style self-repaying loans"
+    },
+    "MiniAppTimeCapsule": {
+      "name": "MiniAppTimeCapsule",
+      "address": "0xd853a4ac293ff96e7f70f774c2155d846f91a989",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:16:10+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-time-capsule",
+      "tx_hash": "0x5a976b05c83a209495514d72ae95f9170b12505957d92399db53c66f73445202",
+      "notes": "Encrypted messages unlocked by time or price"
+    },
+    "MiniAppTurtleMatch": {
+      "name": "MiniAppTurtleMatch",
+      "address": "0xac10b90f40c015da61c71e30533309760b75fec7",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:16:22+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-turtle-match",
+      "notes": "Deployed on testnet via make deploy | Updated on testnet via make update",
+      "tx_hash": "0x6cc50c982ec8cfc707b4033921148dd577964a49d76ff8d5bf3aa2616f0dc239"
+    },
+    "MiniAppUnbreakableVault": {
+      "name": "MiniAppUnbreakableVault",
+      "address": "0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa",
+      "version": "1.0.0",
+      "deployed_at": "2026-01-21T02:16:41+00:00",
+      "network": "mainnet",
+      "status": "deployed",
+      "app_id": "miniapp-unbreakablevault",
+      "tx_hash": "0xb82e775dd279fa5e0fa65d7e335dea95c0c1a5e68ba95d4f0223e182300a6d02",
+      "notes": "Time-locked vault with conditions"
+    },
+    "NameService": {
+      "name": "NameService",
+      "address": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+      "version": "external",
+      "deployed_at": "external",
+      "network": "mainnet",
+      "status": "external",
+      "app_id": "miniapp-neo-ns",
+      "notes": "Neo Name Service contract (external)"
+    }
+  },
+  "deployer": {
+    "address": "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK",
+    "notes": "Mainnet deployer"
+  }
+}

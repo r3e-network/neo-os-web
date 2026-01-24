@@ -29,7 +29,7 @@ not built from this codebase.
 │                    Platform Contracts (C#)                     │
 │   AppRegistry · AutomationAnchor · PauseRegistry               │
 │   PaymentHub · PriceFeed · RandomnessLog                       │
-│   ServiceLayerGateway · UniversalMiniApp                       │
+│   ServiceLayerGateway                                         │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -44,7 +44,6 @@ not built from this codebase.
 | **PriceFeed**           | `PriceFeed/PriceFeed.cs`                     | Oracle price data with TEE attestation             |
 | **RandomnessLog**       | `RandomnessLog/RandomnessLog.cs`             | Verifiable randomness with TEE attestation         |
 | **ServiceLayerGateway** | `ServiceLayerGateway/ServiceLayerGateway.cs` | On-chain service request routing + callbacks       |
-| **UniversalMiniApp**    | `UniversalMiniApp/UniversalMiniApp.cs`       | Shared platform entrypoint for miniapp execution   |
 
 ## Build
 

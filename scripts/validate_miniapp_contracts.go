@@ -111,7 +111,7 @@ func getAllMiniAppContracts() []MiniAppContract {
 	return []MiniAppContract{
 		// Gaming
 		{AppID: "miniapp-lottery", EnvVar: "CONTRACT_MINIAPP_LOTTERY_ADDRESS", Category: "gaming"},
-		{AppID: "miniapp-coin-flip", EnvVar: "CONTRACT_MINIAPP_COINFLIP_ADDRESS", Category: "gaming"},
+		{AppID: "miniapp-coinflip", EnvVar: "CONTRACT_MINIAPP_COINFLIP_ADDRESS", Category: "gaming"},
 		{AppID: "miniapp-dice-game", EnvVar: "CONTRACT_MINIAPP_DICEGAME_ADDRESS", Category: "gaming"},
 		{AppID: "miniapp-scratch-card", EnvVar: "CONTRACT_MINIAPP_SCRATCHCARD_ADDRESS", Category: "gaming"},
 		{AppID: "miniapp-neo-crash", EnvVar: "CONTRACT_MINIAPP_NEOCRASH_ADDRESS", Category: "gaming"},

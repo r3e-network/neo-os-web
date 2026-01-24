@@ -1,8 +1,18 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { fetchMiniAppPolicy } from "../_shared/apps.ts";
 import { getChainConfig } from "../_shared/chains.ts";
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { normalizeHexBytes } from "../_shared/hex.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
 import { supabaseClient, requireAuth } from "../_shared/supabase.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 
@@ -23,7 +33,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const auth = await requireAuth(req);
@@ -36,38 +46,42 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "INVALID_BODY", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const appId = String(body.app_id ?? "").trim();
   const eventName = String(body.event_name ?? "").trim();
   if (!appId || !eventName) {
-    return error(400, "app_id and event_name required", "MISSING_FIELDS", req);
+    return errorResponse("VAL_003", { field: "app_id,event_name" }, req);
   }
 
   if (body.state === undefined && body.data !== undefined) {
-    return error(400, "event payload must use state (data is not supported)", "INVALID_BODY", req);
+    return errorResponse("VAL_002", { message: "event payload must use state (data is not supported)" }, req);
   }
 
   const policy = await fetchMiniAppPolicy(appId, req);
   if (policy instanceof Response) return policy;
 
-  const requestedChainId = String(body.chain_id ?? body.chainId ?? "").trim().toLowerCase();
+  const requestedChainId = String(body.chain_id ?? body.chainId ?? "")
+    .trim()
+    .toLowerCase();
   const chainId = requestedChainId || policy?.supportedChains?.[0] || "";
   if (!chainId) {
-    return error(400, "chain_id required", "CHAIN_ID_REQUIRED", req);
+    return validationError("chain_id", "chain_id required", req);
   }
   if (policy?.supportedChains?.length && !policy.supportedChains.includes(chainId)) {
-    return error(400, `chain_id not supported by app: ${chainId}`, "CHAIN_NOT_SUPPORTED", req);
+    return errorResponse("VAL_006", { chain_id: chainId }, req);
   }
   const chain = getChainConfig(chainId);
-  if (!chain) return error(400, `unknown chain_id: ${chainId}`, "CHAIN_NOT_FOUND", req);
+  if (!chain) {
+    return notFoundError("chain", req);
+  }
 
   const rawContractAddress = String(body.contract_address ?? "").trim();
   const manifestAddress = String(policy?.contracts?.[chainId]?.address ?? "").trim();
   const selectedAddress = rawContractAddress || manifestAddress;
   if (!selectedAddress) {
-    return error(400, "contract_address required for emit-event", "CONTRACT_REQUIRED", req);
+    return validationError("contract_address", "contract_address required for emit-event", req);
   }
 
   let normalizedAddress: string;
@@ -75,23 +89,27 @@ export async function handler(req: Request): Promise<Response> {
     normalizedAddress = normalizeHexBytes(selectedAddress, 20, "contract_address");
   } catch (err) {
     const msg = err instanceof Error ? err.message : "invalid contract_address";
-    return error(400, msg, "INVALID_PARAM", req);
+    return errorResponse("VAL_002", { field: "contract_address", message: msg }, req);
   }
 
   if (rawContractAddress && manifestAddress) {
     const normalizedManifest = normalizeHexBytes(manifestAddress, 20, "manifest.contracts.address");
     if (normalizedManifest !== normalizedAddress) {
-      return error(400, "contract_address does not match manifest", "CONTRACT_MISMATCH", req);
+      return errorResponse("VAL_005", { message: "contract_address does not match manifest" }, req);
     }
   }
 
   const txHash = String(body.tx_hash ?? "").trim();
   const blockIndexRaw = body.block_index ?? body.blockIndex;
   let blockIndex: number | null = null;
-  if (blockIndexRaw !== undefined && blockIndexRaw !== null && blockIndexRaw !== "") {
+  if (blockIndexRaw !== undefined && blockIndexRaw !== null) {
     const parsed = Number(blockIndexRaw);
     if (!Number.isFinite(parsed) || parsed < 0) {
-      return error(400, "block_index must be a non-negative number", "INVALID_PARAM", req);
+      return errorResponse(
+        "VAL_002",
+        { field: "block_index", message: "block_index must be a non-negative number" },
+        req
+      );
     }
     blockIndex = Math.floor(parsed);
   }
@@ -111,10 +129,12 @@ export async function handler(req: Request): Promise<Response> {
   const { error: dbErr } = await supabase.from("contract_events").insert(record);
 
   if (dbErr) {
-    return error(500, dbErr.message, "DB_ERROR", req);
+    return errorResponse("SERVER_002", { message: dbErr.message }, req);
   }
 
-  return json({ success: true, app_id: appId, event_name: eventName, chain_id: chainId }, req);
+  return json({ success: true, app_id: appId, event_name: eventName, chain_id: chainId }, {}, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

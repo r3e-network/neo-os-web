@@ -1,10 +1,17 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, notFoundError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { getNeoRpcUrl } from "../_shared/k8s-config.ts";
-import { getChainConfig } from "../_shared/chains.ts";
+import { getChainConfig, getNativeContractAddress } from "../_shared/chains.ts";
 
 interface TransferRecord {
   timestamp: number;
@@ -29,7 +36,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "GET") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const auth = await requireAuth(req);
@@ -45,7 +52,7 @@ export async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const chainId = url.searchParams.get("chain_id")?.trim() || "neo-n3-mainnet";
   const chain = getChainConfig(chainId);
-  if (!chain) return error(400, "unknown chain_id", "INVALID_CHAIN", req);
+  if (!chain) return notFoundError("chain", req);
   const limit = Math.min(100, parseInt(url.searchParams.get("limit") || "20"));
 
   if (chain.type === "evm") {
@@ -57,7 +64,7 @@ export async function handler(req: Request): Promise<Response> {
         total: 0,
       },
       {},
-      req,
+      req
     );
   }
 
@@ -75,12 +82,12 @@ export async function handler(req: Request): Promise<Response> {
   });
 
   if (!res.ok) {
-    return error(500, "RPC request failed", "RPC_ERROR", req);
+    return errorResponse("SERVER_002", { message: "RPC request failed" }, req);
   }
 
   const data = await res.json();
   if (data.error) {
-    return error(500, data.error.message, "RPC_ERROR", req);
+    return errorResponse("SERVER_002", { message: data.error.message }, req);
   }
 
   // Combine sent and received transfers
@@ -95,8 +102,8 @@ export async function handler(req: Request): Promise<Response> {
       tx_hash: tx.txhash,
       block: tx.blockindex,
       timestamp: new Date(tx.timestamp * 1000).toISOString(),
-      asset: getAssetSymbol(tx.assethash),
-      amount: formatAmount(tx.amount, tx.assethash),
+      asset: getAssetSymbol(tx.assethash, chainId),
+      amount: formatAmount(tx.amount, tx.assethash, chainId),
       direction: "out",
       counterparty: tx.transferaddress || "Contract",
     });
@@ -108,8 +115,8 @@ export async function handler(req: Request): Promise<Response> {
       tx_hash: tx.txhash,
       block: tx.blockindex,
       timestamp: new Date(tx.timestamp * 1000).toISOString(),
-      asset: getAssetSymbol(tx.assethash),
-      amount: formatAmount(tx.amount, tx.assethash),
+      asset: getAssetSymbol(tx.assethash, chainId),
+      amount: formatAmount(tx.amount, tx.assethash, chainId),
       direction: "in",
       counterparty: tx.transferaddress || "Contract",
     });
@@ -126,20 +133,23 @@ export async function handler(req: Request): Promise<Response> {
       total: transactions.length,
     },
     {},
-    req,
+    req
   );
 }
 
-function getAssetSymbol(hash: string): string {
+function getAssetSymbol(hash: string, chainId: string): string {
   const h = hash.toLowerCase();
-  if (h === "0xd2a4cff31913016155e38e474a2c06d08be276cf") return "GAS";
-  if (h === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5") return "NEO";
+  const gasHash = getNativeContractAddress(chainId, "gas")?.toLowerCase();
+  const neoHash = getNativeContractAddress(chainId, "neo")?.toLowerCase();
+  if (h === gasHash) return "GAS";
+  if (h === neoHash) return "NEO";
   return hash.slice(0, 10) + "...";
 }
 
-function formatAmount(amount: string, hash: string): string {
+function formatAmount(amount: string, hash: string, chainId: string): string {
   const h = hash.toLowerCase();
-  const decimals = h === "0xd2a4cff31913016155e38e474a2c06d08be276cf" ? 8 : 0;
+  const gasHash = getNativeContractAddress(chainId, "gas")?.toLowerCase();
+  const decimals = h === gasHash ? 8 : 0;
   if (decimals === 0) return amount;
 
   const val = BigInt(amount);

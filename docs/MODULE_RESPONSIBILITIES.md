@@ -5,7 +5,7 @@ This document is the **responsibility map** for the repository. The goal is:
 - one module = one responsibility
 - no duplicated chain I/O / middleware implementations across services
 - explicit TEE boundary (what runs inside MarbleRun/EGo vs outside)
-- strict enforcement of constraints: **payments = GAS only**, **governance = bNEO only**
+- strict enforcement of constraints: **payments = GAS only**, **governance = NEO only**
 
 For the end-to-end architecture, see `docs/ARCHITECTURE.md`. For the platform
 blueprint/spec, see `docs/neo-miniapp-platform-blueprint.md` and
@@ -20,7 +20,7 @@ blueprint/spec, see `docs/neo-miniapp-platform-blueprint.md` and
 Platform contracts only:
 
 - `PaymentHub` (**GAS-only** settlement)
-- `Governance` (**bNEO-only** staking/voting)
+- `Governance` (**NEO-only** staking/voting)
 - `PriceFeed` (datafeed anchoring)
 - `RandomnessLog` (randomness anchoring; randomness is provided via NeoVRF)
 - `AppRegistry` (on-chain metadata + manifest hash + allowlist anchors)

@@ -119,6 +119,33 @@ make init NETWORK=testnet
 If the contracts are already deployed on testnet, use `neo-go contract update`
 with the existing hash instead of redeploying.
 
+### Mainnet
+
+1. Ensure the mainnet deployer wallet is available:
+
+```bash
+# Default wallet config path:
+deploy/mainnet/wallets/wallet-config.yaml
+```
+
+2. Build + deploy:
+
+```bash
+make build
+deploy/scripts/deploy_mainnet_contracts.py
+```
+
+Contract addresses are recorded in `deploy/config/mainnet_contracts.json`.
+
+3. Set platform updaters (TEE signer) once you have the updater address:
+
+```bash
+export NEO_MAINNET_TEE_ADDRESS=<neo-n3-tee-address>
+deploy/scripts/set_mainnet_updaters.sh
+```
+
+You can override the RPC endpoint with `NEO_MAINNET_RPC`.
+
 ## Contract Initialization
 
 After deployment, contracts are initialized with:
@@ -160,17 +187,33 @@ After deployment, contract addresses are saved to `config/deployed_contracts.jso
 
 | Contract            | Address                              | Description                |
 | ------------------- | ------------------------------------ | -------------------------- |
-| PaymentHub          | `NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq` | GAS payments & settlement  |
-| Governance          | `NeEWK3vcVRWJDebyBCyLx6HSzJZSeYhXAt` | NEO voting & governance    |
-| PriceFeed           | `Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM` | Price oracle anchoring     |
-| RandomnessLog       | `NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD` | Randomness anchoring       |
-| AppRegistry         | `NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy` | MiniApp registration       |
-| AutomationAnchor    | `NNWqgxGnXGtfK7VHvEqbdSu3jq8Pu8xkvM` | Task execution logs        |
-| ServiceLayerGateway | `NPXyVuEVfp47Abcwq6oTKmtwbJM6Yh965c` | On-chain service callbacks |
+| PaymentHub          | `NZLGNdQUa5jQ2VC1r3MGoJFGm3BW8Kv81q` | GAS payments & settlement  |
+| Governance          | `NLRGStjsRpN3bk71KNoKe74fNxUT72gfpe` | NEO voting & governance    |
+| PriceFeed           | `NTdJ7XHZtYXSRXnWGxV6TcyxiSRCcjP4X1` | Price oracle anchoring     |
+| RandomnessLog       | `NR9urKR3FZqAfvowx2fyWjtWHBpqLqrEPP` | Randomness anchoring       |
+| AppRegistry         | `NXZNTXiPuBRHnEaKFV3tLHhitkbt3XmoWJ` | MiniApp registration       |
+| AutomationAnchor    | `NcVrd4Z7W8sxv9jvdBF72xfiWBnvRsgVkx` | Task execution logs        |
+| ServiceLayerGateway | `NTWh6auSz3nvBZSbXHbZz4ShwPhmpkC5Ad` | On-chain service callbacks |
 
 **Network:** Neo N3 Testnet
 **RPC:** `https://testnet1.neo.coz.io:443`
 **Network Magic:** `894710606`
+
+### Neo N3 Mainnet (Live)
+
+| Contract            | Address                              | Description                |
+| ------------------- | ------------------------------------ | -------------------------- |
+| PaymentHub          | `NaqDPjXnYsm8W5V3xXuDUZe5W1HRLsMsx2` | GAS payments & settlement  |
+| Governance          | `NMhpz6kT77SKaYwNHrkTv8QXpoPuSd3VJn` | NEO voting & governance    |
+| PriceFeed           | `NPW7dXnqBUoQ3aoxg86wMsKbgt8VD2HhWQ` | Price oracle anchoring     |
+| RandomnessLog       | `NPJXDzwaU8UDct7247oq3YhLxJKkJsmhaa` | Randomness anchoring       |
+| AppRegistry         | `NYkvPQcFdnmhmB7uYss7rS9YppC3jFzmgJ` | MiniApp registration       |
+| AutomationAnchor    | `NS9Y32DUzyQbmH9vEHDXP3JskbwdbDXGfm` | Task execution logs        |
+| ServiceLayerGateway | `NfaEbVnKnUQSd4MhNXz9pY4Uire7EiZtai` | On-chain service callbacks |
+
+**Network:** Neo N3 Mainnet
+**RPC:** `https://mainnet1.neo.coz.io:443`
+**Network Magic:** `860833102`
 
 ### Local Development (Neo Express)
 

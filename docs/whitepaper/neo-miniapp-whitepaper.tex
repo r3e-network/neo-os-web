@@ -81,7 +81,7 @@
 \vspace{2cm}
 \begin{abstract}
 \noindent
-The Neo N3 MiniApp Platform represents a paradigm shift in decentralized application development, offering a comprehensive infrastructure that bridges the gap between traditional Web2 user experiences and the security guarantees of blockchain technology. This whitepaper presents the technical architecture, security model, and operational framework of a platform designed to enable developers to build, deploy, and operate lightweight decentralized applications---termed MiniApps---within a secure, sandboxed environment. By leveraging Trusted Execution Environments (TEE) through Intel SGX technology and the MarbleRun orchestration framework, the platform ensures that sensitive operations such as key management, transaction signing, and randomness generation occur within hardware-protected enclaves. The platform enforces strict asset separation, mandating GAS tokens for all payment operations and bNEO (wrapped NEO) tokens for governance activities, thereby ensuring regulatory compliance and stakeholder alignment. With seven foundational smart contracts, six TEE-based services, and twenty-three production-ready built-in applications spanning gaming, decentralized finance, social interaction, and governance domains, the Neo N3 MiniApp Platform establishes a new standard for secure and accessible blockchain application development.
+The Neo N3 MiniApp Platform represents a paradigm shift in decentralized application development, offering a comprehensive infrastructure that bridges the gap between traditional Web2 user experiences and the security guarantees of blockchain technology. This whitepaper presents the technical architecture, security model, and operational framework of a platform designed to enable developers to build, deploy, and operate lightweight decentralized applications---termed MiniApps---within a secure, sandboxed environment. By leveraging Trusted Execution Environments (TEE) through Intel SGX technology and the MarbleRun orchestration framework, the platform ensures that sensitive operations such as key management, transaction signing, and randomness generation occur within hardware-protected enclaves. The platform enforces strict asset separation, mandating GAS tokens for all payment operations and NEO tokens for governance activities, thereby ensuring regulatory compliance and stakeholder alignment. With seven foundational smart contracts, six TEE-based services, and twenty-three production-ready built-in applications spanning gaming, decentralized finance, social interaction, and governance domains, the Neo N3 MiniApp Platform establishes a new standard for secure and accessible blockchain application development.
 \end{abstract}
 \vfill
 {\small Neo R3E Network\par}
@@ -115,7 +115,7 @@ This architectural approach delivers several fundamental advantages. Users benef
 
 \subsection{Design Philosophy}
 
-The Neo N3 MiniApp Platform is constructed upon four foundational principles that guide all architectural and implementation decisions. The first principle, Security First, mandates that all sensitive operations---including key generation, transaction signing, and randomness production---execute within Trusted Execution Environments protected by Intel SGX hardware. The second principle, Developer Experience, ensures that comprehensive TypeScript SDKs with clear, well-documented APIs enable developers to build sophisticated applications without blockchain expertise. The third principle, Scalability, drives the account pool architecture that maintains over ten thousand pre-generated accounts to support high-throughput transaction processing without bottlenecks. The fourth principle, Compliance, enforces strict asset separation between GAS utility tokens and bNEO governance tokens, ensuring that the platform operates within regulatory frameworks while maintaining clear stakeholder incentives.
+The Neo N3 MiniApp Platform is constructed upon four foundational principles that guide all architectural and implementation decisions. The first principle, Security First, mandates that all sensitive operations---including key generation, transaction signing, and randomness production---execute within Trusted Execution Environments protected by Intel SGX hardware. The second principle, Developer Experience, ensures that comprehensive TypeScript SDKs with clear, well-documented APIs enable developers to build sophisticated applications without blockchain expertise. The third principle, Scalability, drives the account pool architecture that maintains over ten thousand pre-generated accounts to support high-throughput transaction processing without bottlenecks. The fourth principle, Compliance, enforces strict asset separation between GAS utility tokens and NEO governance tokens, ensuring that the platform operates within regulatory frameworks while maintaining clear stakeholder incentives.
 
 \newpage
 %==============================================================================
@@ -175,7 +175,7 @@ Key material within the TEE Service Layer is bound to specific enclave measureme
 
 The Blockchain Layer comprises seven smart contracts deployed on the Neo N3 network, providing immutable enforcement of platform rules and serving as the final authority for all financial and governance operations. These contracts are designed with minimal complexity to reduce attack surface while providing comprehensive functionality for platform operations.
 
-The PaymentHub contract serves as the central settlement mechanism, processing all GAS payments and distributing revenue between MiniApp developers and the platform treasury. This contract implements strict asset validation, rejecting any non-GAS tokens at the contract level to ensure compliance with platform policies. The Governance contract manages bNEO staking and proposal voting, enabling token holders to participate in platform governance decisions. The PriceFeed contract stores oracle price data with TEE attestation signatures, providing on-chain price references for DeFi applications. The RandomnessLog contract anchors verifiable random values generated by the NeoVRF service, enabling on-chain verification of randomness used in gaming applications. The AppRegistry contract maintains the registry of approved MiniApps, storing manifest hashes and managing the allowlist of authorized applications. The AutomationAnchor contract records task execution proofs from the NeoFlow service, providing anti-replay protection for automated operations. The ServiceLayerGateway contract routes on-chain service requests to appropriate TEE services, enabling smart contracts to invoke platform capabilities.
+The PaymentHub contract serves as the central settlement mechanism, processing all GAS payments and distributing revenue between MiniApp developers and the platform treasury. This contract implements strict asset validation, rejecting any non-GAS tokens at the contract level to ensure compliance with platform policies. The Governance contract manages NEO staking and proposal voting, enabling token holders to participate in platform governance decisions. The PriceFeed contract stores oracle price data with TEE attestation signatures, providing on-chain price references for DeFi applications. The RandomnessLog contract anchors verifiable random values generated by the NeoVRF service, enabling on-chain verification of randomness used in gaming applications. The AppRegistry contract maintains the registry of approved MiniApps, storing manifest hashes and managing the allowlist of authorized applications. The AutomationAnchor contract records task execution proofs from the NeoFlow service, providing anti-replay protection for automated operations. The ServiceLayerGateway contract routes on-chain service requests to appropriate TEE services, enabling smart contracts to invoke platform capabilities.
 
 \subsection{Data Layer}
 
@@ -246,7 +246,7 @@ The fourth and final layer resides in on-chain smart contracts, which provide im
 
 \subsection{Asset Separation and Compliance}
 
-The platform enforces strict separation between utility and governance tokens, mandating GAS for all payment operations and bNEO for all governance activities. This separation serves multiple purposes: it ensures clear utility for each token type, simplifies regulatory compliance by maintaining distinct asset classes, and aligns stakeholder incentives by requiring governance participation to hold governance tokens.
+The platform enforces strict separation between utility and governance tokens, mandating GAS for all payment operations and NEO for all governance activities. This separation serves multiple purposes: it ensures clear utility for each token type, simplifies regulatory compliance by maintaining distinct asset classes, and aligns stakeholder incentives by requiring governance participation to hold governance tokens.
 
 Asset separation is enforced at every layer of the platform architecture. The SDK rejects attempts to construct payment transactions with non-GAS assets, providing immediate developer feedback. The Gateway Layer validates asset types in all payment requests, rejecting non-compliant requests before they reach backend services. TEE services verify asset types before constructing transactions, ensuring that even compromised gateway instances cannot bypass restrictions. Finally, the PaymentHub smart contract implements on-chain asset validation, rejecting any non-GAS transfers at the contract level.
 
@@ -360,7 +360,7 @@ The blockchain layer of the Neo N3 MiniApp Platform comprises seven carefully de
 \textbf{Contract} & \textbf{Asset Policy} & \textbf{Primary Function} \\
 \midrule
 PaymentHub & GAS only & Payment settlement and revenue distribution \\
-Governance & bNEO only & Staking, proposals, and voting \\
+Governance & NEO only & Staking, proposals, and voting \\
 PriceFeed & N/A & Oracle price data with TEE attestation \\
 RandomnessLog & N/A & VRF randomness anchoring \\
 AppRegistry & N/A & MiniApp registration and allowlist \\
@@ -378,13 +378,13 @@ ServiceLayerGateway & GAS (fees) & On-chain service request routing \\
 \toprule
 \textbf{Contract} & \textbf{Address} \\
 \midrule
-PaymentHub & \texttt{NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq} \\
-Governance & \texttt{NeEWK3vcVRWJDebyBCyLx6HSzJZSeYhXAt} \\
-PriceFeed & \texttt{Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM} \\
-RandomnessLog & \texttt{NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD} \\
-AppRegistry & \texttt{NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy} \\
-AutomationAnchor & \texttt{NNWqgxGnXGtfK7VHvEqbdSu3jq8Pu8xkvM} \\
-ServiceLayerGateway & \texttt{NPXyVuEVfp47Abcwq6oTKmtwbJM6Yh965c} \\
+PaymentHub & \texttt{NZLGNdQUa5jQ2VC1r3MGoJFGm3BW8Kv81q} \\
+Governance & \texttt{NLRGStjsRpN3bk71KNoKe74fNxUT72gfpe} \\
+PriceFeed & \texttt{NTdJ7XHZtYXSRXnWGxV6TcyxiSRCcjP4X1} \\
+RandomnessLog & \texttt{NR9urKR3FZqAfvowx2fyWjtWHBpqLqrEPP} \\
+AppRegistry & \texttt{NXZNTXiPuBRHnEaKFV3tLHhitkbt3XmoWJ} \\
+AutomationAnchor & \texttt{NcVrd4Z7W8sxv9jvdBF72xfiWBnvRsgVkx} \\
+ServiceLayerGateway & \texttt{NTWh6auSz3nvBZSbXHbZz4ShwPhmpkC5Ad} \\
 \bottomrule
 \end{tabular}
 \label{tab:platform-contracts-addresses}
@@ -400,9 +400,9 @@ The contract maintains comprehensive audit trails for all transactions, enabling
 
 \subsection{Governance: Stakeholder Participation}
 
-The Governance contract enables bNEO token holders to participate in platform decision-making through a structured proposal and voting mechanism. This contract enforces the platform's bNEO-only governance policy, ensuring that voting power is proportional to governance token holdings.
+The Governance contract enables NEO token holders to participate in platform decision-making through a structured proposal and voting mechanism. This contract enforces the platform's NEO-only governance policy, ensuring that voting power is proportional to governance token holdings.
 
-Proposals follow a defined lifecycle: creation, discussion period, voting period, and execution. During the voting period, bNEO holders can cast votes weighted by their token balance at a snapshot block height, preventing vote manipulation through last-minute token transfers. Quorum requirements ensure that proposals cannot pass without sufficient participation, while supermajority thresholds protect against contentious changes.
+Proposals follow a defined lifecycle: creation, discussion period, voting period, and execution. During the voting period, NEO holders can cast votes weighted by their token balance at a snapshot block height, preventing vote manipulation through last-minute token transfers. Quorum requirements ensure that proposals cannot pass without sufficient participation, while supermajority thresholds protect against contentious changes.
 
 The contract supports delegation, enabling token holders to assign their voting power to trusted representatives without transferring token custody. Delegation can be revoked at any time, and delegated votes are automatically updated when the delegator's balance changes.
 
@@ -481,7 +481,7 @@ The Neo N3 MiniApp Platform includes twenty-three production-ready applications 
  & Secret Vote & Privacy-preserving voting \\
  & NFT Evolve & Dynamic NFT mechanics \\
 \midrule
-\multirow{3}{*}{Governance} & Gov Booster & bNEO governance optimization \\
+\multirow{3}{*}{Governance} & Gov Booster & NEO governance optimization \\
  & Bridge Guardian & Cross-chain transfers \\
  & Guardian Policy & TEE transaction security \\
 \bottomrule
@@ -582,7 +582,7 @@ The Gas Circle application creates daily savings circles where participants cont
 
 The Secret Vote application enables privacy-preserving voting for community decisions, leveraging the TEE to ensure that individual votes remain confidential while producing verifiable aggregate results. This application demonstrates how the platform's confidential computing capabilities can protect voter privacy in governance contexts.
 
-The Gov Booster application provides tools for bNEO governance optimization, helping token holders maximize their participation in Neo network governance. Additional applications include NFT Evolve for dynamic NFT mechanics, Bridge Guardian for cross-chain asset transfers, and Guardian Policy for TEE-enforced transaction security policies.
+The Gov Booster application provides tools for NEO governance optimization, helping token holders maximize their participation in Neo network governance. Additional applications include NFT Evolve for dynamic NFT mechanics, Bridge Guardian for cross-chain asset transfers, and Guardian Policy for TEE-enforced transaction security policies.
 
 \newpage
 %==============================================================================
@@ -638,7 +638,7 @@ Every MiniApp must declare its capabilities and constraints through a manifest f
 \texttt{version} & Yes & Semantic version string \\
 \texttt{permissions} & Yes & Requested platform capabilities \\
 \texttt{assets\_allowed} & Yes & Must be \texttt{["GAS"]} \\
-\texttt{governance\_assets} & No & Must be \texttt{["bNEO"]} if used \\
+\texttt{governance\_assets} & No & Must be \texttt{["NEO"]} if used \\
 \texttt{limits} & No & Resource consumption caps \\
 \texttt{contract\_hash} & No & Associated smart contract \\
 \bottomrule
@@ -658,20 +658,20 @@ Resource limits constrain the application's consumption of platform resources. M
 %==============================================================================
 \section{Tokenomics}
 
-The Neo N3 MiniApp Platform operates within the Neo N3 token ecosystem, utilizing GAS as the utility token for all payment operations and bNEO (wrapped NEO) as the governance token for platform decision-making. This dual-token model aligns with the broader Neo ecosystem while providing clear separation between utility and governance functions. The use of bNEO rather than native NEO enables more flexible DeFi integrations and composability with other Neo N3 protocols.
+The Neo N3 MiniApp Platform operates within the Neo N3 token ecosystem, utilizing GAS as the utility token for all payment operations and NEO as the governance token for platform decision-making. This dual-token model aligns with the broader Neo ecosystem while providing clear separation between utility and governance functions, keeping governance native to the base protocol.
 
 \begin{table}[h]
 \centering
-\caption{Token Comparison: GAS vs bNEO}
+\caption{Token Comparison: GAS vs NEO}
 \begin{tabular}{@{}lll@{}}
 \toprule
-\textbf{Attribute} & \textbf{GAS} & \textbf{bNEO} \\
+\textbf{Attribute} & \textbf{GAS} & \textbf{NEO} \\
 \midrule
 Primary Function & Utility / Payments & Governance \\
 Use Cases & Fees, wagers, settlements & Voting, staking, delegation \\
 Enforcement & All platform layers & Governance contract only \\
-Divisibility & 8 decimals & 8 decimals \\
-Source & Neo N3 native & Wrapped NEO token \\
+Divisibility & 8 decimals & 0 decimals \\
+Source & Neo N3 native & Neo N3 native \\
 \bottomrule
 \end{tabular}
 \label{tab:token-comparison}
@@ -683,15 +683,15 @@ GAS serves as the exclusive medium of exchange for all payment operations within
 
 The platform's GAS-only policy is enforced at every layer of the architecture, from client-side SDK validation through on-chain smart contract verification. This comprehensive enforcement ensures that the policy cannot be circumvented through any attack vector, providing strong guarantees to users and regulators regarding the assets processed by the platform.
 
-GAS collected through platform operations is distributed according to a transparent revenue sharing model. Seventy percent of collected fees flow to MiniApp developers, incentivizing the creation of high-quality applications. Twenty percent accrues to the platform treasury, funding ongoing development and operations. Ten percent is distributed to bNEO stakers as governance rewards, aligning the interests of governance participants with platform success.
+GAS collected through platform operations is distributed according to a transparent revenue sharing model. Seventy percent of collected fees flow to MiniApp developers, incentivizing the creation of high-quality applications. Twenty percent accrues to the platform treasury, funding ongoing development and operations. Ten percent is distributed to NEO stakers as governance rewards, aligning the interests of governance participants with platform success.
 
-\subsection{bNEO: The Governance Token}
+\subsection{NEO: The Governance Token}
 
-bNEO (wrapped NEO) tokens confer governance rights within the platform, enabling holders to participate in decision-making processes that shape platform evolution. Governance participation requires staking bNEO tokens, with voting power proportional to staked amounts. Users can obtain bNEO by wrapping their native NEO tokens through the official bNEO contract, enabling seamless participation in platform governance while maintaining liquidity options.
+NEO tokens confer governance rights within the platform, enabling holders to participate in decision-making processes that shape platform evolution. Governance participation requires staking NEO tokens, with voting power proportional to staked amounts. NEO is the native token of Neo N3 and does not require wrapping to participate in governance.
 
 Governance decisions encompass several categories of platform changes. Protocol parameters, including fee structures, rate limits, and resource allocations, can be modified through governance proposals. New MiniApp approvals require governance review, ensuring community oversight of applications admitted to the platform. Treasury allocations for development grants, marketing initiatives, and ecosystem investments are determined through governance votes.
 
-The governance process follows a structured lifecycle designed to ensure thoughtful deliberation. Proposals enter a discussion period during which community members can provide feedback and suggest modifications. Following discussion, proposals proceed to a voting period during which bNEO stakers cast their votes. Proposals that achieve quorum and supermajority approval are queued for execution after a timelock period that enables preparation for changes.
+The governance process follows a structured lifecycle designed to ensure thoughtful deliberation. Proposals enter a discussion period during which community members can provide feedback and suggest modifications. Following discussion, proposals proceed to a voting period during which NEO stakers cast their votes. Proposals that achieve quorum and supermajority approval are queued for execution after a timelock period that enables preparation for changes.
 
 \newpage
 %==============================================================================
@@ -745,7 +745,7 @@ The Neo N3 MiniApp Platform represents a significant advancement in the accessib
 
 The platform's defense-in-depth security architecture ensures that sensitive operations are protected at every layer, from client-side validation through on-chain enforcement. The use of Intel SGX technology through the MarbleRun framework provides hardware-level guarantees that cannot be circumvented by software attacks, while the multi-layer validation approach ensures resilience against novel attack vectors.
 
-The strict separation between GAS utility tokens and bNEO governance tokens establishes clear boundaries that simplify regulatory compliance while aligning stakeholder incentives. This separation is enforced comprehensively across all platform layers, providing strong guarantees to users and regulators regarding the assets processed by the platform.
+The strict separation between GAS utility tokens and NEO governance tokens establishes clear boundaries that simplify regulatory compliance while aligning stakeholder incentives. This separation is enforced comprehensively across all platform layers, providing strong guarantees to users and regulators regarding the assets processed by the platform.
 
 The account pool architecture enables high-throughput transaction processing without the bottlenecks that typically constrain blockchain applications. With over ten thousand pre-generated accounts and TEE-protected key management, the platform can support substantial user bases while maintaining security guarantees.
 
@@ -777,4 +777,3 @@ As the blockchain industry matures, platforms that successfully balance security
 \end{center}
 
 \end{document}
-

@@ -35,7 +35,8 @@ func (s *Service) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.Execute(r.Context(), userID, &req)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to execute compute")
+		httputil.InternalError(w, "failed to execute compute")
 		return
 	}
 

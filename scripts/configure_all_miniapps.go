@@ -35,7 +35,7 @@ var miniApps = []struct {
 }{
 	// Gaming (5)
 	{"miniapp-lottery", "Neo Lottery", "gaming", "Decentralized lottery with provably fair randomness"},
-	{"miniapp-coin-flip", "Neo Coin Flip", "gaming", "50/50 coin flip game"},
+	{"miniapp-coinflip", "Neo Coin Flip", "gaming", "50/50 coin flip game"},
 	{"miniapp-dice-game", "Neo Dice", "gaming", "Roll dice and win up to 6x"},
 	{"miniapp-scratch-card", "Neo Scratch Cards", "gaming", "Instant win scratch cards"},
 	{"miniapp-neo-crash", "Neo Crash", "gaming", "Crash game - cash out before it crashes"},

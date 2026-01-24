@@ -15,6 +15,7 @@ import { requireAuth } from "../_shared/supabase.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { cloneRepo, getCommitInfo, cleanup, normalizeGitUrl, parseGitUrl } from "../_shared/build/git-manager.ts";
+import { validateGitUrl } from "../_shared/git-whitelist.ts";
 import { detectAssets, readManifest, validateManifest, hasPrebuiltFiles } from "../_shared/build/asset-detector.ts";
 import { detectBuildConfig, validateBuildSetup } from "../_shared/build/build-detector.ts";
 import { isAutoApprovedInternalRepo, isServiceRoleRequest } from "./internal-approval.ts";
@@ -72,6 +73,12 @@ export async function handler(req: Request): Promise<Response> {
   // Validate required fields
   if (!body.git_url) {
     return validationError("git_url", "git_url is required", req);
+  }
+
+  // SECURITY: Validate Git URL against whitelist to prevent unauthorized repo access
+  const urlValidation = validateGitUrl(body.git_url);
+  if (!urlValidation.valid) {
+    return validationError("git_url", urlValidation.reason || "Git URL not allowed", req);
   }
 
   const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_ANON_KEY"));
@@ -172,7 +179,7 @@ export async function handler(req: Request): Promise<Response> {
         git_committed_at: commitInfo.date,
         app_id: appId,
         manifest,
-        manifest_hash,
+        manifestHash,
         assets_detected: assets,
         build_config: buildConfig,
         status: autoApproved ? "building" : "pending_review",
@@ -222,7 +229,7 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     console.error("Submission error:", error);
-    return errorResponse("SERVER_ERROR", { message: (error as Error).message }, req);
+    return errorResponse("SERVER_002", { message: (error as Error).message }, req);
   }
 }
 

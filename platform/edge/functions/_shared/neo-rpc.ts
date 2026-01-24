@@ -2,9 +2,7 @@
  * Neo N3 RPC utilities for balance queries
  */
 import { getNeoRpcUrl } from "./k8s-config.ts";
-
-// Neo N3 GAS contract address (native)
-const GAS_CONTRACT_ADDRESS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+import { getNativeContractAddress } from "./chains.ts";
 
 interface RpcResponse<T> {
   jsonrpc: string;
@@ -54,12 +52,19 @@ async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
 
 /**
  * Get GAS balance for an address
+ * @param address Wallet address
+ * @param chainId Chain identifier (defaults to neo-n3-testnet)
  * @returns GAS balance as decimal string (8 decimals)
  */
-export async function getGasBalance(address: string): Promise<string> {
+export async function getGasBalance(address: string, chainId: string = "neo-n3-testnet"): Promise<string> {
+  const gasAddress = getNativeContractAddress(chainId, "gas");
+  if (!gasAddress) {
+    throw new Error(`GAS contract not found for chain: ${chainId}`);
+  }
+
   const result = await rpcCall<Nep17BalancesResult>("getnep17balances", [address]);
 
-  const gasBalance = result.balance.find((b) => b.assethash.toLowerCase() === GAS_CONTRACT_ADDRESS.toLowerCase());
+  const gasBalance = result.balance.find((b) => b.assethash.toLowerCase() === gasAddress.toLowerCase());
 
   if (!gasBalance) {
     return "0";

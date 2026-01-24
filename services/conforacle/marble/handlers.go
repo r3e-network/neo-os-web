@@ -3,7 +3,6 @@ package neooracle
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -63,7 +62,9 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 		}
 		secret, err := s.secretProvider.GetSecret(r.Context(), userID, input.SecretName)
 		if err != nil {
-			httputil.InternalError(w, fmt.Sprintf("failed to fetch secret: %v", err))
+			// SECURITY: Do not leak internal error details to client
+			s.Logger().WithContext(r.Context()).WithError(err).Error("failed to fetch secret")
+			httputil.InternalError(w, "failed to fetch secret")
 			return
 		}
 		key := input.SecretAsKey
@@ -81,7 +82,9 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 
 	req, err := http.NewRequestWithContext(r.Context(), method, input.URL, body)
 	if err != nil {
-		httputil.BadRequest(w, err.Error())
+		// SECURITY: Do not leak internal error details to client
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to create upstream request")
+		httputil.BadRequest(w, "invalid request parameters")
 		return
 	}
 	req.Header = headers
@@ -89,14 +92,18 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		httputil.InternalError(w, fmt.Sprintf("request failed: %v", err))
+		// SECURITY: Do not leak internal error details to client
+		s.Logger().WithContext(r.Context()).WithError(err).Error("upstream request failed")
+		httputil.InternalError(w, "upstream request failed")
 		return
 	}
 	defer resp.Body.Close()
 
 	respBody, truncated, err := httputil.ReadAllWithLimit(resp.Body, s.maxBodyBytes)
 	if err != nil {
-		httputil.InternalError(w, fmt.Sprintf("failed to read response body: %v", err))
+		// SECURITY: Do not leak internal error details to client
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to read response body")
+		httputil.InternalError(w, "failed to read upstream response")
 		return
 	}
 	if truncated {

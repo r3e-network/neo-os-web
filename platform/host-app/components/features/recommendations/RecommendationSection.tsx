@@ -9,9 +9,11 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
-import { getAppIcon } from "@/components/features/miniapp/AppIcons";
+import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import { getLocalizedField } from "@neo/shared/i18n";
 import type { RecommendationSection as SectionType } from "./types";
+
+type CategoryType = "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
 
 interface Props {
   section: SectionType;
@@ -56,15 +58,23 @@ export function RecommendationSection({ section, className }: Props) {
       <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
         {section.apps.map((app) => {
           const name = getLocalizedField(app, "name", locale);
-          const IconComponent = getAppIcon(app.app_id);
-          const bgClass = CATEGORY_BG[app.category] || CATEGORY_BG.utility;
 
           return (
             <Link key={app.app_id} href={`/miniapps/${app.app_id}`} className="flex-shrink-0 w-48 group">
               <div className="relative rounded-xl overflow-hidden bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 transition-all hover:shadow-lg hover:-translate-y-1">
-                {/* Banner with category background and centered icon */}
-                <div className={cn("w-full h-28 flex items-center justify-center", bgClass)}>
-                  <IconComponent className="w-12 h-12 text-erobo-ink/80 dark:text-white/80 drop-shadow-sm transition-transform group-hover:scale-110" />
+                {/* Banner with category background and centered logo */}
+                <div
+                  className={cn(
+                    "w-full h-28 flex items-center justify-center",
+                    CATEGORY_BG[app.category] || CATEGORY_BG.utility,
+                  )}
+                >
+                  <MiniAppLogo
+                    appId={app.app_id}
+                    category={app.category as CategoryType}
+                    size="xl"
+                    iconUrl={app.icon}
+                  />
                 </div>
                 <div className="p-3">
                   <h4 className="font-medium text-sm text-erobo-ink dark:text-white truncate group-hover:text-erobo-purple transition-colors">

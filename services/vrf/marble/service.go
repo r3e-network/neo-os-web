@@ -107,9 +107,23 @@ func New(cfg Config) (*Service, error) {
 	return s, nil
 }
 
+// markSeen checks if a request has been seen within the replay window.
+// SECURITY: Returns false if request was already seen (replay attack).
+// Returns true if this is a new request and marks it as seen.
+// IMPORTANT: Empty requestID is explicitly rejected as a security measure.
 func (s *Service) markSeen(requestID string) bool {
 	requestID = strings.TrimSpace(requestID)
 	if requestID == "" {
+		// SECURITY: Reject empty request IDs to prevent bypass of replay protection
+		s.Logger().Warn(context.Background(), "VRF request rejected: empty requestID", nil)
+		return false
+	}
+
+	// SECURITY: Require minimum requestID length for entropy
+	if len(requestID) < 16 {
+		s.Logger().Warn(context.Background(), "VRF request rejected: requestID too short (min 16 chars)", map[string]any{
+			"request_id_length": len(requestID),
+		})
 		return false
 	}
 
@@ -118,6 +132,10 @@ func (s *Service) markSeen(requestID string) bool {
 	defer s.replayMu.Unlock()
 
 	if until, ok := s.seenRequests[requestID]; ok && now.Before(until) {
+		s.Logger().Warn(context.Background(), "VRF replay attack detected", map[string]any{
+			"request_id": requestID,
+			"expires_at": until,
+		})
 		return false
 	}
 

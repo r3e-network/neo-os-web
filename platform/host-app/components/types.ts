@@ -1,7 +1,6 @@
 // MiniApp Platform Types
 
-import type { HighlightData } from "./features/miniapp/DynamicBanner";
-import type { AnyCardData } from "@/types/card-display";
+
 import type { ChainId } from "@/lib/chains/types";
 
 export type MiniAppCategory = "gaming" | "defi" | "governance" | "utility" | "social" | "nft";
@@ -58,8 +57,7 @@ export type MiniAppInfo = {
   status?: "active" | "disabled" | "pending" | null;
   source?: MiniAppSource;
   stats?: { users?: number; transactions?: number; views?: number };
-  highlights?: HighlightData[];
-  cardData?: AnyCardData;
+
   developer?: {
     name: string;
     address: string;

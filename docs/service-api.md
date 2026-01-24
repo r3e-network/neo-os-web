@@ -80,11 +80,12 @@ enforces a conservative result size cap (configurable via
       (or `miniapp_usage_check(...)` when `MINIAPP_USAGE_MODE=check` or
       `MINIAPP_USAGE_MODE_PAYMENTS=check`)
 
-### Governance (bNEO only)
+### Governance (NEO only)
 
-- `POST /functions/v1/vote-bneo`
-    - body: `{ app_id: "...", proposal_id: "...", bneo_amount: "10", chain_id?: "...", support?: true }`
-    - returns: a Governance `vote` invocation (bNEO-only) for the wallet/SDK to sign and submit
+- `POST /functions/v1/vote-neo`
+    - body: `{ app_id: "...", proposal_id: "...", neo_amount: "10", chain_id?: "...", support?: true }`
+    - legacy compatibility: `POST /functions/v1/vote-bneo` and `bneo_amount` are accepted
+    - returns: a Governance `vote` invocation (NEO-only) for the wallet/SDK to sign and submit
     - enforces: manifest `permissions.governance` and `limits.governance_cap` (when present)
     - tracks: `limits.governance_cap` via `miniapp_usage_bump(...)` (per-day enforcement)
       or `miniapp_usage_check(...)` when `MINIAPP_USAGE_MODE=check` or
@@ -104,14 +105,14 @@ enforces a conservative result size cap (configurable via
 - `POST /functions/v1/app-register`
     - body: `{ manifest: { ... } }`
     - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
-    - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["bNEO"]`
+    - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["NEO"]`
     - enforces: `contracts.<chain>.address` when news/stats are enabled
     - persists: canonical manifest in Supabase `miniapps` table for runtime enforcement
     - returns: an AppRegistry `registerApp` invocation for the developer wallet to sign and submit
 - `POST /functions/v1/app-update-manifest`
     - body: `{ manifest: { ... } }`
     - gateway computes `manifest_hash = sha256(canonical_json(manifest))`
-    - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["bNEO"]`
+    - enforces: `assets_allowed == ["GAS"]` and `governance_assets_allowed == ["NEO"]`
     - enforces: `contracts.<chain>.address` when news/stats are enabled
     - persists: updated canonical manifest in Supabase `miniapps` table
     - returns: an AppRegistry `updateApp` invocation for the developer wallet to sign and submit
@@ -301,7 +302,7 @@ triggers, and the supported action type is `webhook`.
 ### `txproxy` (tx-proxy)
 
 - `POST /invoke`: build+sign+broadcast allowlisted transactions.
-    - hard rule: **payments only GAS**, **governance only bNEO**, contract/method allowlists enforced.
+    - hard rule: **payments only GAS**, **governance only NEO**, contract/method allowlists enforced.
     - optional `intent` field enables stricter gates for `payments` (GAS.transfer to PaymentHub) and `governance` (Governance stake/unstake/vote) when contract addresses are configured.
 
 ### `neovrf` (vrf-service)

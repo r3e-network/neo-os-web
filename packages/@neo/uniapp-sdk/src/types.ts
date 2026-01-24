@@ -176,6 +176,14 @@ export interface AppUsageStats {
   unique_users: number;
 }
 
+/** Share options for generating share URLs */
+export interface ShareOptions {
+  /** Optional page path within the MiniApp */
+  page?: string;
+  /** Additional query parameters */
+  params?: Record<string, string>;
+}
+
 export interface MiniAppSDK {
   invoke(method: string, ...args: unknown[]): Promise<unknown>;
   getConfig(): MiniAppSDKConfig;
@@ -206,12 +214,40 @@ export interface MiniAppSDK {
   };
   events?: {
     list(params?: EventsListParams): Promise<EventsListResponse>;
+    emit?(eventName: string, data?: Record<string, unknown>): Promise<unknown>;
   };
   transactions?: {
     list(params?: TransactionsListParams): Promise<TransactionsListResponse>;
   };
   stats?: {
     getMyUsage(appId: string, date?: string): Promise<AppUsageStats>;
+  };
+  share?: {
+    /** Open the host app's share modal */
+    openModal(options?: ShareOptions): Promise<void>;
+    /** Get the shareable URL for the current app/page */
+    getUrl(options?: ShareOptions): Promise<string>;
+    /** Copy share URL to clipboard */
+    copy(options?: ShareOptions): Promise<boolean>;
+  };
+  automation?: {
+    register(
+      taskName: string,
+      taskType: string,
+      payload?: Record<string, unknown>,
+      schedule?: { intervalSeconds?: number; maxRuns?: number },
+    ): Promise<unknown>;
+    unregister(taskName: string): Promise<unknown>;
+    status(taskName: string): Promise<unknown>;
+    list(): Promise<unknown>;
+    update(
+      taskId: string,
+      payload?: Record<string, unknown>,
+      schedule?: { intervalSeconds?: number; cron?: string; maxRuns?: number },
+    ): Promise<unknown>;
+    enable(taskId: string): Promise<unknown>;
+    disable(taskId: string): Promise<unknown>;
+    logs(taskId?: string, limit?: number): Promise<unknown>;
   };
 }
 

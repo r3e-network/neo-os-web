@@ -1,13 +1,17 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, notFoundError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { getNeoRpcUrl } from "../_shared/k8s-config.ts";
-import { getChainConfig } from "../_shared/chains.ts";
-
-const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+import { getChainConfig, getNativeContractAddress } from "../_shared/chains.ts";
 
 interface Nep17Balance {
   assethash: string;
@@ -28,7 +32,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "GET") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const auth = await requireAuth(req);
@@ -43,11 +47,11 @@ export async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const chainId = url.searchParams.get("chain_id")?.trim() || "neo-n3-mainnet";
   const chain = getChainConfig(chainId);
-  if (!chain) return error(400, "unknown chain_id", "INVALID_CHAIN", req);
+  if (!chain) return notFoundError("chain", req);
 
   if (chain.type === "evm") {
     const rpcUrl = chain.rpc_urls?.[0];
-    if (!rpcUrl) return error(500, "RPC endpoint not configured", "RPC_ERROR", req);
+    if (!rpcUrl) return errorResponse("SERVER_001", { message: "RPC endpoint not configured" }, req);
     const res = await fetch(rpcUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -60,12 +64,12 @@ export async function handler(req: Request): Promise<Response> {
     });
 
     if (!res.ok) {
-      return error(500, "RPC request failed", "RPC_ERROR", req);
+      return errorResponse("SERVER_002", { message: "RPC request failed" }, req);
     }
 
     const data = await res.json();
     if (data.error) {
-      return error(500, data.error.message, "RPC_ERROR", req);
+      return errorResponse("SERVER_002", { message: data.error.message }, req);
     }
 
     const raw = String(data.result || "0x0");
@@ -91,29 +95,33 @@ export async function handler(req: Request): Promise<Response> {
   });
 
   if (!res.ok) {
-    return error(500, "RPC request failed", "RPC_ERROR", req);
+    return errorResponse("SERVER_002", { message: "RPC request failed" }, req);
   }
 
   const data = await res.json();
   if (data.error) {
-    return error(500, data.error.message, "RPC_ERROR", req);
+    return errorResponse("SERVER_002", { message: data.error.message }, req);
   }
 
   // Parse balances
   const balances: Nep17Balance[] = data.result?.balance || [];
   const result: Record<string, string> = {};
 
+  // Get native contract addresses for this chain
+  const gasHash = getNativeContractAddress(chainId, "gas")?.toLowerCase();
+  const neoHash = getNativeContractAddress(chainId, "neo")?.toLowerCase();
+
   for (const b of balances) {
     const hash = b.assethash.toLowerCase();
     const amount = BigInt(b.amount);
-    const decimals = hash === GAS_HASH.toLowerCase() ? 8n : 0n;
+    const decimals = hash === gasHash ? 8n : 0n;
     const divisor = 10n ** decimals;
     const intPart = amount / divisor;
     const fracPart = amount % divisor;
 
     let symbol = "UNKNOWN";
-    if (hash === GAS_HASH.toLowerCase()) symbol = "GAS";
-    else if (hash === NEO_HASH.toLowerCase()) symbol = "NEO";
+    if (hash === gasHash) symbol = "GAS";
+    else if (hash === neoHash) symbol = "NEO";
 
     if (decimals > 0n) {
       result[symbol] = `${intPart}.${fracPart.toString().padStart(Number(decimals), "0")}`;

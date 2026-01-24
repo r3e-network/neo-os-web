@@ -10,6 +10,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
+	github.com/lib/pq v1.10.9
 	github.com/nspcc-dev/neo-go v0.114.0
 	github.com/nspcc-dev/rfc6979 v0.2.4
 	github.com/prometheus/client_golang v1.23.2
@@ -36,7 +37,6 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/holiman/uint256 v1.3.2 // indirect
-	github.com/lib/pq v1.10.9 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nspcc-dev/bbolt v0.0.0-20250911202005-807225ebb0c8 // indirect

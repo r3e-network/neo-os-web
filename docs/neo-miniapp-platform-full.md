@@ -1,6 +1,6 @@
-# Neo N3 小应用平台（更新：支付仅 GAS，治理仅 bNEO）
+# Neo N3 小应用平台（更新：支付仅 GAS，治理仅 NEO）
 
-> 约束：支付/结算 **仅 GAS**；治理 **仅 bNEO**；服务层基于 **MarbleRun + EGo (SGX TEE)**；网关/数据用 **Supabase**；宿主前端 **Vercel + Next.js + 微前端**；包含高频 **Datafeed（≥0.1% 变动推送）**、VRF、Oracle、机密计算、自动化。
+> 约束：支付/结算 **仅 GAS**；治理 **仅 NEO**；服务层基于 **MarbleRun + EGo (SGX TEE)**；网关/数据用 **Supabase**；宿主前端 **Vercel + Next.js + 微前端**；包含高频 **Datafeed（≥0.1% 变动推送）**、VRF、Oracle、机密计算、自动化。
 >
 > 实现备注（本仓库）：已提供独立 `vrf-service`（`neovrf`）用于随机数生成与签名证明；`compute-service`（`neocompute`）专注机密计算。
 
@@ -30,7 +30,7 @@
 neo-miniapp-platform/
 ├─ contracts/
 │  ├─ PaymentHub/       # 仅 GAS 收付分账
-│  ├─ Governance/       # 仅 bNEO 治理/质押/投票
+│  ├─ Governance/       # 仅 NEO 治理/质押/投票
 │  ├─ PriceFeed/        # Datafeed 上链存证（0.1% 触发）
 │  ├─ RandomnessLog/    # 随机数+TEE 报告存证
 │  ├─ AppRegistry/      # 应用上架/状态/allowlist(MRSIGNER/合约)
@@ -77,7 +77,7 @@ neo-miniapp-platform/
 
 - 常量：`GAS`、`NEO`。
 - PaymentHub：仅 GAS；GAS transfer + withdraw；分账配置；限额/频率。
-- Governance：仅 bNEO；stake/unstake/vote；治理平台参数（费率、白名单）。
+- Governance：仅 NEO；stake/unstake/vote；治理平台参数（费率、白名单）。
 - PriceFeed：`symbol -> { round_id, price, ts, attestation_hash, sourceset_id }`；TEE 签名/测量校验；round_id 单调。
 - RandomnessLog：`requestId -> randomness + attestationHash + timestamp`。
 - AppRegistry：`app_id -> manifest_hash/entry_url/contracts/metadata/status/allowlist`（合约/MRSIGNER）。
@@ -93,7 +93,7 @@ neo-miniapp-platform/
 - compute-service：受限脚本/wasm 计算 → 结果+报告 → 可回调链上。
 - randomness（RNG/VRF）：通过 vrf-service 生成 → (randomness, signature, attestation) → RandomnessLog 或回调。
 - automation-service：事件/时间触发 → 调用目标合约（allowlist）。
-- tx-proxy：签名/广播；资产仅 GAS/bNEO；方法白名单；mTLS；防重放/额度检查。
+- tx-proxy：签名/广播；资产仅 GAS/NEO；方法白名单；mTLS；防重放/额度检查。
 - request-dispatcher：监听 ServiceLayerGateway 的 `ServiceRequested` 事件，调用 VRF/Oracle/Compute 并通过 tx-proxy 回调 `FulfillRequest`。
 - marblerun：policy/manifest 管理 MRSIGNER/MRENCLAVE、证书与密钥注入、轮换。
 
@@ -176,7 +176,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 - Auth：登录；地址绑定（一次签名）。
 - RLS：按 `user_id + app_id` 隔离，默认拒绝；写入仅服务角色（密钥在 TEE）。
 - 数据表：`miniapps`（清单/状态）、`miniapp_tx_events`、`miniapp_stats`、`miniapp_stats_daily`、`miniapp_notifications`、`processed_events`、`contract_events`、`chain_txs`。
-- Edge：鉴权、nonce、防重放、限流、资产预检（支付仅 GAS；治理仅 bNEO）；mTLS 转发到 TEE。
+- Edge：鉴权、nonce、防重放、限流、资产预检（支付仅 GAS；治理仅 NEO）；mTLS 转发到 TEE。
 - Storage：按 `app_id` 路径隔离对象。
 
 ## 5.5 平台 API 与实时推送
@@ -193,7 +193,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 ```json
 {
     "app_id": "your-app-id",
-    "entry_url": "https://cdn.miniapps.com/apps/neo-game/index.html",
+    "entry_url": "/miniapps/neo-game/index.html",
     "name": "Neo MiniApp",
     "version": "1.0.0",
     "developer_pubkey": "0x...",
@@ -206,7 +206,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
         "storage": ["kv"]
     },
     "assets_allowed": ["GAS"],
-    "governance_assets_allowed": ["bNEO"],
+    "governance_assets_allowed": ["NEO"],
     "limits": {
         "max_gas_per_tx": "5",
         "daily_gas_cap_per_user": "20",
@@ -260,7 +260,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 
 ## 10. MVP 里程碑
 
-1. 测试网部署：PaymentHub(GAS)、Governance(bNEO)、PriceFeed、RandomnessLog、AppRegistry、AutomationAnchor。
+1. 测试网部署：PaymentHub(GAS)、Governance(NEO)、PriceFeed、RandomnessLog、AppRegistry、AutomationAnchor。
 2. 服务：vrf-service + compute-service + datafeed-service(0.1% 阈值) + tx-proxy（EGo 仿真），MarbleRun dev policy。
 3. 平台：Next.js 宿主 + SDK + iframe；Edge 鉴权/限流；Supabase 本地/云。
 4. 内置小程序：`coin-flip`、`dice-game`、`scratch-card`、`lottery`、`prediction-market`、`flashloan`、`price-ticker`。
@@ -270,7 +270,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 
 ## 11. 开发者（小程序）流程
 
-1. 用 starter kit 创建前端；填 manifest（assets_allowed 仅 GAS，governance_assets_allowed 仅 bNEO）。
+1. 用 starter kit 创建前端；填 manifest（assets_allowed 仅 GAS，governance_assets_allowed 仅 NEO）。
 2. 接入 `window.MiniAppSDK`（payGAS / rng / datafeed / vote）；合约可触发 `Platform_Notification`/`Platform_Metric` 事件。
 3. 本地：neo-express + Supabase 本地 + SDK Mock/TEE 仿真，自测支付/随机数/价格订阅。
 4. 打包前端，提交 manifest（由 Edge 计算 `manifest_hash`）并提交审核；（若有）合约部署测试网。
@@ -280,7 +280,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 
 ## 12. 可立即提供的文件（按需索取）
 
-- 合约骨架（C#）：PaymentHub / Governance(bNEO-only) / PriceFeed / RandomnessLog / AppRegistry / AutomationAnchor
+- 合约骨架（C#）：PaymentHub / Governance(NEO-only) / PriceFeed / RandomnessLog / AppRegistry / AutomationAnchor
 - EGo/MarbleRun：policy.json / manifest.json 示例；vrf-service & compute-service & datafeed-service & tx-proxy 壳
 - Supabase：RLS SQL + Edge 路由实现（鉴权/限流/资产预检/mTLS 转发）
 - 前端：Next.js 宿主 + Module Federation 组件 + JS SDK（payGAS/vote/rng/datafeed）

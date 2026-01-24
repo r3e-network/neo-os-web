@@ -34,7 +34,7 @@ See `platform/edge/functions/`:
 - `miniapp-usage`: authenticated per-user daily usage.
 - `market-trending`: trending MiniApps based on rolling stats.
 - `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (Neo N3, GAS-only).
-- `vote-bneo`: returns a Governance `vote` invocation (Neo N3, bNEO-only).
+- `vote-neo`: returns a Governance `vote` invocation (Neo N3, NEO-only; legacy alias: `vote-bneo`).
 - `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `registerApp` invocation (chain-aware, developer wallet-signed).
 - `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateApp` invocation (chain-aware, developer wallet-signed).
 - `rng-request`: runs RNG via `neovrf` (signature + attestation hash).
@@ -93,6 +93,11 @@ API key management endpoints (`api-keys-*`) require `Authorization: Bearer <jwt>
 - `MINIAPP_USAGE_MODE`: `record` (default) or `check` for cap-only enforcement.
 - `MINIAPP_USAGE_MODE_PAYMENTS`, `MINIAPP_USAGE_MODE_GOVERNANCE`: optional per-intent overrides.
 - `CONTRACT_GAS_ADDRESS`: optional override for the native GAS contract address.
+
+## K8s Overlays
+
+- `k8s/platform/edge` defaults to testnet settings.
+- `k8s/platform/edge/overlays/mainnet` overrides RPC + contract addresses for mainnet.
 
 ## Rate Limiting
 

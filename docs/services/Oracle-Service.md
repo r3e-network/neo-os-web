@@ -85,7 +85,7 @@ Median:  5.20
 ## Integration Example
 
 ```typescript
-import { useDatafeed } from "@neo/uniapp-sdk";
+import { useDatafeed } from "@r3e/uniapp-sdk";
 
 const { getPrice, subscribe } = useDatafeed();
 

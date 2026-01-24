@@ -1,5 +1,7 @@
 import React from "react";
+import Image from "next/image";
 import { MiniAppInfo, MiniAppStats } from "./types";
+
 import { useI18n, useTranslation } from "@/lib/i18n/react";
 import { MiniAppLogo } from "./features/miniapp/MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
@@ -52,11 +54,13 @@ export function AppDetailHeader({ app, stats, description }: Props) {
       {/* Banner Section - force rebuild 2026-01-19T13:57 */}
       {hasBanner && (
         <div className="relative w-full h-48 overflow-hidden">
-          <img
-            src={app.banner}
+          <Image
+            src={app.banner as string}
             alt={`${appName} banner`}
-            className="w-full h-full object-cover"
-            loading="lazy"
+            fill
+            className="object-cover"
+            priority
+            sizes="100vw"
           />
           {/* Gradient overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -99,13 +103,6 @@ export function AppDetailHeader({ app, stats, description }: Props) {
 
         {/* Status Row */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <Badge
-            variant="secondary"
-            className="px-2.5 py-0.5 font-bold uppercase text-[10px] tracking-wider bg-erobo-purple/10 text-erobo-purple-dark shadow-sm border border-erobo-purple/30"
-          >
-            {app.category}
-          </Badge>
-
           <div
             className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] tracking-wider flex items-center gap-1.5 border shadow-sm backdrop-blur-sm ${statusKey === "online"
               ? "bg-erobo-purple/10 text-erobo-purple border-erobo-purple/30"
@@ -138,6 +135,15 @@ export function AppDetailHeader({ app, stats, description }: Props) {
             {description}
           </p>
         )}
+
+        <div className="flex flex-wrap items-center gap-2 pt-3">
+          <Badge
+            variant="secondary"
+            className="px-2.5 py-0.5 font-bold uppercase text-[10px] tracking-wider bg-erobo-purple/10 text-erobo-purple-dark shadow-sm border border-erobo-purple/30"
+          >
+            {app.category}
+          </Badge>
+        </div>
 
 
         {/* Quick Stats Row */}

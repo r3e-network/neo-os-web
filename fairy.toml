@@ -16,7 +16,7 @@ genesis_password = "test"
 [network.testnet]
 # Neo N3 TestNet
 rpc_url = "https://testnet1.neo.coz.io:443"
-network_magic = 877933390
+network_magic = 894710606
 # Wallet should be set via environment variable or CLI
 # wallet = "${TESTNET_WALLET_PATH}"
 

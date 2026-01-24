@@ -1,12 +1,22 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
 import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
 
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "DELETE") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const auth = await requireAuth(req);
@@ -16,7 +26,7 @@ export async function handler(req: Request): Promise<Response> {
   const commentId = url.searchParams.get("id")?.trim();
 
   if (!commentId) {
-    return error(400, "id is required", "MISSING_ID", req);
+    return validationError("id", "id is required", req);
   }
 
   const supabase = supabaseClient();
@@ -31,11 +41,11 @@ export async function handler(req: Request): Promise<Response> {
     .single();
 
   if (fetchErr || !comment) {
-    return error(404, "comment not found", "NOT_FOUND", req);
+    return notFoundError("comment", req);
   }
 
   if (comment.author_user_id !== userId) {
-    return error(403, "not authorized to delete", "FORBIDDEN", req);
+    return errorResponse("AUTH_004", { message: "not authorized to delete" }, req);
   }
 
   // Soft delete
@@ -45,10 +55,12 @@ export async function handler(req: Request): Promise<Response> {
     .eq("id", commentId);
 
   if (deleteErr) {
-    return error(500, "failed to delete comment", "DB_ERROR", req);
+    return errorResponse("SERVER_002", { message: "failed to delete comment" }, req);
   }
 
   return json({ success: true }, {}, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

@@ -8,7 +8,7 @@
  * will only show one Neo logo).
  */
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { ChainId } from "@/lib/chains/types";
 import { chainRegistry } from "@/lib/chains/registry";

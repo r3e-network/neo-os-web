@@ -19,7 +19,8 @@ func (s *Service) handleGetAccount(w http.ResponseWriter, r *http.Request) {
 
 	account, err := s.GetAccount(r.Context(), userID)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to get account")
+		httputil.InternalError(w, "failed to get account")
 		return
 	}
 
@@ -44,7 +45,8 @@ func (s *Service) handleDeductFee(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.DeductFee(r.Context(), &req)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to deduct fee")
+		httputil.InternalError(w, "failed to deduct fee")
 		return
 	}
 
@@ -71,7 +73,8 @@ func (s *Service) handleReserveFunds(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.ReserveFunds(r.Context(), &req)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to reserve funds")
+		httputil.InternalError(w, "failed to reserve funds")
 		return
 	}
 
@@ -98,7 +101,8 @@ func (s *Service) handleReleaseFunds(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.ReleaseFunds(r.Context(), &req)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to release funds")
+		httputil.InternalError(w, "failed to release funds")
 		return
 	}
 
@@ -119,14 +123,16 @@ func (s *Service) handleGetTransactions(w http.ResponseWriter, r *http.Request) 
 
 	account, err := s.db.GetGasBankAccount(r.Context(), userID)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to get account for transactions")
+		httputil.InternalError(w, "failed to get account")
 		return
 	}
 
 	limit := 50 // Default limit
 	txs, err := s.db.GetGasBankTransactions(r.Context(), account.ID, limit)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to get transactions")
+		httputil.InternalError(w, "failed to get transactions")
 		return
 	}
 
@@ -156,7 +162,8 @@ func (s *Service) handleGetDeposits(w http.ResponseWriter, r *http.Request) {
 	limit := 50 // Default limit
 	deposits, err := s.db.GetDepositRequests(r.Context(), userID, limit)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to get deposits")
+		httputil.InternalError(w, "failed to get deposits")
 		return
 	}
 

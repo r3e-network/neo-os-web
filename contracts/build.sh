@@ -105,7 +105,6 @@ platform_contracts=(
     "AutomationAnchor:AutomationAnchor"
     "ServiceLayerGateway:ServiceLayerGateway"
     "PauseRegistry:PauseRegistry"
-    "UniversalMiniApp:UniversalMiniApp"
 )
 
 echo "=== Building Platform Contracts ==="

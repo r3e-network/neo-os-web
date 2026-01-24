@@ -24,8 +24,11 @@ function getMTLSClient(): Deno.HttpClient | undefined {
     // Log warning once in production mode
     if (!mtlsWarningLogged && isProductionEnv()) {
       console.warn(
-        "[TEE] WARNING: mTLS not configured. TEE services requiring service authentication will fail. " +
-          "Set TEE_MTLS_CERT_PEM, TEE_MTLS_KEY_PEM, and TEE_MTLS_ROOT_CA_PEM for production.",
+        "[TEE] SECURITY WARNING: mTLS not configured in production!" +
+          "\n  - Consequence: TEE service requests will fail with HTTP 503" +
+          "\n  - Impact: Compute, RNG, and secrets services will be unavailable" +
+          "\n  - Fix: Set environment variables TEE_MTLS_CERT_PEM, TEE_MTLS_KEY_PEM, TEE_MTLS_ROOT_CA_PEM" +
+          "\n  - Reference: See deployment guide for certificate setup instructions",
       );
       mtlsWarningLogged = true;
     }

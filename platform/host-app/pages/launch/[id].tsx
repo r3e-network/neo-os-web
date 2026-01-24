@@ -164,6 +164,18 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   }, [theme, entryUrl]);
 
   useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    const origin = resolveIframeOrigin(entryUrl);
+    if (!origin) return;
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const targetOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
+    const supportedLocale = getMiniappLocale(locale);
+    iframe.contentWindow.postMessage({ type: "language-change", language: supportedLocale }, targetOrigin);
+  }, [locale, entryUrl]);
+
+  useEffect(() => {
     if (federated) return;
     if (typeof window === "undefined") return;
 
@@ -356,7 +368,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
                   className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
                     isIframeLoading ? "opacity-0" : "opacity-100"
                   }`}
-                  sandbox="allow-scripts allow-forms allow-popups"
+                  sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
                   title={`${app.name} MiniApp`}
                   allowFullScreen
                   referrerPolicy="no-referrer"

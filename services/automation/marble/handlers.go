@@ -19,7 +19,8 @@ func (s *Service) handleListTriggers(w http.ResponseWriter, r *http.Request) {
 
 	triggers, err := s.repo.GetTriggers(r.Context(), userID)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to get triggers")
+		httputil.InternalError(w, "failed to get triggers")
 		return
 	}
 

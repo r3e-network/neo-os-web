@@ -4,11 +4,11 @@ MiniApps must not construct or sign transactions directly. All sensitive actions
 
 `MiniApp → Host SDK → Supabase Edge (auth/limits) → TEE services (attested) → chain (Neo N3 / EVM)`
 
-The SDK source lives in this repo at `packages/@neo/uniapp-sdk` and is published to npm as `@neo/uniapp-sdk`.
+The SDK source lives in this repo at `packages/@r3e/uniapp-sdk` and is published to npm as `@r3e/uniapp-sdk`.
 
 ## Runtime Model
 
-- The host provides `window.MiniAppSDK` (or use `@neo/uniapp-sdk` helpers).
+- The host provides `window.MiniAppSDK` (or use `@r3e/uniapp-sdk` helpers).
 - MiniApps run in a sandbox (Module Federation or `iframe`) with strict CSP.
 - MiniApps communicate with the host via a restricted message channel (allowlisted origins).
 - If direct injection is not available, the SDK falls back to a postMessage bridge and validates origin on every response.
@@ -16,11 +16,11 @@ The SDK source lives in this repo at `packages/@neo/uniapp-sdk` and is published
 For UniApp/Vue, install and use:
 
 ```bash
-pnpm add @neo/uniapp-sdk
+pnpm add @r3e/uniapp-sdk
 ```
 
 ```ts
-import { waitForSDK } from "@neo/uniapp-sdk";
+import { waitForSDK } from "@r3e/uniapp-sdk";
 const sdk = await waitForSDK();
 ```
 
@@ -303,6 +303,6 @@ The platform includes 24 builtin MiniApps demonstrating SDK usage patterns:
 | Social     | `builtin-gas-circle`        | Daily savings circle                 |
 | Social     | `builtin-canvas`            | Collaborative pixel art canvas       |
 | Governance | `builtin-secret-vote`       | Privacy-preserving voting            |
-| Governance | `builtin-gov-booster`       | bNEO governance tools                |
+| Governance | `builtin-gov-booster`       | NEO governance tools                 |
 | Security   | `builtin-guardian-policy`   | TEE transaction security             |
 | Gaming     | `builtin-nft-evolve`        | Dynamic NFT evolution                |

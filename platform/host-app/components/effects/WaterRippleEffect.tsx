@@ -10,7 +10,7 @@
  * - Uses requestAnimationFrame for smooth animation
  */
 
-import React, { useEffect, useRef, useState, useCallback, memo } from "react";
+import React, { useEffect, useRef, useState, useCallback, memo, useId } from "react";
 
 interface Ripple {
   id: number;
@@ -52,6 +52,8 @@ export const WaterRippleEffect = memo(function WaterRippleEffect({
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const rippleIdRef = useRef(0);
   const animationRef = useRef<number | null>(null);
+  const uniqueId = useId();
+  const filterId = `water-ripple-filter-${uniqueId.replace(/[^a-zA-Z0-9_-]/g, "") || "default"}`;
 
   // Create a new ripple at center or specified position
   const createRipple = useCallback(
@@ -95,8 +97,6 @@ export const WaterRippleEffect = memo(function WaterRippleEffect({
       }
     };
   }, []);
-
-  const filterId = `water-ripple-filter-${rippleIdRef.current}`;
 
   return (
     <div ref={containerRef} className={`water-ripple-container ${className}`}>

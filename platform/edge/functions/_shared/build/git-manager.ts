@@ -23,7 +23,10 @@ export async function cloneRepo(url: string, branch: string = "main", shallow: b
 
   if (code !== 0) {
     await cleanup(tempDir);
-    throw new Error(`Git clone failed: ${stderr}`);
+    // SECURITY: Sanitize error message to avoid leaking internal paths or sensitive data
+    const stderrStr = new TextDecoder().decode(stderr);
+    console.error(`Git clone failed (code ${code}):`, stderrStr);
+    throw new Error("Failed to clone repository. Please verify the URL and branch.");
   }
 
   return tempDir;
@@ -136,7 +139,9 @@ export async function readFile(repoPath: string, filePath: string): Promise<stri
   try {
     return await Deno.readTextFile(fullPath);
   } catch (error) {
-    throw new Error(`Failed to read file ${filePath}: ${error.message}`);
+    // SECURITY: Log detailed error internally but return generic message
+    console.error(`File read failed for ${filePath}:`, error);
+    throw new Error("Failed to read required file");
   }
 }
 
@@ -148,7 +153,8 @@ export async function cleanup(dirPath: string): Promise<void> {
   try {
     await Deno.remove(dirPath, { recursive: true });
   } catch (error) {
-    console.warn(`Failed to cleanup ${dirPath}: ${error.message}`);
+    // SECURITY: Don't log full temp path to avoid leaking internal paths
+    console.warn(`Failed to cleanup temporary directory: ${error.message}`);
   }
 }
 

@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
 import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
@@ -15,7 +25,7 @@ const MAX_SERVICES = 16;
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -33,15 +43,15 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const name = String(body.name ?? "").trim();
-  if (!name) return error(400, "name required", "NAME_REQUIRED", req);
+  if (!name) return validationError("name", "name required", req);
 
   const rawServices = Array.isArray(body.services) ? body.services : [];
   const services = rawServices.map((s) => String(s ?? "").trim()).filter(Boolean);
-  if (services.length > MAX_SERVICES) return error(400, "too many services", "SERVICES_INVALID", req);
+  if (services.length > MAX_SERVICES) return validationError("services", "too many services", req);
 
   const supabase = supabaseServiceClient();
 
@@ -52,8 +62,8 @@ export async function handler(req: Request): Promise<Response> {
     .eq("user_id", auth.userId)
     .eq("name", name)
     .limit(1);
-  if (secretErr) return error(500, `failed to load secret: ${secretErr.message}`, "DB_ERROR", req);
-  if (!secretRows || secretRows.length === 0) return error(404, "secret not found", "NOT_FOUND", req);
+  if (secretErr) return errorResponse("SERVER_002", { message: `failed to load secret: ${secretErr.message}` }, req);
+  if (!secretRows || secretRows.length === 0) return notFoundError("secret", req);
 
   // Replace policies.
   const { error: delErr } = await supabase
@@ -61,7 +71,7 @@ export async function handler(req: Request): Promise<Response> {
     .delete()
     .eq("user_id", auth.userId)
     .eq("secret_name", name);
-  if (delErr) return error(500, `failed to delete policies: ${delErr.message}`, "DB_ERROR", req);
+  if (delErr) return errorResponse("SERVER_002", { message: `failed to delete policies: ${delErr.message}` }, req);
 
   if (services.length > 0) {
     const rows = services.map((svc) => ({
@@ -71,7 +81,7 @@ export async function handler(req: Request): Promise<Response> {
     }));
 
     const { error: insErr } = await supabase.from("secret_policies").insert(rows);
-    if (insErr) return error(500, `failed to create policies: ${insErr.message}`, "DB_ERROR", req);
+    if (insErr) return errorResponse("SERVER_002", { message: `failed to create policies: ${insErr.message}` }, req);
   }
 
   return json({ status: "ok", services }, {}, req);

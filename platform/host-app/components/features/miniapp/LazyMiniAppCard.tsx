@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { MiniAppCardWithHighlights } from "./MiniAppCardWithHighlights";
+import { MiniAppCard } from "./MiniAppCard";
 import type { MiniAppInfo } from "./MiniAppCard";
 
 interface LazyMiniAppCardProps {
@@ -36,7 +36,7 @@ export function LazyMiniAppCard({ app }: LazyMiniAppCardProps) {
 
   return (
     <div ref={containerRef} className="min-h-[320px]">
-      {isVisible ? <MiniAppCardWithHighlights app={app} /> : <CardPlaceholder name={app.name} />}
+      {isVisible ? <MiniAppCard app={app} /> : <CardPlaceholder name={app.name} />}
     </div>
   );
 }

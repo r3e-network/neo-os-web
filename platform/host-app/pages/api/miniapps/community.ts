@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { fetchCommunityApps } from "../../../lib/community-apps";
+import { fetchCommunityApps, type RegistryStatusFilter } from "../../../lib/community-apps";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const status = (req.query.status as string) || "active";
+    const status = ((req.query.status as string) || "active") as RegistryStatusFilter;
     const category = req.query.category as string | undefined;
     const apps = await fetchCommunityApps({ status, category });
     res.status(200).json({ apps });

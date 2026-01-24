@@ -19,7 +19,11 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
   const normalizeHeaders = (headers?: HeadersInit): Record<string, string> | undefined => {
     if (!headers) return undefined;
     if (headers instanceof Headers) {
-      return Object.fromEntries(headers.entries());
+      const result: Record<string, string> = {};
+      headers.forEach((value, key) => {
+        result[key] = value;
+      });
+      return result;
     }
     if (Array.isArray(headers)) {
       return Object.fromEntries(headers);

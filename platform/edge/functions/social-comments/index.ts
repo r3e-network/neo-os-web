@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { supabaseClient } from "../_shared/supabase.ts";
 import { getCommentVoteCounts } from "../_shared/community.ts";
@@ -8,7 +18,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "GET") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const rateLimited = await requireRateLimit(req, "social-comments");
@@ -21,7 +31,7 @@ export async function handler(req: Request): Promise<Response> {
   const offsetRaw = url.searchParams.get("offset");
 
   if (!appId) {
-    return error(400, "app_id is required", "MISSING_APP_ID", req);
+    return validationError("app_id", "app_id is required", req);
   }
 
   let limit = 20;
@@ -56,7 +66,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const { data, error: err, count } = await query;
-  if (err) return error(500, "failed to fetch comments", "DB_ERROR", req);
+  if (err) return errorResponse("SERVER_002", { message: "failed to fetch comments" }, req);
 
   // Get vote counts
   const commentIds = (data || []).map((c) => c.id);
@@ -94,4 +104,6 @@ export async function handler(req: Request): Promise<Response> {
   );
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

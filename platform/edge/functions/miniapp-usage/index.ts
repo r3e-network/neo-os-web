@@ -1,6 +1,16 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
 
@@ -23,7 +33,7 @@ function resolveUsageDate(raw?: string | null): string | null {
 
 function normalizeUsageRow(
   row: Record<string, unknown>,
-  fallback: { app_id: string; chain_id?: string; usage_date: string },
+  fallback: { app_id: string; chain_id?: string; usage_date: string }
 ): UsageRow {
   const appId = String(row.app_id ?? fallback.app_id ?? "").trim();
   const chainId = String(row.chain_id ?? fallback.chain_id ?? "").trim();
@@ -41,7 +51,7 @@ function normalizeUsageRow(
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -54,7 +64,7 @@ export async function handler(req: Request): Promise<Response> {
   const appId = String(url.searchParams.get("app_id") ?? "").trim();
   const chainId = String(url.searchParams.get("chain_id") ?? "").trim();
   const date = resolveUsageDate(url.searchParams.get("date"));
-  if (!date) return error(400, "date must be YYYY-MM-DD", "DATE_INVALID", req);
+  if (!date) return validationError("date", "date must be YYYY-MM-DD", req);
 
   let limit = Number.parseInt(url.searchParams.get("limit") ?? "50", 10);
   if (Number.isNaN(limit) || limit <= 0) limit = 50;
@@ -64,7 +74,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     supabase = supabaseServiceClient();
   } catch (err) {
-    return error(500, String(err), "SUPABASE_CONFIG_ERROR", req);
+    return errorResponse("SERVER_001", { message: String(err) }, req);
   }
 
   if (appId) {
@@ -81,7 +91,7 @@ export async function handler(req: Request): Promise<Response> {
 
     const { data, error: err } = await query.maybeSingle();
 
-    if (err) return error(500, err.message, "DB_ERROR", req);
+    if (err) return errorResponse("SERVER_002", { message: err.message }, req);
 
     const usage = normalizeUsageRow(data ?? {}, { app_id: appId, chain_id: chainId, usage_date: date });
     return json({ usage }, {}, req);
@@ -99,15 +109,17 @@ export async function handler(req: Request): Promise<Response> {
 
   const { data, error: err } = await query.order("gas_used", { ascending: false }).limit(limit);
 
-  if (err) return error(500, err.message, "DB_ERROR", req);
+  if (err) return errorResponse("SERVER_002", { message: err.message }, req);
 
   const usage = Array.isArray(data)
     ? data.map((row) =>
-        normalizeUsageRow(row as Record<string, unknown>, { app_id: "", chain_id: chainId, usage_date: date }),
+        normalizeUsageRow(row as Record<string, unknown>, { app_id: "", chain_id: chainId, usage_date: date })
       )
     : [];
 
   return json({ usage, date }, {}, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

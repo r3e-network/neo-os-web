@@ -40,7 +40,7 @@
 \contentsline {subsection}{\numberline {7.3}Manifest Specification}{20}{subsection.7.3}%
 \contentsline {section}{\numberline {8}Tokenomics}{22}{section.8}%
 \contentsline {subsection}{\numberline {8.1}GAS: The Utility Token}{22}{subsection.8.1}%
-\contentsline {subsection}{\numberline {8.2}bNEO: The Governance Token}{22}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.2}NEO: The Governance Token}{22}{subsection.8.2}%
 \contentsline {section}{\numberline {9}Platform Vision}{24}{section.9}%
 \contentsline {subsection}{\numberline {9.1}Foundation Layer}{24}{subsection.9.1}%
 \contentsline {subsection}{\numberline {9.2}Applications Layer}{24}{subsection.9.2}%

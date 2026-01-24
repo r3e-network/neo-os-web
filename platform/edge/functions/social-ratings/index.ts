@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { supabaseClient, tryGetUser } from "../_shared/supabase.ts";
 
@@ -7,7 +17,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "GET") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const rateLimited = await requireRateLimit(req, "social-ratings");
@@ -17,7 +27,7 @@ export async function handler(req: Request): Promise<Response> {
   const appId = url.searchParams.get("app_id")?.trim();
 
   if (!appId) {
-    return error(400, "app_id is required", "MISSING_APP_ID", req);
+    return validationError("app_id", "app_id is required", req);
   }
 
   const supabase = supabaseClient();
@@ -26,7 +36,7 @@ export async function handler(req: Request): Promise<Response> {
   const { data: ratingData, error: rpcErr } = await supabase.rpc("calculate_app_rating_weighted", { p_app_id: appId });
 
   if (rpcErr) {
-    return error(500, "failed to calculate rating", "DB_ERROR", req);
+    return errorResponse("SERVER_002", { message: "failed to calculate rating" }, req);
   }
 
   const result = ratingData?.[0] || {
@@ -67,4 +77,6 @@ export async function handler(req: Request): Promise<Response> {
   );
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

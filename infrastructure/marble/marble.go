@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,6 +18,7 @@ import (
 	"github.com/edgelesssys/ego/enclave"
 
 	slhttputil "github.com/R3E-Network/service_layer/infrastructure/httputil"
+	slhex "github.com/R3E-Network/service_layer/infrastructure/hex"
 	"github.com/R3E-Network/service_layer/infrastructure/logging"
 )
 
@@ -272,31 +272,6 @@ func (t *traceHeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, 
 	return t.base.RoundTrip(clone)
 }
 
-func decodeHexEnvSecret(value string) ([]byte, bool) {
-	value = strings.TrimSpace(value)
-	value = strings.TrimPrefix(value, "0x")
-	value = strings.TrimPrefix(value, "0X")
-	if value == "" || len(value)%2 != 0 {
-		return nil, false
-	}
-
-	for _, ch := range value {
-		switch {
-		case '0' <= ch && ch <= '9':
-		case 'a' <= ch && ch <= 'f':
-		case 'A' <= ch && ch <= 'F':
-		default:
-			return nil, false
-		}
-	}
-
-	decoded, err := hex.DecodeString(value)
-	if err != nil {
-		return nil, false
-	}
-	return decoded, true
-}
-
 // Secret returns a secret by name.
 func (m *Marble) Secret(name string) ([]byte, bool) {
 	m.mu.RLock()
@@ -313,7 +288,7 @@ func (m *Marble) Secret(name string) ([]byte, bool) {
 	}
 
 	decoded := []byte(envValue)
-	if hexDecoded, hexOk := decodeHexEnvSecret(envValue); hexOk {
+	if hexDecoded, hexOk := slhex.TryDecode(envValue); hexOk {
 		decoded = hexDecoded
 	}
 

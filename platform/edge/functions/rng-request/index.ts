@@ -1,8 +1,12 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getChainConfig } from "../_shared/chains.ts";
 import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { getEnv, mustGetEnv } from "../_shared/env.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
@@ -23,7 +27,7 @@ type RNGRequest = {
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -38,17 +42,17 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
   const appId = (body.app_id ?? "").trim();
-  if (!appId) return error(400, "app_id required", "APP_ID_REQUIRED", req);
+  if (!appId) return validationError("app_id", "app_id required", req);
 
   const policy = await fetchMiniAppPolicy(appId, req);
   if (policy instanceof Response) return policy;
   if (policy) {
     const allowed = permissionEnabled(policy.permissions, "rng");
     if (!allowed) {
-      return error(403, "app is not allowed to request randomness", "PERMISSION_DENIED", req);
+      return errorResponse("AUTH_004", { message: "app is not allowed to request randomness" }, req);
     }
   }
 
@@ -57,14 +61,14 @@ export async function handler(req: Request): Promise<Response> {
     .toLowerCase();
   const chainId = requestedChainId || policy?.supportedChains?.[0] || "neo-n3-mainnet";
   if (policy?.supportedChains?.length && !policy.supportedChains.includes(chainId)) {
-    return error(400, `chain_id not supported by app: ${chainId}`, "CHAIN_NOT_SUPPORTED", req);
+    return errorResponse("VAL_006", { chain_id: chainId }, req);
   }
   const chain = getChainConfig(chainId);
-  if (!chain) return error(400, `unknown chain_id: ${chainId}`, "CHAIN_NOT_FOUND", req);
+  if (!chain) return notFoundError("chain", req);
 
   // Validate chain type is supported
   if (chain.type !== "neo-n3" && chain.type !== "evm") {
-    return error(400, `unsupported chain type: ${chain.type}`, "CHAIN_TYPE_UNSUPPORTED", req);
+    return errorResponse("VAL_008", { message: `unsupported chain type: ${chain.type}` }, req);
   }
 
   const requestId = crypto.randomUUID();
@@ -73,13 +77,13 @@ export async function handler(req: Request): Promise<Response> {
   if (chain.type === "evm") {
     const vrfCoordinator = chain.contracts?.vrf_coordinator;
     if (!vrfCoordinator) {
-      return error(500, "vrf_coordinator not configured for chain", "CONFIG_ERROR", req);
+      return errorResponse("SERVER_001", { message: "vrf_coordinator not configured for chain" }, req);
     }
 
     const keyHash = chain.contracts?.vrf_key_hash || getEnv("EVM_VRF_KEY_HASH");
     const subId = chain.contracts?.vrf_subscription_id || getEnv("EVM_VRF_SUBSCRIPTION_ID");
     if (!keyHash || !subId) {
-      return error(500, "VRF key_hash or subscription_id not configured", "CONFIG_ERROR", req);
+      return errorResponse("SERVER_001", { message: "VRF key_hash or subscription_id not configured" }, req);
     }
 
     const numWords = Math.min(Math.max(body.num_words || 1, 1), 10);
@@ -123,7 +127,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const responseId = String((vrfResult as any)?.request_id ?? "").trim();
   if (responseId && responseId !== requestId) {
-    return error(502, "vrf request_id mismatch", "RNG_REQUEST_ID_MISMATCH", req);
+    return errorResponse("SERVER_002", { message: "vrf request_id mismatch" }, req);
   }
 
   const randomnessHex = String((vrfResult as any)?.randomness ?? "").trim();
@@ -131,7 +135,7 @@ export async function handler(req: Request): Promise<Response> {
   const publicKeyHex = String((vrfResult as any)?.public_key ?? "").trim();
   const attestationHex = String((vrfResult as any)?.attestation_hash ?? "").trim();
   if (!/^[0-9a-fA-F]+$/.test(randomnessHex) || randomnessHex.length < 2) {
-    return error(502, "invalid randomness output", "RNG_INVALID_OUTPUT", req);
+    return errorResponse("SERVER_002", { message: "invalid randomness output" }, req);
   }
   const attestationHash = /^[0-9a-fA-F]+$/.test(attestationHex) ? attestationHex : "";
   const signature = /^[0-9a-fA-F]+$/.test(signatureHex) ? signatureHex : "";
@@ -141,7 +145,7 @@ export async function handler(req: Request): Promise<Response> {
   let anchoredTx: unknown = undefined;
   if (getEnv("RNG_ANCHOR") === "1") {
     if (chain.type !== "neo-n3") {
-      return error(400, "rng anchoring only supported on neo-n3 chains", "CHAIN_TYPE_UNSUPPORTED", req);
+      return errorResponse("VAL_008", { message: "rng anchoring only supported on neo-n3 chains" }, req);
     }
     const txproxyURL = mustGetEnv("TXPROXY_URL");
     const randomnessLogAddress = normalizeUInt160(

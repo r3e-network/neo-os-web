@@ -230,6 +230,7 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   // Self-contained i18n fields
   const nameZh = toString(obj.name_zh ?? fallback?.name_zh ?? "").trim() || undefined;
   const descriptionZh = toString(obj.description_zh ?? fallback?.description_zh ?? "").trim() || undefined;
+  const banner = toString(obj.banner ?? fallback?.banner ?? "").trim() || undefined;
 
   return {
     app_id: appId,
@@ -238,6 +239,7 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     description,
     description_zh: descriptionZh,
     icon,
+    banner,
     category,
     entry_url: entryUrl,
     // Multi-chain fields - supportedChains is required

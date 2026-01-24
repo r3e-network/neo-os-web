@@ -26,7 +26,8 @@ export default async function handler(
   }
 
   if (!isSupabaseConfigured) {
-    return res.status(500).json({ error: "Database not configured" });
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res.status(200).json({ stats: {}, cached: true });
   }
 
   // Check cache first
@@ -44,7 +45,9 @@ export default async function handler(
 
     if (error) {
       console.error("Miniapp card stats query error:", error);
-      return res.status(500).json({ error: "Failed to fetch stats" });
+      const fallback = cardStatsCache?.data || {};
+      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+      return res.status(200).json({ stats: fallback, cached: true });
     }
 
     if (data) {
@@ -67,6 +70,8 @@ export default async function handler(
     res.status(200).json({ stats });
   } catch (error) {
     console.error("Miniapp card stats error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    const fallback = cardStatsCache?.data || {};
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res.status(200).json({ stats: fallback, cached: true });
   }
 }

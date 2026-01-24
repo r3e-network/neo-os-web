@@ -79,7 +79,7 @@
 \vspace{2cm}
 \begin{abstract}
 \noindent
-Neo N3 小程序平台代表了去中心化应用开发的范式转变，提供了一个综合基础设施，弥合了传统 Web2 用户体验与区块链技术安全保障之间的鸿沟。本白皮书介绍了该平台的技术架构、安全模型和运营框架，旨在使开发者能够在安全的沙箱环境中构建、部署和运营轻量级去中心化应用——即小程序（MiniApps）。通过利用基于 Intel SGX 技术的可信执行环境（TEE）和 MarbleRun 编排框架，平台确保密钥管理、交易签名和随机数生成等敏感操作在硬件保护的飞地中执行。平台强制执行严格的资产分离，规定所有支付操作使用 GAS 代币，治理活动使用 bNEO（Burger NEO）代币，从而确保合规性和利益相关者的一致性。凭借七个基础智能合约、六个基于 TEE 的服务，以及涵盖游戏、去中心化金融、社交互动和治理领域的二十三个生产就绪的内置应用，Neo N3 小程序平台为安全且易于访问的区块链应用开发树立了新标准。
+Neo N3 小程序平台代表了去中心化应用开发的范式转变，提供了一个综合基础设施，弥合了传统 Web2 用户体验与区块链技术安全保障之间的鸿沟。本白皮书介绍了该平台的技术架构、安全模型和运营框架，旨在使开发者能够在安全的沙箱环境中构建、部署和运营轻量级去中心化应用——即小程序（MiniApps）。通过利用基于 Intel SGX 技术的可信执行环境（TEE）和 MarbleRun 编排框架，平台确保密钥管理、交易签名和随机数生成等敏感操作在硬件保护的飞地中执行。平台强制执行严格的资产分离，规定所有支付操作使用 GAS 代币，治理活动使用 NEO 代币，从而确保合规性和利益相关者的一致性。凭借七个基础智能合约、六个基于 TEE 的服务，以及涵盖游戏、去中心化金融、社交互动和治理领域的二十三个生产就绪的内置应用，Neo N3 小程序平台为安全且易于访问的区块链应用开发树立了新标准。
 \end{abstract}
 \vfill
 {\small Neo R3E Network\par}
@@ -133,7 +133,7 @@ Neo N3 小程序平台建立在四个基础原则之上，这些原则指导所�
     \item \textbf{安全优先}：所有敏感操作——包括密钥生成、交易签名和随机数生成——在受 Intel SGX 硬件保护的可信执行环境中执行。
     \item \textbf{开发者体验}：具有清晰、文档完善的 API 的综合 TypeScript SDK 使开发者无需区块链专业知识即可构建复杂应用。
     \item \textbf{可扩展性}：账户池架构维护超过一万个预生成账户，以支持高吞吐量交易处理而不产生瓶颈。
-    \item \textbf{合规性}：强制执行 GAS 实用代币和 bNEO 治理代币之间的严格资产分离，确保平台在监管框架内运营，同时保持清晰的利益相关者激励。
+    \item \textbf{合规性}：强制执行 GAS 实用代币和 NEO 治理代币之间的严格资产分离，确保平台在监管框架内运营，同时保持清晰的利益相关者激励。
 \end{enumerate}
 
 \newpage
@@ -219,7 +219,7 @@ TEE 服务层内的密钥材料通过 SGX 密封绑定到特定的飞地测量�
 
 \begin{itemize}
     \item \textbf{PaymentHub}：中央结算机制，处理所有 GAS 支付并在小程序开发者和平台国库之间分配收入。实施严格的资产验证，在合约级别拒绝任何非 GAS 代币。
-    \item \textbf{Governance}：管理 bNEO 质押和提案投票，使代币持有者能够参与平台治理决策。
+    \item \textbf{Governance}：管理 NEO 质押和提案投票，使代币持有者能够参与平台治理决策。
     \item \textbf{PriceFeed}：存储带有 TEE 证明签名的预言机价格数据，为 DeFi 应用提供链上价格参考。
     \item \textbf{RandomnessLog}：锚定由 NeoVRF 服务生成的可验证随机值，使游戏应用中使用的随机性能够在链上验证。
     \item \textbf{AppRegistry}：维护已批准小程序的注册表，存储清单哈希并管理授权应用的白名单。
@@ -284,11 +284,11 @@ Neo N3 小程序平台实施纵深防御安全策略，在多个架构层建立�
 
 \subsection{资产分离与合规}
 
-平台强制执行 GAS 实用代币和 bNEO 治理代币之间的严格分离，这种分离在所有架构层得到执行：
+平台强制执行 GAS 实用代币和 NEO 治理代币之间的严格分离，这种分离在所有架构层得到执行：
 
 \begin{itemize}
     \item \textbf{支付操作}：专门使用 GAS 代币，PaymentHub 合约在合约级别拒绝任何非 GAS 资产。
-    \item \textbf{治理活动}：需要 bNEO 代币，Governance 合约验证所有质押和投票操作仅涉及 bNEO。
+    \item \textbf{治理活动}：需要 NEO 代币，Governance 合约验证所有质押和投票操作仅涉及 NEO。
     \item \textbf{多层执行}：SDK、网关和 TEE 服务都在请求到达区块链之前验证资产类型。
 \end{itemize}
 
@@ -430,7 +430,7 @@ Neo N3 小程序平台的区块链层由七个精心设计的智能合约组成�
 \textbf{合约} & \textbf{资产策略} & \textbf{主要功能} \\
 \midrule
 PaymentHub & 仅 GAS & 支付结算和收益分配 \\
-Governance & 仅 bNEO & 质押、提案和投票 \\
+Governance & 仅 NEO & 质押、提案和投票 \\
 PriceFeed & 无 & 带 TEE 证明的预言机价格数据 \\
 RandomnessLog & 无 & VRF 随机数锚定 \\
 AppRegistry & 无 & 小程序注册和白名单 \\
@@ -448,13 +448,13 @@ ServiceLayerGateway & GAS（费用） & 链上服务请求路由 \\
 \toprule
 \textbf{合约} & \textbf{地址} \\
 \midrule
-PaymentHub & \texttt{NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq} \\
-Governance & \texttt{NeEWK3vcVRWJDebyBCyLx6HSzJZSeYhXAt} \\
-PriceFeed & \texttt{Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM} \\
-RandomnessLog & \texttt{NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD} \\
-AppRegistry & \texttt{NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy} \\
-AutomationAnchor & \texttt{NNWqgxGnXGtfK7VHvEqbdSu3jq8Pu8xkvM} \\
-ServiceLayerGateway & \texttt{NPXyVuEVfp47Abcwq6oTKmtwbJM6Yh965c} \\
+PaymentHub & \texttt{NZLGNdQUa5jQ2VC1r3MGoJFGm3BW8Kv81q} \\
+Governance & \texttt{NLRGStjsRpN3bk71KNoKe74fNxUT72gfpe} \\
+PriceFeed & \texttt{NTdJ7XHZtYXSRXnWGxV6TcyxiSRCcjP4X1} \\
+RandomnessLog & \texttt{NR9urKR3FZqAfvowx2fyWjtWHBpqLqrEPP} \\
+AppRegistry & \texttt{NXZNTXiPuBRHnEaKFV3tLHhitkbt3XmoWJ} \\
+AutomationAnchor & \texttt{NcVrd4Z7W8sxv9jvdBF72xfiWBnvRsgVkx} \\
+ServiceLayerGateway & \texttt{NTWh6auSz3nvBZSbXHbZz4ShwPhmpkC5Ad} \\
 \bottomrule
 \end{tabular}
 \label{tab:platform-contracts-addresses}
@@ -473,10 +473,10 @@ PaymentHub 合约作为所有 GAS 支付操作的中央结算机制：
 
 \subsection{Governance：利益相关者参与}
 
-Governance 合约使用 bNEO 代币实现平台治理：
+Governance 合约使用 NEO 代币实现平台治理：
 
 \begin{itemize}
-    \item \textbf{质押机制}：用户质押 bNEO 获得投票权。
+    \item \textbf{质押机制}：用户质押 NEO 获得投票权。
     \item \textbf{提案系统}：支持参数调整、应用审批、资金分配等提案类型。
     \item \textbf{投票流程}：讨论期 → 投票期 → 时间锁 → 执行。
     \item \textbf{法定人数}：提案需达到法定人数和超级多数才能通过。
@@ -623,7 +623,7 @@ GasCircle 应用创建每日储蓄圈，参与者向共享池贡献 GAS，每个
 
 SecretVote 应用为社区决策提供隐私保护投票，利用 TEE 确保个人投票保持机密，同时产生可验证的汇总结果。该应用展示了平台的机密计算能力如何在治理场景中保护投票者隐私。
 
-GovBooster 应用提供 bNEO 治理优化工具，帮助代币持有者最大化其在 Neo 网络治理中的参与度。其他应用包括：NFTEvolve 提供动态 NFT 机制，BridgeGuardian 提供跨链资产转移，GuardianPolicy 提供 TEE 强制的交易安全策略。
+GovBooster 应用提供 NEO 治理优化工具，帮助代币持有者最大化其在 Neo 网络治理中的参与度。其他应用包括：NFTEvolve 提供动态 NFT 机制，BridgeGuardian 提供跨链资产转移，GuardianPolicy 提供 TEE 强制的交易安全策略。
 
 %==============================================================================
 % 第七章：开发者指南
@@ -662,7 +662,7 @@ TypeScript SDK 通过 \texttt{window.MiniAppSDK} 全局对象提供访问：
 \midrule
 \texttt{wallet} & 地址获取、余额查询 \\
 \texttt{payments} & GAS 支付、交易历史 \\
-\texttt{governance} & bNEO 质押、投票 \\
+\texttt{governance} & NEO 质押、投票 \\
 \texttt{rng} & 随机数请求、验证 \\
 \texttt{datafeed} & 价格订阅、历史数据 \\
 \texttt{stats} & 使用统计、分析 \\
@@ -720,17 +720,17 @@ const price = await window.MiniAppSDK.datafeed.getPrice("BTC-USD");
 %==============================================================================
 \section{代币经济学}
 
-Neo N3 小程序平台在 Neo N3 代币生态系统内运营，使用 GAS 作为所有支付操作的实用代币，使用 bNEO（Burger NEO）作为平台决策的治理代币。这种双代币模型与更广泛的 Neo 生态系统保持一致，同时在实用功能和治理功能之间提供清晰的分离。使用 bNEO 而非原生 NEO 可以实现更灵活的 DeFi 集成和与其他 Neo N3 协议的可组合性。
+Neo N3 小程序平台在 Neo N3 代币生态系统内运营，使用 GAS 作为所有支付操作的实用代币，使用 NEO 作为平台决策的治理代币。这种双代币模型与更广泛的 Neo 生态系统保持一致，同时在实用功能和治理功能之间提供清晰的分离，并保持治理原生于 Neo 协议。
 
 \begin{table}[h]
 \centering
-\caption{代币对比：GAS vs bNEO}
+\caption{代币对比：GAS vs NEO}
 \begin{tabular}{@{}lll@{}}
 \toprule
-\textbf{属性} & \textbf{GAS} & \textbf{bNEO} \\
+\textbf{属性} & \textbf{GAS} & \textbf{NEO} \\
 \midrule
 用途 & 支付/结算 & 治理/质押 \\
-获取方式 & 交易所/持有 NEO & Burger NEO \\
+获取方式 & 交易所/持有 NEO & 交易所/链上转账 \\
 平台角色 & 唯一支付代币 & 唯一治理代币 \\
 \bottomrule
 \end{tabular}
@@ -743,15 +743,15 @@ GAS 作为平台内所有支付操作的唯一交换媒介。用户使用 GAS �
 
 平台的 GAS-only 策略在架构的每一层都得到执行，从客户端 SDK 验证到链上智能合约验证。这种全面的执行确保该策略无法通过任何攻击向量被绕过，为用户和监管机构提供关于平台处理资产的强有力保证。
 
-通过平台操作收取的 GAS 按照透明的收益分享模式分配。70\% 的收取费用流向小程序开发者，激励高质量应用的创建。20\% 归入平台国库，资助持续开发和运营。10\% 分配给 bNEO 质押者作为治理奖励，使治理参与者的利益与平台成功保持一致。
+通过平台操作收取的 GAS 按照透明的收益分享模式分配。70\% 的收取费用流向小程序开发者，激励高质量应用的创建。20\% 归入平台国库，资助持续开发和运营。10\% 分配给 NEO 质押者作为治理奖励，使治理参与者的利益与平台成功保持一致。
 
-\subsection{bNEO：治理代币}
+\subsection{NEO：治理代币}
 
-bNEO（Burger NEO）代币赋予平台内的治理权利，使持有者能够参与塑造平台演进的决策过程。治理参与需要质押 bNEO 代币，投票权与质押数量成正比。用户可以通过官方 bNEO 合约包装其原生 NEO 代币来获取 bNEO，从而在保持流动性选项的同时无缝参与平台治理。
+NEO 代币赋予平台内的治理权利，使持有者能够参与塑造平台演进的决策过程。治理参与需要质押 NEO 代币，投票权与质押数量成正比。NEO 是 Neo N3 的原生资产，不需要包装即可参与治理。
 
 治理决策涵盖几类平台变更。协议参数，包括费用结构、速率限制和资源分配，可以通过治理提案进行修改。新小程序的批准需要治理审查，确保社区对平台准入应用的监督。国库分配用于开发资助、营销计划和生态系统投资，通过治理投票决定。
 
-治理流程遵循结构化的生命周期，旨在确保深思熟虑的审议。提案进入讨论期，社区成员可以提供反馈和建议修改。讨论结束后，提案进入投票期，bNEO 质押者投票表决。达到法定人数和超级多数批准的提案在时间锁定期后排队执行，以便为变更做好准备。
+治理流程遵循结构化的生命周期，旨在确保深思熟虑的审议。提案进入讨论期，社区成员可以提供反馈和建议修改。讨论结束后，提案进入投票期，NEO 质押者投票表决。达到法定人数和超级多数批准的提案在时间锁定期后排队执行，以便为变更做好准备。
 
 %==============================================================================
 % 第九章：平台愿景
@@ -803,7 +803,7 @@ Neo N3 小程序平台代表了去中心化应用开发在可访问性和安全�
 
 平台的纵深防御安全架构确保敏感操作在每一层都受到保护，从客户端验证到链上执行。通过 MarbleRun 框架使用 Intel SGX 技术提供了软件攻击无法绕过的硬件级保证，而多层验证方法确保了对新型攻击向量的弹性。
 
-GAS 实用代币和 bNEO 治理代币之间的严格分离建立了清晰的边界，简化了监管合规，同时协调了利益相关者的激励。这种分离在所有平台层得到全面执行，为用户和监管机构提供关于平台处理资产的强有力保证。
+GAS 实用代币和 NEO 治理代币之间的严格分离建立了清晰的边界，简化了监管合规，同时协调了利益相关者的激励。这种分离在所有平台层得到全面执行，为用户和监管机构提供关于平台处理资产的强有力保证。
 
 账户池架构实现高吞吐量交易处理，而不会出现通常限制区块链应用的瓶颈。凭借超过一万个预生成账户和 TEE 保护的密钥管理，平台可以支持大规模用户群，同时保持安全保证。
 

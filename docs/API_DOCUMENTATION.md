@@ -19,7 +19,7 @@ Key gateway endpoints in this repo:
 - `wallet-nonce`, `wallet-bind` (bind Neo N3 address to Supabase user)
 - `api-keys-*` (user API keys: create/list/revoke; raw key returned once)
 - `pay-gas` (GAS `transfer` → PaymentHub; settlement **GAS only**)
-- `vote-bneo` (Governance intent; governance **bNEO only**)
+- `vote-neo` (Governance intent; **NEO only**, `vote-bneo` legacy alias)
 - `rng-request` (randomness via `neovrf`; optional RandomnessLog anchoring)
 - `compute-execute`, `compute-jobs`, `compute-job` (host-gated `neocompute` script execution + job inspection)
 - `automation-triggers`, `automation-trigger-*` (host-gated trigger management + audit via `neoflow`)

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +23,51 @@ import (
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
 	intcrypto "github.com/R3E-Network/service_layer/infrastructure/crypto"
 )
+
+// Secret names for TEE wallet keys - these should be defined in MarbleRun manifest
+const (
+	SecretTEEPrivateKey       = "TEE_PRIVATE_KEY"
+	SecretTEEWalletPrivateKey = "TEE_WALLET_PRIVATE_KEY"
+	SecretNeoTestnetWIF       = "NEO_TESTNET_WIF"
+)
+
+// getTEEPrivateKey securely retrieves the TEE private key from Marble secrets.
+// SECURITY: This uses MarbleRun's secure secret injection instead of plain environment variables.
+// The key is injected by the Coordinator and never exposed in the environment.
+func (s *Service) getTEEPrivateKey() (string, error) {
+	marble := s.Marble()
+	if marble == nil {
+		return "", fmt.Errorf("marble not configured - cannot access secrets securely")
+	}
+
+	// Try secrets in order of preference: WIF first, then hex formats
+	secretNames := []string{SecretNeoTestnetWIF, SecretTEEPrivateKey, SecretTEEWalletPrivateKey}
+	for _, name := range secretNames {
+		if secret, ok := marble.Secret(name); ok && len(secret) > 0 {
+			return strings.TrimSpace(string(secret)), nil
+		}
+	}
+
+	return "", fmt.Errorf("TEE_PRIVATE_KEY not configured in Marble secrets")
+}
+
+// getTEEWalletAccount returns a wallet.Account from the TEE private key.
+// SECURITY: Uses Marble secrets instead of environment variables.
+func (s *Service) getTEEWalletAccount() (*wallet.Account, error) {
+	teePrivateKey, err := s.getTEEPrivateKey()
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if it looks like a WIF (starts with K, L, or 5)
+	if len(teePrivateKey) > 0 && (teePrivateKey[0] == 'K' || teePrivateKey[0] == 'L' || teePrivateKey[0] == '5') {
+		return chain.AccountFromWIF(teePrivateKey)
+	}
+
+	// Remove 0x prefix if present and try hex
+	teePrivateKey = strings.TrimPrefix(strings.TrimPrefix(teePrivateKey, "0x"), "0X")
+	return chain.AccountFromPrivateKey(teePrivateKey)
+}
 
 // SignTransaction signs a transaction hash with an account's private key.
 // The account must be locked by the requesting service.
@@ -857,32 +901,10 @@ func (s *Service) FundAccount(ctx context.Context, toAddress string, amount int6
 		return nil, fmt.Errorf("amount must be positive")
 	}
 
-	// Load TEE_PRIVATE_KEY from environment - try WIF first, then hex
-	teePrivateKey := strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
-	}
-
-	// Create signer - try WIF format first, then hex
-	var walletAccount *wallet.Account
-	var err error
-
-	// Check if it looks like a WIF (starts with K, L, or 5)
-	if len(teePrivateKey) > 0 && (teePrivateKey[0] == 'K' || teePrivateKey[0] == 'L' || teePrivateKey[0] == '5') {
-		walletAccount, err = chain.AccountFromWIF(teePrivateKey)
-	} else {
-		// Remove 0x prefix if present and try hex
-		teePrivateKey = strings.TrimPrefix(strings.TrimPrefix(teePrivateKey, "0x"), "0X")
-		walletAccount, err = chain.AccountFromPrivateKey(teePrivateKey)
-	}
+	// SECURITY: Use Marble secrets instead of environment variables
+	walletAccount, err := s.getTEEWalletAccount()
 	if err != nil {
-		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+		return nil, fmt.Errorf("get TEE wallet account: %w", err)
 	}
 
 	fromAddress := walletAccount.Address
@@ -973,32 +995,10 @@ func (s *Service) InvokeMaster(ctx context.Context, contractAddress, method stri
 		return nil, fmt.Errorf("method required")
 	}
 
-	// Load TEE_PRIVATE_KEY from environment - try WIF first, then hex
-	teePrivateKey := strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
-	}
-
-	// Create signer - try WIF format first, then hex
-	var signer *wallet.Account
-	var err error
-
-	// Check if it looks like a WIF (starts with K, L, or 5)
-	if len(teePrivateKey) > 0 && (teePrivateKey[0] == 'K' || teePrivateKey[0] == 'L' || teePrivateKey[0] == '5') {
-		signer, err = chain.AccountFromWIF(teePrivateKey)
-	} else {
-		// Remove 0x prefix if present and try hex
-		teePrivateKey = strings.TrimPrefix(strings.TrimPrefix(teePrivateKey, "0x"), "0X")
-		signer, err = chain.AccountFromPrivateKey(teePrivateKey)
-	}
+	// SECURITY: Use Marble secrets instead of environment variables
+	signer, err := s.getTEEWalletAccount()
 	if err != nil {
-		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+		return nil, fmt.Errorf("get TEE wallet account: %w", err)
 	}
 
 	// Convert params to chain.ContractParam
@@ -1105,32 +1105,10 @@ func (s *Service) DeployMaster(ctx context.Context, nefBase64, manifestJSON stri
 		return nil, fmt.Errorf("manifest_json required")
 	}
 
-	// Load TEE_PRIVATE_KEY from environment - try WIF first, then hex
-	teePrivateKey := strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
-	}
-
-	// Create signer - try WIF format first, then hex
-	var signer *wallet.Account
-	var err error
-
-	// Check if it looks like a WIF (starts with K, L, or 5)
-	if len(teePrivateKey) > 0 && (teePrivateKey[0] == 'K' || teePrivateKey[0] == 'L' || teePrivateKey[0] == '5') {
-		signer, err = chain.AccountFromWIF(teePrivateKey)
-	} else {
-		// Remove 0x prefix if present and try hex
-		teePrivateKey = strings.TrimPrefix(strings.TrimPrefix(teePrivateKey, "0x"), "0X")
-		signer, err = chain.AccountFromPrivateKey(teePrivateKey)
-	}
+	// SECURITY: Use Marble secrets instead of environment variables
+	signer, err := s.getTEEWalletAccount()
 	if err != nil {
-		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+		return nil, fmt.Errorf("get TEE wallet account: %w", err)
 	}
 
 	// Decode NEF from base64

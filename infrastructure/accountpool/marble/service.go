@@ -48,7 +48,8 @@ const (
 // Service implements the NeoAccounts service marble.
 type Service struct {
 	*commonservice.BaseService
-	mu sync.RWMutex
+	mu         sync.RWMutex // Legacy: only used for background task serialization
+	bgTaskLock sync.Mutex   // Dedicated lock for background tasks (rotation, cleanup)
 
 	// Secrets
 	masterKey              []byte
@@ -138,14 +139,27 @@ func New(cfg Config) (*Service, error) {
 	return s, nil
 }
 
+// allowEphemeralMasterKey is DEPRECATED and always returns false.
+// SECURITY: Ephemeral master keys are a critical security risk in production.
+// This function is kept for backward compatibility but no longer allows ephemeral keys.
+// If you need to test without a master key, use simulation mode instead.
 func allowEphemeralMasterKey() bool {
+	// SECURITY: Always return false to prevent ephemeral key usage
+	// This was a development convenience that poses unacceptable security risks:
+	// 1. Ephemeral keys are lost on service restart
+	// 2. All derived accounts become inaccessible
+	// 3. Funds locked in those accounts are permanently lost
+	//
+	// To enable testing without persistent keys, use:
+	// - OE_SIMULATION=1 for simulation mode
+	// - Proper secret injection via MarbleRun in production
 	raw := strings.TrimSpace(os.Getenv("NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY"))
-	switch strings.ToLower(raw) {
-	case "1", "true", "yes":
-		return true
-	default:
-		return false
+	if raw != "" {
+		// Log a warning that this flag is ignored
+		// Note: Cannot use logger here as service isn't initialized yet
+		fmt.Fprintf(os.Stderr, "WARNING: NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY is deprecated and ignored. Configure proper master key.\n")
 	}
+	return false
 }
 
 const secretPoolEncryptionKey = "POOL_ENCRYPTION_KEY"

@@ -804,7 +804,7 @@ func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 	workflowByAppID := map[string]func(context.Context) error{
 		// Gaming MiniApps
 		"miniapp-lottery":        s.miniAppSimulator.SimulateLottery,
-		"miniapp-coin-flip":      s.miniAppSimulator.SimulateCoinFlip,
+		"miniapp-coinflip":      s.miniAppSimulator.SimulateCoinFlip,
 		"miniapp-dice-game":      s.miniAppSimulator.SimulateDiceGame,
 		"miniapp-scratch-card":   s.miniAppSimulator.SimulateScratchCard,
 		"miniapp-mega-millions":  s.miniAppSimulator.SimulateMegaMillions,
@@ -841,8 +841,8 @@ func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 		"miniapp-guardian-policy":  s.miniAppSimulator.SimulateGuardianPolicy, // alias with hyphen
 		"miniapp-garden-of-neo":     s.miniAppSimulator.SimulateGardenOfNeo,
 		"miniapp-on-chain-tarot":    s.miniAppSimulator.SimulateOnChainTarot,
-		"miniapp-ex-files":          s.miniAppSimulator.SimulateExFiles,
-		"miniapp-breakup-contract":  s.miniAppSimulator.SimulateBreakupContract,
+		"miniapp-exfiles":          s.miniAppSimulator.SimulateExFiles,
+		"miniapp-breakupcontract":  s.miniAppSimulator.SimulateBreakupContract,
 		"miniapp-million-piece-map": s.miniAppSimulator.SimulateMillionPieceMap,
 		"miniapp-canvas":            s.miniAppSimulator.SimulateCanvas,
 		"miniapp-candidate-vote":    s.miniAppSimulator.SimulateCandidateVote,

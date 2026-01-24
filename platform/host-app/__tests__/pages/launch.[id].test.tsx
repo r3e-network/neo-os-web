@@ -157,7 +157,7 @@ describe("LaunchPage", () => {
       const iframe = document.querySelector("iframe");
       expect(iframe).toBeInTheDocument();
       expect(iframe?.src).toBe("https://example.com/app?lang=en&theme=dark&embedded=1");
-      expect(iframe?.getAttribute("sandbox")).toBe("allow-scripts allow-forms allow-popups");
+      expect(iframe?.getAttribute("sandbox")).toBe("allow-scripts allow-forms allow-popups allow-same-origin");
       expect(iframe?.title).toBe("Test App MiniApp");
       expect(iframe?.getAttribute("referrerpolicy")).toBe("no-referrer");
     });
@@ -189,14 +189,18 @@ describe("LaunchPage", () => {
       });
 
       // Advance timer by 5 seconds
-      jest.advanceTimersByTime(5000);
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(2);
       });
 
       // Advance another 5 seconds
-      jest.advanceTimersByTime(5000);
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(3);
@@ -218,25 +222,23 @@ describe("LaunchPage", () => {
   });
 
   describe("Wallet Connection", () => {
-    it("should attempt to connect wallet on mount", async () => {
+    it("does not auto-connect wallet on mount", async () => {
       await renderLaunchPage();
 
-      await waitFor(() => {
-        expect((window as any).NEOLineN3.Init).toHaveBeenCalled();
-      });
+      expect((window as any).NEOLineN3.Init).not.toHaveBeenCalled();
     });
 
-    it("should handle wallet connection failure silently", async () => {
+    it("renders even when a wallet provider is present", async () => {
       (window as any).NEOLineN3.Init = jest.fn().mockImplementation(() => ({
         getAccount: jest.fn().mockRejectedValue(new Error("User rejected")),
       }));
 
       await renderLaunchPage();
 
-      // Should still render without crashing
       await waitFor(() => {
         expect(screen.getByTestId("launch-dock")).toBeInTheDocument();
       });
+      expect((window as any).NEOLineN3.Init).not.toHaveBeenCalled();
     });
   });
 
@@ -391,7 +393,7 @@ describe("LaunchPage", () => {
       );
     });
 
-    it("does not inject MiniAppSDK into sandboxed iframes", async () => {
+    it("injects MiniAppSDK into same-origin sandboxed iframes", async () => {
       const sameOriginApp: MiniAppInfo = {
         ...mockApp,
         entry_url: "/miniapps/test/index.html",
@@ -402,8 +404,8 @@ describe("LaunchPage", () => {
       await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
       fireEvent.load(iframe);
 
-      expect((contentWindow as any).MiniAppSDK).toBeUndefined();
-      expect(contentWindow.dispatchEvent).not.toHaveBeenCalled();
+      expect((contentWindow as any).MiniAppSDK).toBeDefined();
+      expect(contentWindow.dispatchEvent).toHaveBeenCalled();
     });
   });
 
@@ -415,7 +417,9 @@ describe("LaunchPage", () => {
 
       // Advance timer - should not trigger new fetch
       const initialCallCount = mockFetch.mock.calls.length;
-      jest.advanceTimersByTime(10000);
+      act(() => {
+        jest.advanceTimersByTime(10000);
+      });
 
       expect(mockFetch).toHaveBeenCalledTimes(initialCallCount);
     });

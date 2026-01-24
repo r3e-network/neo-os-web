@@ -147,7 +147,14 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
     ...sdk,
     wallet: {
       ...sdk.wallet,
+      signMessage: sdk.wallet?.signMessage
+        ? async (message: string) => {
+            requirePermission(permissions, "confidential");
+            return sdk.wallet!.signMessage!(message);
+          }
+        : undefined,
     },
+    notifications: undefined,
     payments: {
       ...sdk.payments,
       payGAS: async (requestedAppId: string, amount: string, memo?: string) => {

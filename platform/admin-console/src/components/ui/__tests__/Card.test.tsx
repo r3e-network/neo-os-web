@@ -19,13 +19,13 @@ describe("Card Component", () => {
   it("should apply default variant", () => {
     const { container } = render(<Card>Content</Card>);
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass("bg-white", "shadow-sm");
+    expect(card).toHaveClass("erobo-card");
   });
 
   it("should apply bordered variant", () => {
     const { container } = render(<Card variant="bordered">Content</Card>);
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass("border", "border-gray-200");
+    expect(card).toHaveClass("border", "border-border", "bg-transparent");
   });
 
   it("should render card with header", () => {

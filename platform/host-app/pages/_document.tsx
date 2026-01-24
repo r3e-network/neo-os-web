@@ -12,7 +12,7 @@ export default class MyDocument extends Document<Props> {
   render() {
     const nonce = this.props.nonce;
     return (
-      <Html lang="en" className="dark">
+      <Html lang="en" className="dark" data-scroll-behavior="smooth">
         <Head>
           {/* Theme initialization script - must run before React hydrates */}
           <script src="/theme-init.js" />

@@ -1,6 +1,16 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv } from "../_shared/env.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
 import { requireAuth } from "../_shared/supabase.ts";
@@ -21,7 +31,7 @@ type OracleQueryRequest = {
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -34,11 +44,11 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const url = String(body.url ?? "").trim();
-  if (!url) return error(400, "url required", "URL_REQUIRED", req);
+  if (!url) return validationError("url", "url required", req);
 
   const neooracleURL = mustGetEnv("NEOORACLE_URL").replace(/\/$/, "");
   const result = await postJSON(
@@ -52,7 +62,7 @@ export async function handler(req: Request): Promise<Response> {
       body: body.body,
     },
     { "X-User-ID": auth.userId },
-    req,
+    req
   );
   if (result instanceof Response) return result;
   return json(result, {}, req);

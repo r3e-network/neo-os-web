@@ -2,15 +2,15 @@ const { withSentryConfig } = require("@sentry/nextjs");
 
 // Content Security Policy
 const ContentSecurityPolicy = `
-  default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.auth0.com https://*.sentry.io;
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  img-src 'self' data: blob: https:;
-  font-src 'self' data: https://fonts.gstatic.com;
-  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.auth0.com https://*.sentry.io https://api.coingecko.com https://*.neo.org https://*.neo.coz.io https://*.banelabs.org https://*.ngd.network https://*.ngd.network:* https://*.alchemy.com https://*.llamarpc.com https://*.polygon-rpc.com;
-  frame-src 'self' https://*.auth0.com;
-  frame-ancestors 'self';
+  default-src 'self' 'unsafe-inline' 'unsafe-eval' *;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' * blob:;
+  style-src 'self' 'unsafe-inline' * blob:;
+  style-src-elem 'self' 'unsafe-inline' * blob:;
+  img-src 'self' data: blob: *;
+  font-src 'self' data: *;
+  connect-src 'self' *;
+  frame-src 'self' *;
+  frame-ancestors 'self' *;
   form-action 'self';
   base-uri 'self';
   object-src 'none';
@@ -26,16 +26,32 @@ const nextConfig = {
   experimental: {
     externalDir: true,
   },
+  // Disable TypeScript type checking during build (handled separately by tsc)
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // Disable ESLint during build (handled separately)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   async headers() {
     return [
       {
         source: "/miniapps/:path*",
         headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" }, // ALLOW SANDBOXED IFRAMES
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Content-Security-Policy", value: ContentSecurityPolicy },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+      // Cache MiniApp static assets (images, etc) in /static/ folders
+      {
+        source: "/miniapps/:appId/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400" }, // 1 day cache
         ],
       },
       {

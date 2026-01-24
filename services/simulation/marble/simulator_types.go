@@ -25,7 +25,7 @@ func AllMiniApps() []MiniAppConfig {
 	return []MiniAppConfig{
 		// Core Gaming (5)
 		{AppID: "miniapp-lottery", Name: "Neo Lottery", Category: "gaming", Interval: 30 * time.Second, BetAmount: 10000000, Description: "Buy lottery tickets, draw winners"},
-		{AppID: "miniapp-coin-flip", Name: "Neo Coin Flip", Category: "gaming", Interval: 30 * time.Second, BetAmount: 5000000, Description: "50/50 coin flip, double or nothing"},
+		{AppID: "miniapp-coinflip", Name: "Neo Coin Flip", Category: "gaming", Interval: 30 * time.Second, BetAmount: 5000000, Description: "50/50 coin flip, double or nothing"},
 		{AppID: "miniapp-dice-game", Name: "Neo Dice", Category: "gaming", Interval: 30 * time.Second, BetAmount: 8000000, Description: "Roll dice, win up to 6x"},
 		{AppID: "miniapp-scratch-card", Name: "Neo Scratch Cards", Category: "gaming", Interval: 30 * time.Second, BetAmount: 2000000, Description: "Instant win scratch cards"},
 		{AppID: "miniapp-neo-crash", Name: "Neo Crash", Category: "gaming", Interval: 30 * time.Second, BetAmount: 10000000, Description: "Crash game - cash out before it crashes"},

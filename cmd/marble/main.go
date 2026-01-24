@@ -24,6 +24,7 @@ import (
 	"github.com/R3E-Network/service_layer/infrastructure/config"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
 	gasbankclient "github.com/R3E-Network/service_layer/infrastructure/gasbank/client"
+	slhex "github.com/R3E-Network/service_layer/infrastructure/hex"
 	sllogging "github.com/R3E-Network/service_layer/infrastructure/logging"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
 	slmetrics "github.com/R3E-Network/service_layer/infrastructure/metrics"
@@ -120,14 +121,8 @@ func main() {
 	}
 
 	// Initialize database
-	supabaseURL := strings.TrimSpace(os.Getenv("SUPABASE_URL"))
-	if secret, ok := m.Secret("SUPABASE_URL"); ok && len(secret) > 0 {
-		supabaseURL = strings.TrimSpace(string(secret))
-	}
-	supabaseServiceKey := strings.TrimSpace(os.Getenv("SUPABASE_SERVICE_KEY"))
-	if secret, ok := m.Secret("SUPABASE_SERVICE_KEY"); ok && len(secret) > 0 {
-		supabaseServiceKey = strings.TrimSpace(string(secret))
-	}
+	supabaseURL := config.EnvOrSecret(m, "SUPABASE_URL", "")
+	supabaseServiceKey := config.EnvOrSecret(m, "SUPABASE_SERVICE_KEY", "")
 
 	dbClient, err := database.NewClient(database.Config{
 		URL:        supabaseURL,
@@ -145,19 +140,12 @@ func main() {
 	neorequestsRepo := neorequestsupabase.NewRepository(db)
 
 	// Chain configuration
-	neoRPCURLs := chain.ParseEndpoints(strings.TrimSpace(os.Getenv("NEO_RPC_URLS")))
-	if len(neoRPCURLs) == 0 {
-		if secret, ok := m.Secret("NEO_RPC_URLS"); ok && len(secret) > 0 {
-			neoRPCURLs = chain.ParseEndpoints(strings.TrimSpace(string(secret)))
-		}
+	neoRPCURLs := chain.ParseEndpoints(config.EnvOrSecret(m, "NEO_RPC_URLS", ""))
+	if len(neoRPCURLs) == 0 && os.Getenv("NEO_RPC_URLS") != "" {
+		neoRPCURLs = chain.ParseEndpoints(os.Getenv("NEO_RPC_URLS"))
 	}
 
-	neoRPCURL := strings.TrimSpace(os.Getenv("NEO_RPC_URL"))
-	if neoRPCURL == "" {
-		if secret, ok := m.Secret("NEO_RPC_URL"); ok && len(secret) > 0 {
-			neoRPCURL = strings.TrimSpace(string(secret))
-		}
-	}
+	neoRPCURL := config.EnvOrSecret(m, "NEO_RPC_URL", "")
 	if neoRPCURL == "" && len(neoRPCURLs) > 0 {
 		neoRPCURL = neoRPCURLs[0]
 	}
@@ -254,39 +242,29 @@ func main() {
 		}
 	}
 
-	paymentHubAddress := trimHexPrefix(contracts.PaymentHub)
+	paymentHubAddress := slhex.TrimPrefix(contracts.PaymentHub)
 	if paymentHubAddress == "" {
-		if secret, ok := m.Secret("CONTRACT_PAYMENT_HUB_ADDRESS"); ok && len(secret) > 0 {
-			paymentHubAddress = trimHexPrefix(string(secret))
-		}
+		paymentHubAddress = slhex.TrimPrefix(config.EnvOrSecret(m, "CONTRACT_PAYMENT_HUB_ADDRESS", ""))
 	}
 
-	priceFeedAddress := trimHexPrefix(contracts.PriceFeed)
+	priceFeedAddress := slhex.TrimPrefix(contracts.PriceFeed)
 	if priceFeedAddress == "" {
-		if secret, ok := m.Secret("CONTRACT_PRICE_FEED_ADDRESS"); ok && len(secret) > 0 {
-			priceFeedAddress = trimHexPrefix(string(secret))
-		}
+		priceFeedAddress = slhex.TrimPrefix(config.EnvOrSecret(m, "CONTRACT_PRICE_FEED_ADDRESS", ""))
 	}
 
-	automationAnchorAddress := trimHexPrefix(contracts.AutomationAnchor)
+	automationAnchorAddress := slhex.TrimPrefix(contracts.AutomationAnchor)
 	if automationAnchorAddress == "" {
-		if secret, ok := m.Secret("CONTRACT_AUTOMATION_ANCHOR_ADDRESS"); ok && len(secret) > 0 {
-			automationAnchorAddress = trimHexPrefix(string(secret))
-		}
+		automationAnchorAddress = slhex.TrimPrefix(config.EnvOrSecret(m, "CONTRACT_AUTOMATION_ANCHOR_ADDRESS", ""))
 	}
 
-	appRegistryAddress := trimHexPrefix(contracts.AppRegistry)
+	appRegistryAddress := slhex.TrimPrefix(contracts.AppRegistry)
 	if appRegistryAddress == "" {
-		if secret, ok := m.Secret("CONTRACT_APP_REGISTRY_ADDRESS"); ok && len(secret) > 0 {
-			appRegistryAddress = trimHexPrefix(string(secret))
-		}
+		appRegistryAddress = slhex.TrimPrefix(config.EnvOrSecret(m, "CONTRACT_APP_REGISTRY_ADDRESS", ""))
 	}
 
-	serviceGatewayAddress := trimHexPrefix(contracts.ServiceLayerGateway)
+	serviceGatewayAddress := slhex.TrimPrefix(contracts.ServiceLayerGateway)
 	if serviceGatewayAddress == "" {
-		if secret, ok := m.Secret("CONTRACT_SERVICE_GATEWAY_ADDRESS"); ok && len(secret) > 0 {
-			serviceGatewayAddress = trimHexPrefix(string(secret))
-		}
+		serviceGatewayAddress = slhex.TrimPrefix(config.EnvOrSecret(m, "CONTRACT_SERVICE_GATEWAY_ADDRESS", ""))
 	}
 
 	var teeSigner chain.TEESigner
@@ -414,35 +392,13 @@ func main() {
 
 	arbitrumRPC := strings.TrimSpace(os.Getenv("ARBITRUM_RPC"))
 
-	neovrfURL := strings.TrimSpace(os.Getenv("NEOVRF_URL"))
-	if neovrfURL == "" {
-		if secret, ok := m.Secret("NEOVRF_URL"); ok && len(secret) > 0 {
-			neovrfURL = strings.TrimSpace(string(secret))
-		}
-	}
-
-	neooracleURL := strings.TrimSpace(os.Getenv("NEOORACLE_URL"))
-	if neooracleURL == "" {
-		if secret, ok := m.Secret("NEOORACLE_URL"); ok && len(secret) > 0 {
-			neooracleURL = strings.TrimSpace(string(secret))
-		}
-	}
-
-	neocomputeURL := strings.TrimSpace(os.Getenv("NEOCOMPUTE_URL"))
-	if neocomputeURL == "" {
-		if secret, ok := m.Secret("NEOCOMPUTE_URL"); ok && len(secret) > 0 {
-			neocomputeURL = strings.TrimSpace(string(secret))
-		}
-	}
+	neovrfURL := config.EnvOrSecret(m, "NEOVRF_URL", "")
+	neooracleURL := config.EnvOrSecret(m, "NEOORACLE_URL", "")
+	neocomputeURL := config.EnvOrSecret(m, "NEOCOMPUTE_URL", "")
 
 	// TxProxy is the centralized "sign + broadcast" gatekeeper. NeoFeeds/NeoFlow
 	// delegate all on-chain writes to it (single allowlist + audit surface).
-	txproxyURL := strings.TrimSpace(os.Getenv("TXPROXY_URL"))
-	if txproxyURL == "" {
-		if secret, ok := m.Secret("TXPROXY_URL"); ok && len(secret) > 0 {
-			txproxyURL = strings.TrimSpace(string(secret))
-		}
-	}
+	txproxyURL := config.EnvOrSecret(m, "TXPROXY_URL", "")
 
 	txproxyTimeout := 30 * time.Second
 	txproxyTimeoutSet := false
@@ -481,12 +437,7 @@ func main() {
 	enableChainExec := chainClient != nil && automationAnchorAddress != "" && txProxyInvoker != nil
 
 	// GasBank client for service fee deduction
-	gasbankURL := strings.TrimSpace(os.Getenv("GASBANK_URL"))
-	if gasbankURL == "" {
-		if secret, ok := m.Secret("GASBANK_URL"); ok && len(secret) > 0 {
-			gasbankURL = strings.TrimSpace(string(secret))
-		}
-	}
+	gasbankURL := config.EnvOrSecret(m, "GASBANK_URL", "")
 
 	var gasbankClient *gasbankclient.Client
 	if gasbankURL != "" && serviceType != "neogasbank" {
@@ -555,7 +506,7 @@ func main() {
 		svc = flowSvc
 	case "neooracle":
 		oracleAllowlistRaw := strings.TrimSpace(os.Getenv("ORACLE_HTTP_ALLOWLIST"))
-		oracleAllowlist := neooracle.URLAllowlist{Prefixes: splitAndTrimCSV(oracleAllowlistRaw)}
+		oracleAllowlist := neooracle.URLAllowlist{Prefixes: config.SplitAndTrimCSV(oracleAllowlistRaw)}
 		if len(oracleAllowlist.Prefixes) == 0 {
 			if runtime.StrictIdentityMode() || m.IsEnclave() {
 				log.Fatalf("CRITICAL: ORACLE_HTTP_ALLOWLIST is required for NeoOracle in strict identity/SGX mode")
@@ -574,7 +525,7 @@ func main() {
 
 		oracleMaxBodyBytes := int64(0)
 		if raw := strings.TrimSpace(os.Getenv("ORACLE_MAX_SIZE")); raw != "" {
-			if parsed, parseErr := parseByteSize(raw); parseErr != nil || parsed <= 0 {
+			if parsed, parseErr := config.ParseByteSize(raw); parseErr != nil || parsed <= 0 {
 				log.Printf("Warning: invalid ORACLE_MAX_SIZE %q: %v", raw, parseErr)
 			} else {
 				oracleMaxBodyBytes = parsed
@@ -719,101 +670,42 @@ func main() {
 	log.Println("Service stopped")
 }
 
-func splitAndTrimCSV(raw string) []string {
-	if raw == "" {
-		return nil
-	}
-	parts := strings.Split(raw, ",")
-	values := make([]string, 0, len(parts))
-	for _, part := range parts {
-		trimmed := strings.TrimSpace(part)
-		if trimmed != "" {
-			values = append(values, trimmed)
-		}
-	}
-	return values
-}
-
-func parseByteSize(raw string) (int64, error) {
-	value := strings.ToLower(strings.TrimSpace(raw))
-	if value == "" {
-		return 0, fmt.Errorf("empty size")
-	}
-
-	type suffix struct {
-		value      string
-		multiplier int64
-	}
-
-	suffixes := []suffix{
-		{value: "gib", multiplier: 1024 * 1024 * 1024},
-		{value: "gb", multiplier: 1024 * 1024 * 1024},
-		{value: "g", multiplier: 1024 * 1024 * 1024},
-		{value: "mib", multiplier: 1024 * 1024},
-		{value: "mb", multiplier: 1024 * 1024},
-		{value: "m", multiplier: 1024 * 1024},
-		{value: "kib", multiplier: 1024},
-		{value: "kb", multiplier: 1024},
-		{value: "k", multiplier: 1024},
-		{value: "b", multiplier: 1},
-	}
-
-	const maxInt64 = int64(^uint64(0) >> 1)
-
-	for _, entry := range suffixes {
-		if !strings.HasSuffix(value, entry.value) {
-			continue
-		}
-		num := strings.TrimSpace(strings.TrimSuffix(value, entry.value))
-		if num == "" {
-			return 0, fmt.Errorf("missing size value")
-		}
-		parsed, err := strconv.ParseInt(num, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		if parsed <= 0 {
-			return 0, fmt.Errorf("size must be positive")
-		}
-		if parsed > maxInt64/entry.multiplier {
-			return 0, fmt.Errorf("size too large")
-		}
-		return parsed * entry.multiplier, nil
-	}
-
-	parsed, err := strconv.ParseInt(value, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if parsed <= 0 {
-		return 0, fmt.Errorf("size must be positive")
-	}
-	return parsed, nil
-}
-
-func trimHexPrefix(value string) string {
-	value = strings.TrimSpace(value)
-	if len(value) >= 2 {
-		prefix := strings.ToLower(value[:2])
-		if prefix == "0x" {
-			return value[2:]
-		}
-	}
-	return value
-}
-
 func loadTEEPrivateKey(m *marble.Marble) string {
+	// SECURITY: Prefer Marble secrets over environment variables
+	// Marble secrets are injected securely by MarbleRun Coordinator
+	if m != nil {
+		if secret, ok := m.Secret("TEE_PRIVATE_KEY"); ok && len(secret) > 0 {
+			// Check if it's already hex-encoded string or raw bytes
+			secretStr := strings.TrimSpace(string(secret))
+			if len(secretStr) > 0 && (secretStr[0] == 'K' || secretStr[0] == 'L' || secretStr[0] == '5') {
+				// WIF format - return as-is
+				return secretStr
+			}
+			// Check if it looks like hex string
+			if len(secretStr) == 64 || len(secretStr) == 66 {
+				return slhex.TrimPrefix(secretStr)
+			}
+			// Raw bytes - encode to hex
+			return hex.EncodeToString(secret)
+		}
+		if secret, ok := m.Secret("TEE_WALLET_PRIVATE_KEY"); ok && len(secret) > 0 {
+			secretStr := strings.TrimSpace(string(secret))
+			if len(secretStr) > 0 && (secretStr[0] == 'K' || secretStr[0] == 'L' || secretStr[0] == '5') {
+				return secretStr
+			}
+			if len(secretStr) == 64 || len(secretStr) == 66 {
+				return slhex.TrimPrefix(secretStr)
+			}
+			return hex.EncodeToString(secret)
+		}
+	}
+	// Fallback to environment variables for development/simulation mode only
+	// WARNING: This should only be used in non-production environments
 	if key := strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY")); key != "" {
-		return trimHexPrefix(key)
+		return slhex.TrimPrefix(key)
 	}
 	if key := strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY")); key != "" {
-		return trimHexPrefix(key)
-	}
-	if secret, ok := m.Secret("TEE_PRIVATE_KEY"); ok && len(secret) > 0 {
-		return hex.EncodeToString(secret)
-	}
-	if secret, ok := m.Secret("TEE_WALLET_PRIVATE_KEY"); ok && len(secret) > 0 {
-		return hex.EncodeToString(secret)
+		return slhex.TrimPrefix(key)
 	}
 	return ""
 }

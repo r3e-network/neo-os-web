@@ -36,7 +36,7 @@
 \contentsline {subsection}{\numberline {7.3}清单规范}{15}{subsection.7.3}%
 \contentsline {section}{\numberline {8}代币经济学}{16}{section.8}%
 \contentsline {subsection}{\numberline {8.1}GAS：实用代币}{16}{subsection.8.1}%
-\contentsline {subsection}{\numberline {8.2}bNEO：治理代币}{16}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.2}NEO：治理代币}{16}{subsection.8.2}%
 \contentsline {section}{\numberline {9}平台愿景}{17}{section.9}%
 \contentsline {subsection}{\numberline {9.1}基础层}{17}{subsection.9.1}%
 \contentsline {subsection}{\numberline {9.2}应用层}{17}{subsection.9.2}%

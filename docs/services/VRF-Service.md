@@ -68,7 +68,7 @@ const isValid = await verifyProof(result.proof, result.value);
 ## Integration Example
 
 ```typescript
-import { useRNG } from "@neo/uniapp-sdk";
+import { useRNG } from "@r3e/uniapp-sdk";
 
 const { requestRandom, verifyProof } = useRNG();
 

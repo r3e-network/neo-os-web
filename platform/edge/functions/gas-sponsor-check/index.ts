@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
@@ -11,7 +21,7 @@ const ELIGIBILITY_THRESHOLD = 0.1;
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -34,7 +44,7 @@ export async function handler(req: Request): Promise<Response> {
     .maybeSingle();
 
   if (quotaErr) {
-    return error(500, `failed to check quota: ${quotaErr.message}`, "DB_ERROR", req);
+    return errorResponse("SERVER_002", { message: `failed to check quota: ${quotaErr.message}` }, req);
   }
 
   const usedToday = parseFloat(quota?.used_amount ?? "0");
@@ -46,7 +56,7 @@ export async function handler(req: Request): Promise<Response> {
     const balanceStr = await getGasBalance(walletCheck.address);
     gasBalance = parseFloat(balanceStr);
   } catch (e) {
-    return error(500, `failed to query balance: ${(e as Error).message}`, "RPC_ERROR", req);
+    return errorResponse("SERVER_001", { message: `failed to query balance: ${(e as Error).message}` }, req);
   }
 
   const eligible = gasBalance < ELIGIBILITY_THRESHOLD && remaining > 0;
@@ -66,7 +76,7 @@ export async function handler(req: Request): Promise<Response> {
       resets_at: tomorrow.toISOString(),
     },
     {},
-    req,
+    req
   );
 }
 

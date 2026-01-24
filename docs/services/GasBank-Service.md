@@ -61,7 +61,7 @@ const tx = await requestSponsorship({
 ## Integration Example
 
 ```typescript
-import { useGasSponsor } from "@neo/uniapp-sdk";
+import { useGasSponsor } from "@r3e/uniapp-sdk";
 
 const { getQuota, sponsor } = useGasSponsor();
 

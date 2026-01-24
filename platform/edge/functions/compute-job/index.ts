@@ -1,6 +1,16 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv } from "../_shared/env.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
@@ -11,7 +21,7 @@ import { getJSON } from "../_shared/tee.ts";
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -24,12 +34,16 @@ export async function handler(req: Request): Promise<Response> {
 
   const url = new URL(req.url);
   const jobId = (url.searchParams.get("id") ?? "").trim();
-  if (!jobId) return error(400, "id required", "ID_REQUIRED", req);
+  if (!jobId) return validationError("id", "id required", req);
 
   const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
-  const result = await getJSON(`${neocomputeURL}/jobs/${encodeURIComponent(jobId)}`, {
-    "X-User-ID": auth.userId,
-  }, req);
+  const result = await getJSON(
+    `${neocomputeURL}/jobs/${encodeURIComponent(jobId)}`,
+    {
+      "X-User-ID": auth.userId,
+    },
+    req
+  );
   if (result instanceof Response) return result;
   return json(result, {}, req);
 }

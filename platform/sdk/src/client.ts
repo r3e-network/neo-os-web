@@ -347,13 +347,13 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       },
     },
     governance: {
-      async vote(appId: string, proposalId: string, bneoAmount: string, support?: boolean): Promise<VoteBNEOResponse> {
-        const res = await requestJSON<VoteBNEOResponse>(cfg, "/vote-bneo", {
+      async vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteBNEOResponse> {
+        const res = await requestJSON<VoteBNEOResponse>(cfg, "/vote-neo", {
           method: "POST",
           body: JSON.stringify({
             app_id: appId,
             proposal_id: proposalId,
-            bneo_amount: bneoAmount,
+            neo_amount: neoAmount,
             support,
             chain_id: resolvedChainId ?? undefined,
           }),
@@ -365,8 +365,8 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         }
         return res;
       },
-      async voteAndInvoke(appId: string, proposalId: string, bneoAmount: string, support?: boolean) {
-        const intent = await this.vote(appId, proposalId, bneoAmount, support);
+      async voteAndInvoke(appId: string, proposalId: string, neoAmount: string, support?: boolean) {
+        const intent = await this.vote(appId, proposalId, neoAmount, support);
         const tx = await invokeWithWallet(intent.invocation);
         return { intent, tx };
       },

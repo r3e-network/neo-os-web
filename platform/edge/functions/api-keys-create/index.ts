@@ -1,6 +1,16 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { generateAPIKey, sha256Hex } from "../_shared/apikeys.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { ensureUserRow, requirePrimaryWallet, requireUser, supabaseServiceClient } from "../_shared/supabase.ts";
 
@@ -15,7 +25,7 @@ type CreateAPIKeyRequest = {
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireUser(req);
   if (auth instanceof Response) return auth;
@@ -28,13 +38,13 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const name = String(body.name ?? "")
     .trim()
     .slice(0, 255);
-  if (!name) return error(400, "name required", "NAME_REQUIRED", req);
+  if (!name) return validationError("name", "name required", req);
 
   const scopes = Array.isArray(body.scopes)
     ? body.scopes
@@ -51,7 +61,7 @@ export async function handler(req: Request): Promise<Response> {
   if (body.expires_at) {
     const raw = String(body.expires_at).trim();
     const parsed = Date.parse(raw);
-    if (Number.isNaN(parsed)) return error(400, "expires_at must be an ISO timestamp", "EXPIRES_AT_INVALID", req);
+    if (Number.isNaN(parsed)) return validationError("expires_at", "expires_at must be an ISO timestamp", req);
     expiresAt = new Date(parsed).toISOString();
   }
 
@@ -77,7 +87,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("id,name,prefix,scopes,description,created_at,last_used,expires_at,revoked")
     .maybeSingle();
 
-  if (insertErr) return error(500, `failed to create api key: ${insertErr.message}`, "DB_ERROR", req);
+  if (insertErr) return errorResponse("SERVER_002", { message: `failed to create api key: ${insertErr.message}` }, req);
 
   return json(
     {
@@ -87,7 +97,7 @@ export async function handler(req: Request): Promise<Response> {
       },
     },
     { status: 201 },
-    req,
+    req
   );
 }
 

@@ -11,7 +11,7 @@ off-chain gateway flows.
     - Author `manifest.json` following `docs/manifest-spec.md`.
 2. **Register or Update Manifest**
     - Call `app-register` or `app-update-manifest` (Supabase Edge).
-    - Edge canonicalizes the manifest, enforces **GAS-only / bNEO-only**, and
+    - Edge canonicalizes the manifest, enforces **GAS-only / NEO-only**, and
       returns an `AppRegistry` invocation for the developer wallet to sign.
 3. **On-Chain Registry Approval**
     - Developer wallet signs and submits the `AppRegistry.registerApp` (or
@@ -207,12 +207,12 @@ Platform calls PayoutToUser("builtin-lottery", winnerAddr, prizeAmount, "lottery
 3. Edge returns a GAS `transfer` invocation to `PaymentHub`.
 4. Wallet signs and broadcasts the network.
 
-### Governance (bNEO only)
+### Governance (NEO only)
 
-1. SDK calls `vote-bneo`.
+1. SDK calls `vote-neo` (legacy alias: `vote-bneo`).
 2. Edge validates:
     - manifest permissions (`governance`)
-    - `governance_assets_allowed == ["bNEO"]`
+    - `governance_assets_allowed == ["NEO"]`
 3. Edge returns a `Governance.vote` invocation.
 4. Wallet signs and broadcasts to the network.
 
@@ -228,7 +228,7 @@ Platform calls PayoutToUser("builtin-lottery", winnerAddr, prizeAmount, "lottery
 
 ## Testnet Payment + Governance Validation (Runbook)
 
-Use these scripts to validate GAS payments and bNEO governance flows on testnet.
+Use these scripts to validate GAS payments and NEO governance flows on testnet.
 
 ### GAS Payment (PaymentHub)
 
@@ -244,7 +244,7 @@ go run scripts/send_paymenthub_gas.go
 ### Governance (Stake + Vote)
 
 ```bash
-# Stake + vote with a small bNEO amount
+# Stake + vote with a small NEO amount
 go run scripts/test_governance_flow.go
 
 # Optional overrides

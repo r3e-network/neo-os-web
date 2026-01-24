@@ -5,7 +5,6 @@ import (
 	"crypto/elliptic"
 	"encoding/hex"
 	"fmt"
-	"strings"
 
 	"github.com/nspcc-dev/neo-go/pkg/config/netmode"
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
@@ -15,6 +14,7 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/vm/opcode"
 
 	gsclient "github.com/R3E-Network/service_layer/infrastructure/globalsigner/client"
+	slhex "github.com/R3E-Network/service_layer/infrastructure/hex"
 )
 
 // GlobalSignerSigner implements TEESigner using the GlobalSigner infrastructure marble.
@@ -38,7 +38,7 @@ func NewGlobalSignerSigner(ctx context.Context, client *gsclient.Client) (*Globa
 		return nil, fmt.Errorf("get attestation: %w", err)
 	}
 
-	pubKeyBytes, err := decodeHexMaybe0x(att.PubKeyHex)
+	pubKeyBytes, err := slhex.DecodeString(att.PubKeyHex)
 	if err != nil {
 		return nil, fmt.Errorf("decode pubkey: %w", err)
 	}
@@ -112,7 +112,7 @@ func (s *GlobalSignerSigner) SignTx(net netmode.Magic, tx *transaction.Transacti
 		return fmt.Errorf("globalsigner sign tx: %w", err)
 	}
 
-	signature, err := decodeHexMaybe0x(resp.Signature)
+	signature, err := slhex.DecodeString(resp.Signature)
 	if err != nil {
 		return fmt.Errorf("decode tx signature: %w", err)
 	}
@@ -143,16 +143,9 @@ func (s *GlobalSignerSigner) Sign(ctx context.Context, data []byte) ([]byte, err
 		return nil, fmt.Errorf("globalsigner sign: %w", err)
 	}
 
-	sig, err := decodeHexMaybe0x(resp.Signature)
+	sig, err := hex.DecodeString(resp.Signature)
 	if err != nil {
 		return nil, fmt.Errorf("decode signature: %w", err)
 	}
 	return sig, nil
-}
-
-func decodeHexMaybe0x(value string) ([]byte, error) {
-	trimmed := strings.TrimSpace(value)
-	trimmed = strings.TrimPrefix(trimmed, "0x")
-	trimmed = strings.TrimPrefix(trimmed, "0X")
-	return hex.DecodeString(trimmed)
 }

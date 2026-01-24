@@ -60,6 +60,7 @@ function normalizeAppId(dbAppId: string): string {
     "time-capsule": "miniapp-time-capsule",
     "breakup-contract": "miniapp-breakupcontract",
     "ex-files": "miniapp-exfiles",
+    "forever-album": "miniapp-forever-album",
     graveyard: "miniapp-graveyard",
     "gov-booster": "miniapp-govbooster",
     "gov-merc": "miniapp-gov-merc",
@@ -78,7 +79,7 @@ function normalizeAppId(dbAppId: string): string {
     "hall-of-fame": "miniapp-hall-of-fame",
     "neo-ns": "miniapp-neo-ns",
     "neo-treasury": "miniapp-neo-treasury",
-    "daily-checkin": "miniapp-daily-checkin",
+    "daily-checkin": "miniapp-dailycheckin",
   };
   return nameMap[name] || `miniapp-${name.replace(/-/g, "")}`;
 }

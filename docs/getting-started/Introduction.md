@@ -82,7 +82,7 @@ Trusted Execution Environment services provide:
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                            SDK Layer                                    │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  @neo/uniapp-sdk                                                  │  │
+│  │  @r3e/uniapp-sdk                                                  │  │
 │  │  ├── useWallet()      - Wallet connection & signing               │  │
 │  │  ├── useDatafeed()    - Real-time price feeds                     │  │
 │  │  ├── useRNG()         - Verifiable random numbers                 │  │

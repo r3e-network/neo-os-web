@@ -155,7 +155,7 @@ Developer app registration is wallet-signed and routed via Supabase Edge:
 ```ts
 const manifest = {
   app_id: "com.miniapps.arcade",
-  entry_url: "https://cdn.miniapps.com/apps/neo-game/index.html",
+  entry_url: "/miniapps/neo-game/index.html",
   name: "Neo Arcade",
   version: "1.0.0",
   developer_pubkey: "0x" + "<33-byte compressed pubkey hex>",

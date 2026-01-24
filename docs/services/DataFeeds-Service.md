@@ -62,7 +62,7 @@ subscribe("GAS-USD", (update) => {
 
 ```vue
 <script setup lang="ts">
-import { useDatafeed } from "@neo/uniapp-sdk";
+import { useDatafeed } from "@r3e/uniapp-sdk";
 
 const { prices, subscribe } = useDatafeed();
 

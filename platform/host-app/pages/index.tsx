@@ -10,6 +10,7 @@ import { useActivityFeed } from "@/hooks/useActivityFeed";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { useTranslation } from "@/lib/i18n/react";
 import { cn } from "@/lib/utils";
+import type { MiniAppInfo } from "@/components/types";
 import {
   Shield,
   Zap,
@@ -72,6 +73,7 @@ export default function LandingPage() {
   const [activeFilter, setActiveFilter] = useState("trending");
   const [appStats, setAppStats] = useState<AppStats>({});
   const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
+  const [communityApps, setCommunityApps] = useState<MiniAppInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [displayedTxCount, setDisplayedTxCount] = useState(0);
   const [isUrlInitialized, setIsUrlInitialized] = useState(false);
@@ -164,16 +166,30 @@ export default function LandingPage() {
     fetchStats();
   }, []);
 
+  useEffect(() => {
+    fetch("/api/miniapps/community")
+      .then((res) => res.json())
+      .then((data) => setCommunityApps(data.apps || []))
+      .catch(() => setCommunityApps([]));
+  }, []);
+
   const appsWithStats = useMemo(() => {
-    return BUILTIN_APPS.map((app) => ({
+    const byId = new Map<string, MiniAppInfo>();
+    BUILTIN_APPS.forEach((app) => byId.set(app.app_id, app));
+    communityApps.forEach((app) => {
+      if (!byId.has(app.app_id)) {
+        byId.set(app.app_id, app);
+      }
+    });
+    return Array.from(byId.values()).map((app) => ({
       ...app,
-      stats: appStats[app.app_id] || { users: 0, transactions: 0, views: 0 },
+      stats: appStats[app.app_id] || app.stats || { users: 0, transactions: 0, views: 0 },
     }));
-  }, [appStats]);
+  }, [appStats, communityApps]);
 
   const categories = useMemo(() => {
-    const counts: Record<string, number> = { all: BUILTIN_APPS.length };
-    BUILTIN_APPS.forEach((app) => {
+    const counts: Record<string, number> = { all: appsWithStats.length };
+    appsWithStats.forEach((app) => {
       counts[app.category] = (counts[app.category] || 0) + 1;
     });
     return [
@@ -190,7 +206,7 @@ export default function LandingPage() {
       },
       { id: "utility", label: t("categories.utility"), icon: CATEGORY_ICONS.utility, count: counts.utility || 0 },
     ];
-  }, [t]);
+  }, [appsWithStats, t]);
 
   const filteredApps = useMemo(() => {
     // Check if activeFilter matches a recommendation section
@@ -234,7 +250,11 @@ export default function LandingPage() {
         banner: undefined, // Add banner here if available in MiniAppInfo
         featured: {
           highlight: "promoted" as const,
-          tagline: t(`apps.${app.app_id}.tagline`) || app.description.slice(0, 50) + "...",
+          tagline: (() => {
+            const key = `apps.${app.app_id}.tagline`;
+            const translated = t(key);
+            return translated === key ? `${app.description.slice(0, 50)}...` : translated;
+          })(),
         },
       }));
   }, [appsWithStats, t]);

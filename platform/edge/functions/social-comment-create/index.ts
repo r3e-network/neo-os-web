@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
 import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
 import {
   checkSpamLimit,
@@ -19,7 +29,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   // Require authentication
@@ -31,20 +41,20 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "INVALID_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const { app_id, content, parent_id } = body;
 
   // Validate required fields
   if (!app_id?.trim()) {
-    return error(400, "app_id is required", "MISSING_APP_ID", req);
+    return validationError("app_id", "app_id is required", req);
   }
 
   // Validate and sanitize content
   const sanitizedContent = validateCommentContent(content);
   if (!sanitizedContent) {
-    return error(400, "content is required and must be 1-2000 characters", "INVALID_CONTENT", req);
+    return validationError("content", "content is required and must be 1-2000 characters", req);
   }
 
   const supabase = supabaseClient();
@@ -54,7 +64,7 @@ export async function handler(req: Request): Promise<Response> {
   const proof = await verifyProofOfInteraction(supabase, app_id, userId, req);
   if (proof instanceof Response) return proof;
   if (!proof.can_comment) {
-    return error(403, "you must use this app before commenting", "NO_INTERACTION", req);
+    return errorResponse("AUTH_004", { message: "you must use this app before commenting" }, req);
   }
 
   // Check spam rate limit
@@ -73,10 +83,10 @@ export async function handler(req: Request): Promise<Response> {
       .single();
 
     if (parentErr || !parent) {
-      return error(404, "parent comment not found", "PARENT_NOT_FOUND", req);
+      return notFoundError("parent comment", req);
     }
     if (parent.app_id !== app_id) {
-      return error(400, "parent comment belongs to different app", "INVALID_PARENT", req);
+      return errorResponse("VAL_002", { field: "parent_id", message: "parent comment belongs to different app" }, req);
     }
   }
 
@@ -94,7 +104,7 @@ export async function handler(req: Request): Promise<Response> {
     .single();
 
   if (insertErr) {
-    return error(500, "failed to create comment", "DB_ERROR", req);
+    return errorResponse("SERVER_002", { message: "failed to create comment" }, req);
   }
 
   // Log spam action for rate limiting
@@ -103,4 +113,6 @@ export async function handler(req: Request): Promise<Response> {
   return json(comment, { status: 201 }, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

@@ -6,7 +6,7 @@ This document maps the current repository structure into the target **Neo N3 Min
 
 The target structure is:
 
-- `contracts/`: platform contracts (GAS-only payments, bNEO-only governance, feeds, randomness logs, app registry, automation anchor, service gateway)
+- `contracts/`: platform contracts (GAS-only payments, NEO-only governance, feeds, randomness logs, app registry, automation anchor, service gateway)
 - `services/`: attested SGX services + non-TEE platform engine (indexer/aggregator)
 - `platform/`: Next.js host + SDK + Supabase Edge + RLS policies
 - `miniapps/`: builtin miniapps + developer templates

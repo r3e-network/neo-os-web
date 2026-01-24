@@ -27,6 +27,7 @@ type RepositoryInterface interface {
 	ListAvailable(ctx context.Context, limit int) ([]Account, error)
 	ListByLocker(ctx context.Context, lockerID string) ([]Account, error)
 	TryLockAccount(ctx context.Context, accountID, serviceID string, lockedAt time.Time) (bool, error)
+	TryReleaseAccount(ctx context.Context, accountID, serviceID string) (bool, error)
 	Delete(ctx context.Context, id string) error
 
 	// Balance-aware account operations
@@ -42,6 +43,10 @@ type RepositoryInterface interface {
 	GetBalances(ctx context.Context, accountID string) ([]AccountBalance, error)
 	GetBalancesForAccounts(ctx context.Context, accountIDs []string) ([]AccountBalance, error)
 	DeleteBalances(ctx context.Context, accountID string) error
+	// UpdateBalanceWithLock atomically updates balance while verifying lock ownership
+	// Returns (oldBalance, newBalance, txCount, wasUpdated, error)
+	// wasUpdated is false if account is not locked by the given service
+	UpdateBalanceWithLock(ctx context.Context, accountID, serviceID, tokenType string, delta int64, absolute *int64) (int64, int64, int, bool, error)
 
 	// Statistics
 	AggregateTokenStats(ctx context.Context, tokenType string) (*TokenStats, error)
@@ -143,6 +148,38 @@ func (r *Repository) TryLockAccount(ctx context.Context, accountID, serviceID st
 	var rows []Account
 	if err := json.Unmarshal(data, &rows); err != nil {
 		return false, fmt.Errorf("unmarshal lock response: %w", err)
+	}
+
+	return len(rows) > 0, nil
+}
+
+// TryReleaseAccount atomically releases an account lock if locked by the given service.
+// Returns true if the account was released, false if not locked by this service.
+func (r *Repository) TryReleaseAccount(ctx context.Context, accountID, serviceID string) (bool, error) {
+	if accountID == "" || serviceID == "" {
+		return false, fmt.Errorf("account_id and service_id are required")
+	}
+
+	update := map[string]interface{}{
+		"locked_by":    nil,
+		"locked_at":    nil,
+		"last_used_at": time.Now(),
+	}
+
+	// Atomic update: only release if locked_by matches this service
+	query := database.NewQuery().
+		Eq("id", accountID).
+		Eq("locked_by", serviceID).
+		Build()
+
+	data, err := r.base.Request(ctx, "PATCH", tableName, update, query)
+	if err != nil {
+		return false, err
+	}
+
+	var rows []Account
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return false, fmt.Errorf("unmarshal release response: %w", err)
 	}
 
 	return len(rows) > 0, nil
@@ -518,4 +555,125 @@ func (r *Repository) AggregateTokenStats(ctx context.Context, tokenType string) 
 	}
 
 	return stats, nil
+}
+
+// UpdateBalanceWithLock atomically updates balance while verifying lock ownership.
+// This method prevents race conditions by verifying the lock in the same query that updates the balance.
+// Returns (oldBalance, newBalance, txCount, wasUpdated, error)
+// wasUpdated is false if account is not locked by the given service
+func (r *Repository) UpdateBalanceWithLock(ctx context.Context, accountID, serviceID, tokenType string, delta int64, absolute *int64) (int64, int64, int, bool, error) {
+	if accountID == "" || serviceID == "" {
+		return 0, 0, 0, false, fmt.Errorf("account_id and service_id are required")
+	}
+
+	// Default to GAS if no token specified
+	if tokenType == "" {
+		tokenType = TokenTypeGAS
+	}
+
+	// SECURITY: Integer overflow/underflow protection
+	// Maximum balance is 2^53 - 1 (safe for JavaScript Number precision)
+	const maxBalance = int64(1<<53 - 1)
+	const minBalance = int64(0)
+
+	// Step 1: Get current balance and verify lock in a single query
+	// This ensures atomicity at the read level
+	accQuery := database.NewQuery().
+		Eq("id", accountID).
+		Eq("locked_by", serviceID).
+		Build()
+
+	accountsData, err := r.base.Request(ctx, "GET", tableName, nil, accQuery)
+	if err != nil {
+		return 0, 0, 0, false, fmt.Errorf("get account: %w", err)
+	}
+
+	var accounts []Account
+	if err := json.Unmarshal(accountsData, &accounts); err != nil {
+		return 0, 0, 0, false, fmt.Errorf("unmarshal account: %w", err)
+	}
+
+	// Check if account exists and is locked by this service
+	if len(accounts) == 0 {
+		return 0, 0, 0, false, nil // Not locked by this service
+	}
+
+	acc := accounts[0]
+
+	// Get current balance
+	balQuery := database.NewQuery().
+		Eq("account_id", accountID).
+		Eq("token_type", tokenType).
+		Build()
+
+	balancesData, err := r.base.Request(ctx, "GET", balancesTableName, nil, balQuery)
+	if err != nil {
+		return 0, 0, 0, false, fmt.Errorf("get balance: %w", err)
+	}
+
+	var balances []AccountBalance
+	if err := json.Unmarshal(balancesData, &balances); err != nil {
+		return 0, 0, 0, false, fmt.Errorf("unmarshal balance: %w", err)
+	}
+
+	var oldBalance int64 = 0
+	if len(balances) > 0 {
+		oldBalance = balances[0].Amount
+	}
+
+	var newBalance int64
+	if absolute != nil {
+		newBalance = *absolute
+	} else {
+		// SECURITY: Check for integer overflow/underflow
+		if delta > 0 && oldBalance > maxBalance-delta {
+			return 0, 0, 0, false, fmt.Errorf("balance overflow: old=%d delta=%d max=%d", oldBalance, delta, maxBalance)
+		}
+		if delta < 0 && oldBalance < -delta {
+			return 0, 0, 0, false, fmt.Errorf("insufficient balance: old=%d delta=%d", oldBalance, delta)
+		}
+		newBalance = oldBalance + delta
+	}
+
+	// Validate final balance
+	if newBalance < minBalance {
+		return 0, 0, 0, false, fmt.Errorf("balance below minimum: %d", newBalance)
+	}
+	if newBalance > maxBalance {
+		return 0, 0, 0, false, fmt.Errorf("balance exceeds maximum: %d", newBalance)
+	}
+
+	// Get script hash and decimals for token
+	scriptHash, decimals := GetDefaultTokenConfig(tokenType)
+
+	// Step 2: Update account metadata first (last_used_at, tx_count)
+	// We update this BEFORE the balance to minimize inconsistency window
+	accUpdate := map[string]interface{}{
+		"last_used_at": time.Now(),
+		"tx_count":     acc.TxCount + 1,
+	}
+
+	accUpdateQuery := database.NewQuery().
+		Eq("id", accountID).
+		Eq("locked_by", serviceID).
+		Build()
+
+	_, err = r.base.Request(ctx, "PATCH", tableName, accUpdate, accUpdateQuery)
+	if err != nil {
+		// SECURITY FIX: Fail the operation if metadata update fails
+		// This prevents inconsistent state where balance is updated but tx_count isn't
+		// The caller can retry the entire operation
+		return 0, 0, 0, false, fmt.Errorf("update account metadata: %w (balance NOT updated)", err)
+	}
+
+	// Step 3: Update balance (atomic at DB level)
+	// Done after metadata update to ensure consistency
+	if err := r.UpsertBalance(ctx, accountID, tokenType, scriptHash, newBalance, decimals); err != nil {
+		// If balance update fails after metadata succeeded, we have a minor inconsistency
+		// (tx_count was incremented but balance wasn't updated)
+		// This is acceptable because tx_count is just a counter and will correct itself on next operation
+		return 0, 0, 0, false, fmt.Errorf("upsert balance: %w", err)
+	}
+
+	return oldBalance, newBalance, int(acc.TxCount + 1), true, nil
 }

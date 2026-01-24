@@ -109,7 +109,7 @@ func TestSimulationStatisticsAccumulation(t *testing.T) {
 func TestMultipleAppSimulation(t *testing.T) {
 	apps := []string{
 		"miniapp-lottery",
-		"miniapp-coin-flip",
+		"miniapp-coinflip",
 		"miniapp-dice-game",
 		"miniapp-roulette",
 		"miniapp-slots",

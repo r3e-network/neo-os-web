@@ -3,10 +3,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
 	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
@@ -17,7 +22,7 @@ import (
 
 var miniApps = []string{
 	"miniapp-lottery",
-	"miniapp-coin-flip",
+	"miniapp-coinflip",
 	"miniapp-dice-game",
 	"miniapp-scratch-card",
 	"miniapp-flashloan",
@@ -28,27 +33,137 @@ var miniApps = []string{
 	"builtin-canvas",
 }
 
+type deployedConfig struct {
+	Network       string                       `json:"network"`
+	NetworkMagic  uint32                       `json:"network_magic"`
+	RPCEndpoints  []string                     `json:"rpc_endpoints"`
+	Contracts     map[string]deployedContract  `json:"contracts"`
+	MiniappConfig map[string]miniappDeployment `json:"miniapp_contracts"`
+}
+
+type deployedContract struct {
+	Address string `json:"address"`
+}
+
+type miniappDeployment struct {
+	AppID string `json:"app_id"`
+}
+
+func detectNetwork() string {
+	raw := strings.ToLower(strings.TrimSpace(os.Getenv("NEO_NETWORK")))
+	if raw == "mainnet" || raw == "testnet" {
+		return raw
+	}
+	if magicStr := strings.TrimSpace(os.Getenv("NEO_NETWORK_MAGIC")); magicStr != "" {
+		if magic, err := strconv.ParseUint(magicStr, 10, 32); err == nil {
+			if magic == 860833102 {
+				return "mainnet"
+			}
+		}
+	}
+	return "testnet"
+}
+
+func loadConfig(network string) *deployedConfig {
+	configPath := filepath.Join("deploy", "config", network+"_contracts.json")
+	raw, err := os.ReadFile(configPath)
+	if err != nil {
+		return &deployedConfig{}
+	}
+	cfg := &deployedConfig{}
+	if err := json.Unmarshal(raw, cfg); err != nil {
+		return &deployedConfig{}
+	}
+	return cfg
+}
+
+func resolveRPCURL(cfg *deployedConfig) string {
+	if rpc := strings.TrimSpace(os.Getenv("NEO_RPC_URL")); rpc != "" {
+		return rpc
+	}
+	if len(cfg.RPCEndpoints) > 0 {
+		return cfg.RPCEndpoints[0]
+	}
+	return "https://testnet1.neo.coz.io:443"
+}
+
+func resolveNetworkMagic(cfg *deployedConfig) uint32 {
+	if magicStr := strings.TrimSpace(os.Getenv("NEO_NETWORK_MAGIC")); magicStr != "" {
+		if magic, err := strconv.ParseUint(magicStr, 10, 32); err == nil {
+			return uint32(magic)
+		}
+	}
+	if cfg.NetworkMagic != 0 {
+		return cfg.NetworkMagic
+	}
+	return 894710606
+}
+
+func resolveWIF(network string) string {
+	if raw := strings.TrimSpace(os.Getenv("NEO_WIF")); raw != "" {
+		return raw
+	}
+	if network == "mainnet" {
+		return strings.TrimSpace(os.Getenv("NEO_MAINNET_WIF"))
+	}
+	return strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
+}
+
+func resolvePaymentHub(network string, cfg *deployedConfig) string {
+	if network == "mainnet" {
+		if addr := strings.TrimSpace(os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS_MAINNET")); addr != "" {
+			return addr
+		}
+	}
+	if addr := strings.TrimSpace(os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS")); addr != "" {
+		return addr
+	}
+	if cfg.Contracts != nil {
+		if entry, ok := cfg.Contracts["PaymentHub"]; ok {
+			return strings.TrimSpace(entry.Address)
+		}
+	}
+	return ""
+}
+
+func resolveMiniApps(cfg *deployedConfig) []string {
+	if cfg.MiniappConfig == nil {
+		return miniApps
+	}
+	ids := make([]string, 0, len(cfg.MiniappConfig))
+	for _, entry := range cfg.MiniappConfig {
+		if strings.TrimSpace(entry.AppID) == "" {
+			continue
+		}
+		ids = append(ids, entry.AppID)
+	}
+	if len(ids) == 0 {
+		return miniApps
+	}
+	sort.Strings(ids)
+	return ids
+}
+
 func main() {
 	ctx := context.Background()
+	network := detectNetwork()
+	cfg := loadConfig(network)
 
-	rpcURL := os.Getenv("NEO_RPC_URL")
-	if rpcURL == "" {
-		rpcURL = "https://testnet1.neo.coz.io:443"
-	}
-
-	wif := os.Getenv("NEO_TESTNET_WIF")
+	rpcURL := resolveRPCURL(cfg)
+	wif := resolveWIF(network)
 	if wif == "" {
-		log.Fatal("NEO_TESTNET_WIF environment variable not set")
+		log.Fatal("Missing WIF (set NEO_WIF or network-specific WIF)")
 	}
 
-	contractAddress := os.Getenv("CONTRACT_PAYMENT_HUB_ADDRESS")
+	contractAddress := resolvePaymentHub(network, cfg)
 	if contractAddress == "" {
-		contractAddress = "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
+		log.Fatal("PaymentHub contract address not set")
 	}
+	miniApps = resolveMiniApps(cfg)
 
 	client, err := chain.NewClient(chain.Config{
 		RPCURL:    rpcURL,
-		NetworkID: 894710606,
+		NetworkID: resolveNetworkMagic(cfg),
 	})
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
@@ -65,7 +180,9 @@ func main() {
 		log.Fatalf("Failed to parse owner address: %v", err)
 	}
 
-	log.Printf("Configuring MiniApps in contract: %s", contractAddress)
+	log.Printf("Network: %s", network)
+	log.Printf("RPC: %s", rpcURL)
+	log.Printf("Configuring %d MiniApps in contract: %s", len(miniApps), contractAddress)
 	log.Printf("Owner address: %s", ownerAddress)
 
 	for _, appID := range miniApps {

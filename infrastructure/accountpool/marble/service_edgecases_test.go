@@ -27,8 +27,9 @@ type repoWithFailures struct {
 	listAvailableWithBalancesErr error
 	listAvailableWithBalances    []neoaccountssupabase.AccountWithBalances
 
-	updateErrForID map[string]error
-	lockErrForID   map[string]error
+	updateErrForID  map[string]error
+	lockErrForID    map[string]error
+	releaseErrForID map[string]error
 
 	getBalanceErr    error
 	upsertBalanceErr error
@@ -61,6 +62,15 @@ func (r *repoWithFailures) TryLockAccount(ctx context.Context, accountID, servic
 		}
 	}
 	return r.RepositoryInterface.TryLockAccount(ctx, accountID, serviceID, lockedAt)
+}
+
+func (r *repoWithFailures) TryReleaseAccount(ctx context.Context, accountID, serviceID string) (bool, error) {
+	if r.releaseErrForID != nil {
+		if err := r.releaseErrForID[accountID]; err != nil {
+			return false, err
+		}
+	}
+	return r.RepositoryInterface.TryReleaseAccount(ctx, accountID, serviceID)
 }
 
 func (r *repoWithFailures) ListAvailableWithBalances(ctx context.Context, tokenType string, minBalance *int64, limit int) ([]neoaccountssupabase.AccountWithBalances, error) {
@@ -264,7 +274,7 @@ func TestRequestAccounts_SkipsLockFailuresAndReturnsOtherAccounts(t *testing.T) 
 	}
 }
 
-func TestReleaseAccounts_SkipsMissingAndUpdateFailures(t *testing.T) {
+func TestReleaseAccounts_SkipsMissingAndReleaseFailures(t *testing.T) {
 	svc, baseRepo := newTestServiceWithMock(t)
 
 	acc1 := &neoaccountssupabase.Account{ID: "acc-1", LockedBy: "neocompute", LockedAt: time.Now()}
@@ -274,7 +284,7 @@ func TestReleaseAccounts_SkipsMissingAndUpdateFailures(t *testing.T) {
 
 	svc.repo = &repoWithFailures{
 		RepositoryInterface: baseRepo,
-		updateErrForID:      map[string]error{"acc-1": errors.New("update failed")},
+		releaseErrForID:     map[string]error{"acc-1": errors.New("release failed")},
 	}
 
 	released, err := svc.ReleaseAccounts(context.Background(), "neocompute", []string{"missing", "acc-1", "acc-2"})
@@ -303,7 +313,7 @@ func TestReleaseAllByService_ReturnsErrorOnListFailure(t *testing.T) {
 	}
 }
 
-func TestReleaseAllByService_SkipsUpdateFailures(t *testing.T) {
+func TestReleaseAllByService_SkipsReleaseFailures(t *testing.T) {
 	svc, baseRepo := newTestServiceWithMock(t)
 
 	acc1 := &neoaccountssupabase.Account{ID: "acc-1", LockedBy: "neocompute", LockedAt: time.Now()}
@@ -313,7 +323,7 @@ func TestReleaseAllByService_SkipsUpdateFailures(t *testing.T) {
 
 	svc.repo = &repoWithFailures{
 		RepositoryInterface: baseRepo,
-		updateErrForID:      map[string]error{"acc-1": errors.New("update failed")},
+		releaseErrForID:     map[string]error{"acc-1": errors.New("release failed")},
 	}
 
 	released, err := svc.ReleaseAllByService(context.Background(), "neocompute")
@@ -321,12 +331,12 @@ func TestReleaseAllByService_SkipsUpdateFailures(t *testing.T) {
 		t.Fatalf("ReleaseAllByService() error = %v", err)
 	}
 	if released != 1 {
-		t.Fatalf("released = %d, want 1 (one update should fail)", released)
+		t.Fatalf("released = %d, want 1 (one release should fail)", released)
 	}
 
 	got1, _ := baseRepo.GetByID(context.Background(), "acc-1")
 	if got1 == nil || got1.LockedBy == "" {
-		t.Fatalf("acc-1 should remain locked when update fails, got %+v", got1)
+		t.Fatalf("acc-1 should remain locked when release fails, got %+v", got1)
 	}
 
 	got2, _ := baseRepo.GetByID(context.Background(), "acc-2")

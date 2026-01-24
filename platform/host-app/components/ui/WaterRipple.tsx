@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo, useId } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface WaterRippleProps {
@@ -7,6 +7,7 @@ interface WaterRippleProps {
   onRippleComplete?: () => void;
   rippleColor?: string;
   disabled?: boolean;
+  idSuffix?: string;
 }
 
 /**
@@ -19,9 +20,17 @@ export function WaterRipple({
   onRippleComplete,
   rippleColor = "rgba(159, 157, 243, 0.4)",
   disabled = false,
+  idSuffix,
 }: WaterRippleProps) {
   const [isDistorting, setIsDistorting] = useState(false);
-  const filterId = useRef(`water-filter-${Math.random().toString(36).substr(2, 9)}`);
+  const uniqueId = useId();
+  // Prefer a stable suffix from data (e.g., app id) to avoid SSR/CSR ordering mismatches.
+  const filterId = useMemo(() => {
+    const rawId = idSuffix ? String(idSuffix) : String(uniqueId);
+    const sanitized = rawId.replace(/[^a-zA-Z0-9_-]/g, "-");
+    const finalId = sanitized || "default";
+    return `water-filter-${finalId}`;
+  }, [idSuffix, uniqueId]);
   const turbulenceRef = useRef<SVGFETurbulenceElement>(null);
   const displacementRef = useRef<SVGFEDisplacementMapElement>(null);
   const animationRef = useRef<number>();
@@ -95,14 +104,14 @@ export function WaterRipple({
       style={{
         // Apply the filter to the container. 
         // Note: This distorts EVERYTHING inside (text, images, borders).
-        filter: isDistorting ? `url(#${filterId.current})` : 'none',
+        filter: isDistorting ? `url(#${filterId})` : 'none',
         willChange: isDistorting ? 'filter' : 'auto' // optimize rendering
       }}
     >
       {/* SVG Filter Definition */}
       <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
         <defs>
-          <filter id={filterId.current} x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+          <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
             {/* Generate water texture noise */}
             <feTurbulence
               ref={turbulenceRef}
@@ -176,4 +185,3 @@ function RippleEffect({ x, y, color }: RippleEffectProps) {
 }
 
 export default WaterRipple;
-

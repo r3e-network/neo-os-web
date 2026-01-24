@@ -32,6 +32,8 @@ export function useWallet() {
   const balances = ref<WalletBalances>({});
   const chainId = ref<string | null>(null);
   const chainType = ref<string | null>(null);
+  const appChainId = ref<string | null>(null);
+  const supportedChains = ref<string[]>([]);
   const isConnected = ref(false);
   const isLoading = ref(false);
   const error = ref<Error | null>(null);
@@ -69,6 +71,19 @@ export function useWallet() {
     balances.value = normalizeBalances(state);
   };
 
+  const applyAppConfig = (config?: { chainId?: string | null; supportedChains?: string[] } | null) => {
+    if (!config) return;
+    appChainId.value = config.chainId ?? null;
+    supportedChains.value = Array.isArray(config.supportedChains) ? config.supportedChains : [];
+  };
+
+  const getAppConfig = async () => {
+    const sdk = await waitForSDK();
+    const config = sdk.getConfig?.();
+    applyAppConfig(config);
+    return config;
+  };
+
   const connect = async () => {
     isLoading.value = true;
     error.value = null;
@@ -79,6 +94,7 @@ export function useWallet() {
       const config = sdk.getConfig?.();
       chainId.value = config?.chainId ?? null;
       chainType.value = config?.chainType ?? null;
+      applyAppConfig(config);
     } catch (e) {
       error.value = e as Error;
     } finally {
@@ -184,9 +200,30 @@ export function useWallet() {
     }
   };
 
+  const switchToAppChain = async (fallbackChainId?: string) => {
+    const config = await getAppConfig();
+    const target =
+      config?.chainId ||
+      (Array.isArray(config?.supportedChains) && config.supportedChains.length > 0 ? config.supportedChains[0] : null) ||
+      fallbackChainId ||
+      null;
+    if (!target) {
+      throw new Error("app chain not configured");
+    }
+    await switchChain(target);
+  };
+
   const getAddress = async () => {
     const sdk = await waitForSDK();
     return sdk.wallet.getAddress();
+  };
+
+  const signMessage = async (message: string) => {
+    const sdk = await waitForSDK();
+    if (!sdk.wallet?.signMessage) {
+      throw new Error("signMessage not available");
+    }
+    return sdk.wallet.signMessage(message);
   };
 
   const getBalance = async (token?: string): Promise<string | WalletBalances> => {
@@ -285,6 +322,9 @@ export function useWallet() {
     // Fallback: try SDK directly (only if not already connected via host state)
     // Use a flag to prevent race condition with subscription updates
     const sdk = getSDKSync();
+    if (sdk?.getConfig) {
+      applyAppConfig(sdk.getConfig());
+    }
     if (sdk && !isConnected.value) {
       const wasConnectedBefore = isConnected.value;
       sdk.wallet
@@ -297,12 +337,19 @@ export function useWallet() {
             const config = sdk.getConfig?.();
             chainId.value = config?.chainId ?? null;
             chainType.value = config?.chainType ?? null;
+            applyAppConfig(config);
           }
         })
         .catch((e) => {
           console.debug("[MiniApp SDK] Fallback wallet connection failed:", e?.message || e);
         });
     }
+
+    waitForSDK()
+      .then((sdkReady) => applyAppConfig(sdkReady.getConfig?.()))
+      .catch(() => {
+        // Ignore SDK readiness failures; app config may arrive via postMessage.
+      });
   });
 
   onUnmounted(() => {
@@ -316,6 +363,8 @@ export function useWallet() {
     address,
     chainId,
     chainType,
+    appChainId,
+    supportedChains,
     balances,
     isConnected,
     isLoading,
@@ -328,8 +377,11 @@ export function useWallet() {
     invokeContract,
     invokeRead,
     getContractAddress,
+    getAppConfig,
     getAddress,
+    signMessage,
     switchChain,
+    switchToAppChain,
     getBalance,
     getTransactions,
     // Generic invoke helper

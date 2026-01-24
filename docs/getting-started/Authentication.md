@@ -60,7 +60,7 @@ The Neo Service Layer uses a multi-layer authentication model:
 ### Implementation
 
 ```typescript
-import { waitForSDK } from "@neo/uniapp-sdk";
+import { waitForSDK } from "@r3e/uniapp-sdk";
 
 const sdk = await waitForSDK();
 

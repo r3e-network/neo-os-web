@@ -37,6 +37,11 @@ namespace NeoMiniAppPlatform.Contracts
         // Receipt data uses PREFIX_RECEIPT + receiptId.ToByteArray()
         // Counter uses PREFIX_RECEIPT_COUNTER directly (not under PREFIX_RECEIPT)
         private static readonly byte[] PREFIX_RECEIPT_COUNTER = new byte[] { 0x05 };
+        // SECURITY: TimeLock storage to prevent immediate admin changes
+        private static readonly byte[] PREFIX_PENDING_ADMIN = new byte[] { 0x06 };
+        private static readonly byte[] PREFIX_ADMIN_CHANGE_TIME = new byte[] { 0x07 };
+        private static readonly byte[] PREFIX_ADMIN_CHANGE_HEIGHT = new byte[] { 0x08 };
+        private static readonly byte[] PREFIX_TIMELOCK_DELAY = new byte[] { 0x09 };
 
         public struct AppConfig
         {
@@ -62,6 +67,15 @@ namespace NeoMiniAppPlatform.Contracts
             public string Memo;
         }
 
+        // SECURITY: TimeLock constants to prevent immediate admin changes
+        private const ulong DEFAULT_TIMELOCK_DELAY_SECONDS = 86400; // 24 hours
+        private const ulong MIN_TIMELOCK_DELAY_SECONDS = 3600;      // 1 hour minimum
+        private const ulong BLOCK_TIME_SECONDS = 15;                // ~15 seconds per block (Neo N3)
+        private const ulong MIN_TIMELOCK_DELAY_BLOCKS = 240;        // Minimum blocks (1 hour = 240 blocks)
+
+        // SECURITY: Maximum balance to prevent overflow and abuse (1 billion GAS)
+        private static readonly BigInteger MAX_BALANCE = new BigInteger(1_000_000_000);
+
         [DisplayName("PaymentReceived")]
         public static event PaymentReceivedHandler OnPaymentReceived;
 
@@ -86,6 +100,16 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("SplitConfigured")]
         public static event SplitConfiguredHandler OnSplitConfigured;
 
+        // SECURITY: TimeLock events for admin changes
+        public delegate void AdminChangeProposedHandler(UInt160 currentAdmin, UInt160 proposedAdmin, BigInteger executeAfterTime, BigInteger executeAfterHeight);
+        public delegate void AdminChangeCancelledHandler(UInt160 cancelledAdmin);
+
+        [DisplayName("AdminChangeProposed")]
+        public static event AdminChangeProposedHandler OnAdminChangeProposed;
+
+        [DisplayName("AdminChangeCancelled")]
+        public static event AdminChangeCancelledHandler OnAdminChangeCancelled;
+
         public static void _deploy(object data, bool update)
         {
             if (update) return;
@@ -98,6 +122,34 @@ namespace NeoMiniAppPlatform.Contracts
         public static UInt160 Admin()
         {
             return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+        }
+
+        // SECURITY: TimeLock getter methods
+        [Safe]
+        public static UInt160 PendingAdmin()
+        {
+            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_PENDING_ADMIN);
+        }
+
+        [Safe]
+        public static BigInteger AdminChangeTime()
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_TIME);
+            return data == null ? 0 : (BigInteger)data;
+        }
+
+        [Safe]
+        public static BigInteger AdminChangeHeight()
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_HEIGHT);
+            return data == null ? 0 : (BigInteger)data;
+        }
+
+        [Safe]
+        public static BigInteger TimeLockDelay()
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_TIMELOCK_DELAY);
+            return data == null ? DEFAULT_TIMELOCK_DELAY_SECONDS : (BigInteger)data;
         }
 
         private static void ValidateAdmin()
@@ -143,6 +195,8 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void SetAppBalance(string appId, BigInteger amount)
         {
+            // SECURITY: Prevent overflow and excessive balance accumulation
+            ExecutionEngine.Assert(amount >= 0 && amount <= MAX_BALANCE, "balance overflow or excessive");
             BalanceMap().Put(AppKey(appId), amount);
         }
 
@@ -179,13 +233,70 @@ namespace NeoMiniAppPlatform.Contracts
         // Admin / App Configuration
         // ============================================================================
 
-        public static void SetAdmin(UInt160 newAdmin)
+        // SECURITY: TimeLock-protected admin change to prevent immediate takeover
+        // Replaces immediate SetAdmin with two-phase: ProposeAdmin -> ExecuteAdminChange
+        public static void ProposeAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
             ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
+            
+            BigInteger delay = TimeLockDelay();
+            BigInteger executeAfterTime = Runtime.Time + delay;
+            BigInteger executeAfterHeight = Runtime.Height + (delay / BLOCK_TIME_SECONDS);
+            
+            Storage.Put(Storage.CurrentContext, PREFIX_PENDING_ADMIN, newAdmin);
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_TIME, executeAfterTime);
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_HEIGHT, executeAfterHeight);
+            
+            OnAdminChangeProposed(Admin(), newAdmin, executeAfterTime, executeAfterHeight);
+        }
+
+        public static void ExecuteAdminChange()
+        {
+            UInt160 pendingAdmin = PendingAdmin();
+            ExecutionEngine.Assert(pendingAdmin != null && pendingAdmin.IsValid, "no pending admin");
+            
+            BigInteger changeTime = AdminChangeTime();
+            BigInteger changeHeight = AdminChangeHeight();
+            
+            ExecutionEngine.Assert(changeTime > 0, "no active proposal");
+            
+            // SECURITY: Check BOTH timestamp AND block height to prevent miner manipulation
+            ExecutionEngine.Assert(Runtime.Time >= changeTime, "timelock active: time not reached");
+            ExecutionEngine.Assert(Runtime.Height >= changeHeight, "timelock active: height not reached");
+            
             UInt160 oldAdmin = Admin();
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
-            OnAdminChanged(oldAdmin, newAdmin);
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, pendingAdmin);
+            
+            // Clean up pending state
+            Storage.Delete(Storage.CurrentContext, PREFIX_PENDING_ADMIN);
+            Storage.Delete(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_TIME);
+            Storage.Delete(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_HEIGHT);
+            
+            OnAdminChanged(oldAdmin, pendingAdmin);
+        }
+
+        public static void CancelAdminChange()
+        {
+            ValidateAdmin();
+            
+            UInt160 pendingAdmin = PendingAdmin();
+            ExecutionEngine.Assert(pendingAdmin != null && pendingAdmin.IsValid, "no pending admin");
+            
+            Storage.Delete(Storage.CurrentContext, PREFIX_PENDING_ADMIN);
+            Storage.Delete(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_TIME);
+            Storage.Delete(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_HEIGHT);
+            
+            OnAdminChangeCancelled(pendingAdmin);
+        }
+
+        public static void SetTimeLockDelay(BigInteger delaySeconds)
+        {
+            ValidateAdmin();
+            ExecutionEngine.Assert(delaySeconds >= MIN_TIMELOCK_DELAY_SECONDS, "delay too short");
+            ExecutionEngine.Assert(delaySeconds <= DEFAULT_TIMELOCK_DELAY_SECONDS * 7, "delay too long");
+            
+            Storage.Put(Storage.CurrentContext, PREFIX_TIMELOCK_DELAY, delaySeconds);
         }
 
         public static void Update(ByteString nefFile, string manifest)
@@ -219,7 +330,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
             AppConfig cfg = GetApp(appId);
             ExecutionEngine.Assert(cfg.Owner != null && cfg.Owner.IsValid, "app not found");
-            ExecutionEngine.Assert(Runtime.CheckWitness(cfg.Owner) || Runtime.CheckWitness(Admin()), "unauthorized");
+            // SECURITY: Only app owner can configure split - admin should not have override power
+            ExecutionEngine.Assert(Runtime.CheckWitness(cfg.Owner), "unauthorized");
 
             ValidateSplit(recipients, sharesBps);
             cfg.Recipients = recipients;
@@ -283,9 +395,6 @@ namespace NeoMiniAppPlatform.Contracts
             }
             if (amount <= 0) throw new Exception("Invalid amount");
 
-            // Ignore sender-side hooks during outbound transfers.
-            if (from == Runtime.ExecutingScriptHash) return;
-
             // Try to get appId from temporary storage first (set by Pay method)
             // If not found, try to get it from the data parameter (direct GAS.Transfer)
             ByteString appIdBytes = Storage.Get(Storage.CurrentContext, (ByteString)"pending_payment");
@@ -319,6 +428,8 @@ namespace NeoMiniAppPlatform.Contracts
 
             // Update app balance.
             BigInteger bal = GetAppBalance(appId);
+            // SECURITY: Explicit overflow check before update
+            ExecutionEngine.Assert(bal <= MAX_BALANCE - amount, "balance would exceed maximum");
             BigInteger newBal = bal + amount;
             SetAppBalance(appId, newBal);
             OnBalanceUpdated(appId, bal, newBal);

@@ -15,9 +15,9 @@ function parseUserAPIKey(req: Request): string | undefined {
 }
 
 // API key verification cache with 5-minute TTL
+// SECURITY: Only cache VALID keys to prevent cache poisoning attacks
 type CachedVerification = {
-  valid: boolean;
-  userId?: string;
+  userId: string;
   apiKeyId?: string;
   scopes?: string[];
   expiresAt: number;
@@ -26,18 +26,32 @@ type CachedVerification = {
 const apiKeyCache = new Map<string, CachedVerification>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-function getCachedVerification(apiKey: string): CachedVerification | null {
-  const cached = apiKeyCache.get(apiKey);
+// Hash API key for cache key to prevent timing attacks and avoid storing plaintext
+async function hashApiKey(apiKey: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(apiKey);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function getCachedVerification(apiKey: string): Promise<CachedVerification | null> {
+  const cacheKey = await hashApiKey(apiKey);
+  const cached = apiKeyCache.get(cacheKey);
   if (!cached) return null;
   if (Date.now() > cached.expiresAt) {
-    apiKeyCache.delete(apiKey);
+    apiKeyCache.delete(cacheKey);
     return null;
   }
   return cached;
 }
 
-function setCachedVerification(apiKey: string, verification: Omit<CachedVerification, "expiresAt">): void {
-  apiKeyCache.set(apiKey, {
+async function setCachedVerification(apiKey: string, verification: Omit<CachedVerification, "expiresAt">): Promise<void> {
+  // SECURITY: Only cache valid verifications to prevent cache poisoning
+  if (!verification.userId) return;
+
+  const cacheKey = await hashApiKey(apiKey);
+  apiKeyCache.set(cacheKey, {
     ...verification,
     expiresAt: Date.now() + CACHE_TTL_MS,
   });
@@ -101,12 +115,10 @@ export async function requireAuth(req: Request): Promise<AuthContext | Response>
   const apiKey = parseUserAPIKey(req);
   if (!apiKey) return error(401, "missing Authorization or X-API-Key", "AUTH_REQUIRED", req);
 
-  // Check cache first
-  const cached = getCachedVerification(apiKey);
+  // Check cache first (now async for SHA-256 hashing)
+  const cached = await getCachedVerification(apiKey);
   if (cached) {
-    if (!cached.valid || !cached.userId) {
-      return error(401, "invalid api key", "AUTH_INVALID", req);
-    }
+    // SECURITY: cached entries are always valid (we don't cache invalid keys)
     return {
       userId: cached.userId,
       apiKeyId: cached.apiKeyId,
@@ -123,15 +135,21 @@ export async function requireAuth(req: Request): Promise<AuthContext | Response>
   const row = Array.isArray(data) ? data[0] : data;
   const valid = Boolean(row?.valid);
   const userId = String(row?.user_id ?? "").trim();
-  const scopes = Array.isArray(row?.scopes) ? (row?.scopes as string[]) : undefined;
+  const scopes = Array.isArray(row?.scopes) ? (row?.scopes as string[]) : [];
   const apiKeyId = String(row?.key_id ?? "").trim() || undefined;
 
-  // Cache the result (both valid and invalid)
-  setCachedVerification(apiKey, { valid, userId: userId || undefined, apiKeyId, scopes });
-
   if (!valid || !userId) {
+    // SECURITY: Do NOT cache invalid keys to prevent cache poisoning
     return error(401, "invalid api key", "AUTH_INVALID", req);
   }
+
+  // SECURITY: Warn about legacy API keys with empty scopes (MEDIUM #16)
+  if (scopes.length === 0) {
+    console.warn(`[SECURITY] Legacy API key ${apiKeyId} (user ${userId}) has no scopes - full access granted`);
+  }
+
+  // Cache only valid results
+  await setCachedVerification(apiKey, { userId, apiKeyId, scopes });
 
   return { userId, apiKeyId, scopes, authType: "api_key" };
 }
@@ -158,7 +176,7 @@ export async function ensureUserRow(
   auth: AuthContext,
   patch: Record<string, unknown> = {},
   req?: Request,
-): Promise<{ id: string; nonce?: string; address?: string } | Response> {
+): Promise<{ id: string; nonce?: string; nonce_created_at?: string; address?: string } | Response> {
   const row: Record<string, unknown> = { id: auth.userId, ...patch };
   if (auth.email) row.email = auth.email;
 
@@ -166,7 +184,7 @@ export async function ensureUserRow(
   const { data, error: upsertErr } = await supabase
     .from("users")
     .upsert(row, { onConflict: "id" })
-    .select("id,nonce,address")
+    .select("id,nonce,nonce_created_at,address")
     .maybeSingle();
 
   if (upsertErr) return error(500, "failed to ensure user", "DB_ERROR", req);

@@ -39,6 +39,12 @@ const DEFAULT_CHAINS: ChainConfig[] = [
     status: "active",
     rpc_urls: ["https://mainnet1.neo.coz.io:443", "https://mainnet2.neo.coz.io:443"],
     network_magic: 860833102,
+    native_currency: { name: "Gas", symbol: "GAS", decimals: 8 },
+    contracts: {
+      // Native contracts (computed from name)
+      gas: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      neo: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+    },
   },
   {
     id: "neo-n3-testnet",
@@ -49,6 +55,11 @@ const DEFAULT_CHAINS: ChainConfig[] = [
     status: "active",
     rpc_urls: ["https://testnet1.neo.coz.io:443", "https://testnet2.neo.coz.io:443"],
     network_magic: 894710606,
+    native_currency: { name: "Gas", symbol: "GAS", decimals: 8 },
+    contracts: {
+      gas: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      neo: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+    },
   },
   {
     id: "neox-mainnet",
@@ -120,4 +131,14 @@ export function isNeoChain(chainId: string): boolean {
 
 export function isEvmChain(chainId: string): boolean {
   return getChainConfig(chainId)?.type === "evm";
+}
+
+/**
+ * Get native contract address for a chain (GAS, NEO, etc.)
+ * @param chainId Chain identifier
+ * @param contractType Contract type (e.g., "gas", "neo")
+ * @returns Contract address or undefined
+ */
+export function getNativeContractAddress(chainId: string, contractType: "gas" | "neo"): string | undefined {
+  return getChainConfig(chainId)?.contracts?.[contractType];
 }

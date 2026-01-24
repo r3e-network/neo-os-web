@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
@@ -18,7 +28,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const auth = await requireAuth(req);
@@ -34,33 +44,40 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const amount = parseFloat(body.amount ?? "0");
   if (isNaN(amount) || amount <= 0) {
-    return error(400, "amount must be positive", "INVALID_AMOUNT", req);
+    return validationError("amount", "amount must be positive", req);
   }
   if (amount > MAX_PER_REQUEST) {
-    return error(400, `max ${MAX_PER_REQUEST} GAS per request`, "AMOUNT_EXCEEDED", req);
+    return validationError("amount", `max ${MAX_PER_REQUEST} GAS per request`, req);
   }
 
   const supabase = supabaseServiceClient();
 
-  // Check current quota
-  const today = new Date().toISOString().split("T")[0];
-  const { data: quota } = await supabase
-    .from("gas_sponsor_quotas")
-    .select("used_amount")
-    .eq("user_id", auth.userId)
-    .eq("date", today)
-    .maybeSingle();
+  // SECURITY FIX: Use atomic quota check and update to prevent race conditions
+  // The RPC function gas_sponsor_atomic_claim performs:
+  // 1. SELECT FOR UPDATE on the quota row (row-level lock)
+  // 2. Check if used_amount + requested_amount <= daily_limit
+  // 3. UPDATE the quota if allowed
+  // 4. Return success/failure atomically
+  const { data: claimResult, error: claimErr } = await supabase.rpc("gas_sponsor_atomic_claim", {
+    p_user_id: auth.userId,
+    p_amount: amount,
+    p_daily_limit: DAILY_LIMIT,
+  });
 
-  const usedToday = parseFloat(quota?.used_amount ?? "0");
-  const remaining = DAILY_LIMIT - usedToday;
+  if (claimErr) {
+    return errorResponse("SERVER_002", { message: `quota check failed: ${claimErr.message}` }, req);
+  }
 
-  if (amount > remaining) {
-    return error(400, "exceeds daily quota", "QUOTA_EXCEEDED", req);
+  // RPC returns { success: boolean, remaining: number, message?: string }
+  const claim = claimResult as { success: boolean; remaining: number; message?: string } | null;
+  if (!claim?.success) {
+    const msg = claim?.message || "exceeds daily quota";
+    return errorResponse("VAL_009", { message: msg, daily_limit: DAILY_LIMIT }, req);
   }
 
   // Query on-chain GAS balance
@@ -69,20 +86,21 @@ export async function handler(req: Request): Promise<Response> {
     const balanceStr = await getGasBalance(walletCheck.address);
     gasBalance = parseFloat(balanceStr);
   } catch (e) {
-    return error(500, `failed to query balance: ${(e as Error).message}`, "RPC_ERROR", req);
+    // Rollback quota claim on failure
+    await supabase.rpc("gas_sponsor_rollback_claim", {
+      p_user_id: auth.userId,
+      p_amount: amount,
+    });
+    return errorResponse("SERVER_001", { message: `failed to query balance: ${(e as Error).message}` }, req);
   }
 
   if (gasBalance >= ELIGIBILITY_THRESHOLD) {
-    return error(403, "not eligible - balance too high", "NOT_ELIGIBLE", req);
-  }
-
-  // Bump quota
-  const { error: bumpErr } = await supabase.rpc("gas_sponsor_bump_quota", {
-    p_user_id: auth.userId,
-    p_amount: amount,
-  });
-  if (bumpErr) {
-    return error(500, `quota update failed: ${bumpErr.message}`, "DB_ERROR", req);
+    // Rollback quota claim - user is not eligible
+    await supabase.rpc("gas_sponsor_rollback_claim", {
+      p_user_id: auth.userId,
+      p_amount: amount,
+    });
+    return errorResponse("AUTH_004", { message: "not eligible - balance too high" }, req);
   }
 
   // Create request record
@@ -95,7 +113,12 @@ export async function handler(req: Request): Promise<Response> {
   });
 
   if (insertErr) {
-    return error(500, `request creation failed: ${insertErr.message}`, "DB_ERROR", req);
+    // Rollback quota claim on failure
+    await supabase.rpc("gas_sponsor_rollback_claim", {
+      p_user_id: auth.userId,
+      p_amount: amount,
+    });
+    return errorResponse("SERVER_002", { message: `request creation failed: ${insertErr.message}` }, req);
   }
 
   // Execute GAS transfer via TxProxy
@@ -107,13 +130,13 @@ export async function handler(req: Request): Promise<Response> {
     // Update request status
     await supabase.from("gas_sponsor_requests").update({ status: "completed", tx_hash: txHash }).eq("id", requestId);
   } catch (e) {
-    // Update request as failed
+    // Update request as failed (but quota already consumed - this is intentional to prevent abuse)
     await supabase
       .from("gas_sponsor_requests")
       .update({ status: "failed", error_message: (e as Error).message })
       .eq("id", requestId);
 
-    return error(500, `transfer failed: ${(e as Error).message}`, "TRANSFER_ERROR", req);
+    return errorResponse("SERVER_001", { message: `transfer failed: ${(e as Error).message}` }, req);
   }
 
   return json(
@@ -122,9 +145,10 @@ export async function handler(req: Request): Promise<Response> {
       amount: amount.toFixed(8),
       status: "completed",
       tx_hash: txHash,
+      remaining_quota: claim.remaining.toFixed(8),
     },
     {},
-    req,
+    req
   );
 }
 

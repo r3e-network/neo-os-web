@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, notFoundError } from "../_shared/error-codes.ts";
 import { supabaseClient, supabaseServiceClient } from "../_shared/supabase.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 
@@ -30,7 +40,14 @@ function normalizeCategory(value: unknown): string {
   const raw = String(value ?? "")
     .trim()
     .toLowerCase();
-  if (raw === "gaming" || raw === "defi" || raw === "governance" || raw === "utility" || raw === "social" || raw === "nft") {
+  if (
+    raw === "gaming" ||
+    raw === "defi" ||
+    raw === "governance" ||
+    raw === "utility" ||
+    raw === "social" ||
+    raw === "nft"
+  ) {
     return raw;
   }
   return "utility";
@@ -58,7 +75,7 @@ function normalizeLimits(value: unknown): Record<string, string> | undefined {
 function resolveContractAddress(
   meta: MiniAppMetaRow | undefined,
   manifest: Record<string, unknown>,
-  chainId: string,
+  chainId: string
 ): string {
   const normalize = (value: unknown) => String(value ?? "").trim();
   const contracts = (meta?.contracts ?? manifest.contracts ?? {}) as Record<string, unknown>;
@@ -149,7 +166,7 @@ async function loadMiniAppMeta(appIds: string[]): Promise<Record<string, MiniApp
   const { data, error: err } = await supabase
     .from("miniapps")
     .select(
-      "app_id, entry_url, supported_chains, contracts, name, description, icon, banner, category, permissions, limits, manifest, status",
+      "app_id, entry_url, supported_chains, contracts, name, description, icon, banner, category, permissions, limits, manifest, status"
     )
     .in("app_id", appIds);
 
@@ -168,7 +185,7 @@ async function loadMiniAppMeta(appIds: string[]): Promise<Record<string, MiniApp
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   // Rate limiting for public endpoint
   const rateLimited = await requireRateLimit(req, "miniapp-stats");
@@ -184,13 +201,13 @@ export async function handler(req: Request): Promise<Response> {
     let query = supabase.from("miniapp_stats").select("*").eq("app_id", appId);
     if (chainId) {
       const { data, error: err } = await query.eq("chain_id", chainId).single();
-      if (err) return error(404, "app not found", "NOT_FOUND", req);
+      if (err) return notFoundError("app", req);
       const metaMap = await loadMiniAppMeta([appId]);
       const merged = mergeStatsWithMeta(data as MiniAppStatsRow, metaMap[appId]);
       return json(merged, req);
     }
     const { data, error: err } = await query.order("chain_id", { ascending: true });
-    if (err) return error(404, "app not found", "NOT_FOUND", req);
+    if (err) return notFoundError("app", req);
     const rows = (data ?? []) as MiniAppStatsRow[];
     const metaMap = await loadMiniAppMeta([appId]);
     const merged = rows.map((row) => mergeStatsWithMeta(row, metaMap[appId]));
@@ -204,7 +221,7 @@ export async function handler(req: Request): Promise<Response> {
   }
   const { data, error: err } = await allQuery.order("total_transactions", { ascending: false }).limit(50);
 
-  if (err) return error(500, err.message, "DB_ERROR", req);
+  if (err) return errorResponse("SERVER_002", { message: err.message }, req);
   const statsRows = (data ?? []) as MiniAppStatsRow[];
   const appIds = Array.from(new Set(statsRows.map((row) => row.app_id).filter(Boolean)));
   const metaMap = await loadMiniAppMeta(appIds);
@@ -216,4 +233,6 @@ export async function handler(req: Request): Promise<Response> {
   return json({ stats: filtered }, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

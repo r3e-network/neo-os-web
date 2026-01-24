@@ -360,7 +360,7 @@ func getRandomAppID() string {
 		"builtin-price-predict", // Binary options with datafeed
 		"builtin-secret-vote",   // Privacy governance voting
 		"miniapp-lottery",
-		"miniapp-coin-flip",
+		"miniapp-coinflip",
 		"miniapp-dice-game",
 		"miniapp-secret-poker",  // TEE Texas Hold'em
 		"builtin-micro-predict", // High-freq 60s prediction

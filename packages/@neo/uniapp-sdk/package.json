@@ -1,5 +1,5 @@
 {
-  "name": "@neo/uniapp-sdk",
+  "name": "@r3e/uniapp-sdk",
   "version": "1.0.0",
   "description": "Neo MiniApp SDK for uni-app",
   "main": "src/index.ts",

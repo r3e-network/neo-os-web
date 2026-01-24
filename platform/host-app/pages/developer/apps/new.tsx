@@ -19,7 +19,9 @@ export default function CreateAppPage() {
   const router = useRouter();
   const { address } = useWalletStore();
   const [name, setName] = useState("");
+  const [nameZh, setNameZh] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionZh, setDescriptionZh] = useState("");
   const [category, setCategory] = useState<(typeof categories)[number]>("utility");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -50,11 +52,16 @@ export default function CreateAppPage() {
     setError("");
 
     try {
+      if (!nameZh.trim() || !descriptionZh.trim()) {
+        setError("Chinese name and description are required");
+        setSubmitting(false);
+        return;
+      }
       // Build contracts JSON from selected chains
-      const contractsJson: Record<string, string> = {};
+      const contractsJson: Record<string, { address: string }> = {};
       selectedChains.forEach((chainId) => {
         if (contractAddresses[chainId]) {
-          contractsJson[chainId] = contractAddresses[chainId];
+          contractsJson[chainId] = { address: contractAddresses[chainId] };
         }
       });
 
@@ -66,10 +73,12 @@ export default function CreateAppPage() {
         },
         body: JSON.stringify({
           name,
+          name_zh: nameZh,
           description,
+          description_zh: descriptionZh,
           category,
           supported_chains: selectedChains,
-          contracts_json: Object.keys(contractsJson).length > 0 ? contractsJson : undefined,
+          contracts: Object.keys(contractsJson).length > 0 ? contractsJson : undefined,
         }),
       });
 
@@ -121,6 +130,21 @@ export default function CreateAppPage() {
             />
           </div>
 
+          {/* Name (Chinese) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              App Name (Chinese) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={nameZh}
+              onChange={(e) => setNameZh(e.target.value)}
+              placeholder="应用名称"
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white"
+            />
+          </div>
+
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -132,6 +156,21 @@ export default function CreateAppPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what your app does..."
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white resize-none"
+            />
+          </div>
+
+          {/* Description (Chinese) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description (Chinese) <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={descriptionZh}
+              onChange={(e) => setDescriptionZh(e.target.value)}
+              placeholder="中文描述..."
               className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white resize-none"
             />
           </div>

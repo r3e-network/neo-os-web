@@ -10,9 +10,9 @@ import miniappsData from "../data/miniapps.json";
  * - Apps without supportedChains are pure frontend apps (no chain interaction)
  * - Platform reads from manifest - NO default chain fallback
  *
- * Entry URL Migration:
- * - Legacy apps: Use `/miniapps/{app-name}/` format (served from static H5 builds)
- * - New apps: Use `mf://builtin?app={app-id}` format (module federation protocol)
+ * Entry URLs:
+ * - Built-in catalog apps use `/miniapps/{app-name}/index.html` (served from static H5 builds)
+ * - Module Federation is still supported when `entry_url` uses `mf://...`
  */
 
 type MiniAppCategory = "gaming" | "defi" | "social" | "nft" | "governance" | "utility";

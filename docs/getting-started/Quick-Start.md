@@ -37,21 +37,21 @@ my-miniapp/
 
 ```bash
 # Using npm
-npm install @neo/uniapp-sdk
+npm install @r3e/uniapp-sdk
 
 # Using pnpm (recommended)
-pnpm add @neo/uniapp-sdk
+pnpm add @r3e/uniapp-sdk
 
 # Using bun
-bun add @neo/uniapp-sdk
+bun add @r3e/uniapp-sdk
 ```
 
-The SDK source is maintained in the platform repo under `packages/@neo/uniapp-sdk` and published to npm.
+The SDK source is maintained in the platform repo under `packages/@r3e/uniapp-sdk` and published to npm.
 
 ## Step 2: Initialize the SDK
 
 ```typescript
-import { waitForSDK } from "@neo/uniapp-sdk";
+import { waitForSDK } from "@r3e/uniapp-sdk";
 
 async function init() {
     // Wait for the SDK to be injected by the host
@@ -92,7 +92,7 @@ console.log("Payment request:", payment.request_id);
 ## Complete Example
 
 ```typescript
-import { waitForSDK } from "@neo/uniapp-sdk";
+import { waitForSDK } from "@r3e/uniapp-sdk";
 
 async function main() {
     const sdk = await waitForSDK();
@@ -147,7 +147,7 @@ The SDK provides Vue 3 composables for reactive state management:
 
 ```vue
 <script setup lang="ts">
-import { useWallet, useDatafeed, useRNG } from "@neo/uniapp-sdk";
+import { useWallet, useDatafeed, useRNG } from "@r3e/uniapp-sdk";
 
 // Wallet composable
 const { address, isConnected, connect } = useWallet();

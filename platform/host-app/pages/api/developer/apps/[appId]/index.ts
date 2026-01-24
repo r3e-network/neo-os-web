@@ -5,6 +5,38 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase";
 
+type ContractConfig = {
+  address?: string | null;
+  active?: boolean;
+  entry_url?: string;
+};
+
+function normalizeContracts(raw: unknown): Record<string, ContractConfig> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const result: Record<string, ContractConfig> = {};
+
+  Object.entries(raw as Record<string, unknown>).forEach(([chainId, value]) => {
+    if (typeof value === "string") {
+      result[chainId] = { address: value };
+      return;
+    }
+
+    if (!value || typeof value !== "object" || Array.isArray(value)) return;
+    const obj = value as Record<string, unknown>;
+    const address = typeof obj.address === "string" ? obj.address : undefined;
+    const entryUrl = typeof obj.entry_url === "string" ? obj.entry_url : typeof obj.entryUrl === "string" ? obj.entryUrl : undefined;
+    const active = typeof obj.active === "boolean" ? obj.active : undefined;
+
+    result[chainId] = {
+      ...(address ? { address } : {}),
+      ...(entryUrl ? { entry_url: entryUrl } : {}),
+      ...(active !== undefined ? { active } : {}),
+    };
+  });
+
+  return result;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Database not configured" });
@@ -59,6 +91,15 @@ async function handleUpdate(req: NextApiRequest, res: NextApiResponse, appId: st
   delete updates.app_id;
   delete updates.developer_address;
   delete updates.created_at;
+  delete updates.contracts_json;
+
+  if (updates.supported_chains && !Array.isArray(updates.supported_chains)) {
+    updates.supported_chains = [];
+  }
+
+  if (updates.contracts) {
+    updates.contracts = normalizeContracts(updates.contracts);
+  }
 
   try {
     const { data, error } = await supabaseAdmin!

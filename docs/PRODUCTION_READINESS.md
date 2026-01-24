@@ -65,6 +65,10 @@ Contract addresses are configured via environment variables (0x-prefixed Uint160
 - `CONTRACT_AUTOMATION_ANCHOR_ADDRESS` (automation task registry + anti-replay)
 - `CONTRACT_SERVICE_GATEWAY_ADDRESS` (on-chain service requests + callbacks)
 
+Make sure these addresses match the active network. For mainnet, use the
+addresses from `deploy/config/mainnet_contracts.json` (testnet uses
+`deploy/config/testnet_contracts.json`).
+
 The gateway for user workflows is **Supabase Edge** (there is no on-chain
 gateway contract in the current blueprint).
 

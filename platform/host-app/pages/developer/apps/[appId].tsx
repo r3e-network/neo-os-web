@@ -17,12 +17,14 @@ import { getChainRegistry } from "@/lib/chains/registry";
 interface App {
   app_id: string;
   name: string;
+  name_zh?: string;
   description: string;
+  description_zh?: string;
   category: string;
   status: string;
   visibility: string;
   supported_chains?: ChainId[];
-  contracts_json?: Record<string, string>;
+  contracts?: Record<string, unknown>;
 }
 
 interface Version {
@@ -73,7 +75,12 @@ export default function AppDetailPage() {
     }
   };
 
-  const handleCreateVersion = async (data: { version: string; release_notes: string; entry_url: string }) => {
+  const handleCreateVersion = async (data: {
+    version: string;
+    release_notes: string;
+    entry_url: string;
+    build_url?: string;
+  }) => {
     const res = await fetch(`/api/developer/apps/${appId}/versions`, {
       method: "POST",
       headers: {
@@ -200,9 +207,22 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
   const { address } = useWalletStore();
+  const [name, setName] = useState(app.name);
+  const [nameZh, setNameZh] = useState(app.name_zh || "");
+  const [description, setDescription] = useState(app.description);
+  const [descriptionZh, setDescriptionZh] = useState(app.description_zh || "");
   const [selectedChains, setSelectedChains] = useState<ChainId[]>(app.supported_chains || ["neo-n3-mainnet"]);
-  const [contractAddresses, setContractAddresses] = useState<Record<string, string>>(app.contracts_json || {});
+  const [contractAddresses, setContractAddresses] = useState<Record<string, string>>(
+    (app.contracts as Record<string, string>) || {},
+  );
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setName(app.name);
+    setNameZh(app.name_zh || "");
+    setDescription(app.description);
+    setDescriptionZh(app.description_zh || "");
+  }, [app]);
 
   const availableChains = useMemo(() => {
     const registry = getChainRegistry();
@@ -217,14 +237,18 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
     setSaving(true);
     try {
       await fetch(`/api/developer/apps/${app.app_id}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           "x-developer-address": address || "",
         },
         body: JSON.stringify({
+          name,
+          name_zh: nameZh,
+          description,
+          description_zh: descriptionZh,
           supported_chains: selectedChains,
-          contracts_json: contractAddresses,
+          contracts: contractAddresses,
         }),
       });
       onUpdate();
@@ -235,6 +259,59 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
 
   return (
     <div className="space-y-6">
+      {/* App Metadata */}
+      <div className="rounded-2xl p-6 bg-white dark:bg-[#080808] border border-gray-200 dark:border-white/10">
+        <h3 className="font-bold text-gray-900 dark:text-white mb-4">App Metadata</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              App Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              App Name (Chinese)
+            </label>
+            <input
+              type="text"
+              value={nameZh}
+              onChange={(e) => setNameZh(e.target.value)}
+              placeholder="应用名称"
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description
+            </label>
+            <textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description (Chinese)
+            </label>
+            <textarea
+              rows={3}
+              value={descriptionZh}
+              onChange={(e) => setDescriptionZh(e.target.value)}
+              placeholder="中文描述..."
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white resize-none"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Chain Configuration */}
       <div className="rounded-2xl p-6 bg-white dark:bg-[#080808] border border-gray-200 dark:border-white/10">
         <h3 className="font-bold text-gray-900 dark:text-white mb-4">Supported Chains</h3>

@@ -17,6 +17,7 @@ type FormData = {
   icon: string;
   category: (typeof categories)[number];
   entry_url: string;
+  build_url: string;
   supported_chains: string;
   contracts_json: string;
   developer_name: string;
@@ -31,6 +32,7 @@ const initialForm: FormData = {
   icon: "📦",
   category: "utility",
   entry_url: "",
+  build_url: "",
   supported_chains: "",
   contracts_json: "",
   developer_name: "",
@@ -101,6 +103,7 @@ export default function DeveloperPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          build_url: form.build_url.trim() || undefined,
           supported_chains: supportedChains,
           contracts,
           permissions: { payments: true, rng: true, datafeed: true },
@@ -372,14 +375,15 @@ export default function DeveloperPage() {
                   />
                 </div>
 
-                {/* Optional Chinese Metadata */}
+                {/* Chinese Metadata (Required) */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t("developer.form.appNameZh")}
+                      {t("developer.form.appNameZh")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
+                      required
                       placeholder={t("developer.form.appNameZhPlaceholder")}
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
                       value={form.name_zh}
@@ -388,10 +392,11 @@ export default function DeveloperPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t("developer.form.descriptionZh")}
+                      {t("developer.form.descriptionZh")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
+                      required
                       placeholder={t("developer.form.descriptionZhPlaceholder")}
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
                       value={form.description_zh}
@@ -450,6 +455,21 @@ export default function DeveloperPage() {
                     value={form.entry_url}
                     onChange={(e) => setForm({ ...form, entry_url: e.target.value })}
                   />
+                </div>
+
+                {/* Build Artifact URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t("developer.form.buildUrl")}
+                  </label>
+                  <input
+                    type="url"
+                    placeholder={t("developer.form.buildUrlPlaceholder")}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                    value={form.build_url}
+                    onChange={(e) => setForm({ ...form, build_url: e.target.value })}
+                  />
+                  <p className="mt-2 text-xs text-gray-500">{t("developer.form.buildUrlHelp")}</p>
                 </div>
 
                 {/* Supported Chains */}

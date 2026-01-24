@@ -1,14 +1,6 @@
 import { ref, computed, onMounted } from "vue";
-import { waitForSDK } from "../bridge";
 
 export type Locale = "en" | "zh";
-
-/** Valid locale values for validation */
-const VALID_LOCALES: readonly Locale[] = ["en", "zh"] as const;
-
-function isValidLocale(value: unknown): value is Locale {
-  return typeof value === "string" && VALID_LOCALES.includes(value as Locale);
-}
 
 /**
  * Global locale state - shared across all composable instances
@@ -16,6 +8,36 @@ function isValidLocale(value: unknown): value is Locale {
  */
 const currentLocale = ref<Locale>("en");
 let initialized = false;
+let listenersAttached = false;
+
+function normalizeLocale(value?: string | null): Locale {
+  if (!value) return "en";
+  return value.toLowerCase().startsWith("zh") ? "zh" : "en";
+}
+
+function readQueryLocale(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const params = new URLSearchParams(window.location.search || "");
+    return params.get("lang") || params.get("locale");
+  } catch {
+    return null;
+  }
+}
+
+function resolveInitialLocale(): Locale {
+  const queryLocale = readQueryLocale();
+  if (queryLocale) return normalizeLocale(queryLocale);
+  if (typeof localStorage !== "undefined") {
+    const stored = localStorage.getItem("lang");
+    if (stored) return normalizeLocale(stored);
+  }
+  if (typeof navigator !== "undefined") {
+    const candidate = navigator.language || navigator.languages?.[0];
+    if (candidate) return normalizeLocale(candidate);
+  }
+  return "en";
+}
 
 /**
  * Reset i18n state - useful for testing and HMR scenarios
@@ -27,31 +49,19 @@ export function resetI18nState(): void {
 }
 
 export function useI18n(appId: string) {
-  // Get locale from host platform
-  const initLocale = async () => {
+  void appId;
+  // Initialize locale from URL/localStorage
+  const initLocale = () => {
     if (initialized) return;
     initialized = true;
 
-    try {
-      const sdk = await waitForSDK();
-      const result = (await sdk.invoke("getLocale", { appId })) as { locale?: string } | null;
-      if (result?.locale && isValidLocale(result.locale)) {
-        currentLocale.value = result.locale;
-      }
-    } catch {
-      // Fallback to localStorage with validation (SSR-safe)
-      if (typeof localStorage !== "undefined") {
-        const stored = localStorage.getItem("lang");
-        if (isValidLocale(stored)) {
-          currentLocale.value = stored;
-        }
-      }
-    }
+    currentLocale.value = resolveInitialLocale();
   };
 
   // Initialize on mount (proper async handling)
   onMounted(() => {
     initLocale();
+    attachListeners();
   });
 
   const locale = computed(() => currentLocale.value);
@@ -61,12 +71,27 @@ export function useI18n(appId: string) {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("lang", newLocale);
     }
-    try {
-      const sdk = await waitForSDK();
-      await sdk.invoke("setLocale", { appId, locale: newLocale });
-    } catch {
-      // Silent fail
-    }
+  };
+
+  const attachListeners = () => {
+    if (listenersAttached || typeof window === "undefined") return;
+    listenersAttached = true;
+
+    window.addEventListener("languageChange", (event: any) => {
+      const next = event?.detail?.language;
+      if (next) {
+        currentLocale.value = normalizeLocale(String(next));
+      }
+    });
+
+    window.addEventListener("message", (event: MessageEvent) => {
+      const data = event.data as Record<string, unknown> | null;
+      if (!data || typeof data !== "object") return;
+      if (data.type !== "language-change") return;
+      const next = String(data.language || data.locale || data.lang || "").trim();
+      if (!next) return;
+      currentLocale.value = normalizeLocale(next);
+    });
   };
 
   return { locale, setLocale };

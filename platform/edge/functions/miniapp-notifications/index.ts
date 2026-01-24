@@ -1,12 +1,22 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse } from "../_shared/error-codes.ts";
 import { supabaseClient } from "../_shared/supabase.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   // Rate limiting for public endpoint
   const rateLimited = await requireRateLimit(req, "miniapp-notifications");
@@ -38,9 +48,11 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const { data, error: err } = await query;
-  if (err) return error(500, err.message, "DB_ERROR", req);
+  if (err) return errorResponse("SERVER_002", { message: err.message }, req);
 
   return json({ notifications: data }, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

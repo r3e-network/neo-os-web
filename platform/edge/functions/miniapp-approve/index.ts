@@ -22,6 +22,28 @@ interface ApprovalRequest {
   review_notes?: string;
 }
 
+// SECURITY: Maximum length for review notes to prevent abuse
+const MAX_REVIEW_NOTES_LENGTH = 5000;
+
+// SECURITY: Sanitize review notes to prevent injection attacks
+function sanitizeReviewNotes(notes: string | undefined): string | undefined {
+  if (!notes) return undefined;
+
+  // Trim whitespace
+  let sanitized = notes.trim();
+
+  // Enforce maximum length
+  if (sanitized.length > MAX_REVIEW_NOTES_LENGTH) {
+    sanitized = sanitized.substring(0, MAX_REVIEW_NOTES_LENGTH);
+  }
+
+  // Remove any potentially dangerous characters (basic sanitization)
+  // In production, you might want more sophisticated sanitization
+  sanitized = sanitized.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "");
+
+  return sanitized;
+}
+
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -33,9 +55,9 @@ export async function handler(req: Request): Promise<Response> {
   if (rl) return rl;
 
   // Check if user is admin
-  const { data: isAdmin } = await supabaseAdminCheck(auth.userId);
-  if (!isAdmin) {
-    return errorResponse("FORBIDDEN", "Admin access required", req);
+  const { data: isAdmin, error: adminCheckError } = await supabaseAdminCheck(auth.userId);
+  if (adminCheckError || !isAdmin) {
+    return errorResponse("AUTH_004", "Admin access required", req);
   }
 
   let body: ApprovalRequest;
@@ -53,6 +75,9 @@ export async function handler(req: Request): Promise<Response> {
     return validationError("action", "action is required (approve, reject, request_changes)", req);
   }
 
+  // SECURITY: Sanitize review notes to prevent injection attacks
+  const sanitizedNotes = sanitizeReviewNotes(body.review_notes);
+
   const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_SERVICE_ROLE_KEY"));
 
   try {
@@ -64,7 +89,7 @@ export async function handler(req: Request): Promise<Response> {
       .single();
 
     if (fetchError || !submission) {
-      return errorResponse("NOT_FOUND", { message: "Submission not found" }, req);
+      return errorResponse("NOTFOUND_001", { message: "Submission not found" }, req);
     }
 
     const now = new Date().toISOString();
@@ -76,7 +101,7 @@ export async function handler(req: Request): Promise<Response> {
           status: "approved",
           reviewed_by: auth.userId,
           reviewed_at: now,
-          review_notes: body.review_notes,
+          review_notes: sanitizedNotes,
         };
 
         // Optionally trigger build immediately
@@ -119,7 +144,7 @@ export async function handler(req: Request): Promise<Response> {
             status: "rejected",
             reviewed_by: auth.userId,
             reviewed_at: now,
-            review_notes: body.review_notes,
+            review_notes: sanitizedNotes,
           })
           .eq("id", body.submission_id);
 
@@ -140,7 +165,7 @@ export async function handler(req: Request): Promise<Response> {
             status: "update_requested",
             reviewed_by: auth.userId,
             reviewed_at: now,
-            review_notes: body.review_notes,
+            review_notes: sanitizedNotes,
           })
           .eq("id", body.submission_id);
 
@@ -159,19 +184,25 @@ export async function handler(req: Request): Promise<Response> {
     }
   } catch (error) {
     console.error("Approval error:", error);
-    return errorResponse("SERVER_ERROR", { message: (error as Error).message }, req);
+    return errorResponse("SERVER_001", { message: (error as Error).message }, req);
   }
 }
 
-// Admin check helper
+// Admin check helper (SECURITY FIX: proper null handling and error checking)
 async function supabaseAdminCheck(userId: string): Promise<{
   data: boolean;
+  error: string | null;
 }> {
-  const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_ANON_KEY"));
+  const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_SERVICE_ROLE_KEY"));
 
-  const { data } = await supabase.from("admin_emails").select("user_id").eq("user_id", userId);
+  // SECURITY FIX: Use .single() to ensure we get exactly one result or error
+  const { data, error } = await supabase.from("admin_emails").select("*").eq("user_id", userId).single();
 
-  return { data: !!data };
+  // Return true only if we successfully found an admin record
+  return {
+    data: !error && data !== null,
+    error: error ? error.message : null,
+  };
 }
 
 if (import.meta.main) {

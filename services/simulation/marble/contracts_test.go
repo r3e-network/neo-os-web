@@ -386,14 +386,14 @@ func TestContractInvoker_PayToApp_DifferentAppsGetDifferentAccounts(t *testing.T
 	require.NoError(t, err)
 
 	// Call for coin-flip
-	_, err = inv.PayToApp(ctx, "miniapp-coin-flip", 2000000, "memo2")
+	_, err = inv.PayToApp(ctx, "miniapp-coinflip", 2000000, "memo2")
 	require.NoError(t, err)
 
 	// Verify two accounts were requested (one per app)
 	reqCalls := mockClient.getRequestAccountsCalls()
 	assert.Len(t, reqCalls, 2)
 	assert.Equal(t, "payment-miniapp-lottery", reqCalls[0].Purpose)
-	assert.Equal(t, "payment-miniapp-coin-flip", reqCalls[1].Purpose)
+	assert.Equal(t, "payment-miniapp-coinflip", reqCalls[1].Purpose)
 }
 
 func TestContractInvoker_PayToApp_RequestAccountError(t *testing.T) {

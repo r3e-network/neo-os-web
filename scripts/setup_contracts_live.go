@@ -23,7 +23,7 @@ var miniApps = []struct {
 	AppID string
 }{
 	{"miniapp-lottery"},
-	{"miniapp-coin-flip"},
+	{"miniapp-coinflip"},
 	{"miniapp-dice-game"},
 	{"miniapp-scratch-card"},
 	{"miniapp-flashloan"},

@@ -7,12 +7,21 @@ declare const Deno: {
   serve(handler: (req: Request) => Promise<Response>): void;
   Command: new (
     cmd: string,
-    args?: { args?: string[]; stdout?: string; stderr?: string }
+    options?: {
+      args?: string[];
+      cwd?: string;
+      env?: Record<string, string>;
+      stdout?: "piped" | "inherit" | "null";
+      stderr?: "piped" | "inherit" | "null";
+      stdin?: "piped" | "inherit" | "null";
+    }
   ) => {
     output(): Promise<{ code: number; stdout: Uint8Array; stderr: Uint8Array }>;
   };
   readDirSync(path: string): Iterable<{ name: string; isDirectory: boolean; isSymlink: boolean }>;
   readFile(path: string): Promise<Uint8Array>;
+  stat(path: string): Promise<{ size: number }>;
+  makeTempDir(options?: { prefix?: string }): string;
 };
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
@@ -22,6 +31,7 @@ import { errorResponse, validationError, notFoundError } from "../_shared/error-
 import { requireAuth } from "../_shared/supabase.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { cloneRepo, getCommitInfo, cleanup, normalizeGitUrl } from "../_shared/build/git-manager.ts";
+import { validateGitUrl } from "../_shared/git-whitelist.ts";
 import { detectAssets } from "../_shared/build/asset-detector.ts";
 import { detectBuildConfig, readPackageScripts } from "../_shared/build/build-detector.ts";
 import { uploadDirectory, uploadFile } from "../_shared/build/cdn-uploader.ts";
@@ -39,8 +49,53 @@ interface BuildResponse {
   error?: string;
 }
 
+// Maximum allowed build size to prevent DoS attacks (50MB)
+const MAX_BUILD_SIZE = 50 * 1024 * 1024;
+
+// Calculate directory size recursively
+async function getDirectorySize(dirPath: string): Promise<number> {
+  let totalSize = 0;
+
+  try {
+    const entries = Array.from(Deno.readDirSync(dirPath));
+
+    for (const entry of entries) {
+      const fullPath = `${dirPath}/${entry.name}`;
+
+      if (entry.isDirectory) {
+        totalSize += await getDirectorySize(fullPath);
+      } else if (entry.isSymlink) {
+        // Skip symlinks to avoid double-counting or circular references
+        continue;
+      } else {
+        try {
+          const stat = await Deno.stat(fullPath);
+          totalSize += stat.size;
+        } catch {
+          // File might have been deleted or inaccessible
+          continue;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn(`Error calculating directory size for ${dirPath}:`, error);
+  }
+
+  return totalSize;
+}
+
 // CDN upload function - uploads build output to configured CDN provider
 async function uploadToCDN(buildPath: string, appId: string, version: string): Promise<string> {
+    // SECURITY: Validate build size before uploading to prevent DoS (50MB limit for custom miniapps)
+  const buildSize = await getDirectorySize(buildPath);
+  if (buildSize > MAX_BUILD_SIZE) {
+    throw new Error(
+      `Build size ${Math.round(buildSize / 1024 / 1024)}MB exceeds maximum 50MB limit`
+    );
+  }
+
+  console.log(`Build size: ${Math.round(buildSize / 1024 / 1024)}MB`);
+
   const cdnBaseUrl = mustGetEnv("CDN_BASE_URL");
   const cdnKey = `miniapps/${appId}/${version}`;
 
@@ -109,19 +164,21 @@ async function uploadAssets(
   return result;
 }
 
-// Run build command
+// Run build command (SECURE: uses argument array instead of shell)
 async function runBuild(
   projectDir: string,
   buildCommand: string,
   packageManager: "npm" | "pnpm" | "yarn"
 ): Promise<{ success: boolean; output: string; error?: string }> {
-  const pm = packageManager === "yarn" ? "yarn" : packageManager;
-  const fullCommand = `${pm} ${buildCommand}`;
+  // SECURITY FIX: Use argument array instead of shell to prevent command injection
+  // Build command is expected to be like "build" or "run build"
+  const args = buildCommand.trim().split(/\s+/);
 
-  const buildProcess = new Deno.Command("sh", {
-    args: ["-c", `cd "${projectDir}" && ${fullCommand}`],
+  const buildProcess = new Deno.Command(packageManager, {
+    args,
     stdout: "piped",
     stderr: "piped",
+    cwd: projectDir,
   });
 
   try {
@@ -153,8 +210,8 @@ export async function handler(req: Request): Promise<Response> {
   if (rl) return rl;
 
   // Check if user is admin
-  const { data: isAdmin } = await supabaseAdminCheck(auth.userId);
-  if (!isAdmin) {
+  const { data: isAdmin, error: adminCheckError } = await supabaseAdminCheck(auth.userId);
+  if (adminCheckError || !isAdmin) {
     return errorResponse("AUTH_004", "Admin access required", req);
   }
 
@@ -211,19 +268,22 @@ export async function handler(req: Request): Promise<Response> {
     const assets = await detectAssets(projectDir);
     const buildConfig = await detectBuildConfig(projectDir);
 
-    // 6. Install dependencies
+    // 6. Install dependencies (SECURE: use argument array)
     const packageManager = buildConfig.packageManager;
-    const installCmd = packageManager === "npm" ? "npm install" : `${packageManager} install`;
+    const installArgs = packageManager === "npm" ? ["install", "--silent"] : ["install"];
 
-    const installProcess = new Deno.Command("sh", {
-      args: ["-c", `cd "${projectDir}" && ${installCmd}`],
+    const installProcess = new Deno.Command(packageManager, {
+      args: installArgs,
       stdout: "piped",
       stderr: "piped",
+      cwd: projectDir,
     });
 
     const installResult = await installProcess.output();
     if (installResult.code !== 0) {
-      throw new Error(`Dependency installation failed: ${installResult.stderr}`);
+      const stdout = new TextDecoder().decode(installResult.stdout);
+      const stderr = new TextDecoder().decode(installResult.stderr);
+      throw new Error(`Dependency installation failed:\nSTDOUT: ${stdout}\nSTDERR: ${stderr}`);
     }
 
     // 7. Run build
@@ -308,18 +368,21 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
-// Admin check helper
+// Admin check helper (SECURE: proper null handling)
 async function supabaseAdminCheck(userId: string): Promise<{
   data: boolean;
+  error: string | null;
 }> {
-  // TODO: Implement admin check based on your system
-  // This might check against an admin_emails table or similar
+  const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_SERVICE_ROLE_KEY"));
 
-  const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_ANON_KEY"));
+  // SECURITY FIX: Use .single() to ensure we get exactly one result or error
+  const { data, error } = await supabase.from("admin_emails").select("*").eq("user_id", userId).single();
 
-  const { data } = await supabase.from("admin_emails").select("user_id").eq("user_id", userId);
-
-  return { data: !!data };
+  // Return true only if we successfully found an admin record
+  return {
+    data: !error && data !== null,
+    error: error ? error.message : null,
+  };
 }
 
 if (import.meta.main) {

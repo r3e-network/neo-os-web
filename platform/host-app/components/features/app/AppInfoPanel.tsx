@@ -89,12 +89,6 @@ export function AppInfoPanel({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <Badge
-              variant="secondary"
-              className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-neo/10 text-neo border border-neo/30"
-            >
-              {app.category}
-            </Badge>
             <span
               className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${statusKey === "online"
                 ? "bg-neo/10 text-neo border-neo/30"
@@ -110,6 +104,15 @@ export function AppInfoPanel({
           {appDescription && (
             <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{appDescription}</p>
           )}
+
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <Badge
+              variant="secondary"
+              className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-neo/10 text-neo border border-neo/30"
+            >
+              {app.category}
+            </Badge>
+          </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
             <span className={`w-2 h-2 rounded-full ${walletConnected ? "bg-emerald-500" : "bg-red-500"}`} />
@@ -212,8 +215,9 @@ function StatCard({ icon, label, value }: { icon: string; label: string; value: 
 
 // News tab content
 function NewsContent({ notifications }: { notifications: MiniAppNotification[] }) {
+  const { t } = useTranslation("host");
   if (notifications.length === 0) {
-    return <p className="text-muted-foreground text-center py-8">No news yet</p>;
+    return <p className="text-muted-foreground text-center py-8">{t("detail.noNews")}</p>;
   }
 
   return (

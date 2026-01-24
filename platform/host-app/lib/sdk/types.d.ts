@@ -75,9 +75,14 @@ export interface MiniAppSDK {
   };
   events?: {
     list?: (params: Record<string, unknown>) => Promise<{ events: unknown[] }>;
+    emit?: (eventName: string, data?: Record<string, unknown>) => Promise<unknown>;
   };
   transactions?: {
     list?: (params: Record<string, unknown>) => Promise<{ transactions: unknown[] }>;
+  };
+  notifications?: {
+    send?: (title: string, message: string, opts?: Record<string, unknown>) => Promise<unknown>;
+    list?: (params?: Record<string, unknown>) => Promise<unknown>;
   };
   automation?: {
     register?: (

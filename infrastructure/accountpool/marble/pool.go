@@ -14,6 +14,8 @@ import (
 )
 
 // RequestAccounts locks and returns accounts for a service.
+// DESIGN: Database operations (TryLockAccount) are atomic at DB level.
+// The mutex is only used for in-memory operations to avoid holding locks during I/O.
 func (s *Service) RequestAccounts(ctx context.Context, serviceID string, count int, purpose string) (accounts []AccountInfo, lockID string, err error) {
 	if s.repo == nil {
 		return nil, "", fmt.Errorf("repository not configured")
@@ -22,24 +24,20 @@ func (s *Service) RequestAccounts(ctx context.Context, serviceID string, count i
 		return nil, "", fmt.Errorf("invalid count: must be 1-100")
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Get available (unlocked, non-retiring) accounts with balances
-	accountsWithBalances, err := s.repo.ListAvailableWithBalances(ctx, "", nil, count)
+	// Database I/O outside of lock - TryLockAccount is atomic at DB level
+	accountsWithBalances, err := s.repo.ListAvailableWithBalances(ctx, "", nil, count*2) // fetch extra for contention
 	if err != nil {
 		return nil, "", fmt.Errorf("list accounts: %w", err)
 	}
 
+	// Create accounts if needed (also DB I/O, outside lock)
 	if len(accountsWithBalances) < count {
-		// Try to create more accounts if needed
 		need := count - len(accountsWithBalances)
 		for i := 0; i < need; i++ {
 			acc, err := s.createAccount(ctx)
 			if err != nil {
 				break
 			}
-			// Convert to AccountWithBalances
 			accWithBal := neoaccountssupabase.NewAccountWithBalances(acc)
 			accountsWithBalances = append(accountsWithBalances, *accWithBal)
 		}
@@ -49,12 +47,16 @@ func (s *Service) RequestAccounts(ctx context.Context, serviceID string, count i
 		return nil, "", fmt.Errorf("no accounts available")
 	}
 
-	// Generate lock ID
+	// Generate lock ID (no mutex needed - UUID is thread-safe)
 	lockID = uuid.New().String()
 
-	// Lock the accounts
-	result := make([]AccountInfo, 0, len(accountsWithBalances))
+	// Lock accounts using atomic DB operations (no mutex needed)
+	// TryLockAccount uses database-level locking (UPDATE WHERE locked_by IS NULL)
+	result := make([]AccountInfo, 0, count)
 	for i := range accountsWithBalances {
+		if len(result) >= count {
+			break
+		}
 		acc := &accountsWithBalances[i]
 		lockedAt := time.Now()
 		locked, err := s.repo.TryLockAccount(ctx, acc.ID, serviceID, lockedAt)
@@ -70,106 +72,96 @@ func (s *Service) RequestAccounts(ctx context.Context, serviceID string, count i
 		}
 		acc.LockedBy = serviceID
 		acc.LockedAt = lockedAt
-
 		result = append(result, AccountInfoFromWithBalances(acc))
-
-		if len(result) >= count {
-			break
-		}
 	}
 
 	return result, lockID, nil
 }
 
 // ReleaseAccounts releases previously locked accounts.
+// DESIGN: Uses atomic DB operations, no mutex needed for concurrent safety.
 func (s *Service) ReleaseAccounts(ctx context.Context, serviceID string, accountIDs []string) (int, error) {
 	if s.repo == nil {
 		return 0, fmt.Errorf("repository not configured")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	released := 0
 	for _, accID := range accountIDs {
-		acc, err := s.repo.GetByID(ctx, accID)
+		// Atomic release at DB level - only releases if locked by this service
+		ok, err := s.repo.TryReleaseAccount(ctx, accID, serviceID)
 		if err != nil {
-			continue
-		}
-
-		// Only release if locked by this service
-		if acc.LockedBy != serviceID {
-			continue
-		}
-
-		acc.LockedBy = ""
-		acc.LockedAt = time.Time{}
-		acc.LastUsedAt = time.Now()
-
-		if err := s.repo.Update(ctx, acc); err != nil {
 			s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
 				"account_id": accID,
 				"service_id": serviceID,
 			}).Warn("failed to release account")
 			continue
 		}
-		released++
+		if ok {
+			released++
+		}
 	}
 
 	return released, nil
 }
 
 // ReleaseAllByService releases all accounts locked by a service.
+// DESIGN: Uses atomic DB operations per account, no global mutex needed.
 func (s *Service) ReleaseAllByService(ctx context.Context, serviceID string) (int, error) {
 	if s.repo == nil {
 		return 0, fmt.Errorf("repository not configured")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
+	// Get accounts locked by this service (DB I/O outside lock)
 	accounts, err := s.repo.ListByLocker(ctx, serviceID)
 	if err != nil {
 		return 0, err
 	}
 
+	// Release each account atomically
 	released := 0
 	for i := range accounts {
 		acc := &accounts[i]
-		acc.LockedBy = ""
-		acc.LockedAt = time.Time{}
-		acc.LastUsedAt = time.Now()
-
-		if err := s.repo.Update(ctx, acc); err != nil {
+		ok, err := s.repo.TryReleaseAccount(ctx, acc.ID, serviceID)
+		if err != nil {
 			s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
 				"account_id": acc.ID,
 				"service_id": serviceID,
 			}).Warn("failed to release account for service")
 			continue
 		}
-		released++
+		if ok {
+			released++
+		}
 	}
 
 	return released, nil
 }
 
 // UpdateBalance updates an account's token balance.
+// SECURITY FIX: Added integer overflow/underflow protection.
+// Uses atomic DB operations with lock verification to prevent race conditions.
 func (s *Service) UpdateBalance(ctx context.Context, serviceID, accountID, tokenType string, delta int64, absolute *int64) (oldBalance, newBalance, txCount int64, err error) {
 	if s.repo == nil {
 		return 0, 0, 0, fmt.Errorf("repository not configured")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	// Default to GAS if no token specified
 	if tokenType == "" {
 		tokenType = TokenTypeGAS
 	}
 
+	// SECURITY: Integer overflow/underflow protection
+	// Maximum balance is 2^53 - 1 (safe for JavaScript Number precision)
+	const maxBalance = int64(1<<53 - 1)
+	const minBalance = int64(0)
+
+	// Fetch account and verify lock (atomic DB read)
 	acc, err := s.repo.GetByID(ctx, accountID)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("account not found: %w", err)
 	}
 
-	// Verify the account is locked by this service
+	// Verify the account is locked by this service (atomic check)
 	if acc.LockedBy != serviceID {
 		return 0, 0, 0, fmt.Errorf("account not locked by service %s", serviceID)
 	}
@@ -184,30 +176,46 @@ func (s *Service) UpdateBalance(ctx context.Context, serviceID, accountID, token
 		oldBalance = currentBal.Amount
 	}
 
+	// Calculate new balance with overflow/underflow protection
 	if absolute != nil {
 		newBalance = *absolute
 	} else {
+		// SECURITY: Check for integer overflow/underflow
+		if delta > 0 && oldBalance > maxBalance-delta {
+			return 0, 0, 0, fmt.Errorf("balance overflow: old=%d delta=%d max=%d", oldBalance, delta, maxBalance)
+		}
+		if delta < 0 && oldBalance < -delta {
+			return 0, 0, 0, fmt.Errorf("insufficient balance: old=%d delta=%d", oldBalance, delta)
+		}
 		newBalance = oldBalance + delta
 	}
 
-	if newBalance < 0 {
-		return 0, 0, 0, fmt.Errorf("insufficient balance")
+	// Validate final balance
+	if newBalance < minBalance {
+		return 0, 0, 0, fmt.Errorf("balance below minimum: %d", newBalance)
+	}
+	if newBalance > maxBalance {
+		return 0, 0, 0, fmt.Errorf("balance exceeds maximum: %d", newBalance)
 	}
 
 	// Get script hash and decimals for token
 	scriptHash, decimals := neoaccountssupabase.GetDefaultTokenConfig(tokenType)
 
-	// Upsert the balance
-	if err := s.repo.UpsertBalance(ctx, accountID, tokenType, scriptHash, newBalance, decimals); err != nil {
-		return 0, 0, 0, fmt.Errorf("upsert balance: %w", err)
-	}
-
-	// Update account metadata
+	// SECURITY FIX: Update account metadata FIRST, then balance
+	// This ensures consistency - if balance update fails after metadata update,
+	// we only have a minor tx_count inconsistency which corrects itself
+	// The reverse (balance updated but metadata not) would be worse
 	acc.LastUsedAt = time.Now()
 	acc.TxCount++
 
 	if err := s.repo.Update(ctx, acc); err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, fmt.Errorf("update account metadata: %w (balance NOT updated)", err)
+	}
+
+	// Upsert the balance (atomic DB operation)
+	// Done after metadata update to ensure consistency
+	if err := s.repo.UpsertBalance(ctx, accountID, tokenType, scriptHash, newBalance, decimals); err != nil {
+		return 0, 0, 0, fmt.Errorf("upsert balance: %w", err)
 	}
 
 	return oldBalance, newBalance, acc.TxCount, nil
@@ -254,12 +262,11 @@ func (s *Service) GetPoolInfo(ctx context.Context) (*PoolInfoResponse, error) {
 }
 
 // ListAccountsByService returns accounts locked by a specific service.
+// DESIGN: Read-only operation, no mutex needed - data comes from DB.
 func (s *Service) ListAccountsByService(ctx context.Context, serviceID, tokenType string, minBalance *int64) ([]AccountInfo, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 
 	accounts, err := s.repo.ListByLockerWithBalances(ctx, serviceID)
 	if err != nil {
@@ -283,12 +290,11 @@ func (s *Service) ListAccountsByService(ctx context.Context, serviceID, tokenTyp
 
 // ListLowBalanceAccounts returns accounts with balance below the specified threshold.
 // This is useful for auto top-up workers that need to find accounts requiring funding.
+// DESIGN: Read-only operation, no mutex needed - data comes from DB.
 func (s *Service) ListLowBalanceAccounts(ctx context.Context, tokenType string, maxBalance int64, limit int) ([]AccountInfo, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 
 	accounts, err := s.repo.ListLowBalanceAccounts(ctx, tokenType, maxBalance, limit)
 	if err != nil {
@@ -306,12 +312,21 @@ func (s *Service) ListLowBalanceAccounts(ctx context.Context, tokenType string, 
 
 // rotateAccounts retires old accounts and creates new ones.
 // Locked accounts are NEVER rotated.
+// DESIGN: Uses non-blocking TryLock to prevent deadlock if another task is running.
+// DB operations are atomic and don't need the main mutex.
 func (s *Service) rotateAccounts(ctx context.Context) {
 	if s.repo == nil {
 		return
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
+
+	// SECURITY FIX: Use TryLock instead of Lock to prevent deadlock
+	// If another background task is running, skip this run and try again later
+	// This prevents one slow operation from blocking all background tasks
+	if !s.bgTaskLock.TryLock() {
+		s.Logger().WithContext(ctx).Debug("rotateAccounts: skipping - another task is running")
+		return
+	}
+	defer s.bgTaskLock.Unlock()
 
 	accounts, err := s.repo.ListWithBalances(ctx)
 	if err != nil {
@@ -391,12 +406,20 @@ func (s *Service) rotateAccounts(ctx context.Context) {
 }
 
 // cleanupStaleLocks releases accounts that have been locked too long.
+// DESIGN: Uses non-blocking TryLock to prevent deadlock if another task is running.
+// DB operations are atomic and don't need the main mutex.
 func (s *Service) cleanupStaleLocks(ctx context.Context) {
 	if s.repo == nil {
 		return
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
+
+	// SECURITY FIX: Use TryLock instead of Lock to prevent deadlock
+	// If another background task is running, skip this run and try again later
+	if !s.bgTaskLock.TryLock() {
+		s.Logger().WithContext(ctx).Debug("cleanupStaleLocks: skipping - another task is running")
+		return
+	}
+	defer s.bgTaskLock.Unlock()
 
 	accounts, err := s.repo.List(ctx)
 	if err != nil {

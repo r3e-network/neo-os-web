@@ -66,11 +66,11 @@ High level:
 ```json
 {
     "app_id": "your-app-id",
-    "entry_url": "https://cdn.miniapps.com/apps/neo-game/index.html",
+    "entry_url": "/miniapps/neo-game/index.html",
     "name": "Neo MiniApp",
     "description": "Short summary shown in the host catalog",
-    "icon": "https://cdn.miniapps.com/apps/neo-game/icon.png",
-    "banner": "https://cdn.miniapps.com/apps/neo-game/banner.png",
+    "icon": "/miniapps/neo-game/static/logo.png",
+    "banner": "/miniapps/neo-game/static/banner.png",
     "category": "gaming",
     "supported_chains": ["neo-n3-mainnet", "neox-mainnet"],
     "contracts": {
@@ -145,7 +145,7 @@ High level:
 - `sandbox_flags` (array of strings): e.g. `no-eval`, `strict-csp`.
 - `attestation_required` (bool): host must enforce enclave attestation for sensitive services.
 
-`entry_url` supports two modes:
+`entry_url` supports three modes:
 
 - `https://...` for iframe-hosted MiniApps (production CDN).
 - `/miniapps/<app>/index.html` for host-served MiniApps (local/dev or packaged).

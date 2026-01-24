@@ -129,15 +129,35 @@ class OriginValidator {
         return target;
       }
     } catch {
-      // fall through to iframe-safe fallback
+      // fall through to strict mode
     }
 
-    // If we're running inside an iframe and can't resolve the parent origin,
-    // use "*" for postMessage to avoid breaking the bridge on browsers that
-    // don't expose ancestorOrigins (e.g. Safari). The receiver still validates
-    // incoming origins.
+    // SECURITY FIX: Never use "*" as target origin - this allows any parent window
+    // to receive sensitive data. Instead, we require a known trusted origin.
+    //
+    // If running in an iframe without ancestorOrigins support (Safari):
+    // - The host app should inject __MINIAPP_PARENT_ORIGIN__ before loading the MiniApp
+    // - Or the MiniApp should only work with hosts that properly identify themselves
     if (typeof window !== "undefined" && window.parent !== window) {
-      return "*";
+      // Check for injected parent origin from host
+      const injectedOrigin = (window as any).__MINIAPP_PARENT_ORIGIN__;
+      if (typeof injectedOrigin === "string" && injectedOrigin && this.baseOrigins.has(injectedOrigin)) {
+        return injectedOrigin;
+      }
+
+      // Log warning for debugging (removed in production)
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[MiniApp SDK] Cannot determine parent origin. " +
+          "Host app should set window.__MINIAPP_PARENT_ORIGIN__ before loading MiniApp iframe."
+        );
+      }
+
+      // Fail secure - throw error instead of using "*"
+      throw new Error(
+        "Cannot communicate securely with parent - origin unknown. " +
+        "Ensure host app sets __MINIAPP_PARENT_ORIGIN__ or uses a supported browser."
+      );
     }
 
     // SECURITY: Fail-secure - reject unknown origins
@@ -259,9 +279,37 @@ function createPostMessageSDK(): MiniAppSDK {
     },
     events: {
       list: (params?: Record<string, unknown>) => invoke("events.list", params),
+      emit: (eventName: string, data?: Record<string, unknown>) => invoke("events.emit", eventName, data),
     },
     transactions: {
       list: (params?: Record<string, unknown>) => invoke("transactions.list", params),
+    },
+    automation: {
+      register: (
+        taskName: string,
+        taskType: string,
+        payload?: Record<string, unknown>,
+        schedule?: { intervalSeconds?: number; maxRuns?: number },
+      ) => invoke("automation.register", taskName, taskType, payload, schedule),
+      unregister: (taskName: string) => invoke("automation.unregister", taskName),
+      status: (taskName: string) => invoke("automation.status", taskName),
+      list: () => invoke("automation.list"),
+      update: (
+        taskId: string,
+        payload?: Record<string, unknown>,
+        schedule?: { intervalSeconds?: number; cron?: string; maxRuns?: number },
+      ) => invoke("automation.update", taskId, payload, schedule),
+      enable: (taskId: string) => invoke("automation.enable", taskId),
+      disable: (taskId: string) => invoke("automation.disable", taskId),
+      logs: (taskId?: string, limit?: number) => invoke("automation.logs", taskId, limit),
+    },
+    share: {
+      openModal: (options?: { page?: string; params?: Record<string, string> }) =>
+        invoke("share.openModal", options),
+      getUrl: (options?: { page?: string; params?: Record<string, string> }) =>
+        invoke("share.getUrl", options) as Promise<string>,
+      copy: (options?: { page?: string; params?: Record<string, string> }) =>
+        invoke("share.copy", options) as Promise<boolean>,
     },
   } as MiniAppSDK;
 }

@@ -46,27 +46,29 @@ const (
 
 // New creates a new NeoAccounts client.
 func New(cfg Config) (*Client, error) {
-	timeout := cfg.Timeout
-	if timeout == 0 {
-		timeout = defaultTimeout
-	}
-	forceTimeout := cfg.Timeout != 0
-
 	baseURL, _, err := slhttputil.NormalizeServiceBaseURL(cfg.BaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("neoaccounts: %w", err)
 	}
 
-	client := slhttputil.CopyHTTPClientWithTimeout(cfg.HTTPClient, timeout, forceTimeout)
-
-	maxBodyBytes := cfg.MaxBodyBytes
-	if maxBodyBytes <= 0 {
-		maxBodyBytes = defaultMaxBodySize
+	client, err := slhttputil.NewClient(slhttputil.ClientConfig{
+		BaseURL:    baseURL,
+		ServiceID:  cfg.ServiceID,
+		Timeout:    cfg.Timeout,
+		HTTPClient: cfg.HTTPClient,
+	}, slhttputil.ClientDefaults{
+		Timeout:      defaultTimeout,
+		MaxBodyBytes: defaultMaxBodySize,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("neoaccounts: %w", err)
 	}
+
+	maxBodyBytes := slhttputil.ResolveMaxBodyBytes(cfg.MaxBodyBytes, defaultMaxBodySize)
 
 	return &Client{
 		baseURL:      baseURL,
-		serviceID:    strings.TrimSpace(cfg.ServiceID),
+		serviceID:    slhttputil.ResolveServiceID(cfg.ServiceID),
 		httpClient:   client,
 		maxBodyBytes: maxBodyBytes,
 	}, nil

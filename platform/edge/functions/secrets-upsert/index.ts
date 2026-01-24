@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { encryptSecretValue } from "../_shared/secrets.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
@@ -18,7 +28,7 @@ const MAX_VALUE_BYTES = 64 * 1024;
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -36,16 +46,16 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const name = String(body.name ?? "").trim();
   const value = String(body.value ?? "");
-  if (!name) return error(400, "name required", "NAME_REQUIRED", req);
-  if (!value) return error(400, "value required", "VALUE_REQUIRED", req);
-  if (name.length > MAX_NAME_LEN) return error(400, "name too long", "NAME_INVALID", req);
+  if (!name) return validationError("name", "name required", req);
+  if (!value) return validationError("value", "value required", req);
+  if (name.length > MAX_NAME_LEN) return validationError("name", "name too long", req);
   if (new TextEncoder().encode(value).length > MAX_VALUE_BYTES) {
-    return error(400, "value too large", "VALUE_INVALID", req);
+    return validationError("value", "value too large", req);
   }
 
   const encryptedBase64 = await encryptSecretValue(value);
@@ -58,7 +68,7 @@ export async function handler(req: Request): Promise<Response> {
     .eq("user_id", auth.userId)
     .eq("name", name)
     .limit(1);
-  if (getErr) return error(500, `failed to load secret: ${getErr.message}`, "DB_ERROR", req);
+  if (getErr) return errorResponse("SERVER_002", { message: `failed to load secret: ${getErr.message}` }, req);
 
   const isCreate = !existing || existing.length === 0;
 
@@ -74,7 +84,8 @@ export async function handler(req: Request): Promise<Response> {
       .select("id,name,version,created_at,updated_at")
       .maybeSingle();
 
-    if (insertErr) return error(500, `failed to create secret: ${insertErr.message}`, "DB_ERROR", req);
+    if (insertErr)
+      return errorResponse("SERVER_002", { message: `failed to create secret: ${insertErr.message}` }, req);
 
     // Reset permissions on create (best-effort).
     await supabase.from("secret_policies").delete().eq("user_id", auth.userId).eq("secret_name", name);
@@ -93,7 +104,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("id,name,version,created_at,updated_at")
     .maybeSingle();
 
-  if (updateErr) return error(500, `failed to update secret: ${updateErr.message}`, "DB_ERROR", req);
+  if (updateErr) return errorResponse("SERVER_002", { message: `failed to update secret: ${updateErr.message}` }, req);
 
   return json({ secret: updated, created: false }, {}, req);
 }

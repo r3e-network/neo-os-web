@@ -1,94 +1,87 @@
-// Explorer Search Edge Function
-// Searches transactions, addresses, contracts in the indexer database
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
+import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getChainConfig } from "../_shared/chains.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// CORS headers for indexer responses
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+export async function handler(req: Request): Promise<Response> {
+  const preflight = handleCorsPreflight(req, corsHeaders);
+  if (preflight) return preflight;
+  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
+
+  const url = new URL(req.url);
+  const query = url.searchParams.get("q")?.trim();
+  if (!query) return validationError("q", "query required", req);
+
+  const chainId = url.searchParams.get("chain_id")?.trim().toLowerCase() || "neo-n3-mainnet";
+  const chain = getChainConfig(chainId);
+  if (!chain) return notFoundError("chain", req);
+
+  let result;
+
+  if (chain.type === "evm") {
+    const rpcUrl = chain.rpc_urls?.[0];
+    if (!rpcUrl) {
+      return errorResponse("SERVER_001", { message: `chain ${chainId} has no rpc_urls` }, req);
+    }
+    const searchType = detectSearchType(query, chain.type);
+    switch (searchType) {
+      case "transaction":
+        result = await searchEvmTransaction(rpcUrl, query);
+        break;
+      case "address":
+      case "contract":
+        result = await searchEvmAddress(rpcUrl, query);
+        break;
+      default:
+        result = { type: "unknown", found: false, query };
+    }
+  } else {
+    // Use INDEXER Supabase credentials (isolated)
+    const supabaseUrl = Deno.env.get("INDEXER_SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("INDEXER_SUPABASE_SERVICE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const neoNetwork = chain.is_testnet ? "testnet" : "mainnet";
+
+    const searchType = detectSearchType(query, chain.type);
+    switch (searchType) {
+      case "transaction":
+        result = await searchTransaction(supabase, query, neoNetwork);
+        break;
+      case "address":
+        result = await searchAddress(supabase, query, neoNetwork);
+        break;
+      case "contract":
+        result = await searchContract(supabase, query);
+        break;
+      default:
+        result = await searchAll(supabase, query, neoNetwork);
+    }
   }
 
-  try {
-    const url = new URL(req.url);
-    const query = url.searchParams.get("q")?.trim();
-    const chainId = url.searchParams.get("chain_id")?.trim().toLowerCase() || "neo-n3-mainnet";
-    const chain = getChainConfig(chainId);
-    if (!chain) {
-      return new Response(JSON.stringify({ error: `Unknown chain_id: ${chainId}` }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  return new Response(JSON.stringify(result), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
-    if (!query) {
-      return new Response(JSON.stringify({ error: "Query required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    let result;
-
-    if (chain.type === "evm") {
-      const rpcUrl = chain.rpc_urls?.[0];
-      if (!rpcUrl) {
-        return new Response(JSON.stringify({ error: `chain ${chainId} has no rpc_urls` }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const searchType = detectSearchType(query, chain.type);
-      switch (searchType) {
-        case "transaction":
-          result = await searchEvmTransaction(rpcUrl, query);
-          break;
-        case "address":
-        case "contract":
-          result = await searchEvmAddress(rpcUrl, query);
-          break;
-        default:
-          result = { type: "unknown", found: false, query };
-      }
-    } else {
-      // Use INDEXER Supabase credentials (isolated)
-      const supabaseUrl = Deno.env.get("INDEXER_SUPABASE_URL")!;
-      const supabaseKey = Deno.env.get("INDEXER_SUPABASE_SERVICE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const neoNetwork = chain.is_testnet ? "testnet" : "mainnet";
-
-      const searchType = detectSearchType(query, chain.type);
-      switch (searchType) {
-        case "transaction":
-          result = await searchTransaction(supabase, query, neoNetwork);
-          break;
-        case "address":
-          result = await searchAddress(supabase, query, neoNetwork);
-          break;
-        case "contract":
-          result = await searchContract(supabase, query);
-          break;
-        default:
-          result = await searchAll(supabase, query, neoNetwork);
-      }
-    }
-
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-});
+if (import.meta.main) {
+  Deno.serve(handler);
+}
 
 function detectSearchType(query: string, chainType: "neo-n3" | "evm"): string {
   if (query.startsWith("0x") && query.length === 66) return "transaction";

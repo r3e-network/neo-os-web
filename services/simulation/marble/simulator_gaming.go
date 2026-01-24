@@ -80,7 +80,7 @@ func (s *MiniAppSimulator) SimulateLottery(ctx context.Context) error {
 // SimulateCoinFlip simulates the coin flip workflow.
 // Business flow: PlaceBet -> RequestRNG -> ResolveBet
 func (s *MiniAppSimulator) SimulateCoinFlip(ctx context.Context) error {
-	appID := "miniapp-coin-flip"
+	appID := "miniapp-coinflip"
 	amount := int64(5000000) // 0.05 GAS minimum
 	choice := randomInt(0, 1) == 1
 

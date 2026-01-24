@@ -81,7 +81,7 @@ Gas bank (delegated payments):
 On-chain invocations (wallet-signed):
 
 - `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (**Neo N3 only**, GAS only).
-- `vote-bneo`: returns a `Governance.vote` invocation (**Neo N3 only**, bNEO only).
+- `vote-neo`: returns a `Governance.vote` invocation (**Neo N3 only**, NEO only; legacy alias: `vote-bneo`).
 - `app-register`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.registerApp` invocation (developer wallet-signed, chain-aware).
 - `app-update-manifest`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.updateApp` invocation (developer wallet-signed, chain-aware).
 

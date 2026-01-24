@@ -11,7 +11,7 @@ NeoHub is a **Next.js** host running on **Vercel** that serves as the entry poin
 Responsibilities:
 
 - enforce MiniApp manifest policy (permissions/limits/assets) via Edge gating
-- sandbox MiniApps: **Module Federation** for built-ins, `iframe` for third-party apps
+- sandbox MiniApps: `iframe` for catalog apps (H5 builds), Module Federation supported when configured
 - strict CSP + postMessage allowlists
 - provide `window.MiniAppSDK` for federated apps and same-origin iframes
 - surface wallet binding, intent submission, and AppRegistry workflows
@@ -75,9 +75,35 @@ consistent for the host UI (same `EDGE_BASE_URL` / `NEXT_PUBLIC_SUPABASE_URL` re
 
 ## Local Runs
 
-### Module Federation (Built-ins)
+### iframe Runs (H5 Builds)
 
-Run the built-in remote and host app together:
+Static MiniApps are built from uni-app source:
+
+- `miniapps-uniapp/apps/*`
+
+Build and export with:
+
+```bash
+cd miniapps-uniapp && pnpm build
+```
+
+Then open:
+
+- `http://localhost:3000/?entry_url=/miniapps/lottery/index.html`
+
+## Module Federation (Optional)
+
+The built-in remote lives in `platform/builtin-app` and exposes `./App` as `builtin/App`.
+Manifests use:
+
+```
+mf://builtin?app=<app_id>
+```
+
+The host resolves the remote URL using `NEXT_PUBLIC_MF_REMOTES` and loads the
+federated module without an iframe sandbox.
+
+To run the remote locally:
 
 ```bash
 cd platform/builtin-app
@@ -93,34 +119,6 @@ NEXT_PUBLIC_MF_REMOTES=builtin@http://localhost:3001 npm run dev
 Then open:
 
 - `http://localhost:3000/?entry_url=mf://builtin?app=builtin-price-ticker`
-
-### iframe Runs (Legacy/Static Fallback)
-
-Static MiniApps are built from uni-app source:
-
-- `miniapps-uniapp/apps/*`
-
-Build and export with:
-
-```bash
-cd miniapps-uniapp && pnpm build
-```
-
-Then open (only if you are testing the static iframe build):
-
-- `http://localhost:3000/?entry_url=/miniapps/lottery/index.html`
-
-## Module Federation (Built-ins)
-
-The built-in remote lives in `platform/builtin-app` and exposes `./App` as `builtin/App`.
-Built-in manifests use:
-
-```
-mf://builtin?app=<app_id>
-```
-
-The host resolves the remote URL using `NEXT_PUBLIC_MF_REMOTES` and loads the
-federated module without an iframe sandbox.
 
 ## Wallet Binding + Intents
 

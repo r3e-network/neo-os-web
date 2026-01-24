@@ -106,8 +106,8 @@ User (Wallet)
 ## Dataflow: Edge-Gated Payments / Governance
 
 ```
-SDK ──▶ Edge Function (pay-gas / vote-bneo)
-  ├─ validate permissions + limits + assets (GAS/bNEO only)
+SDK ──▶ Edge Function (pay-gas / vote-neo)
+  ├─ validate permissions + limits + assets (GAS/NEO only)
   └─ return contract invocation for wallet signing
 Wallet ──▶ Neo N3 chain (PaymentHub / Governance)
 ```

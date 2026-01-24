@@ -27,6 +27,9 @@ data:
   NEO_RPC_URL: "https://testnet1.neo.coz.io:443"
   # Neo N3 network magic (Testnet). Mainnet: 860833102
   NEO_NETWORK_MAGIC: "894710606"
+  # TEE signer address (shared between testnet and mainnet).
+  NEO_TESTNET_TEE_ADDRESS: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK"
+  NEO_MAINNET_TEE_ADDRESS: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK"
   # On-chain MiniApp platform contract addresses (0x-prefixed Uint160 strings).
   # Set these per environment after deploying contracts.
   CONTRACT_PAYMENT_HUB_ADDRESS: "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"

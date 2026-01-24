@@ -25,7 +25,7 @@ export type {
   AnalyticsResponse,
 } from "./admin.js";
 
-// Payment & Governance responses (GAS/BNEO constraints)
+// Payment & Governance responses (GAS/NEO constraints)
 export type { PayGASResponse, VoteBNEOResponse, VoteNEOResponse } from "./types.js";
 
 // RNG & Datafeed responses

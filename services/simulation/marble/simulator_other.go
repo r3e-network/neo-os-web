@@ -167,7 +167,7 @@ func (s *MiniAppSimulator) SimulateOnChainTarot(ctx context.Context) error {
 
 // SimulateExFiles simulates ex-files sharing.
 func (s *MiniAppSimulator) SimulateExFiles(ctx context.Context) error {
-	appID := "miniapp-ex-files"
+	appID := "miniapp-exfiles"
 	amount := int64(5000000)
 	memo := fmt.Sprintf("exfiles:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -181,7 +181,7 @@ func (s *MiniAppSimulator) SimulateExFiles(ctx context.Context) error {
 
 // SimulateBreakupContract simulates breakup contract creation.
 func (s *MiniAppSimulator) SimulateBreakupContract(ctx context.Context) error {
-	appID := "miniapp-breakup-contract"
+	appID := "miniapp-breakupcontract"
 	amount := int64(10000000)
 	memo := fmt.Sprintf("breakup:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)

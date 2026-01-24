@@ -478,8 +478,13 @@ export function enforceMiniAppAssetPolicy(manifest: unknown): void {
   }
 
   const entryUrl = String(canonical.entry_url ?? "").trim();
-  if (isProductionEnv() && !entryUrl.startsWith("https://") && !isModuleFederationEntry(entryUrl)) {
-    throw new Error("manifest.entry_url must use https:// or mf:// in production");
+  if (
+    isProductionEnv() &&
+    !entryUrl.startsWith("https://") &&
+    !entryUrl.startsWith("/miniapps/") &&
+    !isModuleFederationEntry(entryUrl)
+  ) {
+    throw new Error("manifest.entry_url must use https://, /miniapps/, or mf:// in production");
   }
 }
 

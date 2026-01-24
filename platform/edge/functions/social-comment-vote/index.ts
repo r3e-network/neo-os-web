@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
 import { checkSpamLimit, logSpamAction } from "../_shared/community.ts";
 
@@ -12,7 +22,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const auth = await requireAuth(req);
@@ -22,16 +32,16 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "INVALID_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const { comment_id, vote_type } = body;
 
   if (!comment_id?.trim()) {
-    return error(400, "comment_id is required", "MISSING_COMMENT_ID", req);
+    return validationError("comment_id", "comment_id is required", req);
   }
   if (!["upvote", "downvote"].includes(vote_type)) {
-    return error(400, "vote_type must be upvote or downvote", "INVALID_VOTE_TYPE", req);
+    return validationError("vote_type", "vote_type must be upvote or downvote", req);
   }
 
   const supabase = supabaseClient();
@@ -50,7 +60,7 @@ export async function handler(req: Request): Promise<Response> {
     .single();
 
   if (commentErr || !comment) {
-    return error(404, "comment not found", "COMMENT_NOT_FOUND", req);
+    return errorResponse("NOT_FOUND_001", { resource: "comment" }, req);
   }
 
   // Upsert vote (update if exists, insert if not)
@@ -59,7 +69,7 @@ export async function handler(req: Request): Promise<Response> {
     .upsert({ comment_id, voter_user_id: userId, vote_type }, { onConflict: "comment_id,voter_user_id" });
 
   if (voteErr) {
-    return error(500, "failed to record vote", "DB_ERROR", req);
+    return errorResponse("SERVER_002", { message: "failed to record vote" }, req);
   }
 
   // Log spam action
@@ -74,4 +84,6 @@ export async function handler(req: Request): Promise<Response> {
   return json({ success: true, upvotes, downvotes }, {}, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

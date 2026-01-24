@@ -21,9 +21,20 @@
  * - Admin tools that need direct compute access
  * - Legacy integrations (will be removed in future versions)
  */
+
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv } from "../_shared/env.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
@@ -36,6 +47,12 @@ type AppExecuteRequest = {
   secret_refs?: string[];
   timeout?: number;
 };
+
+// SECURITY: Maximum limits to prevent DoS attacks
+const MAX_SCRIPT_SIZE = 1024 * 1024; // 1MB max script size
+const MAX_TIMEOUT_SECONDS = 30; // Maximum 30 seconds execution
+const MIN_TIMEOUT_SECONDS = 1; // Minimum 1 second
+const MAX_SECRET_REFS = 10; // Maximum 10 secrets per request
 
 type ScriptInfo = {
   file: string;
@@ -52,7 +69,7 @@ const SCRIPTS_BASE_URL = Deno.env.get("MINIAPP_SCRIPTS_BASE_URL") || "https://cd
 
 async function loadAppScript(
   appId: string,
-  scriptName: string,
+  scriptName: string
 ): Promise<{ script: string; entryPoint: string } | null> {
   try {
     const manifestUrl = `${SCRIPTS_BASE_URL}/apps/${appId}/manifest.json`;
@@ -80,7 +97,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const auth = await requireAuth(req);
@@ -99,23 +116,45 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const appId = String(body.app_id ?? "").trim();
   const scriptName = String(body.script_name ?? "").trim();
 
   if (!appId) {
-    return error(400, "app_id required", "APP_ID_REQUIRED", req);
+    return validationError("app_id", "app_id required", req);
   }
   if (!scriptName) {
-    return error(400, "script_name required", "SCRIPT_NAME_REQUIRED", req);
+    return validationError("script_name", "script_name required", req);
   }
 
   // Load script from app manifest
   const loaded = await loadAppScript(appId, scriptName);
   if (!loaded) {
-    return error(404, "script not found", "SCRIPT_NOT_FOUND", req);
+    return notFoundError("script", req);
+  }
+
+  // SECURITY: Validate script size to prevent DoS
+  const scriptSize = new TextEncoder().encode(loaded.script).length;
+  if (scriptSize > MAX_SCRIPT_SIZE) {
+    return validationError(
+      "script",
+      `script too large (${(scriptSize / 1024).toFixed(1)}KB / ${MAX_SCRIPT_SIZE / 1024}KB limit)`,
+      req
+    );
+  }
+
+  // SECURITY: Validate timeout to prevent long-running requests
+  if (body.timeout !== undefined) {
+    if (body.timeout < MIN_TIMEOUT_SECONDS || body.timeout > MAX_TIMEOUT_SECONDS) {
+      return validationError("timeout", `timeout must be ${MIN_TIMEOUT_SECONDS}-${MAX_TIMEOUT_SECONDS} seconds`, req);
+    }
+  }
+
+  // SECURITY: Validate secret_refs count to prevent excessive secret access
+  if (body.secret_refs && body.secret_refs.length > MAX_SECRET_REFS) {
+    return validationError("secret_refs", `maximum ${MAX_SECRET_REFS} secrets allowed`, req);
   }
 
   // Forward to NeoCompute service
@@ -132,9 +171,13 @@ export async function handler(req: Request): Promise<Response> {
       script_name: scriptName,
     },
     { "X-User-ID": auth.userId },
-    req,
+    req
   );
 
   if (result instanceof Response) return result;
   return json(result, {}, req);
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/R3E-Network/service_layer/infrastructure/crypto"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
 	"github.com/R3E-Network/service_layer/infrastructure/globalsigner/supabase"
+	slhex "github.com/R3E-Network/service_layer/infrastructure/hex"
 	"github.com/R3E-Network/service_layer/infrastructure/logging"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
 	"github.com/R3E-Network/service_layer/infrastructure/runtime"
@@ -161,11 +162,12 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	strict := runtime.StrictIdentityMode() || (cfg.Marble != nil && cfg.Marble.IsEnclave())
+	// SECURITY: In strict/enclave mode, require explicit allowlists
 	if strict && len(s.domainAllowlist) == 0 {
-		s.Logger().Warn(context.Background(), "GLOBALSIGNER_DOMAIN_ALLOWLIST not set; allowing all domains (development/testing only)", nil)
+		return nil, fmt.Errorf("globalsigner: GLOBALSIGNER_DOMAIN_ALLOWLIST is required in strict/enclave mode")
 	}
 	if strict && len(s.signRawAllowlist) == 0 {
-		s.Logger().Warn(context.Background(), "GLOBALSIGNER_SIGN_RAW_ALLOWLIST not set; allowing raw signing for all services (development/testing only)", nil)
+		return nil, fmt.Errorf("globalsigner: GLOBALSIGNER_SIGN_RAW_ALLOWLIST is required in strict/enclave mode")
 	}
 
 	// Set up hydration to load keys on startup
@@ -275,10 +277,17 @@ func (s *Service) loadKeyVersion(v *KeyVersion) error {
 }
 
 // deriveKeyForVersion derives a P-256 private key for a given version.
+// SECURITY: Uses version-specific salt to prevent all-keys-compromised scenario
+// if master seed is leaked. Each version gets unique cryptographic isolation.
 func (s *Service) deriveKeyForVersion(version string) (*ecdsa.PrivateKey, error) {
-	// Use HKDF to derive key material
-	info := "globalsigner:" + version
-	keyMaterial, err := crypto.DeriveKey(s.masterSeed, nil, info, 32)
+	// Use HKDF to derive key material with version-specific salt
+	// Salt is derived from version string using SHA-256 to ensure fixed length
+	versionBytes := []byte(version)
+	saltHash := sha256.Sum256(append([]byte("globalsigner-salt:"), versionBytes...))
+	salt := saltHash[:]
+
+	info := "globalsigner:key:" + version
+	keyMaterial, err := crypto.DeriveKey(s.masterSeed, salt, info, 32)
 	if err != nil {
 		return nil, fmt.Errorf("key derivation failed: %w", err)
 	}
@@ -486,7 +495,7 @@ func (s *Service) Sign(ctx context.Context, req *SignRequest) (*SignResponse, er
 		return nil, err
 	}
 
-	data, err := decodeHexString(req.Data)
+	data, err := slhex.DecodeString(req.Data)
 	if err != nil {
 		return nil, fmt.Errorf("invalid data hex: %w", err)
 	}
@@ -571,7 +580,7 @@ func (s *Service) SignRaw(ctx context.Context, req *SignRawRequest) (*SignRespon
 		return nil, err
 	}
 
-	data, err := decodeHexString(req.Data)
+	data, err := slhex.DecodeString(req.Data)
 	if err != nil {
 		return nil, fmt.Errorf("invalid data hex: %w", err)
 	}
@@ -627,13 +636,6 @@ func (s *Service) SignRaw(ctx context.Context, req *SignRawRequest) (*SignRespon
 		KeyVersion: version,
 		PubKeyHex:  pubKeyHex,
 	}, nil
-}
-
-func decodeHexString(raw string) ([]byte, error) {
-	trimmed := strings.TrimSpace(raw)
-	trimmed = strings.TrimPrefix(trimmed, "0x")
-	trimmed = strings.TrimPrefix(trimmed, "0X")
-	return hex.DecodeString(trimmed)
 }
 
 const (

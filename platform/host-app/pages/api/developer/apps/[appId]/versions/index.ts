@@ -5,6 +5,38 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase";
 
+type ContractConfig = {
+  address?: string | null;
+  active?: boolean;
+  entry_url?: string;
+};
+
+function normalizeContracts(raw: unknown): Record<string, ContractConfig> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const result: Record<string, ContractConfig> = {};
+
+  Object.entries(raw as Record<string, unknown>).forEach(([chainId, value]) => {
+    if (typeof value === "string") {
+      result[chainId] = { address: value };
+      return;
+    }
+
+    if (!value || typeof value !== "object" || Array.isArray(value)) return;
+    const obj = value as Record<string, unknown>;
+    const address = typeof obj.address === "string" ? obj.address : undefined;
+    const entryUrl = typeof obj.entry_url === "string" ? obj.entry_url : typeof obj.entryUrl === "string" ? obj.entryUrl : undefined;
+    const active = typeof obj.active === "boolean" ? obj.active : undefined;
+
+    result[chainId] = {
+      ...(address ? { address } : {}),
+      ...(entryUrl ? { entry_url: entryUrl } : {}),
+      ...(active !== undefined ? { active } : {}),
+    };
+  });
+
+  return result;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Database not configured" });
@@ -61,10 +93,15 @@ async function handleGet(res: NextApiResponse, appId: string) {
 }
 
 async function handlePost(req: NextApiRequest, res: NextApiResponse, appId: string) {
-  const { version, release_notes, entry_url, supported_chains, contracts } = req.body;
+  const { version, release_notes, entry_url, supported_chains, contracts, build_url } = req.body;
 
   if (!version || !entry_url) {
     return res.status(400).json({ error: "Version and entry_url required" });
+  }
+
+  const buildUrl = typeof build_url === "string" ? build_url.trim() : "";
+  if (buildUrl && !/^https?:\/\//i.test(buildUrl)) {
+    return res.status(400).json({ error: "Build URL must be http(s)" });
   }
 
   try {
@@ -80,7 +117,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, appId: stri
     const version_code = (latest?.version_code || 0) + 1;
 
     const supportedChains = Array.isArray(supported_chains) ? supported_chains : [];
-    const contractMap = contracts && typeof contracts === "object" && !Array.isArray(contracts) ? contracts : {};
+    const contractMap = normalizeContracts(contracts);
 
     const { data, error } = await supabaseAdmin!
       .from("miniapp_versions")
@@ -98,6 +135,21 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, appId: stri
       .single();
 
     if (error) throw error;
+
+    if (buildUrl) {
+      const buildNumber = 1;
+      await supabaseAdmin!
+        .from("miniapp_builds")
+        .insert({
+          version_id: data.id,
+          build_number: buildNumber,
+          platform: "web",
+          storage_path: buildUrl,
+          storage_provider: "external",
+          status: "ready",
+          completed_at: new Date().toISOString(),
+        });
+    }
 
     return res.status(201).json({ version: data });
   } catch (error) {

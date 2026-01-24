@@ -16,6 +16,9 @@ export function usePayments(appId: string) {
       throw new Error("Invalid amount: must be a positive number");
     }
     const sdk = await waitForSDK();
+    if (sdk.payments.payGASAndInvoke) {
+      return await sdk.payments.payGASAndInvoke(appId, amount, memo);
+    }
     return await sdk.payments.payGAS(appId, amount, memo);
   });
 

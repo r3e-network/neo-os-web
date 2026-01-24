@@ -7,8 +7,7 @@ import { MiniAppGrid, MiniAppListItem, FilterSidebar } from "@/components/featur
 import { FeaturedHeroCarousel, type FeaturedApp } from "@/components/features/discovery/FeaturedHeroCarousel";
 import type { MiniAppInfo } from "@/components/types";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
-import { getCardData } from "@/hooks/useCardData";
-import { getAppHighlights, generateDefaultHighlights } from "@/lib/app-highlights";
+
 import { useCollections } from "@/hooks/useCollections";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
@@ -24,6 +23,19 @@ type ViewMode = "grid" | "list";
 
 // Sort options and filter sections are now generated inside the component using useMemo
 // to support dynamic i18n translation updates
+const hashSeed = (input: string) => {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const seededUnit = (input: string, salt: number) => {
+  const seed = hashSeed(`${input}:${salt}`);
+  return (seed % 1000) / 1000;
+};
 
 const baseApps: MiniAppInfo[] = BUILTIN_APPS.map((app) => ({
   ...app,
@@ -264,15 +276,7 @@ export default function MiniAppsPage() {
     scrollRestoredRef.current = true;
   }, [isDataReady]);
 
-  useEffect(() => {
-    setApps(
-      baseApps.map((app) => ({
-        ...app,
-        cardData: getCardData(app.app_id),
-        highlights: getAppHighlights(app.app_id),
-      })),
-    );
-  }, []);
+
 
   useEffect(() => {
     // Try to restore cached stats first
@@ -333,8 +337,6 @@ export default function MiniAppsPage() {
       return {
         ...app,
         stats,
-        // Use configured highlights or generate from stats as fallback
-        highlights: app.highlights || generateDefaultHighlights(stats),
       };
     });
 
@@ -447,8 +449,8 @@ export default function MiniAppsPage() {
       stats: {
         users: app.stats?.users || 0,
         transactions: app.stats?.transactions || 0,
-        rating: 4.5 + Math.random() * 0.5, // Placeholder rating
-        reviews: Math.floor(Math.random() * 500) + 50,
+        rating: 4.5 + seededUnit(app.app_id, 1) * 0.5,
+        reviews: Math.floor(seededUnit(app.app_id, 2) * 450) + 50,
       },
       featured: {
         tagline: app.tagline,

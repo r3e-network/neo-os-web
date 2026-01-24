@@ -21,8 +21,8 @@ Welcome to the Neo MiniApp Platform documentation. This guide covers everything 
 
 ## For Developers
 
-- **Build MiniApps**: Create apps with `@neo/uniapp-sdk`
-- **SDK Source**: `packages/@neo/uniapp-sdk` in this repo, published to npm
+- **Build MiniApps**: Create apps with `@r3e/uniapp-sdk`
+- **SDK Source**: `packages/@neo/uniapp-sdk` in this repo, published to GitHub Packages
 - **Submission Pipeline**: Submit your GitHub repo for review/approval (internal miniapps auto-approved)
 - **UniversalMiniApp**: Use the shared contract for storage/events
 - **Platform Services**: Access VRF, DataFeeds, Automation

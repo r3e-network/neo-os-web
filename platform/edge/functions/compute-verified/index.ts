@@ -12,17 +12,24 @@
  * 5. Return result with script hash for on-chain settlement
  */
 
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv } from "../_shared/env.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { postJSON } from "../_shared/tee.ts";
-import {
-  computeScriptHash,
-  verifyScript,
-} from "../_shared/script-verify.ts";
+import { computeScriptHash, verifyScript } from "../_shared/script-verify.ts";
 
 type ComputeVerifiedRequest = {
   app_id: string;
@@ -35,15 +42,17 @@ type ComputeVerifiedRequest = {
 
 type ScriptManifest = {
   app_id: string;
-  tee_scripts?: Record<string, {
-    file: string;
-    entry_point: string;
-    description?: string;
-  }>;
+  tee_scripts?: Record<
+    string,
+    {
+      file: string;
+      entry_point: string;
+      description?: string;
+    }
+  >;
 };
 
-const SCRIPTS_BASE_URL = mustGetEnv("MINIAPP_SCRIPTS_BASE_URL") ||
-  "https://cdn.miniapps.neo.org";
+const SCRIPTS_BASE_URL = mustGetEnv("MINIAPP_SCRIPTS_BASE_URL") || "https://cdn.miniapps.neo.org";
 
 const CHAIN_RPC_URLS: Record<string, string> = {
   "neo3-mainnet": "https://mainnet1.neo.coz.io:443",
@@ -53,10 +62,7 @@ const CHAIN_RPC_URLS: Record<string, string> = {
 /**
  * Load script content from CDN.
  */
-async function loadScript(
-  appId: string,
-  scriptName: string,
-): Promise<{ script: string; entryPoint: string } | null> {
+async function loadScript(appId: string, scriptName: string): Promise<{ script: string; entryPoint: string } | null> {
   try {
     const manifestUrl = `${SCRIPTS_BASE_URL}/apps/${appId}/manifest.json`;
     const manifestRes = await fetch(manifestUrl);
@@ -84,7 +90,7 @@ export async function handler(req: Request): Promise<Response> {
   if (preflight) return preflight;
 
   if (req.method !== "POST") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   // Auth and rate limiting
@@ -105,7 +111,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const appId = String(body.app_id ?? "").trim();
@@ -116,45 +122,35 @@ export async function handler(req: Request): Promise<Response> {
 
   // Validate required fields
   if (!appId) {
-    return error(400, "app_id required", "APP_ID_REQUIRED", req);
+    return validationError("app_id", "app_id required", req);
   }
   if (!contractHash) {
-    return error(400, "contract_hash required", "CONTRACT_HASH_REQUIRED", req);
+    return validationError("contract_hash", "contract_hash required", req);
   }
   if (!scriptName) {
-    return error(400, "script_name required", "SCRIPT_NAME_REQUIRED", req);
+    return validationError("script_name", "script_name required", req);
   }
   if (!seed) {
-    return error(400, "seed required", "SEED_REQUIRED", req);
+    return validationError("seed", "seed required", req);
   }
 
   // Get RPC URL for chain
   const rpcUrl = CHAIN_RPC_URLS[chainId];
   if (!rpcUrl) {
-    return error(400, `unsupported chain: ${chainId}`, "UNSUPPORTED_CHAIN", req);
+    return errorResponse("VAL_006", { chain_id: chainId }, req);
   }
 
   // Load script from CDN
   const loaded = await loadScript(appId, scriptName);
   if (!loaded) {
-    return error(404, "script not found in manifest", "SCRIPT_NOT_FOUND", req);
+    return notFoundError("script", req);
   }
 
   // Verify script against on-chain registration
-  const verification = await verifyScript(
-    contractHash,
-    scriptName,
-    loaded.script,
-    rpcUrl,
-  );
+  const verification = await verifyScript(contractHash, scriptName, loaded.script, rpcUrl);
 
   if (!verification.valid) {
-    return error(
-      403,
-      `script verification failed: ${verification.error}`,
-      "SCRIPT_VERIFICATION_FAILED",
-      req,
-    );
+    return errorResponse("AUTH_004", { message: `script verification failed: ${verification.error}` }, req);
   }
 
   // Compute script hash for response
@@ -175,7 +171,7 @@ export async function handler(req: Request): Promise<Response> {
       script_name: scriptName,
     },
     { "X-User-ID": auth.userId },
-    req,
+    req
   );
 
   if (result instanceof Response) return result;
@@ -193,6 +189,10 @@ export async function handler(req: Request): Promise<Response> {
       },
     },
     {},
-    req,
+    req
   );
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
 }

@@ -11,8 +11,8 @@ import { getChainRpcUrl } from "../../lib/chain/rpc-client";
 
 // Platform master accounts (multi-chain support)
 const CHAIN_MASTER_ACCOUNTS: Partial<Record<ChainId, string>> = {
-  "neo-n3-mainnet": "NikhQp1aAD1YFCiwknhM5LQQebj4464bCJ",
-  "neo-n3-testnet": "NikhQp1aAD1YFCiwknhM5LQQebj4464bCJ",
+  "neo-n3-mainnet": "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK",
+  "neo-n3-testnet": "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK",
   "neox-mainnet": "0x742d35Cc6634C0532925a3b844Bc9e7595f8fE00",
   "neox-testnet": "0x742d35Cc6634C0532925a3b844Bc9e7595f8fE00",
 };
@@ -33,24 +33,24 @@ const CORE_CONTRACTS: Partial<
 > = {
   "neo-n3-testnet": {
     ServiceGateway: {
-      address: "NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy",
+      address: "NTWh6auSz3nvBZSbXHbZz4ShwPhmpkC5Ad",
       name: "Service Gateway",
       description: "Platform entry point",
     },
     Governance: {
-      address: "NeEWK3vcVRWJDebyBCyLx6HSzJZSeYhXAt",
+      address: "NLRGStjsRpN3bk71KNoKe74fNxUT72gfpe",
       name: "Governance",
       description: "DAO governance contract",
     },
   },
   "neo-n3-mainnet": {
     ServiceGateway: {
-      address: "NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy",
+      address: "NfaEbVnKnUQSd4MhNXz9pY4Uire7EiZtai",
       name: "Service Gateway",
       description: "Platform entry point",
     },
     Governance: {
-      address: "NeEWK3vcVRWJDebyBCyLx6HSzJZSeYhXAt",
+      address: "NMhpz6kT77SKaYwNHrkTv8QXpoPuSd3VJn",
       name: "Governance",
       description: "DAO governance contract",
     },
@@ -87,34 +87,34 @@ const PLATFORM_SERVICES: Partial<
 > = {
   "neo-n3-testnet": {
     PaymentHub: {
-      address: "NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq",
+      address: "NZLGNdQUa5jQ2VC1r3MGoJFGm3BW8Kv81q",
       name: "Payment Hub",
       description: "Handles GAS payments",
     },
     RandomnessOracle: {
-      address: "NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD",
+      address: "NR9urKR3FZqAfvowx2fyWjtWHBpqLqrEPP",
       name: "Randomness Oracle",
       description: "Verifiable random numbers",
     },
     PriceFeed: {
-      address: "Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM",
+      address: "NTdJ7XHZtYXSRXnWGxV6TcyxiSRCcjP4X1",
       name: "Price Feed",
       description: "Real-time price oracle",
     },
   },
   "neo-n3-mainnet": {
     PaymentHub: {
-      address: "NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq",
+      address: "NaqDPjXnYsm8W5V3xXuDUZe5W1HRLsMsx2",
       name: "Payment Hub",
       description: "Handles GAS payments",
     },
     RandomnessOracle: {
-      address: "NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD",
+      address: "NPJXDzwaU8UDct7247oq3YhLxJKkJsmhaa",
       name: "Randomness Oracle",
       description: "Verifiable random numbers",
     },
     PriceFeed: {
-      address: "Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM",
+      address: "NPW7dXnqBUoQ3aoxg86wMsKbgt8VD2HhWQ",
       name: "Price Feed",
       description: "Real-time price oracle",
     },
@@ -349,7 +349,7 @@ export function RightSidebarPanel({
         {masterAccountAddress && (
           <InfoRow
             label={t("sidebar.masterAccount")}
-            value={masterAccountAddress}
+            value={truncateAddress(masterAccountAddress)}
             fullValue={masterAccountAddress}
             onCopy={() => handleCopy(masterAccountAddress, "platformMasterAccount")}
             copied={copiedField === "platformMasterAccount"}
@@ -365,7 +365,7 @@ export function RightSidebarPanel({
           <>
             <InfoRow
               label={t("sidebar.address")}
-              value={address}
+              value={truncateAddress(address)}
               fullValue={address}
               onCopy={() => handleCopy(address, "wallet")}
               copied={copiedField === "wallet"}
@@ -391,8 +391,14 @@ export function RightSidebarPanel({
             )}
           </>
         ) : (
-          <div className="text-center py-3 text-sm" style={{ color: themeColors.textMuted }}>
-            {t("sidebar.noWallet")}
+          <div className="flex flex-col items-center py-6 text-center gap-2" style={{ color: themeColors.textMuted }}>
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-xl opacity-50"
+              style={{ background: `${themeColors.primary}10` }}
+            >
+              👛
+            </div>
+            <span className="text-xs font-medium">{t("sidebar.noWallet")}</span>
           </div>
         )}
       </Section>
@@ -404,7 +410,11 @@ export function RightSidebarPanel({
           <>
             <InfoRow
               label={t("sidebar.contractAddress")}
-              value={isNeoChain ? contractAddress || "Loading..." : contractInfo.contractAddress}
+              value={
+                isNeoChain
+                  ? truncateAddress(contractAddress || "Loading...")
+                  : truncateAddress(contractInfo.contractAddress)
+              }
               fullValue={isNeoChain ? contractAddress || contractInfo.contractAddress : contractInfo.contractAddress}
               onCopy={() =>
                 handleCopy((isNeoChain ? contractAddress : contractInfo.contractAddress) || "", "contractAddr")
@@ -416,7 +426,7 @@ export function RightSidebarPanel({
             {isNeoChain && (
               <InfoRow
                 label={t("sidebar.scriptHash")}
-                value={contractInfo.contractAddress}
+                value={truncateAddress(contractInfo.contractAddress)}
                 fullValue={contractInfo.contractAddress}
                 onCopy={() => handleCopy(contractInfo.contractAddress!, "contract")}
                 copied={copiedField === "contract"}
@@ -436,7 +446,7 @@ export function RightSidebarPanel({
         {contractInfo?.masterKeyAddress && (
           <InfoRow
             label={t("sidebar.masterKey")}
-            value={contractInfo.masterKeyAddress}
+            value={truncateAddress(contractInfo.masterKeyAddress)}
             fullValue={contractInfo.masterKeyAddress}
             onCopy={() => handleCopy(contractInfo.masterKeyAddress!, "masterKey")}
             copied={copiedField === "masterKey"}
@@ -453,7 +463,7 @@ export function RightSidebarPanel({
             <InfoRow
               key={key}
               label={contract.name}
-              value={contract.address}
+              value={truncateAddress(contract.address)}
               fullValue={contract.address}
               onCopy={() => handleCopy(contract.address, `core-${key}`)}
               copied={copiedField === `core-${key}`}
@@ -471,7 +481,7 @@ export function RightSidebarPanel({
             <InfoRow
               key={key}
               label={service.name}
-              value={service.address}
+              value={truncateAddress(service.address)}
               fullValue={service.address}
               onCopy={() => handleCopy(service.address, key)}
               copied={copiedField === key}
@@ -483,7 +493,7 @@ export function RightSidebarPanel({
             <InfoRow
               key={`custom-${idx}`}
               label={service.name}
-              value={service.address}
+              value={truncateAddress(service.address)}
               fullValue={service.address}
               onCopy={() => handleCopy(service.address, `service-${idx}`)}
               copied={copiedField === `service-${idx}`}
@@ -581,9 +591,8 @@ function InfoRow({
       <div className="flex items-center gap-1.5 min-w-0">
         {indicator && (
           <span
-            className={`w-2 h-2 rounded-full ${
-              indicator === "green" ? "bg-emerald-500" : indicator === "amber" ? "bg-amber-500" : "bg-red-500"
-            }`}
+            className={`w-2 h-2 rounded-full ${indicator === "green" ? "bg-emerald-500" : indicator === "amber" ? "bg-amber-500" : "bg-red-500"
+              }`}
           />
         )}
         {link ? (

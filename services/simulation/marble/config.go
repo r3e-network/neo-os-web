@@ -24,7 +24,7 @@ const (
 // Only these apps can receive payments via PaymentHub.pay().
 var DefaultMiniApps = []string{
 	"miniapp-lottery",
-	"miniapp-coin-flip",
+	"miniapp-coinflip",
 	"miniapp-dice-game",
 	"miniapp-scratch-card",
 	"miniapp-red-envelope",

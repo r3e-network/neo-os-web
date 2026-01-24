@@ -11,7 +11,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { getChainRegistry } from "../../../lib/chains/registry";
 
-const PLATFORM_ADDRESS = process.env.NEO_TESTNET_ADDRESS || "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
+const PLATFORM_ADDRESS = process.env.NEO_TESTNET_ADDRESS || "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK";
 
 interface ChainSyncResult {
   chain_id: string;

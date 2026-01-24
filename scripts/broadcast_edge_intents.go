@@ -1,6 +1,6 @@
 //go:build ignore
 
-// Broadcast Edge intents (pay-gas + vote-bneo) to Neo N3 testnet.
+// Broadcast Edge intents (pay-gas + vote-neo) to Neo N3 testnet.
 // Uses Edge to fetch invocation payloads and then signs/broadcasts them.
 package main
 
@@ -104,7 +104,7 @@ func main() {
 	}
 	fmt.Printf("pay-gas tx: %s (%s)\n", payTx.TxHash, payTx.VMState)
 
-	fmt.Println("\n=== Edge vote-bneo ===")
+	fmt.Println("\n=== Edge vote-neo ===")
 	if proposalID == "" {
 		proposalID = fmt.Sprintf("edge-proposal-%d", time.Now().Unix())
 		if err := ensureProposal(ctx, client, account, proposalID); err != nil {
@@ -117,23 +117,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	voteIntent, err := fetchIntent(edgeURL+"/vote-bneo", edgeKey, edgeToken, map[string]any{
+	voteIntent, err := fetchIntent(edgeURL+"/vote-neo", edgeKey, edgeToken, map[string]any{
 		"app_id":      appID,
 		"proposal_id": proposalID,
-		"bneo_amount": voteAmount,
+		"neo_amount":  voteAmount,
 		"support":     true,
 		"chain_id":    chainID,
 	})
 	if err != nil {
-		fmt.Printf("vote-bneo failed: %v\n", err)
+		fmt.Printf("vote-neo failed: %v\n", err)
 		os.Exit(1)
 	}
 	voteTx, err := invokeAndBroadcast(ctx, client, account, voteIntent.Invocation, transaction.CalledByEntry, chain.ScopeCalledByEntry)
 	if err != nil {
-		fmt.Printf("vote-bneo broadcast failed: %v\n", err)
+		fmt.Printf("vote-neo broadcast failed: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("vote-bneo tx: %s (%s)\n", voteTx.TxHash, voteTx.VMState)
+	fmt.Printf("vote-neo tx: %s (%s)\n", voteTx.TxHash, voteTx.VMState)
 }
 
 func getEnv(key, fallback string) string {

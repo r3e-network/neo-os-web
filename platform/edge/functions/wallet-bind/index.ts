@@ -1,8 +1,21 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { verifyNeoSignature } from "../_shared/neo.ts";
 import { ensureUserRow, requireUser, supabaseServiceClient } from "../_shared/supabase.ts";
+
+// Nonce expires after 5 minutes (300 seconds)
+const NONCE_TTL_SECONDS = 300;
 
 type WalletBindRequest = {
   address: string;
@@ -18,7 +31,7 @@ type WalletBindRequest = {
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireUser(req);
   if (auth instanceof Response) return auth;
@@ -29,7 +42,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const address = String(body.address ?? "").trim();
@@ -41,27 +54,50 @@ export async function handler(req: Request): Promise<Response> {
     .trim()
     .slice(0, 64);
 
-  if (!address) return error(400, "address required", "ADDRESS_REQUIRED", req);
-  if (!publicKey) return error(400, "public_key required", "PUBLIC_KEY_REQUIRED", req);
-  if (!signature) return error(400, "signature required", "SIGNATURE_REQUIRED", req);
-  if (!message) return error(400, "message required", "MESSAGE_REQUIRED", req);
-  if (!nonce) return error(400, "nonce required", "NONCE_REQUIRED", req);
+  if (!address) return validationError("address", "address required", req);
+  if (!publicKey) return validationError("public_key", "public_key required", req);
+  if (!signature) return validationError("signature", "signature required", req);
+  if (!message) return validationError("message", "message required", req);
+  if (!nonce) return validationError("nonce", "nonce required", req);
 
   if (!verifyNeoSignature(address, message, signature, publicKey)) {
-    return error(401, "invalid signature", "SIGNATURE_INVALID", req);
+    return errorResponse("AUTH_001", { message: "invalid signature" }, req);
   }
 
   const supabase = supabaseServiceClient();
 
-  // Ensure the public.users row exists and fetch the currently issued nonce.
-  const userRow = await ensureUserRow(auth, {}, req);
-  if (userRow instanceof Response) return userRow;
+  // Validate nonce using database function (includes expiration check)
+  const { data: nonceResult, error: nonceErr } = await supabase.rpc("validate_wallet_nonce", {
+    p_user_id: auth.userId,
+    p_nonce: nonce,
+    p_max_age_seconds: NONCE_TTL_SECONDS,
+  });
+  if (nonceErr) {
+    // Fallback to legacy validation if RPC not available (migration not applied)
+    const userRow = await ensureUserRow(auth, {}, req);
+    if (userRow instanceof Response) return userRow;
 
-  const storedNonce = String(userRow?.nonce ?? "").trim();
-  if (!storedNonce) return error(400, "wallet nonce not issued (call wallet-nonce)", "NONCE_NOT_ISSUED", req);
-  if (storedNonce !== nonce) return error(401, "nonce mismatch", "NONCE_INVALID", req);
-  if (!message.includes(nonce)) return error(401, "nonce not present in signed message", "NONCE_INVALID", req);
-  if (!message.includes(auth.userId)) return error(401, "user id not present in signed message", "NONCE_INVALID", req);
+    const storedNonce = String(userRow?.nonce ?? "").trim();
+    if (!storedNonce) return validationError("nonce", "wallet nonce not issued (call wallet-nonce)", req);
+    if (storedNonce !== nonce) return errorResponse("AUTH_001", { message: "nonce mismatch" }, req);
+  } else {
+    // Use RPC result for validation
+    const valid = Boolean(nonceResult?.valid);
+    const reason = String(nonceResult?.reason ?? "");
+    if (!valid) {
+      if (reason === "nonce_not_issued") {
+        return validationError("nonce", "wallet nonce not issued (call wallet-nonce)", req);
+      }
+      if (reason === "nonce_expired") {
+        return errorResponse("AUTH_001", { message: "nonce expired (request a new one)" }, req);
+      }
+      return errorResponse("AUTH_001", { message: "nonce mismatch" }, req);
+    }
+  }
+
+  // Validate message content
+  if (!message.includes(nonce)) return errorResponse("AUTH_001", { message: "nonce not present in signed message" }, req);
+  if (!message.includes(auth.userId)) return errorResponse("AUTH_001", { message: "user id not present in signed message" }, req);
 
   // Determine whether this is the first wallet (primary by default).
   const { data: existingWallets, error: walletsErr } = await supabase
@@ -69,7 +105,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("id")
     .eq("user_id", auth.userId)
     .limit(1);
-  if (walletsErr) return error(500, `failed to load wallets: ${walletsErr.message}`, "DB_ERROR", req);
+  if (walletsErr) return errorResponse("SERVER_002", { message: `failed to load wallets: ${walletsErr.message}` }, req);
 
   const isPrimary = (existingWallets ?? []).length === 0;
 
@@ -89,7 +125,7 @@ export async function handler(req: Request): Promise<Response> {
     .maybeSingle();
   if (insertErr) {
     // Unique violation is the most common case when the wallet is already bound.
-    return error(409, `failed to bind wallet: ${insertErr.message}`, "WALLET_BIND_FAILED", req);
+    return errorResponse("SERVER_002", { message: `failed to bind wallet: ${insertErr.message}` }, req);
   }
 
   // Best-effort: mirror primary wallet into users.address (simplifies “must bind wallet” checks).
@@ -108,5 +144,7 @@ export async function handler(req: Request): Promise<Response> {
 }
 
 if (import.meta.main) {
+  if (import.meta.main) {
   Deno.serve(handler);
+}
 }

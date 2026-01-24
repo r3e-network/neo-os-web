@@ -18,43 +18,37 @@ type ChainContractMap = Partial<Record<ChainId, string>>;
  */
 export const CONTRACTS: Record<string, ChainContractMap> = {
   lottery: {
-    "neo-n3-mainnet": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+    "neo-n3-mainnet": "0xb3c0ca9950885c5bf4d0556e84bc367473c3475e",
     "neo-n3-testnet": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
   },
   coinFlip: {
-    "neo-n3-mainnet": "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
+    "neo-n3-mainnet": "0x0a39f71c274dc944cd20cb49e4a38ce10f3ceea1",
     "neo-n3-testnet": "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
   },
   diceGame: {
-    "neo-n3-mainnet": "0xfacff9abd201dca86e6a63acfb5d60da278da8ea",
     "neo-n3-testnet": "0xfacff9abd201dca86e6a63acfb5d60da278da8ea",
   },
   secretVote: {
-    "neo-n3-mainnet": "0x7763ce957515f6acef6d093376977ac6c1cbc47d",
     "neo-n3-testnet": "0x7763ce957515f6acef6d093376977ac6c1cbc47d",
   },
   predictionMarket: {
-    "neo-n3-mainnet": "0x64118096bd004a2bcb010f4371aba45121eca790",
     "neo-n3-testnet": "0x64118096bd004a2bcb010f4371aba45121eca790",
   },
   neoCrash: {
-    "neo-n3-mainnet": "0x2e594e12b2896c135c3c8c80dbf2317fa56ceead",
     "neo-n3-testnet": "0x2e594e12b2896c135c3c8c80dbf2317fa56ceead",
   },
   canvas: {
-    "neo-n3-mainnet": "0x53f9c7b86fa2f8336839ef5073d964d644cbb46c",
-    "neo-n3-testnet": "0x53f9c7b86fa2f8336839ef5073d964d644cbb46c",
+    "neo-n3-testnet": "0x285e2dc88e15fee4684588f34985155ac95d8d98",
   },
   priceTicker: {
-    "neo-n3-mainnet": "0x838bd5dd3d257a844fadddb5af2b9dac45e1d320",
     "neo-n3-testnet": "0x838bd5dd3d257a844fadddb5af2b9dac45e1d320",
   },
   flashLoan: {
-    "neo-n3-mainnet": "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
+    "neo-n3-mainnet": "0xb5d8fb0dc2319edc4be3104304b4136b925df6e4",
     "neo-n3-testnet": "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
   },
   redEnvelope: {
-    "neo-n3-mainnet": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
+    "neo-n3-mainnet": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
     "neo-n3-testnet": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
   },
 };

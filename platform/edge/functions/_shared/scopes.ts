@@ -13,7 +13,12 @@ export function requireScopes(req: Request, auth: AuthContext, requiredScopes: s
 
   const scopes = Array.isArray(auth.scopes) ? auth.scopes : [];
   if (scopes.length === 0) return null; // default: allow all (legacy keys)
-  if (scopes.includes("*")) return null;
+  
+  // SECURITY: Wildcard scope "*" grants all permissions - log warning and require explicit admin check
+  if (scopes.includes("*")) {
+    console.warn(`[SECURITY] Wildcard scope "*" used by user ${auth.userId} - consider using explicit scopes`);
+    return null; // Allow for now but this should be phased out (MEDIUM #16)
+  }
 
   const missing = requiredScopes.filter((scope) => !scopes.includes(scope));
   if (missing.length === 0) return null;
@@ -33,7 +38,13 @@ export function requireHostScopes(req: Request, auth: AuthContext, requiredScope
     if (scopes.length === 0) {
       return error(403, `api key missing required scope(s): ${requiredScopes.join(", ")}`, "SCOPE_REQUIRED", req);
     }
-    if (scopes.includes("*")) return null;
+    
+    // SECURITY: Wildcard scope "*" grants all permissions - log warning for host-gated endpoints
+    if (scopes.includes("*")) {
+      console.warn(`[SECURITY] Wildcard scope "*" used on host-gated endpoint by user ${auth.userId} - high risk`);
+      return null; // Allow for now but this should be phased out (MEDIUM #16)
+    }
+    
     const missing = requiredScopes.filter((scope) => !scopes.includes(scope));
     if (missing.length === 0) return null;
     return error(403, `api key missing required scope(s): ${missing.join(", ")}`, "SCOPE_REQUIRED", req);

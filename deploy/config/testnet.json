@@ -5,7 +5,7 @@
     "https://testnet2.neo.coz.io:443",
     "https://rpc.t5.n3.nspcc.ru:20331"
   ],
-  "network_magic": 877933390,
+  "network_magic": 894710606,
   "contracts": {
     "PaymentHub": null,
     "Governance": null,

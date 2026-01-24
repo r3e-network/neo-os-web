@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { ensureUserRow, requirePrimaryWallet, requireUser, supabaseServiceClient } from "../_shared/supabase.ts";
 
@@ -9,7 +19,7 @@ type RevokeAPIKeyRequest = { id: string };
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
-  if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const auth = await requireUser(req);
   if (auth instanceof Response) return auth;
@@ -22,11 +32,11 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const id = String(body.id ?? "").trim();
-  if (!id) return error(400, "id required", "ID_REQUIRED", req);
+  if (!id) return validationError("id", "id required", req);
 
   const ensured = await ensureUserRow(auth, {}, req);
   if (ensured instanceof Response) return ensured;
@@ -38,7 +48,7 @@ export async function handler(req: Request): Promise<Response> {
     .eq("id", id)
     .eq("user_id", auth.userId);
 
-  if (revokeErr) return error(500, `failed to revoke api key: ${revokeErr.message}`, "DB_ERROR", req);
+  if (revokeErr) return errorResponse("SERVER_002", { message: `failed to revoke api key: ${revokeErr.message}` }, req);
 
   return json({ status: "ok" }, {}, req);
 }

@@ -1,13 +1,13 @@
 # Built-in MiniApps (Module Federation Remote)
 
-This Next.js app exposes the **first-party MiniApps** as a Module Federation remote.
-It is consumed by the host app (`platform/host-app`) using the `builtin` remote name.
+This Next.js app exposes the optional **Module Federation** remote for MiniApps.
+The host app (`platform/host-app`) can consume it using the `builtin` remote name.
 
 ## Exposed Module
 
 - `builtin/App` → `src/components/BuiltinApp`
 
-## Local Development
+## Local Development (Optional)
 
 ```bash
 cd platform/builtin-app
@@ -27,9 +27,9 @@ Then start the host app (`platform/host-app`) and open:
 
 - `http://localhost:3000/?entry_url=mf://builtin?app=builtin-price-ticker`
 
-## Entry URL Scheme
+## Entry URL Scheme (Optional)
 
-Built-in manifests reference the Module Federation remote using:
+If you choose to use Module Federation, set MiniApp manifests to:
 
 ```
 mf://builtin?app=<app_id>

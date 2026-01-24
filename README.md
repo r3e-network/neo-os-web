@@ -115,13 +115,15 @@ Deployed on Neo N3 Testnet:
 
 | Contract            | Address                              | Description               |
 | ------------------- | ------------------------------------ | ------------------------- |
-| PaymentHub          | `NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq` | GAS payment processing    |
-| Governance          | `NeEWK3vcVRWJDebyBCyLx6HSzJZSeYhXAt` | NEO staking and voting    |
-| PriceFeed           | `Ndx6Lia3FsF7K1t73F138HXHaKwLYca2yM` | Oracle price data         |
-| RandomnessLog       | `NWkXBKnpvQTVy3exMD2dWNDzdtc399eLaD` | VRF attestation anchoring |
-| AppRegistry         | `NX25pqQJSjpeyKBvcdReRtzuXMeEyJkyiy` | MiniApp registration      |
-| AutomationAnchor    | `NNWqgxGnXGtfK7VHvEqbdSu3jq8Pu8xkvM` | Periodic task scheduling  |
-| ServiceLayerGateway | `NPXyVuEVfp47Abcwq6oTKmtwbJM6Yh965c` | Service request routing   |
+| PaymentHub          | `NZLGNdQUa5jQ2VC1r3MGoJFGm3BW8Kv81q` | GAS payment processing    |
+| Governance          | `NLRGStjsRpN3bk71KNoKe74fNxUT72gfpe` | NEO staking and voting    |
+| PriceFeed           | `NTdJ7XHZtYXSRXnWGxV6TcyxiSRCcjP4X1` | Oracle price data         |
+| RandomnessLog       | `NR9urKR3FZqAfvowx2fyWjtWHBpqLqrEPP` | VRF attestation anchoring |
+| AppRegistry         | `NXZNTXiPuBRHnEaKFV3tLHhitkbt3XmoWJ` | MiniApp registration      |
+| AutomationAnchor    | `NcVrd4Z7W8sxv9jvdBF72xfiWBnvRsgVkx` | Periodic task scheduling  |
+| ServiceLayerGateway | `NTWh6auSz3nvBZSbXHbZz4ShwPhmpkC5Ad` | Service request routing   |
+
+Mainnet addresses live in `deploy/config/mainnet_contracts.json`.
 
 ## MiniApps (62 Apps)
 
@@ -260,7 +262,8 @@ See [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md) for detailed setup.
 | `NEO_NETWORK_MAGIC`         | Network magic number        |
 | `CONTRACT_*_ADDRESS`        | Platform contract addresses |
 
-See [`.env.example`](.env.example) for complete list.
+See [`.env.example`](.env.example) for complete list and the
+`deploy/config/{testnet,mainnet}_contracts.json` files for canonical addresses.
 
 ## Repository Structure
 

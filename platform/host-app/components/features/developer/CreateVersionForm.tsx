@@ -3,12 +3,12 @@
  */
 
 import { useState } from "react";
-import { Upload, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface CreateVersionFormProps {
   appId: string;
-  onSubmit: (data: { version: string; release_notes: string; entry_url: string }) => Promise<void>;
+  onSubmit: (data: { version: string; release_notes: string; entry_url: string; build_url?: string }) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -16,13 +16,19 @@ export function CreateVersionForm({ onSubmit, onCancel }: CreateVersionFormProps
   const [version, setVersion] = useState("");
   const [releaseNotes, setReleaseNotes] = useState("");
   const [entryUrl, setEntryUrl] = useState("");
+  const [buildUrl, setBuildUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await onSubmit({ version, release_notes: releaseNotes, entry_url: entryUrl });
+      await onSubmit({
+        version,
+        release_notes: releaseNotes,
+        entry_url: entryUrl,
+        build_url: buildUrl.trim() ? buildUrl.trim() : undefined,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -64,6 +70,22 @@ export function CreateVersionForm({ onSubmit, onCancel }: CreateVersionFormProps
             onChange={(e) => setEntryUrl(e.target.value)}
             className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Build Artifact URL
+          </label>
+          <input
+            type="url"
+            placeholder="https://your-cdn.com/builds/app-v1.zip"
+            value={buildUrl}
+            onChange={(e) => setBuildUrl(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white"
+          />
+          <p className="mt-2 text-xs text-gray-500">
+            Optional: link to a downloadable build package for admin review.
+          </p>
         </div>
 
         <div>

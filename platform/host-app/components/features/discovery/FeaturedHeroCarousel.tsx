@@ -88,6 +88,7 @@ export function FeaturedHeroCarousel({ apps, autoPlayInterval = 5000 }: Featured
               fill
               className="object-cover transition-opacity duration-500"
               priority
+              sizes="100vw"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-erobo-purple/30 via-erobo-pink/20 to-erobo-sky/30" />

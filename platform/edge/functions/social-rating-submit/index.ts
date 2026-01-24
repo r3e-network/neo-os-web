@@ -1,5 +1,15 @@
+// Initialize environment validation at startup (fail-fast)
+import "../_shared/init.ts";
+
+// Deno global type definitions
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (req: Request) => Promise<Response>): void;
+};
+
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { error, json } from "../_shared/response.ts";
+import { json } from "../_shared/response.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
 import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
 import { verifyProofOfInteraction, validateRatingValue, sanitizeInput } from "../_shared/community.ts";
 
@@ -13,7 +23,7 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") {
-    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
   }
 
   const auth = await requireAuth(req);
@@ -23,18 +33,18 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "INVALID_JSON", req);
+    return errorResponse("BAD_JSON", undefined, req);
   }
 
   const { app_id, rating_value, review_text } = body;
 
   // Validate fields
   if (!app_id?.trim()) {
-    return error(400, "app_id is required", "MISSING_APP_ID", req);
+    return validationError("app_id", "app_id is required", req);
   }
   const validatedRating = validateRatingValue(rating_value);
   if (!validatedRating) {
-    return error(400, "rating_value must be integer 1-5", "INVALID_RATING", req);
+    return validationError("rating_value", "rating_value must be integer 1-5", req);
   }
   const sanitizedReview = review_text ? sanitizeInput(review_text.trim().slice(0, 1000)) : null;
 
@@ -45,7 +55,7 @@ export async function handler(req: Request): Promise<Response> {
   const proof = await verifyProofOfInteraction(supabase, app_id, userId, req);
   if (proof instanceof Response) return proof;
   if (!proof.can_rate) {
-    return error(403, "must interact with app before rating", "NO_INTERACTION", req);
+    return errorResponse("AUTH_004", { message: "must interact with app before rating" }, req);
   }
 
   // Upsert rating (one per user per app)
@@ -65,10 +75,12 @@ export async function handler(req: Request): Promise<Response> {
     .single();
 
   if (upsertErr) {
-    return error(500, "failed to submit rating", "DB_ERROR", req);
+    return errorResponse("SERVER_002", { message: "failed to submit rating" }, req);
   }
 
   return json(data, { status: 201 }, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

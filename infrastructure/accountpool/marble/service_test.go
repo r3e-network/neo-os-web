@@ -118,6 +118,21 @@ func (m *mockNeoAccountsRepo) TryLockAccount(_ context.Context, accountID, servi
 	return true, nil
 }
 
+func (m *mockNeoAccountsRepo) TryReleaseAccount(_ context.Context, accountID, serviceID string) (bool, error) {
+	acc, ok := m.accounts[accountID]
+	if !ok {
+		return false, nil
+	}
+	if acc.LockedBy != serviceID {
+		return false, nil
+	}
+	acc.LockedBy = ""
+	acc.LockedAt = time.Time{}
+	acc.LastUsedAt = time.Now()
+	m.accounts[accountID] = acc
+	return true, nil
+}
+
 func (m *mockNeoAccountsRepo) Delete(_ context.Context, id string) error {
 	delete(m.accounts, id)
 	delete(m.balances, id)
@@ -300,6 +315,72 @@ func (m *mockNeoAccountsRepo) ListLowBalanceAccounts(_ context.Context, tokenTyp
 		}
 	}
 	return result, nil
+}
+
+// UpdateBalanceWithLock atomically updates balance while verifying lock ownership.
+// Mock implementation for testing.
+func (m *mockNeoAccountsRepo) UpdateBalanceWithLock(_ context.Context, accountID, serviceID, tokenType string, delta int64, absolute *int64) (int64, int64, int, bool, error) {
+	if m.simulateError {
+		return 0, 0, 0, false, fmt.Errorf("simulated error")
+	}
+
+	// Verify account exists and is locked by this service
+	acc, ok := m.accounts[accountID]
+	if !ok {
+		return 0, 0, 0, false, fmt.Errorf("account not found")
+	}
+	if acc.LockedBy != serviceID {
+		return 0, 0, 0, false, nil // Not locked by this service
+	}
+
+	// Initialize balance map for this account if needed
+	if m.balances[accountID] == nil {
+		m.balances[accountID] = make(map[string]*neoaccountssupabase.AccountBalance)
+	}
+
+	// Get current balance
+	var oldBalance int64 = 0
+	if bal, ok := m.balances[accountID][tokenType]; ok {
+		oldBalance = bal.Amount
+	}
+
+	// Calculate new balance
+	var newBalance int64
+	if absolute != nil {
+		newBalance = *absolute
+	} else {
+		// Integer overflow/underflow protection
+		const maxBalance = int64(1<<53 - 1)
+		if delta > 0 && oldBalance > maxBalance-delta {
+			return 0, 0, 0, false, fmt.Errorf("balance overflow")
+		}
+		if delta < 0 && oldBalance < -delta {
+			return 0, 0, 0, false, fmt.Errorf("insufficient balance")
+		}
+		newBalance = oldBalance + delta
+	}
+
+	if newBalance < 0 {
+		return 0, 0, 0, false, fmt.Errorf("balance below minimum")
+	}
+
+	// Update balance
+	scriptHash, decimals := neoaccountssupabase.GetDefaultTokenConfig(tokenType)
+	if m.balances[accountID][tokenType] == nil {
+		m.balances[accountID][tokenType] = &neoaccountssupabase.AccountBalance{}
+	}
+	m.balances[accountID][tokenType].AccountID = accountID
+	m.balances[accountID][tokenType].TokenType = tokenType
+	m.balances[accountID][tokenType].ScriptHash = scriptHash
+	m.balances[accountID][tokenType].Amount = newBalance
+	m.balances[accountID][tokenType].Decimals = decimals
+	m.balances[accountID][tokenType].UpdatedAt = time.Now()
+
+	// Update account metadata
+	acc.LastUsedAt = time.Now()
+	acc.TxCount++
+
+	return oldBalance, newBalance, int(acc.TxCount), true, nil
 }
 
 // =============================================================================

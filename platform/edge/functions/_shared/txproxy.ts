@@ -3,8 +3,7 @@
  * Calls the TxProxy service to execute on-chain transactions
  */
 import { getServiceConfig } from "./k8s-config.ts";
-
-const GAS_CONTRACT_ADDRESS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+import { getNativeContractAddress } from "./chains.ts";
 
 interface InvokeRequest {
   request_id: string;
@@ -27,11 +26,91 @@ interface InvokeResponse {
   exception?: string;
 }
 
+interface InvokeOptions {
+  baseUrl: string;
+  serviceId: string;
+  contractAddress: string;
+  method: string;
+  params: ContractParam[];
+  signers?: string[];
+  extraWitnesses?: string[];
+  wait?: boolean;
+}
+
+interface InvokeResult {
+  success: boolean;
+  tx_id?: string;
+  error?: string;
+}
+
+/**
+ * Generic invoke function for TxProxy
+ */
+export async function invokeTxProxy(
+  options: InvokeOptions,
+  context: { requestId: string; req?: Request },
+  wait = false
+): Promise<InvokeResult | Response> {
+  const { getServiceConfig } = await import("./k8s-config.ts");
+  const { error } = await import("./error-codes.ts");
+
+  const config = getServiceConfig();
+
+  const req: InvokeRequest = {
+    request_id: context.requestId,
+    contract_address: options.contractAddress,
+    method: options.method,
+    params: options.params,
+    wait: options.wait ?? wait,
+  };
+
+  const res = await fetch(`${options.baseUrl || config.txProxyUrl}/invoke`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.serviceId ? { "X-Service-ID": options.serviceId } : {}),
+    },
+    body: JSON.stringify(req),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    return error(503, `TxProxy error: ${res.status} - ${text}`, "EXT_001", context.req);
+  }
+
+  const result: InvokeResponse = await res.json();
+
+  if (result.vm_state && result.vm_state !== "HALT") {
+    return {
+      success: false,
+      error: result.exception || "VM fault",
+    };
+  }
+
+  return {
+    success: true,
+    tx_id: result.tx_hash,
+  };
+}
+
 /**
  * Transfer GAS from platform account to user
+ * @param requestId Request identifier
+ * @param toAddress Recipient address
+ * @param amount Amount in GAS (decimal format)
+ * @param chainId Chain identifier (defaults to neo-n3-testnet)
  */
-export async function transferGas(requestId: string, toAddress: string, amount: string): Promise<InvokeResponse> {
+export async function transferGas(
+  requestId: string,
+  toAddress: string,
+  amount: string,
+  chainId: string = "neo-n3-testnet"
+): Promise<InvokeResponse> {
   const config = getServiceConfig();
+  const gasAddress = getNativeContractAddress(chainId, "gas");
+  if (!gasAddress) {
+    throw new Error(`GAS contract not found for chain: ${chainId}`);
+  }
 
   // Convert decimal amount to integer (8 decimals)
   const amountInt = Math.floor(parseFloat(amount) * 1e8).toString();
@@ -39,7 +118,7 @@ export async function transferGas(requestId: string, toAddress: string, amount: 
   const req: InvokeRequest = {
     request_id: requestId,
     intent: "gas-sponsor",
-    contract_address: GAS_CONTRACT_ADDRESS,
+    contract_address: gasAddress,
     method: "transfer",
     params: [
       { type: "Hash160", value: "PLATFORM_SPONSOR" },

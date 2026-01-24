@@ -114,7 +114,7 @@
     },
     "heritagetrust": {
       "name": "遗产信托",
-      "description": "创建智能继承计划，自动转移资产。"
+      "description": "锁定 NEO/GAS，NEO 转 bNEO 获取奖励，不活跃后按月释放继承资产。"
     },
     "gardenofneo": {
       "name": "Neo 花园",

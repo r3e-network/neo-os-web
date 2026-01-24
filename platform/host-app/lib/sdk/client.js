@@ -22,6 +22,32 @@ async function getNeoLine() {
 }
 
 const intentCache = new Map();
+
+function cacheIntent(requestId, invocation) {
+  if (!requestId || !invocation) return;
+  intentCache.set(requestId, {
+    invocation,
+    invoked: false,
+    result: null,
+    txid: null,
+    receipt_id: null,
+  });
+}
+
+function getIntent(requestId) {
+  return intentCache.get(requestId) || null;
+}
+
+function updateIntent(requestId, updates) {
+  const entry = intentCache.get(requestId);
+  if (!entry) return;
+  intentCache.set(requestId, { ...entry, ...updates });
+}
+
+function extractTxId(result) {
+  if (!result || typeof result !== "object") return null;
+  return result.txid || result.txHash || result.transactionHash || null;
+}
 const DEFAULT_NEO_RPC_ENDPOINTS = {
   testnet: "https://testnet1.neo.coz.io:443",
   mainnet: "https://mainnet1.neo.coz.io:443",
@@ -230,10 +256,7 @@ export function createMiniAppSDK(config) {
     });
   }
 
-  async function payGasWithReceipt(targetAppId, amount, memo) {
-    if (chainType === "evm") {
-      throw new Error("pay-gas is only supported on neo-n3 chains");
-    }
+  async function requestPayGasIntent(targetAppId, amount, memo) {
     const response = await callEdge("pay-gas", {
       params: {
         app_id: targetAppId,
@@ -242,16 +265,43 @@ export function createMiniAppSDK(config) {
         chain_id: chainId || undefined,
       },
     });
-    if (!(response?.request_id && response?.invocation)) {
-      return response;
+    if (response?.request_id && response?.invocation) {
+      cacheIntent(response.request_id, response.invocation);
+    }
+    return response;
+  }
+
+  async function invokeIntent(requestId) {
+    const entry = getIntent(requestId);
+    if (!entry?.invocation) throw new Error("Unknown intent request_id");
+    if (entry.invoked && entry.result) return entry.result;
+    const result = await invokeWithWallet(entry.invocation);
+    const txid = extractTxId(result);
+    updateIntent(requestId, { invoked: true, result, txid });
+    return result;
+  }
+
+  async function payGasAndInvoke(targetAppId, amount, memo) {
+    const response = await requestPayGasIntent(targetAppId, amount, memo);
+    const requestId = response?.request_id;
+    if (!requestId || !response?.invocation) return response;
+
+    const result = await invokeIntent(requestId);
+    const txid = extractTxId(result);
+    if (!txid) return { ...response, txid: null };
+
+    if (chainType !== "neo-n3") {
+      return { ...response, txid };
     }
 
-    intentCache.set(response.request_id, response.invocation);
-    const tx = await invokeWithWallet(response.invocation);
-    const txid = tx?.txid || tx?.txHash || null;
-    if (!txid) return response;
-
     const receiptId = await waitForReceipt(txid, chainId, chainType, config).catch(() => null);
+    updateIntent(requestId, { receipt_id: receiptId });
+    if (receiptId) {
+      const entry = getIntent(requestId);
+      if (entry) {
+        intentCache.set(String(receiptId), entry);
+      }
+    }
     return { ...response, txid, receipt_id: receiptId };
   }
 
@@ -354,6 +404,11 @@ export function createMiniAppSDK(config) {
         const { address } = await n3.getAccount();
         return address;
       },
+      switchChain: async (nextChainId) => {
+        if (!nextChainId) throw new Error("chainId required");
+        const { useWalletStore } = await import("../wallet/store");
+        await useWalletStore.getState().switchChain(nextChainId);
+      },
       signMessage: async (message) => {
         if (chainType === "evm") {
           const provider = getEvmProvider();
@@ -366,18 +421,16 @@ export function createMiniAppSDK(config) {
         return n3.signMessage({ message });
       },
       invokeIntent: async (requestId) => {
-        const invocation = intentCache.get(requestId);
-        if (!invocation) throw new Error("Unknown intent request_id");
-        return invokeWithWallet(invocation);
+        return invokeIntent(String(requestId ?? ""));
       },
     },
 
     payments: {
       payGAS: async (targetAppId, amount, memo) => {
-        return payGasWithReceipt(targetAppId, amount, memo);
+        return requestPayGasIntent(targetAppId, amount, memo);
       },
       payGASAndInvoke: async (targetAppId, amount, memo) => {
-        return payGasWithReceipt(targetAppId, amount, memo);
+        return payGasAndInvoke(targetAppId, amount, memo);
       },
     },
 
@@ -386,17 +439,17 @@ export function createMiniAppSDK(config) {
         if (chainType === "evm") {
           throw new Error("governance voting is only supported on neo-n3 chains");
         }
-        const response = await callEdge("vote-bneo", {
+        const response = await callEdge("vote-neo", {
           params: {
             app_id: targetAppId,
             proposal_id: proposalId,
-            bneo_amount: neoAmount,
+            neo_amount: neoAmount,
             support,
             chain_id: chainId || undefined,
           },
         });
         if (response?.request_id && response?.invocation) {
-          intentCache.set(response.request_id, response.invocation);
+          cacheIntent(response.request_id, response.invocation);
         }
         return response;
       },
@@ -404,19 +457,19 @@ export function createMiniAppSDK(config) {
         if (chainType === "evm") {
           throw new Error("governance voting is only supported on neo-n3 chains");
         }
-        const response = await callEdge("vote-bneo", {
+        const response = await callEdge("vote-neo", {
           params: {
             app_id: targetAppId,
             proposal_id: proposalId,
-            bneo_amount: neoAmount,
+            neo_amount: neoAmount,
             support,
             chain_id: chainId || undefined,
           },
         });
         if (response?.request_id && response?.invocation) {
-          intentCache.set(response.request_id, response.invocation);
-          const tx = await invokeWithWallet(response.invocation);
-          return { ...response, txid: tx?.txid || tx?.txHash || null };
+          cacheIntent(response.request_id, response.invocation);
+          const result = await invokeIntent(response.request_id);
+          return { ...response, txid: extractTxId(result) };
         }
         return response;
       },
