@@ -7,7 +7,7 @@
 - 外部开发者可在自己的 Git 仓库中独立开发 MiniApp
 - 通过 Git URL 提交源代码进行审查
 - 平台管理员手动触发构建和发布
-- 内部 MiniApps 预构建在平台仓库中
+- 内部 MiniApps 通过同一提交流程自动审批与构建
 
 ## 系统架构
 
@@ -23,15 +23,13 @@
   │  /functions/v1/miniapp-submit          │
   │  /functions/v1/miniapp-approve         │
   │  /functions/v1/miniapp-build           │
-  │  /functions/v1/miniapp-internal        │
   │  /functions/v1/miniapp-list            │
   └───────────────┬────────────────────────┘
                   │
                   ▼
   ┌────────────────────────────────────────┐
   │          Supabase Database             │
-  │  miniapp_submissions (外部提交)        │
-  │  miniapp_internal (内部预构建)         │
+  │  miniapp_submissions (提交)            │
   │  miniapp_registry_view (统一视图)      │
   └───────────────┬────────────────────────┘
                   │
@@ -52,14 +50,6 @@ SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=***REMOVED***
 ```
 
-### 内部 MiniApps 同步 (必需)
-
-```bash
-INTERNAL_MINIAPPS_REPO_URL=https://github.com/R3E-Network/service_layer.git
-INTERNAL_MINIAPPS_PATH=miniapps-uniapp/apps
-INTERNAL_CDN_BASE_URL=https://cdn.example.com
-```
-
 ### CDN (构建发布需要)
 
 ```bash
@@ -78,9 +68,6 @@ CDN_BASE_URL=https://cdn.example.com
 # 创建外部提交表
 supabase migration up --file platform/supabase/migrations/20250123_miniapp_submissions.sql
 
-# 创建内部应用表
-supabase migration up --file platform/supabase/migrations/20250123_miniapp_internal.sql
-
 # 创建统一视图
 supabase migration up --file platform/supabase/migrations/20250123_miniapp_registry_view.sql
 ```
@@ -94,8 +81,6 @@ supabase migration up --file platform/supabase/migrations/20250123_miniapp_regis
 | `/functions/v1/miniapp-submit`        | POST | 提交 Git URL 进行审查 | 用户 + scope |
 | `/functions/v1/miniapp-approve`       | POST | 审批/拒绝/请求修改    | 管理员       |
 | `/functions/v1/miniapp-build`         | POST | 手动触发构建          | 管理员       |
-| `/functions/v1/miniapp-internal`      | GET  | 列出内部应用          | 公开         |
-| `/functions/v1/miniapp-internal/sync` | POST | 同步内部应用          | 管理员       |
 | `/functions/v1/miniapp-list`          | GET  | Host App 发现         | 公开         |
 
 ### Admin Console API (代理)
@@ -105,7 +90,6 @@ supabase migration up --file platform/supabase/migrations/20250123_miniapp_regis
 | `/api/admin/miniapps/submissions` | GET      | 列出外部提交   |
 | `/api/admin/miniapps/approve`     | POST     | 审批操作       |
 | `/api/admin/miniapps/build`       | POST     | 触发构建       |
-| `/api/admin/miniapps/internal`    | GET/POST | 内部应用管理   |
 | `/api/admin/miniapps/registry`    | GET      | 统一注册表视图 |
 
 ## 工作流程
@@ -167,14 +151,7 @@ curl -X POST https://your-project.supabase.co/functions/v1/miniapp-build \
   }'
 ```
 
-### 4. 同步内部应用
-
-```bash
-curl -X POST https://your-project.supabase.co/functions/v1/miniapp-internal/sync \
-  -H "Authorization: Bearer $ADMIN_JWT_TOKEN"
-```
-
-### 5. Host App 发现
+### 4. Host App 发现
 
 ```bash
 curl https://your-project.supabase.co/functions/v1/miniapp-list?category=gaming

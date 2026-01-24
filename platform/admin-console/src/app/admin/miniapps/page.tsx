@@ -7,10 +7,9 @@
 
 import { useState, useEffect } from "react";
 import { SubmissionList } from "@/components/admin/miniapps/submission-list";
-import { InternalList } from "@/components/admin/miniapps/internal-list";
 import { Button } from "@/components/ui/Button";
 
-type Tab = "submissions" | "internal" | "registry";
+type Tab = "submissions" | "registry";
 
 export default function DistributedMiniAppsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("submissions");
@@ -21,7 +20,7 @@ export default function DistributedMiniAppsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Distributed MiniApps</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Manage external Git submissions and internal pre-built miniapps
+            Manage Git submissions and the published registry
           </p>
         </div>
       </div>
@@ -37,16 +36,6 @@ export default function DistributedMiniAppsPage() {
           }`}
         >
           External Submissions
-        </button>
-        <button
-          onClick={() => setActiveTab("internal")}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === "internal"
-              ? "border-b-2 border-primary-600 text-primary-600"
-              : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-          }`}
-        >
-          Internal MiniApps
         </button>
         <button
           onClick={() => setActiveTab("registry")}
@@ -76,28 +65,12 @@ export default function DistributedMiniAppsPage() {
         </div>
       )}
 
-      {activeTab === "internal" && (
-        <div>
-          <div className="mb-4 rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
-            <h3 className="mb-1 text-sm font-semibold text-green-900 dark:text-green-300">
-              Internal Pre-Built MiniApps
-            </h3>
-            <p className="text-xs text-green-700 dark:text-green-400">
-              Pre-built miniapps from the internal repository. Sync scans miniapps-uniapp/apps/* and updates the
-              registry. These are production-ready apps maintained by the platform team.
-            </p>
-          </div>
-          <InternalList />
-        </div>
-      )}
-
       {activeTab === "registry" && (
         <div>
           <div className="mb-4 rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
             <h3 className="mb-1 text-sm font-semibold text-purple-900 dark:text-purple-300">Unified Registry View</h3>
             <p className="text-xs text-purple-700 dark:text-purple-400">
-              Combined view of all published miniapps (both external and internal). This is what the host app queries
-              for discovery. Filter by category, source type, or incremental updates.
+              Published miniapps sourced from submissions. This is what the host app queries for discovery.
             </p>
           </div>
           <RegistryView />
@@ -117,25 +90,23 @@ function RegistryView() {
       icon: string;
       banner: string;
       category: string;
-      source_type: "external" | "internal";
+      source_type: string;
       status: string;
       updated_at: string;
     }>
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "external" | "internal">("all");
 
   const fetchRegistry = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const sourceParam = filter === "all" ? "" : `&source_type=${filter}`;
       const response = await fetch(
         `/api/admin/miniapps/registry?${new URLSearchParams({
           limit: "100",
-        }).toString()}${sourceParam}`
+        }).toString()}`
       );
 
       if (!response.ok) {
@@ -154,22 +125,11 @@ function RegistryView() {
   // Fetch on mount and filter change
   useEffect(() => {
     fetchRegistry();
-  }, [filter]);
+  }, []);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as "all" | "external" | "internal")}
-            className="rounded border border-gray-300 bg-white px-3 py-1 text-sm dark:border-gray-600 dark:bg-gray-800"
-          >
-            <option value="all">All Sources ({miniapps.length})</option>
-            <option value="external">External ({miniapps.filter((m) => m.source_type === "external").length})</option>
-            <option value="internal">Internal ({miniapps.filter((m) => m.source_type === "internal").length})</option>
-          </select>
-        </div>
+      <div className="flex items-center justify-end">
         <Button size="sm" onClick={fetchRegistry}>
           Refresh
         </Button>
@@ -193,13 +153,7 @@ function RegistryView() {
                   <h4 className="font-semibold">{app.name || app.app_id}</h4>
                   <p className="text-xs text-gray-600 dark:text-gray-400">{app.category}</p>
                 </div>
-                <span
-                  className={`rounded px-2 py-1 text-xs ${
-                    app.source_type === "internal"
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                  }`}
-                >
+                <span className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
                   {app.source_type}
                 </span>
               </div>

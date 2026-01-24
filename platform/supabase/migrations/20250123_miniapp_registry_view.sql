@@ -1,9 +1,9 @@
 -- Unified registry view for host app discovery
--- Combines external submissions and internal miniapps into single queryable view
+-- Sourced from published miniapp submissions
 
 CREATE OR REPLACE VIEW miniapp_registry_view AS
 SELECT
-    'external'::text as source_type,
+    'submission'::text as source_type,
     id,
     app_id,
     manifest,
@@ -29,33 +29,10 @@ SELECT
     updated_at,
     created_at
 FROM miniapp_submissions
-WHERE status = 'published'
-
-UNION ALL
-
-SELECT
-    'internal'::text as source_type,
-    id,
-    app_id,
-    manifest,
-    manifest_hash,
-    entry_url,
-    icon_url,
-    banner_url,
-    status,
-    current_version as version,
-    manifest->>'name' as name,
-    manifest->>'name_zh' as name_zh,
-    manifest->>'description' as description,
-    manifest->>'description_zh' as description_zh,
-    category,
-    updated_at,
-    created_at
-FROM miniapp_internal
-WHERE status = 'active';
+WHERE status = 'published';
 
 -- Add comment
-COMMENT ON VIEW miniapp_registry_view IS 'Unified view of all published miniapps (external + internal) for host app discovery';
+COMMENT ON VIEW miniapp_registry_view IS 'Published miniapps sourced from submissions for host app discovery';
 
 -- Create index for view materialization if needed
 -- CREATE UNIQUE INDEX ON miniapp_registry_view (app_id);

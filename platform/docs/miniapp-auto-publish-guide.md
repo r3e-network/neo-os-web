@@ -2,7 +2,7 @@
 
 ## Overview
 
-Internal MiniApps are automatically built and published when you push changes to `miniapps-uniapp/apps/*` on the main/master branch. No manual review required.
+Internal MiniApps are built and published from the `r3e-network/miniapps` repo using the standard submission pipeline. Submissions from the internal repo are auto-approved and published without manual review.
 
 ## Architecture
 
@@ -15,14 +15,14 @@ Internal MiniApps are automatically built and published when you push changes to
                                                         ▼
                                               ┌─────────────────┐
                                               │  Supabase Edge  │
-                                              │  /update endpoint│
+                                              │  /miniapp-publish│
                                               │  (update DB)     │
                                               └─────────────────┘
 ```
 
 ## Setup GitHub Secrets
 
-Go to: https://github.com/R3E-Network/service_layer/settings/secrets/actions
+Go to: https://github.com/R3E-Network/miniapps/settings/secrets/actions
 
 ### Required Secrets
 
@@ -46,13 +46,13 @@ Go to: https://github.com/R3E-Network/service_layer/settings/secrets/actions
 
 The workflow runs automatically when:
 
-1. **Push to main/master** with changes in `miniapps-uniapp/apps/*`
+1. **Push to main/master** with changes in `apps/*`
 2. **Manual trigger** via GitHub Actions UI
 
 ### Manual Trigger
 
-1. Go to https://github.com/R3E-Network/service_layer/actions
-2. Select "Internal MiniApps Auto-Publish"
+1. Go to https://github.com/R3E-Network/miniapps/actions
+2. Select "MiniApps Auto-Publish"
 3. Click "Run workflow" → Select branch → "Run workflow"
 
 ## What Gets Published
@@ -62,7 +62,7 @@ When you push changes to a MiniApp:
 1. **Changed Apps Detected**: Only modified apps are rebuilt
 2. **Build Process**: Each app is built with `pnpm build`
 3. **CDN Upload**: Build output uploaded to Vercel Blob Storage
-4. **Database Update**: `miniapp_internal` table updated with new URLs
+4. **Database Update**: `miniapp_submissions` updated via `/functions/v1/miniapp-publish`
 
 ## Version Tracking
 
@@ -85,9 +85,6 @@ Make sure these are set in Supabase Edge Functions:
 https://supabase.com/dashboard/project/dmonstzalbldzzdbbcdj/functions/settings
 
 ```
-INTERNAL_MINIAPPS_REPO_URL=https://github.com/R3E-Network/service_layer.git
-INTERNAL_MINIAPPS_PATH=miniapps-uniapp/apps
-INTERNAL_CDN_BASE_URL=https://blob.vercel-storage.com
 SUPABASE_URL=your-project-url
 SUPABASE_SERVICE_ROLE_KEY=***REMOVED***
 SUPABASE_ANON_KEY=your-anon-key
@@ -97,11 +94,11 @@ SUPABASE_ANON_KEY=your-anon-key
 
 ### 1. Make a Change
 
-Edit any file in `miniapps-uniapp/apps/<app-name>/`:
+Edit any file in `apps/<app-name>/`:
 
 ```bash
 # Example: Update coin-flip manifest
-cd miniapps-uniapp/apps/coin-flip
+cd /path/to/miniapps/apps/coin-flip
 # Edit neo-manifest.json
 git add neo-manifest.json
 git commit -m "feat: update coin-flip manifest"
@@ -110,7 +107,7 @@ git push origin master
 
 ### 2. Monitor Workflow
 
-1. Go to https://github.com/R3E-Network/service_layer/actions
+1. Go to https://github.com/R3E-Network/miniapps/actions
 2. Watch "Internal MiniApps Auto-Publish" workflow
 3. Click on the run to see details
 
@@ -119,23 +116,14 @@ git push origin master
 Query the database:
 
 ```bash
-curl "https://dmonstzalbldzzdbbcdj.supabase.co/rest/v1/miniapp_internal?app_id=eq.com.example.coin-flip" \
+curl "https://dmonstzalbldzzdbbcdj.supabase.co/rest/v1/miniapp_submissions?app_id=eq.com.example.coin-flip&status=eq.published" \
   -H "Authorization: Bearer YOUR_ANON_KEY" \
   -H "apikey: YOUR_ANON_KEY"
 ```
 
 ## Rollback
 
-To rollback to a previous version, you can manually update the database:
-
-```sql
-UPDATE miniapp_internal
-SET current_version = previous_version,
-    entry_url = CONCAT('https://blob.vercel-storage.com/miniapps/', app_id, '/', previous_version, '/index.html')
-WHERE app_id = 'your-app-id';
-```
-
-Or re-deploy the previous commit:
+To rollback to a previous version, re-run the build and publish workflow for a previous commit:
 
 ```bash
 git checkout <previous-commit-sha>
@@ -164,12 +152,12 @@ git push origin master --force
 
 ## Security Notes
 
-- **Service Role Key Required**: Only service role can call `/update` endpoint
+- **Service Role Key Required**: Only service role can call `/miniapp-publish`
 - **No User Input in Commands**: All inputs are controlled by repo content
 - **GitHub Actions Isolation**: Build runs in isolated GitHub runners
 
 ## Related Files
 
-- `.github/workflows/miniapp-auto-publish.yml` - Workflow definition
-- `platform/edge/functions/miniapp-internal/sync.ts` - `/update` endpoint
+- `miniapps/.github/workflows/miniapp-auto-publish.yml` - Workflow definition (in miniapps repo)
+- `platform/edge/functions/miniapp-publish` - Publish endpoint
 - `platform/docs/deployment-status.md` - Overall deployment status

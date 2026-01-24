@@ -23,17 +23,12 @@
     - [ ] **Cloudflare Images** (for images only)
         - [ ] Get CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN
 
-- [ ] **Git Repository** (for internal miniapps)
-    - [ ] Ensure platform repository is accessible
-    - [ ] Note INTERNAL_MINIAPPS_REPO_URL
-    - [ ] Verify miniapps-uniapp/apps/ path exists
 
 ### 2. Database Migrations
 
 ```bash
 # Run migrations in order
 supabase migration up --file platform/supabase/migrations/20250123_miniapp_submissions.sql
-supabase migration up --file platform/supabase/migrations/20250123_miniapp_internal.sql
 supabase migration up --file platform/supabase/migrations/20250123_miniapp_registry_view.sql
 supabase migration up --file platform/supabase/migrations/20250123_miniapp_approval_audit.sql
 ```
@@ -48,7 +43,6 @@ AND table_name LIKE 'miniapp%';
 
 -- Expected output:
 -- miniapp_submissions
--- miniapp_internal
 -- miniapp_approval_audit
 -- miniapp_registry_view (view)
 ```
@@ -66,9 +60,6 @@ R2_ACCOUNT_ID: "your-account-id"
 R2_ACCESS_KEY_ID: "your-access-key"
 R2_SECRET_ACCESS_KEY: "***REMOVED***"
 R2_BUCKET: "miniapps"
-
-INTERNAL_MINIAPPS_REPO_URL: "https://github.com/YOUR_ORG/YOUR_REPO.git"
-INTERNAL_CDN_BASE_URL: "https://your-cdn-domain.com"
 
 SUPABASE_ANON_KEY: "your-anon-key"
 SUPABASE_SERVICE_ROLE_KEY: "***REMOVED***"
@@ -107,7 +98,6 @@ cd platform/edge
 supabase functions deploy miniapp-submit
 supabase functions deploy miniapp-approve
 supabase functions deploy miniapp-build
-supabase functions deploy miniapp-internal
 supabase functions deploy miniapp-list
 ```
 
@@ -142,24 +132,9 @@ SUPABASE_SERVICE_ROLE_KEY=***REMOVED***
 EDGE_FUNCTION_URL=https://your-project.supabase.co
 ```
 
-### 7. Internal MiniApps Sync
+### 7. Testing Workflow
 
-Trigger initial sync of internal miniapps:
-
-```bash
-curl -X POST https://your-project.supabase.co/functions/v1/miniapp-internal/sync \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-Verify internal miniapps:
-
-```bash
-curl https://your-project.supabase.co/functions/v1/miniapp-internal
-```
-
-### 8. Testing Workflow
-
-#### 8.1 External Developer Submission Test
+#### 7.1 External Developer Submission Test
 
 ```bash
 # Submit a MiniApp for review
@@ -187,7 +162,7 @@ Expected response:
 }
 ```
 
-#### 8.2 Admin Review Test
+#### 7.2 Admin Review Test
 
 From Admin Console (`/admin/miniapps`):
 
@@ -238,15 +213,6 @@ SELECT
   created_at
 FROM miniapp_submissions
 ORDER BY created_at DESC;
-
--- Check internal miniapps
-SELECT
-  app_id,
-  entry_url,
-  icon_url,
-  status
-FROM miniapp_internal
-WHERE status = 'active';
 
 -- Check unified registry
 SELECT

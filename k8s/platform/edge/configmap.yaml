@@ -58,11 +58,6 @@ data:
   # Distributed MiniApp System Configuration
   # =============================================================================
 
-  # Internal MiniApps (pre-built in platform repository)
-  INTERNAL_MINIAPPS_REPO_URL: "https://github.com/R3E-Network/service_layer.git"
-  INTERNAL_MINIAPPS_PATH: "miniapps-uniapp/apps"
-  INTERNAL_CDN_BASE_URL: "https://cdn.example.com"
-
   # CDN Configuration for MiniApp publishing
   CDN_BASE_URL: "https://cdn.example.com"
   CDN_PROVIDER: "vercel" # Options: r2, s3, cloudflare, vercel

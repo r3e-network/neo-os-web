@@ -10,7 +10,6 @@ All MiniApp-related migrations have been successfully applied to the remote data
 | ----------------------------------------- | ---------------------------- | ---------- |
 | 20250122000003_admin_emails.sql           | admin_emails table           | ✅ Applied |
 | 20250123000001_miniapp_submissions.sql    | miniapp_submissions table    | ✅ Applied |
-| 20250123000002_miniapp_internal.sql       | miniapp_internal table       | ✅ Applied |
 | 20250123000003_miniapp_registry_view.sql  | miniapp_registry_view        | ✅ Applied |
 | 20250123000004_miniapp_approval_audit.sql | miniapp_approval_audit table | ✅ Applied |
 
@@ -24,7 +23,6 @@ All Edge Functions have been deployed to Supabase:
 | miniapp-approve  | https://dmonstzalbldzzdbbcdj.supabase.co/functions/v1/miniapp-approve  | ✅ Deployed |
 | miniapp-build    | https://dmonstzalbldzzdbbcdj.supabase.co/functions/v1/miniapp-build    | ✅ Deployed |
 | miniapp-list     | https://dmonstzalbldzzdbbcdj.supabase.co/functions/v1/miniapp-list     | ✅ Deployed |
-| miniapp-internal | https://dmonstzalbldzzdbbcdj.supabase.co/functions/v1/miniapp-internal | ✅ Deployed |
 
 ### 3. Code Implementation
 
@@ -89,23 +87,6 @@ All Edge Functions have been deployed to Supabase:
 - Go to https://vercel.com/blob
 - Create a new Blob store or use existing
 - Copy the Store ID and API Token
-
-### 3. Internal MiniApps Sync (OPTIONAL)
-
-**Action Required**: Sync pre-built MiniApps from platform repository
-
-**Steps**:
-
-1. Call the miniapp-internal Edge Function:
-    ```bash
-    curl -X POST https://dmonstzalbldzzdbbcdj.supabase.co/functions/v1/miniapp-internal/sync \
-      -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
-      -H "Content-Type: application/json"
-    ```
-2. Verify sync:
-    ```sql
-    SELECT app_id, status, category FROM miniapp_internal;
-    ```
 
 ## 📋 Testing Workflow
 

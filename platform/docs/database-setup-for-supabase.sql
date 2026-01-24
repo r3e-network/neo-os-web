@@ -144,72 +144,12 @@ CREATE POLICY "Everyone can read published submissions"
 
 
 -- =============================================================================
--- SECTION 3: MiniApp Internal Table (Pre-built Apps)
--- =============================================================================
-
-CREATE TABLE IF NOT EXISTS public.miniapp_internal (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    -- Git source (for reference)
-    git_url TEXT NOT NULL,
-    subfolder TEXT NOT NULL,
-    branch TEXT NOT NULL DEFAULT 'master',
-
-    -- App identification
-    app_id TEXT NOT NULL UNIQUE,
-
-    -- Manifest information
-    manifest JSONB NOT NULL,
-    manifest_hash TEXT NOT NULL,
-
-    -- Pre-built URLs
-    entry_url TEXT NOT NULL,
-    icon_url TEXT,
-    banner_url TEXT,
-
-    -- Categorization
-    category TEXT NOT NULL DEFAULT 'uncategorized',
-
-    -- Version tracking
-    current_version TEXT NOT NULL,
-    previous_version TEXT,
-
-    -- Status
-    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'deprecated')),
-
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_internal_app_id ON miniapp_internal(app_id);
-CREATE INDEX IF NOT EXISTS idx_internal_status ON miniapp_internal(status);
-CREATE INDEX IF NOT EXISTS idx_internal_category ON miniapp_internal(category);
-
--- RLS Policies
-ALTER TABLE miniapp_internal ENABLE ROW LEVEL SECURITY;
-
--- Public read access for active apps
-CREATE POLICY "Public can read active internal miniapps"
-    ON miniapp_internal
-    FOR SELECT
-    TO authenticated
-    USING (status = 'active');
-
--- Service role can manage
-CREATE POLICY "Service role can manage internal miniapps"
-    ON miniapp_internal
-    FOR ALL
-    TO service_role
-    USING (true);
-
-
--- =============================================================================
--- SECTION 4: Unified Registry View
+-- SECTION 3: Unified Registry View
 -- =============================================================================
 
 CREATE OR REPLACE VIEW miniapp_registry_view AS
 SELECT
-    'external' AS source_type,
+    'submission' AS source_type,
     s.app_id,
     s.manifest->>'name' AS name,
     s.manifest->>'name_zh' AS name_zh,
@@ -227,34 +167,11 @@ SELECT
     s.current_version AS version,
     s.updated_at
 FROM miniapp_submissions s
-WHERE s.status = 'published'
-
-UNION ALL
-
-SELECT
-    'internal' AS source_type,
-    i.app_id,
-    i.manifest->>'name' AS name,
-    i.manifest->>'name_zh' AS name_zh,
-    i.manifest->>'description' AS description,
-    i.manifest->>'description_zh' AS description_zh,
-    i.category,
-    i.manifest->>'permissions' AS permissions,
-    i.status,
-    i.entry_url AS cdn_base_url,
-    i.current_version AS version_path,
-    i.icon_url,
-    i.banner_url,
-    i.entry_url AS entry_url,
-    i.git_url AS source_url,
-    i.current_version AS version,
-    i.updated_at
-FROM miniapp_internal i
-WHERE i.status = 'active';
+WHERE s.status = 'published';
 
 
 -- =============================================================================
--- SECTION 5: Approval Audit Table (Optional)
+-- SECTION 4: Approval Audit Table (Optional)
 -- =============================================================================
 
 -- Note: This table references miniapp_registry which doesn't exist.
@@ -311,9 +228,6 @@ GRANT USAGE, SELECT ON SEQUENCE miniapp_approval_audit_id_seq TO authenticated;
 
 -- Check submissions
 -- SELECT app_id, status, git_url FROM public.miniapp_submissions ORDER BY created_at DESC;
-
--- Check internal miniapps
--- SELECT app_id, status, category FROM public.miniapp_internal ORDER BY app_id;
 
 -- Check unified registry
 -- SELECT source_type, app_id, status FROM miniapp_registry_view ORDER BY app_id;
