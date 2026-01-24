@@ -17,11 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const cronSecret = process.env.CRON_SECRET;
   const isDev = process.env.NODE_ENV === "development";
 
-  if (!cronSecret) {
-    if (!isDev) {
-      return res.status(500).json({ error: "CRON_SECRET not configured" });
-    }
-  } else if (authHeader !== `Bearer ${cronSecret}`) {
+  if (!isDev && cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 

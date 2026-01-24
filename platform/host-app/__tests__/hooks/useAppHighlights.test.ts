@@ -20,7 +20,7 @@ describe("useAppHighlights", () => {
   it("should return static highlights initially", () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ highlights: {} }),
+      json: () => Promise.resolve({ highlights: [] }),
     });
 
     const { result } = renderHook(() => useAppHighlights("miniapp-lottery"));
@@ -33,9 +33,7 @@ describe("useAppHighlights", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          highlights: {
-            "miniapp-neoburger": [{ label: "Dynamic", value: "200", icon: "🚀" }],
-          },
+          highlights: [{ label: "Dynamic", value: "200", icon: "🚀" }],
         }),
     });
 

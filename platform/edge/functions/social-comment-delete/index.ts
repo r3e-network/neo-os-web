@@ -1,6 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
-import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
+import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
 
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
@@ -19,8 +19,8 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "id is required", "MISSING_ID", req);
   }
 
-  const supabase = supabaseServiceClient();
-  const userId = auth.userId;
+  const supabase = supabaseClient();
+  const userId = auth.user.id;
 
   // Verify comment exists and belongs to user
   const { data: comment, error: fetchErr } = await supabase

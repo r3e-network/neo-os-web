@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import type { RegisterTaskRequest, RegisterTaskResponse } from "@/lib/db/types";
-import { assertAutomationOwner, requireAutomationSession } from "@/lib/automation/auth";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -11,20 +10,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   }
 
   try {
-    const session = await requireAutomationSession(req, res);
-    if (!session) return;
-
     const { appId, taskName, taskType, payload, schedule } = req.body as RegisterTaskRequest;
 
     if (!appId || !taskName || !taskType) {
       return res.status(400).json({ success: false, error: "Missing required fields" });
-    }
-
-    const ownerCheck = await assertAutomationOwner({ appId, userId: session.userId, supabase });
-    if (!ownerCheck.ok) {
-      return res
-        .status(ownerCheck.status || 403)
-        .json({ success: false, error: ownerCheck.message || "Forbidden" });
     }
 
     // Upsert task

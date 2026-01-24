@@ -255,7 +255,6 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         if (!resolved) throw new Error("app_id required");
         const res = await fetch("/api/automation/register", {
           method: "POST",
-          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ appId: resolved, taskName, taskType, payload, schedule }),
         });
@@ -267,7 +266,6 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         if (!resolved) throw new Error("app_id required");
         const res = await fetch("/api/automation/unregister", {
           method: "POST",
-          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ appId: resolved, taskName }),
         });
@@ -276,15 +274,13 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
       status: async (taskName: string) => {
         const resolved = appId;
         if (!resolved) throw new Error("app_id required");
-        const res = await fetch(`/api/automation/status?appId=${resolved}&taskName=${taskName}`, {
-          credentials: "include",
-        });
+        const res = await fetch(`/api/automation/status?appId=${resolved}&taskName=${taskName}`);
         return res.json();
       },
       list: async () => {
         const resolved = appId;
         const url = resolved ? `/api/automation/list?appId=${resolved}` : "/api/automation/list";
-        const res = await fetch(url, { credentials: "include" });
+        const res = await fetch(url);
         return res.json();
       },
       update: async (
@@ -295,7 +291,6 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         requirePermission(permissions, "automation");
         const res = await fetch("/api/automation/update", {
           method: "PUT",
-          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taskId, payload, schedule }),
         });
@@ -305,7 +300,6 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         requirePermission(permissions, "automation");
         const res = await fetch("/api/automation/enable", {
           method: "POST",
-          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taskId }),
         });
@@ -315,7 +309,6 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         requirePermission(permissions, "automation");
         const res = await fetch("/api/automation/disable", {
           method: "POST",
-          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taskId }),
         });
@@ -326,7 +319,7 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         if (taskId) params.set("taskId", taskId);
         if (appId) params.set("appId", appId);
         params.set("limit", String(limit));
-        const res = await fetch(`/api/automation/logs?${params}`, { credentials: "include" });
+        const res = await fetch(`/api/automation/logs?${params}`);
         return res.json();
       },
     },

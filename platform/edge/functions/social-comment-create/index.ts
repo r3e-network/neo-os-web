@@ -1,6 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
-import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
+import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
 import {
   checkSpamLimit,
   isDeveloperOfApp,
@@ -47,7 +47,7 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "content is required and must be 1-2000 characters", "INVALID_CONTENT", req);
   }
 
-  const supabase = supabaseServiceClient();
+  const supabase = supabaseClient();
   const userId = auth.userId;
 
   // Verify proof of interaction (user must have used the app)

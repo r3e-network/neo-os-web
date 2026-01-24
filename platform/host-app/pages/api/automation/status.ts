@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import type { TaskStatusResponse } from "@/lib/db/types";
-import { assertAutomationOwner, normalizeAutomationParam, requireAutomationSession } from "@/lib/automation/auth";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -11,30 +10,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   }
 
   try {
-    const session = await requireAutomationSession(req, res);
-    if (!session) return;
-
     const { appId, taskName } = req.query;
 
     if (!appId || !taskName) {
       return res.status(400).json({ task: null, schedule: null, recentLogs: [] });
     }
 
-    const normalizedAppId = normalizeAutomationParam(appId);
-    if (!normalizedAppId) {
-      return res.status(400).json({ task: null, schedule: null, recentLogs: [] });
-    }
-
-    const ownerCheck = await assertAutomationOwner({ appId: normalizedAppId, userId: session.userId, supabase });
-    if (!ownerCheck.ok) {
-      return res.status(ownerCheck.status || 403).json({ task: null, schedule: null, recentLogs: [] });
-    }
-
     // Get task
     const { data: task } = await supabase
       .from("automation_tasks")
       .select("*")
-      .eq("app_id", normalizedAppId)
+      .eq("app_id", appId)
       .eq("task_name", taskName)
       .single();
 

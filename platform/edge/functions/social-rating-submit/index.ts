@@ -1,6 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
-import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
+import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
 import { verifyProofOfInteraction, validateRatingValue, sanitizeInput } from "../_shared/community.ts";
 
 interface RatingRequest {
@@ -38,8 +38,8 @@ export async function handler(req: Request): Promise<Response> {
   }
   const sanitizedReview = review_text ? sanitizeInput(review_text.trim().slice(0, 1000)) : null;
 
-  const supabase = supabaseServiceClient();
-  const userId = auth.userId;
+  const supabase = supabaseClient();
+  const userId = auth.user.id;
 
   // Verify proof of interaction
   const proof = await verifyProofOfInteraction(supabase, app_id, userId, req);
