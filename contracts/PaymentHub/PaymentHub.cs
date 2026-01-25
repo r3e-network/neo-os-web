@@ -25,8 +25,8 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]
     [ManifestExtra("Description", "GAS-only payments & settlement hub v2")]
-    [ContractPermission("*", "onNEP17Payment")]
-    [ContractPermission("*", "transfer")]  // Permission to call GAS.Transfer
+    [ContractPermission("{0xd2a4cff31913016155e38e474a2c06d08be276cf}", "onNEP17Payment")]
+    [ContractPermission("{0xd2a4cff31913016155e38e474a2c06d08be276cf}", "transfer")]
     public class PaymentHub : SmartContract
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };

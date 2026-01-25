@@ -7,11 +7,11 @@ import (
 	"crypto/elliptic"
 	"fmt"
 	"math/big"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/R3E-Network/service_layer/infrastructure/config"
 	"github.com/R3E-Network/service_layer/infrastructure/crypto"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
 	"github.com/R3E-Network/service_layer/infrastructure/marble"
@@ -85,7 +85,7 @@ func New(cfg Config) (*Service, error) {
 
 	replayWindow := cfg.ReplayWindow
 	if replayWindow <= 0 {
-		if parsed, ok := parseEnvDuration("NEOVRF_REPLAY_WINDOW"); ok {
+		if parsed, ok := config.ParseEnvDuration("NEOVRF_REPLAY_WINDOW"); ok {
 			replayWindow = parsed
 		}
 	}
@@ -153,18 +153,6 @@ func (s *Service) cleanupReplay() {
 			delete(s.seenRequests, key)
 		}
 	}
-}
-
-func parseEnvDuration(key string) (time.Duration, bool) {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return 0, false
-	}
-	parsed, err := time.ParseDuration(raw)
-	if err != nil {
-		return 0, false
-	}
-	return parsed, true
 }
 
 func (s *Service) initSigningKey() error {

@@ -30,6 +30,12 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "On-chain service request router + callback dispatcher")]
+    /// <summary>
+    /// SECURITY: This contract uses ContractPermission("*", "*") because it needs to call
+    /// arbitrary MiniApp callback contracts. This is mitigated by IsAllowedCallback validation
+    /// which ensures only registered callback contracts can be called. Ensure callback contracts
+    /// are properly validated before being added to the allowlist.
+    /// </summary>
     [ContractPermission("*", "*")]
     public class ServiceLayerGateway : SmartContract
     {

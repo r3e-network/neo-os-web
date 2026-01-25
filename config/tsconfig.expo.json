@@ -4,7 +4,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022"],
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "noEmit": true,
     "composite": false
   }

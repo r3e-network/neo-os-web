@@ -23,7 +23,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "NEO-only staking and voting for platform governance")]
-    [ContractPermission("*", "onNEP17Payment")]
+    [ContractPermission("{0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5}", "onNEP17Payment")]
     public class Governance : SmartContract
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };

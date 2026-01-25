@@ -143,12 +143,12 @@ func normalizeMasterKey(raw []byte) ([]byte, error) {
 
 	if len(trimmed) == 32 {
 		if !isDevEnv() {
-			return nil, fmt.Errorf("secrets: %s must be 32 bytes (or 64 hex chars)", MasterKeyEnv)
+			return nil, fmt.Errorf("secrets: master key must be 32 bytes (or 64 hex chars)")
 		}
-		log.Printf("[SECURITY WARNING] Using plaintext %s in development mode.", MasterKeyEnv)
+		log.Println("[SECURITY WARNING] Using plaintext master key in development mode. This is only acceptable for local testing.")
 		return []byte(trimmed), nil
 	}
-	return nil, fmt.Errorf("secrets: %s must be 32 bytes (or 64 hex chars)", MasterKeyEnv)
+	return nil, fmt.Errorf("secrets: master key must be 32 bytes (or 64 hex chars)")
 }
 
 func isHex(value string) bool {

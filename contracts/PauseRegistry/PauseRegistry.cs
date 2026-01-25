@@ -27,7 +27,6 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Central pause registry for MiniApp platform")]
-    [ContractPermission("*", "*")]
     public class PauseRegistry : SmartContract
     {
         #region Storage Prefixes

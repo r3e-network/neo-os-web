@@ -19,7 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]
     [ManifestExtra("Description", "On-chain automation task anchoring with nonce-based anti-replay and GAS deposit pool")]
-    [ContractPermission("*", "onNEP17Payment")]
+    [ContractPermission("{0xd2a4cff31913016155e38e474a2c06d08be276cf}", "onNEP17Payment")]
     public class AutomationAnchor : SmartContract
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
