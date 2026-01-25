@@ -18,6 +18,7 @@ import { cloneRepo, getCommitInfo, cleanup, normalizeGitUrl, parseGitUrl } from 
 import { validateGitUrl } from "../_shared/git-whitelist.ts";
 import { detectAssets, readManifest, validateManifest, hasPrebuiltFiles } from "../_shared/build/asset-detector.ts";
 import { detectBuildConfig, validateBuildSetup } from "../_shared/build/build-detector.ts";
+import { buildSubmissionPayload } from "../_shared/miniapps/submissions.ts";
 import { isAutoApprovedInternalRepo, isServiceRoleRequest } from "./internal-approval.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -164,26 +165,25 @@ export async function handler(req: Request): Promise<Response> {
     const commitInfo = await getCommitInfo(tempDir);
 
     // 8. Store submission in database
+    const payload = buildSubmissionPayload({
+      gitUrl: normalizedUrl,
+      gitInfo,
+      branch,
+      subfolder,
+      commitInfo,
+      appId,
+      manifest,
+      manifestHash,
+      assets,
+      buildConfig,
+      autoApproved,
+      submittedBy: auth?.userId ?? null,
+    });
+
     const { data: submission, error: insertError } = await supabase
       .from("miniapp_submissions")
       .insert({
-        git_url: normalizedUrl,
-        git_host: gitInfo.host,
-        repo_owner: gitInfo.owner,
-        repo_name: gitInfo.name,
-        subfolder: subfolder || null,
-        branch,
-        git_commit_sha: commitInfo.sha,
-        git_commit_message: commitInfo.message,
-        git_committer: commitInfo.author,
-        git_committed_at: commitInfo.date,
-        app_id: appId,
-        manifest,
-        manifestHash,
-        assets_detected: assets,
-        build_config: buildConfig,
-        status: autoApproved ? "building" : "pending_review",
-        submitted_by: auth?.userId ?? null,
+        ...payload,
         reviewed_at: reviewedAt,
         review_notes: reviewNotes,
         current_version: commitInfo.sha,
