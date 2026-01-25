@@ -8,6 +8,12 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/$1",
     "^@neo/shared$": "<rootDir>/../shared",
     "^@neo/shared/(.*)$": "<rootDir>/../shared/$1",
+    "^react$": "<rootDir>/node_modules/react",
+    "^react/jsx-runtime$": "<rootDir>/node_modules/react/jsx-runtime",
+    "^react/jsx-dev-runtime$": "<rootDir>/node_modules/react/jsx-dev-runtime",
+    "^react-dom$": "<rootDir>/node_modules/react-dom",
+    "^react-dom/client$": "<rootDir>/node_modules/react-dom/client",
+    "^react-dom/test-utils$": "<rootDir>/node_modules/react-dom/test-utils",
   },
   collectCoverageFrom: [
     "components/**/*.{ts,tsx}",
