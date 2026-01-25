@@ -2,7 +2,12 @@
   "framework": "nextjs",
   "buildCommand": "pnpm turbo run build --filter=meshminiapp-host",
   "installCommand": "pnpm install --frozen-lockfile",
-  "outputDirectory": "platform/host-app/.next",
+  "outputDirectory": ".next",
   "scope": "r3e-network",
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  }
 }
