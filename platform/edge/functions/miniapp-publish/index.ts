@@ -11,10 +11,12 @@ import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv, getEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, forbiddenError, validationError, notFoundError } from "../_shared/error-codes.ts";
+import { validatePublishPayload } from "../_shared/miniapps/publish-validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface PublishRequest {
   submission_id: string;
+  entry_url: string;
   cdn_base_url: string;
   cdn_version_path?: string;
   assets?: {
@@ -65,6 +67,10 @@ export async function handler(req: Request): Promise<Response> {
     return validationError("submission_id", "submission_id is required", req);
   }
 
+  if (!body.entry_url) {
+    return validationError("entry_url", "entry_url is required", req);
+  }
+
   if (!body.cdn_base_url) {
     return validationError("cdn_base_url", "cdn_base_url is required", req);
   }
@@ -91,12 +97,22 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     const assets = body.assets_selected ?? body.assets ?? null;
+    const publishValidation = validatePublishPayload({
+      entryUrl: body.entry_url,
+      cdnBaseUrl: body.cdn_base_url ?? null,
+      assets,
+    });
+
+    if (!publishValidation.valid) {
+      return errorResponse("VAL_011", { message: publishValidation.errors.join("; ") }, req);
+    }
     const versionPath = body.cdn_version_path ?? submission.current_version ?? null;
 
     const { error: updateError } = await supabase
       .from("miniapp_submissions")
       .update({
         status: "published",
+        entry_url: body.entry_url,
         cdn_base_url: body.cdn_base_url,
         cdn_version_path: versionPath,
         assets_selected: assets,
