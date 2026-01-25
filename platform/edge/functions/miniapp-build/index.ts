@@ -35,6 +35,7 @@ import { validateGitUrl } from "../_shared/git-whitelist.ts";
 import { detectAssets } from "../_shared/build/asset-detector.ts";
 import { detectBuildConfig, readPackageScripts } from "../_shared/build/build-detector.ts";
 import { uploadDirectory, uploadFile } from "../_shared/build/cdn-uploader.ts";
+import { canTriggerBuild } from "../_shared/miniapps/build-mode.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface BuildRequest {
@@ -243,6 +244,10 @@ export async function handler(req: Request): Promise<Response> {
 
     if (fetchError || !submission) {
       return notFoundError("Submission", req);
+    }
+
+    if (!canTriggerBuild(submission.build_mode)) {
+      return errorResponse("VAL_011", { message: "Submission build_mode is manual" }, req);
     }
 
     // 2. Check if can be built

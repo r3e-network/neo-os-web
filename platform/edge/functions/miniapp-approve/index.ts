@@ -93,6 +93,13 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     const now = new Date().toISOString();
+    const auditBase = {
+      submission_id: submission.id,
+      app_id: submission.app_id,
+      previous_status: submission.status,
+      reviewer_id: auth.userId,
+      review_notes: sanitizedNotes ?? null,
+    };
 
     switch (body.action) {
       case "approve": {
@@ -116,6 +123,14 @@ export async function handler(req: Request): Promise<Response> {
           .eq("id", body.submission_id);
 
         if (updateError) throw updateError;
+
+        const { error: auditError } = await supabase.from("miniapp_approval_audit").insert({
+          ...auditBase,
+          action: "approve",
+          new_status: updateData.status,
+        });
+
+        if (auditError) throw auditError;
 
         // If trigger_build is false, we're done
         if (!body.trigger_build) {
@@ -150,6 +165,14 @@ export async function handler(req: Request): Promise<Response> {
 
         if (updateError) throw updateError;
 
+        const { error: auditError } = await supabase.from("miniapp_approval_audit").insert({
+          ...auditBase,
+          action: "reject",
+          new_status: "rejected",
+        });
+
+        if (auditError) throw auditError;
+
         return json({
           success: true,
           submission_id: body.submission_id,
@@ -170,6 +193,14 @@ export async function handler(req: Request): Promise<Response> {
           .eq("id", body.submission_id);
 
         if (updateError) throw updateError;
+
+        const { error: auditError } = await supabase.from("miniapp_approval_audit").insert({
+          ...auditBase,
+          action: "request_changes",
+          new_status: "update_requested",
+        });
+
+        if (auditError) throw auditError;
 
         return json({
           success: true,
