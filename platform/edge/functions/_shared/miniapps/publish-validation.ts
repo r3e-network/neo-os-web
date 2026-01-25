@@ -28,6 +28,17 @@ function isUnderBase(value: string, base?: string | null): boolean {
   }
 }
 
+function isSameOrigin(value: string, base?: string | null): boolean {
+  if (!base) return true;
+  try {
+    const url = new URL(value);
+    const baseUrl = new URL(base);
+    return url.origin === baseUrl.origin;
+  } catch {
+    return false;
+  }
+}
+
 export function validatePublishPayload(input: PublishValidationInput): PublishValidationResult {
   const errors: string[] = [];
   if (!input.entryUrl || !isHttpsUrl(input.entryUrl)) {
@@ -40,7 +51,7 @@ export function validatePublishPayload(input: PublishValidationInput): PublishVa
   for (const value of [assets.icon, assets.banner]) {
     if (!value) continue;
     if (!isHttpsUrl(value)) errors.push("assets_selected must be https URLs");
-    else if (!isUnderBase(value, input.cdnBaseUrl)) {
+    else if (!isSameOrigin(value, input.cdnBaseUrl)) {
       errors.push("assets_selected must be under CDN_BASE_URL");
     }
   }

@@ -30,4 +30,13 @@ describe("publish validation", () => {
     });
     expect(result.valid).toBe(false);
   });
+
+  it("allows asset urls under the same CDN origin", () => {
+    const result = validatePublishPayload({
+      entryUrl: "https://cdn.example.com/miniapps/app-id/v1/index.html",
+      cdnBaseUrl: "https://cdn.example.com/miniapps/app-id/v1",
+      assets: { icon: "https://cdn.example.com/miniapps/app-id/assets/icon.png" },
+    });
+    expect(result.valid).toBe(true);
+  });
 });
