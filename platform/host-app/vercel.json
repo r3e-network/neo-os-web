@@ -4,10 +4,5 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "outputDirectory": ".next",
   "scope": "r3e-network",
-  "regions": ["iad1"],
-  "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest"
-  }
+  "regions": ["iad1"]
 }
