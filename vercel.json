@@ -1,0 +1,8 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "pnpm turbo run build --filter=meshminiapp-host",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "outputDirectory": "platform/host-app/.next",
+  "scope": "r3e-network",
+  "regions": ["iad1"]
+}
