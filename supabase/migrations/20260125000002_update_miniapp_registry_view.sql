@@ -1,0 +1,56 @@
+-- Update registry view to unify external submissions and internal miniapps
+
+CREATE OR REPLACE VIEW miniapp_registry_view AS
+SELECT
+    'external'::text as source_type,
+    id,
+    app_id,
+    manifest,
+    manifest_hash,
+    COALESCE(entry_url, cdn_base_url) as entry_url,
+    COALESCE(
+        (assets_selected->>'icon'),
+        (build_config->>'icon_url'),
+        manifest->>'icon'
+    ) as icon_url,
+    COALESCE(
+        (assets_selected->>'banner'),
+        (build_config->>'banner_url'),
+        manifest->>'banner'
+    ) as banner_url,
+    status,
+    current_version as version,
+    manifest->>'name' as name,
+    manifest->>'name_zh' as name_zh,
+    manifest->>'description' as description,
+    manifest->>'description_zh' as description_zh,
+    manifest->>'category' as category,
+    updated_at,
+    created_at
+FROM miniapp_submissions
+WHERE status = 'published'
+
+UNION ALL
+
+SELECT
+    'internal'::text as source_type,
+    id,
+    app_id,
+    manifest,
+    manifest_hash,
+    entry_url,
+    icon_url,
+    banner_url,
+    status,
+    current_version as version,
+    manifest->>'name' as name,
+    manifest->>'name_zh' as name_zh,
+    manifest->>'description' as description,
+    manifest->>'description_zh' as description_zh,
+    category,
+    updated_at,
+    created_at
+FROM miniapp_internal
+WHERE status = 'active';
+
+COMMENT ON VIEW miniapp_registry_view IS 'Unified view of all published miniapps (external + internal) for host app discovery';
