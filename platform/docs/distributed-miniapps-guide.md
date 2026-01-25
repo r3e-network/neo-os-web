@@ -80,8 +80,8 @@ supabase migration up --file platform/supabase/migrations/20250123_miniapp_regis
 | ------------------------------------- | ---- | --------------------- | ------------ |
 | `/functions/v1/miniapp-submit`        | POST | 提交 Git URL 进行审查 | 用户 + scope |
 | `/functions/v1/miniapp-approve`       | POST | 审批/拒绝/请求修改    | 管理员       |
-| `/functions/v1/miniapp-build`         | POST | 手动触发构建          | 管理员       |
-| `/functions/v1/miniapp-publish`       | POST | 发布构建结果          | Service role |
+| `/functions/v1/miniapp-build`         | POST | 内部应用构建（可选）  | 管理员       |
+| `/functions/v1/miniapp-publish`       | POST | 发布手动构建结果      | Service role |
 | `/functions/v1/miniapp-list`          | GET  | Host App 发现         | 公开         |
 
 ### Admin Console API (代理)
@@ -141,14 +141,22 @@ curl -X POST https://your-project.supabase.co/functions/v1/miniapp-approve \
   }'
 ```
 
-### 3. 触发构建
+### 3. 管理员手动构建并发布
+
+管理员在本地构建并上传到 CDN 后，调用 `miniapp-publish` 发布：
 
 ```bash
-curl -X POST https://your-project.supabase.co/functions/v1/miniapp-build \
-  -H "Authorization: Bearer $ADMIN_JWT_TOKEN" \
+curl -X POST https://your-project.supabase.co/functions/v1/miniapp-publish \
+  -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "submission_id": "uuid"
+    "submission_id": "uuid",
+    "entry_url": "https://cdn.example.com/miniapps/app-id/version/index.html",
+    "cdn_base_url": "https://cdn.example.com/miniapps/app-id/version",
+    "assets_selected": {
+      "icon": "https://cdn.example.com/miniapps/app-id/assets/icon.png",
+      "banner": "https://cdn.example.com/miniapps/app-id/assets/banner.png"
+    }
   }'
 ```
 

@@ -169,16 +169,24 @@ From Admin Console (`/admin/miniapps`):
 1. View pending submissions
 2. Review source code details
 3. Approve or reject with notes
-4. Trigger build (optional during approval)
+4. Publish after manual build + CDN upload
 
-#### 8.3 Build Test
+#### 8.3 Manual Publish Test
 
 ```bash
-# Trigger build manually
-curl -X POST https://your-project.supabase.co/functions/v1/miniapp-build \
-  -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
+# Publish a manually built MiniApp
+curl -X POST https://your-project.supabase.co/functions/v1/miniapp-publish \
+  -H "Authorization: Bearer SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "submission_id": "submission-uuid" }'
+  -d '{
+    "submission_id": "submission-uuid",
+    "entry_url": "https://cdn.example.com/miniapps/app-id/version/index.html",
+    "cdn_base_url": "https://cdn.example.com/miniapps/app-id/version",
+    "assets_selected": {
+      "icon": "https://cdn.example.com/miniapps/app-id/assets/icon.png",
+      "banner": "https://cdn.example.com/miniapps/app-id/assets/banner.png"
+    }
+  }'
 ```
 
 Expected response:
@@ -186,7 +194,6 @@ Expected response:
 ```json
 {
     "success": true,
-    "build_id": "submission-uuid",
     "status": "published",
     "cdn_url": "https://cdn.example.com/miniapps/app-id/version"
 }
