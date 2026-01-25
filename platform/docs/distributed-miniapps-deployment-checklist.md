@@ -189,6 +189,11 @@ curl -X POST https://your-project.supabase.co/functions/v1/miniapp-publish \
   }'
 ```
 
+Validation checks:
+- `entry_url` must be https and under `cdn_base_url`
+- `cdn_base_url` must be under `CDN_BASE_URL` (same origin + path prefix)
+- `assets_selected` must be https and on the `CDN_BASE_URL` origin
+
 Expected response:
 
 ```json

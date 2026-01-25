@@ -160,6 +160,11 @@ curl -X POST https://your-project.supabase.co/functions/v1/miniapp-publish \
   }'
 ```
 
+发布校验规则：
+- `entry_url` 必须是 https，且在 `cdn_base_url` 路径下
+- `cdn_base_url` 必须在 `CDN_BASE_URL` 下（同源且路径前缀匹配）
+- `assets_selected` 必须是 https 且与 `CDN_BASE_URL` 同源（允许放在版本目录之外）
+
 ### 4. Host App 发现
 
 ```bash
