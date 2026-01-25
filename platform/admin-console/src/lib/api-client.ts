@@ -82,10 +82,14 @@ export const edgeClient = {
     return fetchJSON<T>(`${API_BASE_URL}${path}`);
   },
 
-  async post<T>(path: string, body: unknown): Promise<T> {
+  async post<T>(path: string, body: unknown, options?: RequestInit): Promise<T> {
     return fetchJSON<T>(`${API_BASE_URL}${path}`, {
       method: "POST",
       body: JSON.stringify(body),
+      ...options,
+      headers: {
+        ...options?.headers,
+      },
     });
   },
 };

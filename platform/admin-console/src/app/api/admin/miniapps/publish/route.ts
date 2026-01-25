@@ -7,8 +7,6 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { edgeClient } from "@/lib/api-client";
 
-const EDGE_FUNCTION_URL = process.env.NEXT_PUBLIC_EDGE_URL || "https://edge.localhost";
-
 /**
  * POST /api/admin/miniapps/publish
  * Body:
@@ -29,7 +27,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "submission_id and entry_url required" }, { status: 400 });
     }
 
-    const result = await edgeClient.post(`${EDGE_FUNCTION_URL}/functions/v1/miniapp-publish`, body);
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+      return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY is required" }, { status: 500 });
+    }
+
+    const result = await edgeClient.post("/functions/v1/miniapp-publish", body, {
+      headers: {
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+    });
     return NextResponse.json(result);
   } catch (error) {
     console.error("Publish error:", error);

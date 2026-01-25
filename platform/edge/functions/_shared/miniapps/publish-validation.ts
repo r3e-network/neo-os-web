@@ -3,6 +3,7 @@ type PublishAssets = { icon?: string; banner?: string };
 type PublishValidationInput = {
   entryUrl: string;
   cdnBaseUrl?: string | null;
+  cdnRootUrl?: string | null;
   assets?: PublishAssets | null;
 };
 
@@ -22,7 +23,9 @@ function isUnderBase(value: string, base?: string | null): boolean {
   try {
     const url = new URL(value);
     const baseUrl = new URL(base);
-    return url.origin === baseUrl.origin && url.pathname.startsWith(baseUrl.pathname);
+    if (url.origin !== baseUrl.origin) return false;
+    const basePath = baseUrl.pathname.endsWith("/") ? baseUrl.pathname : `${baseUrl.pathname}/`;
+    return url.pathname === baseUrl.pathname || url.pathname.startsWith(basePath);
   } catch {
     return false;
   }
@@ -47,12 +50,16 @@ export function validatePublishPayload(input: PublishValidationInput): PublishVa
     errors.push("entry_url must be under CDN_BASE_URL");
   }
 
+  if (input.cdnRootUrl && input.cdnBaseUrl && !isUnderBase(input.cdnBaseUrl, input.cdnRootUrl)) {
+    errors.push("cdn_base_url must be under CDN_BASE_URL");
+  }
+
   const assets = input.assets || {};
   for (const value of [assets.icon, assets.banner]) {
     if (!value) continue;
     if (!isHttpsUrl(value)) errors.push("assets_selected must be https URLs");
     else if (!isSameOrigin(value, input.cdnBaseUrl)) {
-      errors.push("assets_selected must be under CDN_BASE_URL");
+      errors.push("assets_selected must be on CDN_BASE_URL origin");
     }
   }
 

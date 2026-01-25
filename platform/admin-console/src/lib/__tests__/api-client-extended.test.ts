@@ -92,6 +92,25 @@ describe("API Client Extended", () => {
       );
     });
 
+    it("should pass custom headers for POST requests", async () => {
+      const mockData = { id: 2 };
+      vi.spyOn(global, "fetch").mockImplementation(() => mockFetchResponse(mockData));
+
+      const result = await (edgeClient as any).post("/create", { name: "test" }, {
+        headers: { Authorization: "Bearer token" },
+      });
+
+      expect(result).toEqual(mockData);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/create"),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer token",
+          }),
+        }),
+      );
+    });
+
     it("should handle network error", async () => {
       vi.spyOn(global, "fetch").mockImplementation(() => Promise.reject(new Error("Network error")));
 

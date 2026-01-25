@@ -100,6 +100,7 @@ export async function handler(req: Request): Promise<Response> {
     const publishValidation = validatePublishPayload({
       entryUrl: body.entry_url,
       cdnBaseUrl: body.cdn_base_url ?? null,
+      cdnRootUrl: getEnv("CDN_BASE_URL") ?? null,
       assets,
     });
 
