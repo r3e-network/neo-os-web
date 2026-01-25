@@ -176,6 +176,20 @@ class OriginValidator {
 const originValidator = new OriginValidator();
 let cachedConfig: MiniAppSDKConfig | null = null;
 
+export function resolveLayout(config?: Partial<MiniAppSDKConfig>): "web" | "mobile" {
+  const declared = config?.layout;
+  if (declared === "web" || declared === "mobile") return declared;
+
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const layoutParam = params.get("layout");
+    if (layoutParam === "web" || layoutParam === "mobile") return layoutParam;
+    if ((window as any).ReactNativeWebView) return "mobile";
+  }
+
+  return "web";
+}
+
 /**
  * Validate SDK injection to prevent tampering
  * Check for either new interface (invoke/getConfig) or legacy interface (wallet/payments)
@@ -230,11 +244,13 @@ function createPostMessageSDK(): MiniAppSDK {
     invoke,
     getConfig: () => {
       // Return cached config or fetch from host
-      if (cachedConfig) return cachedConfig;
+      if (cachedConfig) {
+        return { ...cachedConfig, layout: resolveLayout(cachedConfig) };
+      }
       // Try to get config synchronously from window if available
       if (typeof window !== "undefined" && (window as any).__MINIAPP_CONFIG__) {
         cachedConfig = (window as any).__MINIAPP_CONFIG__;
-        return cachedConfig;
+        return { ...cachedConfig, layout: resolveLayout(cachedConfig) };
       }
       // Return default config (will be updated async)
       return {
@@ -243,6 +259,7 @@ function createPostMessageSDK(): MiniAppSDK {
         chainId: null,
         chainType: undefined,
         supportedChains: [],
+        layout: resolveLayout(),
         debug: false,
       };
     },

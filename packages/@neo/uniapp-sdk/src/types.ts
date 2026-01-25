@@ -258,6 +258,7 @@ export interface MiniAppSDKConfig {
   chainType?: ChainType;
   supportedChains?: ChainId[];
   chainContracts?: MiniAppChainContracts;
+  layout?: "web" | "mobile";
   debug?: boolean;
 }
 
