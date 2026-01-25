@@ -12,6 +12,11 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+    # Auto-merge for minor/patch updates
+    ignore: []
+    automerged:
+      - dependency-type: "development"
+        update-types: ["version-update:semver-patch", "version-update:semver-minor"]
 
   # Keep npm dependencies up to date for the web dashboard
   - package-ecosystem: "npm"
@@ -25,6 +30,11 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+    # Auto-merge for patch updates
+    ignore: []
+    automerged:
+      - dependency-type: "development"
+        update-types: ["version-update:semver-patch", "version-update:semver-minor"]
 
   # Keep GitHub Actions up to date
   - package-ecosystem: "github-actions"
@@ -38,6 +48,10 @@ updates:
     commit-message:
       prefix: "ci"
       include: "scope"
+    # Auto-merge action updates
+    automerged:
+      - dependency-type: "direct"
+        update-types: ["version-update:semver-patch"]
 
   # Keep Docker images up to date
   - package-ecosystem: "docker"
