@@ -335,7 +335,13 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
         >
           {federated ? (
             <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-              <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} theme={theme} />
+              <FederatedMiniApp
+                appId={federated.appId}
+                view={federated.view}
+                remote={federated.remote}
+                theme={theme}
+                layout="web"
+              />
             </div>
           ) : (
             <iframe

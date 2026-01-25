@@ -88,7 +88,7 @@ export default function FederatedMiniApp() {
         <section style={frameAreaStyle}>
           <MiniAppFrame>
             <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-              <FederatedMiniAppRenderer appId={appId} view={view} remote={remote} />
+              <FederatedMiniAppRenderer appId={appId} view={view} remote={remote} layout="web" />
             </div>
           </MiniAppFrame>
         </section>

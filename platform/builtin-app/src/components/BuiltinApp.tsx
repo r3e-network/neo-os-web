@@ -43,6 +43,7 @@ export type BuiltinAppProps = {
   appId?: string;
   view?: string;
   theme?: string;
+  layout?: "web" | "mobile";
 };
 
 type PanelProps = {
@@ -889,7 +890,7 @@ function resolveBuiltin(appId?: string, view?: string): BuiltinDefinition {
   return builtinDefinitions[0];
 }
 
-export default function BuiltinApp({ appId, view, theme }: BuiltinAppProps) {
+export default function BuiltinApp({ appId, view, theme, layout = "web" }: BuiltinAppProps) {
   const sdk = useMiniAppSDK();
   const resolved = useMemo(() => resolveBuiltin(appId, view), [appId, view]);
   const [activeId, setActiveId] = useState(resolved.id);
@@ -919,7 +920,7 @@ export default function BuiltinApp({ appId, view, theme }: BuiltinAppProps) {
   }, [sdk]);
 
   return (
-    <main className={styles.root} data-theme={theme}>
+    <main className={styles.root} data-theme={theme} data-layout={layout}>
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Neo Built-in MiniApps</h1>

@@ -330,7 +330,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
           <MiniAppFrame>
             {federated ? (
               <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-                <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
+                <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} layout="web" />
               </div>
             ) : (
               <>
