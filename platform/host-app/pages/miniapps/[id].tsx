@@ -252,7 +252,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   const iframeSrc = useMemo(() => {
     if (!app) return "";
     const supportedLocale = getMiniappLocale(locale);
-    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1" });
+    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1", layout: "web" });
   }, [entryUrl, locale, theme, app]);
 
   useEffect(() => {
@@ -302,6 +302,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       permissions: app.permissions,
       supportedChains: app.supportedChains,
       chainContracts: app.chainContracts,
+      layout: "web",
     });
   }, [app, walletChainId, contractAddress, chainType]);
 
@@ -331,6 +332,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
           permissions: app.permissions,
           supportedChains: app.supportedChains,
           chainContracts: app.chainContracts,
+          layout: "web",
         });
       }
       return sdkRef.current;

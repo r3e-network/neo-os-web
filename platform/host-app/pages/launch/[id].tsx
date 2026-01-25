@@ -85,7 +85,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
     const supportedLocale = getMiniappLocale(locale);
-    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1" });
+    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1", layout: "web" });
   }, [entryUrl, locale, theme]);
 
   useEffect(() => {
@@ -103,6 +103,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       permissions: app.permissions,
       supportedChains: app.supportedChains,
       chainContracts: app.chainContracts,
+      layout: "web",
     });
   }, [app, effectiveChainId, contractAddress, chainType]);
 
@@ -200,6 +201,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
           permissions: app.permissions,
           supportedChains: app.supportedChains,
           chainContracts: app.chainContracts,
+          layout: "web",
         });
       }
       return sdkRef.current;

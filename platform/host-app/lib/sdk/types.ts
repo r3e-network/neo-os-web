@@ -26,6 +26,7 @@ export interface MiniAppSDKConfig {
   supportedChains?: ChainId[];
   /** Per-chain contract metadata */
   chainContracts?: MiniAppChainContracts;
+  layout?: "web" | "mobile";
   getAuthToken?: () => Promise<string | undefined>;
   getAPIKey?: () => Promise<string | undefined>;
 }
@@ -108,6 +109,7 @@ export interface MiniAppSDK {
     contractAddress?: string | null;
     supportedChains?: ChainId[];
     chainContracts?: MiniAppChainContracts;
+    layout?: "web" | "mobile";
     debug: boolean;
   };
   getAddress?: () => Promise<string>;
