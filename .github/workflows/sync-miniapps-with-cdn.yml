@@ -1,117 +1,256 @@
-name: Sync MiniApps Registry with CDN
+name: MiniApps CDN Sync
 
 on:
-  schedule:
-    # Run every hour to keep registry up to date
-    - cron: "0 * * * *"
+  push:
+    branches: [main]
+    paths:
+      - 'miniapps/**'
   workflow_dispatch:
     inputs:
-      branch:
-        description: "Branch to sync from"
-        required: false
-        default: "main"
-      cdn_url:
-        description: "CDN base URL (e.g., https://miniapps.vercel.app)"
+      environment:
+        description: 'Deployment environment'
         required: true
-        default: "https://miniapps.vercel.app"
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      app_id:
+        description: 'Specific miniapp ID to deploy (optional)'
+        required: false
+        default: ''
 
 env:
-  MINIAPPS_REPO_URL: ${{ secrets.MINIAPPS_REPO_URL || 'https://github.com/r3e-network/miniapps.git' }}
-  MINIAPPS_CDN_URL: ${{ github.event.inputs.cdn_url || 'https://miniapps.vercel.app' }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  R2_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+  CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
 jobs:
   sync-miniapps:
-    name: Sync MiniApps Registry with CDN
+    name: Sync MiniApps to CDN
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    outputs:
+      deployed: ${{ steps.deploy.outputs.deployed }}
+      failed: ${{ steps.deploy.outputs.failed }}
 
     steps:
-      - name: Checkout platform repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: '22'
+          cache: 'pnpm'
 
       - name: Install pnpm
-        run: npm install -g pnpm@latest
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Sync miniapp registry with CDN URLs
+      - name: Determine bucket
+        id: bucket
         run: |
-          BRANCH="${{ github.event.inputs.branch || 'main' }}"
-          CDN_URL="${{ github.event.inputs.cdn_url || 'https://miniapps.vercel.app' }}"
-          
-          echo "Syncing from: ${{ env.MINIAPPS_REPO_URL }}"
-          echo "CDN URL: $CDN_URL"
-          echo "Branch: $BRANCH"
-          
-          node scripts/sync-miniapps-with-cdn.js \
-            --repo "${{ env.MINIAPPS_REPO_URL }}" \
-            --cdn "$CDN_URL" \
-            --branch "$BRANCH" \
-            --output "platform/host-app/data/miniapps.json"
-
-      - name: Check for changes
-        id: changed
-        run: |
-          if git diff --quiet platform/host-app/data/miniapps.json; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No changes to miniapp registry"
+          if [ "${{ github.event.inputs.environment || 'staging' }}" = "production" ]; then
+            echo "bucket=${{ secrets.R2_BUCKET_PRODUCTION }}" >> "$GITHUB_OUTPUT"
+            echo "env=production" >> "$GITHUB_OUTPUT"
           else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Miniapp registry has been updated"
-            git diff --stat platform/host-app/data/miniapps.json
+            echo "bucket=${{ secrets.R2_BUCKET_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "env=staging" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create pull request if changes
-        if: steps.changed.outputs.changed == 'true'
+      - name: Display configuration
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "Environment: ${{ steps.bucket.outputs.env }}"
+          echo "Bucket: ${{ steps.bucket.outputs.bucket }}"
+          echo "Commit: ${{ github.sha }}"
+
+      - name: Setup AWS CLI (for R2 S3-compatible API)
+        run: |
+          pip install awscli --quiet || pip3 install awscli --quiet
+
+      - name: Setup R2 CLI
+        run: |
+          curl -fsSL https://github.com/cloudflare/wrangler/releases/download/v3.0.0/wrangler-v3.0.0-x86_64-unknown-linux-musl.tar.gz | tar -xz
+          mv wrangler-v3.0.0-x86_64-unknown-linux-musl /usr/local/bin/wrangler
+          chmod +x /usr/local/bin/wrangler
+
+      - name: Configure wrangler
+        run: |
+          wrangler config --api-token $CF_API_TOKEN
+          cat > wrangler.toml <<EOF
+          name = "miniapps-cdn"
+          account_id = "${{ secrets.CF_ACCOUNT_ID }}"
+          compatibility_date = "2024-01-01"
+          compatibility_flags = ["workers_js_compat"]
+          EOF
+
+      - name: Build and deploy miniapps
+        id: deploy
+        run: |
+          DEPLOYED=0
+          FAILED=0
+          APP_ID="${{ github.event.inputs.app_id }}"
+          ENV="${{ steps.bucket.outputs.env }}"
+          BUCKET="${{ steps.bucket.outputs.bucket }}"
           
-          BRANCH="miniapps-registry-$(date +%Y%m%d-%H%M%S)"
-          git checkout -b "$BRANCH"
+          for dir in miniapps/*/; do
+            if [ -n "$APP_ID" ] && [ "$(basename $dir)" != "$APP_ID" ]; then
+              echo "Skipping $(basename $dir) - not the target app"
+              continue
+            fi
+            
+            APP_NAME=$(basename $dir)
+            echo "=========================================="
+            echo "Processing: $APP_NAME (env: $ENV)"
+            echo "=========================================="
+            
+            # Check for manifest.json
+            if [ ! -f "$dir/manifest.json" ]; then
+              echo "Skipping $APP_NAME - no manifest.json"
+              continue
+            fi
+            
+            # Get app_id from manifest
+            MANIFEST_APP_ID=$(node -e "console.log(require('$dir/manifest.json').app_id || '$(basename $dir)')")
+            
+            # Check for build output
+            DIST_DIR=""
+            for check_dir in dist build .output; do
+              if [ -d "$dir/$check_dir" ]; then
+                DIST_DIR="$check_dir"
+                break
+              fi
+            done
+            
+            if [ -z "$DIST_DIR" ]; then
+              echo "No build output found for $APP_NAME (tried: dist, build, .output)"
+              continue
+            fi
+            
+            echo "Build output: $DIST_DIR"
+            
+            # Upload to R2 using AWS CLI (S3-compatible)
+            CDN_BASE="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+            UPLOAD_DIR="miniapps/$MANIFEST_APP_ID/${{ github.sha }}"
+            
+            echo "Uploading to: $CDN_BASE/$BUCKET/$UPLOAD_DIR/"
+            
+            # Upload using AWS CLI
+            AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+            AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+            AWS_REGION="auto" \
+            aws s3 sync "$dir/$DIST_DIR/" "s3://$BUCKET/$UPLOAD_DIR/" \
+              --endpoint-url "$CDN_BASE" \
+              --content-type "text/html" \
+              --cache-control "public, max-age=31536000, immutable" \
+              --metadata-directive "REPLACE" \
+              2>&1 || {
+                echo "Upload failed for $APP_NAME"
+                FAILED=$((FAILED + 1))
+                continue
+              }
+            
+            # Upload index.html with proper content-type
+            if [ -f "$dir/$DIST_DIR/index.html" ]; then
+              AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+              AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+              AWS_REGION="auto" \
+              aws s3 cp "$dir/$DIST_DIR/index.html" "s3://$BUCKET/$UPLOAD_DIR/index.html" \
+                --endpoint-url "$CDN_BASE" \
+                --content-type "text/html" \
+                --cache-control "public, max-age=31536000, immutable" \
+                2>&1 || true
+            fi
+            
+            echo "✓ Deployed $APP_NAME to $ENV"
+            echo "  URL: $CDN_BASE/$BUCKET/$UPLOAD_DIR/index.html"
+            
+            DEPLOYED=$((DEPLOYED + 1))
+          done
           
-          git add platform/host-app/data/miniapps.json
-          git commit -m "chore: sync miniapp registry from external repo
-
-Automated update of the miniapp registry with CDN URLs.
-
-CDN: ${{ env.MINIAPPS_CDN_URL }}
-
-$(git diff --stat platform/host-app/data/miniapps.json)"
+          echo "deployed=$DEPLOYED" >> "$GITHUB_OUTPUT"
+          echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
           
-          git push -u origin "$BRANCH"
+          echo ""
+          echo "=========================================="
+          echo "Deployment Summary"
+          echo "=========================================="
+          echo "Environment: $ENV"
+          echo "Bucket: $BUCKET"
+          echo "Deployed: $DEPLOYED"
+          echo "Failed: $FAILED"
+          echo "Commit: ${{ github.sha }}"
+
+      - name: Update version record
+        if: steps.deploy.outputs.deployed > 0
+        run: |
+          # Update version in Supabase or database
+          echo "Would update version records here"
+          echo "Version: ${{ github.sha }}"
+          echo "Deployed apps: ${{ steps.deploy.outputs.deployed }}"
+
+  notify:
+    name: Notify Deployment
+    needs: sync-miniapps
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Format status message
+        run: |
+          DEPLOYED=${{ needs.sync-miniapps.outputs.deployed }}
+          FAILED=${{ needs.sync-miniapps.outputs.failed }}
           
-          # Create PR
-          gh pr create \
-            --title "chore: sync miniapp registry with CDN URLs" \
-            --body "This PR updates the miniapp registry from the external miniapps repository.
+          if [ $FAILED -gt 0 ]; then
+            echo "❌ Deployment completed with $FAILED failures"
+            exit 1
+          elif [ $DEPLOYED -gt 0 ]; then
+            echo "✅ Successfully deployed $DEPLOYED miniapp(s)"
+          else
+            echo "ℹ️ No miniapps were deployed"
+          fi
 
-- Source: ${{ env.MINIAPPS_REPO_URL }}
-- CDN: ${{ env.MINIAPPS_CDN_URL }}
-- Branch: ${{ github.event.inputs.branch || 'main' }}
+  create-pr-staging:
+    name: Create Staging PR
+    needs: sync-miniapps
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.environment == 'staging' &&
+      needs.sync-miniapps.outputs.deployed > 0
+    steps:
+      - name: Checkout and create PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-Changes:
-$(git diff --stat platform/host-app/data/miniapps.json)
+      - name: Create version file
+        run: |
+          mkdir -p platform/host-app/data
+          cat > platform/host-app/data/staging-versions.json <<EOF
+          {
+            "last_updated": "${{ github.sha }}",
+            "updated_at": "$(date -Iseconds)",
+            "environment": "staging",
+            "deployed": ${{ needs.sync-miniapps.outputs.deployed }}
+          }
+          EOF
 
-Generated by GitHub Actions workflow: ${{ github.workflow }}" \
-            --base main \
-            --head "$BRANCH"
-
-          echo "pr_url=$(gh pr view --json url -q .url)" >> "$GITHUB_OUTPUT"
-
-      - name: Output PR URL
-        if: steps.changed.outputs.changed == 'true'
-        run: echo "Pull Request created: ${{ steps.pr-output.outputs.pr_url }}"
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          title: "chore: staging deployment ${{ github.sha }}"
+          body: |
+            ## Staging Deployment
+            
+            - **Commit:** `${{ github.sha }}`
+            - **Deployed:** ${{ needs.sync-miniapps.outputs.deployed }} miniapp(s)
+            - **Environment:** staging
+            
+            Auto-generated PR for staging deployment.
+          branch: staging-deploy-${{ github.sha }}
+          delete-branch: true
+          base: main
