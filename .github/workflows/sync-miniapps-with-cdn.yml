@@ -24,6 +24,7 @@ env:
   R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
   R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
   R2_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+  R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
 jobs:
@@ -135,17 +136,13 @@ jobs:
             echo "Build output: $DIST_DIR"
             
             # Upload to R2 using AWS CLI (S3-compatible)
-            CDN_BASE="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
-            UPLOAD_DIR="miniapps/$MANIFEST_APP_ID/${{ github.sha }}"
+            R2_ENDPOINT="${{ env.R2_ENDPOINT }}"
             
-            echo "Uploading to: $CDN_BASE/$BUCKET/$UPLOAD_DIR/"
-            
-            # Upload using AWS CLI
             AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
             AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
             AWS_REGION="auto" \
             aws s3 sync "$dir/$DIST_DIR/" "s3://$BUCKET/$UPLOAD_DIR/" \
-              --endpoint-url "$CDN_BASE" \
+              --endpoint-url "$R2_ENDPOINT" \
               --content-type "text/html" \
               --cache-control "public, max-age=31536000, immutable" \
               --metadata-directive "REPLACE" \
@@ -161,14 +158,16 @@ jobs:
               AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
               AWS_REGION="auto" \
               aws s3 cp "$dir/$DIST_DIR/index.html" "s3://$BUCKET/$UPLOAD_DIR/index.html" \
-                --endpoint-url "$CDN_BASE" \
+                --endpoint-url "$R2_ENDPOINT" \
                 --content-type "text/html" \
                 --cache-control "public, max-age=31536000, immutable" \
+                --metadata-directive "REPLACE" \
+                --acl public-read \
                 2>&1 || true
             fi
             
             echo "✓ Deployed $APP_NAME to $ENV"
-            echo "  URL: $CDN_BASE/$BUCKET/$UPLOAD_DIR/index.html"
+            echo "  URL: $R2_ENDPOINT/$BUCKET/$UPLOAD_DIR/index.html"
             
             DEPLOYED=$((DEPLOYED + 1))
           done
