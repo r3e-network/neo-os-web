@@ -1,9 +1,28 @@
+const path = require("path");
+
+process.env.NEXT_PRIVATE_LOCAL_WEBPACK = "true";
+process.env.FEDERATION_WEBPACK_PATH = path.resolve(
+  __dirname,
+  "node_modules/webpack/lib/index.js",
+);
+
 const { NextFederationPlugin } = require("@module-federation/nextjs-mf");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  webpack(config) {
+  transpilePackages: ["../shared"],
+  experimental: {
+    externalDir: true,
+  },
+  webpack(config, { isServer }) {
+    if (isServer && Array.isArray(config.externals)) {
+      const functionIndex = config.externals.findIndex((item) => typeof item === "function");
+      if (functionIndex > 0) {
+        const [externalsFn] = config.externals.splice(functionIndex, 1);
+        config.externals.unshift(externalsFn);
+      }
+    }
     config.plugins.push(
       new NextFederationPlugin({
         name: "builtin",

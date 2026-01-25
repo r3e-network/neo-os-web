@@ -156,7 +156,7 @@ describe("LaunchPage", () => {
       await renderLaunchPage();
       const iframe = document.querySelector("iframe");
       expect(iframe).toBeInTheDocument();
-      expect(iframe?.src).toBe("https://example.com/app?lang=en&theme=dark&embedded=1");
+      expect(iframe?.src).toBe("https://example.com/app?lang=en&theme=dark&embedded=1&layout=web");
       expect(iframe?.getAttribute("sandbox")).toBe("allow-scripts allow-forms allow-popups allow-same-origin");
       expect(iframe?.title).toBe("Test App MiniApp");
       expect(iframe?.getAttribute("referrerpolicy")).toBe("no-referrer");
@@ -342,6 +342,11 @@ describe("LaunchPage", () => {
       const { contentWindow } = setupFrame();
 
       await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
+
+      const configResponse = await sendMessage(contentWindow, "getConfig", []);
+      expect(configResponse?.[0]).toEqual(
+        expect.objectContaining({ ok: true, result: expect.objectContaining({ layout: "web" }) }),
+      );
 
       const response1 = await sendMessage(contentWindow, "wallet.getAddress", []);
       expect(response1?.[0]).toEqual(
