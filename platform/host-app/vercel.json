@@ -4,5 +4,6 @@
   "installCommand": "pnpm install --no-frozen-lockfile",
   "outputDirectory": ".next",
   "scope": "r3e-network",
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "nodeVersion": "22"
 }
