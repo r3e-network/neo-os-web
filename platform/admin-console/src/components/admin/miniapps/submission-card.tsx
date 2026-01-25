@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ApprovalActions } from "./approval-actions";
-import { BuildTrigger } from "./build-trigger";
+import { PublishTrigger } from "./publish-trigger";
 
 interface SubmissionCardProps {
   submission: MiniAppSubmission;
@@ -41,7 +41,7 @@ const STATUS_LABELS: Record<SubmissionStatus, string> = {
 export function SubmissionCard({ submission, onRefresh }: SubmissionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const canApprove = submission.status === "pending_review";
-  const canBuild = submission.status === "approved";
+  const canPublish = submission.status === "approved";
 
   const formatDate = (date: string | null) => {
     if (!date) return "N/A";
@@ -150,7 +150,7 @@ export function SubmissionCard({ submission, onRefresh }: SubmissionCardProps) {
 
           {canApprove && <ApprovalActions submissionId={submission.id} onSuccess={onRefresh} />}
 
-          {canBuild && <BuildTrigger submissionId={submission.id} onSuccess={onRefresh} />}
+          {canPublish && <PublishTrigger submissionId={submission.id} onSuccess={onRefresh} />}
 
           {submission.git_url && (
             <Button variant="ghost" size="sm" onClick={() => window.open(submission.git_url, "_blank")}>
