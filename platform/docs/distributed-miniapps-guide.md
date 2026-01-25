@@ -171,6 +171,17 @@ curl -X POST https://your-project.supabase.co/functions/v1/miniapp-publish \
 curl https://your-project.supabase.co/functions/v1/miniapp-list?category=gaming
 ```
 
+## MiniApp 运行参数
+
+Host 与钱包加载 MiniApp 时会追加统一的 query 参数（MiniApp 可直接读取）：
+
+- `lang`: 语言（例如 `en` / `zh`）
+- `theme`: 主题（例如 `dark` / `light`）
+- `embedded=1`: 表示嵌入式运行
+- `layout`: `web`（Host）/ `mobile`（Wallet）
+
+同样会在 `miniapp_config` / `MiniAppSDK.getConfig()` 中提供 `layout` 字段，便于 MiniApp 自适配布局。
+
 ## 构建配置检测
 
 系统自动检测以下构建类型：
