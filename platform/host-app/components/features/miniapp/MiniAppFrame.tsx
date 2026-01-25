@@ -6,15 +6,22 @@ const DEFAULT_ASPECT_RATIO = 516 / 932;
 type MiniAppFrameProps = {
   children: React.ReactNode;
   aspectRatio?: number;
+  layout?: "web" | "mobile";
   className?: string;
 };
 
-export function MiniAppFrame({ children, aspectRatio = DEFAULT_ASPECT_RATIO, className }: MiniAppFrameProps) {
+export function MiniAppFrame({
+  children,
+  aspectRatio = DEFAULT_ASPECT_RATIO,
+  layout = "web",
+  className,
+}: MiniAppFrameProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
   const ratio = Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : DEFAULT_ASPECT_RATIO;
 
   useEffect(() => {
+    if (layout !== "mobile") return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -48,19 +55,24 @@ export function MiniAppFrame({ children, aspectRatio = DEFAULT_ASPECT_RATIO, cla
       window.removeEventListener("resize", updateSize);
       window.clearInterval(intervalId);
     };
-  }, [ratio]);
+  }, [layout, ratio]);
 
   const frameStyle =
-    frameSize.width && frameSize.height
-      ? { width: frameSize.width, height: frameSize.height }
-      : { width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", aspectRatio: ratio };
+    layout === "mobile"
+      ? frameSize.width && frameSize.height
+        ? { width: frameSize.width, height: frameSize.height }
+        : { width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", aspectRatio: ratio }
+      : { width: "100%", height: "100%" };
 
   return (
     <div
       ref={containerRef}
       className={cn("flex h-full w-full min-h-0 min-w-0 items-center justify-center overflow-hidden", className)}
     >
-      <div className="relative overflow-hidden shrink-0" style={frameStyle}>
+      <div
+        className={cn("relative overflow-hidden", layout === "mobile" ? "shrink-0" : "h-full w-full")}
+        style={frameStyle}
+      >
         {children}
       </div>
     </div>
