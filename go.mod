@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/lib/pq v1.10.9
-	github.com/nspcc-dev/neo-go v0.114.0
+	github.com/nspcc-dev/neo-go v0.116.0
 	github.com/nspcc-dev/rfc6979 v0.2.4
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sirupsen/logrus v1.9.3
