@@ -23,12 +23,15 @@ import { useWalletStore, type WalletStore } from "@/lib/wallet/store";
 import { MiniAppFrame } from "./MiniAppFrame";
 import { getChainRegistry } from "@/lib/chains/registry";
 import { getMiniappLocale } from "@neo/shared/i18n";
+import { useMiniAppLayout } from "@/hooks/useMiniAppLayout";
 
 interface MiniAppViewerProps {
   app: MiniAppInfo;
   locale?: string;
   /** Override chain ID (defaults to first supported chain from manifest, null if none) */
   chainId?: ChainId;
+  /** Override layout (web/mobile) */
+  layout?: "web" | "mobile";
 }
 
 interface WindowWithMiniAppSDK {
@@ -39,7 +42,7 @@ interface WindowWithMiniAppSDK {
  * MiniAppViewer - Renders a MiniApp in an iframe or federated module
  * Handles SDK injection and message bridging for the embedded app
  */
-export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: MiniAppViewerProps) {
+export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp, layout }: MiniAppViewerProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sdkRef = useRef<MiniAppSDK | null>(null);
   const effectiveChainId = useMemo(() => resolveChainIdForApp(app, chainIdProp), [app, chainIdProp]);
@@ -47,6 +50,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
   const federated = parseFederatedEntryUrl(entryUrl, app.app_id);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const { theme } = useTheme();
+  const resolvedLayout = useMiniAppLayout(layout);
 
   const contractAddress = useMemo(() => getContractForChain(app, effectiveChainId), [app, effectiveChainId]);
   const chainType = useMemo(() => {
@@ -57,8 +61,8 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
     const supportedLocale = getMiniappLocale(locale);
-    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1", layout: "web" });
-  }, [entryUrl, locale, theme]);
+    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1", layout: resolvedLayout });
+  }, [entryUrl, locale, theme, resolvedLayout]);
 
   useEffect(() => {
     if (federated) return;
@@ -150,7 +154,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
       permissions: app.permissions,
       supportedChains: app.supportedChains,
       chainContracts: app.chainContracts,
-      layout: "web",
+      layout: resolvedLayout,
     });
 
     if (sdk && sdk.wallet) {
@@ -174,7 +178,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
     }
 
     sdkRef.current = sdk;
-  }, [app.app_id, app.chainContracts, app.permissions, effectiveChainId, contractAddress, chainType]);
+  }, [app.app_id, app.chainContracts, app.permissions, effectiveChainId, contractAddress, chainType, resolvedLayout]);
 
   useEffect(() => {
     if (federated) return;
@@ -223,7 +227,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
           permissions: app.permissions,
           supportedChains: app.supportedChains,
           chainContracts: app.chainContracts,
-          layout: "web",
+          layout: resolvedLayout,
         });
       }
       return sdkRef.current;
@@ -316,11 +320,11 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-  }, [app.app_id, entryUrl, app.permissions, app.chainContracts, federated, effectiveChainId, chainType]);
+  }, [app.app_id, entryUrl, app.permissions, app.chainContracts, federated, effectiveChainId, chainType, resolvedLayout]);
 
   return (
     <div className="w-full h-full min-h-0 min-w-0 overflow-hidden bg-black">
-      <MiniAppFrame>
+      <MiniAppFrame layout={resolvedLayout}>
         <AnimatePresence>{!isLoaded && <MiniAppLoader app={app} />}</AnimatePresence>
 
         <motion.div
@@ -340,7 +344,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
                 view={federated.view}
                 remote={federated.remote}
                 theme={theme}
-                layout="web"
+                layout={resolvedLayout}
               />
             </div>
           ) : (

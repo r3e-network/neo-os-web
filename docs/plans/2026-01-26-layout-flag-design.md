@@ -15,11 +15,11 @@ The platform hosts MiniApps inside the web host app, admin console previews, and
 - Enforce a single layout visually via CSS overrides.
 
 ## Decision
-Use `layout=web|mobile` as the canonical flag. Hosts set it explicitly in entry URLs and SDK config. MiniApps can read it from the SDK config or query params; if missing, they infer layout from environment (wallet WebView -> mobile, otherwise web).
+Use `layout=web|mobile` as the canonical flag. Hosts set it explicitly in entry URLs and SDK config. MiniApps read it from the SDK config or query params; if missing, they infer layout from environment (mobile wallet -> mobile, otherwise web). The web host defaults to `web` unless a mobile wallet is detected or an explicit `?layout=` override is provided.
 
 ## Data Flow
 1) **Entry URL**  
-   - Host web: append `layout=web` along with `lang`, `theme`, `embedded=1`.  
+   - Host web: append `layout` derived from explicit `?layout=web|mobile` or inferred environment (web default).  
    - Admin preview: same as host web.  
    - Mobile wallet: append `layout=mobile`.
 
@@ -32,7 +32,10 @@ Use `layout=web|mobile` as the canonical flag. Hosts set it explicitly in entry 
 
 4) **Inference Fallback**  
    - If `layout` is missing, read query param.  
-   - If still missing, infer `mobile` when `window.ReactNativeWebView` exists; otherwise `web`.
+   - If still missing, infer `mobile` only when:
+     - The device is mobile (`navigator.userAgentData?.mobile` or a conservative UA regex), and
+     - A wallet provider is injected (`window.ReactNativeWebView`, `window.NEOLineN3`, `window.neo3Dapi`, `window.OneGate`, `window.ethereum`, etc).
+   - Otherwise default to `web` to avoid mobile browsers rendering scaled layouts.
 
 ## Error Handling
 If `layout` is missing or invalid, default to the inference flow and do not throw.
