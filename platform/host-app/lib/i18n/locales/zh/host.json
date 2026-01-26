@@ -562,7 +562,7 @@
           "desc": "从市场启动任何应用，无需安装。"
         }
       ],
-      "installSdk": "安装 @neo/uniapp-sdk 开始构建您自己的小程序。",
+      "installSdk": "安装 @r3e/uniapp-sdk 开始构建您自己的小程序。",
       "initSdk": "在项目中初始化 SDK：",
       "playgroundTitle": "试用交互式演练场",
       "playgroundDesc": "无需编写任何代码即可体验我们 API 的最快方式。",
@@ -1004,7 +1004,7 @@
   "sdks": {
     "jsSDK": {
       "subtitle": "面向浏览器 MiniApp 的官方 SDK。",
-      "install": "pnpm add @neo/uniapp-sdk",
+      "install": "pnpm add @r3e/uniapp-sdk",
       "features": [
         "由宿主应用注入（MiniApp 内无需 API Key）",
         "支持 iframe 与 Module Federation",
@@ -1034,7 +1034,7 @@
           "returns": "Promise<RandomnessResult>"
         }
       ],
-      "example": "import { waitForSDK } from '@neo/uniapp-sdk';\n\nconst sdk = await waitForSDK();\nconst address = await sdk.wallet.getAddress();\nconsole.log(`钱包地址: ${address}`);"
+      "example": "import { waitForSDK } from '@r3e/uniapp-sdk';\n\nconst sdk = await waitForSDK();\nconst address = await sdk.wallet.getAddress();\nconsole.log(`钱包地址: ${address}`);"
     },
     "goSDK": {
       "subtitle": "面向高性能后端服务的官方 Go SDK。",

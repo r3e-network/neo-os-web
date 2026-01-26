@@ -48,7 +48,7 @@ These remain as shared building blocks used by the platform services.
 
 - `platform/host-app`: Next.js host (Vercel) with iframe + Module Federation loader
 - `platform/builtin-app`: built-in MiniApps served as Module Federation remote
-- `platform/sdk`: JS SDK (`window.MiniAppSDK`)
+- `packages/@neo/uniapp-sdk`: JS SDK (published as `@r3e/uniapp-sdk`; host injects `window.MiniAppSDK` from `platform/host-app`)
 - `platform/edge`: Supabase Edge functions (auth/limits/routing)
 - `platform/rls`: Supabase RLS SQL policies (schema lives in `migrations/`)
 - `miniapps/`: built-in manifests + developer starter kits (static previews exported for iframe use)

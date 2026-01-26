@@ -117,6 +117,7 @@ k8s/secrets.yaml
 
 # Server binary (root level only, not platform/host-app/server/)
 /server
+/deploy-miniapps-live
 marble-runner
 /marble
 /gateway
@@ -145,4 +146,3 @@ platform/mobile-wallet/ios/
 
 # Lock files (use pnpm-lock.yaml instead)
 **/package-lock.json
-!package-lock.json

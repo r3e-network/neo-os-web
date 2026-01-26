@@ -12,6 +12,7 @@ import { logger } from "../../lib/logger";
 import { useI18n } from "../../lib/i18n/react";
 import type { ChainId } from "../../lib/chains/types";
 import { useWalletStore } from "../../lib/wallet/store";
+import { useMiniAppLayout } from "../../hooks/useMiniAppLayout";
 // Chain configuration comes from MiniApp manifest only - no environment defaults
 
 type RequestLike = {
@@ -40,6 +41,7 @@ export default function UnifiedAppPage({ app, stats, notifications, error }: Uni
   const router = useRouter();
   const { locale } = useI18n();
   const { connected, address, chainId: storeChainId } = useWalletStore();
+  const layout = useMiniAppLayout(router.query.layout);
   const requestedChainId = useMemo(() => {
     const raw = router.query.chain ?? router.query.chainId;
     if (Array.isArray(raw)) return (raw[0] || "") as ChainId;
@@ -90,7 +92,15 @@ export default function UnifiedAppPage({ app, stats, notifications, error }: Uni
           walletAddress={address}
         />
       }
-      centerPanel={<MiniAppViewer key={locale} app={app} locale={locale} chainId={effectiveChainId ?? undefined} />}
+      centerPanel={
+        <MiniAppViewer
+          key={locale}
+          app={app}
+          locale={locale}
+          chainId={effectiveChainId ?? undefined}
+          layout={layout}
+        />
+      }
     />
   );
 }

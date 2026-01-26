@@ -73,6 +73,8 @@ export default function AnalyticsPage() {
   );
 }
 
+export const getServerSideProps = async () => ({ props: {} });
+
 function AnalyticsDashboard({ analytics, t, locale }: { analytics: UserAnalytics; t: (key: string) => string; locale: string }) {
   const { summary, activity, appBreakdown } = analytics;
 

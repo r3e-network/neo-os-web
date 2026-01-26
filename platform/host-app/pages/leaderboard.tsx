@@ -20,3 +20,5 @@ export default function LeaderboardPage() {
     </Layout>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

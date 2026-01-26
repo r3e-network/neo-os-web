@@ -163,6 +163,17 @@ describe("LaunchPage", () => {
       expect(iframe?.getAttribute("referrerpolicy")).toBe("no-referrer");
     });
 
+    it("honors layout override in iframe src", async () => {
+      (useRouter as jest.Mock).mockReturnValue({
+        push: mockPush,
+        query: { id: "test-app", layout: "mobile" },
+      });
+
+      await renderLaunchPage();
+      const iframe = document.querySelector("iframe");
+      expect(iframe?.src).toBe("https://example.com/app?lang=en&theme=dark&embedded=1&layout=mobile");
+    });
+
     it("should render iframe sized by the frame container", async () => {
       await renderLaunchPage();
       const iframe = document.querySelector("iframe");

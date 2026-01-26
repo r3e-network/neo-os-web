@@ -9,6 +9,7 @@ import { useTheme } from "@/components/providers/ThemeProvider";
 import { useWalletStore } from "@/lib/wallet/store";
 import { getMiniappLocale } from "@neo/shared/i18n";
 import { resolveInternalBaseUrl } from "@/lib/edge";
+import { useMiniAppLayout } from "@/hooks/useMiniAppLayout";
 
 interface ContainerPageProps {
     appId: string;
@@ -20,6 +21,7 @@ export default function ContainerPage({ appId, app }: ContainerPageProps) {
     const { locale } = { locale: router.query.locale as string || "en" };
     const { theme } = useTheme();
     const { address, connected, provider, chainId: storeChainId } = useWalletStore();
+    const layout = useMiniAppLayout(router.query.layout);
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
     const sdkRef = useRef<ReturnType<typeof installMiniAppSDK> | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
@@ -30,8 +32,8 @@ export default function ContainerPage({ appId, app }: ContainerPageProps) {
 
     const iframeSrc = useMemo(() => {
         if (!entryUrl) return null;
-        return buildMiniAppEntryUrl(entryUrl, { lang: getMiniappLocale(locale), theme, embedded: "1", container: "true", layout: "web" });
-    }, [entryUrl, locale, theme]);
+        return buildMiniAppEntryUrl(entryUrl, { lang: getMiniappLocale(locale), theme, embedded: "1", container: "true", layout });
+    }, [entryUrl, locale, theme, layout]);
 
     useEffect(() => {
         if (!appInfo) {
@@ -44,9 +46,9 @@ export default function ContainerPage({ appId, app }: ContainerPageProps) {
             permissions: appInfo.permissions,
             supportedChains: appInfo.supportedChains,
             chainContracts: appInfo.chainContracts,
-            layout: "web",
+            layout,
         });
-    }, [appInfo, storeChainId]);
+    }, [appInfo, storeChainId, layout]);
 
     useEffect(() => {
         if (!iframeRef.current?.contentWindow || !sdkRef.current || !entryUrl) return;

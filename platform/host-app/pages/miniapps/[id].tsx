@@ -26,6 +26,7 @@ import { TagCloud } from "../../components/features/tags";
 import { MiniAppTransition } from "../../components/ui";
 import { ShareModal } from "../../components/features/share";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
+import { useMiniAppLayout } from "../../hooks/useMiniAppLayout";
 import {
   buildMiniAppEntryUrl,
   coerceMiniAppInfo,
@@ -163,6 +164,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   const { t } = useTranslation("host");
   const { locale } = useI18n();
   const { theme } = useTheme();
+  const layout = useMiniAppLayout(router.query.layout);
 
   const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "forum" | "news" | "secrets">("overview");
 
@@ -252,8 +254,8 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   const iframeSrc = useMemo(() => {
     if (!app) return "";
     const supportedLocale = getMiniappLocale(locale);
-    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1", layout: "web" });
-  }, [entryUrl, locale, theme, app]);
+    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1", layout });
+  }, [entryUrl, locale, theme, app, layout]);
 
   useEffect(() => {
     if (!app || federated) return;
@@ -302,9 +304,9 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       permissions: app.permissions,
       supportedChains: app.supportedChains,
       chainContracts: app.chainContracts,
-      layout: "web",
+      layout,
     });
-  }, [app, walletChainId, contractAddress, chainType]);
+  }, [app, walletChainId, contractAddress, chainType, layout]);
 
   // Iframe bridge for SDK communication
   useEffect(() => {
@@ -332,7 +334,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
           permissions: app.permissions,
           supportedChains: app.supportedChains,
           chainContracts: app.chainContracts,
-          layout: "web",
+          layout,
         });
       }
       return sdkRef.current;
@@ -664,10 +666,10 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       />
       <div className="flex-1 w-full min-h-0 overflow-hidden relative">
         <MiniAppTransition>
-          <MiniAppFrame>
+          <MiniAppFrame layout={layout}>
             {federated ? (
               <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-                <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} layout="web" />
+                <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} layout={layout} />
               </div>
             ) : (
               <>

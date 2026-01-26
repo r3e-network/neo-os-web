@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
+import { parseLayoutParam, resolveMiniAppLayout, type MiniAppLayout } from "@/lib/miniapp-layout";
 
-type Layout = "web" | "mobile";
+type LayoutOverride = string | string[] | null | undefined;
 
 const WALLET_PROVIDERS = [
   "ReactNativeWebView",
   "NEOLineN3",
+  "NEOLine",
   "neo3Dapi",
   "OneGate",
   "ethereum",
@@ -21,29 +23,33 @@ function hasWalletProvider(): boolean {
 
 function isMobileDevice(): boolean {
   if (typeof navigator === "undefined") return false;
+  const uaMobile = typeof navigator.userAgentData === "object" && navigator.userAgentData?.mobile;
+  if (uaMobile) return true;
   const ua = navigator.userAgent || "";
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  return /Mobi|Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 }
 
-function getQueryLayout(): Layout | null {
+function getQueryLayout(): MiniAppLayout | null {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
-  const layout = params.get("layout");
-  if (layout === "web" || layout === "mobile") return layout;
-  return null;
+  return parseLayoutParam(params.get("layout"));
 }
 
-export function useMiniAppLayout(override?: Layout): Layout {
-  return useMemo(() => {
-    if (override) return override;
+function resolveOverride(override: LayoutOverride): MiniAppLayout | null {
+  return parseLayoutParam(override) ?? getQueryLayout();
+}
 
-    const queryLayout = getQueryLayout();
-    if (queryLayout) return queryLayout;
+export function useMiniAppLayout(override?: LayoutOverride): MiniAppLayout {
+  const [layout, setLayout] = useState<MiniAppLayout>(() => resolveOverride(override) ?? "web");
 
-    if (isMobileDevice() && hasWalletProvider()) {
-      return "mobile";
-    }
-
-    return "web";
+  useEffect(() => {
+    const resolved = resolveMiniAppLayout({
+      override: resolveOverride(override),
+      isMobileDevice: isMobileDevice(),
+      hasWalletProvider: hasWalletProvider(),
+    });
+    setLayout(resolved);
   }, [override]);
+
+  return layout;
 }

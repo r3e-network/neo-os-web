@@ -347,3 +347,5 @@ function ContractResult({ result }: { result: SearchResult }) {
     </Card>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

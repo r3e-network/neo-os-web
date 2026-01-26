@@ -6,6 +6,7 @@ import { MiniAppFrame } from "../components/features/miniapp";
 import { installMiniAppSDK } from "../lib/miniapp-sdk";
 import { coerceMiniAppInfo, getContractForChain } from "../lib/miniapp";
 import type { ChainId } from "../lib/chains/types";
+import { useMiniAppLayout } from "../hooks/useMiniAppLayout";
 // Chain configuration comes from MiniApp manifest only - no environment defaults
 
 /** Get effective chainId from app manifest - returns null if app has no chain support */
@@ -22,6 +23,7 @@ export default function FederatedMiniApp() {
   const view = typeof router.query.view === "string" ? router.query.view : undefined;
   const remote = typeof router.query.remote === "string" ? router.query.remote : undefined;
   const remotes = process.env.NEXT_PUBLIC_MF_REMOTES || "";
+  const layout = useMiniAppLayout(router.query.layout);
 
   useEffect(() => {
     if (!appId) return;
@@ -47,10 +49,11 @@ export default function FederatedMiniApp() {
           chainId,
           contractAddress,
           permissions: info?.permissions,
+          layout,
         });
       } catch {
         if (!mounted) return;
-        installMiniAppSDK({ appId, chainId: getEffectiveChainId() });
+        installMiniAppSDK({ appId, chainId: getEffectiveChainId(), layout });
       }
     };
 
@@ -86,9 +89,9 @@ export default function FederatedMiniApp() {
           </div>
         </header>
         <section style={frameAreaStyle}>
-          <MiniAppFrame>
+          <MiniAppFrame layout={layout}>
             <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-              <FederatedMiniAppRenderer appId={appId} view={view} remote={remote} layout="web" />
+              <FederatedMiniAppRenderer appId={appId} view={view} remote={remote} layout={layout} />
             </div>
           </MiniAppFrame>
         </section>

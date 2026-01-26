@@ -399,6 +399,8 @@ export default function AccountPage() {
   );
 }
 
+export const getServerSideProps = async () => ({ props: {} });
+
 function StatItem({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 text-center hover:-translate-y-0.5 transition-all">

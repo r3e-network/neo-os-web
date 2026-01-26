@@ -30,6 +30,7 @@ import { MiniAppTransition } from "../../components/ui";
 import { useWalletStore } from "../../lib/wallet/store";
 import { getChainRegistry } from "../../lib/chains/registry";
 import { getMiniappLocale } from "@neo/shared/i18n";
+import { useMiniAppLayout } from "../../hooks/useMiniAppLayout";
 
 /** Window with MiniAppSDK for iframe injection */
 interface WindowWithMiniAppSDK {
@@ -52,6 +53,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   const { locale } = useI18n();
   const { theme } = useTheme();
   const { address, connected, provider, chainId: storeChainId, setChainId } = useWalletStore();
+  const layout = useMiniAppLayout(router.query.layout);
   const requestedChainId = useMemo(() => {
     const raw = router.query.chain ?? router.query.chainId;
     if (Array.isArray(raw)) return (raw[0] || "") as ChainId;
@@ -85,8 +87,8 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
     const supportedLocale = getMiniappLocale(locale);
-    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1", layout: "web" });
-  }, [entryUrl, locale, theme]);
+    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1", layout });
+  }, [entryUrl, locale, theme, layout]);
 
   useEffect(() => {
     if (federated) {
@@ -103,9 +105,9 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       permissions: app.permissions,
       supportedChains: app.supportedChains,
       chainContracts: app.chainContracts,
-      layout: "web",
+      layout,
     });
-  }, [app, effectiveChainId, contractAddress, chainType]);
+  }, [app, effectiveChainId, contractAddress, chainType, layout]);
 
   useEffect(() => {
     if (!effectiveChainId) return;
@@ -201,7 +203,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
           permissions: app.permissions,
           supportedChains: app.supportedChains,
           chainContracts: app.chainContracts,
-          layout: "web",
+          layout,
         });
       }
       return sdkRef.current;
@@ -286,7 +288,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-  }, [app.app_id, iframeSrc, app.permissions, federated, entryUrl, effectiveChainId, chainType]);
+  }, [app.app_id, iframeSrc, app.permissions, federated, entryUrl, effectiveChainId, chainType, layout]);
 
   const handleExit = useCallback(() => {
     // Return to app detail page
@@ -327,10 +329,10 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       />
       <div style={frameWrapperStyle}>
         <MiniAppTransition>
-          <MiniAppFrame>
+          <MiniAppFrame layout={layout}>
             {federated ? (
               <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-                <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} layout="web" />
+                <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} layout={layout} />
               </div>
             ) : (
               <>
