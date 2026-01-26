@@ -309,3 +309,5 @@ export default function DownloadPage() {
     </Layout>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });
