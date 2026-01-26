@@ -34,6 +34,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: "/miniapps/:path*",
+        destination: `${process.env.CDN_BASE_URL || "https://cdn.example.com"}/miniapps/:path*`,
+      },
+    ];
+  },
   async headers() {
     return [
       {
