@@ -1,7 +1,8 @@
 import React from "react";
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { MiniAppViewer } from "../../components/features/miniapp/MiniAppViewer";
 import type { MiniAppInfo } from "../../components/types";
+import { installMiniAppSDK } from "../../lib/miniapp-sdk";
 
 const federatedSpy = jest.fn();
 
@@ -42,6 +43,7 @@ jest.mock("@/lib/miniapp-sdk", () => ({
 describe("MiniAppViewer", () => {
   beforeEach(() => {
     federatedSpy.mockClear();
+    (installMiniAppSDK as jest.Mock).mockClear();
   });
 
   it("passes layout to federated miniapps", () => {
@@ -60,5 +62,27 @@ describe("MiniAppViewer", () => {
     render(<MiniAppViewer app={app} locale="en" />);
 
     expect(federatedSpy).toHaveBeenCalledWith(expect.objectContaining({ layout: "web" }));
+  });
+
+  it("passes resolved layout to SDK and federated apps", async () => {
+    const app: MiniAppInfo = {
+      app_id: "test-app",
+      name: "Test App",
+      description: "Test description",
+      icon: "🧩",
+      category: "utility",
+      entry_url: "mf://builtin?app=test-app",
+      supportedChains: [],
+      permissions: {},
+      chainContracts: {},
+    };
+
+    render(<MiniAppViewer app={app} locale="en" layout="mobile" />);
+
+    await waitFor(() => {
+      expect(installMiniAppSDK).toHaveBeenCalledWith(expect.objectContaining({ layout: "mobile" }));
+      expect(federatedSpy).toHaveBeenCalledWith(expect.objectContaining({ layout: "mobile" }));
+    });
+
   });
 });
