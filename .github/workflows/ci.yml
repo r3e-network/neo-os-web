@@ -48,7 +48,7 @@ jobs:
           cache: true
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@v6
         with:
           version: v1.64.8
           args: --timeout=10m
@@ -318,6 +318,8 @@ jobs:
           file: ./docker/Dockerfile.service
           push: false
           tags: service-layer-service:${{ github.sha }}
+          build-args: |
+            EGO_STRICT_SIGNING=0
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
