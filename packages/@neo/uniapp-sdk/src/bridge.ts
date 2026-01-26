@@ -250,7 +250,7 @@ function createPostMessageSDK(): MiniAppSDK {
       // Try to get config synchronously from window if available
       if (typeof window !== "undefined" && (window as any).__MINIAPP_CONFIG__) {
         cachedConfig = (window as any).__MINIAPP_CONFIG__;
-        return { ...cachedConfig, layout: resolveLayout(cachedConfig) };
+        return { ...cachedConfig, layout: resolveLayout(cachedConfig ?? undefined) };
       }
       // Return default config (will be updated async)
       return {
