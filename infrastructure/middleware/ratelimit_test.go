@@ -219,12 +219,16 @@ func TestRateLimiter_Cleanup(t *testing.T) {
 		t.Errorf("Initial size = %d, expected > 10000", initialSize)
 	}
 
-	// Cleanup should reset if size > 10000
+	// Cleanup should trim to max size if size > max
 	rl.Cleanup()
 
 	finalSize := rl.LimiterCount()
-	if finalSize != 0 {
-		t.Errorf("Final size = %d, want 0", finalSize)
+	expectedSize := rl.maxSize
+	if expectedSize <= 0 {
+		expectedSize = defaultMaxLimiters
+	}
+	if finalSize != expectedSize {
+		t.Errorf("Final size = %d, want %d", finalSize, expectedSize)
 	}
 }
 
