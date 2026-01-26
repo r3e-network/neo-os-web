@@ -24,7 +24,7 @@ def sync_single_app(app_name: str):
         region_name="auto",
     )
 
-    app_path = f"/home/neo/git/miniapps-repo/apps/{app_name}"
+    app_path = f"/home/neo/git/miniapps/apps/{app_name}"
 
     # Files to upload
     files = [
