@@ -38,7 +38,7 @@ const nextConfig = {
     return [
       {
         source: "/miniapps/:path*",
-        destination: `${process.env.CDN_BASE_URL || "https://cdn.example.com"}/miniapps/:path*`,
+        destination: "https://meshmini.app/miniapps/:path*",
       },
     ];
   },
