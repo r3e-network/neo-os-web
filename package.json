@@ -26,8 +26,13 @@
   },
   "pnpm": {
     "overrides": {
-      "@types/react": "^19.1.0",
-      "@types/react-dom": "^19.1.0",
+      "react": "^18.3.1",
+      "react-dom": "^18.3.1",
+      "react-is": "^18.3.1",
+      "@types/react": "^18.3.1",
+      "@types/react-dom": "^18.3.0",
+      "@types/react": "^18.3.1",
+      "@types/react-dom": "^18.3.0",
       "jspdf": ">=4.0.0",
       "@intlify/core-base": ">=9.1.11",
       "@intlify/message-resolver": ">=9.1.11",
