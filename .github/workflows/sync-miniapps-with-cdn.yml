@@ -25,6 +25,9 @@ env:
   R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
   R2_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
   R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+  R2_BUCKET_STAGING: ${{ secrets.R2_BUCKET_STAGING }}
+  R2_BUCKET_PRODUCTION: ${{ secrets.R2_BUCKET_PRODUCTION }}
+  CDN_BASE_URL: https://meshmini.app
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
 jobs:
@@ -56,11 +59,12 @@ jobs:
       - name: Determine bucket
         id: bucket
         run: |
-          if [ "${{ github.event.inputs.environment || 'staging' }}" = "production" ]; then
-            echo "bucket=${{ secrets.R2_BUCKET_PRODUCTION }}" >> "$GITHUB_OUTPUT"
+          ENV="${{ github.event.inputs.environment || 'staging' }}"
+          if [ "$ENV" = "production" ]; then
+            echo "bucket=${{ env.R2_BUCKET_PRODUCTION }}" >> "$GITHUB_OUTPUT"
             echo "env=production" >> "$GITHUB_OUTPUT"
           else
-            echo "bucket=${{ secrets.R2_BUCKET_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "bucket=${{ env.R2_BUCKET_STAGING }}" >> "$GITHUB_OUTPUT"
             echo "env=staging" >> "$GITHUB_OUTPUT"
           fi
 
@@ -167,7 +171,7 @@ jobs:
             fi
             
             echo "✓ Deployed $APP_NAME to $ENV"
-            echo "  URL: $R2_ENDPOINT/$BUCKET/$UPLOAD_DIR/index.html"
+            echo "  URL: ${{ env.CDN_BASE_URL }}/$MANIFEST_APP_ID/${{ github.sha }}/index.html"
             
             DEPLOYED=$((DEPLOYED + 1))
           done
@@ -181,9 +185,13 @@ jobs:
           echo "=========================================="
           echo "Environment: $ENV"
           echo "Bucket: $BUCKET"
+          echo "CDN URL: ${{ env.CDN_BASE_URL }}"
           echo "Deployed: $DEPLOYED"
           echo "Failed: $FAILED"
           echo "Commit: ${{ github.sha }}"
+          echo ""
+          echo "Example URL:"
+          echo "  ${{ env.CDN_BASE_URL }}/<app_id>/${{ github.sha }}/index.html"
 
       - name: Update version record
         if: steps.deploy.outputs.deployed > 0
