@@ -3,19 +3,19 @@
 The MiniApp SDK is injected by the host app and provides a safe bridge to MiniApp platform services.
 MiniApps should **never** construct or sign transactions directly.
 
-Use `@neo/uniapp-sdk` in UniApp/Vue, or access `window.MiniAppSDK` directly in other frameworks.
-The SDK source is maintained in this repo at `packages/@neo/uniapp-sdk` and published to npm.
+Use `@r3e/uniapp-sdk` in UniApp/Vue, or access `window.MiniAppSDK` directly in other frameworks.
+The SDK source is maintained in this repo at `packages/@neo/uniapp-sdk` and published to npm as `@r3e/uniapp-sdk`.
 
 ## Installation (UniApp/Vue)
 
 ```bash
-pnpm add @neo/uniapp-sdk
+pnpm add @r3e/uniapp-sdk
 ```
 
 ## Quick Start (UniApp/Vue)
 
 ```typescript
-import { useWallet, usePayments } from "@neo/uniapp-sdk";
+import { useWallet, usePayments } from "@r3e/uniapp-sdk";
 
 const APP_ID = "miniapp-my-app"; // must match manifest app_id
 
@@ -29,7 +29,7 @@ const walletAddress = address.value;
 ## Quick Start (Any Framework)
 
 ```typescript
-import { waitForSDK } from "@neo/uniapp-sdk";
+import { waitForSDK } from "@r3e/uniapp-sdk";
 
 const sdk = await waitForSDK();
 const address = await sdk.wallet.getAddress();

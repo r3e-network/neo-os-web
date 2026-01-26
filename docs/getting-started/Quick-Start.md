@@ -46,7 +46,7 @@ pnpm add @r3e/uniapp-sdk
 bun add @r3e/uniapp-sdk
 ```
 
-The SDK source is maintained in the platform repo under `packages/@r3e/uniapp-sdk` and published to npm.
+The SDK source is maintained in the platform repo under `packages/@neo/uniapp-sdk` and published to npm as `@r3e/uniapp-sdk`.
 
 ## Step 2: Initialize the SDK
 

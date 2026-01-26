@@ -14,7 +14,7 @@ The goal is **one module = one responsibility**, with **no duplicated chain I/O*
 
 - `platform/host-app`: Next.js host app (Vercel) for embedding MiniApps.
 - `platform/builtin-app`: built-in MiniApps served via Module Federation.
-- `platform/sdk`: MiniApp SDK (`window.MiniAppSDK`).
+- `packages/@neo/uniapp-sdk`: MiniApp SDK (published as `@r3e/uniapp-sdk`).
 - `platform/edge`: Supabase Edge functions (thin gateway).
 - `platform/rls`: reserved for platform RLS SQL (current schema is in `migrations/`).
 

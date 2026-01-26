@@ -247,15 +247,15 @@ miniapps-generate: ## Generate MiniApp templates
 	@echo "Generate templates from the miniapps repo."
 
 # =============================================================================
-# Platform SDK
+# MiniApp SDK
 # =============================================================================
 
-sdk-build: ## Build Platform SDK
-	@echo "Building Platform SDK..."
-	cd platform/sdk && npm run build
+sdk-build: ## Build MiniApp SDK
+	@echo "Building MiniApp SDK..."
+	pnpm -C packages/@neo/uniapp-sdk build
 
-sdk-typecheck: ## Typecheck Platform SDK
-	cd platform/sdk && npm run typecheck
+sdk-typecheck: ## Typecheck MiniApp SDK
+	pnpm -C packages/@neo/uniapp-sdk typecheck
 
 # =============================================================================
 # Host App (Next.js)
@@ -428,8 +428,8 @@ install: ## Install all dependencies
 	go mod download
 	@echo "→ Host App (npm)..."
 	cd platform/host-app && npm install
-	@echo "→ SDK (npm)..."
-	cd platform/sdk && npm install
+	@echo "→ MiniApp SDK (pnpm)..."
+	pnpm -C packages/@neo/uniapp-sdk install
 	@echo "All dependencies installed"
 
 install-all: install ## Alias for install
@@ -455,10 +455,10 @@ clean-all-deep: ## Deep clean everything (build artifacts, node_modules, Docker)
 	@$(MAKE) clean
 	@$(MAKE) miniapps-clean
 	@$(MAKE) host-app-clean
-	rm -rf platform/sdk/dist
+	rm -rf packages/@neo/uniapp-sdk/dist
 	rm -rf node_modules
 	rm -rf platform/host-app/node_modules
-	rm -rf platform/sdk/node_modules
+	rm -rf packages/@neo/uniapp-sdk/node_modules
 	$(DOCKER_COMPOSE) down -v --rmi local 2>/dev/null || true
 	docker system prune -f 2>/dev/null || true
 	@echo "Deep clean complete"

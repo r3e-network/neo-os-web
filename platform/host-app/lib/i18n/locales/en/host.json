@@ -562,7 +562,7 @@
           "desc": "Launch any app from our marketplace with zero installation required."
         }
       ],
-      "installSdk": "Install @neo/uniapp-sdk to begin building your own MiniApps.",
+      "installSdk": "Install @r3e/uniapp-sdk to begin building your own MiniApps.",
       "initSdk": "Initialize the SDK in your project:",
       "playgroundTitle": "Try the Interactive Playground",
       "playgroundDesc": "The fastest way to experiment with our APIs without writing a single line of code.",
@@ -1004,7 +1004,7 @@
   "sdks": {
     "jsSDK": {
       "subtitle": "Official MiniApp SDK for browser-based frontends.",
-      "install": "pnpm add @neo/uniapp-sdk",
+      "install": "pnpm add @r3e/uniapp-sdk",
       "features": [
         "Injected by the host app (no API keys in MiniApps)",
         "Works in iframe or Module Federation contexts",
@@ -1034,7 +1034,7 @@
           "returns": "Promise<RandomnessResult>"
         }
       ],
-      "example": "import { waitForSDK } from '@neo/uniapp-sdk';\n\nconst sdk = await waitForSDK();\nconst address = await sdk.wallet.getAddress();\nconsole.log(`Wallet: ${address}`);"
+      "example": "import { waitForSDK } from '@r3e/uniapp-sdk';\n\nconst sdk = await waitForSDK();\nconst address = await sdk.wallet.getAddress();\nconsole.log(`Wallet: ${address}`);"
     },
     "goSDK": {
       "subtitle": "Official Go SDK for high-performance backend services.",

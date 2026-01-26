@@ -102,7 +102,7 @@ V2 Events:
 Outside-the-enclave “web2 plumbing” that can run on Supabase/Vercel:
 
 - `platform/edge`: Supabase Edge Functions (thin gateway; auth, nonce, rate limits, routing)
-- `platform/sdk`: TypeScript SDK shapes (`window.MiniAppSDK`)
+- `packages/@neo/uniapp-sdk`: MiniApp SDK source (published as `@r3e/uniapp-sdk`; host injects `window.MiniAppSDK` from `platform/host-app/lib/miniapp-sdk`)
 - `platform/host-app`: Next.js host app (micro-frontends via iframe/Module Federation)
 - `platform/builtin-app`: built-in MiniApps served as Module Federation remote
 - `platform/rls`: RLS policy set (actual schema lives in `migrations/`)

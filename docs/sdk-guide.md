@@ -4,7 +4,7 @@ MiniApps must not construct or sign transactions directly. All sensitive actions
 
 `MiniApp → Host SDK → Supabase Edge (auth/limits) → TEE services (attested) → chain (Neo N3 / EVM)`
 
-The SDK source lives in this repo at `packages/@r3e/uniapp-sdk` and is published to npm as `@r3e/uniapp-sdk`.
+The SDK source lives in this repo at `packages/@neo/uniapp-sdk` and is published to npm as `@r3e/uniapp-sdk`.
 
 ## Runtime Model
 
@@ -139,9 +139,10 @@ declare global {
 
 ## Host-Only APIs
 
-The `platform/sdk` also exposes a host-only client (`HostSDK`) for workflows that
-must not be exposed to untrusted MiniApps (wallet binding, secrets, API keys,
-gasbank, oracle queries, compute execution, automation triggers).
+Host-only APIs live in the host app server code (`platform/host-app`) and the
+Supabase Edge layer (`platform/edge`). They must not be exposed to untrusted
+MiniApps (wallet binding, secrets, API keys, gasbank, oracle queries, compute
+execution, automation triggers).
 
 Auth can be provided either as a Supabase JWT (`Authorization: Bearer`) or as a
 user API key (`X-API-Key`) via `MiniAppSDKConfig.getAPIKey`. In production,

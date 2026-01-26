@@ -360,18 +360,18 @@ Review contracts/MiniApp{Name}/{Name}.cs for:
 
 Location: `platform/`
 
-#### 4.1 SDK (`platform/sdk/`)
+#### 4.1 MiniApp SDK (`packages/@neo/uniapp-sdk`)
 
 **Purpose**: TypeScript SDK for MiniApp development.
 
 **Key Files**:
 
 ```
-platform/sdk/src/
-├── client.ts            # Main SDK client
+packages/@neo/uniapp-sdk/src/
+├── bridge.ts            # SDK bridge + initialization
 ├── types.ts             # TypeScript type definitions
-├── payment.ts           # Payment utilities
-└── events.ts            # Event subscription
+├── composables/         # Vue composables
+└── index.ts             # Public entrypoint
 ```
 
 **Review Focus**:

@@ -22,7 +22,7 @@ repo’s Edge dev server supports both prefixes. The host app also provides
 `/api/rpc/relay` as a blueprint-friendly alias when a single relay endpoint is
 preferred (pass `fn` via query or JSON body).
 
-The JS SDK (`platform/sdk`) is expected to set `edgeBaseUrl` to:
+The JS SDK (`packages/@neo/uniapp-sdk`) is expected to set `edgeBaseUrl` to:
 
 - `https://<project>.supabase.co/functions/v1`
 

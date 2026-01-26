@@ -253,7 +253,7 @@ X-RateLimit-Reset: 1704067200
 For MiniApp developers, use the official SDK:
 
 ```typescript
-import { waitForSDK } from "@neo/uniapp-sdk";
+import { waitForSDK } from "@r3e/uniapp-sdk";
 
 const sdk = await waitForSDK();
 

@@ -413,11 +413,11 @@ function QuickStartContent({ t }: { t: any }) {
 
       <h2 className="text-2xl font-bold mt-16 mb-6">{t("docs.quickstart.devTitle")}</h2>
       <p>{t("docs.quickstart.installSdk")}</p>
-      <CodeBlock code="pnpm add @neo/uniapp-sdk" language="bash" />
+      <CodeBlock code="pnpm add @r3e/uniapp-sdk" language="bash" />
 
       <p className="mt-8">{t("docs.quickstart.initSdk")}</p>
       <CodeBlock
-        code={`import { waitForSDK } from "@neo/uniapp-sdk";
+        code={`import { waitForSDK } from "@r3e/uniapp-sdk";
 
 const sdk = await waitForSDK();
 const address = await sdk.wallet.getAddress();
