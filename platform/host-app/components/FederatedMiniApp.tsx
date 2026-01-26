@@ -6,6 +6,7 @@ type Props = {
   appId?: string;
   view?: string;
   theme?: string;
+  layout?: "web" | "mobile";
 };
 
 const hasRemotes = Boolean(process.env.NEXT_PUBLIC_MF_REMOTES);
@@ -29,7 +30,7 @@ type RemoteContainer = {
   __initialized?: boolean;
 };
 
-const FederatedLoader = ({ remote, appId, view, theme }: Props) => {
+const FederatedLoader = ({ remote, appId, view, theme, layout }: Props) => {
   const [LoadedComponent, setLoadedComponent] = useState<React.ComponentType<Props> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +100,7 @@ const FederatedLoader = ({ remote, appId, view, theme }: Props) => {
       </div>
     );
 
-  return <LoadedComponent appId={appId} view={view} remote={remote} theme={theme} />;
+  return <LoadedComponent appId={appId} view={view} remote={remote} theme={theme} layout={layout} />;
 };
 
 export function FederatedMiniApp(props: Props) {

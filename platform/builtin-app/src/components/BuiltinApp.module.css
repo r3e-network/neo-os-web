@@ -9,6 +9,15 @@
   box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
 }
 
+.root[data-layout='mobile'] {
+  margin: 0;
+  max-width: 100%;
+  min-height: 100%;
+  padding: 16px;
+  border-width: 2px;
+  box-shadow: none;
+}
+
 .root[data-theme='dark'] {
   background: #050505;
   border-color: white;
@@ -31,6 +40,11 @@
   border-bottom: 4px solid black;
 }
 
+.root[data-layout='mobile'] .header {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .root[data-theme='dark'] .header {
   border-color: white;
 }
@@ -42,6 +56,10 @@
   text-transform: uppercase;
   font-style: italic;
   letter-spacing: -0.02em;
+}
+
+.root[data-layout='mobile'] .title {
+  font-size: 24px;
 }
 
 .subtitle {
@@ -64,6 +82,10 @@
   flex-direction: column;
   gap: 12px;
   box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.root[data-layout='mobile'] .sdkPanel {
+  width: 100%;
 }
 
 .root[data-theme='dark'] .sdkPanel {
@@ -137,6 +159,10 @@
   margin-bottom: 24px;
 }
 
+.root[data-layout='mobile'] .nav {
+  flex-direction: column;
+}
+
 .navButton,
 .navButtonActive {
   padding: 10px 16px;
@@ -185,6 +211,10 @@
   background: white;
   border: 4px solid black;
   box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.root[data-layout='mobile'] .card {
+  padding: 16px;
 }
 
 .root[data-theme='dark'] .card {

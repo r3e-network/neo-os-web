@@ -91,6 +91,17 @@ Then open:
 
 - `http://localhost:3000/?entry_url=/miniapps/lottery/index.html`
 
+## MiniApp URL Params
+
+The host app appends the following query params when loading MiniApps:
+
+- `lang` (locale)
+- `theme` (`dark` / `light`)
+- `embedded=1`
+- `layout=web`
+
+Wallet hosts use `layout=mobile`. The resolved layout is also exposed via `miniapp_config` and `MiniAppSDK.getConfig().layout`.
+
 ## Module Federation (Optional)
 
 The built-in remote lives in `platform/builtin-app` and exposes `./App` as `builtin/App`.

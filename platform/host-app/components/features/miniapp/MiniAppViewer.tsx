@@ -57,7 +57,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
   // Build iframe URL with language and theme parameters
   const iframeSrc = useMemo(() => {
     const supportedLocale = getMiniappLocale(locale);
-    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1" });
+    return buildMiniAppEntryUrl(entryUrl, { lang: supportedLocale, theme, embedded: "1", layout: "web" });
   }, [entryUrl, locale, theme]);
 
   useEffect(() => {
@@ -150,6 +150,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
       permissions: app.permissions,
       supportedChains: app.supportedChains,
       chainContracts: app.chainContracts,
+      layout: "web",
     });
 
     if (sdk && sdk.wallet) {
@@ -222,6 +223,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
           permissions: app.permissions,
           supportedChains: app.supportedChains,
           chainContracts: app.chainContracts,
+          layout: "web",
         });
       }
       return sdkRef.current;
@@ -333,7 +335,13 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp }: Mini
         >
           {federated ? (
             <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-              <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} theme={theme} />
+              <FederatedMiniApp
+                appId={federated.appId}
+                view={federated.view}
+                remote={federated.remote}
+                theme={theme}
+                layout="web"
+              />
             </div>
           ) : (
             <iframe

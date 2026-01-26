@@ -30,7 +30,7 @@ export default function ContainerPage({ appId, app }: ContainerPageProps) {
 
     const iframeSrc = useMemo(() => {
         if (!entryUrl) return null;
-        return buildMiniAppEntryUrl(entryUrl, { lang: getMiniappLocale(locale), theme, embedded: "1", container: "true" });
+        return buildMiniAppEntryUrl(entryUrl, { lang: getMiniappLocale(locale), theme, embedded: "1", container: "true", layout: "web" });
     }, [entryUrl, locale, theme]);
 
     useEffect(() => {
@@ -44,6 +44,7 @@ export default function ContainerPage({ appId, app }: ContainerPageProps) {
             permissions: appInfo.permissions,
             supportedChains: appInfo.supportedChains,
             chainContracts: appInfo.chainContracts,
+            layout: "web",
         });
     }, [appInfo, storeChainId]);
 

@@ -105,6 +105,7 @@ describe("LaunchPage", () => {
     };
 
     mockSDK = {
+      getConfig: jest.fn().mockReturnValue({ layout: "web" }),
       getAddress: jest.fn().mockResolvedValue("NeoTestAddress123456789"),
       wallet: {
         getAddress: jest.fn().mockResolvedValue("NeoTestAddress123456789"),

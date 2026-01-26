@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { useMiniApps } from "@/lib/hooks/useMiniApps";
 import { useApproveMiniAppVersion, useRegistryMiniApps, useRejectMiniAppVersion } from "@/lib/hooks/useMiniAppRegistry";
+import { buildPreviewUrl, resolveEntryUrl } from "@/lib/miniapp-preview";
 import { formatDate, truncate } from "@/lib/utils";
 import type { RegistryMiniApp } from "@/types";
 
@@ -72,27 +73,6 @@ export default function MiniAppsPage() {
     return `${url}${separator}download=1`;
   };
 
-  const resolveEntryUrl = (url: string) => {
-    const trimmed = String(url || "").trim();
-    if (!trimmed) return "";
-    if (trimmed.startsWith("/")) {
-      const base = process.env.NEXT_PUBLIC_HOST_APP_URL?.trim().replace(/\/$/, "");
-      if (base) return `${base}${trimmed}`;
-      if (typeof window !== "undefined") return `${window.location.origin}${trimmed}`;
-      return trimmed;
-    }
-    return trimmed;
-  };
-
-  const buildPreviewUrl = (url: string, locale = previewLocale, theme = previewTheme) => {
-    const trimmed = String(url || "").trim();
-    if (!trimmed || trimmed.startsWith("mf://")) return "";
-    const resolved = resolveEntryUrl(trimmed);
-    if (!resolved) return "";
-    const separator = resolved.includes("?") ? "&" : "?";
-    return `${resolved}${separator}lang=${locale}&theme=${theme}&embedded=1`;
-  };
-
   const statusVariant = (status?: string | null) => {
     const normalized = String(status || "").toLowerCase();
     if (normalized === "pending_review") return "warning";
@@ -104,7 +84,7 @@ export default function MiniAppsPage() {
   const entryUrl = selectedRegistryApp?.latest_version?.entry_url || "";
   const buildUrl = resolveBuildUrl(selectedRegistryApp?.latest_build?.storage_path || null);
   const buildDownloadUrl = resolveBuildDownloadUrl(selectedRegistryApp?.latest_build?.storage_path || null);
-  const previewUrl = buildPreviewUrl(entryUrl);
+  const previewUrl = buildPreviewUrl(entryUrl, previewLocale, previewTheme);
   const testEntryUrl = selectedMiniApp?.entry_url || "";
   const canTestPreview = Boolean(testEntryUrl) && !testEntryUrl.startsWith("mf://");
   const testPreviewUrl = canTestPreview ? buildPreviewUrl(testEntryUrl, testLocale, testTheme) : "";
