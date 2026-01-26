@@ -38,7 +38,7 @@ const nextConfig = {
     return [
       {
         source: "/miniapps/:path*",
-        destination: "https://meshmini.app/miniapps/:path*",
+        destination: "https://meshmini.app/miniapps/miniapps/:path*",
       },
     ];
   },
