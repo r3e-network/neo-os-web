@@ -10,6 +10,7 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       go-cache-key: ${{ steps.go-cache.outputs.cache-hit }}
     steps:
@@ -37,6 +38,7 @@ jobs:
     name: Lint
     needs: setup
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -58,6 +60,7 @@ jobs:
     name: Build
     needs: setup
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -100,6 +103,7 @@ jobs:
     name: Unit Tests
     needs: [setup, build]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -125,6 +129,7 @@ jobs:
     name: Contracts (neo-express)
     needs: [setup, build]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -157,6 +162,7 @@ jobs:
     name: Integration Tests
     needs: [setup, build]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -174,6 +180,7 @@ jobs:
     name: E2E Tests
     needs: [setup, build]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -190,6 +197,7 @@ jobs:
   host-app-build:
     name: Host App Build (Next.js)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -220,6 +228,7 @@ jobs:
   sdk-build:
     name: SDK Build (TypeScript)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -247,6 +256,7 @@ jobs:
   edge-functions-check:
     name: Edge Functions Check (Deno)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -264,6 +274,7 @@ jobs:
     name: Security Scan
     needs: setup
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -305,6 +316,7 @@ jobs:
     name: Docker Build
     needs: [unit-tests, integration-tests, e2e-tests, security-scan]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
