@@ -69,7 +69,8 @@ func main() {
 	}
 
 	var m manifest.Manifest
-	if err := json.Unmarshal(manifestData, &m); err != nil {
+	err = json.Unmarshal(manifestData, &m)
+	if err != nil {
 		log.Fatalf("Failed to parse manifest: %v", err)
 	}
 
@@ -124,19 +125,21 @@ func main() {
 	// Wait for confirmation
 	log.Println("Waiting for confirmation...")
 	waitCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
 
 	appLog, err := client.WaitForApplicationLog(waitCtx, txHashString, 2*time.Second)
 	if err != nil {
+		cancel()
 		log.Fatalf("Failed to get application log: %v", err)
 	}
 
 	if appLog != nil && len(appLog.Executions) > 0 {
 		exec := appLog.Executions[0]
 		if exec.VMState != "HALT" {
+			cancel()
 			log.Fatalf("Deployment failed with state: %s, exception: %s", exec.VMState, exec.Exception)
 		}
 	}
+	cancel()
 
 	log.Println("=== Deployment Successful ===")
 	log.Printf("Contract Address: %s", contractAddressStr)

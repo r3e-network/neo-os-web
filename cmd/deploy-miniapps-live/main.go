@@ -49,10 +49,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("RPC: %v", err)
 	}
-	defer client.Close()
 
 	act, err := actor.NewSimple(client, account)
 	if err != nil {
+		client.Close()
 		log.Fatalf("Actor: %v", err)
 	}
 
@@ -75,6 +75,7 @@ func main() {
 	for name, hash := range deployed {
 		fmt.Printf("%s: %s\n", name, hash)
 	}
+	client.Close()
 }
 
 func deployContract(
@@ -104,7 +105,8 @@ func deployContract(
 	}
 
 	var m manifest.Manifest
-	if err := json.Unmarshal(manifestBytes, &m); err != nil {
+	err = json.Unmarshal(manifestBytes, &m)
+	if err != nil {
 		return "", fmt.Errorf("parse manifest: %w", err)
 	}
 

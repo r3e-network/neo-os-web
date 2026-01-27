@@ -86,7 +86,8 @@ func main() {
 		}
 
 		var m manifest.Manifest
-		if err := json.Unmarshal(manifestData, &m); err != nil {
+		err = json.Unmarshal(manifestData, &m)
+		if err != nil {
 			fmt.Printf("  ❌ Parse manifest: %v\n\n", err)
 			continue
 		}

@@ -73,18 +73,18 @@ func main() {
 
 		fmt.Printf("--- %s ---\n", name)
 
-		if _, err := os.Stat(nefPath); os.IsNotExist(err) {
+		if _, statErr := os.Stat(nefPath); os.IsNotExist(statErr) {
 			result := DeployResult{Name: name, Status: "skipped", Error: "NEF not found"}
 			results = append(results, result)
 			fmt.Printf("  ⚠️  NEF not found, skipping\n\n")
 			continue
 		}
 
-		deployed, err := deployer.DeployContract(nefPath, manifestPath)
-		if err != nil {
-			result := DeployResult{Name: name, Status: "failed", Error: err.Error()}
+		deployed, deployErr := deployer.DeployContract(nefPath, manifestPath)
+		if deployErr != nil {
+			result := DeployResult{Name: name, Status: "failed", Error: deployErr.Error()}
 			results = append(results, result)
-			fmt.Printf("  ❌ Failed: %v\n\n", err)
+			fmt.Printf("  ❌ Failed: %v\n\n", deployErr)
 			continue
 		}
 
@@ -105,8 +105,12 @@ func main() {
 
 	// Output JSON results
 	fmt.Println("\n=== Deployment Results (JSON) ===")
-	jsonData, _ := json.MarshalIndent(results, "", "  ")
-	fmt.Println(string(jsonData))
+	jsonData, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		log.Printf("Warning: Failed to marshal results: %v", err)
+	} else {
+		fmt.Println(string(jsonData))
+	}
 
 	// Output for config update
 	fmt.Println("\n=== Contract Addresses for Config ===")

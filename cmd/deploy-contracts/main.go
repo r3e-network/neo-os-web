@@ -72,19 +72,29 @@ func main() {
 
 	switch os.Args[1] {
 	case "status":
-		statusCmd.Parse(os.Args[2:])
+		if err := statusCmd.Parse(os.Args[2:]); err != nil {
+			log.Fatalf("Failed to parse status flags: %v", err)
+		}
 		runStatus(*statusRPC, *statusConfig)
 	case "deploy":
-		deployCmd.Parse(os.Args[2:])
+		if err := deployCmd.Parse(os.Args[2:]); err != nil {
+			log.Fatalf("Failed to parse deploy flags: %v", err)
+		}
 		runDeploy(*deployRPC, *deployConfig, *deployBuild, *deployContract, *deployDryRun)
 	case "update":
-		updateCmd.Parse(os.Args[2:])
+		if err := updateCmd.Parse(os.Args[2:]); err != nil {
+			log.Fatalf("Failed to parse update flags: %v", err)
+		}
 		runUpdate(*updateRPC, *updateConfig, *updateBuild, *updateContract)
 	case "verify":
-		verifyCmd.Parse(os.Args[2:])
+		if err := verifyCmd.Parse(os.Args[2:]); err != nil {
+			log.Fatalf("Failed to parse verify flags: %v", err)
+		}
 		runVerify(*verifyRPC, *verifyConfig)
 	case "export":
-		exportCmd.Parse(os.Args[2:])
+		if err := exportCmd.Parse(os.Args[2:]); err != nil {
+			log.Fatalf("Failed to parse export flags: %v", err)
+		}
 		runExport(*exportConfig, *exportFormat)
 	case "help", "-h", "--help":
 		printUsage()
@@ -142,10 +152,18 @@ func runStatus(rpcURL, configFile string) {
 	if err != nil {
 		log.Printf("Warning: Could not create deployer: %v", err)
 	} else {
-		blockCount, _ := deployer.GetBlockCount()
-		gasBalance, _ := deployer.GetGASBalanceFloat()
-		log.Printf("Block height: %d", blockCount)
-		log.Printf("Deployer GAS: %.4f", gasBalance)
+		blockCount, err := deployer.GetBlockCount()
+		if err != nil {
+			log.Printf("Warning: Could not get block count: %v", err)
+		} else {
+			log.Printf("Block height: %d", blockCount)
+		}
+		gasBalance, err := deployer.GetGASBalanceFloat()
+		if err != nil {
+			log.Printf("Warning: Could not get GAS balance: %v", err)
+		} else {
+			log.Printf("Deployer GAS: %.4f", gasBalance)
+		}
 	}
 
 	log.Println("\n=== Platform Contracts ===")
@@ -210,7 +228,9 @@ func runDeploy(rpcURL, configFile, buildDir, contractName string, dryRun bool) {
 
 	// Load registry
 	registry := chain.NewContractRegistry("testnet", filepath.Dir(configFile))
-	_ = registry.LoadFromFile(configFile)
+	if err := registry.LoadFromFile(configFile); err != nil {
+		log.Printf("Warning: Could not load config file: %v", err)
+	}
 
 	// Determine contracts to deploy
 	var toDeploy []string
@@ -291,7 +311,9 @@ func runUpdate(rpcURL, configFile, buildDir, contractName string) {
 
 	// Load registry
 	registry := chain.NewContractRegistry("testnet", filepath.Dir(configFile))
-	_ = registry.LoadFromFile(configFile)
+	if err := registry.LoadFromFile(configFile); err != nil {
+		log.Printf("Warning: Could not load config file: %v", err)
+	}
 	registry.LoadFromEnv()
 
 	info := registry.Get(contractName)
@@ -319,7 +341,9 @@ func runVerify(rpcURL, configFile string) {
 
 	// Load registry
 	registry := chain.NewContractRegistry("testnet", filepath.Dir(configFile))
-	_ = registry.LoadFromFile(configFile)
+	if err := registry.LoadFromFile(configFile); err != nil {
+		log.Printf("Warning: Could not load config file: %v", err)
+	}
 	registry.LoadFromEnv()
 
 	deployer, err := testnet.NewDeployer(rpcURL)
@@ -388,7 +412,9 @@ func runVerify(rpcURL, configFile string) {
 func runExport(configFile, format string) {
 	// Load registry
 	registry := chain.NewContractRegistry("testnet", filepath.Dir(configFile))
-	_ = registry.LoadFromFile(configFile)
+	if err := registry.LoadFromFile(configFile); err != nil {
+		log.Printf("Warning: Could not load config file: %v", err)
+	}
 	registry.LoadFromEnv()
 
 	switch format {
@@ -396,7 +422,10 @@ func runExport(configFile, format string) {
 		fmt.Println(registry.GenerateEnvExports())
 	case "json":
 		addresses := registry.GetAddresses()
-		data, _ := json.MarshalIndent(addresses, "", "  ")
+		data, err := json.MarshalIndent(addresses, "", "  ")
+		if err != nil {
+			log.Fatalf("Failed to marshal addresses: %v", err)
+		}
 		fmt.Println(string(data))
 	case "dotenv":
 		fmt.Println("# Neo N3 Contract Addresses")
