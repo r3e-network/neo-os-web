@@ -13,7 +13,9 @@ services:
       - EDG_COORDINATOR_CLIENT_ADDR=0.0.0.0:4433
       - EDG_COORDINATOR_DNS_NAMES=localhost,coordinator
       - EDG_COORDINATOR_SEAL_DIR=/coordinator/data
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      # SECURITY FIX [M-10]: Hardcode OE_SIMULATION=0 in production
+      # Do NOT allow environment variable override in production deployments
+      - OE_SIMULATION=0
     volumes:
       - coordinator-data:/coordinator/data
       - ../manifests:/manifests:ro
@@ -42,7 +44,7 @@ services:
       - EDG_MARBLE_TYPE=neofeeds
       - EDG_MARBLE_DNS_NAMES=localhost,neofeeds
       - SERVICE_TYPE=neofeeds
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -87,7 +89,7 @@ services:
       - EDG_MARBLE_TYPE=neoflow
       - EDG_MARBLE_DNS_NAMES=localhost,neoflow
       - SERVICE_TYPE=neoflow
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS
       - SUPABASE_URL
@@ -129,7 +131,7 @@ services:
       - EDG_MARBLE_TYPE=neoaccounts
       - EDG_MARBLE_DNS_NAMES=localhost,neoaccounts,accountpool
       - SERVICE_TYPE=neoaccounts
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -164,7 +166,7 @@ services:
       - EDG_MARBLE_TYPE=neogasbank
       - EDG_MARBLE_DNS_NAMES=localhost,neogasbank
       - SERVICE_TYPE=neogasbank
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -202,7 +204,7 @@ services:
       - EDG_MARBLE_TYPE=neocompute
       - EDG_MARBLE_DNS_NAMES=localhost,neocompute
       - SERVICE_TYPE=neocompute
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -238,7 +240,7 @@ services:
       - EDG_MARBLE_TYPE=neovrf
       - EDG_MARBLE_DNS_NAMES=localhost,neovrf,vrf
       - SERVICE_TYPE=neovrf
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -272,7 +274,7 @@ services:
       - EDG_MARBLE_TYPE=neooracle
       - EDG_MARBLE_DNS_NAMES=localhost,neooracle,oracle
       - SERVICE_TYPE=neooracle
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -310,7 +312,7 @@ services:
       - EDG_MARBLE_TYPE=neorequests
       - EDG_MARBLE_DNS_NAMES=localhost,neorequests
       - SERVICE_TYPE=neorequests
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -356,7 +358,7 @@ services:
       - EDG_MARBLE_TYPE=txproxy
       - EDG_MARBLE_DNS_NAMES=localhost,txproxy
       - SERVICE_TYPE=txproxy
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -394,7 +396,7 @@ services:
       - EDG_MARBLE_TYPE=globalsigner
       - EDG_MARBLE_DNS_NAMES=localhost,globalsigner
       - SERVICE_TYPE=globalsigner
-      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - OE_SIMULATION=0
       - PORT=${GLOBALSIGNER_PORT:-8092}
       - MARBLE_ENV=${MARBLE_ENV:-production}
       - SUPABASE_URL

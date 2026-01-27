@@ -30,9 +30,19 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_STAKE = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_PROPOSAL = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_VOTE = new byte[] { 0x04 };
+        // SECURITY FIX [M-08]: Track stake timestamps for time-weighted voting
+        private static readonly byte[] PREFIX_STAKE_TIME = new byte[] { 0x05 };
 
         // Maximum votes per proposal (10 billion NEO - total supply cap)
         private static readonly BigInteger MAX_VOTES_PER_PROPOSAL = 10_000_000_000_00000000;
+        
+        // SECURITY FIX [M-08]: Time-weighted voting constants
+        // Minimum stake duration for full voting weight (30 days in milliseconds)
+        private static readonly ulong MIN_STAKE_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
+        // Minimum voting weight multiplier (50% for new stakes)
+        private static readonly BigInteger MIN_WEIGHT_PERCENT = 50;
+        // Maximum voting weight multiplier (100% for mature stakes)
+        private static readonly BigInteger MAX_WEIGHT_PERCENT = 100;
 
         public struct Proposal
         {
@@ -86,6 +96,8 @@ namespace NeoMiniAppPlatform.Contracts
         private static StorageMap StakeMap() => new StorageMap(Storage.CurrentContext, PREFIX_STAKE);
         private static StorageMap ProposalMap() => new StorageMap(Storage.CurrentContext, PREFIX_PROPOSAL);
         private static StorageMap VoteMap() => new StorageMap(Storage.CurrentContext, PREFIX_VOTE);
+        // SECURITY FIX [M-08]: Storage map for stake timestamps
+        private static StorageMap StakeTimeMap() => new StorageMap(Storage.CurrentContext, PREFIX_STAKE_TIME);
 
         private static ByteString ProposalKey(string proposalId)
         {
@@ -98,6 +110,37 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString raw = StakeMap().Get(account);
             if (raw == null) return 0;
             return (BigInteger)raw;
+        }
+
+        // SECURITY FIX [M-08]: Get stake timestamp for time-weighted voting
+        public static ulong GetStakeTime(UInt160 account)
+        {
+            ByteString raw = StakeTimeMap().Get(account);
+            if (raw == null) return 0;
+            return (ulong)(BigInteger)raw;
+        }
+
+        // SECURITY FIX [M-08]: Calculate time-weighted voting power
+        // New stakes get 50% weight, increasing linearly to 100% over 30 days
+        // This prevents flash-loan style voting manipulation
+        private static BigInteger CalculateVotingWeight(UInt160 account, BigInteger amount)
+        {
+            ulong stakeTime = GetStakeTime(account);
+            if (stakeTime == 0) return amount * MIN_WEIGHT_PERCENT / 100;
+            
+            ulong currentTime = Runtime.Time;
+            if (currentTime <= stakeTime) return amount * MIN_WEIGHT_PERCENT / 100;
+            
+            ulong stakeDuration = currentTime - stakeTime;
+            if (stakeDuration >= MIN_STAKE_DURATION_MS)
+            {
+                return amount; // Full weight for mature stakes
+            }
+            
+            // Linear interpolation between MIN_WEIGHT_PERCENT and MAX_WEIGHT_PERCENT
+            BigInteger weightPercent = MIN_WEIGHT_PERCENT + 
+                (MAX_WEIGHT_PERCENT - MIN_WEIGHT_PERCENT) * (BigInteger)stakeDuration / (BigInteger)MIN_STAKE_DURATION_MS;
+            return amount * weightPercent / 100;
         }
 
         public static void Stake(BigInteger amount)
@@ -132,6 +175,12 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger current = GetStake(from);
             BigInteger newTotal = current + amount;
             StakeMap().Put(from, newTotal);
+            // SECURITY FIX [M-08]: Record stake timestamp for time-weighted voting
+            // Only set timestamp for new stakes, don't reset for additional stakes
+            if (current == 0)
+            {
+                StakeTimeMap().Put(from, Runtime.Time);
+            }
             OnStaked(from, amount, newTotal);
         }
 
@@ -224,15 +273,18 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(prev == null, "already voted");
             VoteMap().Put(voteKey, amount.ToByteArray());
 
-            if (support) p.Yes += amount;
-            else p.No += amount;
+            // SECURITY FIX [M-08]: Use time-weighted voting to prevent flash-loan attacks
+            BigInteger votingWeight = CalculateVotingWeight(voter, amount);
+            if (support) p.Yes += votingWeight;
+            else p.No += votingWeight;
 
             // Overflow protection: ensure total votes don't exceed maximum
             ExecutionEngine.Assert(p.Yes <= MAX_VOTES_PER_PROPOSAL, "yes votes overflow");
             ExecutionEngine.Assert(p.No <= MAX_VOTES_PER_PROPOSAL, "no votes overflow");
 
             ProposalMap().Put(ProposalKey(proposalId), StdLib.Serialize(p));
-            OnVoted(voter, proposalId, support, amount);
+            // SECURITY FIX [M-08]: Emit actual voting weight in event
+            OnVoted(voter, proposalId, support, votingWeight);
         }
 
         public static void Finalize(string proposalId)
