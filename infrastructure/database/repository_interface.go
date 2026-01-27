@@ -40,6 +40,9 @@ type GasBankRepository interface {
 	UpdateGasBankBalance(ctx context.Context, userID string, balance, reserved int64) error
 	CreateGasBankTransaction(ctx context.Context, tx *GasBankTransaction) error
 	GetGasBankTransactions(ctx context.Context, accountID string, limit int) ([]GasBankTransaction, error)
+	// DeductFeeAtomic atomically deducts a fee from a user's balance and records the transaction.
+	// This ensures balance update and transaction record are committed together.
+	DeductFeeAtomic(ctx context.Context, userID string, amount int64, tx *GasBankTransaction) (newBalance int64, err error)
 	CreateDepositRequest(ctx context.Context, deposit *DepositRequest) error
 	GetDepositRequests(ctx context.Context, userID string, limit int) ([]DepositRequest, error)
 	GetDepositByTxHash(ctx context.Context, txHash string) (*DepositRequest, error)

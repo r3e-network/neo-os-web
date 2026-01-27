@@ -38,6 +38,8 @@ type Service struct {
 	replayWindow time.Duration
 	replayMu     sync.Mutex
 	seenRequests map[string]time.Time
+	// SECURITY FIX [M-02]: Add maximum capacity to prevent memory exhaustion
+	maxSeenRequests int
 }
 
 type Config struct {
@@ -115,7 +117,7 @@ func New(cfg Config) (*Service, error) {
 
 	replayWindow := cfg.ReplayWindow
 	if replayWindow <= 0 {
-		replayWindow = 10 * time.Minute
+		replayWindow = 1 * time.Hour
 	}
 
 	base := commonservice.NewBase(&commonservice.BaseConfig{
@@ -136,6 +138,8 @@ func New(cfg Config) (*Service, error) {
 		signer:         cfg.Signer,
 		replayWindow:   replayWindow,
 		seenRequests:   make(map[string]time.Time),
+		// SECURITY FIX [M-02]: Limit replay cache size to prevent memory exhaustion
+		maxSeenRequests: 100000,
 	}
 
 	base.RegisterStandardRoutes()
@@ -166,6 +170,20 @@ func (s *Service) markSeen(requestID string) bool {
 
 	if until, ok := s.seenRequests[requestID]; ok && now.Before(until) {
 		return false
+	}
+
+	// SECURITY FIX [M-02]: Enforce maximum capacity to prevent memory exhaustion
+	// If at capacity, perform emergency cleanup of expired entries
+	if len(s.seenRequests) >= s.maxSeenRequests {
+		for key, until := range s.seenRequests {
+			if now.After(until) {
+				delete(s.seenRequests, key)
+			}
+		}
+		// If still at capacity after cleanup, reject new requests
+		if len(s.seenRequests) >= s.maxSeenRequests {
+			return false
+		}
 	}
 
 	s.seenRequests[requestID] = now.Add(s.replayWindow)

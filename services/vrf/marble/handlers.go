@@ -34,6 +34,9 @@ func (s *Service) handleRandom(w http.ResponseWriter, r *http.Request) {
 	}
 	if requestID == "" {
 		requestID = uuid.New().String()
+	} else if len(requestID) < 16 {
+		httputil.BadRequest(w, "request_id must be at least 16 characters")
+		return
 	}
 	if !s.markSeen(requestID) {
 		httputil.WriteError(w, http.StatusConflict, "request_id already used")

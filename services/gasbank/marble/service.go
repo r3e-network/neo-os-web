@@ -33,7 +33,13 @@ const (
 	Version     = "1.0.0"
 
 	// Deposit verification settings
-	RequiredConfirmations    = 1
+	// SECURITY FIX [M-03]: Dynamic confirmation requirements based on amount
+	MinRequiredConfirmations = 1   // For small amounts (< 100 GAS)
+	MedRequiredConfirmations = 3   // For medium amounts (100-1000 GAS)
+	MaxRequiredConfirmations = 6   // For large amounts (> 1000 GAS)
+	MediumAmountThreshold    = 100_00000000  // 100 GAS in smallest unit
+	LargeAmountThreshold     = 1000_00000000 // 1000 GAS in smallest unit
+	
 	DepositCheckInterval     = 15 * time.Second
 	DepositExpirationTime    = 24 * time.Hour
 	MaxPendingDepositsPerRun = 100
@@ -42,17 +48,41 @@ const (
 	GASContractAddress = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 )
 
+// getRequiredConfirmations returns the number of confirmations required based on deposit amount.
+// SECURITY FIX [M-03]: Larger deposits require more confirmations to protect against reorg attacks.
+func getRequiredConfirmations(amount int64) int {
+	if amount >= LargeAmountThreshold {
+		return MaxRequiredConfirmations
+	} else if amount >= MediumAmountThreshold {
+		return MedRequiredConfirmations
+	}
+	return MinRequiredConfirmations
+}
+
 var errDepositMismatch = errors.New("deposit transaction does not match request")
 
 // Service implements the NeoGasBank service.
 type Service struct {
 	*commonservice.BaseService
+	// SECURITY FIX [M-01]: Replace global mutex with per-user locks for better concurrency.
+	// Global lock is kept for operations that need cross-user consistency (e.g., deposit confirmation).
 	mu sync.RWMutex
+	// userLocks provides fine-grained locking per user to improve concurrent performance.
+	// Different users' operations can now execute in parallel.
+	userLocks sync.Map // map[string]*sync.Mutex
 
 	chainClient *chain.Client
 	db          database.RepositoryInterface
 
 	depositAddress string
+}
+
+// getUserLock returns a per-user mutex for fine-grained locking.
+// This allows concurrent operations on different users while maintaining
+// consistency for operations on the same user.
+func (s *Service) getUserLock(userID string) *sync.Mutex {
+	lock, _ := s.userLocks.LoadOrStore(userID, &sync.Mutex{})
+	return lock.(*sync.Mutex)
 }
 
 // Config holds NeoGasBank service configuration.
@@ -70,7 +100,7 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	strict := runtime.StrictIdentityMode() || cfg.Marble.IsEnclave()
-	requireDepositAddress := runtime.IsProduction()
+	requireDepositAddress := runtime.IsProduction() || strict
 
 	if strict && cfg.ChainClient == nil {
 		return nil, fmt.Errorf("neogasbank: chain client is required in strict/enclave mode")
@@ -136,7 +166,10 @@ func New(cfg Config) (*Service, error) {
 func (s *Service) statistics() map[string]any {
 	return map[string]any{
 		"deposit_check_interval":     DepositCheckInterval.String(),
-		"required_confirmations":     RequiredConfirmations,
+		// SECURITY FIX [M-03]: Show dynamic confirmation requirements
+		"min_required_confirmations": MinRequiredConfirmations,
+		"med_required_confirmations": MedRequiredConfirmations,
+		"max_required_confirmations": MaxRequiredConfirmations,
 		"deposit_expiration_time":    DepositExpirationTime.String(),
 		"chain_connected":            s.chainClient != nil,
 		"deposit_address_configured": s.depositAddress != "",
@@ -186,8 +219,10 @@ func (s *Service) DeductFee(ctx context.Context, req *DeductFeeRequest) (*Deduct
 		return &DeductFeeResponse{Success: false, Error: "service_id is required"}, nil
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// SECURITY FIX [M-01]: Use per-user lock instead of global lock for better concurrency
+	userLock := s.getUserLock(req.UserID)
+	userLock.Lock()
+	defer userLock.Unlock()
 
 	// Get current account
 	account, err := s.db.GetOrCreateGasBankAccount(ctx, req.UserID)
@@ -205,31 +240,23 @@ func (s *Service) DeductFee(ctx context.Context, req *DeductFeeRequest) (*Deduct
 		}, nil
 	}
 
-	// Deduct from balance
-	newBalance := account.Balance - req.Amount
-	if err := s.db.UpdateGasBankBalance(ctx, req.UserID, newBalance, account.Reserved); err != nil {
-		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("update balance: %v", err)}, nil
-	}
-
-	// Record transaction - if this fails, rollback the balance update
+	// SECURITY FIX [C-01]: Use atomic deduction to ensure balance update and transaction
+	// record are committed together, preventing inconsistent state.
 	txID := uuid.New().String()
 	tx := &database.GasBankTransaction{
-		ID:           txID,
-		AccountID:    account.ID,
-		TxType:       string(TxTypeServiceFee),
-		Amount:       -req.Amount,
-		BalanceAfter: newBalance,
-		ReferenceID:  req.ReferenceID,
-		Status:       "completed",
-		CreatedAt:    time.Now(),
+		ID:          txID,
+		AccountID:   account.ID,
+		TxType:      string(TxTypeServiceFee),
+		Amount:      -req.Amount,
+		ReferenceID: req.ReferenceID,
+		Status:      "completed",
+		CreatedAt:   time.Now(),
 	}
-	if err := s.db.CreateGasBankTransaction(ctx, tx); err != nil {
-		// Rollback balance update to maintain consistency
-		s.Logger().WithContext(ctx).WithError(err).Error("failed to record transaction, rolling back balance")
-		if rollbackErr := s.db.UpdateGasBankBalance(ctx, req.UserID, account.Balance, account.Reserved); rollbackErr != nil {
-			s.Logger().WithContext(ctx).WithError(rollbackErr).Error("CRITICAL: rollback failed, balance inconsistent")
-		}
-		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("record transaction: %v", err)}, nil
+
+	newBalance, err := s.db.DeductFeeAtomic(ctx, req.UserID, req.Amount, tx)
+	if err != nil {
+		s.Logger().WithContext(ctx).WithError(err).Error("atomic fee deduction failed")
+		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("deduct fee: %v", err)}, nil
 	}
 
 	return &DeductFeeResponse{
@@ -245,8 +272,10 @@ func (s *Service) ReserveFunds(ctx context.Context, req *ReserveFundsRequest) (*
 		return &ReserveFundsResponse{Success: false}, nil
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// SECURITY FIX [M-01]: Use per-user lock instead of global lock
+	userLock := s.getUserLock(req.UserID)
+	userLock.Lock()
+	defer userLock.Unlock()
 
 	account, err := s.db.GetOrCreateGasBankAccount(ctx, req.UserID)
 	if err != nil {
@@ -276,8 +305,10 @@ func (s *Service) ReleaseFunds(ctx context.Context, req *ReleaseFundsRequest) (*
 		return &ReleaseFundsResponse{Success: false}, nil
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// SECURITY FIX [M-01]: Use per-user lock instead of global lock
+	userLock := s.getUserLock(req.UserID)
+	userLock.Lock()
+	defer userLock.Unlock()
 
 	account, err := s.db.GetOrCreateGasBankAccount(ctx, req.UserID)
 	if err != nil {
@@ -394,7 +425,9 @@ func (s *Service) verifyTransaction(ctx context.Context, txHash, fromAddress str
 		return false, 0, err
 	}
 
-	return confirmations >= RequiredConfirmations, confirmations, nil
+	// SECURITY FIX [M-03]: Use dynamic confirmation requirements based on amount
+	requiredConfirmations := getRequiredConfirmations(expectedAmount)
+	return confirmations >= requiredConfirmations, confirmations, nil
 }
 
 func (s *Service) matchGasTransfer(notifications []chain.Notification, fromAddress string, expectedAmount int64) (bool, error) {
@@ -503,7 +536,9 @@ func (s *Service) confirmDeposit(ctx context.Context, deposit *database.DepositR
 		return
 	}
 	if s.depositTransactionExists(ctx, account.ID, deposit.ID) {
-		if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {
+		// SECURITY FIX [M-03]: Use dynamic confirmation requirements
+		requiredConf := getRequiredConfirmations(deposit.Amount)
+		if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), requiredConf); err != nil {
 			s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
 		}
 		return
@@ -536,7 +571,9 @@ func (s *Service) confirmDeposit(ctx context.Context, deposit *database.DepositR
 		return
 	}
 
-	if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {
+	// SECURITY FIX [M-03]: Use dynamic confirmation requirements
+	requiredConf := getRequiredConfirmations(deposit.Amount)
+	if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), requiredConf); err != nil {
 		s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
 	}
 

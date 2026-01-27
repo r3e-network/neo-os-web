@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -107,6 +108,48 @@ func (m *MockRepository) GetGasBankTransactions(ctx context.Context, accountID s
 		}
 	}
 	return result, nil
+}
+
+func (m *MockRepository) DeductFeeAtomic(ctx context.Context, userID string, amount int64, tx *GasBankTransaction) (int64, error) {
+	if err := m.checkError(); err != nil {
+		return 0, err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Find account
+	var account *GasBankAccount
+	for _, acc := range m.gasBankAccounts {
+		if acc.UserID == userID {
+			account = acc
+			break
+		}
+	}
+	if account == nil {
+		return 0, NewNotFoundError("gasbank_account", userID)
+	}
+
+	// Check available balance
+	available := account.Balance - account.Reserved
+	if available < amount {
+		return account.Balance, fmt.Errorf("insufficient balance: available %d, required %d", available, amount)
+	}
+
+	// Atomically update balance and create transaction
+	newBalance := account.Balance - amount
+	account.Balance = newBalance
+	account.UpdatedAt = time.Now()
+
+	tx.BalanceAfter = newBalance
+	if tx.ID == "" {
+		tx.ID = uuid.New().String()
+	}
+	if tx.CreatedAt.IsZero() {
+		tx.CreatedAt = time.Now()
+	}
+	m.gasBankTransactions[tx.ID] = tx
+
+	return newBalance, nil
 }
 
 // =============================================================================
