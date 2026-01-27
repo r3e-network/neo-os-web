@@ -1224,6 +1224,8 @@
   },
   "sidebar": {
     "title": "技术信息",
+    "chain": "区块链",
+    "chainId": "链 ID",
     "network": "网络",
     "magic": "Magic",
     "rpc": "RPC",
