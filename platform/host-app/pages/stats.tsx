@@ -18,8 +18,13 @@ import {
   AreaChart,
   Area,
   Cell,
+  PieChart,
+  Pie,
+  LineChart,
+  Line,
+  Legend,
 } from "recharts";
-import { Users, Activity, Wallet, LayoutGrid, TrendingUp, Loader2 } from "lucide-react";
+import { Users, Activity, Wallet, LayoutGrid, TrendingUp, Loader2, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 import { cn, formatNumber, formatTimeAgo } from "@/lib/utils";
 
 interface PlatformStats {
@@ -29,6 +34,14 @@ interface PlatformStats {
   activeApps: number;
   topApps: { name: string; users: number; color: string }[];
   mauHistory?: { name: string; active: number; transactions: number }[];
+  categoryDistribution?: { name: string; value: number; color: string }[];
+  chainDistribution?: { name: string; value: number; color: string }[];
+  dailyTrends?: { date: string; transactions: number; users: number; volume: number }[];
+  growth?: {
+    users: number;
+    transactions: number;
+    volume: number;
+  };
 }
 
 interface RecentEvent {
@@ -89,6 +102,19 @@ export default function EnhancedStatsPage() {
   const activeApps = stats?.activeApps || 0;
   const topApps = stats?.topApps || [];
   const mauHistory = stats?.mauHistory || [];
+  const categoryDistribution = stats?.categoryDistribution || [
+    { name: "Gaming", value: 35, color: "#9f9df3" },
+    { name: "DeFi", value: 25, color: "#f7aac7" },
+    { name: "Social", value: 20, color: "#00e599" },
+    { name: "NFT", value: 12, color: "#ffd93d" },
+    { name: "Utility", value: 8, color: "#6366f1" },
+  ];
+  const chainDistribution = stats?.chainDistribution || [
+    { name: "Neo N3", value: 60, color: "#00e599" },
+    { name: "Neo X", value: 25, color: "#9f9df3" },
+    { name: "Ethereum", value: 15, color: "#627eea" },
+  ];
+  const growth = stats?.growth || { users: 12.5, transactions: 8.3, volume: -2.1 };
 
   const chartGrid = isDark ? "#1f2436" : "#e6e4f5";
   const chartAxis = isDark ? "#94a3b8" : "#8a8aa0";
@@ -128,6 +154,7 @@ export default function EnhancedStatsPage() {
             icon={Users}
             color="text-erobo-purple"
             loading={loading}
+            trend={growth.users}
           />
           <StatSummaryCard
             title={t("stats.totalTransactions")}
@@ -135,6 +162,7 @@ export default function EnhancedStatsPage() {
             icon={Activity}
             color="text-erobo-pink"
             loading={loading}
+            trend={growth.transactions}
           />
           <StatSummaryCard
             title={t("stats.totalVolume")}
@@ -142,6 +170,7 @@ export default function EnhancedStatsPage() {
             icon={Wallet}
             color="text-neo"
             loading={loading}
+            trend={growth.volume}
           />
           <StatSummaryCard
             title={t("stats.totalApps")}
@@ -254,6 +283,115 @@ export default function EnhancedStatsPage() {
           </Card>
         </div>
 
+        {/* Distribution Charts Row */}
+        <div className="relative grid gap-6 lg:grid-cols-2 mb-10">
+          {/* Category Distribution */}
+          <Card className="erobo-card rounded-[28px]">
+            <CardHeader>
+              <CardTitle className="text-erobo-ink dark:text-white">
+                {t("statsPage.categoryDistribution") || "Category Distribution"}
+              </CardTitle>
+              <CardDescription>
+                {t("statsPage.categoryDistributionDesc") || "MiniApps by category"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              {loading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="animate-spin text-emerald-500" size={32} />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryDistribution}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {categoryDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: tooltipBg,
+                        border: `1px solid ${tooltipBorder}`,
+                        borderRadius: "12px",
+                        color: tooltipText,
+                      }}
+                      formatter={(value: number) => [`${value}%`, "Share"]}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      formatter={(value) => (
+                        <span className="text-xs text-erobo-ink-soft dark:text-gray-400">{value}</span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Chain Distribution */}
+          <Card className="erobo-card rounded-[28px]">
+            <CardHeader>
+              <CardTitle className="text-erobo-ink dark:text-white">
+                {t("statsPage.chainDistribution") || "Chain Distribution"}
+              </CardTitle>
+              <CardDescription>
+                {t("statsPage.chainDistributionDesc") || "Activity by blockchain"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              {loading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="animate-spin text-emerald-500" size={32} />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chainDistribution}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {chainDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: tooltipBg,
+                        border: `1px solid ${tooltipBorder}`,
+                        borderRadius: "12px",
+                        color: tooltipText,
+                      }}
+                      formatter={(value: number) => [`${value}%`, "Share"]}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      formatter={(value) => (
+                        <span className="text-xs text-erobo-ink-soft dark:text-gray-400">{value}</span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Transaction History */}
         <Card className="relative erobo-card rounded-[28px]">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -310,7 +448,21 @@ export default function EnhancedStatsPage() {
   );
 }
 
-function StatSummaryCard({ title, value, icon: Icon, color, loading }: any) {
+function StatSummaryCard({ title, value, icon: Icon, color, loading, trend }: any) {
+  const getTrendIcon = () => {
+    if (trend === undefined || trend === null) return null;
+    if (trend > 0) return <ArrowUpRight size={14} className="text-neo" />;
+    if (trend < 0) return <ArrowDownRight size={14} className="text-red-500" />;
+    return <Minus size={14} className="text-gray-400" />;
+  };
+
+  const getTrendColor = () => {
+    if (trend === undefined || trend === null) return "";
+    if (trend > 0) return "text-neo";
+    if (trend < 0) return "text-red-500";
+    return "text-gray-400";
+  };
+
   return (
     <Card className="erobo-card rounded-[28px] transition-all hover:-translate-y-1 hover:shadow-[0_30px_80px_rgba(159,157,243,0.25)] hover:border-erobo-purple/40">
       <CardContent className="p-6">
@@ -320,6 +472,12 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading }: any) {
             <h3 className="text-3xl font-bold text-erobo-ink dark:text-white mt-1">
               {loading ? <Loader2 className="animate-spin" size={24} /> : value}
             </h3>
+            {trend !== undefined && trend !== null && (
+              <div className={cn("flex items-center gap-1 mt-2 text-xs font-medium", getTrendColor())}>
+                {getTrendIcon()}
+                <span>{Math.abs(trend).toFixed(1)}% vs last month</span>
+              </div>
+            )}
           </div>
           <div className="p-3 rounded-xl bg-gradient-to-br from-erobo-sky/50 to-erobo-peach/40 dark:from-erobo-purple/20 dark:to-erobo-purple-dark/20 border border-white/60 dark:border-erobo-purple/20">
             <Icon size={24} className={color} strokeWidth={2} />
