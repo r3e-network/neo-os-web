@@ -12,7 +12,7 @@
     "prebuild": "bash ../../scripts/export_host_miniapps.sh",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .ts,.tsx --ignore-pattern '*.config.js' --ignore-pattern 'scripts/*.js' --ignore-pattern 'public/**/*.js' --ignore-pattern 'lib/sdk/*.js' --ignore-pattern '*.setup.js' --ignore-pattern 'test_pw.js' --ignore-pattern 'generate_assets_smart.js'",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"

@@ -205,7 +205,7 @@ async function scriptHashToAddressAsync(scriptHash: string): Promise<string> {
     if (KNOWN_ADDRESSES[normalized]) return KNOWN_ADDRESSES[normalized];
 
     // Remove 0x prefix if present
-    let hash = scriptHash.startsWith("0x") ? scriptHash.slice(2) : scriptHash;
+    const hash = scriptHash.startsWith("0x") ? scriptHash.slice(2) : scriptHash;
     if (hash.length !== 40) return scriptHash; // Invalid hash length
 
     // Reverse byte order (little-endian to big-endian)

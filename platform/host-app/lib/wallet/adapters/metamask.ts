@@ -46,38 +46,34 @@ export class MetaMaskAdapter implements EVMWalletAdapter {
       throw new Error(`Chain ${chainId} is not supported by MetaMask`);
     }
 
-    try {
-      // Request account access
-      const accounts = (await window.ethereum!.request({
-        method: "eth_requestAccounts",
-      })) as string[];
+    // Request account access
+    const accounts = (await window.ethereum!.request({
+      method: "eth_requestAccounts",
+    })) as string[];
 
-      if (!accounts || accounts.length === 0) {
-        throw new Error("No accounts found");
-      }
-
-      // Switch to the requested chain
-      await this.switchChain(chainId);
-
-      // Get balance
-      const balanceVal = await window.ethereum!.request({
-        method: "eth_getBalance",
-        params: [accounts[0], "latest"],
-      });
-
-      this.account = {
-        chainId,
-        address: accounts[0],
-        publicKey: "", // MetaMask doesn't expose public key easily without signing
-        balance: {
-          native: BigInt(balanceVal as string).toString(),
-        },
-      };
-
-      return this.account;
-    } catch (error: any) {
-      throw error;
+    if (!accounts || accounts.length === 0) {
+      throw new Error("No accounts found");
     }
+
+    // Switch to the requested chain
+    await this.switchChain(chainId);
+
+    // Get balance
+    const balanceVal = await window.ethereum!.request({
+      method: "eth_getBalance",
+      params: [accounts[0], "latest"],
+    });
+
+    this.account = {
+      chainId,
+      address: accounts[0],
+      publicKey: "", // MetaMask doesn't expose public key easily without signing
+      balance: {
+        native: BigInt(balanceVal as string).toString(),
+      },
+    };
+
+    return this.account;
   }
 
   async disconnect(): Promise<void> {

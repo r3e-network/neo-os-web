@@ -140,7 +140,7 @@ export async function getGameState(contractAddress: string, chainId: ChainId): P
       totalBets: "0",
       roundId: Number(parseInteger(roundRes.stack[0])),
     };
-  } catch {}
+  } catch { /* Silently fail */ }
   return { currentMultiplier: 1.0, playerCount: 0, totalBets: "0", roundId: 0 };
 }
 
@@ -172,7 +172,7 @@ export async function getVotingState(contractAddress: string | undefined, chainI
         endTime: Date.now() + 86400000,
       };
     }
-  } catch {}
+  } catch { /* Silently fail */ }
   return { proposalId: 0, title: "No Active Proposal", options: [], totalVotes: 0, endTime: 0 };
 }
 
@@ -194,7 +194,7 @@ export async function getContractStats(contractAddress: string, chainId: ChainId
         uniqueUsers: Number(parseInteger(arr[2])),
       };
     }
-  } catch {}
+  } catch { /* Silently fail */ }
   return { totalValueLocked: "0", totalTransactions: 0, uniqueUsers: 0 };
 }
 

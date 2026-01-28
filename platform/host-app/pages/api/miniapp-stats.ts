@@ -135,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (tx.amount) {
           try {
             appStatsMap[tx.app_id].volume += BigInt(String(tx.amount));
-          } catch {}
+          } catch { /* Invalid BigInt conversion */ }
         }
       }
       if (simTxs.length < pageSize) break;

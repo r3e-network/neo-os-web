@@ -91,7 +91,7 @@ export const CelebrationEffects = memo(function CelebrationEffects({
           }
           break;
 
-        case "confetti":
+        case "confetti": {
           const confettiCount = Math.floor(60 * multiplier);
           for (let i = 0; i < confettiCount; i++) {
             particles.push({
@@ -108,8 +108,9 @@ export const CelebrationEffects = memo(function CelebrationEffects({
             });
           }
           break;
+        }
 
-        case "coinrain":
+        case "coinrain": {
           const coinCount = Math.floor(25 * multiplier);
           for (let i = 0; i < coinCount; i++) {
             particles.push({
@@ -126,8 +127,9 @@ export const CelebrationEffects = memo(function CelebrationEffects({
             });
           }
           break;
+        }
 
-        case "sparkle":
+        case "sparkle": {
           const sparkleCount = Math.floor(30 * multiplier);
           for (let i = 0; i < sparkleCount; i++) {
             particles.push({
@@ -142,6 +144,7 @@ export const CelebrationEffects = memo(function CelebrationEffects({
             });
           }
           break;
+        }
       }
 
       return particles;

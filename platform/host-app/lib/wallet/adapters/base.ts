@@ -111,7 +111,7 @@ export interface EVMTransactionParams {
  * Legacy InvokeParams for backward compatibility (Neo N3)
  * @deprecated Use NeoInvokeParams or EVMTransactionParams
  */
-export interface InvokeParams extends NeoInvokeParams {}
+export type InvokeParams = NeoInvokeParams;
 
 /**
  * Union type for multi-chain invoke parameters

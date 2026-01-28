@@ -520,6 +520,26 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
 
   // Wallet connection is handled globally by useWalletStore
 
+  // Move hooks before early return to comply with React hooks rules
+  const shareUrl = useMemo(() => {
+    if (!app) return "";
+    const chainQuery = walletChainId ? `?chain=${encodeURIComponent(walletChainId)}` : "";
+    return `${typeof window !== "undefined" ? window.location.origin : ""}/miniapps/${app.app_id}${chainQuery}`;
+  }, [app, walletChainId]);
+
+  const handleShare = useCallback(() => {
+    setIsShareModalOpen(true);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    router.push("/miniapps");
+  }, [router]);
+
+  const statCards = useMemo(() => {
+    if (!app || !stats) return [];
+    return buildStatCards(stats, app.stats_display ?? undefined, t);
+  }, [app, stats, t]);
+
   if (error || !app) {
     return (
       <div className="min-h-screen bg-background text-foreground">
@@ -536,23 +556,6 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       </div>
     );
   }
-
-  const handleBack = () => {
-    // Force exit to the main directory to ensure we don't get stuck in internal history states
-    // or query parameter changes. This ensures the back button strictly "exits" the MiniApp.
-    router.push("/miniapps");
-  };
-
-  const shareUrl = useMemo(() => {
-    const chainQuery = walletChainId ? `?chain=${encodeURIComponent(walletChainId)}` : "";
-    return `${typeof window !== "undefined" ? window.location.origin : ""}/miniapps/${app.app_id}${chainQuery}`;
-  }, [app.app_id, walletChainId]);
-
-  const handleShare = useCallback(() => {
-    setIsShareModalOpen(true);
-  }, []);
-
-  const statCards = stats ? buildStatCards(stats, app.stats_display ?? undefined, t) : [];
 
   // Left panel: App details
   const leftPanel = (

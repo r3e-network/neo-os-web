@@ -73,7 +73,7 @@ export default async function handler(
     const versionRows = data || [];
     const versionIds = versionRows.map((row) => row.id).filter(Boolean);
 
-    let buildsByVersion = new Map<string, ReviewQueueItem["build"]>();
+    const buildsByVersion = new Map<string, ReviewQueueItem["build"]>();
     if (versionIds.length) {
       const { data: builds, error: buildError } = await supabaseAdmin
         .from("miniapp_builds")

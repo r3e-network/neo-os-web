@@ -404,15 +404,17 @@ export default function MiniAppsPage() {
           return (b.stats?.users || 0) - (a.stats?.users || 0);
         case "transactions":
           return (b.stats?.transactions || 0) - (a.stats?.transactions || 0);
-        case "recent":
+        case "recent": {
           const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
           const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
           return bDate - aDate;
+        }
         case "trending":
-        default:
+        default: {
           const aScore = (a.stats?.users || 0) + (a.stats?.transactions || 0);
           const bScore = (b.stats?.users || 0) + (b.stats?.transactions || 0);
           return bScore - aScore;
+        }
       }
     });
 
