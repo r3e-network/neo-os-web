@@ -12,6 +12,7 @@ const { NextFederationPlugin } = require("@module-federation/nextjs-mf");
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["../shared"],
+  turbopack: false,
   experimental: {
     externalDir: true,
   },
