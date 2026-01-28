@@ -20,7 +20,7 @@ import { RightSidebarPanel } from "../../components/layout/RightSidebarPanel";
 import { LaunchDock } from "../../components/LaunchDock";
 import { FederatedMiniApp } from "../../components/FederatedMiniApp";
 import { LiveChat } from "../../components/features/chat";
-import { MiniAppFrame } from "../../components/features/miniapp";
+import { MiniAppFrame, ScreenshotGallery, VersionHistory, PermissionsCard } from "../../components/features/miniapp";
 import { SimilarApps } from "../../components/features/discovery/SimilarApps";
 import { TagCloud } from "../../components/features/tags";
 import { MiniAppTransition } from "../../components/ui";
@@ -835,19 +835,26 @@ function OverviewTab({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-white dark:bg-[#1a1b26] rounded-xl p-6 border border-border">
-        <h3 className="text-lg font-semibold text-foreground mt-0 mb-4">{t("detail.permissions")}</h3>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
-          {Object.entries(app.permissions).map(([key, value]) =>
-            value ? (
-              <div key={key} className="flex items-center gap-2">
-                <span className="text-neo font-bold text-base">✓</span>
-                <span className="text-sm text-foreground">{formatPermission(key)}</span>
-              </div>
-            ) : null,
-          )}
-        </div>
-      </div>
+      {/* Screenshots Gallery */}
+      {app.screenshots && app.screenshots.length > 0 && (
+        <ScreenshotGallery
+          screenshots={app.screenshots}
+          appName={app.name}
+          className="mb-2"
+        />
+      )}
+
+      {/* Permissions Card - Enhanced */}
+      <PermissionsCard permissions={app.permissions} />
+
+      {/* Version History */}
+      {app.versions && app.versions.length > 0 && (
+        <VersionHistory
+          versions={app.versions}
+          currentVersion={app.currentVersion}
+          maxVisible={3}
+        />
+      )}
 
       {app.limits && (
         <div className="bg-white dark:bg-[#1a1b26] rounded-xl p-6 border border-border">
@@ -883,6 +890,21 @@ function OverviewTab({
           {chainId ? ` (${chainId})` : ""}:{" "}
           <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo">{entryUrl}</code>
         </p>
+        {app.currentVersion && (
+          <p className="text-sm text-muted-foreground my-2">
+            {t("detail.version") || "Version"}:{" "}
+            <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo">v{app.currentVersion}</code>
+          </p>
+        )}
+        {app.developer && (
+          <p className="text-sm text-muted-foreground my-2">
+            {t("detail.developer") || "Developer"}:{" "}
+            <span className="font-medium text-foreground">{app.developer.name}</span>
+            {app.developer.verified && (
+              <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-neo/10 text-neo">✓ Verified</span>
+            )}
+          </p>
+        )}
       </div>
     </div>
   );

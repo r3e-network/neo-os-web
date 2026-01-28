@@ -9,3 +9,9 @@ export { MiniAppFrame } from "./MiniAppFrame";
 export { FilterSidebar } from "./FilterSidebar";
 
 export { MiniAppViewer } from "./MiniAppViewer";
+
+// New components for detail page
+export { ScreenshotGallery, type Screenshot } from "./ScreenshotGallery";
+export { VersionHistory, type VersionInfo } from "./VersionHistory";
+export { PermissionsCard, type MiniAppPermissions } from "./PermissionsCard";
+export { ActionButtons } from "./ActionButtons";

@@ -78,6 +78,26 @@ export type MiniAppInfo = {
   } | null;
   features?: string[];
   created_at?: string;
+
+  // ========== Detail Page Enhancements ==========
+  /** Screenshots/preview images for the app */
+  screenshots?: {
+    url: string;
+    caption?: string;
+    thumbnail?: string;
+  }[];
+  /** Version history */
+  versions?: {
+    version: string;
+    releaseDate: string;
+    changelog?: string[];
+    size?: string;
+    status?: "stable" | "beta" | "deprecated";
+    downloadUrl?: string;
+    isLatest?: boolean;
+  }[];
+  /** Current version */
+  currentVersion?: string;
 };
 
 export type MiniAppStats = {
