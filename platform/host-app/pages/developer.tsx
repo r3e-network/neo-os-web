@@ -284,6 +284,181 @@ export default function DeveloperPage() {
         </div>
       </section>
 
+      {/* SDK Examples Section */}
+      <section className="py-20 px-4 bg-gray-50 dark:bg-[#050505]">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">SDK Examples</h2>
+            <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Get started quickly with these code examples
+            </p>
+          </div>
+          
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Wallet Integration */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+                <h3 className="font-bold text-gray-900 dark:text-white">Wallet Integration</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Connect and interact with user wallets</p>
+              </div>
+              <div className="p-6">
+                <pre className="rounded-xl bg-gray-900 dark:bg-black p-4 overflow-x-auto text-sm">
+                  <code className="text-slate-300 font-mono">{`import { waitForSDK } from "@r3e/uniapp-sdk";
+
+// Initialize SDK
+const sdk = await waitForSDK();
+
+// Get wallet address
+const address = await sdk.wallet.getAddress();
+
+// Request payment
+const result = await sdk.wallet.requestPayment({
+  to: "NX...",
+  amount: "10",
+  asset: "GAS"
+});`}</code>
+                </pre>
+              </div>
+            </motion.div>
+
+            {/* VRF Random Numbers */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+                <h3 className="font-bold text-gray-900 dark:text-white">VRF Random Numbers</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Generate verifiable random numbers</p>
+              </div>
+              <div className="p-6">
+                <pre className="rounded-xl bg-gray-900 dark:bg-black p-4 overflow-x-auto text-sm">
+                  <code className="text-slate-300 font-mono">{`// Request random number
+const random = await sdk.vrf.requestRandom({
+  min: 1,
+  max: 100,
+  count: 1
+});
+
+console.log("Random:", random.values[0]);
+console.log("Proof:", random.proof);`}</code>
+                </pre>
+              </div>
+            </motion.div>
+
+            {/* Oracle Data Feeds */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+                <h3 className="font-bold text-gray-900 dark:text-white">Oracle Data Feeds</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Access real-time price data</p>
+              </div>
+              <div className="p-6">
+                <pre className="rounded-xl bg-gray-900 dark:bg-black p-4 overflow-x-auto text-sm">
+                  <code className="text-slate-300 font-mono">{`// Get price feed
+const price = await sdk.oracle.getPrice({
+  pair: "NEO/USD",
+  source: "aggregated"
+});
+
+console.log("Price:", price.value);
+console.log("Updated:", price.timestamp);`}</code>
+                </pre>
+              </div>
+            </motion.div>
+
+            {/* TEE Secrets */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+                <h3 className="font-bold text-gray-900 dark:text-white">TEE Secrets</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Secure secret management</p>
+              </div>
+              <div className="p-6">
+                <pre className="rounded-xl bg-gray-900 dark:bg-black p-4 overflow-x-auto text-sm">
+                  <code className="text-slate-300 font-mono">{`// Store secret in TEE
+await sdk.secrets.set({
+  key: "api_key",
+  value: "sk_live_xxx",
+  encrypted: true
+});
+
+// Retrieve secret
+const secret = await sdk.secrets.get("api_key");`}</code>
+                </pre>
+              </div>
+            </motion.div>
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link href="/docs?section=js-sdk">
+              <Button className="bg-neo text-white rounded-xl font-medium hover:bg-neo/90 transition-all">
+                View Full SDK Documentation
+                <ChevronRight size={16} className="ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* API Reference Quick Links */}
+      <section className="py-20 px-4">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">API Reference</h2>
+            <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Comprehensive API documentation for all platform services
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {[
+              { name: "REST API", desc: "HTTP endpoints", href: "/docs?section=rest-api", icon: "🌐" },
+              { name: "WebSocket", desc: "Real-time events", href: "/docs?section=websocket", icon: "⚡" },
+              { name: "VRF Service", desc: "Random numbers", href: "/docs?section=vrf", icon: "🎲" },
+              { name: "Oracle", desc: "Price feeds", href: "/docs?section=oracle", icon: "📊" },
+              { name: "Secrets", desc: "TEE storage", href: "/docs?section=secrets", icon: "🔐" },
+              { name: "GasBank", desc: "Gas sponsorship", href: "/docs?section=gasbank", icon: "⛽" },
+              { name: "Automation", desc: "Scheduled tasks", href: "/docs?section=automation", icon: "🤖" },
+              { name: "Error Codes", desc: "Error handling", href: "/docs?section=errors", icon: "⚠️" },
+            ].map((api, idx) => (
+              <Link key={api.name} href={api.href}>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: idx * 0.05 }}
+                  className="p-4 rounded-xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 hover:border-neo/40 hover:shadow-lg transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{api.icon}</span>
+                    <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-neo transition-colors">
+                        {api.name}
+                      </h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{api.desc}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Result Notification */}
       <AnimatePresence>
         {result && !showForm && (
