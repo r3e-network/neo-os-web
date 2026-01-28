@@ -459,6 +459,15 @@
     "chains": "支持链",
     "similarApps": "相似应用",
     "viewAll": "查看全部",
+    "openApp": "打开",
+    "install": "安装",
+    "installing": "安装中...",
+    "share": "分享",
+    "wishlist": "加入心愿单",
+    "permissionsNote": "所有权限由平台强制执行。小程序未经明确许可无法访问功能。",
+    "versionHistory": "版本历史",
+    "version": "版本",
+    "developer": "开发者",
     "status": {
       "active": "活跃",
       "inactive": "未激活",
@@ -476,6 +485,40 @@
       "active": "有效",
       "expired": "已过期",
       "revoked": "已撤销"
+    }
+  },
+  "permissions": {
+    "payments": {
+      "label": "支付",
+      "desc": "可以请求支付交易"
+    },
+    "rng": {
+      "label": "随机数",
+      "desc": "访问可验证随机数生成"
+    },
+    "datafeed": {
+      "label": "数据源",
+      "desc": "访问预言机价格源和外部数据"
+    },
+    "notifications": {
+      "label": "通知",
+      "desc": "可以发送推送通知"
+    },
+    "confidential": {
+      "label": "机密计算",
+      "desc": "使用 TEE 进行安全计算"
+    },
+    "storage": {
+      "label": "存储",
+      "desc": "可以在链上或链下存储数据"
+    },
+    "analytics": {
+      "label": "分析",
+      "desc": "收集使用分析数据"
+    },
+    "automation": {
+      "label": "自动化",
+      "desc": "可以调度自动化任务"
     }
   },
   "docs": {
@@ -1220,7 +1263,11 @@
     "method": "方法",
     "contract": "合约",
     "gasUsed": "GAS 消耗",
-    "time": "时间"
+    "time": "时间",
+    "categoryDistribution": "分类分布",
+    "categoryDistributionDesc": "按分类统计小程序",
+    "chainDistribution": "链分布",
+    "chainDistributionDesc": "按区块链统计活动"
   },
   "sidebar": {
     "title": "技术信息",

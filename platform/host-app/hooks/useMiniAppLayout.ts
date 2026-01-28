@@ -23,7 +23,8 @@ function hasWalletProvider(): boolean {
 
 function isMobileDevice(): boolean {
   if (typeof navigator === "undefined") return false;
-  const uaMobile = typeof navigator.userAgentData === "object" && navigator.userAgentData?.mobile;
+  const nav = navigator as Navigator & { userAgentData?: { mobile?: boolean } };
+  const uaMobile = typeof nav.userAgentData === "object" && nav.userAgentData?.mobile;
   if (uaMobile) return true;
   const ua = navigator.userAgent || "";
   return /Mobi|Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);

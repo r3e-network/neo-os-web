@@ -41,10 +41,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Disable ESLint during build (handled separately)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // ESLint is handled separately (not via next.config.js in Next.js 16+)
   async rewrites() {
     return [
       // Only proxy CDN assets (paths that don't start with "miniapp-")

@@ -323,7 +323,8 @@ export default function EnhancedStatsPage() {
                         borderRadius: "12px",
                         color: tooltipText,
                       }}
-                      formatter={(value: number) => [`${value}%`, "Share"]}
+                      // @ts-expect-error recharts formatter type
+                      formatter={(value: number) => [`${value}%`, "Share"] as unknown as string}
                     />
                     <Legend
                       verticalAlign="bottom"
@@ -376,7 +377,8 @@ export default function EnhancedStatsPage() {
                         borderRadius: "12px",
                         color: tooltipText,
                       }}
-                      formatter={(value: number) => [`${value}%`, "Share"]}
+                      // @ts-expect-error recharts formatter type
+                      formatter={(value: number) => [`${value}%`, "Share"] as unknown as string}
                     />
                     <Legend
                       verticalAlign="bottom"
