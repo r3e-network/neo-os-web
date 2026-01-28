@@ -577,8 +577,8 @@ func TestStatistics(t *testing.T) {
 	if stats["chain_connected"] != false {
 		t.Error("chain_connected should be false")
 	}
-	if stats["required_confirmations"] != RequiredConfirmations {
-		t.Errorf("required_confirmations = %v, want %d", stats["required_confirmations"], RequiredConfirmations)
+	if stats["min_required_confirmations"] != MinRequiredConfirmations {
+		t.Errorf("min_required_confirmations = %v, want %d", stats["min_required_confirmations"], MinRequiredConfirmations)
 	}
 }
 
@@ -859,9 +859,15 @@ func TestMaxPendingDepositsPerRunConstant(t *testing.T) {
 	}
 }
 
-func TestRequiredConfirmationsConstant(t *testing.T) {
-	if RequiredConfirmations != 1 {
-		t.Errorf("RequiredConfirmations = %d, want 1", RequiredConfirmations)
+func TestRequiredConfirmationsConstants(t *testing.T) {
+	if MinRequiredConfirmations != 1 {
+		t.Errorf("MinRequiredConfirmations = %d, want 1", MinRequiredConfirmations)
+	}
+	if MedRequiredConfirmations != 3 {
+		t.Errorf("MedRequiredConfirmations = %d, want 3", MedRequiredConfirmations)
+	}
+	if MaxRequiredConfirmations != 6 {
+		t.Errorf("MaxRequiredConfirmations = %d, want 6", MaxRequiredConfirmations)
 	}
 }
 
