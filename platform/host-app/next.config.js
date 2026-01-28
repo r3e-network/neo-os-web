@@ -21,6 +21,17 @@ const ContentSecurityPolicy = `
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'meshmini.app',
+        pathname: '/miniapps/**',
+      },
+    ],
+    // Allow unoptimized images for local development
+    unoptimized: process.env.NODE_ENV === 'development',
+  },
   pageExtensions: ["page.tsx", "page.ts", "tsx", "ts"].filter((ext) => !ext.includes("test")),
   transpilePackages: ["../shared"],
   experimental: {
