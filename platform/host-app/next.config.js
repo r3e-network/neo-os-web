@@ -36,9 +36,12 @@ const nextConfig = {
   },
   async rewrites() {
     return [
+      // Only proxy CDN assets (paths that don't start with "miniapp-")
+      // Page routes like /miniapps/miniapp-coinflip are handled by Next.js
+      // CDN assets like /miniapps/burn-league/index.html are proxied
       {
-        source: "/miniapps/:path*",
-        destination: "https://meshmini.app/miniapps/:path*",
+        source: "/miniapps/:folder((?!miniapp-)[^/]+)/:path*",
+        destination: "https://meshmini.app/miniapps/:folder/:path*",
       },
     ];
   },
