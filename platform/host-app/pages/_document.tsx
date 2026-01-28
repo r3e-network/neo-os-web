@@ -21,8 +21,8 @@ export default class MyDocument extends Document<Props> {
             name="description"
             content="Discover and use decentralized MiniApps on Neo N3, NeoX, Ethereum and more"
           />
-          <link rel="icon" href="/logo-icon.svg" type="image/svg+xml" />
-          <link rel="apple-touch-icon" href="/logo-icon.svg" />
+          <link rel="icon" href="/logo.png" type="image/svg+xml" />
+          <link rel="apple-touch-icon" href="/logo.png" />
           {/* Google Fonts for beautiful typography */}
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
