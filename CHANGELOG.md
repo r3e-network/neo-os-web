@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Round 9: Final documentation review and quality assurance
+- Enhanced JSDoc comments and API documentation
+- Theme toggle feature in settings page
+- Missing translation keys for permissions and stats
+- Secure encryption for mnemonic backup
 - Sprint 1: Code quality baseline and security improvements
 - Environment isolation configuration (development, testing, production)
 - Unified error handling package (`infrastructure/errors`)
@@ -26,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Round 9: Comprehensive code quality improvements across all packages
+- Updated @noble/hashes imports for v2.0.1 compatibility
+- Improved test coverage to 95%+
+- Performance optimization and dependency cleanup for host-app
+- Deep optimization and code quality improvements for mobile-wallet
 - Updated documentation for the current Supabase Edge + platform-contract architecture
 - Standardized chain writes through `txproxy` with contract+method allowlisting
 - Hardened outbound request policies (URL allowlists, SSRF mitigations) in strict identity/SGX mode
@@ -38,10 +48,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Round 9: Type errors in WCRequest and generateBackupId
+- ESLint and TypeScript strict mode compliance
+- Build issues across platform packages
+- Missing react and react-dom dependencies in host-app
+- GasBank test to use tiered confirmation constants
 - Documentation and module consistency issues (empty/broken modules, incorrect service docs)
 
 ### Security
 
+- Round 9: Fixed Next.js DoS vulnerability in admin-console dependencies
+- Use cryptographically secure random for IDs and backup codes
+- Upgraded next.js to fix security vulnerabilities
 - Added strict identity/SGX-mode safeguards and safer defaults for internal services
 
 ## [0.1.0] - 2024-12-10
