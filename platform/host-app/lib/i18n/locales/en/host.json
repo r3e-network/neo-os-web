@@ -431,6 +431,10 @@
     "news": "News",
     "secrets": "Secrets",
     "permissions": "Permissions",
+    "permissionsNote": "All permissions are enforced by the platform. MiniApps cannot access features without explicit permission.",
+    "versionHistory": "Version History",
+    "version": "Version",
+    "developer": "Developer",
     "limits": "Limits",
     "contractDetails": "Contract Details",
     "appInfo": "App Info",
@@ -459,12 +463,51 @@
     "chains": "Chains",
     "similarApps": "Similar Apps",
     "viewAll": "View All",
+    "openApp": "Open",
+    "install": "Install",
+    "installing": "Installing...",
+    "share": "Share",
+    "wishlist": "Add to Wishlist",
     "status": {
       "active": "Active",
       "inactive": "Inactive",
       "online": "Online",
       "maintenance": "Maintenance",
       "pending": "Pending"
+    }
+  },
+  "permissions": {
+    "payments": {
+      "label": "Payments",
+      "desc": "Can request payment transactions"
+    },
+    "rng": {
+      "label": "Random Numbers",
+      "desc": "Access to verifiable random number generation"
+    },
+    "datafeed": {
+      "label": "Data Feeds",
+      "desc": "Access to oracle price feeds and external data"
+    },
+    "notifications": {
+      "label": "Notifications",
+      "desc": "Can send push notifications"
+    },
+    "confidential": {
+      "label": "Confidential Computing",
+      "desc": "Uses TEE for secure computation"
+    },
+    "storage": {
+      "label": "Storage",
+      "desc": "Can store data on-chain or off-chain"
+    },
+    "analytics": {
+      "label": "Analytics",
+      "desc": "Collects usage analytics"
+    },
+    "automation": {
+      "label": "Automation",
+      "desc": "Can schedule automated tasks"
     }
   },
   "secrets": {
@@ -1220,7 +1263,11 @@
     "method": "Method",
     "contract": "Contract",
     "gasUsed": "GAS Used",
-    "time": "Time"
+    "time": "Time",
+    "categoryDistribution": "Category Distribution",
+    "categoryDistributionDesc": "MiniApps by category",
+    "chainDistribution": "Chain Distribution",
+    "chainDistributionDesc": "Activity by blockchain"
   },
   "sidebar": {
     "title": "Technical Info",
