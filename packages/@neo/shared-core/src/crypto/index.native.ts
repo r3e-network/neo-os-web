@@ -2,9 +2,9 @@
  * Crypto utilities - React Native platform
  * Uses expo-crypto for native random generation
  */
-import { sha256 } from "@noble/hashes/sha256";
-import { ripemd160 } from "@noble/hashes/ripemd160";
-import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { ripemd160 } from "@noble/hashes/legacy.js";
+import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 
 export { sha256, ripemd160, bytesToHex, hexToBytes };
 
