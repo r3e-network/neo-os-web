@@ -21,6 +21,9 @@ const ContentSecurityPolicy = `
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Performance optimizations
+  poweredByHeader: false,
+  compress: true,
   images: {
     remotePatterns: [
       {
@@ -36,6 +39,7 @@ const nextConfig = {
   transpilePackages: ["../shared"],
   experimental: {
     externalDir: true,
+    optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion'],
   },
   // Disable TypeScript type checking during build (handled separately by tsc)
   typescript: {

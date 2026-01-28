@@ -24,12 +24,10 @@
     "@noble/hashes": "^2.0.1",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/nextjs": "^10.32.1",
-    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.89.0",
     "@t3-oss/env-nextjs": "^0.13.10",
     "@tanstack/react-query": "^5.90.13",
     "@trpc/client": "^10.45.2",
-    "@trpc/next": "^10.45.2",
     "@trpc/react-query": "^10.45.2",
     "@trpc/server": "^10.45.2",
     "autoprefixer": "^10.4.23",
@@ -63,8 +61,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "node-mocks-http": "^1.17.2",
     "ts-jest": "^29.4.6",
-    "typescript": "^5.8.2",
-    "webpack": "^5.104.1"
+    "typescript": "^5.8.2"
   },
   "overrides": {
     "qs": ">=6.13.0",
