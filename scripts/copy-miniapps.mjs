@@ -28,6 +28,9 @@ console.log(`📦 Copying ${miniapps.length} miniapps to host-app...`);
 let copied = 0;
 let skipped = 0;
 
+// Asset files to copy from public/ directory
+const PUBLIC_ASSETS = ["banner.jpg", "banner.png", "logo.jpg", "logo.png"];
+
 for (const app of miniapps) {
   const buildDir = join(miniappsDir, app, "dist/build/h5");
 
@@ -38,6 +41,18 @@ for (const app of miniapps) {
       rmSync(dest, { recursive: true });
     }
     cpSync(buildDir, dest, { recursive: true });
+
+    // Copy public assets (banner, logo) if they exist
+    const publicDir = join(miniappsDir, app, "public");
+    if (existsSync(publicDir)) {
+      for (const asset of PUBLIC_ASSETS) {
+        const assetPath = join(publicDir, asset);
+        if (existsSync(assetPath)) {
+          cpSync(assetPath, join(dest, asset));
+        }
+      }
+    }
+
     copied++;
     console.log(`  ✅ ${app}`);
   } else {

@@ -154,7 +154,7 @@ platform/mobile-wallet/ios/
 *.tsbuildinfo
 
 # MiniApps build outputs (source is in repo, builds are generated)
-platform/host-app/public/miniapps/
+# platform/host-app/public/miniapps/ - now tracked for Vercel deployment
 miniapps/*/dist/
 miniapps/*/.hbuilderx/
 miniapps/*/unpackage/
