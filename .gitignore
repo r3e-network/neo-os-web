@@ -106,6 +106,8 @@ secrets/
 !infrastructure/secrets/
 !infrastructure/secrets/**
 !**/components/**/secrets/
+!**/lib/secrets/
+!**/lib/secrets/**
 credentials/
 *.secret
 *.credential
