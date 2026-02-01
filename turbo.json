@@ -5,7 +5,19 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"],
       "cache": true,
-      "env": ["NODE_ENV", "NEXT_PRIVATE_TARGET"]
+      "env": [
+        "NODE_ENV",
+        "NEXT_PRIVATE_TARGET",
+        "EDGE_API_BASE",
+        "AUTH0_SECRET",
+        "AUTH0_ISSUER_BASE_URL",
+        "AUTH0_CLIENT_ID",
+        "AUTH0_CLIENT_SECRET",
+        "AUTH0_BASE_URL",
+        "SENDGRID_API_KEY",
+        "SENDGRID_FROM_EMAIL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
     },
     "build:h5": {
       "dependsOn": ["^build"],
