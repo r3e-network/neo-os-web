@@ -1,0 +1,244 @@
+@use "@/shared/styles/tokens.scss" as *;
+
+.theme-turtle-match {
+    --turtle-bg: #020617;
+    --turtle-text: #ffffff;
+    --turtle-text-muted: rgba(255, 255, 255, 0.5);
+    --turtle-text-subtle: rgba(255, 255, 255, 0.7);
+    --turtle-text-soft: rgba(255, 255, 255, 0.4);
+    --turtle-primary: #10b981;
+    --turtle-primary-strong: #059669;
+    --turtle-primary-soft: rgba(16, 185, 129, 0.1);
+    --turtle-primary-border: rgba(16, 185, 129, 0.3);
+    --turtle-primary-glow: rgba(16, 185, 129, 0.08);
+    --turtle-primary-glow-strong: rgba(16, 185, 129, 0.4);
+    --turtle-secondary: #3b82f6;
+    --turtle-secondary-glow: rgba(59, 130, 246, 0.08);
+    --turtle-accent: #fbbf24;
+    --turtle-accent-soft: rgba(251, 191, 36, 0.05);
+    --turtle-accent-border: rgba(251, 191, 36, 0.2);
+    --turtle-accent-glow: rgba(251, 191, 36, 0.4);
+    --turtle-glass: rgba(255, 255, 255, 0.05);
+    --turtle-border: rgba(255, 255, 255, 0.1);
+    --turtle-panel-bg: rgba(0, 0, 0, 0.2);
+    --turtle-panel-border: rgba(255, 255, 255, 0.05);
+    --turtle-shadow: rgba(0, 0, 0, 0.5);
+    --turtle-icon-glow: rgba(255, 255, 255, 0.3);
+    --turtle-title-shadow: rgba(0, 0, 0, 0.5);
+    --turtle-scanline-dark: rgba(0, 0, 0, 0.1);
+    --turtle-scanline-red: rgba(255, 0, 0, 0.02);
+    --turtle-scanline-green: rgba(0, 255, 0, 0.01);
+    --turtle-scanline-blue: rgba(0, 0, 255, 0.02);
+    --turtle-bg-shadow: rgba(2, 6, 23, 0.5);
+    --turtle-danger-soft: rgba(239, 68, 68, 0.1);
+    --turtle-danger-border: rgba(239, 68, 68, 0.3);
+    --turtle-danger-text: #fca5a5;
+    --turtle-overlay-text: #f8fafc;
+    --turtle-overlay-muted: rgba(248, 250, 252, 0.6);
+    --turtle-overlay-surface: rgba(255, 255, 255, 0.05);
+    --turtle-overlay-border: rgba(255, 255, 255, 0.1);
+    --turtle-overlay-backdrop: rgba(2, 6, 23, 0.95);
+    --turtle-overlay-backdrop-strong: #020617;
+
+    min-height: 100vh;
+    background-color: var(--turtle-bg);
+    color: var(--turtle-text);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.theme-light .theme-turtle-match,
+[data-theme="light"] .theme-turtle-match {
+    --turtle-bg: #f1f5f9;
+    --turtle-text: #0f172a;
+    --turtle-text-muted: #64748b;
+    --turtle-text-subtle: #475569;
+    --turtle-text-soft: #94a3b8;
+    --turtle-primary: #10b981;
+    --turtle-primary-strong: #059669;
+    --turtle-primary-soft: rgba(16, 185, 129, 0.12);
+    --turtle-primary-border: rgba(16, 185, 129, 0.25);
+    --turtle-primary-glow: rgba(16, 185, 129, 0.12);
+    --turtle-primary-glow-strong: rgba(16, 185, 129, 0.3);
+    --turtle-secondary: #3b82f6;
+    --turtle-secondary-glow: rgba(59, 130, 246, 0.12);
+    --turtle-accent: #d97706;
+    --turtle-accent-soft: rgba(217, 119, 6, 0.12);
+    --turtle-accent-border: rgba(217, 119, 6, 0.25);
+    --turtle-accent-glow: rgba(217, 119, 6, 0.35);
+    --turtle-glass: rgba(15, 23, 42, 0.04);
+    --turtle-border: rgba(15, 23, 42, 0.12);
+    --turtle-panel-bg: rgba(255, 255, 255, 0.7);
+    --turtle-panel-border: rgba(15, 23, 42, 0.08);
+    --turtle-shadow: rgba(15, 23, 42, 0.2);
+    --turtle-icon-glow: rgba(15, 23, 42, 0.2);
+    --turtle-title-shadow: rgba(15, 23, 42, 0.15);
+    --turtle-scanline-dark: rgba(15, 23, 42, 0.04);
+    --turtle-scanline-red: rgba(239, 68, 68, 0.03);
+    --turtle-scanline-green: rgba(34, 197, 94, 0.03);
+    --turtle-scanline-blue: rgba(59, 130, 246, 0.03);
+    --turtle-bg-shadow: rgba(241, 245, 249, 0.7);
+    --turtle-danger-soft: rgba(239, 68, 68, 0.12);
+    --turtle-danger-border: rgba(239, 68, 68, 0.25);
+    --turtle-danger-text: #b91c1c;
+    --turtle-overlay-text: #f8fafc;
+    --turtle-overlay-muted: rgba(248, 250, 252, 0.6);
+    --turtle-overlay-surface: rgba(255, 255, 255, 0.05);
+    --turtle-overlay-border: rgba(255, 255, 255, 0.1);
+    --turtle-overlay-backdrop: rgba(2, 6, 23, 0.95);
+    --turtle-overlay-backdrop-strong: #020617;
+}
+
+.game-container {
+    position: relative;
+    z-index: 1;
+    padding: 20px;
+    animation: global-water-sway 10s infinite ease-in-out;
+}
+
+@keyframes global-water-sway {
+
+    0%,
+    100% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    50% {
+        transform: scale(1.005) rotate(0.1deg);
+    }
+}
+
+.pond-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    background:
+        radial-gradient(circle at 20% 30%, var(--turtle-primary-glow) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, var(--turtle-secondary-glow) 0%, transparent 40%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45v-30z' fill-opacity='0.02' fill='%23ffffff' fill-rule='evenodd'/%3E%3C/svg%3E");
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, transparent 0%, var(--turtle-bg-shadow) 100%);
+    }
+}
+
+/* Scanline Overlay */
+.pond-background::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%,
+            var(--turtle-scanline-dark) 50%), linear-gradient(90deg,
+            var(--turtle-scanline-red),
+            var(--turtle-scanline-green),
+            var(--turtle-scanline-blue));
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* God Rays */
+.pond-background::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-conic-gradient(from 0deg,
+            transparent 0deg,
+            var(--turtle-primary-glow) 10deg,
+            transparent 20deg);
+    animation: rotate-rays 60s linear infinite;
+    z-index: 1;
+}
+
+@keyframes rotate-rays {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Neural Rain Overlay */
+.neural-rain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background:
+        linear-gradient(var(--turtle-primary-soft) 1px, transparent 1px) 0 0 / 50px 50px,
+        linear-gradient(90deg, var(--turtle-primary-soft) 1px, transparent 1px) 0 0 / 50px 50px;
+    mask-image: linear-gradient(to bottom, black, transparent);
+    opacity: 0.2;
+}
+
+@keyframes float-particles {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 1000px 1000px;
+    }
+}
+
+/* Dynamic Liquid Caustics */
+.pond-caustics {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    background:
+        radial-gradient(circle at 50% 50%, transparent 20%, var(--turtle-primary-glow) 100%),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='caustics'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='3' seed='1'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='30'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23caustics)' opacity='0.2'/%3E%3C/svg%3E");
+    mix-blend-mode: color-dodge;
+    opacity: 0.3;
+    animation: caustic-shift 20s infinite linear;
+    pointer-events: none;
+}
+
+@keyframes caustic-shift {
+    0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.2;
+    }
+
+    50% {
+        transform: scale(1.2) rotate(2deg);
+        opacity: 0.4;
+    }
+
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.2;
+    }
+}
+
+.premium-card {
+    background: var(--turtle-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--turtle-border);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow:
+        0 4px 24px -1px var(--turtle-shadow),
+        inset 0 0 20px var(--turtle-glass);
+}
+
+.gold-text {
+    color: var(--turtle-accent);
+    text-shadow: 0 0 10px var(--turtle-accent-glow);
+}
+
+.green-glow {
+    color: var(--turtle-primary);
+    text-shadow: 0 0 10px var(--turtle-primary-glow-strong);
+}

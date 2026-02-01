@@ -1,0 +1,190 @@
+# NeoFeeds Service Configuration
+# Copy this file to neofeeds.yaml and customize as needed.
+#
+# Data source strategy:
+# - Poll multiple HTTP sources and aggregate via (weighted) median.
+# - Push updates on ≥0.1% deviation with 0.08% hysteresis and per-symbol throttling.
+#
+# Notes:
+# - Binance/OKX use USDT pairs for USD pricing; the overrides below map USD -> USDT.
+# - Coinbase uses USD spot endpoints.
+# - The codebase includes optional Chainlink integration (feeds read via Arbitrum RPC),
+#   but it is disabled by default to match the platform blueprint (3 HTTP sources).
+#   Enable by setting ARBITRUM_RPC and configuring the service accordingly.
+
+version: "1.0"
+
+# Update interval for evaluating + anchoring prices on-chain (default: 1s)
+update_interval: 1s
+
+# Publish policy for platform PriceFeed anchoring.
+# - threshold: 0.10% (10 bps)
+# - confirmation/hysteresis: 0.08% (8 bps)
+# - min publish interval per symbol: 5s (throttle)
+# - max publish rate per symbol: 30/min
+publish_policy:
+  threshold_bps: 10
+  hysteresis_bps: 8
+  min_interval: 5s
+  max_per_minute: 30
+
+# Default sources used when feeds don't specify their own
+default_sources:
+  - binance
+  - coinbase
+  - okx
+
+# Data sources configuration (multi-source median)
+sources:
+  - id: binance
+    name: Binance
+    url: "https://api.binance.com/api/v3/ticker/price?symbol={pair}"
+    json_path: price
+    weight: 1
+    timeout: 5s
+    pair_template: "{base}{quote}"
+    quote_override: "USDT" # Binance uses USDT pairs for USD pricing
+
+  - id: coinbase
+    name: Coinbase
+    url: "https://api.coinbase.com/v2/prices/{base}-{quote}/spot"
+    json_path: data.amount
+    weight: 1
+    timeout: 5s
+
+  - id: okx
+    name: OKX
+    url: "https://www.okx.com/api/v5/market/ticker?instId={pair}"
+    json_path: data.0.last
+    weight: 1
+    timeout: 5s
+    pair_template: "{base}-{quote}"
+    quote_override: "USDT"
+
+# Price feeds configuration (example set)
+#
+# Note: Chainlink integration is optional/disabled by default. The IDs below
+# use canonical `BASE-USD` symbols which are what the on-chain `PriceFeed`
+# contract stores.
+feeds:
+  # === Core Feeds ===
+  - id: BTC-USD
+    name: Bitcoin
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: ETH-USD
+    name: Ethereum
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: XRP-USD
+    name: Ripple
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: BNB-USD
+    name: BNB
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: SOL-USD
+    name: Solana
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: DOGE-USD
+    name: Dogecoin
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: ADA-USD
+    name: Cardano
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: LINK-USD
+    name: Chainlink
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: LTC-USD
+    name: Litecoin
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: AVAX-USD
+    name: Avalanche
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: UNI-USD
+    name: Uniswap
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  # === Neo Ecosystem / Others ===
+  - id: NEO-USD
+    name: Neo
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: GAS-USD
+    name: Gas
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: TRX-USD
+    name: Tron
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: HYPE-USD
+    name: Hyperliquid
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: XMR-USD
+    name: Monero
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: ZEC-USD
+    name: Zcash
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: SUI-USD
+    name: Sui
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: BCH-USD
+    name: Bitcoin Cash
+    data_type: price
+    decimals: 8
+    enabled: true
+
+  - id: ASTR-USD
+    name: Astar
+    data_type: price
+    decimals: 8
+    enabled: true

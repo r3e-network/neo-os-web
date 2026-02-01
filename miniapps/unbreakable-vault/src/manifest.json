@@ -1,0 +1,17 @@
+{
+  "name": "Unbreakable Vault",
+  "appid": "miniapp-unbreakablevault",
+  "description": "Hacker bounty vaults secured by secret hashes.",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Unbreakable Vault",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  }
+}

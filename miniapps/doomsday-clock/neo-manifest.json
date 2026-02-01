@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-doomsday-clock",
+  "name": "Doomsday Clock",
+  "name_zh": "末日时钟",
+  "version": "1.0.0",
+  "description": "Set deadlines and countdown timers with on-chain consequences",
+  "description_zh": "末日时钟 - Neo N3 去中心化应用",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": [
+    "timer",
+    "deadline",
+    "countdown"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x8f46753fd7123bd276d77ef1100839004b9a3440",
+    "neo-n3-testnet": "0xe4f386057d6308b83a5fd2e84bc3eb9149adc719"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/doomsday-clock/index.html",
+    "icon": "/miniapps/doomsday-clock/logo.jpg",
+    "banner": "/miniapps/doomsday-clock/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://doomsday-clock"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

@@ -1,0 +1,24 @@
+:global(.theme-self-loan) {
+  --checkbook-bg: #14181c;
+  --checkbook-line: rgba(176, 196, 222, 0.2);
+  --checkbook-text: #e2e8f0;
+  --checkbook-accent: #60a5fa;
+  --checkbook-card-bg: #1f2937;
+  --checkbook-card-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
+  --checkbook-danger-border: rgba(252, 165, 165, 0.6);
+  --checkbook-danger-bg: rgba(127, 29, 29, 0.2);
+  --checkbook-button-text: #f8fafc;
+}
+
+:global(.theme-light .theme-self-loan),
+:global([data-theme="light"] .theme-self-loan) {
+  --checkbook-bg: #fdfbf7;
+  --checkbook-line: #b0c4de;
+  --checkbook-text: #2f4f4f;
+  --checkbook-accent: #4682b4;
+  --checkbook-card-bg: #ffffff;
+  --checkbook-card-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+  --checkbook-danger-border: #ffcccb;
+  --checkbook-danger-bg: #fff5f5;
+  --checkbook-button-text: #ffffff;
+}

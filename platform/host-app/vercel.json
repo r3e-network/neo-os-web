@@ -1,0 +1,8 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "corepack enable && corepack prepare pnpm@10.27.0 --activate && corepack pnpm turbo run build:h5 --filter='miniapp-*' && node ../../scripts/copy-miniapps.mjs && corepack pnpm turbo run build --filter=meshminiapp-host",
+  "installCommand": "corepack enable && corepack prepare pnpm@10.27.0 --activate && corepack pnpm install --no-frozen-lockfile",
+  "outputDirectory": ".next",
+  "scope": "r3e-network",
+  "regions": ["iad1"]
+}

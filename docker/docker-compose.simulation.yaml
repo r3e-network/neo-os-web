@@ -1,0 +1,490 @@
+services:
+  # =============================================================================
+  # MarbleRun Coordinator (Simulation Mode)
+  # - Runs without SGX devices or AESM/DCAP mounts.
+  # =============================================================================
+  coordinator:
+    image: ${MARBLERUN_COORDINATOR_IMAGE:-ghcr.io/edgelesssys/marblerun/coordinator:v1.8.0}
+    container_name: marblerun-coordinator
+    ports:
+      - 127.0.0.1:2001:2001
+      - 127.0.0.1:4433:4433
+    environment:
+      - EDG_COORDINATOR_MESH_ADDR=0.0.0.0:2001
+      - EDG_COORDINATOR_CLIENT_ADDR=0.0.0.0:4433
+      - EDG_COORDINATOR_DNS_NAMES=localhost,coordinator
+      - EDG_COORDINATOR_SEAL_DIR=/coordinator/data
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - POOL_ENCRYPTION_KEY
+    volumes:
+      - coordinator-data:/coordinator/data
+      - ../manifests:/manifests:ro
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoFeeds Service Marble - Simulation Mode
+  # =============================================================================
+  neofeeds:
+    image: service-layer/neofeeds:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neofeeds
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neofeeds
+    ports:
+      - 127.0.0.1:${NEOFEEDS_PORT:-8083}:${NEOFEEDS_PORT:-8083}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neofeeds
+      - EDG_MARBLE_DNS_NAMES=localhost,neofeeds
+      - SERVICE_TYPE=neofeeds
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEOFEEDS_PORT:-8083}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - ARBITRUM_RPC
+      - BINANCE_API_KEY
+      - CONTRACT_PRICE_FEED_ADDRESS
+      - GASBANK_URL=${GASBANK_URL:-https://neogasbank:8091}
+      # NeoFeeds delegates all on-chain writes to txproxy (single allowlist gate).
+      - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
+      - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoFlow Service Marble - Simulation Mode
+  # =============================================================================
+  neoflow:
+    image: service-layer/neoflow:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neoflow
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neoflow
+    ports:
+      - 127.0.0.1:${NEOFLOW_PORT:-8084}:${NEOFLOW_PORT:-8084}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neoflow
+      - EDG_MARBLE_DNS_NAMES=localhost,neoflow
+      - SERVICE_TYPE=neoflow
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEOFLOW_PORT:-8084}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - CONTRACT_PRICE_FEED_ADDRESS
+      - CONTRACT_AUTOMATION_ANCHOR_ADDRESS
+      - NEOFLOW_SCHEDULER_USER_ID
+      - GASBANK_URL=${GASBANK_URL:-https://neogasbank:8091}
+      # NeoFlow delegates all on-chain writes to txproxy (single allowlist gate).
+      - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
+      - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoAccounts Service Marble - Simulation Mode
+  # =============================================================================
+  neoaccounts:
+    image: service-layer/neoaccounts:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: accountpool
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neoaccounts
+    ports:
+      - 127.0.0.1:${NEOACCOUNTS_PORT:-8085}:${NEOACCOUNTS_PORT:-8085}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neoaccounts
+      - EDG_MARBLE_DNS_NAMES=localhost,neoaccounts,accountpool
+      - SERVICE_TYPE=neoaccounts
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEOACCOUNTS_PORT:-8085}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - NEO_TESTNET_TEE_ADDRESS
+      - NEO_MAINNET_TEE_ADDRESS
+      - TEE_PRIVATE_KEY
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
+      - POOL_MASTER_KEY
+      - POOL_ENCRYPTION_KEY
+      - COORD_MASTER_SEED
+      - NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY
+      - NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS
+    depends_on:
+      coordinator:
+        condition: service_started
+      globalsigner:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoGasBank Service Marble - Simulation Mode
+  # =============================================================================
+  neogasbank:
+    image: service-layer/neogasbank:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neogasbank
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neogasbank
+    ports:
+      - 127.0.0.1:${NEOGASBANK_PORT:-8091}:${NEOGASBANK_PORT:-8091}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neogasbank
+      - EDG_MARBLE_DNS_NAMES=localhost,neogasbank
+      - SERVICE_TYPE=neogasbank
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEOGASBANK_PORT:-8091}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - GASBANK_DEPOSIT_ADDRESS
+      - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
+      - TOPUP_ENABLED
+    depends_on:
+      coordinator:
+        condition: service_started
+      neoaccounts:
+        condition: service_started
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoCompute Service Marble - Simulation Mode
+  # =============================================================================
+  neocompute:
+    image: service-layer/neocompute:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neocompute
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neocompute
+    ports:
+      - 127.0.0.1:${NEOCOMPUTE_PORT:-8086}:${NEOCOMPUTE_PORT:-8086}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neocompute
+      - EDG_MARBLE_DNS_NAMES=localhost,neocompute
+      - SERVICE_TYPE=neocompute
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEOCOMPUTE_PORT:-8086}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - SECRETS_MASTER_KEY
+      - NEOCOMPUTE_RESULT_TTL
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoVRF Service Marble - Simulation Mode
+  # =============================================================================
+  neovrf:
+    image: service-layer/neovrf:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neovrf
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neovrf
+    ports:
+      - 127.0.0.1:${NEOVRF_PORT:-8087}:${NEOVRF_PORT:-8087}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neovrf
+      - EDG_MARBLE_DNS_NAMES=localhost,neovrf,vrf
+      - SERVICE_TYPE=neovrf
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEOVRF_PORT:-8087}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
+    depends_on:
+      coordinator:
+        condition: service_started
+      globalsigner:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoOracle Service Marble - Simulation Mode
+  # =============================================================================
+  neooracle:
+    image: service-layer/neooracle:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neooracle
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neooracle
+    ports:
+      - 127.0.0.1:${NEOORACLE_PORT:-8088}:${NEOORACLE_PORT:-8088}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neooracle
+      - EDG_MARBLE_DNS_NAMES=localhost,neooracle,oracle
+      - SERVICE_TYPE=neooracle
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEOORACLE_PORT:-8088}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - SECRETS_MASTER_KEY
+      - ORACLE_HTTP_ALLOWLIST
+      - ORACLE_TIMEOUT
+      - ORACLE_MAX_SIZE
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # NeoRequests Service Marble - Simulation Mode
+  # =============================================================================
+  neorequests:
+    image: service-layer/neorequests:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neorequests
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neorequests
+    ports:
+      - 127.0.0.1:${NEOREQUESTS_PORT:-8094}:${NEOREQUESTS_PORT:-8094}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neorequests
+      - EDG_MARBLE_DNS_NAMES=localhost,neorequests
+      - SERVICE_TYPE=neorequests
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEOREQUESTS_PORT:-8094}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - CONTRACT_SERVICE_GATEWAY_ADDRESS
+      - NEOVRF_URL
+      - NEOORACLE_URL
+      - NEOCOMPUTE_URL
+      - NEOREQUESTS_MAX_RESULT_BYTES
+      - NEOREQUESTS_MAX_ERROR_LEN
+      - NEOREQUESTS_RNG_RESULT_MODE
+      - NEOREQUESTS_TX_WAIT
+      - NEOREQUESTS_ENFORCE_APPREGISTRY
+      - NEOREQUESTS_APPREGISTRY_CACHE_SECONDS
+      - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
+      - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+  # =============================================================================
+  # TxProxy Service Marble - Simulation Mode
+  # =============================================================================
+  txproxy:
+    image: service-layer/txproxy:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: txproxy
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-txproxy
+    ports:
+      - 127.0.0.1:${TXPROXY_PORT:-8090}:${TXPROXY_PORT:-8090}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=txproxy
+      - EDG_MARBLE_DNS_NAMES=localhost,txproxy
+      - SERVICE_TYPE=txproxy
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${TXPROXY_PORT:-8090}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - CONTRACT_PAYMENT_HUB_ADDRESS
+      - CONTRACT_GOVERNANCE_ADDRESS
+      - TXPROXY_ALLOWLIST
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
+    depends_on:
+      coordinator:
+        condition: service_started
+      globalsigner:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # GlobalSigner Service Marble - Simulation Mode
+  # Central signing authority (domain-separated signing + key rotation).
+  # =============================================================================
+  globalsigner:
+    image: service-layer/globalsigner:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: globalsigner
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-globalsigner
+    ports:
+      - 127.0.0.1:${GLOBALSIGNER_PORT:-8092}:${GLOBALSIGNER_PORT:-8092}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=globalsigner
+      - EDG_MARBLE_DNS_NAMES=localhost,globalsigner
+      - SERVICE_TYPE=globalsigner
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${GLOBALSIGNER_PORT:-8092}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - NEO_TESTNET_TEE_ADDRESS
+      - NEO_MAINNET_TEE_ADDRESS
+      - GLOBALSIGNER_MASTER_SEED
+      - TEE_PRIVATE_KEY
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8092"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  # =============================================================================
+  # NeoSimulation Service Marble - Simulation Mode
+  # Continuous transaction simulation for MiniApps
+  # =============================================================================
+  neosimulation:
+    image: service-layer/neosimulation:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neosimulation
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: 0
+    container_name: service-neosimulation
+    ports:
+      - 127.0.0.1:${NEOSIMULATION_PORT:-8093}:${NEOSIMULATION_PORT:-8093}
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neosimulation
+      - EDG_MARBLE_DNS_NAMES=localhost,neosimulation
+      - SERVICE_TYPE=neosimulation
+      - OE_SIMULATION=${OE_SIMULATION:-1}
+      - PORT=${NEOSIMULATION_PORT:-8093}
+      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - METRICS_ENABLED
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
+      - SIMULATION_ENABLED=${SIMULATION_ENABLED:-true}
+      # Core 7 MiniApps for simulation - only apps configured in PaymentHub contract
+      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-miniapp-lottery,miniapp-coinflip,miniapp-dice-game,miniapp-scratch-card,miniapp-red-envelope,miniapp-time-capsule,miniapp-neo-crash}
+      - SIMULATION_TX_INTERVAL_MIN_MS=${SIMULATION_TX_INTERVAL_MIN_MS:-30000}
+      - SIMULATION_TX_INTERVAL_MAX_MS=${SIMULATION_TX_INTERVAL_MAX_MS:-60000}
+      - SIMULATION_WORKERS_PER_APP=${SIMULATION_WORKERS_PER_APP:-1}
+      # Contract hashes for MiniApp workflow simulation
+      - CONTRACT_PRICE_FEED_ADDRESS=0xc5d9117d255054489d1cf59b2c1d188c01bc9954
+      - CONTRACT_RANDOMNESS_LOG_ADDRESS=0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39
+      - CONTRACT_PAYMENT_HUB_ADDRESS=0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193
+      - CONTRACT_APP_REGISTRY_ADDRESS=0x79d16bee03122e992bb80c478ad4ed405f33bc7f
+      # Gaming MiniApp contracts
+      - CONTRACT_MINIAPP_LOTTERY_ADDRESS=0x3e330b4c396b40aa08d49912c0179319831b3a6e
+      - CONTRACT_MINIAPP_COINFLIP_ADDRESS=0xbd4c9203495048900e34cd9c4618c05994e86cc0
+      - CONTRACT_MINIAPP_DICEGAME_ADDRESS=0xfacff9abd201dca86e6a63acfb5d60da278da8ea
+      - CONTRACT_MINIAPP_SCRATCHCARD_ADDRESS=0x2674ef3b4d8c006201d1e7e473316592f6cde5f2
+      - CONTRACT_MINIAPP_GASSPIN_ADDRESS=0x19bcb0a50ddf5bf7cefbb47044cdb3ce4cb9e4cd
+      - CONTRACT_MINIAPP_SECRETPOKER_ADDRESS=0xa27348cc0a79c776699a028244250b4f3d6bbe0c
+      - CONTRACT_MINIAPP_FOGCHESS_ADDRESS=0x23a44ca6643c104fbaa97daab65d5e53b3662b4a
+      # DeFi MiniApp contracts
+      - CONTRACT_MINIAPP_FLASHLOAN_ADDRESS=0xee51e5b399f7727267b7d296ff34ec6bb9283131
+      - CONTRACT_MINIAPP_PRICEPREDICT_ADDRESS=0x6317f97029b39f9211193085fe20dcf6500ec59d
+      - CONTRACT_MINIAPP_MICROPREDICT_ADDRESS=0x73264e59d8215e28485420bb33ba841ff6fb45f8
+      - CONTRACT_MINIAPP_TURBOOPTIONS_ADDRESS=0xbbe5a4d4272618b23b983c40e22d4b072e20f4bc
+      # Social MiniApp contracts
+      - CONTRACT_MINIAPP_REDENVELOPE_ADDRESS=0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e
+      - CONTRACT_MINIAPP_GASCIRCLE_ADDRESS=0x7736c8d1ff918f94d26adc688dac4d4bc084bd39
+      # Governance MiniApp contracts
+      - CONTRACT_MINIAPP_GOVBOOSTER_ADDRESS=0xebabd9712f985afc0e5a4e24ed2fc4acb874796f
+      - CONTRACT_MINIAPP_GUARDIANPOLICY_ADDRESS=0x893a774957244b83a0efed1d42771fe1e424cfec
+    depends_on:
+      coordinator:
+        condition: service_started
+      neoaccounts:
+        condition: service_started
+      globalsigner:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  coordinator-data:

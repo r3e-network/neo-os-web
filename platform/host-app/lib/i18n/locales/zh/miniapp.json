@@ -1,0 +1,228 @@
+{
+  "apps": {
+    "lottery": {
+      "name": "Neo 彩票",
+      "description": "体验由 VRF 随机数驱动的公平彩票抽奖。使用 GAS 购买彩票，竞争巨额奖池，100% 链上透明验证。"
+    },
+    "coinflip": {
+      "name": "抛硬币",
+      "description": "经典 50/50 投注在区块链上重新演绎。抛硬币，使用加密安全随机数确保每次公平结果，即时翻倍您的 GAS。"
+    },
+    "dicegame": {
+      "name": "骰子游戏",
+      "description": "掷骰子测试您的运气！选择获胜范围，下注，观看 VRF 驱动的骰子以可验证的公平性决定您的命运。"
+    },
+    "scratchcard": {
+      "name": "刮刮卡",
+      "description": "即时赢取奖励的数字刮刮卡。刮开揭示您的奖品，奖励即时发放到您的钱包。"
+    },
+    "secretpoker": {
+      "name": "秘密扑克",
+      "description": "使用零知识证明的隐私扑克游戏。您的手牌保密，同时确保游戏公平。"
+    },
+    "neocrash": {
+      "name": "Neo 崩盘",
+      "description": "刺激的倍数游戏。观看倍数上升，在崩盘前及时提现！"
+    },
+    "redenvelope": {
+      "name": "红包",
+      "description": "发送幸运 GAS 红包给朋友。创建红包，分享链接，让朋友们抢红包！"
+    },
+    "secretvote": {
+      "name": "秘密投票",
+      "description": "使用零知识证明的隐私链上投票。您的投票保密，结果可验证。"
+    },
+    "canvas": {
+      "name": "协作画布",
+      "description": "链上协作像素画布。每个像素都是 NFT，与全球用户一起创作艺术。"
+    },
+    "flashloan": {
+      "name": "闪电贷",
+      "description": "无抵押即时借贷。在单笔交易内借入、使用、归还，实现套利和清算。"
+    },
+    "neoswap": {
+      "name": "Neo 兑换",
+      "description": "去中心化代币兑换。即时交换 NEO 生态系统中的代币，享受最优价格。"
+    },
+    "explorer": {
+      "name": "区块浏览器",
+      "description": "探索 Neo 区块链。查看交易、区块、地址和智能合约详情。"
+    },
+    "candidatevote": {
+      "name": "候选人投票",
+      "description": "为 Neo 共识节点候选人投票。参与网络治理，支持您信任的节点。"
+    },
+    "neoburger": {
+      "name": "NeoBurger",
+      "description": "Neo 质押聚合器。质押 NEO 获取 bNEO，自动复投最大化收益。"
+    },
+    "fogchess": {
+      "name": "迷雾象棋",
+      "description": "带有战争迷雾的策略象棋。只能看到视野范围内的棋子。"
+    },
+    "fogpuzzle": {
+      "name": "迷雾拼图",
+      "description": "解开笼罩在迷雾中的谜题。策略性地揭示方块，与时间赛跑。"
+    },
+    "cryptoriddle": {
+      "name": "加密谜题",
+      "description": "破解密码谜题和脑筋急转弯，解锁 GAS 奖励。"
+    },
+    "millionpiecemap": {
+      "name": "百万像素地图",
+      "description": "在大型协作画布上拥有和自定义像素。"
+    },
+    "puzzlemining": {
+      "name": "拼图挖矿",
+      "description": "通过解决越来越难的谜题来挖掘 GAS。"
+    },
+    "gascircle": {
+      "name": "GAS 互助圈",
+      "description": "加入社区储蓄圈，成员轮流获得资金池。"
+    },
+    "compoundcapsule": {
+      "name": "复利胶囊",
+      "description": "通过自动复投最大化您的收益。"
+    },
+    "selfloan": {
+      "name": "自助贷款",
+      "description": "用自己的抵押品借款，零清算风险。"
+    },
+    "grantshare": {
+      "name": "资助分享",
+      "description": "创建和资助社区资助项目，链上透明追踪。"
+    },
+    "devtipping": {
+      "name": "开发者打赏",
+      "description": "直接支持开源开发者，为他们的贡献打赏。"
+    },
+    "breakupcontract": {
+      "name": "分手合约",
+      "description": "在链上创建不可变的关系协议，智能合约执行。"
+    },
+    "exfiles": {
+      "name": "前任档案",
+      "description": "共享记忆的安全保险库，双方同意控制。"
+    },
+    "onchaintarot": {
+      "name": "链上塔罗",
+      "description": "接收由 VRF 随机数驱动的神秘塔罗牌占卜。"
+    },
+    "timecapsule": {
+      "name": "时间胶囊",
+      "description": "锁定消息或资产，在未来日期解锁。"
+    },
+    "heritagetrust": {
+      "name": "遗产信托",
+      "description": "锁定 NEO/GAS，NEO 转 bNEO 获取奖励，不活跃后按月释放继承资产。"
+    },
+    "gardenofneo": {
+      "name": "Neo 花园",
+      "description": "培育虚拟花园，植物根据区块链活动生长。"
+    },
+    "graveyard": {
+      "name": "墓园",
+      "description": "创建永久的数字纪念碑作为墓碑 NFT。"
+    },
+    "govbooster": {
+      "name": "治理加速器",
+      "description": "通过质押和委托放大您的治理权力。"
+    },
+    "burnleague": {
+      "name": "销毁联盟",
+      "description": "参与代币销毁竞赛，减少供应量。"
+    },
+    "masqueradedao": {
+      "name": "假面 DAO",
+      "description": "戴着数字面具匿名参与治理。"
+    },
+    "govmerc": {
+      "name": "治理雇佣兵",
+      "description": "雇佣治理雇佣兵或出售您的投票权。"
+    },
+    "neons": {
+      "name": "Neo 域名服务",
+      "description": "为您的钱包注册人类可读的 .neo 域名。"
+    },
+    "guardianpolicy": {
+      "name": "守护策略",
+      "description": "为您的钱包定义和执行智能合约策略。"
+    },
+    "unbreakablevault": {
+      "name": "坚不可摧保险库",
+      "description": "在多层安全的时间锁定保险库中存储贵重资产。"
+    }
+  },
+  "common": {
+    "play": "开始",
+    "bet": "下注",
+    "stake": "质押",
+    "unstake": "取消质押",
+    "claim": "领取",
+    "withdraw": "提取",
+    "deposit": "存入",
+    "win": "赢",
+    "lose": "输",
+    "draw": "平局",
+    "jackpot": "大奖",
+    "prize": "奖金",
+    "pool": "奖池",
+    "odds": "赔率",
+    "multiplier": "倍数",
+    "round": "回合",
+    "history": "历史",
+    "leaderboard": "排行榜",
+    "rank": "排名",
+    "player": "玩家",
+    "reward": "奖励",
+    "yourBet": "您的下注",
+    "potentialWin": "预计收益",
+    "placeBet": "确认下注",
+    "cashOut": "提现",
+    "waiting": "等待结果...",
+    "gameOver": "游戏结束",
+    "newGame": "新游戏",
+    "rules": "规则",
+    "howToPlay": "玩法说明"
+  },
+  "coinFlip": {
+    "title": "抛硬币",
+    "heads": "正面",
+    "tails": "反面",
+    "flip": "抛硬币",
+    "result": "结果"
+  },
+  "diceGame": {
+    "title": "骰子游戏",
+    "roll": "掷骰子",
+    "rollOver": "大于",
+    "rollUnder": "小于",
+    "target": "目标"
+  },
+  "lottery": {
+    "title": "彩票",
+    "buyTicket": "购买彩票",
+    "ticketNumber": "彩票号码",
+    "drawTime": "开奖时间",
+    "nextDraw": "下次开奖",
+    "prizePool": "奖池"
+  },
+  "scratchCard": {
+    "title": "刮刮卡",
+    "scratch": "刮开",
+    "reveal": "全部揭晓",
+    "buyCard": "购买刮刮卡"
+  },
+  "tipping": {
+    "title": "开发者打赏",
+    "tip": "打赏",
+    "tipAmount": "打赏金额",
+    "message": "留言",
+    "tipperName": "您的名字",
+    "anonymous": "匿名",
+    "topTippers": "打赏排行",
+    "totalTips": "总打赏",
+    "sendTip": "发送打赏",
+    "thankYou": "感谢您的支持！"
+  }
+}

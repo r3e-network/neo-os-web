@@ -1,0 +1,22 @@
+{
+  "name": "@neo/miniapp-shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./components/index.ts",
+  "exports": {
+    ".": "./components/index.ts",
+    "./components": "./components/index.ts",
+    "./components/*": "./components/*",
+    "./composables/*": "./composables/*",
+    "./utils/*": "./utils/*",
+    "./styles/*": "./styles/*"
+  },
+  "dependencies": {
+    "@neo/uniapp-sdk": "workspace:*",
+    "@neo/types": "workspace:*"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  }
+}

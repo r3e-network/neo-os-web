@@ -1,0 +1,13 @@
+{
+  "name": "Timestamp Proof",
+  "appid": "__UNI__TIMESTAMP",
+  "description": "Immutable timestamp proofs for documents and ideas on blockchain",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Timestamp Proof",
+    "template": "index.html",
+    "router": { "mode": "hash", "base": "./" }
+  }
+}

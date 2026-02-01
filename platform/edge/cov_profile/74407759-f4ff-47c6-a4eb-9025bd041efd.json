@@ -1,0 +1,50 @@
+{
+  "scriptId": "371",
+  "url": "file:///home/neo/git/service_layer/platform/edge/functions/_shared/env.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [
+        {
+          "startOffset": 0,
+          "endOffset": 598,
+          "count": 1
+        }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getEnv",
+      "ranges": [
+        {
+          "startOffset": 7,
+          "endOffset": 137,
+          "count": 0
+        }
+      ],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "mustGetEnv",
+      "ranges": [
+        {
+          "startOffset": 145,
+          "endOffset": 288,
+          "count": 0
+        }
+      ],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isProductionEnv",
+      "ranges": [
+        {
+          "startOffset": 296,
+          "endOffset": 597,
+          "count": 0
+        }
+      ],
+      "isBlockCoverage": false
+    }
+  ]
+}

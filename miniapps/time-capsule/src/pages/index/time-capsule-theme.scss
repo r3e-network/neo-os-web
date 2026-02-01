@@ -1,0 +1,60 @@
+:global(.theme-time-capsule) {
+  --capsule-bg: #0f172a;
+  --capsule-panel: #1e293b;
+  --capsule-cyan: #06b6d4;
+  --capsule-cyan-strong: #0891b2;
+  --capsule-text: #e2e8f0;
+  --capsule-muted: rgba(226, 232, 240, 0.75);
+  --capsule-grid: rgba(6, 182, 212, 0.05);
+  --capsule-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+  --capsule-input-bg: rgba(15, 23, 42, 0.8);
+  --capsule-input-border: #334155;
+  --capsule-input-text: #06b6d4;
+  --capsule-input-focus: rgba(6, 182, 212, 0.2);
+  --capsule-card-bg: rgba(30, 41, 59, 0.8);
+  --capsule-card-border: rgba(6, 182, 212, 0.3);
+  --capsule-corner: rgba(6, 182, 212, 0.9);
+  --capsule-button-primary-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+  --capsule-button-text: #ffffff;
+  --capsule-button-hover: rgba(6, 182, 212, 0.1);
+  --capsule-radial: radial-gradient(circle at 50% 0%, #334155 0%, #0f172a 100%);
+
+  --bg-primary: var(--capsule-bg);
+  --bg-secondary: var(--capsule-bg);
+  --bg-card: var(--capsule-panel);
+  --text-primary: var(--capsule-text);
+  --text-secondary: var(--capsule-muted);
+  --text-muted: var(--capsule-muted);
+  --border-color: var(--capsule-card-border);
+}
+
+:global(.theme-light .theme-time-capsule),
+:global([data-theme=\"light\"] .theme-time-capsule) {
+  --capsule-bg: #f8fafc;
+  --capsule-panel: #ffffff;
+  --capsule-cyan: #0891b2;
+  --capsule-cyan-strong: #0e7490;
+  --capsule-text: #0f172a;
+  --capsule-muted: #475569;
+  --capsule-grid: rgba(14, 116, 144, 0.08);
+  --capsule-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+  --capsule-input-bg: rgba(248, 250, 252, 0.95);
+  --capsule-input-border: rgba(148, 163, 184, 0.6);
+  --capsule-input-text: #0e7490;
+  --capsule-input-focus: rgba(14, 116, 144, 0.2);
+  --capsule-card-bg: rgba(255, 255, 255, 0.95);
+  --capsule-card-border: rgba(14, 116, 144, 0.2);
+  --capsule-corner: rgba(14, 116, 144, 0.8);
+  --capsule-button-primary-shadow: 0 12px 24px rgba(14, 116, 144, 0.2);
+  --capsule-button-text: #ffffff;
+  --capsule-button-hover: rgba(14, 116, 144, 0.1);
+  --capsule-radial: radial-gradient(circle at 50% 0%, #e2e8f0 0%, #f8fafc 100%);
+
+  --bg-primary: var(--capsule-bg);
+  --bg-secondary: var(--capsule-bg);
+  --bg-card: var(--capsule-panel);
+  --text-primary: var(--capsule-text);
+  --text-secondary: var(--capsule-muted);
+  --text-muted: var(--capsule-muted);
+  --border-color: var(--capsule-card-border);
+}

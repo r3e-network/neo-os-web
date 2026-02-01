@@ -1,0 +1,224 @@
+import { ref, computed } from "vue";
+import { useWallet, useEvents } from "@neo/uniapp-sdk";
+import type { WalletSDK } from "@neo/types";
+import { formatAddress, parseGas } from "@shared/utils/format";
+import { requireNeoChain } from "@shared/utils/chain";
+import { normalizeScriptHash, addressToScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { useI18n } from "@/composables/useI18n";
+import { useErrorHandler } from "@shared/composables/useErrorHandler";
+import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import type { HistoryEvent } from "../pages/index/components/HistoryList.vue";
+
+const APP_ID = "miniapp-doomsday-clock";
+const BASE_KEY_PRICE = 10000000n;
+const KEY_PRICE_INCREMENT_BPS = 10n;
+
+export function useDoomsdayGame() {
+  const { t } = useI18n();
+  const { handleError, getUserMessage, canRetry } = useErrorHandler();
+  const { address, connect, invokeRead, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { processPayment, isLoading: isPaying } = usePaymentFlow(APP_ID);
+  const { list: listEvents } = useEvents();
+
+  const contractAddress = ref<string | null>(null);
+  const roundId = ref(0);
+  const totalPot = ref(0);
+  const isRoundActive = ref(false);
+  const lastBuyer = ref<string | null>(null);
+  const userKeys = ref(0);
+  const keyCount = ref("1");
+  const keyValidationError = ref<string | null>(null);
+  const status = ref<{ msg: string; type: string } | null>(null);
+  const history = ref<HistoryEvent[]>([]);
+  const loading = ref(false);
+  const isClaiming = ref(false);
+  const totalKeysInRound = ref(0n);
+
+  const lastBuyerLabel = computed(() => (lastBuyer.value ? formatAddress(lastBuyer.value) : "--"));
+  
+  const lastBuyerHash = computed(() => normalizeScriptHash(String(lastBuyer.value || "")));
+  const addressHash = computed(() => (address.value ? addressToScriptHash(address.value) : ""));
+  
+  const canClaim = computed(() => {
+    return (
+      !isRoundActive.value &&
+      lastBuyerHash.value &&
+      addressHash.value &&
+      lastBuyerHash.value === addressHash.value &&
+      totalPot.value > 0
+    );
+  });
+
+  const calculateKeyCostFormula = (keyCount: bigint, currentTotalKeys: bigint): bigint => {
+    if (keyCount <= 0n) return 0n;
+    const commonDiff = (BASE_KEY_PRICE * KEY_PRICE_INCREMENT_BPS) / 10000n;
+    const firstKeyPrice = BASE_KEY_PRICE + currentTotalKeys * commonDiff;
+    const baseCost = keyCount * firstKeyPrice;
+    const incrementCost = ((keyCount * (keyCount - 1n)) / 2n) * commonDiff;
+    return baseCost + incrementCost;
+  };
+
+  const estimatedCostRaw = computed(() => {
+    const count = BigInt(Math.max(0, Math.floor(Number(keyCount.value) || 0)));
+    return calculateKeyCostFormula(count, totalKeysInRound.value);
+  });
+
+  const estimatedCost = computed(() => (Number(estimatedCostRaw.value) / 1e8).toFixed(2));
+
+  const ensureContractAddress = async () => {
+    if (!requireNeoChain(chainType, t)) throw new Error(t("wrongChain"));
+    if (!contractAddress.value) contractAddress.value = await getContractAddress();
+    if (!contractAddress.value) throw new Error(t("error"));
+    return contractAddress.value;
+  };
+
+  const loadRoundData = async () => {
+    await ensureContractAddress();
+    try {
+      const statusRes = await invokeRead({
+        scriptHash: contractAddress.value as string,
+        operation: "getGameStatus",
+        args: [],
+      });
+      const data = parseInvokeResult(statusRes);
+      if (data && typeof data === "object") {
+        const statusMap = data as Record<string, any>;
+        roundId.value = Number(statusMap.roundId || 0);
+        totalPot.value = parseGas(statusMap.pot);
+        isRoundActive.value = Boolean(statusMap.active);
+        lastBuyer.value = String(statusMap.lastBuyer || "");
+        totalKeysInRound.value = BigInt(statusMap.totalKeys || 0);
+        return Number(statusMap.remainingTime || 0);
+      }
+      return 0;
+    } catch (e) {
+      handleError(e, { operation: "loadRoundData" });
+      throw e;
+    }
+  };
+
+  const loadUserKeys = async () => {
+    if (!address.value || !roundId.value || !contractAddress.value) {
+      userKeys.value = 0;
+      return;
+    }
+    try {
+      const res = await invokeRead({
+        scriptHash: contractAddress.value as string,
+        operation: "getPlayerKeys",
+        args: [
+          { type: "Hash160", value: address.value as string },
+          { type: "Integer", value: roundId.value },
+        ],
+      });
+      userKeys.value = Number(parseInvokeResult(res) || 0);
+    } catch (e) {
+      handleError(e, { operation: "loadUserKeys", metadata: { roundId: roundId.value } });
+      userKeys.value = 0;
+    }
+  };
+
+  const parseEventDate = (raw: any) => {
+    const date = raw ? new Date(raw) : new Date();
+    if (Number.isNaN(date.getTime())) return new Date().toLocaleString();
+    return date.toLocaleString();
+  };
+
+  const loadHistory = async () => {
+    try {
+      const [keysRes, winnerRes, roundRes] = await Promise.all([
+        listEvents({ app_id: APP_ID, event_name: "KeysPurchased", limit: 20 }),
+        listEvents({ app_id: APP_ID, event_name: "DoomsdayWinner", limit: 10 }),
+        listEvents({ app_id: APP_ID, event_name: "RoundStarted", limit: 10 }),
+      ]);
+
+      const items: HistoryEvent[] = [];
+
+      keysRes.events.forEach((evt: any) => {
+        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+        const player = String(values[0] || "");
+        const keys = Number(values[1] || 0);
+        const potContribution = parseGas(values[2]);
+        items.push({
+          id: evt.id,
+          title: t("keysPurchased"),
+          details: `${formatAddress(player)} • ${keys} keys • +${potContribution.toFixed(2)} GAS`,
+          date: parseEventDate(evt.created_at),
+        });
+      });
+
+      winnerRes.events.forEach((evt: any) => {
+        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+        const winner = String(values[0] || "");
+        const prize = parseGas(values[1]);
+        const round = Number(values[2] || 0);
+        items.push({
+          id: evt.id,
+          title: t("winnerDeclared"),
+          details: `${formatAddress(winner)} • ${prize.toFixed(2)} GAS • #${round}`,
+          date: parseEventDate(evt.created_at),
+        });
+      });
+
+      roundRes.events.forEach((evt: any) => {
+        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+        const round = Number(values[0] || 0);
+        const end = Number(values[1] || 0) * 1000;
+        const endText = end ? new Date(end).toLocaleString() : "--";
+        items.push({
+          id: evt.id,
+          title: t("roundStarted"),
+          details: `#${round} • ${endText}`,
+          date: parseEventDate(evt.created_at),
+        });
+      });
+
+      history.value = items.sort((a, b) => b.id - a.id);
+    } catch (e) {
+      handleError(e, { operation: "loadHistory" });
+      history.value = [];
+    }
+  };
+
+  const validateKeyCount = (count: string): string | null => {
+    const num = parseInt(count, 10);
+    if (isNaN(num) || num <= 0) return t("invalidKeyCount");
+    if (num > 1000) return t("maxKeyCountExceeded");
+    return null;
+  };
+
+  return {
+    APP_ID,
+    address,
+    connect,
+    contractAddress,
+    roundId,
+    totalPot,
+    isRoundActive,
+    lastBuyer,
+    userKeys,
+    keyCount,
+    keyValidationError,
+    status,
+    history,
+    loading,
+    isClaiming,
+    isPaying,
+    lastBuyerLabel,
+    canClaim,
+    estimatedCost,
+    estimatedCostRaw,
+    calculateKeyCostFormula,
+    ensureContractAddress,
+    loadRoundData,
+    loadUserKeys,
+    loadHistory,
+    validateKeyCount,
+    invokeContract,
+    processPayment,
+    t,
+    handleError,
+    getUserMessage,
+    canRetry,
+  };
+}

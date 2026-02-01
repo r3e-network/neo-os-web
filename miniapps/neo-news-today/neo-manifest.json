@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neo-news-today",
+  "name": "Neo News Today",
+  "name_zh": "Neo 今日资讯",
+  "version": "1.0.0",
+  "description": "Neo News Today - Neo MiniApp",
+  "description_zh": "Neo 今日资讯 - Neo N3 去中心化应用",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/neo-news-today/index.html",
+    "icon": "/miniapps/neo-news-today/logo.jpg",
+    "banner": "/miniapps/neo-news-today/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neo-news-today"
+  },
+  "stateSource": {
+    "type": "api",
+    "endpoints": []
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-28T21:07:41Z"
+}

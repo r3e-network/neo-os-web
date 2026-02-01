@@ -1,0 +1,23 @@
+{
+    "pages": [
+        {
+            "path": "pages/index/index",
+            "style": {
+                "navigationBarTitleText": "Neo Sign Anything"
+            }
+        },
+        {
+            "path": "pages/docs/index",
+            "style": {
+                "navigationBarTitleText": "Docs"
+            }
+        }
+    ],
+    "globalStyle": {
+        "navigationBarTextStyle": "white",
+        "navigationBarTitleText": "Neo Sign Anything",
+        "navigationBarBackgroundColor": "#0d1117",
+        "backgroundColor": "#0d1117",
+        "navigationStyle": "custom"
+    }
+}

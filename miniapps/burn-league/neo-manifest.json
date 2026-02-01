@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-burn-league",
+  "name": "Burn League",
+  "name_zh": "燃烧联赛",
+  "version": "1.0.0",
+  "description": "Compete in token burning challenges and climb the leaderboard",
+  "description_zh": "燃烧联赛 - Neo N3 去中心化应用",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "tags": [
+    "burn",
+    "competition",
+    "leaderboard"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0xd829b7a8c0d9fa3c67a29c703a277de3f922f173",
+    "neo-n3-testnet": "0xf1aa73e2fb00664e8ef100dac083fc42be6aaf85"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/burn-league/index.html",
+    "icon": "/miniapps/burn-league/logo.jpg",
+    "banner": "/miniapps/burn-league/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://burn-league"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

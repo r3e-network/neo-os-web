@@ -1,0 +1,80 @@
+:global(.theme-prediction-market) {
+  // Primary colors - trading themed
+  --predict-bg: #0a0e1a;
+  --predict-bg-secondary: #111827;
+  --predict-accent: #3b82f6;
+  --predict-accent-hover: #2563eb;
+  --predict-success: #10b981;
+  --predict-success-bg: rgba(16, 185, 129, 0.1);
+  --predict-danger: #ef4444;
+  --predict-danger-bg: rgba(239, 68, 68, 0.1);
+  --predict-warning: #f59e0b;
+  --predict-warning-bg: rgba(245, 158, 11, 0.1);
+
+  // Text colors
+  --predict-text-primary: #f9fafb;
+  --predict-text-secondary: #9ca3af;
+  --predict-text-muted: #6b7280;
+
+  // Card styles
+  --predict-card-bg: #1f2937;
+  --predict-card-border: #374151;
+  --predict-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+
+  // Order book colors
+  --predict-bid-bg: rgba(16, 185, 129, 0.15);
+  --predict-bid-text: #10b981;
+  --predict-ask-bg: rgba(239, 68, 68, 0.15);
+  --predict-ask-text: #ef4444;
+
+  // Price indicators
+  --predict-up: #10b981;
+  --predict-down: #ef4444;
+  --predict-neutral: #6b7280;
+
+  // Input styles
+  --predict-input-bg: #111827;
+  --predict-input-border: #374151;
+  --predict-input-focus: #3b82f6;
+
+  // Button styles
+  --predict-btn-primary: #3b82f6;
+  --predict-btn-primary-hover: #2563eb;
+  --predict-btn-secondary: #374151;
+  --predict-btn-secondary-hover: #4b5563;
+}
+
+:global(.theme-light .theme-prediction-market),
+:global([data-theme="light"] .theme-prediction-market) {
+  --predict-bg: #f9fafb;
+  --predict-bg-secondary: #f3f4f6;
+  --predict-accent: #3b82f6;
+  --predict-accent-hover: #2563eb;
+  --predict-success: #059669;
+  --predict-success-bg: rgba(5, 150, 105, 0.1);
+  --predict-danger: #dc2626;
+  --predict-danger-bg: rgba(220, 38, 38, 0.1);
+  --predict-warning: #d97706;
+  --predict-warning-bg: rgba(217, 119, 6, 0.1);
+
+  // Text colors
+  --predict-text-primary: #111827;
+  --predict-text-secondary: #4b5563;
+  --predict-text-muted: #9ca3af;
+
+  // Card styles
+  --predict-card-bg: #ffffff;
+  --predict-card-border: #e5e7eb;
+  --predict-card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+
+  // Order book colors
+  --predict-bid-bg: rgba(5, 150, 105, 0.1);
+  --predict-bid-text: #059669;
+  --predict-ask-bg: rgba(220, 38, 38, 0.1);
+  --predict-ask-text: #dc2626;
+
+  // Input styles
+  --predict-input-bg: #ffffff;
+  --predict-input-border: #d1d5db;
+  --predict-input-focus: #3b82f6;
+}

@@ -1,0 +1,22 @@
+:global(.theme-milestone-escrow) {
+  --escrow-bg-start: #1a120b;
+  --escrow-bg-end: #352313;
+  --escrow-card-bg: rgba(30, 20, 12, 0.78);
+  --escrow-card-border: rgba(251, 191, 36, 0.25);
+  --escrow-accent: #f59e0b;
+  --escrow-accent-strong: #fbbf24;
+  --escrow-text: #fef3c7;
+  --escrow-muted: rgba(254, 243, 199, 0.65);
+}
+
+:global(.theme-light .theme-milestone-escrow),
+:global([data-theme="light"] .theme-milestone-escrow) {
+  --escrow-bg-start: #fffbeb;
+  --escrow-bg-end: #fde68a;
+  --escrow-card-bg: rgba(255, 255, 255, 0.85);
+  --escrow-card-border: rgba(217, 119, 6, 0.2);
+  --escrow-accent: #d97706;
+  --escrow-accent-strong: #b45309;
+  --escrow-text: #1c1917;
+  --escrow-muted: rgba(28, 25, 23, 0.6);
+}

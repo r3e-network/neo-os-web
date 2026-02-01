@@ -1,0 +1,50 @@
+:global(.theme-candidate-vote) {
+  --candidate-card-bg: rgba(255, 255, 255, 0.03);
+  --candidate-card-border: rgba(255, 255, 255, 0.08);
+  --candidate-accent: #00e599;
+  --candidate-item-bg: rgba(255, 255, 255, 0.05);
+  --candidate-item-border: rgba(255, 255, 255, 0.08);
+  --candidate-item-hover-bg: rgba(255, 255, 255, 0.12);
+  --candidate-item-hover-border: rgba(255, 255, 255, 0.2);
+  --candidate-rank-bg: rgba(255, 255, 255, 0.05);
+  --candidate-rank-border: rgba(255, 255, 255, 0.05);
+  --candidate-scrollbar-track: rgba(255, 255, 255, 0.05);
+  --candidate-scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --candidate-logo-bg: rgba(255, 255, 255, 0.1);
+  --candidate-warning: #f59e0b;
+  --candidate-warning-text: #fbbf24;
+  --candidate-cta-gradient: linear-gradient(90deg, #a855f7 0%, #ec4899 100%);
+  --candidate-cta-text: #ffffff;
+  --candidate-cta-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+  --candidate-cta-shadow-press: 0 2px 10px rgba(236, 72, 153, 0.3);
+  --candidate-disabled-bg: rgba(255, 255, 255, 0.1);
+  --candidate-disabled-text: rgba(255, 255, 255, 0.3);
+  --candidate-warning-bg: rgba(245, 158, 11, 0.1);
+  --candidate-warning-border: rgba(245, 158, 11, 0.3);
+}
+
+:global(.theme-light .theme-candidate-vote),
+:global([data-theme="light"] .theme-candidate-vote) {
+  --candidate-card-bg: rgba(255, 255, 255, 0.6);
+  --candidate-card-border: rgba(0, 0, 0, 0.05);
+  --candidate-accent: #00b97f;
+  --candidate-item-bg: rgba(15, 23, 42, 0.03);
+  --candidate-item-border: rgba(15, 23, 42, 0.08);
+  --candidate-item-hover-bg: rgba(15, 23, 42, 0.06);
+  --candidate-item-hover-border: rgba(15, 23, 42, 0.12);
+  --candidate-rank-bg: rgba(15, 23, 42, 0.06);
+  --candidate-rank-border: rgba(15, 23, 42, 0.08);
+  --candidate-scrollbar-track: rgba(15, 23, 42, 0.08);
+  --candidate-scrollbar-thumb: rgba(15, 23, 42, 0.2);
+  --candidate-logo-bg: rgba(15, 23, 42, 0.08);
+  --candidate-warning: #d97706;
+  --candidate-warning-text: #b45309;
+  --candidate-cta-gradient: linear-gradient(90deg, #7c3aed 0%, #db2777 100%);
+  --candidate-cta-text: #ffffff;
+  --candidate-cta-shadow: 0 4px 15px rgba(219, 39, 119, 0.25);
+  --candidate-cta-shadow-press: 0 2px 10px rgba(219, 39, 119, 0.2);
+  --candidate-disabled-bg: rgba(15, 23, 42, 0.08);
+  --candidate-disabled-text: rgba(15, 23, 42, 0.4);
+  --candidate-warning-bg: rgba(217, 119, 6, 0.12);
+  --candidate-warning-border: rgba(217, 119, 6, 0.3);
+}

@@ -1,0 +1,48 @@
+export const messages = {
+  title: { en: "Timestamp Proof", zh: "时间戳证明" },
+  proofs: { en: "Proofs", zh: "证明" },
+  verify: { en: "Verify", zh: "验证" },
+  docs: { en: "Docs", zh: "文档" },
+
+  createProof: { en: "Create Proof", zh: "创建证明" },
+  enterContent: { en: "Enter content to timestamp", zh: "输入要时间戳的内容" },
+  contentPlaceholder: { en: "Paste your text, document hash, or idea...", zh: "粘贴您的文本、文档哈希或想法..." },
+  createSuccess: { en: "Proof created!", zh: "证明已创建！" },
+  proofId: { en: "Proof ID", zh: "证明ID" },
+  timestamp: { en: "Timestamp", zh: "时间戳" },
+  txHash: { en: "Transaction", zh: "交易" },
+
+  verifyProof: { en: "Verify Proof", zh: "验证证明" },
+  enterProofId: { en: "Enter Proof ID", zh: "输入证明ID" },
+  validProof: { en: "Valid Proof", zh: "有效证明" },
+  invalidProof: { en: "Invalid Proof", zh: "无效证明" },
+  verifiedContent: { en: "Verified Content", zh: "已验证内容" },
+  verifyFailed: { en: "Verification failed", zh: "验证失败" },
+
+  recentProofs: { en: "Recent Proofs", zh: "最近证明" },
+  noProofs: { en: "No proofs yet", zh: "暂无证明" },
+  myProofs: { en: "My Proofs", zh: "我的证明" },
+
+  docSubtitle: { en: "Immutable blockchain timestamps", zh: "区块链不可变时间戳" },
+  docDescription: {
+    en: "Create tamper-proof timestamps for any content on the blockchain.",
+    zh: "在区块链���为任何内容创建防篡改时间戳。",
+  },
+  step1: { en: "Enter your content or document hash", zh: "输入您的内容或文档哈希" },
+  step2: { en: "Submit to create an on-chain timestamp", zh: "提交以创建链上时间戳" },
+  step3: { en: "Receive a verifiable proof certificate", zh: "接收可验证的证明证书" },
+  step4: { en: "Anyone can verify the proof anytime", zh: "任何人都可以随时验证证明" },
+
+  wrongChain: { en: "Wrong Network", zh: "网络错误" },
+  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
+  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
+  error: { en: "Error", zh: "错误" },
+  loading: { en: "Loading...", zh: "加载中..." },
+
+  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
+  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
+  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
+  wpCancel: { en: "Cancel", zh: "取消" },
+  docBadge: { en: "Documentation", zh: "文档" },
+  docFooter: { en: "NeoHub MiniApp Protocol v2.4.0", zh: "NeoHub MiniApp Protocol v2.4.0" },
+};

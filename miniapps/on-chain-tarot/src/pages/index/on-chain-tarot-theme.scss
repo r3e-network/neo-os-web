@@ -1,0 +1,44 @@
+:global(.theme-on-chain-tarot) {
+  --tarot-bg-top: #2c0b4a;
+  --tarot-bg-bottom: #0f0518;
+  --tarot-accent: #9b51e0;
+  --tarot-gold: #ffd700;
+  --tarot-card-bg: rgba(20, 5, 40, 0.6);
+  --tarot-card-border: rgba(155, 81, 224, 0.3);
+  --tarot-card-text: #e0d0ff;
+  --tarot-card-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  --tarot-button-bg: linear-gradient(135deg, #5b247a 0%, #1b1464 100%);
+  --tarot-button-border: rgba(255, 255, 255, 0.2);
+  --tarot-button-text: #ffffff;
+  --tarot-star-text: #ffffff;
+  --tarot-star-glow: #ffffff;
+  --tarot-moon-glow: rgba(155, 81, 224, 0.4);
+
+  --bg-primary: var(--tarot-bg-bottom);
+  --text-primary: var(--tarot-card-text);
+  --text-secondary: rgba(224, 208, 255, 0.7);
+  --border-color: var(--tarot-card-border);
+}
+
+:global(.theme-light .theme-on-chain-tarot),
+:global([data-theme="light"] .theme-on-chain-tarot) {
+  --tarot-bg-top: #f3e8ff;
+  --tarot-bg-bottom: #f9f5ff;
+  --tarot-accent: #7c3aed;
+  --tarot-gold: #d97706;
+  --tarot-card-bg: rgba(255, 255, 255, 0.92);
+  --tarot-card-border: rgba(124, 58, 237, 0.2);
+  --tarot-card-text: #1f2937;
+  --tarot-card-shadow: 0 4px 24px rgba(124, 58, 237, 0.15);
+  --tarot-button-bg: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  --tarot-button-border: rgba(124, 58, 237, 0.2);
+  --tarot-button-text: #ffffff;
+  --tarot-star-text: #7c3aed;
+  --tarot-star-glow: #c4b5fd;
+  --tarot-moon-glow: rgba(124, 58, 237, 0.25);
+
+  --bg-primary: var(--tarot-bg-bottom);
+  --text-primary: var(--tarot-card-text);
+  --text-secondary: rgba(31, 41, 55, 0.7);
+  --border-color: var(--tarot-card-border);
+}

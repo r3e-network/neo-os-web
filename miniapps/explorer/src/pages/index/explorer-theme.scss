@@ -1,0 +1,26 @@
+:global(.theme-explorer) {
+  --matrix-bg: #000000;
+  --matrix-green: #00ff00;
+  --matrix-font: 'Courier New', monospace;
+  --matrix-scanlines: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  --matrix-glitch: linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  --matrix-card-shadow: 0 0 10px #003300, inset 0 0 20px #003300;
+  --matrix-danger: #ff0000;
+  --matrix-danger-glow: 0 0 10px #330000;
+  --matrix-input-bg: #001100;
+  --matrix-text-glow: 0 0 5px #00ff00;
+}
+
+:global(.theme-light .theme-explorer),
+:global([data-theme="light"] .theme-explorer) {
+  --matrix-bg: #f8fafc;
+  --matrix-green: #166534;
+  --matrix-font: 'Courier New', monospace;
+  --matrix-scanlines: linear-gradient(rgba(15, 23, 42, 0) 50%, rgba(15, 23, 42, 0.08) 50%);
+  --matrix-glitch: linear-gradient(90deg, rgba(239, 68, 68, 0.08), rgba(34, 197, 94, 0.08), rgba(59, 130, 246, 0.08));
+  --matrix-card-shadow: 0 0 12px rgba(22, 163, 74, 0.25), inset 0 0 16px rgba(22, 163, 74, 0.15);
+  --matrix-danger: #b91c1c;
+  --matrix-danger-glow: 0 0 10px rgba(185, 28, 28, 0.4);
+  --matrix-input-bg: #ecfdf3;
+  --matrix-text-glow: 0 0 6px rgba(22, 163, 74, 0.5);
+}

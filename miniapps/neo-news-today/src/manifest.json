@@ -1,0 +1,17 @@
+{
+  "name": "Neo News Today",
+  "appid": "miniapp-neo-news-today",
+  "description": "Your premier source for everything Neo. Stay updated with the latest ecosystem news, market analysis, and in-depth interviews. Features a holographic dashboard and real-time community updates.",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Neo News Today",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  }
+}

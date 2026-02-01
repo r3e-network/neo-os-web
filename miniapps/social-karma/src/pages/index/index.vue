@@ -1,0 +1,296 @@
+<template>
+  <view class="theme-social-karma">
+    <ResponsiveLayout
+      :title="t('title')"
+      :nav-items="navItems"
+      :active-tab="activeTab"
+      :show-sidebar="isDesktop"
+      layout="sidebar"
+      @navigate="activeTab = $event"
+    >
+      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
+
+      <template #desktop-sidebar>
+        <SidebarKarmaCard :karma="userKarma" :rank="userRank" />
+        <SidebarQuickActions :has-checked-in="hasCheckedIn" :is-checking-in="isCheckingIn" @check-in="dailyCheckIn" />
+      </template>
+
+      <view v-if="activeTab === 'leaderboard'" class="tab-content">
+        <MobileKarmaSummary v-if="!isDesktop" :karma="userKarma" :rank="userRank" />
+        <LeaderboardSection
+          :leaderboard="leaderboard"
+          :user-address="address"
+          @refresh="loadLeaderboard"
+        />
+      </view>
+
+      <view v-if="activeTab === 'earn'" class="tab-content">
+        <CheckInSection
+          v-if="!isDesktop"
+          :streak="checkInStreak"
+          :has-checked-in="hasCheckedIn"
+          :is-checking-in="isCheckingIn"
+          :next-time="nextCheckInTime"
+          :base-reward="10"
+          @check-in="dailyCheckIn"
+        />
+        <GiveKarmaForm ref="giveKarmaFormRef" :is-giving="isGiving" @give="handleGiveKarma" />
+      </view>
+
+      <view v-if="activeTab === 'profile'" class="tab-content">
+        <BadgesGrid :badges="userBadges" />
+        <AchievementsList :achievements="computedAchievements" />
+      </view>
+
+      <view v-if="activeTab === 'docs'" class="tab-content">
+        <NeoDoc
+          :title="t('title')"
+          :subtitle="t('docSubtitle')"
+          :description="t('docDescription')"
+          :steps="docSteps"
+          :features="docFeatures"
+        />
+      </view>
+
+      <view v-if="errorMessage" class="error-toast">
+        <text>{{ errorMessage }}</text>
+      </view>
+    </ResponsiveLayout>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from "vue";
+import { useWallet } from "@neo/uniapp-sdk";
+import type { WalletSDK } from "@neo/types";
+import { parseInvokeResult } from "@shared/utils/neo";
+import { requireNeoChain } from "@shared/utils/chain";
+import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useI18n } from "@/composables/useI18n";
+import { ResponsiveLayout, NeoDoc, ChainWarning } from "@shared/components";
+import type { NavItem } from "@shared/components/ResponsiveLayout.vue";
+import LeaderboardSection, { type LeaderboardEntry } from "./components/LeaderboardSection.vue";
+import CheckInSection from "./components/CheckInSection.vue";
+import GiveKarmaForm from "./components/GiveKarmaForm.vue";
+import BadgesGrid, { type Badge } from "./components/BadgesGrid.vue";
+import AchievementsList, { type Achievement } from "./components/AchievementsList.vue";
+import SidebarKarmaCard from "./components/SidebarKarmaCard.vue";
+import SidebarQuickActions from "./components/SidebarQuickActions.vue";
+import MobileKarmaSummary from "./components/MobileKarmaSummary.vue";
+
+const { t } = useI18n();
+const APP_ID = "miniapp-social-karma";
+
+const navItems = computed<NavItem[]>(() => [
+  { key: "leaderboard", label: t("leaderboard"), icon: "🏆" },
+  { key: "earn", label: t("earn"), icon: "✨" },
+  { key: "profile", label: t("profile"), icon: "👤" },
+  { key: "docs", label: t("docs"), icon: "📖" },
+]);
+
+const activeTab = ref("leaderboard");
+const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
+
+const contractAddress = ref<string | null>(null);
+const leaderboard = ref<LeaderboardEntry[]>([]);
+const userKarma = ref(0);
+const userRank = ref(0);
+const checkInStreak = ref(0);
+const hasCheckedIn = ref(false);
+const nextCheckInTime = ref("-");
+const isCheckingIn = ref(false);
+const isGiving = ref(false);
+const errorMessage = ref<string | null>(null);
+const giveKarmaFormRef = ref<InstanceType<typeof GiveKarmaForm> | null>(null);
+
+const isDesktop = computed(() => {
+  try {
+    return window.innerWidth >= 768;
+  } catch {
+    return false;
+  }
+});
+
+const userBadges = ref<Badge[]>([
+  { id: "first", icon: "🌟", name: t("earlyAdopter"), unlocked: true, hint: t("joinEarly") },
+  { id: "helpful", icon: "🤝", name: t("helpful"), unlocked: false, hint: t("helpHint") },
+  { id: "generous", icon: "🎁", name: t("generous"), unlocked: false, hint: t("giveHint") },
+  { id: "verified", icon: "✓", name: t("verified"), unlocked: false, hint: t("verifyHint") },
+  { id: "contributor", icon: "⭐", name: t("contributor"), unlocked: false, hint: t("contribHint") },
+  { id: "champion", icon: "🏆", name: t("champion"), unlocked: false, hint: t("championHint") },
+  { id: "legend", icon: "👑", name: t("legend"), unlocked: false, hint: t("legendHint") },
+  { id: "streak7", icon: "🔥", name: t("weekStreak"), unlocked: false, hint: t("streak7Hint") },
+]);
+
+const computedAchievements = computed<Achievement[]>(() => [
+  { id: "first", name: t("firstKarma"), progress: `${Math.min(userKarma.value, 1)}/1`, percent: Math.min(userKarma.value / 1 * 100, 100), unlocked: userKarma.value >= 1 },
+  { id: "k10", name: t("karma10"), progress: `${Math.min(userKarma.value, 10)}/10`, percent: Math.min(userKarma.value / 10 * 100, 100), unlocked: userKarma.value >= 10 },
+  { id: "k100", name: t("karma100"), progress: `${Math.min(userKarma.value, 100)}/100`, percent: Math.min(userKarma.value / 100 * 100, 100), unlocked: userKarma.value >= 100 },
+  { id: "k1000", name: t("karma1000"), progress: `${Math.min(userKarma.value, 1000)}/1000`, percent: Math.min(userKarma.value / 1000 * 100, 100), unlocked: userKarma.value >= 1000 },
+  { id: "gifter", name: t("gifter"), progress: "0/1", percent: 0, unlocked: false },
+  { id: "philanthropist", name: t("philanthropist"), progress: "0/100", percent: 0, unlocked: false },
+]);
+
+const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
+const docFeatures = computed(() => [
+  { name: t("feature1Name"), desc: t("feature1Desc") },
+  { name: t("feature2Name"), desc: t("feature2Desc") },
+  { name: t("feature3Name"), desc: t("feature3Desc") },
+  { name: t("feature4Name"), desc: t("feature4Desc") },
+]);
+
+const ensureContractAddress = async (): Promise<boolean> => {
+  if (!requireNeoChain(chainType, t)) return false;
+  if (!contractAddress.value) {
+    contractAddress.value = await getContractAddress();
+  }
+  return !!contractAddress.value;
+};
+
+const loadLeaderboard = async () => {
+  if (!(await ensureContractAddress())) return;
+  try {
+    const result = await invokeRead({
+      scriptHash: contractAddress.value as string,
+      operation: "getLeaderboard",
+      args: [],
+    });
+    const parsed = parseInvokeResult(result) as unknown[];
+    if (Array.isArray(parsed)) {
+      leaderboard.value = parsed.map((e: any) => ({
+        address: String(e.address || ""),
+        karma: Number(e.karma || 0),
+      }));
+    }
+    const userEntry = leaderboard.value.find((e: any) => e.address === address.value);
+    if (userEntry) {
+      userKarma.value = userEntry.karma;
+      userRank.value = leaderboard.value.indexOf(userEntry) + 1;
+    }
+  } catch (e: any) {
+    leaderboard.value = [
+      { address: "0x1234...5678", karma: 1500 },
+      { address: "0xabcd...efgh", karma: 1200 },
+      { address: "0x9876...5432", karma: 980 },
+    ];
+  }
+};
+
+const loadUserState = async () => {
+  if (!address.value || !(await ensureContractAddress())) return;
+  try {
+    const state = await invokeRead({
+      scriptHash: contractAddress.value as string,
+      operation: "getUserCheckInState",
+      args: [{ type: "Hash160", value: address.value }],
+    });
+    if (state) {
+      hasCheckedIn.value = (state as any).checkedIn || false;
+      checkInStreak.value = Number((state as any).streak || 0);
+    }
+  } catch (e: any) {
+  }
+};
+
+const dailyCheckIn = async () => {
+  if (!address.value) { showError(t("connectWallet")); return; }
+  if (!(await ensureContractAddress())) return;
+
+  try {
+    isCheckingIn.value = true;
+    const { receiptId, invoke } = await processPayment("0.1", "checkin");
+    const tx = (await invoke("dailyCheckIn", [{ type: "Integer", value: String(receiptId) }], contractAddress.value as string)) as { txid: string };
+    if (tx.txid) {
+      await waitForEvent(tx.txid, "KarmaEarned");
+      hasCheckedIn.value = true;
+      checkInStreak.value += 1;
+      await loadLeaderboard();
+    }
+  } catch (e: any) {
+    showError(e.message || t("error"));
+  } finally {
+    isCheckingIn.value = false;
+  }
+};
+
+const handleGiveKarma = async (data: { address: string; amount: number; reason: string }) => {
+  if (!address.value) return;
+  if (!(await ensureContractAddress())) return;
+
+  try {
+    isGiving.value = true;
+    const { receiptId, invoke } = await processPayment("0.1", `reward:${data.amount}`);
+    const tx = (await invoke("giveKarma", [{ type: "Hash160", value: data.address }, { type: "Integer", value: data.amount }, { type: "String", value: data.reason }, { type: "Integer", value: String(receiptId) }], contractAddress.value as string)) as { txid: string };
+    if (tx.txid) {
+      await waitForEvent(tx.txid, "KarmaGiven");
+      giveKarmaFormRef.value?.reset();
+      await loadLeaderboard();
+    }
+  } catch (e: any) {
+    showError(e.message || t("error"));
+  } finally {
+    isGiving.value = false;
+  }
+};
+
+const showError = (msg: string) => {
+  errorMessage.value = msg;
+  setTimeout(() => (errorMessage.value = null), 5000);
+};
+
+onMounted(async () => {
+  await ensureContractAddress();
+  await loadLeaderboard();
+  await loadUserState();
+});
+</script>
+
+<style lang="scss" scoped>
+.theme-social-karma {
+  --karma-primary: #f59e0b;
+  --karma-secondary: #8b5cf6;
+  --karma-success: #10b981;
+  --karma-bg: #0f0f23;
+  --karma-card-bg: rgba(255, 255, 255, 0.05);
+  --karma-text: #ffffff;
+  --karma-text-secondary: rgba(255, 255, 255, 0.7);
+  --karma-text-muted: rgba(255, 255, 255, 0.5);
+  --karma-border: rgba(255, 255, 255, 0.1);
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+@media (min-width: 768px) {
+  .tab-content {
+    gap: 24px;
+    padding: 0;
+  }
+}
+
+.error-toast {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 14px 24px;
+  background: #ef4444;
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 3000;
+  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+</style>

@@ -1,0 +1,68 @@
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap");
+
+:global(.theme-neo-ns) {
+  --dir-bg: #000000;
+  --dir-green: #00ff00;
+  --dir-green-dim: #003300;
+  --dir-card-bg: #000000;
+  --dir-card-border: #00ff00;
+  --dir-card-glow: 0 0 10px rgba(0, 255, 0, 0.7);
+  --dir-card-text: #00ff00;
+  --dir-text-muted: rgba(0, 255, 0, 0.7);
+  --dir-text-dim: rgba(0, 255, 0, 0.5);
+  --dir-danger: #ff3b3b;
+  --dir-danger-border: rgba(255, 59, 59, 0.8);
+  --dir-danger-glow: 0 0 10px rgba(255, 59, 59, 0.8);
+  --dir-danger-text: #ff3b3b;
+  --dir-danger-bg: rgba(255, 59, 59, 0.08);
+  --dir-warning: #facc15;
+  --dir-warning-glow: 0 0 10px rgba(250, 204, 21, 0.7);
+  --dir-price-bg: #003300;
+  --dir-price-border: #00ff00;
+  --dir-scanline-top: rgba(18, 16, 16, 0.2);
+  --dir-scanline-bottom: rgba(0, 0, 0, 0.4);
+  --dir-scanline-red: rgba(255, 0, 0, 0.06);
+  --dir-scanline-green: rgba(0, 255, 0, 0.02);
+  --dir-scanline-blue: rgba(0, 0, 255, 0.06);
+  --dir-font: "Fira Code", monospace;
+
+  --bg-primary: var(--dir-bg);
+  --bg-secondary: var(--dir-bg);
+  --text-primary: var(--dir-card-text);
+  --text-secondary: var(--dir-text-muted);
+  --border-color: var(--dir-card-border);
+}
+
+:global(.theme-light .theme-neo-ns),
+:global([data-theme="light"] .theme-neo-ns) {
+  --dir-bg: #f8fafc;
+  --dir-green: #0f766e;
+  --dir-green-dim: #134e4a;
+  --dir-card-bg: #ffffff;
+  --dir-card-border: rgba(15, 118, 110, 0.5);
+  --dir-card-glow: 0 0 10px rgba(15, 118, 110, 0.25);
+  --dir-card-text: #0f766e;
+  --dir-text-muted: rgba(15, 118, 110, 0.65);
+  --dir-text-dim: rgba(15, 118, 110, 0.5);
+  --dir-danger: #b91c1c;
+  --dir-danger-border: rgba(185, 28, 28, 0.4);
+  --dir-danger-glow: 0 0 10px rgba(185, 28, 28, 0.2);
+  --dir-danger-text: #b91c1c;
+  --dir-danger-bg: rgba(185, 28, 28, 0.08);
+  --dir-warning: #d97706;
+  --dir-warning-glow: 0 0 10px rgba(217, 119, 6, 0.25);
+  --dir-price-bg: rgba(15, 118, 110, 0.08);
+  --dir-price-border: rgba(15, 118, 110, 0.4);
+  --dir-scanline-top: rgba(15, 23, 42, 0.08);
+  --dir-scanline-bottom: rgba(15, 23, 42, 0.12);
+  --dir-scanline-red: rgba(239, 68, 68, 0.04);
+  --dir-scanline-green: rgba(16, 185, 129, 0.04);
+  --dir-scanline-blue: rgba(59, 130, 246, 0.04);
+  --dir-font: "Fira Code", monospace;
+
+  --bg-primary: var(--dir-bg);
+  --bg-secondary: var(--dir-bg);
+  --text-primary: var(--dir-card-text);
+  --text-secondary: var(--dir-text-muted);
+  --border-color: var(--dir-card-border);
+}

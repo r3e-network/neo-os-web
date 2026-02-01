@@ -1,0 +1,220 @@
+import { ref } from "vue";
+import { useWallet } from "@neo/uniapp-sdk";
+import type { WalletSDK } from "@neo/types";
+import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { toFixed8 } from "@shared/utils/format";
+
+export interface ScratchTicket {
+  id: string;
+  type: number;
+  purchasedAt: number;
+  isRevealed: boolean;
+  prize?: number;
+  seed?: string;
+}
+
+export function useScratchCard() {
+  const { address, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
+
+  const setError = (message: string) => {
+    error.value = message;
+    console.error("[ScratchCard] Error:", message);
+  };
+
+  const clearError = () => {
+    error.value = null;
+  };
+
+  const getContract = async () => {
+    const contract = await getContractAddress();
+    if (!contract) {
+      throw new Error("Contract address not found");
+    }
+    return contract;
+  };
+
+  const formatPrize = (prizeRaw: number | string): string => {
+    const prize = typeof prizeRaw === "string" ? parseFloat(prizeRaw) : prizeRaw;
+    if (prize <= 0) return "0";
+    return (prize / 100000000).toFixed(2);
+  };
+
+  const buyTicket = async (lotteryType: number): Promise<{ ticketId: string }> => {
+    if (!address.value) {
+      throw new Error("Wallet not connected");
+    }
+
+    isLoading.value = true;
+    clearError();
+
+    try {
+      const contract = await getContract();
+
+      const result = await invokeContract({
+        scriptHash: contract,
+        operation: "BuyScratchTicket",
+        args: [
+          { type: "Hash160", value: address.value },
+          { type: "Integer", value: lotteryType },
+          { type: "Integer", value: "0" },
+        ],
+      });
+
+      const txResult = result as { txid?: string; receiptId?: string };
+      if (!txResult?.txid) {
+        throw new Error("Transaction failed");
+      }
+
+      const ticketId = txResult.receiptId || "0";
+
+      return { ticketId };
+    } catch (e: unknown) {
+      setError(e.message || "Failed to buy ticket");
+      throw e;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const revealTicket = async (ticketId: string): Promise<{
+    isWinner: boolean;
+    prize: number;
+    tier: number;
+    revealed: boolean;
+  }> => {
+    if (!address.value) {
+      throw new Error("Wallet not connected");
+    }
+
+    isLoading.value = true;
+    clearError();
+
+    try {
+      const contract = await getContract();
+
+      const result = await invokeContract({
+        scriptHash: contract,
+        operation: "RevealScratchTicket",
+        args: [
+          { type: "Hash160", value: address.value },
+          { type: "Integer", value: ticketId },
+        ],
+      });
+
+      const parsed = parseInvokeResult(result);
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error("Invalid response from contract");
+      }
+
+      const data = parsed as Record<string, unknown>;
+      const prize = Number(data.prize ?? data.Prize ?? 0);
+      const tier = Number(data.tier ?? data.Tier ?? 0);
+      const revealed = Boolean(data.revealed ?? data.Revealed ?? true);
+
+      return {
+        isWinner: prize > 0,
+        prize,
+        tier,
+        revealed,
+      };
+    } catch (e: unknown) {
+      setError(e.message || "Failed to reveal ticket");
+      throw e;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const getTicket = async (ticketId: string): Promise<ScratchTicket | null> => {
+    try {
+      const contract = await getContract();
+
+      const result = await invokeRead({
+        contractAddress: contract,
+        operation: "GetScratchTicket",
+        args: [{ type: "Integer", value: ticketId }],
+      });
+
+      const parsed = parseInvokeResult(result);
+      if (!parsed || typeof parsed !== "object") {
+        return null;
+      }
+
+      const data = parsed as Record<string, unknown>;
+      const id = String(data.id ?? data.Id ?? ticketId);
+      const type = Number(data.type ?? data.Type ?? 0);
+      const purchasedAt = Number(data.purchasedAt ?? data.PurchasedAt ?? 0);
+      const isRevealed = Boolean(data.isRevealed ?? data.IsRevealed ?? false);
+      const prize = Number(data.prize ?? data.Prize ?? 0);
+      const seed = String(data.seed ?? data.Seed ?? "");
+
+      return {
+        id,
+        type,
+        purchasedAt,
+        isRevealed,
+        prize: isRevealed ? prize : undefined,
+        seed: isRevealed ? seed : undefined,
+      };
+    } catch (e: unknown) {
+      console.error("[ScratchCard] Failed to get ticket:", e);
+      return null;
+    }
+  };
+
+  const getPlayerTicketCount = async (): Promise<number> => {
+    if (!address.value) return 0;
+
+    try {
+      const contract = await getContract();
+
+      const result = await invokeRead({
+        contractAddress: contract,
+        operation: "GetPlayerScratchCount",
+        args: [{ type: "Hash160", value: address.value }],
+      });
+
+      const parsed = parseInvokeResult(result);
+      return Number(parsed ?? 0);
+    } catch (e: unknown) {
+      console.error("[ScratchCard] Failed to get ticket count:", e);
+      return 0;
+    }
+  };
+
+  const loadPlayerTickets = async (): Promise<ScratchTicket[]> => {
+    if (!address.value) return [];
+
+    try {
+      const count = await getPlayerTicketCount();
+      const tickets: ScratchTicket[] = [];
+
+      for (let i = 0; i < count; i++) {
+        const ticket = await getTicket(String(count - i));
+        if (ticket && !ticket.isRevealed) {
+          tickets.push(ticket);
+        }
+      }
+
+      return tickets;
+    } catch (e: unknown) {
+      console.error("[ScratchCard] Failed to load tickets:", e);
+      return [];
+    }
+  };
+
+  return {
+    isLoading,
+    error,
+    setError,
+    clearError,
+    buyTicket,
+    revealTicket,
+    getTicket,
+    getPlayerTicketCount,
+    loadPlayerTickets,
+    formatPrize,
+  };
+}

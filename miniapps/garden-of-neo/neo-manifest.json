@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-garden-of-neo",
+  "name": "Garden of Neo",
+  "name_zh": "Neo 花园",
+  "version": "1.0.0",
+  "description": "Plant elemental seeds, grow for 100 blocks, and harvest GAS rewards.",
+  "description_zh": "Neo 花园 - Neo N3 去中心化应用",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "tags": [
+    "nft",
+    "garden",
+    "rewards"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x72aa16fd44305eabe8b85ca397b9bfcdc718dce8",
+    "neo-n3-testnet": "0xdb52b284d97973b01fed431dd6d143a4d04d9fa7"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/garden-of-neo/index.html",
+    "icon": "/miniapps/garden-of-neo/logo.jpg",
+    "banner": "/miniapps/garden-of-neo/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://garden-of-neo"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

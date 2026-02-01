@@ -1,0 +1,2131 @@
+# =============================================================================
+# NeoFeeds Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neofeeds
+  namespace: service-layer
+  labels:
+    app: neofeeds
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neofeeds
+  template:
+    metadata:
+      labels:
+        app: neofeeds
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: neofeeds
+        image: service-layer/neofeeds:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8083
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "neofeeds"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "neofeeds,neofeeds.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: POOL_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: POOL_MASTER_KEY
+              optional: true
+        - name: COORD_MASTER_SEED
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: COORD_MASTER_SEED
+              optional: true
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: CONTRACT_PRICE_FEED_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_PRICE_FEED_ADDRESS
+        - name: TXPROXY_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TXPROXY_URL
+        - name: TXPROXY_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TXPROXY_TIMEOUT
+              optional: true
+        - name: GASBANK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GASBANK_URL
+              optional: true
+        - name: ARBITRUM_RPC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: ARBITRUM_RPC
+              optional: true
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY
+              optional: true
+        - name: NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS
+              optional: true
+        - name: SERVICE_TYPE
+          value: "neofeeds"
+        - name: GLOBALSIGNER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_SERVICE_URL
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8083
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neofeeds
+  namespace: service-layer
+spec:
+  selector:
+    app: neofeeds
+  ports:
+  - name: http
+    port: 8083
+    targetPort: 8083
+---
+# =============================================================================
+# NeoFlow Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neoflow
+  namespace: service-layer
+  labels:
+    app: neoflow
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neoflow
+  template:
+    metadata:
+      labels:
+        app: neoflow
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: neoflow
+        image: service-layer/neoflow:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8084
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "neoflow"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "neoflow,neoflow.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: CONTRACT_PRICE_FEED_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_PRICE_FEED_ADDRESS
+        - name: CONTRACT_AUTOMATION_ANCHOR_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_AUTOMATION_ANCHOR_ADDRESS
+        - name: TXPROXY_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TXPROXY_URL
+        - name: TXPROXY_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TXPROXY_TIMEOUT
+              optional: true
+        - name: GASBANK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GASBANK_URL
+              optional: true
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS
+        - name: SERVICE_TYPE
+          value: "neoflow"
+        - name: GLOBALSIGNER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_SERVICE_URL
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8084
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8084
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neoflow
+  namespace: service-layer
+spec:
+  selector:
+    app: neoflow
+  ports:
+  - name: http
+    port: 8084
+    targetPort: 8084
+---
+# =============================================================================
+# AccountPool Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neoaccounts
+  namespace: service-layer
+  labels:
+    app: neoaccounts
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neoaccounts
+  template:
+    metadata:
+      labels:
+        app: neoaccounts
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: neoaccounts
+        image: service-layer/neoaccounts:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8085
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "neoaccounts"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "neoaccounts,accountpool,neoaccounts.service-layer.svc.cluster.local,accountpool.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: SERVICE_TYPE
+          value: "neoaccounts"
+        - name: GLOBALSIGNER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_SERVICE_URL
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8085
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8085
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neoaccounts
+  namespace: service-layer
+spec:
+  selector:
+    app: neoaccounts
+  ports:
+  - name: http
+    port: 8085
+    targetPort: 8085
+---
+# =============================================================================
+# NeoCompute Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neocompute
+  namespace: service-layer
+  labels:
+    app: neocompute
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neocompute
+  template:
+    metadata:
+      labels:
+        app: neocompute
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: neocompute
+        image: service-layer/neocompute:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8086
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "neocompute"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "neocompute,neocompute.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: SERVICE_TYPE
+          value: "neocompute"
+        - name: GLOBALSIGNER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_SERVICE_URL
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8086
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8086
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neocompute
+  namespace: service-layer
+spec:
+  selector:
+    app: neocompute
+  ports:
+  - name: http
+    port: 8086
+    targetPort: 8086
+---
+# =============================================================================
+# NeoVRF Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neovrf
+  namespace: service-layer
+  labels:
+    app: neovrf
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neovrf
+  template:
+    metadata:
+      labels:
+        app: neovrf
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: neovrf
+        image: service-layer/neovrf:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8087
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "neovrf"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "neovrf,vrf,neovrf.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: SERVICE_TYPE
+          value: "neovrf"
+        - name: GLOBALSIGNER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_SERVICE_URL
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8087
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8087
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neovrf
+  namespace: service-layer
+spec:
+  selector:
+    app: neovrf
+  ports:
+  - name: http
+    port: 8087
+    targetPort: 8087
+---
+# =============================================================================
+# Oracle Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neooracle
+  namespace: service-layer
+  labels:
+    app: neooracle
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neooracle
+  template:
+    metadata:
+      labels:
+        app: neooracle
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: neooracle
+        image: service-layer/neooracle:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8088
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "neooracle"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "neooracle,oracle,neooracle.service-layer.svc.cluster.local,oracle.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: SERVICE_TYPE
+          value: "neooracle"
+        - name: GLOBALSIGNER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_SERVICE_URL
+        - name: ORACLE_HTTP_ALLOWLIST
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: ORACLE_HTTP_ALLOWLIST
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8088
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8088
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neooracle
+  namespace: service-layer
+spec:
+  selector:
+    app: neooracle
+  ports:
+  - name: http
+    port: 8088
+    targetPort: 8088
+---
+# =============================================================================
+# NeoRequests Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neorequests
+  namespace: service-layer
+  labels:
+    app: neorequests
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neorequests
+  template:
+    metadata:
+      labels:
+        app: neorequests
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: neorequests
+        image: service-layer/neorequests:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8094
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "neorequests"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "neorequests,neorequests.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: CONTRACT_SERVICE_GATEWAY_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_SERVICE_GATEWAY_ADDRESS
+        - name: CONTRACT_APP_REGISTRY_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_APP_REGISTRY_ADDRESS
+        - name: NEOVRF_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOVRF_URL
+        - name: NEOORACLE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOORACLE_URL
+        - name: NEOCOMPUTE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOCOMPUTE_URL
+        - name: NEOREQUESTS_MAX_RESULT_BYTES
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_MAX_RESULT_BYTES
+        - name: NEOREQUESTS_MAX_ERROR_LEN
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_MAX_ERROR_LEN
+        - name: NEOREQUESTS_RNG_RESULT_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_RNG_RESULT_MODE
+        - name: NEOREQUESTS_TX_WAIT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_TX_WAIT
+        - name: NEOREQUESTS_ENFORCE_APPREGISTRY
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_ENFORCE_APPREGISTRY
+        - name: NEOREQUESTS_APPREGISTRY_CACHE_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_APPREGISTRY_CACHE_SECONDS
+        - name: TXPROXY_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TXPROXY_URL
+        - name: TXPROXY_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TXPROXY_TIMEOUT
+              optional: true
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: SERVICE_TYPE
+          value: "neorequests"
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8094
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8094
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neorequests
+  namespace: service-layer
+spec:
+  selector:
+    app: neorequests
+  ports:
+  - name: http
+    port: 8094
+    targetPort: 8094
+---
+# =============================================================================
+# TxProxy Service (Allowlisted Transaction Broadcast)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: txproxy
+  namespace: service-layer
+  labels:
+    app: txproxy
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: txproxy
+  template:
+    metadata:
+      labels:
+        app: txproxy
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: txproxy
+        image: service-layer/txproxy:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8090
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "txproxy"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "txproxy,txproxy.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: CONTRACT_PAYMENT_HUB_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_PAYMENT_HUB_ADDRESS
+        - name: CONTRACT_GOVERNANCE_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_GOVERNANCE_ADDRESS
+        - name: TXPROXY_ALLOWLIST
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TXPROXY_ALLOWLIST
+              optional: true
+        - name: GLOBALSIGNER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_SERVICE_URL
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: SERVICE_TYPE
+          value: "txproxy"
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8090
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8090
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: txproxy
+  namespace: service-layer
+spec:
+  selector:
+    app: txproxy
+  ports:
+  - name: http
+    port: 8090
+    targetPort: 8090
+---
+# =============================================================================
+# GlobalSigner Service (Domain-Separated Signing + Rotation)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: globalsigner
+  namespace: service-layer
+  labels:
+    app: globalsigner
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: globalsigner
+  template:
+    metadata:
+      labels:
+        app: globalsigner
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: globalsigner
+        image: service-layer/globalsigner:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8092
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "globalsigner"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "globalsigner,globalsigner.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: GLOBALSIGNER_MASTER_SEED
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: GLOBALSIGNER_MASTER_SEED
+              optional: true
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: SERVICE_TYPE
+          value: "globalsigner"
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8092
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8092
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: globalsigner
+  namespace: service-layer
+spec:
+  selector:
+    app: globalsigner
+  ports:
+  - name: http
+    port: 8092
+    targetPort: 8092
+---
+# =============================================================================
+# NeoGasBank Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neogasbank
+  namespace: service-layer
+  labels:
+    app: neogasbank
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neogasbank
+  template:
+    metadata:
+      labels:
+        app: neogasbank
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: neogasbank
+        image: service-layer/neogasbank:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8091
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "neogasbank"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "neogasbank,neogasbank.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: GASBANK_DEPOSIT_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GASBANK_DEPOSIT_ADDRESS
+              optional: true
+        - name: NEOACCOUNTS_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOACCOUNTS_SERVICE_URL
+              optional: true
+        - name: TOPUP_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TOPUP_ENABLED
+              optional: true
+        - name: SIMULATION_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SIMULATION_ENABLED
+              optional: true
+        - name: SIMULATION_MINIAPPS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SIMULATION_MINIAPPS
+              optional: true
+        - name: SIMULATION_TX_INTERVAL_MIN_MS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SIMULATION_TX_INTERVAL_MIN_MS
+              optional: true
+        - name: SIMULATION_TX_INTERVAL_MAX_MS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SIMULATION_TX_INTERVAL_MAX_MS
+              optional: true
+        - name: SIMULATION_WORKERS_PER_APP
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SIMULATION_WORKERS_PER_APP
+              optional: true
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: SERVICE_TYPE
+          value: "neogasbank"
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8091
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8091
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neogasbank
+  namespace: service-layer
+spec:
+  selector:
+    app: neogasbank
+  ports:
+  - name: http
+    port: 8091
+    targetPort: 8091
+---
+# =============================================================================
+# NeoSimulation Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neosimulation
+  namespace: service-layer
+  labels:
+    app: neosimulation
+    marblerun/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neosimulation
+  template:
+    metadata:
+      labels:
+        app: neosimulation
+        marblerun/inject: "true"
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: marble-data
+        emptyDir: {}
+      - name: qcnl-config
+        configMap:
+          name: sgx-qcnl-config
+      - name: tmp
+        emptyDir: {}
+      containers:
+      - name: neosimulation
+        image: service-layer/neosimulation:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8093
+        env:
+        - name: EDG_MARBLE_COORDINATOR_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: COORDINATOR_MESH_ADDR
+        - name: EDG_MARBLE_TYPE
+          value: "neosimulation"
+        - name: MARBLE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: MARBLE_ENV
+        - name: MARBLE_EXTRA_CLIENT_CA
+          valueFrom:
+            configMapKeyRef:
+              name: edge-client-ca
+              key: ca.pem
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: METRICS_ENABLED
+              optional: true
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: LOG_FORMAT
+        - name: EDG_MARBLE_DNS_NAMES
+          value: "neosimulation,neosimulation.service-layer.svc.cluster.local"
+        - name: EDG_MARBLE_UUID_FILE
+          value: /marble/uuid
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_URL
+        - name: SUPABASE_REST_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_REST_PREFIX
+        - name: SUPABASE_ALLOW_INSECURE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: SUPABASE_ALLOW_INSECURE
+              optional: true
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SUPABASE_SERVICE_KEY
+        - name: NEO_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_RPC_URL
+        - name: NEO_NETWORK_MAGIC
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEO_NETWORK_MAGIC
+        - name: CONTRACT_PAYMENT_HUB_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_PAYMENT_HUB_ADDRESS
+        - name: CONTRACT_PRICE_FEED_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_PRICE_FEED_ADDRESS
+              optional: true
+        - name: CONTRACT_RANDOMNESS_LOG_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_RANDOMNESS_LOG_ADDRESS
+              optional: true
+        - name: NEOACCOUNTS_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOACCOUNTS_SERVICE_URL
+              optional: true
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: OE_SIMULATION
+        - name: SERVICE_TYPE
+          value: "neosimulation"
+        volumeMounts:
+        - name: marble-data
+          mountPath: /marble
+        - name: qcnl-config
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 8093
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8093
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neosimulation
+  namespace: service-layer
+spec:
+  selector:
+    app: neosimulation
+  ports:
+  - name: http
+    port: 8093
+    targetPort: 8093

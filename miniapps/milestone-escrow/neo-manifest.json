@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-milestone-escrow",
+  "name": "Milestone Escrow",
+  "name_zh": "里程碑托管",
+  "version": "1.0.0",
+  "description": "Lock funds and release per approved milestones.",
+  "description_zh": "里程碑托管 - Neo N3 去中心化应用",
+  "category": "finance",
+  "category_name": "Finance",
+  "category_name_zh": "金融",
+  "tags": [
+    "escrow",
+    "milestone",
+    "payments"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x7f4e2ddba33a4f32e41f4c9c953a3ddc5f1ae6b1",
+    "neo-n3-testnet": ""
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/milestone-escrow/index.html",
+    "icon": "/miniapps/milestone-escrow/logo.jpg",
+    "banner": "/miniapps/milestone-escrow/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://milestone-escrow"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

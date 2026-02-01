@@ -1,0 +1,86 @@
+@import url("https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap");
+
+:global(.theme-graveyard) {
+  --grave-bg: #000000;
+  --grave-accent: #33ff00;
+  --grave-danger: #ff003c;
+  --grave-text: #e0e0e0;
+  --grave-grid: #1a1a1a;
+  --grave-card-bg: rgba(10, 10, 10, 0.9);
+  --grave-card-danger-bg: rgba(20, 0, 0, 0.9);
+  --grave-card-shadow: 5px 5px 0 #1a1a1a;
+  --grave-card-accent-border: #33ff00;
+  --grave-card-border: #1a1a1a;
+  --grave-button-shadow: 3px 3px 0 #1a1a1a;
+  --grave-button-danger-shadow: 3px 3px 0 rgba(255, 0, 0, 0.3);
+  --grave-panel: rgba(0, 0, 0, 0.2);
+  --grave-danger-soft: rgba(239, 68, 68, 0.4);
+  --grave-warning-text: #ffeccc;
+  --grave-input-border: #e0e0e0;
+  --grave-accent-soft: rgba(51, 255, 0, 0.1);
+  --grave-accent-glow: rgba(51, 255, 0, 0.3);
+  --grave-danger-glow: rgba(255, 0, 60, 0.5);
+  --grave-danger-soft: rgba(239, 68, 68, 0.4);
+  --grave-danger-border: rgba(239, 68, 68, 0.3);
+  --grave-danger-soft-weak: rgba(239, 68, 68, 0.15);
+  --grave-danger-soft-strong: rgba(239, 68, 68, 0.5);
+  --grave-danger-text: #ef4444;
+  --grave-warning: #ffde59;
+  --grave-warning-glow: rgba(255, 222, 89, 0.6);
+  --grave-overlay: rgba(0, 0, 0, 0.9);
+  --grave-panel-soft: rgba(255, 255, 255, 0.05);
+  --grave-panel-strong: rgba(255, 255, 255, 0.1);
+  --grave-panel-border: rgba(255, 255, 255, 0.1);
+  --grave-muted: rgba(224, 224, 224, 0.5);
+  --grave-fog: rgba(255, 255, 255, 0.1);
+  --grave-font: "Courier Prime", monospace;
+
+  --bg-primary: var(--grave-bg);
+  --bg-secondary: var(--grave-bg);
+  --text-primary: var(--grave-text);
+  --text-secondary: rgba(224, 224, 224, 0.7);
+  --border-color: var(--grave-card-border);
+}
+
+:global(.theme-light .theme-graveyard),
+:global([data-theme="light"] .theme-graveyard) {
+  --grave-bg: #f8fafc;
+  --grave-accent: #0f766e;
+  --grave-danger: #b91c1c;
+  --grave-text: #0f172a;
+  --grave-grid: rgba(15, 23, 42, 0.08);
+  --grave-card-bg: rgba(255, 255, 255, 0.9);
+  --grave-card-danger-bg: rgba(254, 226, 226, 0.9);
+  --grave-card-shadow: 4px 4px 0 rgba(15, 23, 42, 0.15);
+  --grave-card-accent-border: rgba(15, 118, 110, 0.6);
+  --grave-card-border: rgba(15, 23, 42, 0.12);
+  --grave-button-shadow: 3px 3px 0 rgba(15, 23, 42, 0.18);
+  --grave-button-danger-shadow: 3px 3px 0 rgba(185, 28, 28, 0.25);
+  --grave-panel: rgba(15, 23, 42, 0.1);
+  --grave-danger-soft: rgba(239, 68, 68, 0.25);
+  --grave-warning-text: #7f1d1d;
+  --grave-input-border: rgba(15, 23, 42, 0.3);
+  --grave-accent-soft: rgba(15, 118, 110, 0.12);
+  --grave-accent-glow: rgba(15, 118, 110, 0.25);
+  --grave-danger-glow: rgba(185, 28, 28, 0.35);
+  --grave-danger-soft: rgba(239, 68, 68, 0.25);
+  --grave-danger-border: rgba(185, 28, 28, 0.35);
+  --grave-danger-soft-weak: rgba(239, 68, 68, 0.12);
+  --grave-danger-soft-strong: rgba(185, 28, 28, 0.35);
+  --grave-danger-text: #b91c1c;
+  --grave-warning: #d97706;
+  --grave-warning-glow: rgba(217, 119, 6, 0.3);
+  --grave-overlay: rgba(15, 23, 42, 0.6);
+  --grave-panel-soft: rgba(15, 23, 42, 0.06);
+  --grave-panel-strong: rgba(15, 23, 42, 0.12);
+  --grave-panel-border: rgba(15, 23, 42, 0.12);
+  --grave-muted: rgba(15, 23, 42, 0.5);
+  --grave-fog: rgba(15, 23, 42, 0.12);
+  --grave-font: "Courier Prime", monospace;
+
+  --bg-primary: var(--grave-bg);
+  --bg-secondary: var(--grave-bg);
+  --text-primary: var(--grave-text);
+  --text-secondary: rgba(15, 23, 42, 0.7);
+  --border-color: var(--grave-card-border);
+}

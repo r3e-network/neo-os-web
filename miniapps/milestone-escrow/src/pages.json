@@ -1,0 +1,23 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Milestone Escrow"
+      }
+    },
+    {
+      "path": "pages/docs/index",
+      "style": {
+        "navigationBarTitleText": "Docs"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Milestone Escrow",
+    "navigationBarBackgroundColor": "#0d121f",
+    "backgroundColor": "#0d121f",
+    "navigationStyle": "custom"
+  }
+}

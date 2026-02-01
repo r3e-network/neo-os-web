@@ -1,0 +1,68 @@
+export const messages = {
+  appTitle: { en: "Neo Sign Anything", zh: "Neo 任意签" },
+  home: { en: "Home", zh: "首页" },
+  docs: { en: "Docs", zh: "文档" },
+  signTitle: { en: "Sign Anything", zh: "任意签" },
+  signDesc: {
+    en: "Cryptographically sign any message with your Neo address.",
+    zh: "使用您的 Neo 地址对任意信息进行加密签名。",
+  },
+  messageLabel: { en: "Message", zh: "信息" },
+  messagePlaceholder: { en: "Enter your message here...", zh: "在此输入您的信息..." },
+  messageTooLong: { en: "Message is too long for on-chain broadcast.", zh: "信息过长，无法上链广播。" },
+  signBtn: { en: "Sign Message", zh: "签名信息" },
+  broadcastBtn: { en: "Broadcast Message (On-chain)", zh: "广播信息 (上链)" },
+  signatureResult: { en: "Signature", zh: "签名结果" },
+  broadcastResult: { en: "Transaction Hash", zh: "交易哈希" },
+  copy: { en: "Copy", zh: "复制" },
+  copySuccess: { en: "Copied", zh: "已复制" },
+  connectWallet: { en: "Please connect your wallet to proceed.", zh: "请连接钱包以继续。" },
+  broadcastSuccess: { en: "Message broadcasted successfully!", zh: "信息广播成功！" },
+  signFailed: { en: "Signing failed", zh: "签名失败" },
+  broadcastFailed: { en: "Broadcast failed", zh: "广播失败" },
+  txPending: { en: "Transaction sent (ID pending)", zh: "交易已发送 (等待哈希)" },
+  wrongChain: { en: "Wrong Network", zh: "网络错误" },
+  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
+  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
+  aboutTitle: { en: "About Neo Sign Anything", zh: "关于 Neo 任意签" },
+  aboutText: {
+    en: "This tool allows you to sign messages using your Neo private key. You can either generate an off-chain signature or broadcast the message to the blockchain as a transaction.",
+    zh: "此工具允许您使用 Neo 私钥签名信息。您可以生成链下签名，也可以将信息作为交易广播到区块链上。",
+  },
+  howItWorksTitle: { en: "How it Works", zh: "如何使用" },
+  step1: { en: "Enter your message in the text area.", zh: "在文本区域输入您的信息。" },
+  step2: { en: 'Click "Sign Message" to get a cryptographic signature.', zh: "点击“签名信息”获取加密签名。" },
+  step3: {
+    en: 'Click "Broadcast Message" to send a 0-value transaction with your message attached as data.',
+    zh: "点击“广播信息”发送一笔带有您信息的 0 值交易。",
+  },
+  securityTitle: { en: "Security", zh: "安全性" },
+  securityText: {
+    en: "Your private key never leaves your wallet. The signing process is handled securely by your connected Neo wallet provider.",
+    zh: "您的私钥从未离开您的钱包。签名过程由您连接的 Neo 钱包提供商安全处理。",
+  },
+  broadcastTitle: { en: "On-chain Broadcast", zh: "链上广播" },
+  broadcastText: {
+    en: "Broadcast sends a 0 GAS transfer to yourself with the message embedded in the data field. This makes the message public and permanent on Neo.",
+    zh: "广播会向自己发送一笔 0 GAS 转账，并将信息写入 data 字段。这会使信息永久公开地记录在 Neo 链上。",
+  },
+  verifyTitle: { en: "Verify a Signature", zh: "验证签名" },
+  verifyText: {
+    en: "Use your Neo address, the message, and the signature in any verifier to prove authorship. Never share your private key.",
+    zh: "使用 Neo 地址、原始信息与签名即可在任何验证器中证明署名。请勿泄露私钥。",
+  },
+  privacyTitle: { en: "Privacy Tips", zh: "隐私提示" },
+  privacyText: {
+    en: "Do not include secrets, passwords, or personal data in messages. Anything broadcast on-chain is visible to everyone.",
+    zh: "请勿在信息中包含机密、密码或个人隐私。链上广播的内容对所有人可见。",
+  },
+  networkTitle: { en: "Network", zh: "网络" },
+  networkText: {
+    en: "This miniapp works on Neo N3. Make sure your wallet is connected to the correct network before signing or broadcasting.",
+    zh: "本小程序运行在 Neo N3 网络，请在签名或广播前确认钱包已连接正确网络。",
+  },
+  loading: { en: "Loading...", zh: "加载中..." },
+  error: { en: "Error", zh: "错误" }
+} as const;
+
+export default messages;

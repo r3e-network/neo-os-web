@@ -1,0 +1,22 @@
+:global(.theme-soulbound-certificate) {
+  --soul-bg-start: #0b1b1a;
+  --soul-bg-end: #102a43;
+  --soul-card-bg: rgba(10, 26, 32, 0.82);
+  --soul-card-border: rgba(16, 185, 129, 0.25);
+  --soul-accent: #10b981;
+  --soul-accent-strong: #22c55e;
+  --soul-text: #e2e8f0;
+  --soul-muted: rgba(226, 232, 240, 0.6);
+}
+
+:global(.theme-light .theme-soulbound-certificate),
+:global([data-theme="light"] .theme-soulbound-certificate) {
+  --soul-bg-start: #f0fdf4;
+  --soul-bg-end: #ecfeff;
+  --soul-card-bg: rgba(255, 255, 255, 0.95);
+  --soul-card-border: rgba(13, 148, 136, 0.2);
+  --soul-accent: #0f766e;
+  --soul-accent-strong: #0d9488;
+  --soul-text: #0f172a;
+  --soul-muted: rgba(15, 23, 42, 0.6);
+}

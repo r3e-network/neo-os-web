@@ -1,0 +1,60 @@
+:global(.theme-ex-files) {
+  --noir-bg: #1c1c1c;
+  --noir-paper: #e3dcd2;
+  --noir-text: #2d2d2d;
+  --noir-accent: #8b0000;
+  --noir-shadow: rgba(0, 0, 0, 0.4);
+  --noir-border: #c7c0b8;
+  --noir-grid: rgba(255, 255, 255, 0.08);
+  --noir-ink-line: rgba(0, 0, 0, 0.1);
+  --noir-button-primary-bg: #333333;
+  --noir-button-primary-text: #f0f0f0;
+  --noir-button-primary-border: #555555;
+  --noir-button-secondary-border: #555555;
+  --noir-button-secondary-text: #333333;
+  --noir-input-bg: rgba(255, 255, 255, 0.5);
+  --noir-input-border: #999999;
+  --noir-input-text: #000000;
+  --noir-card-glow: rgba(0, 0, 0, 0.05);
+  --noir-button-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+  --noir-button-shadow-press: 1px 1px 0 rgba(0, 0, 0, 0.3);
+
+  --bg-primary: var(--noir-bg);
+  --bg-secondary: var(--noir-bg);
+  --bg-card: var(--noir-paper);
+  --text-primary: var(--noir-text);
+  --text-secondary: rgba(45, 45, 45, 0.7);
+  --text-muted: rgba(45, 45, 45, 0.55);
+  --border-color: var(--noir-border);
+}
+
+:global(.theme-light .theme-ex-files),
+:global([data-theme="light"] .theme-ex-files) {
+  --noir-bg: #f6f1ea;
+  --noir-paper: #fffaf3;
+  --noir-text: #2d2d2d;
+  --noir-accent: #8b0000;
+  --noir-shadow: rgba(45, 45, 45, 0.15);
+  --noir-border: #b8afa5;
+  --noir-grid: rgba(45, 45, 45, 0.08);
+  --noir-ink-line: rgba(45, 45, 45, 0.1);
+  --noir-button-primary-bg: #2f2f2f;
+  --noir-button-primary-text: #ffffff;
+  --noir-button-primary-border: #4b4b4b;
+  --noir-button-secondary-border: #4b4b4b;
+  --noir-button-secondary-text: #2f2f2f;
+  --noir-input-bg: rgba(255, 255, 255, 0.9);
+  --noir-input-border: #9a9086;
+  --noir-input-text: #1f1f1f;
+  --noir-card-glow: rgba(45, 45, 45, 0.06);
+  --noir-button-shadow: 2px 2px 0 rgba(45, 45, 45, 0.25);
+  --noir-button-shadow-press: 1px 1px 0 rgba(45, 45, 45, 0.25);
+
+  --bg-primary: var(--noir-bg);
+  --bg-secondary: var(--noir-bg);
+  --bg-card: var(--noir-paper);
+  --text-primary: var(--noir-text);
+  --text-secondary: rgba(45, 45, 45, 0.7);
+  --text-muted: rgba(45, 45, 45, 0.55);
+  --border-color: var(--noir-border);
+}

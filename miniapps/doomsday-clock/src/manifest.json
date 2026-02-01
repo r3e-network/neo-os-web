@@ -1,0 +1,17 @@
+{
+  "name": "Doomsday Clock",
+  "appid": "miniapp-doomsday-clock",
+  "description": "Doomsday Clock - Neo MiniApp",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Doomsday Clock",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-breakupcontract",
+  "name": "Breakup Contract",
+  "name_zh": "分手合约",
+  "version": "1.0.0",
+  "description": "Create and manage breakup agreements on-chain with fair asset distribution",
+  "description_zh": "分手合约 - Neo N3 去中心化应用",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [
+    "contracts",
+    "agreements",
+    "social"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x7742a80565ef04c0b7487d1679e6efbeb2d0c6a9",
+    "neo-n3-testnet": "0x84a3864028b7b71e9f420056e1eae2e3e3113a0c"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/breakup-contract/index.html",
+    "icon": "/miniapps/breakup-contract/logo.jpg",
+    "banner": "/miniapps/breakup-contract/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://breakup-contract"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

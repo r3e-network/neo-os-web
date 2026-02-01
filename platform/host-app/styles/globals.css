@@ -1,0 +1,312 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 235 40% 98%;
+    --foreground: 235 28% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 235 24% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 235 24% 18%;
+    --primary: 235 30% 16%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 24% 96%;
+    --secondary-foreground: 235 30% 16%;
+    --muted: 240 20% 94%;
+    --muted-foreground: 235 18% 42%;
+    --accent: 240 20% 95%;
+    --accent-foreground: 235 30% 16%;
+    --item-hover: 240 20% 95%;
+    --neo: 160 100% 45%;
+    --electric-purple: 266 100% 50%;
+    /* E-Robo Style Variables */
+    --erobo-purple: #9f9df3;
+    --erobo-purple-dark: #7b79d1;
+    --erobo-pink: #f7aac7;
+    --erobo-peach: #f8d7c2;
+    --erobo-mint: #d8f2e2;
+    --erobo-sky: #d9ecff;
+    --erobo-ink: #1b1b2f;
+    --erobo-ink-soft: #4a4a63;
+    --erobo-gradient: linear-gradient(135deg, #9f9df3 0%, #7b79d1 100%);
+    --erobo-glow: 0 0 30px rgba(159, 157, 243, 0.4);
+    --erobo-body-bg: linear-gradient(180deg, #f8f8ff 0%, #fff4ee 100%);
+    --erobo-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 248, 255, 0.9) 100%);
+    --erobo-card-border: rgba(159, 157, 243, 0.2);
+    --erobo-card-shadow: 0 20px 60px rgba(30, 30, 60, 0.08);
+    --card-radius: 24px;
+    --blur-radius: 60px;
+  }
+
+  .dark {
+    --background: 235 30% 6%;
+    --foreground: 210 40% 98%;
+    --card: 235 30% 8%;
+    --card-foreground: 210 40% 98%;
+    --popover: 235 30% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 235 28% 14%;
+    --secondary: 235 28% 14%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 235 25% 16%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 235 25% 16%;
+    --accent-foreground: 210 40% 98%;
+    --item-hover: 235 25% 16%;
+    --erobo-body-bg: linear-gradient(180deg, #05060d 0%, #090a16 100%);
+    --erobo-card-bg: linear-gradient(135deg, rgba(12, 13, 22, 0.92) 0%, rgba(8, 9, 16, 0.85) 100%);
+    --erobo-card-border: rgba(159, 157, 243, 0.16);
+    --erobo-card-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+  }
+
+  * {
+    @apply border-gray-200 dark:border-gray-800;
+  }
+
+  html {
+    @apply scroll-smooth;
+    font-family:
+      "Outfit",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+  }
+
+  body {
+    @apply text-foreground antialiased;
+    background: var(--erobo-body-bg);
+  }
+}
+
+@layer components {
+  /* Light mode: subtle gray glass, Dark mode: white glass on dark bg */
+  .glass {
+    @apply bg-gray-100/80 dark:bg-white/[0.03] backdrop-blur-2xl border border-gray-200 dark:border-white/5 shadow-lg dark:shadow-2xl;
+  }
+
+  .glass-card {
+    @apply bg-gray-50/90 dark:bg-white/[0.05] backdrop-blur-xl border border-gray-200 dark:border-white/5 hover:border-neo/30 hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-all duration-500 shadow-lg dark:shadow-2xl;
+  }
+
+  .neo-glow {
+    @apply shadow-[0_0_20px_rgba(0,229,153,0.3)];
+  }
+
+  .purple-glow {
+    @apply shadow-[0_0_20px_rgba(112,0,255,0.3)];
+  }
+
+  .neo-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#00E599] to-[#7000FF];
+  }
+
+  /* E-Robo Global Style Components */
+  .erobo-card {
+    @apply rounded-[24px] backdrop-blur-[40px] border transition-all duration-300;
+    background: var(--erobo-card-bg);
+    border-color: var(--erobo-card-border);
+    box-shadow: var(--erobo-card-shadow);
+  }
+
+  .erobo-card:hover {
+    @apply border-[rgba(159,157,243,0.4)];
+    box-shadow: 0 30px 90px rgba(159, 157, 243, 0.2);
+  }
+
+  .erobo-btn {
+    @apply rounded-full bg-[#1b1b2f] text-white font-bold shadow-[0_20px_50px_rgba(27,27,47,0.35)] transition-all duration-300;
+  }
+
+  .erobo-btn:hover {
+    @apply shadow-[0_28px_70px_rgba(27,27,47,0.45)] brightness-110 translate-y-[-2px];
+  }
+
+  .erobo-glow {
+    @apply shadow-[0_0_30px_rgba(159,157,243,0.4)];
+  }
+}
+
+@layer utilities {
+  /* Legacy mapping: Migrate brutal-card to E-Robo Glass */
+  .brutal-card {
+    @apply erobo-card;
+  }
+
+  .brutal-btn {
+    @apply rounded-xl border border-gray-200 dark:border-white/10 shadow-sm hover:translate-y-[-2px] hover:shadow-md hover:bg-gray-50 dark:hover:bg-white/5 active:translate-y-[1px] active:shadow-none transition-all duration-200 font-bold uppercase tracking-wider;
+  }
+
+  .brutal-input {
+    @apply rounded-xl bg-gray-100 dark:bg-black/20 backdrop-blur-md text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 shadow-inner focus:shadow-[0_0_20px_rgba(0,229,153,0.2)] focus:border-neo/50 transition-all duration-200 outline-none;
+  }
+}
+
+/* Custom Scrollbar - Light mode: gray, Dark mode: white */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-white/10 hover:bg-white/20;
+}
+
+/* Base animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(0.5deg);
+  }
+
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* ============================================
+   Water Ripple Animation System (E-Robo Style)
+   ============================================ */
+
+/* Water wave background animation */
+@keyframes water-wave {
+  0% {
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    transform: translateX(-25px) translateY(10px);
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes water-wave-reverse {
+  0% {
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    transform: translateX(25px) translateY(-10px);
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+/* Ripple effect for miniapp card click */
+@keyframes ripple-expand {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes ripple-ring {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.8;
+    border-width: 4px;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+/* Water drop splash effect */
+@keyframes water-drop {
+  0% {
+    transform: scale(0) translateY(-20px);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1) translateY(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5) translateY(10px);
+    opacity: 0;
+  }
+}
+
+/* Concentric ripple rings */
+@keyframes concentric-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+/* Animation utility classes */
+.animate-water-wave {
+  animation: water-wave 8s ease-in-out infinite;
+}
+
+.animate-water-wave-reverse {
+  animation: water-wave-reverse 10s ease-in-out infinite;
+}
+
+.animate-ripple {
+  animation: ripple-expand 0.8s ease-out forwards;
+}
+
+.animate-ripple-ring {
+  animation: ripple-ring 0.6s ease-out forwards;
+}
+
+/* Water background container */
+.water-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.water-bg::before,
+.water-bg::after {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: radial-gradient(ellipse at center, rgba(159, 157, 243, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.water-bg::before {
+  animation: water-wave 12s ease-in-out infinite;
+}
+
+.water-bg::after {
+  animation: water-wave-reverse 15s ease-in-out infinite;
+  background: radial-gradient(ellipse at center, rgba(0, 229, 153, 0.05) 0%, transparent 60%);
+}

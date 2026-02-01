@@ -1,0 +1,36 @@
+:global(.theme-guardian-policy) {
+  --ops-bg: #0f172a;
+  --ops-blue: #3b82f6;
+  --ops-cyan: #06b6d4;
+  --ops-text: #ffffff;
+  --ops-grid: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  --ops-card-bg: rgba(30, 41, 59, 0.9);
+  --ops-card-border: rgba(59, 130, 246, 0.3);
+  --ops-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --ops-button-primary-bg: rgba(59, 130, 246, 0.2);
+  --ops-button-primary-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+  --ops-button-primary-bg-pressed: rgba(59, 130, 246, 0.3);
+  --ops-button-secondary-border: #64748b;
+  --ops-button-secondary-text: #94a3b8;
+  --ops-cyan-glow: 0 0 8px #06b6d4;
+}
+
+:global(.theme-light .theme-guardian-policy),
+:global([data-theme="light"] .theme-guardian-policy) {
+  --ops-bg: #f8fafc;
+  --ops-blue: #2563eb;
+  --ops-cyan: #0891b2;
+  --ops-text: #0f172a;
+  --ops-grid: linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  --ops-card-bg: #ffffff;
+  --ops-card-border: rgba(37, 99, 235, 0.2);
+  --ops-card-shadow: 0 10px 16px rgba(15, 23, 42, 0.08);
+  --ops-button-primary-bg: rgba(37, 99, 235, 0.15);
+  --ops-button-primary-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
+  --ops-button-primary-bg-pressed: rgba(37, 99, 235, 0.25);
+  --ops-button-secondary-border: #94a3b8;
+  --ops-button-secondary-text: #64748b;
+  --ops-cyan-glow: 0 0 8px rgba(8, 145, 178, 0.6);
+}

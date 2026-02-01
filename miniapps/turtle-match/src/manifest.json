@@ -1,0 +1,17 @@
+{
+  "name": "乌龟对对碰",
+  "appid": "miniapp-turtle-match",
+  "description": "Dive into the E-Robo lab with Turtle Match! A fast-paced puzzle game where you match robotic turtles to score points. Compete for high scores and unlock unique achievements in this vibrant aquatic challenge.",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "乌龟对对碰",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5174
+    }
+  }
+}

@@ -1,0 +1,57 @@
+# Production overlay for MarbleRun + EGo with SGX hardware
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: service-layer
+
+resources:
+  - ../../base
+  - pdb.yaml
+  - networkpolicy.yaml
+  - networkpolicy-egress.yaml
+
+patches:
+  # Spread replicas across nodes for higher availability.
+  - target:
+      kind: Deployment
+      name: neooracle
+    patch: |-
+      - op: add
+        path: /spec/template/spec/topologySpreadConstraints
+        value:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                app: neooracle
+
+# Production replicas
+replicas:
+  - name: neooracle
+    count: 2
+
+# Production resource limits
+configMapGenerator:
+  - name: service-layer-config
+    behavior: merge
+    literals:
+      - COORDINATOR_MESH_ADDR=coordinator-mesh-api.marblerun.svc.cluster.local:2001
+      - COORDINATOR_CLIENT_ADDR=coordinator-client-api.marblerun.svc.cluster.local:4433
+      - OE_SIMULATION=0
+      - MARBLE_ENV=production
+      - METRICS_ENABLED=true
+      # Neo N3 network (MainNet)
+      - NEO_RPC_URL=https://mainnet1.neo.coz.io:443
+      - NEO_NETWORK_MAGIC=860833102
+      # Mainnet MiniApp platform contract addresses.
+      - CONTRACT_PAYMENT_HUB_ADDRESS=0xc700fa6001a654efcd63e15a3833fbea7baaa3a3
+      - CONTRACT_GOVERNANCE_ADDRESS=0x705615e903d92abf8f6f459086b83f51096aa413
+      - CONTRACT_PRICE_FEED_ADDRESS=0x9e889922d2f64fa0c06a28d179c60fe1af915d27
+      - CONTRACT_RANDOMNESS_LOG_ADDRESS=0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25
+      - CONTRACT_APP_REGISTRY_ADDRESS=0x583cabba8beff13e036230de844c2fb4118ee38c
+      - CONTRACT_AUTOMATION_ANCHOR_ADDRESS=0x0fd51557facee54178a5d48181dcfa1b61956144
+      - CONTRACT_SERVICE_GATEWAY_ADDRESS=0x7f73ae3036c1ca57cad0d4e4291788653b0fa7d7
+      - TXPROXY_ALLOWLIST={"contracts":{"0xc700fa6001a654efcd63e15a3833fbea7baaa3a3":["pay"],"0x705615e903d92abf8f6f459086b83f51096aa413":["stake","unstake","vote"],"0x9e889922d2f64fa0c06a28d179c60fe1af915d27":["update"],"0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25":["record"],"0x0fd51557facee54178a5d48181dcfa1b61956144":["markExecuted"],"0x7f73ae3036c1ca57cad0d4e4291788653b0fa7d7":["fulfillRequest"]}}
+      # External allowlist (required in production/SGX mode)
+      - ORACLE_HTTP_ALLOWLIST=https://api.binance.com,https://api.coinbase.com

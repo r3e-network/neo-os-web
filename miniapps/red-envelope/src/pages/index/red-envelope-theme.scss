@@ -1,0 +1,24 @@
+:global(.theme-red-envelope) {
+  --red-envelope-base: #922b21;
+  --red-envelope-accent: #c0392b;
+  --red-envelope-glow: #e74c3c;
+  --red-envelope-gold: #f1c40f;
+  --red-envelope-gold-light: #f9e79f;
+  --red-envelope-gold-dark: #d4ac0d;
+  --red-envelope-pattern-opacity: 0.05;
+  --text-primary: #fff7e6;
+  --bg-primary: var(--red-envelope-base);
+}
+
+:global(.theme-light .theme-red-envelope),
+:global([data-theme="light"] .theme-red-envelope) {
+  --red-envelope-base: #fff5f0;
+  --red-envelope-accent: #e2554a;
+  --red-envelope-glow: #f08a7f;
+  --red-envelope-gold: #f1c40f;
+  --red-envelope-gold-light: #fde7b0;
+  --red-envelope-gold-dark: #b8860b;
+  --red-envelope-pattern-opacity: 0.08;
+  --text-primary: #3b1f15;
+  --bg-primary: var(--red-envelope-base);
+}

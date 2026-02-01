@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+coverage/
+
+# Config files (CommonJS)
+*.config.js
+jest.setup.js
+
+# Scripts (Node.js)
+scripts/*.js
+generate_assets_smart.js
+test_pw.js
+
+# Public SDK files (browser globals)
+public/**/*.js
+
+# E2E results
+e2e-results/

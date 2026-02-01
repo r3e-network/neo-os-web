@@ -1,0 +1,112 @@
+{
+  "scriptId": "363",
+  "url": "file:///home/neo/git/service_layer/platform/edge/functions/_shared/cors.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [
+        {
+          "startOffset": 0,
+          "endOffset": 1462,
+          "count": 1
+        }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parseAllowedOrigins",
+      "ranges": [
+        {
+          "startOffset": 184,
+          "endOffset": 443,
+          "count": 20
+        },
+        {
+          "startOffset": 305,
+          "endOffset": 433,
+          "count": 0
+        },
+        {
+          "startOffset": 434,
+          "endOffset": 440,
+          "count": 0
+        }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        {
+          "startOffset": 347,
+          "endOffset": 360,
+          "count": 0
+        }
+      ],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "withCors",
+      "ranges": [
+        {
+          "startOffset": 451,
+          "endOffset": 1139,
+          "count": 20
+        },
+        {
+          "startOffset": 577,
+          "endOffset": 601,
+          "count": 40
+        },
+        {
+          "startOffset": 713,
+          "endOffset": 1123,
+          "count": 0
+        }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        {
+          "startOffset": 1011,
+          "endOffset": 1038,
+          "count": 0
+        }
+      ],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "handleCorsPreflight",
+      "ranges": [
+        {
+          "startOffset": 1147,
+          "endOffset": 1461,
+          "count": 20
+        },
+        {
+          "startOffset": 1215,
+          "endOffset": 1227,
+          "count": 19
+        },
+        {
+          "startOffset": 1227,
+          "endOffset": 1316,
+          "count": 1
+        },
+        {
+          "startOffset": 1316,
+          "endOffset": 1394,
+          "count": 0
+        },
+        {
+          "startOffset": 1394,
+          "endOffset": 1460,
+          "count": 1
+        }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

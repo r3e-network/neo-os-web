@@ -1,0 +1,23 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Wallet Health"
+      }
+    },
+    {
+      "path": "pages/docs/index",
+      "style": {
+        "navigationBarTitleText": "Docs"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Wallet Health",
+    "navigationBarBackgroundColor": "#101b2f",
+    "backgroundColor": "#101b2f",
+    "navigationStyle": "custom"
+  }
+}

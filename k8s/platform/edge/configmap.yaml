@@ -1,0 +1,87 @@
+# =============================================================================
+# Edge Gateway Configuration
+# Service URLs for internal k8s service mesh communication
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-gateway-config
+  namespace: platform
+data:
+  # Runtime environment
+  EDGE_ENV: "development"
+  DENO_ENV: "development"
+
+  # Edge server configuration
+  EDGE_DEV_PORT: "8787"
+
+  # Supabase configuration (internal k8s service URL)
+  # Points to self-hosted Supabase in k3s cluster
+  SUPABASE_URL: "http://supabase-gateway.supabase.svc.cluster.local:8000"
+
+  # Neo RPC URL (internal k8s service URL)
+  # Points to external Neo N3 RPC (testnet by default)
+  NEO_RPC_URL: "https://testnet1.neo.coz.io:443"
+
+  # Other service endpoints (internal k8s URLs)
+  NEOFEEDS_SERVICE_URL: "https://neofeeds.service-layer.svc.cluster.local:8083"
+  NEOFLOW_SERVICE_URL: "https://neoflow.service-layer.svc.cluster.local:8084"
+  NEOCOMPUTE_SERVICE_URL: "https://neocompute.service-layer.svc.cluster.local:8086"
+  NEOVRF_SERVICE_URL: "https://neovrf.service-layer.svc.cluster.local:8087"
+  NEOORACLE_SERVICE_URL: "https://neooracle.service-layer.svc.cluster.local:8088"
+  TXPROXY_SERVICE_URL: "https://txproxy.service-layer.svc.cluster.local:8090"
+  GLOBALSIGNER_SERVICE_URL: "https://globalsigner.service-layer.svc.cluster.local:8092"
+  # Edge functions expect *URL env vars; keep aliases for compatibility.
+  NEOFEEDS_URL: "https://neofeeds.service-layer.svc.cluster.local:8083"
+  NEOFLOW_URL: "https://neoflow.service-layer.svc.cluster.local:8084"
+  NEOCOMPUTE_URL: "https://neocompute.service-layer.svc.cluster.local:8086"
+  NEOVRF_URL: "https://neovrf.service-layer.svc.cluster.local:8087"
+  NEOORACLE_URL: "https://neooracle.service-layer.svc.cluster.local:8088"
+  TXPROXY_URL: "https://txproxy.service-layer.svc.cluster.local:8090"
+
+  # MiniApp platform contract addresses (0x-prefixed Uint160 strings)
+  CONTRACT_PAYMENT_HUB_ADDRESS: "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
+  CONTRACT_GOVERNANCE_ADDRESS: "0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05"
+  CONTRACT_RANDOMNESS_LOG_ADDRESS: "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"
+  CONTRACT_APP_REGISTRY_ADDRESS: "0x79d16bee03122e992bb80c478ad4ed405f33bc7f"
+
+  # Neo network configuration
+  NEO_NETWORK_MAGIC: "894710606"
+  # TEE signer address (shared between testnet and mainnet).
+  NEO_TESTNET_TEE_ADDRESS: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK"
+  NEO_MAINNET_TEE_ADDRESS: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK"
+
+  # Kubernetes cluster detection flag
+  K8S_CLUSTER: "true"
+
+  # =============================================================================
+  # Distributed MiniApp System Configuration
+  # =============================================================================
+
+  # CDN Configuration for MiniApp publishing
+  CDN_BASE_URL: "https://cdn.example.com"
+  CDN_PROVIDER: "vercel" # Options: r2, s3, cloudflare, vercel
+
+  # Cloudflare R2 Configuration (if CDN_PROVIDER=r2)
+  R2_ACCOUNT_ID: "your-r2-account-id"
+  R2_ACCESS_KEY_ID: "your-r2-access-key-id"
+  R2_SECRET_ACCESS_KEY: "your-r2-secret-access-key"
+  R2_BUCKET: "miniapps"
+
+  # AWS S3 Configuration (if CDN_PROVIDER=s3)
+  AWS_ACCESS_KEY_ID: "your-aws-access-key-id"
+  AWS_SECRET_ACCESS_KEY: "your-aws-secret-access-key"
+  AWS_REGION: "us-east-1"
+  S3_BUCKET: "miniapps"
+
+  # Cloudflare Images Configuration (if CDN_PROVIDER=cloudflare)
+  CLOUDFLARE_ACCOUNT_ID: "your-cloudflare-account-id"
+  CLOUDFLARE_API_TOKEN: "your-cloudflare-api-token"
+
+  # Supabase Keys for Admin Console API proxy
+  SUPABASE_ANON_KEY: "your-supabase-anon-key"
+  SUPABASE_SERVICE_ROLE_KEY: "your-***REMOVED***"
+
+  # Vercel Blob Storage Configuration (if CDN_PROVIDER=vercel)
+  VERCEL_BLOB_TOKEN: "your-vercel-blob-token"
+  VERCEL_BLOB_STORE_ID: "your-blob-store-id"

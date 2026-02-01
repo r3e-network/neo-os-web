@@ -1,0 +1,23 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Soulbound Certificate"
+      }
+    },
+    {
+      "path": "pages/docs/index",
+      "style": {
+        "navigationBarTitleText": "Docs"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Soulbound Certificate",
+    "navigationBarBackgroundColor": "#0b1324",
+    "backgroundColor": "#0b1324",
+    "navigationStyle": "custom"
+  }
+}

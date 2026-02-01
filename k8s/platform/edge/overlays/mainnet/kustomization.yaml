@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: platform
+
+resources:
+  - ../..
+
+patches:
+  - target:
+      kind: ConfigMap
+      name: edge-gateway-config
+    patch: |-
+      - op: replace
+        path: /data/NEO_RPC_URL
+        value: "https://mainnet1.neo.coz.io:443"
+      - op: replace
+        path: /data/NEO_NETWORK_MAGIC
+        value: "860833102"
+      - op: replace
+        path: /data/CONTRACT_PAYMENT_HUB_ADDRESS
+        value: "0xc700fa6001a654efcd63e15a3833fbea7baaa3a3"
+      - op: replace
+        path: /data/CONTRACT_GOVERNANCE_ADDRESS
+        value: "0x705615e903d92abf8f6f459086b83f51096aa413"
+      - op: replace
+        path: /data/CONTRACT_RANDOMNESS_LOG_ADDRESS
+        value: "0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25"
+      - op: replace
+        path: /data/CONTRACT_APP_REGISTRY_ADDRESS
+        value: "0x583cabba8beff13e036230de844c2fb4118ee38c"

@@ -1,0 +1,43 @@
+{
+  "network": "testnet",
+  "rpc_endpoints": [
+    "https://testnet1.neo.coz.io:443",
+    "https://testnet2.neo.coz.io:443",
+    "https://rpc.t5.n3.nspcc.ru:20331"
+  ],
+  "network_magic": 894710606,
+  "contracts": {
+    "PaymentHub": null,
+    "Governance": null,
+    "PriceFeed": null,
+    "RandomnessLog": null,
+    "AppRegistry": null,
+    "AutomationAnchor": null,
+    "ServiceLayerGateway": null
+  },
+  "wallets": {
+    "owner": {
+      "path": "${TESTNET_OWNER_WALLET}",
+      "account": "${TESTNET_OWNER_ADDRESS}"
+    },
+    "tee": {
+      "path": "${TESTNET_TEE_WALLET}",
+      "account": "${TESTNET_TEE_ADDRESS}",
+      "pubkey": "${TESTNET_TEE_PUBKEY}"
+    }
+  },
+  "notes": [
+    "Set environment variables before deployment:",
+    "  export TESTNET_OWNER_WALLET=/path/to/owner.json",
+    "  export TESTNET_OWNER_ADDRESS=<neo-n3-owner-address>",
+    "  export TESTNET_TEE_WALLET=/path/to/tee.json",
+    "  export TESTNET_TEE_ADDRESS=<neo-n3-tee-address>",
+    "  export TESTNET_TEE_PUBKEY=<33-byte-compressed-pubkey-hex>",
+    "",
+    "Deployment steps:",
+    "  1. Ensure wallets have sufficient GAS for deployment",
+    "  2. Deploy contracts (manual signing required for testnet)",
+    "  3. Update contract addresses in this file",
+    "  4. Call setUpdater on PriceFeed/RandomnessLog/AutomationAnchor/ServiceLayerGateway from the admin wallet"
+  ]
+}

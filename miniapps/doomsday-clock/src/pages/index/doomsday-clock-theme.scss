@@ -1,0 +1,62 @@
+:global(.theme-doomsday) {
+  --doom-bg: #0b0c10;
+  --doom-panel: #1f2833;
+  --doom-panel-deep: #151b24;
+  --doom-accent: #66fcf1;
+  --doom-border: #45a29e;
+  --doom-warn: #e7c500;
+  --doom-danger: #c50000;
+  --doom-text: #c5c6c7;
+  --doom-muted: rgba(197, 198, 199, 0.8);
+  --doom-grid: rgba(102, 252, 241, 0.08);
+  --doom-grid-dot: rgba(148, 163, 184, 0.2);
+  --doom-shadow: 0 4px 0 #000;
+  --doom-shadow-glow: inset 0 0 20px rgba(102, 252, 241, 0.05);
+  --doom-danger-bg-start: rgba(80, 0, 0, 0.3);
+  --doom-danger-bg-end: rgba(20, 0, 0, 0.6);
+  --doom-button-text: #0b0c10;
+  --doom-accent-glow: 0 0 10px rgba(102, 252, 241, 0.4);
+  --doom-accent-glow-pressed: 0 0 5px rgba(102, 252, 241, 0.2);
+  --doom-scanline: rgba(0, 0, 0, 0.12);
+  --doom-hover: rgba(102, 252, 241, 0.1);
+
+  --bg-primary: var(--doom-bg);
+  --bg-secondary: var(--doom-bg);
+  --bg-card: var(--doom-panel);
+  --text-primary: var(--doom-text);
+  --text-secondary: var(--doom-muted);
+  --text-muted: var(--doom-muted);
+  --border-color: var(--doom-border);
+}
+
+:global(.theme-light .theme-doomsday),
+:global([data-theme="light"] .theme-doomsday) {
+  --doom-bg: #f8fafc;
+  --doom-panel: #ffffff;
+  --doom-panel-deep: #e2e8f0;
+  --doom-accent: #0ea5e9;
+  --doom-border: #94a3b8;
+  --doom-warn: #a16207;
+  --doom-danger: #b91c1c;
+  --doom-text: #0f172a;
+  --doom-muted: #475569;
+  --doom-grid: rgba(14, 165, 233, 0.08);
+  --doom-grid-dot: rgba(14, 165, 233, 0.2);
+  --doom-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+  --doom-shadow-glow: inset 0 0 10px rgba(14, 165, 233, 0.08);
+  --doom-danger-bg-start: rgba(239, 68, 68, 0.12);
+  --doom-danger-bg-end: rgba(239, 68, 68, 0.2);
+  --doom-button-text: #ffffff;
+  --doom-accent-glow: 0 8px 18px rgba(14, 165, 233, 0.25);
+  --doom-accent-glow-pressed: 0 4px 10px rgba(14, 165, 233, 0.2);
+  --doom-scanline: rgba(15, 23, 42, 0.08);
+  --doom-hover: rgba(14, 165, 233, 0.1);
+
+  --bg-primary: var(--doom-bg);
+  --bg-secondary: var(--doom-bg);
+  --bg-card: var(--doom-panel);
+  --text-primary: var(--doom-text);
+  --text-secondary: var(--doom-muted);
+  --text-muted: var(--doom-muted);
+  --border-color: var(--doom-border);
+}

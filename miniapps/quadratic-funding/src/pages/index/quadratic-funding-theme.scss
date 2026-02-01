@@ -1,0 +1,24 @@
+:global(.theme-quadratic-funding) {
+  --qf-bg-start: #0f1f2d;
+  --qf-bg-end: #14323a;
+  --qf-card-bg: rgba(12, 28, 34, 0.82);
+  --qf-card-border: rgba(20, 184, 166, 0.28);
+  --qf-accent: #14b8a6;
+  --qf-accent-strong: #34d399;
+  --qf-text: #e2f7f4;
+  --qf-muted: rgba(226, 247, 244, 0.65);
+  --qf-warn: #fbbf24;
+}
+
+:global(.theme-light .theme-quadratic-funding),
+:global([data-theme="light"] .theme-quadratic-funding) {
+  --qf-bg-start: #f0fdf9;
+  --qf-bg-end: #e6f9f1;
+  --qf-card-bg: rgba(255, 255, 255, 0.92);
+  --qf-card-border: rgba(13, 148, 136, 0.22);
+  --qf-accent: #0f766e;
+  --qf-accent-strong: #0d9488;
+  --qf-text: #0f172a;
+  --qf-muted: rgba(15, 23, 42, 0.65);
+  --qf-warn: #d97706;
+}

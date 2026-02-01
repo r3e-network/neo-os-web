@@ -1,0 +1,28 @@
+{
+  "app_id": "com.example.tipjar",
+  "version": "1.0.0",
+  "name": "Tip Jar",
+  "name_zh": "小费罐",
+  "description": "A simple MiniApp for sending GAS tips",
+  "description_zh": "一个简单的GAS小费MiniApp",
+  "icon": "https://your-cdn.com/tip-jar/assets/icon.png",
+  "banner": "https://your-cdn.com/tip-jar/assets/banner.jpg",
+  "category": "utilities",
+  "entry_url": "https://your-cdn.com/tip-jar/",
+  "supported_chains": ["neo-n3-testnet"],
+  "permissions": {
+    "read_address": true,
+    "payments": true
+  },
+  "assets_allowed": ["GAS"],
+  "limits": {
+    "max_gas_per_tx": "100000000",
+    "daily_gas_cap_per_user": "1000000000"
+  },
+  "contracts": {
+    "neo-n3-testnet": {
+      "address": "",
+      "entry_url": ""
+    }
+  }
+}

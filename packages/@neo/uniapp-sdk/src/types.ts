@@ -1,0 +1,312 @@
+/**
+ * Neo MiniApp SDK Types for uni-app
+ */
+
+// Window interface extensions for type safety
+declare global {
+  interface Window {
+    MiniAppSDK?: import("./types").MiniAppSDK;
+    __MINIAPP_PARENT_ORIGIN__?: string;
+    __MINIAPP_CONFIG__?: import("./types").MiniAppSDKConfig;
+    ReactNativeWebView?: boolean;
+  }
+}
+
+// Generic types for API
+export interface ApiResponse<T = unknown> {
+  data?: T;
+  statusCode?: number;
+  headers?: Record<string, string>;
+}
+
+export interface ApiError {
+  errMsg?: string;
+  code?: string;
+  message?: string;
+}
+
+// Event types
+export interface LanguageChangeEvent extends Event {
+  detail?: {
+    language?: string;
+  };
+}
+
+// Contract invocation parameters
+export interface ContractParams {
+  contractAddress?: string;
+  scriptHash?: string;
+  contractHash?: string;
+  method?: string;
+  operation?: string;
+  args?: unknown[];
+  chainId?: ChainId;
+  chainType?: ChainType;
+  [key: string]: unknown;
+}
+
+export type ChainType = "neo-n3";
+export type ChainId = string;
+
+export interface MiniAppChainContract {
+  address: string | null;
+  active?: boolean;
+  entryUrl?: string;
+}
+
+export type MiniAppChainContracts = Record<ChainId, MiniAppChainContract>;
+
+export interface PayGASResponse {
+  request_id: string;
+  user_id: string;
+  intent: "payments";
+  constraints: { settlement: "GAS_ONLY" | "NATIVE_TOKEN" };
+  chain_id: ChainId;
+  chain_type: ChainType;
+  invocation: InvocationIntent;
+  txid?: string | null;
+  receipt_id?: string | null;
+}
+
+export interface VoteBNEOResponse {
+  request_id: string;
+  user_id: string;
+  intent: "governance";
+  constraints: { governance: "BNEO_ONLY" };
+  chain_id: ChainId;
+  chain_type: ChainType;
+  invocation: InvocationIntent;
+  txid?: string | null;
+}
+
+export interface RNGResponse {
+  request_id: string;
+  app_id: string;
+  chain_id: ChainId;
+  chain_type: ChainType;
+  randomness: string;
+  signature?: string;
+  public_key?: string;
+  attestation_hash?: string;
+  report_hash?: string;
+  anchored_tx?: unknown;
+}
+
+export interface PriceResponse {
+  feed_id: string;
+  pair: string;
+  price: string;
+  decimals: number;
+  timestamp: string;
+  sources: string[];
+}
+
+export interface PricesResponse {
+  neo: { usd: number; usd_24h_change: number };
+  gas: { usd: number; usd_24h_change: number };
+  timestamp: number;
+}
+
+export interface NetworkStatsResponse {
+  blockHeight: number;
+  validatorCount: number;
+  network: string;
+  version: string;
+}
+
+export interface RecentTransaction {
+  txid: string;
+  blockHeight: number;
+  blockTime?: number;
+  sender?: string | null;
+  size?: number;
+  sysfee?: string;
+  netfee?: string;
+}
+
+export interface RecentTransactionsResponse {
+  transactions: RecentTransaction[];
+  blockHeight: number;
+}
+
+export interface EventsListParams {
+  app_id?: string;
+  event_name?: string;
+  chain_id?: ChainId;
+  contract_address?: string;
+  limit?: number;
+  after_id?: string;
+}
+
+export interface ContractEvent {
+  id: string;
+  tx_hash: string;
+  chain_id: ChainId;
+  block_index: number;
+  contract_address: string;
+  event_name: string;
+  app_id: string | null;
+  state: unknown;
+  created_at: string;
+}
+
+export interface EventsListResponse {
+  events: ContractEvent[];
+  has_more: boolean;
+  last_id: string | null;
+}
+
+export interface TransactionsListParams {
+  app_id?: string;
+  chain_id?: ChainId;
+  limit?: number;
+  after_id?: string;
+}
+
+export interface ChainTransaction {
+  id: string;
+  tx_hash: string | null;
+  request_id: string;
+  from_service: string;
+  tx_type: string;
+  chain_id?: ChainId;
+  contract_address: string;
+  method_name: string;
+  params: Record<string, unknown>;
+  gas_consumed: number | null;
+  status: string;
+  retry_count: number;
+  error_message: string | null;
+  rpc_endpoint: string | null;
+  submitted_at: string;
+  confirmed_at: string | null;
+}
+
+export interface TransactionsListResponse {
+  transactions: ChainTransaction[];
+  has_more: boolean;
+  last_id: string | null;
+}
+
+export type InvocationIntent = {
+  chain_id: ChainId;
+  chain_type: "neo-n3";
+  contract_address: string;
+  method: string;
+  params?: unknown[];
+  args?: unknown[];
+};
+
+/** App usage statistics */
+export interface AppUsageStats {
+  app_id: string;
+  chain_id?: ChainId;
+  date: string;
+  transactions: number;
+  volume_gas: string;
+  unique_users: number;
+}
+
+/** Share options for generating share URLs */
+export interface ShareOptions {
+  /** Optional page path within the MiniApp */
+  page?: string;
+  /** Additional query parameters */
+  params?: Record<string, string>;
+}
+
+export interface MiniAppSDK {
+  invoke(method: string, ...args: unknown[]): Promise<unknown>;
+  getConfig(): MiniAppSDKConfig;
+  wallet: {
+    getAddress(): Promise<string>;
+    /** Request to switch the wallet to a specific chain */
+    switchChain(chainId: ChainId): Promise<void>;
+    invokeIntent?(requestId: string): Promise<unknown>;
+    signMessage?(message: string): Promise<unknown>;
+  };
+  payments: {
+    payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse>;
+    payGASAndInvoke?(appId: string, amount: string, memo?: string): Promise<PayGASResponse>;
+  };
+  governance: {
+    vote(appId: string, proposalId: string, amount: string, support?: boolean): Promise<VoteBNEOResponse>;
+    voteAndInvoke?(appId: string, proposalId: string, amount: string, support?: boolean): Promise<VoteBNEOResponse>;
+    getCandidates(): Promise<CandidatesResponse>;
+  };
+  rng: {
+    requestRandom(appId: string): Promise<RNGResponse>;
+  };
+  datafeed: {
+    getPrice(symbol: string): Promise<PriceResponse>;
+    getPrices?(): Promise<PricesResponse>;
+    getNetworkStats?(): Promise<NetworkStatsResponse>;
+    getRecentTransactions?(limit?: number): Promise<RecentTransactionsResponse>;
+  };
+  events?: {
+    list(params?: EventsListParams): Promise<EventsListResponse>;
+    emit?(eventName: string, data?: Record<string, unknown>): Promise<unknown>;
+  };
+  transactions?: {
+    list(params?: TransactionsListParams): Promise<TransactionsListResponse>;
+  };
+  stats?: {
+    getMyUsage(appId: string, date?: string): Promise<AppUsageStats>;
+  };
+  share?: {
+    /** Open the host app's share modal */
+    openModal(options?: ShareOptions): Promise<void>;
+    /** Get the shareable URL for the current app/page */
+    getUrl(options?: ShareOptions): Promise<string>;
+    /** Copy share URL to clipboard */
+    copy(options?: ShareOptions): Promise<boolean>;
+  };
+  automation?: {
+    register(
+      taskName: string,
+      taskType: string,
+      payload?: Record<string, unknown>,
+      schedule?: { intervalSeconds?: number; maxRuns?: number },
+    ): Promise<unknown>;
+    unregister(taskName: string): Promise<unknown>;
+    status(taskName: string): Promise<unknown>;
+    list(): Promise<unknown>;
+    update(
+      taskId: string,
+      payload?: Record<string, unknown>,
+      schedule?: { intervalSeconds?: number; cron?: string; maxRuns?: number },
+    ): Promise<unknown>;
+    enable(taskId: string): Promise<unknown>;
+    disable(taskId: string): Promise<unknown>;
+    logs(taskId?: string, limit?: number): Promise<unknown>;
+  };
+}
+
+export interface MiniAppSDKConfig {
+  appId: string;
+  contractAddress?: string | null;
+  chainId?: ChainId | null;
+  chainType?: ChainType;
+  supportedChains?: ChainId[];
+  chainContracts?: MiniAppChainContracts;
+  layout?: "web" | "mobile";
+  debug?: boolean;
+}
+
+export type NetworkType = "testnet" | "mainnet";
+
+/** Neo Governance Candidate */
+export interface Candidate {
+  address: string;
+  publicKey: string;
+  name?: string;
+  votes: string;
+  active: boolean;
+}
+
+/** Candidates list response */
+export interface CandidatesResponse {
+  candidates: Candidate[];
+  totalVotes: string;
+  blockHeight: number;
+}

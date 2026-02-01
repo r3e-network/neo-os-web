@@ -1,0 +1,91 @@
+# Neo Fairy Test Configuration for Service Layer
+# https://github.com/r3e-network/neo-fairy-test
+
+[project]
+name = "ServiceLayer"
+version = "1.0.0"
+description = "Service Layer contracts for Neo N3"
+
+[network.neoexpress]
+# Neo Express local development network
+rpc_url = "http://127.0.0.1:50012"
+network_magic = 1234512345
+genesis_wallet = "deploy/wallets/owner.json"
+genesis_password = "test"
+
+[network.testnet]
+# Neo N3 TestNet
+rpc_url = "https://testnet1.neo.coz.io:443"
+network_magic = 894710606
+# Wallet should be set via environment variable or CLI
+# wallet = "${TESTNET_WALLET_PATH}"
+
+[network.mainnet]
+# Neo N3 MainNet (production - use with caution)
+rpc_url = "https://mainnet1.neo.coz.io:443"
+network_magic = 860833102
+
+[compiler]
+# Neo Contract Compiler settings
+command = "nccs"
+output_dir = "contracts/build"
+
+# ============================================================================
+# Contract Definitions (MiniApp Platform)
+# ============================================================================
+
+[[contracts]]
+name = "PaymentHub"
+source = "contracts/PaymentHub/PaymentHub.cs"
+output = "contracts/build/PaymentHub"
+order = 1
+
+[[contracts]]
+name = "Governance"
+source = "contracts/Governance/Governance.cs"
+output = "contracts/build/Governance"
+order = 2
+
+[[contracts]]
+name = "PriceFeed"
+source = "contracts/PriceFeed/PriceFeed.cs"
+output = "contracts/build/PriceFeed"
+order = 3
+
+[[contracts]]
+name = "RandomnessLog"
+source = "contracts/RandomnessLog/RandomnessLog.cs"
+output = "contracts/build/RandomnessLog"
+order = 4
+
+[[contracts]]
+name = "AppRegistry"
+source = "contracts/AppRegistry/AppRegistry.cs"
+output = "contracts/build/AppRegistry"
+order = 5
+
+[[contracts]]
+name = "AutomationAnchor"
+source = "contracts/AutomationAnchor/AutomationAnchor.cs"
+output = "contracts/build/AutomationAnchor"
+order = 6
+
+# ============================================================================
+# Test Wallets
+# ============================================================================
+
+[wallets]
+# Owner wallet - admin account for contract deployment and configuration
+owner = { path = "deploy/wallets/owner.json", password = "test" }
+# TEE wallet - simulates TEE account for callbacks
+tee = { path = "deploy/wallets/tee.json", password = "test" }
+# User wallet - simulates user interactions
+user = { path = "deploy/wallets/user.json", password = "test" }
+
+# ============================================================================
+# Deployment Scripts
+# ============================================================================
+
+[scripts]
+deploy = "deploy/scripts/deploy_all.sh"
+init = "deploy/scripts/initialize.py"

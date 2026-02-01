@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-memorial-shrine",
+  "name": "Memorial Shrine",
+  "name_zh": "纪念堂",
+  "version": "1.0.0",
+  "description": "Create eternal digital memorials for loved ones on the blockchain. Honor and remember with permanent on-chain tributes.",
+  "description_zh": "区块链灵位 - 在区块链上为逝去的亲友创建永久数字纪念。永恒的纪念与缅怀。",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0xee7a548b71c69364fcb0e45a63a40f141b938e42",
+    "neo-n3-testnet": ""
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/memorial-shrine/index.html",
+    "icon": "/miniapps/memorial-shrine/logo.jpg",
+    "banner": "/miniapps/memorial-shrine/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://memorial-shrine"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

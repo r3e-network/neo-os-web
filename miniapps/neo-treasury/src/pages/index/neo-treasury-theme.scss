@@ -1,0 +1,64 @@
+:global(.theme-neo-treasury) {
+  --treasury-bg: #1a1a00;
+  --treasury-gold: #fbbf24;
+  --treasury-dark-gold: #b45309;
+  --treasury-text: #fffbeb;
+  --treasury-card-bg: linear-gradient(135deg, rgba(30, 25, 10, 0.95), rgba(40, 35, 15, 0.9));
+  --treasury-card-border: rgba(251, 191, 36, 0.3);
+  --treasury-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(251, 191, 36, 0.05);
+  --treasury-card-edge: linear-gradient(90deg, transparent, #fbbf24, transparent);
+  --treasury-button-bg: linear-gradient(to bottom, #fcd34d, #d97706);
+  --treasury-button-text: #451a03;
+  --treasury-button-border: #b45309;
+  --treasury-button-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --treasury-button-text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  --treasury-button-active-bg: linear-gradient(to top, #fcd34d, #d97706);
+  --treasury-overlay: rgba(0, 0, 0, 0.7);
+  --treasury-soft-bg: rgba(251, 191, 36, 0.1);
+  --treasury-soft-border: rgba(251, 191, 36, 0.3);
+  --treasury-soft-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
+  --treasury-skeleton-bg: rgba(251, 191, 36, 0.05);
+  --treasury-skeleton-border: rgba(251, 191, 36, 0.1);
+  --treasury-flare: rgba(251, 191, 36, 0.15);
+  --treasury-flake: rgba(251, 191, 36, 0.1);
+  --treasury-danger: #ef4444;
+
+  --bg-primary: var(--treasury-bg);
+  --bg-secondary: var(--treasury-bg);
+  --text-primary: var(--treasury-text);
+  --text-secondary: rgba(255, 251, 235, 0.7);
+  --border-color: var(--treasury-card-border);
+}
+
+:global(.theme-light .theme-neo-treasury),
+:global([data-theme="light"] .theme-neo-treasury) {
+  --treasury-bg: #fff7e6;
+  --treasury-gold: #b45309;
+  --treasury-dark-gold: #7c2d12;
+  --treasury-text: #3b2400;
+  --treasury-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 244, 224, 0.92));
+  --treasury-card-border: rgba(217, 119, 6, 0.25);
+  --treasury-card-shadow: 0 8px 20px rgba(120, 53, 15, 0.15), inset 0 0 10px rgba(255, 255, 255, 0.7);
+  --treasury-card-edge: linear-gradient(90deg, transparent, rgba(217, 119, 6, 0.6), transparent);
+  --treasury-button-bg: linear-gradient(to bottom, #f59e0b, #d97706);
+  --treasury-button-text: #2c1500;
+  --treasury-button-border: #b45309;
+  --treasury-button-shadow: 0 2px 4px rgba(120, 53, 15, 0.25);
+  --treasury-button-text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+  --treasury-button-active-bg: linear-gradient(to top, #f59e0b, #d97706);
+  --treasury-overlay: rgba(15, 23, 42, 0.2);
+  --treasury-soft-bg: rgba(217, 119, 6, 0.12);
+  --treasury-soft-border: rgba(217, 119, 6, 0.25);
+  --treasury-soft-shadow: 0 0 10px rgba(217, 119, 6, 0.2);
+  --treasury-skeleton-bg: rgba(217, 119, 6, 0.08);
+  --treasury-skeleton-border: rgba(217, 119, 6, 0.18);
+  --treasury-flare: rgba(217, 119, 6, 0.12);
+  --treasury-flake: rgba(217, 119, 6, 0.18);
+  --treasury-danger: #dc2626;
+
+  --bg-primary: var(--treasury-bg);
+  --bg-secondary: var(--treasury-bg);
+  --text-primary: var(--treasury-text);
+  --text-secondary: rgba(59, 36, 0, 0.7);
+  --border-color: var(--treasury-card-border);
+}

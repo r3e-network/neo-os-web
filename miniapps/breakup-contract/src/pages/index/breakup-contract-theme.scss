@@ -1,0 +1,38 @@
+:global(.theme-breakup-contract) {
+  --heartbreak-bg: #1a050f;
+  --heartbreak-radial: #4a0420;
+  --heartbreak-accent: #ff0055;
+  --heartbreak-accent-dark: #8b0046;
+  --heartbreak-text: #ffeef5;
+  --heartbreak-status-text: #ffffff;
+  --heartbreak-status-shadow: 0 0 5px rgba(255, 0, 85, 0.6);
+  --heartbreak-card-bg: rgba(40, 5, 20, 0.7);
+  --heartbreak-card-border: rgba(255, 0, 85, 0.3);
+  --heartbreak-card-shadow: 0 0 20px rgba(255, 0, 85, 0.1);
+  --heartbreak-card-danger-bg: rgba(100, 0, 30, 0.8);
+  --heartbreak-card-danger-border: #ff0000;
+  --heartbreak-button-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+  --heartbreak-button-shadow-press: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  --heartbreak-input-bg: rgba(0, 0, 0, 0.6);
+  --heartbreak-shard: rgba(255, 0, 85, 0.6);
+}
+
+:global(.theme-light .theme-breakup-contract),
+:global([data-theme="light"] .theme-breakup-contract) {
+  --heartbreak-bg: #fff0f4;
+  --heartbreak-radial: #ffd6e2;
+  --heartbreak-accent: #e11d48;
+  --heartbreak-accent-dark: #9f1239;
+  --heartbreak-text: #4a0b1f;
+  --heartbreak-status-text: #4a0b1f;
+  --heartbreak-status-shadow: 0 0 4px rgba(225, 29, 72, 0.4);
+  --heartbreak-card-bg: rgba(255, 255, 255, 0.8);
+  --heartbreak-card-border: rgba(225, 29, 72, 0.25);
+  --heartbreak-card-shadow: 0 0 18px rgba(225, 29, 72, 0.12);
+  --heartbreak-card-danger-bg: rgba(254, 226, 226, 0.9);
+  --heartbreak-card-danger-border: #dc2626;
+  --heartbreak-button-shadow: 4px 4px 0 rgba(74, 11, 31, 0.25);
+  --heartbreak-button-shadow-press: 2px 2px 0 rgba(74, 11, 31, 0.2);
+  --heartbreak-input-bg: rgba(255, 255, 255, 0.85);
+  --heartbreak-shard: rgba(225, 29, 72, 0.4);
+}

@@ -1,0 +1,62 @@
+:global(.theme-piggy-bank) {
+  --bg-primary: #0b0f1a;
+  --text-primary: #f8fafc;
+  --text-secondary: rgba(226, 232, 240, 0.7);
+  --text-muted: rgba(148, 163, 184, 0.7);
+  --piggy-accent-start: #00ff9d;
+  --piggy-accent-end: #00e5ff;
+  --piggy-accent-text: #04110b;
+  --piggy-border: rgba(255, 255, 255, 0.12);
+  --piggy-border-strong: rgba(255, 255, 255, 0.2);
+  --piggy-chip-bg: rgba(255, 255, 255, 0.08);
+  --piggy-chip-border: rgba(255, 255, 255, 0.12);
+  --piggy-chip-text: rgba(255, 255, 255, 0.8);
+  --piggy-chip-connected-bg: rgba(0, 255, 157, 0.15);
+  --piggy-chip-connected-border: rgba(0, 255, 157, 0.4);
+  --piggy-chip-connected-text: #00ff9d;
+  --piggy-warning-bg: rgba(255, 159, 67, 0.12);
+  --piggy-warning-border: rgba(255, 159, 67, 0.4);
+  --piggy-card-bg: rgba(255, 255, 255, 0.05);
+  --piggy-card-border: rgba(255, 255, 255, 0.1);
+  --piggy-progress-bg: rgba(255, 255, 255, 0.1);
+  --piggy-progress-fill: rgba(255, 255, 255, 0.1);
+  --piggy-progress-fill-strong: rgba(255, 255, 255, 0.2);
+  --piggy-fab-shadow: 0 4px 20px rgba(0, 255, 157, 0.4);
+  --piggy-modal-overlay: rgba(0, 0, 0, 0.6);
+  --piggy-modal-bg: #0f0f0f;
+  --piggy-input-bg: rgba(255, 255, 255, 0.04);
+  --piggy-input-border: rgba(255, 255, 255, 0.12);
+  --piggy-input-text: #ffffff;
+}
+
+:global(.theme-light .theme-piggy-bank),
+:global([data-theme="light"] .theme-piggy-bank) {
+  --bg-primary: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --piggy-accent-start: #00e59a;
+  --piggy-accent-end: #00cfee;
+  --piggy-accent-text: #052e2b;
+  --piggy-border: rgba(15, 23, 42, 0.12);
+  --piggy-border-strong: rgba(15, 23, 42, 0.2);
+  --piggy-chip-bg: rgba(15, 23, 42, 0.04);
+  --piggy-chip-border: rgba(15, 23, 42, 0.1);
+  --piggy-chip-text: rgba(15, 23, 42, 0.7);
+  --piggy-chip-connected-bg: rgba(16, 185, 129, 0.15);
+  --piggy-chip-connected-border: rgba(16, 185, 129, 0.3);
+  --piggy-chip-connected-text: #059669;
+  --piggy-warning-bg: rgba(234, 88, 12, 0.12);
+  --piggy-warning-border: rgba(234, 88, 12, 0.3);
+  --piggy-card-bg: rgba(255, 255, 255, 0.9);
+  --piggy-card-border: rgba(15, 23, 42, 0.08);
+  --piggy-progress-bg: rgba(15, 23, 42, 0.08);
+  --piggy-progress-fill: rgba(15, 23, 42, 0.08);
+  --piggy-progress-fill-strong: rgba(15, 23, 42, 0.18);
+  --piggy-fab-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+  --piggy-modal-overlay: rgba(15, 23, 42, 0.4);
+  --piggy-modal-bg: #ffffff;
+  --piggy-input-bg: rgba(15, 23, 42, 0.04);
+  --piggy-input-border: rgba(15, 23, 42, 0.12);
+  --piggy-input-text: #0f172a;
+}

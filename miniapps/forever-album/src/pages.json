@@ -1,0 +1,23 @@
+{
+    "pages": [
+        {
+            "path": "pages/index/index",
+            "style": {
+                "navigationBarTitleText": "Forever Album"
+            }
+        },
+        {
+            "path": "pages/docs/index",
+            "style": {
+                "navigationBarTitleText": "Docs"
+            }
+        }
+    ],
+    "globalStyle": {
+        "navigationBarTextStyle": "white",
+        "navigationBarTitleText": "Forever Album",
+        "navigationBarBackgroundColor": "#0d1117",
+        "backgroundColor": "#0d1117",
+        "navigationStyle": "custom"
+    }
+}

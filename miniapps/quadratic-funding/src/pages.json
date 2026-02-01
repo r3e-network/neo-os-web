@@ -1,0 +1,23 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Quadratic Funding"
+      }
+    },
+    {
+      "path": "pages/docs/index",
+      "style": {
+        "navigationBarTitleText": "Docs"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Quadratic Funding",
+    "navigationBarBackgroundColor": "#0f1f2d",
+    "backgroundColor": "#0f1f2d",
+    "navigationStyle": "custom"
+  }
+}

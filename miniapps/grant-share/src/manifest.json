@@ -1,0 +1,14 @@
+{
+  "name": "GrantShare",
+  "appid": "miniapp-grant-share",
+  "description": "Empowering the Neo ecosystem through decentralized funding. Propose ideas, collaborate on grants, and vote on community initiatives. The central hub for shared value creation and governance.",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "GrantShare",
+    "router": {
+      "mode": "hash"
+    }
+  }
+}

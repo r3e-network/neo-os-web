@@ -1,0 +1,56 @@
+:global(.theme-daily-checkin) {
+  --sunrise-bg: #1b140f;
+  --sunrise-text: #fcd9b5;
+  --sunrise-blue: #38bdf8;
+  --sunrise-font: 'Fredoka', 'Quicksand', sans-serif;
+  --sunrise-gradient-start: #2a1b13;
+  --sunrise-gradient-end: #120b08;
+  --sunrise-ray: rgba(255, 194, 100, 0.08);
+  --sunrise-card-bg: rgba(33, 22, 16, 0.9);
+  --sunrise-card-border: rgba(252, 211, 77, 0.25);
+  --sunrise-card-border-strong: rgba(249, 115, 22, 0.5);
+  --sunrise-card-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  --sunrise-card-neo-bg: rgba(41, 30, 20, 0.95);
+  --sunrise-card-neo-border: rgba(252, 211, 77, 0.4);
+  --sunrise-card-neo-border-strong: rgba(252, 211, 77, 0.6);
+  --sunrise-danger-bg: rgba(127, 29, 29, 0.6);
+  --sunrise-danger-border: rgba(248, 113, 113, 0.5);
+  --sunrise-danger-border-strong: rgba(248, 113, 113, 0.7);
+  --sunrise-danger-text: #fecaca;
+  --sunrise-button-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+  --sunrise-button-gradient: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  --sunrise-button-border-strong: #c2410c;
+  --sunrise-button-text: #ffffff;
+  --sunrise-button-text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
+  --sunrise-button-secondary-bg: rgba(33, 22, 16, 0.9);
+  --sunrise-button-secondary-border: #0ea5e9;
+}
+
+:global(.theme-light .theme-daily-checkin),
+:global([data-theme="light"] .theme-daily-checkin) {
+  --sunrise-bg: #fffbf0;
+  --sunrise-text: #78350f;
+  --sunrise-blue: #0ea5e9;
+  --sunrise-font: 'Fredoka', 'Quicksand', sans-serif;
+  --sunrise-gradient-start: #fff7ed;
+  --sunrise-gradient-end: #ffedd5;
+  --sunrise-ray: rgba(255, 215, 0, 0.05);
+  --sunrise-card-bg: #ffffff;
+  --sunrise-card-border: #fed7aa;
+  --sunrise-card-border-strong: #fdba74;
+  --sunrise-card-shadow: 0 10px 20px rgba(249, 115, 22, 0.1);
+  --sunrise-card-neo-bg: #ffffff;
+  --sunrise-card-neo-border: #fde68a;
+  --sunrise-card-neo-border-strong: #fcd34d;
+  --sunrise-danger-bg: #fef2f2;
+  --sunrise-danger-border: #fecaca;
+  --sunrise-danger-border-strong: #f87171;
+  --sunrise-danger-text: #991b1b;
+  --sunrise-button-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+  --sunrise-button-gradient: linear-gradient(135deg, #fcd34d 0%, #f97316 100%);
+  --sunrise-button-border-strong: #ea580c;
+  --sunrise-button-text: #ffffff;
+  --sunrise-button-text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.1);
+  --sunrise-button-secondary-bg: #ffffff;
+  --sunrise-button-secondary-border: #0284c7;
+}

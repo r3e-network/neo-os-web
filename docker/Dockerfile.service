@@ -1,0 +1,137 @@
+# syntax=docker/dockerfile:1.7
+# =============================================================================
+# Service Marble Dockerfile (Generic)
+# Uses EGo for SGX enclave execution
+# =============================================================================
+
+ARG EGO_VERSION=1.8.0
+ARG SERVICE=oracle
+ARG EGO_STRICT_SIGNING=1
+
+FROM ghcr.io/edgelesssys/ego-deploy:v${EGO_VERSION} AS runtime
+
+# Build stage
+FROM ghcr.io/edgelesssys/ego-dev:v${EGO_VERSION} AS builder
+
+ARG SERVICE
+ARG EGO_STRICT_SIGNING
+
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build service binary with ego-go
+RUN ego-go build -o ${SERVICE} ./cmd/marble
+
+# Create enclave configuration
+RUN <<EOF
+cat > enclave.json <<JSON
+{
+    "exe": "${SERVICE}",
+    "key": "private.pem",
+    "debug": false,
+    "heapSize": 256,
+    "executableHeap": false,
+    "productID": 1,
+    "securityVersion": 1,
+    "mounts": [
+        {
+            "target": "/tmp",
+            "type": "memfs"
+        }
+    ],
+    "env": [
+        {"name": "EDG_MARBLE_COORDINATOR_ADDR", "fromHost": true},
+        {"name": "EDG_MARBLE_TYPE", "fromHost": true},
+        {"name": "EDG_MARBLE_DNS_NAMES", "fromHost": true},
+        {"name": "EDG_MARBLE_UUID_FILE", "fromHost": true},
+        {"name": "OE_SIMULATION", "fromHost": true},
+        {"name": "MARBLE_CERT", "fromHost": true},
+        {"name": "MARBLE_KEY", "fromHost": true},
+        {"name": "MARBLE_ROOT_CA", "fromHost": true},
+        {"name": "MARBLE_EXTRA_CLIENT_CA", "fromHost": true},
+        {"name": "MARBLE_UUID", "fromHost": true},
+        {"name": "SERVICE_TYPE", "fromHost": true},
+        {"name": "MARBLE_TYPE", "fromHost": true},
+        {"name": "MARBLE_ENV", "fromHost": true},
+        {"name": "PORT", "fromHost": true},
+        {"name": "METRICS_ENABLED", "fromHost": true},
+        {"name": "METRICS_PORT", "fromHost": true},
+        {"name": "SUPABASE_URL", "fromHost": true},
+	        {"name": "SUPABASE_SERVICE_KEY", "fromHost": true},
+	        {"name": "MARBLE_SECRETS", "fromHost": true},
+	        {"name": "POOL_MASTER_KEY", "fromHost": true},
+	        {"name": "NEOFEEDS_SIGNING_KEY", "fromHost": true},
+	        {"name": "COMPUTE_MASTER_KEY", "fromHost": true},
+	        {"name": "SECRETS_MASTER_KEY", "fromHost": true},
+        {"name": "TXPROXY_ALLOWLIST", "fromHost": true},
+        {"name": "GLOBALSIGNER_SERVICE_URL", "fromHost": true},
+        {"name": "ORACLE_HTTP_ALLOWLIST", "fromHost": true},
+        {"name": "LOG_LEVEL", "fromHost": true},
+        {"name": "LOG_FORMAT", "fromHost": true},
+        {"name": "NEO_RPC_URL", "fromHost": true},
+        {"name": "NEO_RPC_URLS", "fromHost": true},
+        {"name": "NEO_NETWORK_MAGIC", "fromHost": true},
+        {"name": "CONTRACT_PAYMENT_HUB_ADDRESS", "fromHost": true},
+        {"name": "CONTRACT_GOVERNANCE_ADDRESS", "fromHost": true},
+        {"name": "CONTRACT_PRICE_FEED_ADDRESS", "fromHost": true},
+        {"name": "CONTRACT_RANDOMNESS_LOG_ADDRESS", "fromHost": true},
+        {"name": "CONTRACT_APP_REGISTRY_ADDRESS", "fromHost": true},
+        {"name": "CONTRACT_AUTOMATION_ANCHOR_ADDRESS", "fromHost": true},
+        {"name": "CONTRACT_SERVICE_GATEWAY_ADDRESS", "fromHost": true},
+        {"name": "TEE_PRIVATE_KEY", "fromHost": true},
+        {"name": "TEE_WALLET_PRIVATE_KEY", "fromHost": true},
+        {"name": "ARBITRUM_RPC", "fromHost": true},
+        {"name": "TXPROXY_URL", "fromHost": true},
+        {"name": "NEOVRF_URL", "fromHost": true},
+        {"name": "NEOORACLE_URL", "fromHost": true},
+        {"name": "NEOCOMPUTE_URL", "fromHost": true},
+        {"name": "NEOREQUESTS_MAX_RESULT_BYTES", "fromHost": true},
+        {"name": "NEOREQUESTS_MAX_ERROR_LEN", "fromHost": true},
+        {"name": "NEOREQUESTS_RNG_RESULT_MODE", "fromHost": true},
+        {"name": "NEOREQUESTS_TX_WAIT", "fromHost": true},
+        {"name": "NEOREQUESTS_ENFORCE_APPREGISTRY", "fromHost": true},
+        {"name": "NEOREQUESTS_APPREGISTRY_CACHE_SECONDS", "fromHost": true},
+        {"name": "NEOCOMPUTE_RESULT_TTL", "fromHost": true},
+        {"name": "NEOFLOW_SCHEDULER_USER_ID", "fromHost": true},
+        {"name": "NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS", "fromHost": true}
+    ],
+    "files": [
+        {
+            "source": "/etc/ssl/certs/ca-certificates.crt",
+            "target": "/etc/ssl/certs/ca-certificates.crt"
+        }
+    ]
+}
+JSON
+EOF
+
+# Sign the enclave
+RUN --mount=type=secret,id=ego_private_key,target=/app/private.pem,required=false \
+    if [ "${EGO_STRICT_SIGNING:-0}" = "1" ] && [ ! -f /app/private.pem ]; then \
+      echo "ERROR: missing enclave signing key. Provide a BuildKit secret:" >&2; \
+      echo "  docker build --secret id=ego_private_key,src=/path/to/private.pem --build-arg EGO_STRICT_SIGNING=1 -f docker/Dockerfile.service --build-arg SERVICE=${SERVICE} -t service-layer/<package>:latest ." >&2; \
+      exit 1; \
+    fi; \
+    ego sign enclave.json
+
+# Final stage
+FROM runtime
+
+ARG SERVICE
+
+WORKDIR /app
+
+# Copy signed enclave
+COPY --from=builder /app/${SERVICE} /app/service
+
+# Directory for optional MarbleRun/EGo state (e.g. EDG_MARBLE_UUID_FILE).
+RUN mkdir -p /marble
+
+# Run with ego
+ENTRYPOINT ["ego", "marblerun", "service"]

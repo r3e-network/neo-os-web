@@ -1,0 +1,14 @@
+@use "@shared/styles/tokens.scss" as *;
+
+$theme-primary: var(--erobo-purple);
+$theme-primary-dark: var(--erobo-purple-dark);
+$theme-background: var(--erobo-ink);
+$theme-background-soft: var(--erobo-ink-soft);
+
+$trustanchor-green: #22c55e;
+$trustanchor-gold: #ffd700;
+$trustanchor-gradient: var(--erobo-gradient);
+
+$trustanchor-stats-bg: rgba(159, 157, 243, 0.1);
+$trustanchor-card-border: rgba(255, 255, 255, 0.1);
+$trustanchor-input-bg: rgba(255, 255, 255, 0.1);

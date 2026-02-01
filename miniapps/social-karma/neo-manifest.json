@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-social-karma",
+  "name": "Social Karma",
+  "name_zh": "社交因果",
+  "version": "1.0.0",
+  "description": "Social Karma miniapp on Neo N3",
+  "description_zh": "社交因果 - Neo N3 去中心化应用",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [
+    "social"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0xfe4b06a3b0e2b8d0c7a6c67b4b6c3d8e1f5a2c3d4",
+    "neo-n3-testnet": ""
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/social-karma/index.html",
+    "icon": "/miniapps/social-karma/logo.jpg",
+    "banner": "/miniapps/social-karma/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://miniapp-social-karma"
+  },
+  "stateSource": {
+    "type": "api",
+    "endpoints": []
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-28T21:07:41Z"
+}

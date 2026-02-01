@@ -1,0 +1,38 @@
+:global(.theme-timestamp-proof) {
+  --proof-bg: #0f172a;
+  --proof-bg-secondary: #1e293b;
+  --proof-accent: #06b6d4;
+  --proof-accent-hover: #0891b2;
+  --proof-success: #10b981;
+  --proof-success-bg: rgba(16, 185, 129, 0.1);
+  --proof-text-primary: #f1f5f9;
+  --proof-text-secondary: #94a3b8;
+  --proof-text-muted: #64748b;
+  --proof-card-bg: #1e293b;
+  --proof-card-border: #334155;
+  --proof-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --proof-input-bg: #0f172a;
+  --proof-input-border: #334155;
+  --proof-input-focus: #06b6d4;
+  --proof-btn-primary: #06b6d4;
+  --proof-btn-primary-hover: #0891b2;
+}
+
+:global(.theme-light .theme-timestamp-proof),
+:global([data-theme="light"] .theme-timestamp-proof) {
+  --proof-bg: #f8fafc;
+  --proof-bg-secondary: #f1f5f9;
+  --proof-accent: #06b6d4;
+  --proof-accent-hover: #0891b2;
+  --proof-success: #059669;
+  --proof-success-bg: rgba(5, 150, 105, 0.1);
+  --proof-text-primary: #0f172a;
+  --proof-text-secondary: #475569;
+  --proof-text-muted: #94a3b8;
+  --proof-card-bg: #ffffff;
+  --proof-card-border: #e2e8f0;
+  --proof-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --proof-input-bg: #ffffff;
+  --proof-input-border: #cbd5e1;
+  --proof-input-focus: #06b6d4;
+}

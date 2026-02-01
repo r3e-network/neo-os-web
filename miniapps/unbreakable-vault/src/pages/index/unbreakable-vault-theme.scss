@@ -1,0 +1,54 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
+
+:global(.theme-unbreakable-vault) {
+  --vault-bg: #151b24;
+  --vault-shadow-light: #1f2732;
+  --vault-shadow-dark: #0b0f16;
+  --vault-text: #e2e8f0;
+  --vault-text-strong: #f8fafc;
+  --vault-text-muted: #94a3b8;
+  --vault-text-subtle: #64748b;
+  --vault-accent: #38a169;
+  --vault-danger-bg: #3b1f1f;
+  --vault-danger-shadow-light: #4f2a2a;
+  --vault-danger-shadow-dark: #1d1111;
+  --vault-danger-text: #fca5a5;
+  --vault-divider: rgba(148, 163, 184, 0.2);
+  --vault-metal-light: rgba(255, 255, 255, 0.04);
+  --vault-metal-dark: rgba(0, 0, 0, 0.3);
+  --vault-button-bg: linear-gradient(145deg, #1b222c, #10161d);
+  --vault-button-text: #f8fafc;
+  --vault-font: "Montserrat", sans-serif;
+
+  --bg-primary: var(--vault-bg);
+  --bg-secondary: var(--vault-bg);
+  --text-primary: var(--vault-text);
+  --text-secondary: var(--vault-text-muted);
+}
+
+:global(.theme-light .theme-unbreakable-vault),
+:global([data-theme="light"] .theme-unbreakable-vault) {
+  --vault-bg: #e0e5ec;
+  --vault-shadow-light: #ffffff;
+  --vault-shadow-dark: #a3b1c6;
+  --vault-text: #4a5568;
+  --vault-text-strong: #2d3748;
+  --vault-text-muted: #718096;
+  --vault-text-subtle: #a0aec0;
+  --vault-accent: #38a169;
+  --vault-danger-bg: #ffe3e3;
+  --vault-danger-shadow-light: #ffffff;
+  --vault-danger-shadow-dark: #d1a3a3;
+  --vault-danger-text: #c53030;
+  --vault-divider: rgba(160, 174, 192, 0.2);
+  --vault-metal-light: rgba(255, 255, 255, 0.05);
+  --vault-metal-dark: rgba(0, 0, 0, 0.02);
+  --vault-button-bg: linear-gradient(145deg, #e0e5ec, #ffffff);
+  --vault-button-text: #2d3748;
+  --vault-font: "Montserrat", sans-serif;
+
+  --bg-primary: var(--vault-bg);
+  --bg-secondary: var(--vault-bg);
+  --text-primary: var(--vault-text);
+  --text-secondary: var(--vault-text-muted);
+}

@@ -1,0 +1,32 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2021": true,
+    "jest": true
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "coverage/",
+    "*.config.js",
+    "jest.setup.js",
+    "scripts/*.js",
+    "generate_assets_smart.js",
+    "test_pw.js",
+    "public/**/*.js",
+    "lib/sdk/*.js"
+  ],
+  "rules": {
+    "@next/next/no-img-element": "off",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/consistent-type-imports": "warn",
+    "@typescript-eslint/no-empty-object-type": "warn",
+    "no-empty": "warn",
+    "prefer-const": "warn",
+    "no-case-declarations": "warn"
+  }
+}

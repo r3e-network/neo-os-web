@@ -1,0 +1,74 @@
+:global(.theme-lottery) {
+  --lottery-card-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  --lottery-card-border: rgba(255, 255, 255, 0.05);
+  --lottery-card-shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.5);
+  --lottery-card-border-hover: rgba(255, 255, 255, 0.15);
+  --lottery-bronze-bg: linear-gradient(165deg, #2a1b15 0%, #4a2d1d 30%, #3a221a 100%);
+  --lottery-bronze-shadow: inset 0 0 30px rgba(205, 127, 50, 0.15);
+  --lottery-silver-bg: linear-gradient(165deg, #1f2326 0%, #3a3f44 30%, #212529 100%);
+  --lottery-silver-shadow: inset 0 0 30px rgba(192, 192, 192, 0.1);
+  --lottery-gold-bg: linear-gradient(165deg, #2c2509 0%, #4d4310 30%, #2c2509 100%);
+  --lottery-gold-shadow: inset 0 0 30px rgba(255, 215, 0, 0.15);
+  --lottery-gold-border: rgba(255, 215, 0, 0.2);
+  --lottery-platinum-bg: linear-gradient(165deg, #1a1c1e 0%, #2d3436 30%, #1a1c1e 100%);
+  --lottery-platinum-shadow: inset 0 0 30px rgba(229, 228, 226, 0.08);
+  --lottery-platinum-border: rgba(229, 228, 226, 0.2);
+  --lottery-diamond-bg: linear-gradient(165deg, #0d1e25 0%, #1a3a4a 30%, #0d1e25 100%);
+  --lottery-diamond-shadow: inset 0 0 30px rgba(185, 242, 255, 0.15);
+  --lottery-diamond-border: rgba(185, 242, 255, 0.3);
+  --lottery-shine-gradient: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  --lottery-buy-bg: rgba(255, 255, 255, 0.1);
+  --lottery-buy-border: rgba(255, 255, 255, 0.2);
+  --lottery-buy-bg-active: rgba(255, 255, 255, 0.2);
+  --lottery-buy-border-gold: rgba(255, 215, 0, 0.4);
+  --lottery-buy-border-platinum: rgba(229, 228, 226, 0.4);
+  --lottery-buy-border-diamond: rgba(185, 242, 255, 0.5);
+  --lottery-glow-text: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 40px rgba(255, 255, 255, 0.1);
+  --lottery-ticket-icon: #ffffff;
+  --lottery-ticket-shadow: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+}
+
+:global(.theme-light .theme-lottery),
+:global([data-theme="light"] .theme-lottery) {
+  --lottery-card-shadow: 0 4px 15px rgba(15, 23, 42, 0.12);
+  --lottery-card-border: rgba(15, 23, 42, 0.08);
+  --lottery-card-shadow-hover: 0 10px 25px rgba(15, 23, 42, 0.18);
+  --lottery-card-border-hover: rgba(15, 23, 42, 0.12);
+  --lottery-bronze-bg: linear-gradient(165deg, #f5e3da 0%, #e9c9b6 30%, #f2d6c8 100%);
+  --lottery-bronze-shadow: inset 0 0 30px rgba(205, 127, 50, 0.12);
+  --lottery-silver-bg: linear-gradient(165deg, #eef2f7 0%, #d1d5db 30%, #eef2f7 100%);
+  --lottery-silver-shadow: inset 0 0 30px rgba(148, 163, 184, 0.2);
+  --lottery-gold-bg: linear-gradient(165deg, #fff6d1 0%, #fce7a7 30%, #fff2c1 100%);
+  --lottery-gold-shadow: inset 0 0 30px rgba(245, 158, 11, 0.15);
+  --lottery-gold-border: rgba(245, 158, 11, 0.3);
+  --lottery-platinum-bg: linear-gradient(165deg, #f5f7f8 0%, #dde3e8 30%, #f5f7f8 100%);
+  --lottery-platinum-shadow: inset 0 0 30px rgba(148, 163, 184, 0.18);
+  --lottery-platinum-border: rgba(148, 163, 184, 0.3);
+  --lottery-diamond-bg: linear-gradient(165deg, #e0f2fe 0%, #bfe7f7 30%, #e0f2fe 100%);
+  --lottery-diamond-shadow: inset 0 0 30px rgba(56, 189, 248, 0.2);
+  --lottery-diamond-border: rgba(56, 189, 248, 0.35);
+  --lottery-shine-gradient: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 45%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.1) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  --lottery-buy-bg: rgba(255, 255, 255, 0.6);
+  --lottery-buy-border: rgba(148, 163, 184, 0.3);
+  --lottery-buy-bg-active: rgba(255, 255, 255, 0.85);
+  --lottery-buy-border-gold: rgba(245, 158, 11, 0.4);
+  --lottery-buy-border-platinum: rgba(148, 163, 184, 0.4);
+  --lottery-buy-border-diamond: rgba(56, 189, 248, 0.45);
+  --lottery-glow-text: 0 0 16px rgba(15, 23, 42, 0.15), 0 0 30px rgba(15, 23, 42, 0.08);
+  --lottery-ticket-icon: #111827;
+  --lottery-ticket-shadow: drop-shadow(0 0 8px rgba(15, 23, 42, 0.2));
+}

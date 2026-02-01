@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-unbreakablevault",
+  "name": "Unbreakable Vault",
+  "name_zh": "无法破碎的金库",
+  "version": "1.0.0",
+  "description": "Hacker bounty vaults secured by secret hashes.",
+  "description_zh": "无法破碎的金库 - Neo N3 去中心化应用",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": [],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa",
+    "neo-n3-testnet": "0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/unbreakable-vault/index.html",
+    "icon": "/miniapps/unbreakable-vault/logo.jpg",
+    "banner": "/miniapps/unbreakable-vault/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://unbreakable-vault"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

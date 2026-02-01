@@ -1,0 +1,70 @@
+:global(.theme-coin-flip) {
+  --coin-bg-primary: #05060d;
+  --coin-text-primary: #f8fafc;
+  --coin-text-secondary: rgba(248, 250, 252, 0.65);
+  --coin-label: rgba(248, 250, 252, 0.6);
+  --coin-card-bg: rgba(255, 255, 255, 0.03);
+  --coin-card-border: rgba(255, 255, 255, 0.1);
+  --coin-panel-bg: rgba(0, 0, 0, 0.25);
+  --coin-panel-border: rgba(255, 255, 255, 0.06);
+  --coin-choice-bg: rgba(255, 255, 255, 0.03);
+  --coin-choice-border: rgba(255, 255, 255, 0.1);
+  --coin-choice-ring: rgba(255, 255, 255, 0.2);
+  --coin-wager-bg: rgba(255, 255, 255, 0.03);
+  --coin-wager-border: rgba(255, 255, 255, 0.1);
+  --coin-arena-bg: rgba(15, 23, 42, 0.45);
+  --coin-arena-border: rgba(255, 255, 255, 0.1);
+  --coin-orbit-border: rgba(255, 255, 255, 0.12);
+  --coin-glow-ring-border: rgba(255, 255, 255, 0.1);
+  --coin-glow-ring-bg: rgba(255, 255, 255, 0.05);
+  --coin-status-bg: rgba(0, 0, 0, 0.45);
+  --coin-status-border: rgba(255, 255, 255, 0.1);
+  --coin-vault-filter: brightness(0.6);
+  --coin-vault-opacity: 1;
+  --coin-grid-color: rgba(0, 255, 157, 0.03);
+  --coin-vignette: rgba(0, 0, 0, 0.6);
+  --coin-error-bg: rgba(239, 68, 68, 0.9);
+  --coin-error-text: #ffffff;
+  --coin-error-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+  --coin-stat-bg: rgba(255, 255, 255, 0.03);
+  --coin-stat-border: rgba(255, 255, 255, 0.1);
+  --bg-primary: var(--coin-bg-primary);
+  --text-primary: var(--coin-text-primary);
+  --text-secondary: var(--coin-text-secondary);
+  --bg-card: var(--coin-card-bg);
+  --border-color: var(--coin-card-border);
+  --bg-secondary: var(--coin-panel-bg);
+}
+
+:global(.theme-light .theme-coin-flip),
+:global([data-theme="light"] .theme-coin-flip) {
+  --coin-bg-primary: #f8fafc;
+  --coin-text-primary: #0f172a;
+  --coin-text-secondary: rgba(15, 23, 42, 0.7);
+  --coin-label: rgba(15, 23, 42, 0.6);
+  --coin-card-bg: rgba(255, 255, 255, 0.85);
+  --coin-card-border: rgba(15, 23, 42, 0.08);
+  --coin-panel-bg: rgba(255, 255, 255, 0.8);
+  --coin-panel-border: rgba(15, 23, 42, 0.1);
+  --coin-choice-bg: rgba(255, 255, 255, 0.9);
+  --coin-choice-border: rgba(15, 23, 42, 0.1);
+  --coin-choice-ring: rgba(15, 23, 42, 0.15);
+  --coin-wager-bg: rgba(255, 255, 255, 0.85);
+  --coin-wager-border: rgba(15, 23, 42, 0.1);
+  --coin-arena-bg: rgba(255, 255, 255, 0.85);
+  --coin-arena-border: rgba(15, 23, 42, 0.1);
+  --coin-orbit-border: rgba(15, 23, 42, 0.12);
+  --coin-glow-ring-border: rgba(15, 23, 42, 0.1);
+  --coin-glow-ring-bg: rgba(15, 23, 42, 0.04);
+  --coin-status-bg: rgba(255, 255, 255, 0.75);
+  --coin-status-border: rgba(15, 23, 42, 0.12);
+  --coin-vault-filter: brightness(1.1) saturate(0.8);
+  --coin-vault-opacity: 0.25;
+  --coin-grid-color: rgba(15, 23, 42, 0.06);
+  --coin-vignette: rgba(15, 23, 42, 0.12);
+  --coin-error-bg: rgba(220, 38, 38, 0.9);
+  --coin-error-text: #ffffff;
+  --coin-error-shadow: 0 10px 30px rgba(220, 38, 38, 0.2);
+  --coin-stat-bg: rgba(255, 255, 255, 0.8);
+  --coin-stat-border: rgba(15, 23, 42, 0.12);
+}

@@ -1,0 +1,22 @@
+:global(.theme-event-ticket-pass) {
+  --ticket-bg-start: #0b1124;
+  --ticket-bg-end: #1a2038;
+  --ticket-card-bg: rgba(12, 19, 35, 0.8);
+  --ticket-card-border: rgba(248, 161, 70, 0.28);
+  --ticket-accent: #f59e0b;
+  --ticket-accent-strong: #fbbf24;
+  --ticket-text: #e2e8f0;
+  --ticket-muted: rgba(226, 232, 240, 0.6);
+}
+
+:global(.theme-light .theme-event-ticket-pass),
+:global([data-theme="light"] .theme-event-ticket-pass) {
+  --ticket-bg-start: #fff7ed;
+  --ticket-bg-end: #ffedd5;
+  --ticket-card-bg: rgba(255, 255, 255, 0.9);
+  --ticket-card-border: rgba(180, 83, 9, 0.2);
+  --ticket-accent: #ea580c;
+  --ticket-accent-strong: #c2410c;
+  --ticket-text: #1e293b;
+  --ticket-muted: rgba(30, 41, 59, 0.6);
+}

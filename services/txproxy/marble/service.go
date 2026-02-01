@@ -1,0 +1,215 @@
+package txproxy
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/chain"
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/middleware"
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/runtime"
+	commonservice "github.com/R3E-Network/neo-miniapps-platform/infrastructure/service"
+)
+
+const (
+	ServiceID   = "txproxy"
+	ServiceName = "Tx Proxy"
+	Version     = "1.0.0"
+)
+
+type Service struct {
+	*commonservice.BaseService
+
+	allowlist *Allowlist
+	// Optional platform contract addresses used for intent-based policy gating.
+	gasAddress        string
+	paymentHubAddress string
+	governanceAddress string
+
+	chainClient *chain.Client
+	signer      chain.TEESigner
+
+	replayWindow time.Duration
+	replayMu     sync.Mutex
+	seenRequests map[string]time.Time
+	// SECURITY FIX [M-02]: Add maximum capacity to prevent memory exhaustion
+	maxSeenRequests int
+	// Rate limiter for /invoke endpoint to prevent DoS attacks
+	rateLimiter *middleware.RateLimiter
+}
+
+type Config struct {
+	Marble *marble.Marble
+	DB     database.RepositoryInterface
+
+	ChainClient *chain.Client
+	Signer      chain.TEESigner
+
+	// Optional platform contract addresses. If not provided, txproxy attempts to
+	// read them from environment variables via chain.ContractAddressesFromEnv().
+	GasAddress        string
+	PaymentHubAddress string
+	GovernanceAddress string
+
+	AllowlistRaw string
+	Allowlist    *Allowlist
+
+	ReplayWindow time.Duration
+}
+
+const defaultGASContractAddress = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+
+func New(cfg Config) (*Service, error) {
+	if cfg.Marble == nil {
+		return nil, fmt.Errorf("txproxy: marble is required")
+	}
+
+	strict := runtime.StrictIdentityMode() || cfg.Marble.IsEnclave()
+
+	allowlist := cfg.Allowlist
+	if allowlist == nil {
+		raw := strings.TrimSpace(cfg.AllowlistRaw)
+		if raw == "" {
+			if secret, ok := cfg.Marble.Secret("TXPROXY_ALLOWLIST"); ok && len(secret) > 0 {
+				raw = strings.TrimSpace(string(secret))
+			}
+		}
+		if raw == "" {
+			raw = strings.TrimSpace(os.Getenv("TXPROXY_ALLOWLIST"))
+		}
+
+		parsed, err := ParseAllowlist(raw)
+		if err != nil {
+			return nil, err
+		}
+		allowlist = parsed
+	}
+
+	contracts := chain.ContractAddressesFromEnv()
+	gasAddress := strings.TrimSpace(cfg.GasAddress)
+	if gasAddress == "" {
+		gasAddress = strings.TrimSpace(os.Getenv("CONTRACT_GAS_ADDRESS"))
+	}
+	if gasAddress == "" {
+		gasAddress = defaultGASContractAddress
+	}
+	paymentHubAddress := strings.TrimSpace(cfg.PaymentHubAddress)
+	if paymentHubAddress == "" {
+		paymentHubAddress = strings.TrimSpace(contracts.PaymentHub)
+	}
+	governanceAddress := strings.TrimSpace(cfg.GovernanceAddress)
+	if governanceAddress == "" {
+		governanceAddress = strings.TrimSpace(contracts.Governance)
+	}
+
+	if strict {
+		if cfg.ChainClient == nil {
+			return nil, fmt.Errorf("txproxy: chain client is required in strict/enclave mode")
+		}
+		if cfg.Signer == nil {
+			return nil, fmt.Errorf("txproxy: signer is required in strict/enclave mode")
+		}
+	}
+
+	replayWindow := cfg.ReplayWindow
+	if replayWindow <= 0 {
+		replayWindow = 1 * time.Hour
+	}
+
+	base := commonservice.NewBase(&commonservice.BaseConfig{
+		ID:      ServiceID,
+		Name:    ServiceName,
+		Version: Version,
+		Marble:  cfg.Marble,
+		DB:      cfg.DB,
+	})
+
+	s := &Service{
+		BaseService:       base,
+		allowlist:         allowlist,
+		gasAddress:        normalizeContractAddress(gasAddress),
+		paymentHubAddress: normalizeContractAddress(paymentHubAddress),
+		governanceAddress: normalizeContractAddress(governanceAddress),
+		chainClient:       cfg.ChainClient,
+		signer:            cfg.Signer,
+		replayWindow:      replayWindow,
+		seenRequests:      make(map[string]time.Time),
+		// SECURITY FIX [M-02]: Limit replay cache size to prevent memory exhaustion
+		maxSeenRequests: 100000,
+		// SECURITY FIX [R-01]: Add rate limiting to prevent DoS attacks
+		// Allow 100 requests per minute with burst of 200
+		rateLimiter: middleware.NewRateLimiterWithWindow(100, time.Minute, 200, base.Logger()),
+	}
+
+	base.RegisterStandardRoutes()
+	s.registerRoutes()
+
+	// Best-effort cleanup of the replay cache.
+	base.AddTickerWorker(1*time.Minute, func(ctx context.Context) error {
+		s.cleanupReplay()
+		return nil
+	}, commonservice.WithTickerWorkerName("replay-cleanup"))
+
+	return s, nil
+}
+
+func (s *Service) registerRoutes() {
+	// SECURITY FIX [R-01]: Apply rate limiting to /invoke endpoint to prevent DoS
+	s.Router().Handle("/invoke",
+		middleware.RequireServiceAuth(
+			s.rateLimiter.Handler(
+				http.HandlerFunc(s.handleInvoke),
+			),
+		),
+	).Methods(http.MethodPost)
+}
+
+func (s *Service) markSeen(requestID string) bool {
+	requestID = strings.TrimSpace(requestID)
+	if requestID == "" {
+		return false
+	}
+
+	now := time.Now()
+	s.replayMu.Lock()
+	defer s.replayMu.Unlock()
+
+	if until, ok := s.seenRequests[requestID]; ok && now.Before(until) {
+		return false
+	}
+
+	// SECURITY FIX [M-02]: Enforce maximum capacity to prevent memory exhaustion
+	// If at capacity, perform emergency cleanup of expired entries
+	if len(s.seenRequests) >= s.maxSeenRequests {
+		for key, until := range s.seenRequests {
+			if now.After(until) {
+				delete(s.seenRequests, key)
+			}
+		}
+		// If still at capacity after cleanup, reject new requests
+		if len(s.seenRequests) >= s.maxSeenRequests {
+			return false
+		}
+	}
+
+	s.seenRequests[requestID] = now.Add(s.replayWindow)
+	return true
+}
+
+func (s *Service) cleanupReplay() {
+	now := time.Now()
+	s.replayMu.Lock()
+	defer s.replayMu.Unlock()
+
+	for key, until := range s.seenRequests {
+		if now.After(until) {
+			delete(s.seenRequests, key)
+		}
+	}
+}

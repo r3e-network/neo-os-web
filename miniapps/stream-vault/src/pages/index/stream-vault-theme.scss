@@ -1,0 +1,22 @@
+:global(.theme-stream-vault) {
+  --stream-bg-start: #0b1324;
+  --stream-bg-end: #14233b;
+  --stream-card-bg: rgba(12, 19, 35, 0.75);
+  --stream-card-border: rgba(56, 189, 248, 0.24);
+  --stream-accent: #38bdf8;
+  --stream-accent-strong: #22d3ee;
+  --stream-text: #e2e8f0;
+  --stream-muted: rgba(226, 232, 240, 0.6);
+}
+
+:global(.theme-light .theme-stream-vault),
+:global([data-theme="light"] .theme-stream-vault) {
+  --stream-bg-start: #f8fafc;
+  --stream-bg-end: #e2e8f0;
+  --stream-card-bg: rgba(255, 255, 255, 0.8);
+  --stream-card-border: rgba(14, 116, 144, 0.2);
+  --stream-accent: #0ea5e9;
+  --stream-accent-strong: #0284c7;
+  --stream-text: #0f172a;
+  --stream-muted: rgba(15, 23, 42, 0.6);
+}

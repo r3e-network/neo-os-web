@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neoburger",
+  "name": "Neo Burger",
+  "name_zh": "Neo 汉堡",
+  "version": "1.0.0",
+  "description": "Stake NEO to earn GAS rewards with NeoBurger liquid staking",
+  "description_zh": "Neo 汉堡 - Neo N3 去中心化应用",
+  "category": "finance",
+  "category_name": "Finance",
+  "category_name_zh": "金融",
+  "tags": [
+    "staking",
+    "liquid-staking",
+    "bNEO",
+    "yield"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x48c40d4666f93408be1bef038b6722404d9a4c2a",
+    "neo-n3-testnet": ""
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/neoburger/index.html",
+    "icon": "/miniapps/neoburger/logo.jpg",
+    "banner": "/miniapps/neoburger/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neoburger"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

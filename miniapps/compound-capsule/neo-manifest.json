@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-compound-capsule",
+  "name": "Compound Capsule",
+  "name_zh": "复利胶囊",
+  "version": "1.0.0",
+  "description": "Time-locked DeFi savings with compound interest",
+  "description_zh": "复利胶囊 - Neo N3 去中心化应用",
+  "category": "finance",
+  "category_name": "Finance",
+  "category_name_zh": "金融",
+  "tags": [
+    "defi",
+    "savings",
+    "yield"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x46852726d7c4a347991606ef1135e61d8112a175",
+    "neo-n3-testnet": "0xba302bebace6c2bd0f610228b56bd3d3de07dbd7"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/compound-capsule/index.html",
+    "icon": "/miniapps/compound-capsule/logo.jpg",
+    "banner": "/miniapps/compound-capsule/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://compound-capsule"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

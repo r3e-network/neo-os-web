@@ -1,0 +1,405 @@
+{
+  "Packages": {
+    "neofeeds": {
+      "SignerID": "3ebab79aad35d43f25e5ad7035c905c19ff891d0e393e2df439ef5bb0f2635eb",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "neoflow": {
+      "SignerID": "39e6afcff3bcf16f96e269eded072ad0c308ba9c05635a4c1d1c7cf95354bff4",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "neocompute": {
+      "SignerID": "a0df9ca5ac309135056bda2cba925c5fdf86ebba29b4f57c2b051063b3b69b41",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "neovrf": {
+      "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "neoaccounts": {
+      "SignerID": "ca015eb0538d3d0232ca24299d4cd8df49d163f436860841b2f1442458484b13",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "neooracle": {
+      "SignerID": "5f99b3647a376d0e8703db54340796f8476f3ab978aa7fd9b6945699e5f4b925",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "neorequests": {
+      "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "globalsigner": {
+      "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "txproxy": {
+      "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "neogasbank": {
+      "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    },
+    "neosimulation": {
+      "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate"
+      ]
+    }
+  },
+  "Secrets": {
+    "POOL_MASTER_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "NEOFEEDS_SIGNING_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "NEOVRF_SIGNING_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "COMPUTE_MASTER_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "SECRETS_MASTER_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "TEE_PRIVATE_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "GLOBALSIGNER_MASTER_SEED": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "POOL_ENCRYPTION_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    }
+  },
+  "Marbles": {
+    "neofeeds": {
+      "Package": "neofeeds",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neofeeds",
+          "SERVICE_TYPE": "neofeeds",
+          "NEOFEEDS_SIGNING_KEY": "{{ hex .Secrets.NEOFEEDS_SIGNING_KEY.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neoflow": {
+      "Package": "neoflow",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neoflow",
+          "SERVICE_TYPE": "neoflow",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neocompute": {
+      "Package": "neocompute",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neocompute",
+          "SERVICE_TYPE": "neocompute",
+          "COMPUTE_MASTER_KEY": "{{ hex .Secrets.COMPUTE_MASTER_KEY.Private }}",
+          "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neovrf": {
+      "Package": "neovrf",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neovrf",
+          "SERVICE_TYPE": "neovrf",
+          "NEOVRF_SIGNING_KEY": "{{ hex .Secrets.NEOVRF_SIGNING_KEY.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neoaccounts": {
+      "Package": "neoaccounts",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neoaccounts",
+          "SERVICE_TYPE": "neoaccounts",
+          "POOL_MASTER_KEY": "{{ hex .Secrets.POOL_MASTER_KEY.Private }}",
+          "POOL_ENCRYPTION_KEY": "{{ hex .Secrets.POOL_ENCRYPTION_KEY.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neooracle": {
+      "Package": "neooracle",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neooracle",
+          "SERVICE_TYPE": "neooracle",
+          "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
+          "ORACLE_HTTP_ALLOWLIST": "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neorequests": {
+      "Package": "neorequests",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neorequests",
+          "SERVICE_TYPE": "neorequests",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "globalsigner": {
+      "Package": "globalsigner",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "globalsigner",
+          "SERVICE_TYPE": "globalsigner",
+          "GLOBALSIGNER_MASTER_SEED": "{{ hex .Secrets.GLOBALSIGNER_MASTER_SEED.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "txproxy": {
+      "Package": "txproxy",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "txproxy",
+          "SERVICE_TYPE": "txproxy",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neogasbank": {
+      "Package": "neogasbank",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neogasbank",
+          "SERVICE_TYPE": "neogasbank",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neosimulation": {
+      "Package": "neosimulation",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neosimulation",
+          "SERVICE_TYPE": "neosimulation",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": "",
+          "CONTRACT_MINIAPP_LOTTERY_ADDRESS": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+          "CONTRACT_MINIAPP_COINFLIP_ADDRESS": "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
+          "CONTRACT_MINIAPP_DICEGAME_ADDRESS": "0xfacff9abd201dca86e6a63acfb5d60da278da8ea",
+          "CONTRACT_MINIAPP_SCRATCHCARD_ADDRESS": "0x2674ef3b4d8c006201d1e7e473316592f6cde5f2",
+          "CONTRACT_MINIAPP_SECRETPOKER_ADDRESS": "0xa27348cc0a79c776699a028244250b4f3d6bbe0c",
+          "CONTRACT_MINIAPP_FOGCHESS_ADDRESS": "0x23a44ca6643c104fbaa97daab65d5e53b3662b4a",
+          "CONTRACT_MINIAPP_PREDICTIONMARKET_ADDRESS": "0x64118096bd004a2bcb010f4371aba45121eca790",
+          "CONTRACT_MINIAPP_FLASHLOAN_ADDRESS": "0xee51e5b399f7727267b7d296ff34ec6bb9283131",
+          "CONTRACT_MINIAPP_PRICETICKER_ADDRESS": "0x838bd5dd3d257a844fadddb5af2b9dac45e1d320",
+          "CONTRACT_MINIAPP_ILGUARD_ADDRESS": "0xd3557ccbb2ced2254f5862fbc784cd97cf746872",
+          "CONTRACT_MINIAPP_AITRADER_ADDRESS": "0xc3356f394897e36b3903ea81d87717da8db98809",
+          "CONTRACT_MINIAPP_GRIDBOT_ADDRESS": "0x0d9cfc40ac2ab58de449950725af9637e0884b28",
+          "CONTRACT_MINIAPP_REDENVELOPE_ADDRESS": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
+          "CONTRACT_MINIAPP_GASCIRCLE_ADDRESS": "0x7736c8d1ff918f94d26adc688dac4d4bc084bd39",
+          "CONTRACT_MINIAPP_SECRETVOTE_ADDRESS": "0x7763ce957515f6acef6d093376977ac6c1cbc47d",
+          "CONTRACT_MINIAPP_NFTEVOLVE_ADDRESS": "0xadd18a719d14d59c064244833cd2c812c79d6015",
+          "CONTRACT_MINIAPP_GOVBOOSTER_ADDRESS": "0xebabd9712f985afc0e5a4e24ed2fc4acb874796f",
+          "CONTRACT_MINIAPP_BRIDGEGUARDIAN_ADDRESS": "0x2d03f3e4ff10e14ea94081e0c21e79e79c33f9e3",
+          "CONTRACT_MINIAPP_GUARDIANPOLICY_ADDRESS": "0x893a774957244b83a0efed1d42771fe1e424cfec",
+          "CONTRACT_MINIAPP_NEOCRASH_ADDRESS": "0x2e594e12b2896c135c3c8c80dbf2317fa56ceead",
+          "CONTRACT_MINIAPP_CANDLEWARS_ADDRESS": "0x9dddba9357b93e75c29aaeaf37e7851aaaed6dbe",
+          "CONTRACT_MINIAPP_DUTCHAUCTION_ADDRESS": "0xb4394ee9eee040a9cce5450fceaaeabe83946410",
+          "CONTRACT_MINIAPP_PARASITE_ADDRESS": "0xe1726fbc4b6a5862eb2336ff32494be9f117563b",
+          "CONTRACT_MINIAPP_NOLOSSLOTTERY_ADDRESS": "0x18cecd52efb529ac4e2827e9c9956c1bc450f154",
+          "CONTRACT_MINIAPP_DOOMSDAYCLOCK_ADDRESS": "0xe4f386057d6308b83a5fd2e84bc3eb9149adc719",
+          "CONTRACT_MINIAPP_PAYTOVIEW_ADDRESS": "0xfa920907126e63b5360a68fbf607294a82ef6266",
+          "CONTRACT_MINIAPP_ALGOBATTLE_ADDRESS": "0xb75677584c3f3b168129767534c1478d42144913",
+          "CONTRACT_MINIAPP_BOUNTYHUNTER_ADDRESS": "0xa2a83c007d091ee65cda36c1b4c120c3c09304f9",
+          "CONTRACT_MINIAPP_CRYPTORIDDLE_ADDRESS": "0x088b4974a83cd6afa4c52c041d75637317b54ad3",
+          "CONTRACT_MINIAPP_FOGPUZZLE_ADDRESS": "0x1eafd1f7fc27607bd51ef4524c650c39ba2a7d55",
+          "CONTRACT_MINIAPP_ONCHAINTAROT_ADDRESS": "0xfff9616dd3d9e863bc72bf26ff0a0da2d698e767",
+          "CONTRACT_MINIAPP_FOREVERALBUM_ADDRESS": "0x74dc4a954e6bccfd66500b8124e4c404154b9fb9",
+          "CONTRACT_MINIAPP_PUZZLEMINING_ADDRESS": "0xefda59e287f0bf46d6c3ec5db565a339cb2c0e89",
+          "CONTRACT_MINIAPP_SCREAMTOEARN_ADDRESS": "0xd726b3d241bef1ee299fa469f7cfbd03b7123e0f",
+          "CONTRACT_MINIAPP_WORLDPIANO_ADDRESS": "0x0920ef4ca5eca4836e2514af0c080d3741ba7c73",
+          "CONTRACT_MINIAPP_BURNLEAGUE_ADDRESS": "0x8db1b8c67b52e02592d2ee7ceb47dea908ab0e46",
+          "CONTRACT_MINIAPP_COMPOUNDCAPSULE_ADDRESS": "0x20397862ba24b84103a745ec2ed1f581126674dc",
+          "CONTRACT_MINIAPP_DARKPOOL_ADDRESS": "0x7c49a0c0184e2da82130de1e2c5fef283bd0a1a0",
+          "CONTRACT_MINIAPP_MELTINGASSET_ADDRESS": "0x31662a42f65e394c2e038030e410b75251eb0705",
+          "CONTRACT_MINIAPP_QUANTUMSWAP_ADDRESS": "0x21f0b8f1fd5c65e239bda0bc8a04a367b821b79c",
+          "CONTRACT_MINIAPP_SELFLOAN_ADDRESS": "0xb7522afccd80ad5b3cbc112033c22b3d8f2d120c",
+          "CONTRACT_MINIAPP_BREAKUPCONTRACT_ADDRESS": "0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f",
+          "CONTRACT_MINIAPP_DEVTIPPING_ADDRESS": "0x93d2406a73e060d43cbe28fb26d863e5ac4744a2",
+          "CONTRACT_MINIAPP_EXFILES_ADDRESS": "0x6057934459f1ddc6c63a63bc816afed971514b43",
+          "CONTRACT_MINIAPP_GEOSPOTLIGHT_ADDRESS": "0x2f74728dd5f3d143d2a2d2dbb99aa2f8feeb8353",
+          "CONTRACT_MINIAPP_MASQUERADEDAO_ADDRESS": "0x07ff6bac7e2824d1cec0e71a1383d131cdf86c65",
+          "CONTRACT_MINIAPP_MILLIONPIECEMAP_ADDRESS": "0xf4ab0fa6f245427482cb5c693a5f40baf6d58c71",
+          "CONTRACT_MINIAPP_WHISPERCHAIN_ADDRESS": "0x28d346d23fe5cad44e12dafdbda4422764fa544a",
+          "CONTRACT_MINIAPP_CANVAS_ADDRESS": "0x285e2dc88e15fee4684588f34985155ac95d8d98",
+          "CONTRACT_MINIAPP_GARDENOFNEO_ADDRESS": "0x192e2a0a1e050440b97d449b7905f37516042faa",
+          "CONTRACT_MINIAPP_GRAVEYARD_ADDRESS": "0x8cf45cdc1d879710c2b88fd8705696fe6f5aacb5",
+          "CONTRACT_MINIAPP_NFTCHIMERA_ADDRESS": "0x3d75708a45c2e3850608b65d4588dc683672004a",
+          "CONTRACT_MINIAPP_SCHRODINGERNFT_ADDRESS": "0x06fcf2d556322637e1b97ec1e0137c77c6a7b27e",
+          "CONTRACT_MINIAPP_AISOULMATE_ADDRESS": "0x941d3f3662b5e4a744a06356ca4e91362d5c4556",
+          "CONTRACT_MINIAPP_DARKRADIO_ADDRESS": "0xf4e6fc1a86281df7527eec74b809403822e973d8",
+          "CONTRACT_MINIAPP_GOVMERC_ADDRESS": "0x69a013c8fde3e835d642717ef1af71f7e02ade00",
+          "CONTRACT_MINIAPP_DEADSWITCH_ADDRESS": "0xb77119b93b305e75e5becb8c23a2962c4940e6e5",
+          "CONTRACT_MINIAPP_HERITAGETRUST_ADDRESS": "0xd59eea851cd8e5dd57efe80646ff53fa274600f8",
+          "CONTRACT_MINIAPP_TIMECAPSULE_ADDRESS": "0x0108b2d8d020f921d9bdc82ffda5e55f9b749823",
+          "CONTRACT_MINIAPP_UNBREAKABLEVAULT_ADDRESS": "0xcf4c6eb16baad22292fb3ced6e570c31fadddd4e",
+          "CONTRACT_MINIAPP_ZKBADGE_ADDRESS": "0x34a71f8c85830789d82a6a6e966aef74a4f9292c",
+          "SIMULATION_MINIAPPS": "{{ env \"SIMULATION_MINIAPPS\" }}"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Time Capsule",
+  "appid": "miniapp-time-capsule",
+  "description": "Seal message hashes until a future date with public fishing.",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Time Capsule",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  }
+}

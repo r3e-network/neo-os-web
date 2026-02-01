@@ -1,0 +1,32 @@
+:global(.theme-council-governance) {
+  --senate-bg: #121820;
+  --senate-gold: #d6b36a;
+  --senate-slate: #e2e8f0;
+  --senate-marble-top: #1b2430;
+  --senate-marble-bottom: #0e131a;
+  --senate-card-bg: rgba(20, 26, 34, 0.9);
+  --senate-card-border: rgba(214, 179, 106, 0.25);
+  --senate-card-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --senate-danger-bg: rgba(127, 29, 29, 0.6);
+  --senate-danger-border: #f87171;
+  --senate-danger-text: #fecaca;
+  --senate-button-gradient: linear-gradient(to bottom, #1e293b, #0f172a);
+  --senate-font: "Cinzel", serif;
+}
+
+:global(.theme-light .theme-council-governance),
+:global([data-theme="light"] .theme-council-governance) {
+  --senate-bg: #f5f5f0;
+  --senate-gold: #c5a059;
+  --senate-slate: #2c3e50;
+  --senate-marble-top: #ffffff;
+  --senate-marble-bottom: #f0f0e8;
+  --senate-card-bg: #ffffff;
+  --senate-card-border: #dcdcdc;
+  --senate-card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --senate-danger-bg: #fff0f0;
+  --senate-danger-border: #e74c3c;
+  --senate-danger-text: #c0392b;
+  --senate-button-gradient: linear-gradient(to bottom, #2c3e50, #1a252f);
+  --senate-font: "Cinzel", serif;
+}

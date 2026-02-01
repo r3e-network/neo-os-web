@@ -1,0 +1,78 @@
+{
+  "chains": [
+    {
+      "id": "neo-n3-mainnet",
+      "name": "Neo N3",
+      "name_zh": "Neo N3 主网",
+      "type": "neo-n3",
+      "is_testnet": false,
+      "status": "active",
+      "icon": "/chains/neo.svg",
+      "color": "#00E599",
+      "native_currency": {
+        "name": "GAS",
+        "symbol": "GAS",
+        "decimals": 8
+      },
+      "explorer_url": "https://explorer.onegate.space",
+      "block_time": 15,
+      "network_magic": 860833102,
+      "rpc_urls": [
+        "https://mainnet1.neo.coz.io:443",
+        "https://mainnet2.neo.coz.io:443",
+        "https://neo1.neo.coz.io:443"
+      ],
+      "contracts": {
+        "neo": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        "gas": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "policy": "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+        "role_management": "0x49cf4e5378ffcd4dec034fd98a174c5491e395e2",
+        "oracle": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+        "name_service": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+        "app_registry": "0x583cabba8beff13e036230de844c2fb4118ee38c",
+        "service_gateway": "0x7f73ae3036c1ca57cad0d4e4291788653b0fa7d7",
+        "payment_hub": "0xc700fa6001a654efcd63e15a3833fbea7baaa3a3",
+        "price_feed": "0x9e889922d2f64fa0c06a28d179c60fe1af915d27",
+        "randomness_log": "0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25",
+        "automation_anchor": "0x0fd51557facee54178a5d48181dcfa1b61956144",
+        "governance": "0x705615e903d92abf8f6f459086b83f51096aa413"
+      }
+    },
+    {
+      "id": "neo-n3-testnet",
+      "name": "Neo N3 Testnet",
+      "name_zh": "Neo N3 测试网",
+      "type": "neo-n3",
+      "is_testnet": true,
+      "status": "active",
+      "icon": "/chains/neo.svg",
+      "color": "#00E599",
+      "native_currency": {
+        "name": "GAS",
+        "symbol": "GAS",
+        "decimals": 8
+      },
+      "explorer_url": "https://testnet.explorer.onegate.space",
+      "block_time": 15,
+      "network_magic": 894710606,
+      "rpc_urls": [
+        "https://testnet1.neo.coz.io:443",
+        "https://testnet2.neo.coz.io:443"
+      ],
+      "contracts": {
+        "neo": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        "gas": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "policy": "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+        "role_management": "0x49cf4e5378ffcd4dec034fd98a174c5491e395e2",
+        "oracle": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+        "app_registry": "0x79d16bee03122e992bb80c478ad4ed405f33bc7f",
+        "service_gateway": "0x27b79cf631eff4b520dd9d95cd1425ec33025a53",
+        "payment_hub": "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193",
+        "price_feed": "0xc5d9117d255054489d1cf59b2c1d188c01bc9954",
+        "randomness_log": "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39",
+        "automation_anchor": "0x1c888d699ce76b0824028af310d90c3c18adeab5",
+        "governance": "0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05"
+      }
+    }
+  ]
+}

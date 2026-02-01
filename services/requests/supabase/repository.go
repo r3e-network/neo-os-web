@@ -1,0 +1,457 @@
+// Package supabase provides NeoRequests-specific database operations.
+package supabase
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
+)
+
+const (
+	miniappsTable         = "miniapps"
+	miniappContractsTable = "miniapp_contracts"
+	serviceRequestsTable  = "service_requests"
+	chainTxsTable         = "chain_txs"
+	contractEventsTable   = "contract_events"
+	processedEventsTable  = "processed_events"
+)
+
+// RepositoryInterface defines NeoRequests data access methods.
+type RepositoryInterface interface {
+	GetMiniApp(ctx context.Context, appID string) (*MiniApp, error)
+	GetMiniAppByContractAddress(ctx context.Context, chainID, contractAddress string) (*MiniApp, error)
+	UpdateMiniAppRegistry(ctx context.Context, appID string, update *MiniAppRegistryUpdate) error
+	LogMiniAppTx(ctx context.Context, appID, chainID, txHash, senderAddress string, blockTime time.Time) error
+	RollupMiniAppStats(ctx context.Context, date time.Time) error
+	BumpMiniAppUsage(ctx context.Context, userID, appID, chainID string, gasDelta, governanceDelta *big.Int) error
+	CreateServiceRequest(ctx context.Context, req *ServiceRequest) error
+	UpdateServiceRequest(ctx context.Context, req *ServiceRequest) error
+	CreateChainTx(ctx context.Context, tx *ChainTx) error
+	UpdateChainTx(ctx context.Context, tx *ChainTx) error
+	CreateContractEvent(ctx context.Context, event *ContractEvent) error
+	HasProcessedEvent(ctx context.Context, chainID, txHash string, logIndex int) (bool, error)
+	CreateProcessedEvent(ctx context.Context, event *ProcessedEvent) error
+	MarkProcessedEvent(ctx context.Context, event *ProcessedEvent) (bool, error)
+	LatestProcessedBlock(ctx context.Context, chainID string) (uint64, bool, error)
+	CreateNotification(ctx context.Context, n *Notification) error
+}
+
+// Ensure Repository implements RepositoryInterface.
+var _ RepositoryInterface = (*Repository)(nil)
+
+// Repository provides NeoRequests-specific data access methods.
+type Repository struct {
+	base *database.Repository
+}
+
+// NewRepository creates a new NeoRequests repository.
+func NewRepository(base *database.Repository) *Repository {
+	return &Repository{base: base}
+}
+
+// GetMiniApp retrieves a MiniApp manifest row by app_id.
+func (r *Repository) GetMiniApp(ctx context.Context, appID string) (*MiniApp, error) {
+	if appID == "" {
+		return nil, fmt.Errorf("app_id cannot be empty")
+	}
+
+	query := database.NewQuery().
+		Eq("app_id", appID).
+		Limit(1).
+		Build()
+
+	rows, err := database.GenericListWithQuery[MiniApp](r.base, ctx, miniappsTable, query)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, database.NewNotFoundError(miniappsTable, appID)
+	}
+	return &rows[0], nil
+}
+
+type miniappContractRow struct {
+	AppID string `json:"app_id"`
+}
+
+// GetMiniAppByContractAddress retrieves a MiniApp manifest row by chain-specific contract address.
+func (r *Repository) GetMiniAppByContractAddress(ctx context.Context, chainID, contractAddress string) (*MiniApp, error) {
+	if strings.TrimSpace(chainID) == "" {
+		return nil, fmt.Errorf("chain_id cannot be empty")
+	}
+	if contractAddress == "" {
+		return nil, fmt.Errorf("contract_address cannot be empty")
+	}
+
+	query := database.NewQuery().
+		Eq("chain_id", chainID).
+		Eq("contract_address", contractAddress).
+		Limit(1).
+		Build()
+
+	rows, err := database.GenericListWithQuery[miniappContractRow](r.base, ctx, miniappContractsTable, query)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, database.NewNotFoundError(miniappContractsTable, contractAddress)
+	}
+	return r.GetMiniApp(ctx, rows[0].AppID)
+}
+
+// UpdateMiniAppRegistry updates a MiniApp record with AppRegistry data.
+func (r *Repository) UpdateMiniAppRegistry(ctx context.Context, appID string, update *MiniAppRegistryUpdate) error {
+	if r == nil || r.base == nil {
+		return fmt.Errorf("repository not configured")
+	}
+	if update == nil {
+		return fmt.Errorf("miniapp update cannot be nil")
+	}
+	if strings.TrimSpace(appID) == "" {
+		return fmt.Errorf("app_id cannot be empty")
+	}
+
+	payload := map[string]interface{}{}
+	if update.ManifestHash != "" {
+		payload["manifest_hash"] = update.ManifestHash
+	}
+	if update.EntryURL != "" {
+		payload["entry_url"] = update.EntryURL
+	}
+	if update.DeveloperPubKey != "" {
+		payload["developer_pubkey"] = update.DeveloperPubKey
+	}
+	if update.Status != "" {
+		payload["status"] = update.Status
+	}
+	if update.Name != "" {
+		payload["name"] = update.Name
+	}
+	if update.Description != "" {
+		payload["description"] = update.Description
+	}
+	if update.Icon != "" {
+		payload["icon"] = update.Icon
+	}
+	if update.Banner != "" {
+		payload["banner"] = update.Banner
+	}
+	if update.Category != "" {
+		payload["category"] = update.Category
+	}
+	if !update.UpdatedAt.IsZero() {
+		payload["updated_at"] = update.UpdatedAt
+	}
+
+	if len(payload) > 0 {
+		query := fmt.Sprintf("app_id=eq.%s", appID)
+		if _, err := r.base.Request(ctx, "PATCH", miniappsTable, payload, query); err != nil {
+			return fmt.Errorf("update miniapp: %w", err)
+		}
+	}
+
+	if update.ChainID != "" && update.ContractAddress != "" {
+		contractPayload := map[string]interface{}{
+			"app_id":           appID,
+			"chain_id":         update.ChainID,
+			"contract_address": update.ContractAddress,
+			"updated_at":       time.Now().UTC(),
+		}
+		if _, err := r.base.Request(ctx, "POST", miniappContractsTable, contractPayload, "on_conflict=app_id,chain_id"); err != nil {
+			return fmt.Errorf("update miniapp contract: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// LogMiniAppTx records a MiniApp transaction for usage analytics.
+func (r *Repository) LogMiniAppTx(
+	ctx context.Context,
+	appID, chainID, txHash, senderAddress string,
+	blockTime time.Time,
+) error {
+	if r == nil || r.base == nil {
+		return fmt.Errorf("repository not configured")
+	}
+	if strings.TrimSpace(appID) == "" {
+		return fmt.Errorf("app_id cannot be empty")
+	}
+	if strings.TrimSpace(chainID) == "" {
+		return fmt.Errorf("chain_id cannot be empty")
+	}
+	if strings.TrimSpace(txHash) == "" {
+		return fmt.Errorf("tx_hash cannot be empty")
+	}
+	if blockTime.IsZero() {
+		blockTime = time.Now().UTC()
+	}
+
+	payload := map[string]interface{}{
+		"p_app_id":         appID,
+		"p_chain_id":       chainID,
+		"p_tx_hash":        txHash,
+		"p_sender_address": strings.TrimSpace(senderAddress),
+		"p_block_time":     blockTime,
+	}
+
+	if _, err := r.base.Request(ctx, "POST", "rpc/miniapp_tx_log", payload, ""); err != nil {
+		return fmt.Errorf("log miniapp tx: %w", err)
+	}
+	return nil
+}
+
+// RollupMiniAppStats triggers the server-side stats rollup for the given date.
+func (r *Repository) RollupMiniAppStats(ctx context.Context, date time.Time) error {
+	if r == nil || r.base == nil {
+		return fmt.Errorf("repository not configured")
+	}
+	if date.IsZero() {
+		date = time.Now().UTC()
+	}
+
+	payload := map[string]string{
+		"p_date": date.Format("2006-01-02"),
+	}
+
+	if _, err := r.base.Request(ctx, "POST", "rpc/miniapp_stats_rollup", payload, ""); err != nil {
+		return fmt.Errorf("rollup miniapp stats: %w", err)
+	}
+	return nil
+}
+
+// BumpMiniAppUsage increments per-user MiniApp usage in Supabase.
+func (r *Repository) BumpMiniAppUsage(ctx context.Context, userID, appID, chainID string, gasDelta, governanceDelta *big.Int) error {
+	if r == nil || r.base == nil {
+		return fmt.Errorf("repository not configured")
+	}
+	if strings.TrimSpace(userID) == "" {
+		return fmt.Errorf("user_id cannot be empty")
+	}
+	if strings.TrimSpace(appID) == "" {
+		return fmt.Errorf("app_id cannot be empty")
+	}
+	if strings.TrimSpace(chainID) == "" {
+		return fmt.Errorf("chain_id cannot be empty")
+	}
+
+	gasValue := "0"
+	if gasDelta != nil {
+		gasValue = gasDelta.String()
+	}
+	governanceValue := "0"
+	if governanceDelta != nil {
+		governanceValue = governanceDelta.String()
+	}
+
+	payload := map[string]interface{}{
+		"p_user_id":          userID,
+		"p_app_id":           appID,
+		"p_chain_id":         chainID,
+		"p_gas_delta":        gasValue,
+		"p_governance_delta": governanceValue,
+		"p_gas_cap":          nil,
+		"p_governance_cap":   nil,
+	}
+
+	if _, err := r.base.Request(ctx, "POST", "rpc/miniapp_usage_bump", payload, ""); err != nil {
+		return fmt.Errorf("bump miniapp usage: %w", err)
+	}
+	return nil
+}
+
+// CreateServiceRequest inserts a new service request.
+func (r *Repository) CreateServiceRequest(ctx context.Context, req *ServiceRequest) error {
+	if req == nil {
+		return fmt.Errorf("service request cannot be nil")
+	}
+	if req.UserID == "" {
+		return fmt.Errorf("user_id cannot be empty")
+	}
+	if req.ServiceType == "" {
+		return fmt.Errorf("service_type cannot be empty")
+	}
+
+	return database.GenericCreate(r.base, ctx, serviceRequestsTable, req, func(rows []ServiceRequest) {
+		if len(rows) > 0 {
+			*req = rows[0]
+		}
+	})
+}
+
+// UpdateServiceRequest updates an existing service request by id.
+func (r *Repository) UpdateServiceRequest(ctx context.Context, req *ServiceRequest) error {
+	if req == nil {
+		return fmt.Errorf("service request cannot be nil")
+	}
+	if req.ID == "" {
+		return fmt.Errorf("service request id cannot be empty")
+	}
+	return database.GenericUpdate(r.base, ctx, serviceRequestsTable, "id", req.ID, req)
+}
+
+// CreateChainTx inserts a new chain_txs row.
+func (r *Repository) CreateChainTx(ctx context.Context, tx *ChainTx) error {
+	if tx == nil {
+		return fmt.Errorf("chain tx cannot be nil")
+	}
+	if tx.RequestID == "" {
+		return fmt.Errorf("request_id cannot be empty")
+	}
+	if tx.FromService == "" {
+		return fmt.Errorf("from_service cannot be empty")
+	}
+	if tx.ContractAddress == "" || tx.MethodName == "" {
+		return fmt.Errorf("contract_address and method_name required")
+	}
+
+	return database.GenericCreate(r.base, ctx, chainTxsTable, tx, func(rows []ChainTx) {
+		if len(rows) > 0 {
+			*tx = rows[0]
+		}
+	})
+}
+
+// UpdateChainTx updates an existing chain_txs row by id.
+func (r *Repository) UpdateChainTx(ctx context.Context, tx *ChainTx) error {
+	if tx == nil {
+		return fmt.Errorf("chain tx cannot be nil")
+	}
+	if tx.ID == 0 {
+		return fmt.Errorf("chain tx id cannot be empty")
+	}
+	return database.GenericUpdate(r.base, ctx, chainTxsTable, "id", strconv.FormatInt(tx.ID, 10), tx)
+}
+
+// CreateContractEvent inserts a contract event row.
+func (r *Repository) CreateContractEvent(ctx context.Context, event *ContractEvent) error {
+	if event == nil {
+		return fmt.Errorf("contract event cannot be nil")
+	}
+	if event.TxHash == "" || event.ContractAddress == "" || event.EventName == "" {
+		return fmt.Errorf("contract event missing required fields")
+	}
+	if err := database.GenericCreate(r.base, ctx, contractEventsTable, event, nil); err != nil {
+		if isDuplicateError(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+// HasProcessedEvent checks if the event was already processed.
+func (r *Repository) HasProcessedEvent(ctx context.Context, chainID, txHash string, logIndex int) (bool, error) {
+	if chainID == "" || txHash == "" {
+		return false, fmt.Errorf("chain_id and tx_hash required")
+	}
+	query := database.NewQuery().
+		Eq("chain_id", chainID).
+		Eq("tx_hash", txHash).
+		Eq("log_index", strconv.Itoa(logIndex)).
+		Limit(1).
+		Build()
+
+	rows, err := database.GenericListWithQuery[ProcessedEvent](r.base, ctx, processedEventsTable, query)
+	if err != nil {
+		return false, err
+	}
+	return len(rows) > 0, nil
+}
+
+// CreateProcessedEvent inserts a processed_events row.
+func (r *Repository) CreateProcessedEvent(ctx context.Context, event *ProcessedEvent) error {
+	if event == nil {
+		return fmt.Errorf("processed event cannot be nil")
+	}
+	if event.ChainID == "" || event.TxHash == "" {
+		return fmt.Errorf("processed event missing chain_id or tx_hash")
+	}
+	return database.GenericCreate(r.base, ctx, processedEventsTable, event, nil)
+}
+
+func isDuplicateError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "duplicate") || strings.Contains(msg, "unique") || strings.Contains(msg, "409")
+}
+
+// MarkProcessedEvent attempts to insert a processed event and returns true if inserted.
+// If the event already exists, it returns false.
+func (r *Repository) MarkProcessedEvent(ctx context.Context, event *ProcessedEvent) (bool, error) {
+	if event == nil {
+		return false, fmt.Errorf("processed event cannot be nil")
+	}
+
+	exists, err := r.HasProcessedEvent(ctx, event.ChainID, event.TxHash, event.LogIndex)
+	if err != nil {
+		return false, err
+	}
+	if exists {
+		return false, nil
+	}
+
+	if err := r.CreateProcessedEvent(ctx, event); err != nil {
+		if isDuplicateError(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// LatestProcessedBlock returns the highest processed block height for a chain.
+func (r *Repository) LatestProcessedBlock(ctx context.Context, chainID string) (uint64, bool, error) {
+	if r == nil || r.base == nil {
+		return 0, false, fmt.Errorf("repository not configured")
+	}
+	if strings.TrimSpace(chainID) == "" {
+		return 0, false, nil
+	}
+
+	query := database.NewQuery().
+		Eq("chain_id", chainID).
+		OrderDesc("block_height").
+		Limit(1).
+		Build()
+
+	rows, err := database.GenericListWithQuery[ProcessedEvent](r.base, ctx, processedEventsTable, query)
+	if err != nil {
+		return 0, false, err
+	}
+	if len(rows) == 0 {
+		return 0, false, nil
+	}
+	return rows[0].BlockHeight, true, nil
+}
+
+// MarshalParams marshals params to JSON.
+func MarshalParams(params any) json.RawMessage {
+	if params == nil {
+		return json.RawMessage("null")
+	}
+	data, err := json.Marshal(params)
+	if err != nil {
+		return json.RawMessage("null")
+	}
+	return data
+}
+
+// CreateNotification inserts a notification record.
+func (r *Repository) CreateNotification(ctx context.Context, n *Notification) error {
+	if n == nil {
+		return fmt.Errorf("notification cannot be nil")
+	}
+	if n.AppID == "" {
+		return fmt.Errorf("notification app_id cannot be empty")
+	}
+	return database.GenericCreate(r.base, ctx, "miniapp_notifications", n, nil)
+}

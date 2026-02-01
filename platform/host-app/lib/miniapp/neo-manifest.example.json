@@ -1,0 +1,33 @@
+{
+  "$schema": "./neo-manifest.schema.json",
+  "app_id": "miniapp-example",
+  "name": "Example Neo N3 App",
+  "name_zh": "示例 Neo N3 应用",
+  "description": "A Neo N3 miniapp example",
+  "description_zh": "Neo N3 小程序示例",
+  "category": "defi",
+  "status": "active",
+  "supported_chains": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "contracts": {
+    "neo-n3-mainnet": {
+      "address": "0x1234567890abcdef1234567890abcdef12345678",
+      "active": true
+    },
+    "neo-n3-testnet": {
+      "address": "0xabcdef1234567890abcdef1234567890abcdef12",
+      "active": true
+    }
+  },
+  "permissions": {
+    "payments": true,
+    "governance": false,
+    "rng": true,
+    "datafeed": true,
+    "automation": false
+  },
+  "metadata": {
+    "version": "2.0.0",
+    "author": "Neo Team",
+    "website": "https://neo.org"
+  }
+}
