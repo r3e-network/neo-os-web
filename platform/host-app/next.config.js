@@ -55,7 +55,7 @@ const nextConfig = {
     // Allow unoptimized images for local development
     unoptimized: process.env.NODE_ENV === "development",
   },
-  pageExtensions: ["page.tsx", "page.ts", "tsx", "ts"].filter((ext) => !ext.includes("test")),
+  // Use default page extensions (tsx, ts, jsx, js)
   transpilePackages: ["../shared"],
   experimental: {
     externalDir: true,
