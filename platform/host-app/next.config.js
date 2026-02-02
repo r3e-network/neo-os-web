@@ -46,8 +46,8 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   // ESLint is handled separately (not via next.config.js in Next.js 16+)
-  // MiniApps are now served locally from public/miniapps/
-  // No CDN rewrites needed - files are synced via scripts/sync_miniapps.sh
+  // MiniApps are now served locally from public/miniapp-assets/
+  // Static assets (logo, banner) use /miniapp-assets/ path to avoid conflict with pages router
   async headers() {
     return [
       {

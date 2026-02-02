@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 const miniappsDir = join(projectRoot, "miniapps");
-const targetDir = join(projectRoot, "platform/host-app/public/miniapps");
+const targetDir = join(projectRoot, "platform/host-app/public/miniapp-assets");
 
 // Ensure target directory exists
 if (!existsSync(targetDir)) {
