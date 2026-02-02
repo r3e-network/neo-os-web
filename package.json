@@ -27,6 +27,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "sharp": "^0.34.5",
     "turbo": "^2.7.5",
     "typescript-eslint": "^8.53.1"
   },
