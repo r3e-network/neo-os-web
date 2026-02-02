@@ -1,11 +1,31 @@
 const { withSentryConfig } = require("@sentry/nextjs");
 
 // Content Security Policy
-const ContentSecurityPolicy = `
-  default-src 'self' 'unsafe-inline' 'unsafe-eval' *;
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' * blob:;
-  style-src 'self' 'unsafe-inline' * blob:;
-  style-src-elem 'self' 'unsafe-inline' * blob:;
+// Permissive CSP for miniapp iframes (allows inline scripts)
+const MiniAppCSP = `
+  default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
+  script-src * 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' blob:;
+  script-src-elem * 'unsafe-inline';
+  style-src * 'unsafe-inline';
+  style-src-elem * 'unsafe-inline';
+  img-src * data: blob:;
+  font-src * data:;
+  connect-src *;
+  frame-src *;
+  frame-ancestors *;
+  form-action *;
+  base-uri 'self';
+  object-src 'none';
+`
+  .replace(/\s{2,}/g, " ")
+  .trim();
+
+// Stricter CSP for main application
+const MainCSP = `
+  default-src 'self' 'unsafe-inline' 'unsafe-eval';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:;
+  style-src 'self' 'unsafe-inline';
+  style-src-elem 'self' 'unsafe-inline';
   img-src 'self' data: blob: *;
   font-src 'self' data: *;
   connect-src 'self' *;
@@ -58,30 +78,30 @@ const nextConfig = {
       {
         source: "/miniapps/:path*",
         headers: [
-          { key: "Access-Control-Allow-Origin", value: "*" }, // ALLOW SANDBOXED IFRAMES
+          { key: "Access-Control-Allow-Origin", value: "*" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "Content-Security-Policy", value: ContentSecurityPolicy },
+          { key: "Content-Security-Policy", value: MiniAppCSP },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
       {
         source: "/miniapp-assets/:path*",
         headers: [
-          { key: "Access-Control-Allow-Origin", value: "*" }, // ALLOW SANDBOXED IFRAMES
+          { key: "Access-Control-Allow-Origin", value: "*" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" }, // Allow framing
-          { key: "Content-Security-Policy", value: ContentSecurityPolicy },
+          { key: "X-Frame-Options", value: "ALLOWALL" },
+          { key: "Content-Security-Policy", value: MiniAppCSP },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
-      // Cache MiniApp static assets (images, etc) in /static/ folders
+      // Cache MiniApp static assets
       {
-        source: "/miniapps/:appId/static/:path*",
+        source: "/miniapp-assets/:appId/static/:path*",
         headers: [
-          { key: "Cache-Control", value: "public, max-age=86400" }, // 1 day cache
+          { key: "Cache-Control", value: "public, max-age=86400, immutable" },
         ],
       },
       {
@@ -90,7 +110,7 @@ const nextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "Content-Security-Policy", value: ContentSecurityPolicy },
+          { key: "Content-Security-Policy", value: MainCSP },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "X-XSS-Protection", value: "1; mode=block" },
         ],
