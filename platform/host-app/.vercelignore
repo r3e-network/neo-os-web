@@ -1,0 +1,43 @@
+# Test files
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+jest.config.js
+jest.setup.js
+
+# Coverage
+coverage
+.nyc_output
+
+# Playwright
+test-results
+playwright-report
+playwright.config.ts
+e2e
+
+# Documentation
+docs
+*.md
+
+# Source maps (already built)
+public/miniapp-assets/**/*.map
+
+# Cache
+.turbo
+.cache
+*.log
+
+# Development files
+.env.local
+.env.development
+.eslintrc
+.prettierrc
+
+# CI/CD
+.github
+.husky
+
+# Scripts that aren't needed for build
+scripts

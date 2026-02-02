@@ -45,7 +45,12 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // ESLint is handled separately (not via next.config.js in Next.js 16+)
+  // Disable ESLint during build (handled separately)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Reduce build output size
+  productionBrowserSourceMaps: false,
   // MiniApps are now served locally from public/miniapp-assets/
   // Static assets (logo, banner) use /miniapp-assets/ path to avoid conflict with pages router
   async headers() {
