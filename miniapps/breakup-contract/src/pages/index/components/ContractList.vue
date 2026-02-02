@@ -41,15 +41,15 @@ defineEmits(["sign", "break"]);
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
-.contracts-list { display: flex; flex-direction: column; gap: $space-4; }
+.contracts-list { display: flex; flex-direction: column; gap: 16px; }
 .section-title {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--text-primary);
-  padding-bottom: $space-1;
+  padding-bottom: 4px;
   letter-spacing: 0.1em;
   margin-left: 4px;
 }

@@ -1,0 +1,216 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - img "Event Ticket Pass banner" [ref=e8]
+          - generic [ref=e10]:
+            - generic [ref=e11]:
+              - img "miniapp-event-ticket-pass" [ref=e14]
+              - heading "Event Ticket Pass" [level=1] [ref=e16]
+            - generic [ref=e17]:
+              - generic [ref=e18]: Online
+              - generic "Neo N3" [ref=e22]:
+                - img "Neo N3" [ref=e23]
+              - button "Add to Wishlist" [disabled] [ref=e24]:
+                - img [ref=e25]
+            - paragraph [ref=e27]: Issue NEP-11 event tickets with QR check-in.
+            - generic [ref=e29]: utility
+        - main [ref=e31]:
+          - generic [ref=e33]:
+            - generic [ref=e34]:
+              - generic [ref=e35]: Event Ticket Pass Activity
+              - generic [ref=e37]: 0 Events
+            - generic [ref=e39]: Waiting for activity...
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - button "Overview" [ref=e42] [cursor=pointer]
+              - button "⭐ Reviews" [ref=e43] [cursor=pointer]
+              - button "💬 Forum" [ref=e44] [cursor=pointer]
+            - generic [ref=e46]:
+              - generic [ref=e47]:
+                - button "Permissions 0 of 8 enabled" [ref=e48] [cursor=pointer]:
+                  - generic [ref=e49]:
+                    - img [ref=e51]
+                    - generic [ref=e53]:
+                      - heading "Permissions" [level=3] [ref=e54]
+                      - paragraph [ref=e55]: 0 of 8 enabled
+                  - img [ref=e57]
+                - generic [ref=e60]:
+                  - generic [ref=e61]:
+                    - heading "Not Requested" [level=4] [ref=e62]
+                    - generic [ref=e63]:
+                      - generic [ref=e64]:
+                        - img [ref=e65]
+                        - generic [ref=e68]: Payments
+                        - img [ref=e69]
+                      - generic [ref=e73]:
+                        - img [ref=e74]
+                        - generic [ref=e76]: Random Numbers
+                        - img [ref=e77]
+                      - generic [ref=e81]:
+                        - img [ref=e82]
+                        - generic [ref=e86]: Data Feeds
+                        - img [ref=e87]
+                      - generic [ref=e91]:
+                        - img [ref=e92]
+                        - generic [ref=e95]: Notifications
+                        - img [ref=e96]
+                      - generic [ref=e100]:
+                        - img [ref=e101]
+                        - generic [ref=e104]: Confidential Computing
+                        - img [ref=e105]
+                      - generic [ref=e109]:
+                        - img [ref=e110]
+                        - generic [ref=e114]: Storage
+                        - img [ref=e115]
+                      - generic [ref=e119]:
+                        - img [ref=e120]
+                        - generic [ref=e123]: Analytics
+                        - img [ref=e124]
+                      - generic [ref=e128]:
+                        - img [ref=e129]
+                        - generic [ref=e131]: Automation
+                        - img [ref=e132]
+                  - generic [ref=e137]:
+                    - img [ref=e138]
+                    - paragraph [ref=e140]: All permissions are enforced by the platform. MiniApps cannot access features without explicit permission.
+              - generic [ref=e141]:
+                - heading "App Info" [level=3] [ref=e142]
+                - paragraph [ref=e143]:
+                  - text: "App ID:"
+                  - code [ref=e144]: miniapp-event-ticket-pass
+                - paragraph [ref=e145]:
+                  - text: "Entry URL (neo-n3-mainnet):"
+                  - code [ref=e146]: /miniapp-assets/event-ticket-pass/index.html
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - heading "Similar Apps" [level=3] [ref=e149]
+              - link "View All" [ref=e150] [cursor=pointer]:
+                - /url: /miniapps?category=utility
+                - text: View All
+                - img [ref=e151]
+            - generic [ref=e153]:
+              - link "miniapp-doomsday-clock Doomsday Clock Neo N3" [ref=e154] [cursor=pointer]:
+                - /url: /miniapps/miniapp-doomsday-clock
+                - img "miniapp-doomsday-clock" [ref=e156]
+                - generic [ref=e157]:
+                  - heading "Doomsday Clock" [level=4] [ref=e158]
+                  - generic "Neo N3" [ref=e161]:
+                    - img "Neo N3" [ref=e162]
+              - link "miniapp-gas-sponsor Gas Sponsor Neo N3" [ref=e163] [cursor=pointer]:
+                - /url: /miniapps/miniapp-gas-sponsor
+                - img "miniapp-gas-sponsor" [ref=e165]
+                - generic [ref=e166]:
+                  - heading "Gas Sponsor" [level=4] [ref=e167]
+                  - generic "Neo N3" [ref=e170]:
+                    - img "Neo N3" [ref=e171]
+              - link "miniapp-graveyard Graveyard Neo N3" [ref=e172] [cursor=pointer]:
+                - /url: /miniapps/miniapp-graveyard
+                - img "miniapp-graveyard" [ref=e174]
+                - generic [ref=e175]:
+                  - heading "Graveyard" [level=4] [ref=e176]
+                  - generic "Neo N3" [ref=e179]:
+                    - img "Neo N3" [ref=e180]
+              - link "miniapp-guardianpolicy Guardian Policy Neo N3" [ref=e181] [cursor=pointer]:
+                - /url: /miniapps/miniapp-guardianpolicy
+                - img "miniapp-guardianpolicy" [ref=e183]
+                - generic [ref=e184]:
+                  - heading "Guardian Policy" [level=4] [ref=e185]
+                  - generic "Neo N3" [ref=e188]:
+                    - img "Neo N3" [ref=e189]
+    - main [ref=e190]:
+      - generic [ref=e191]:
+        - generic [ref=e192]:
+          - generic [ref=e193]:
+            - button [ref=e194] [cursor=pointer]:
+              - img [ref=e195]
+            - generic [ref=e197]:
+              - img [ref=e198]
+              - generic [ref=e201]: Event Ticket Pass
+          - generic [ref=e202]:
+            - generic [ref=e205]: No Wallet
+            - generic [ref=e206]:
+              - img [ref=e207]
+              - generic [ref=e209]: 49ms
+            - generic [ref=e210]:
+              - button "Copy share link" [ref=e211] [cursor=pointer]:
+                - img [ref=e212]
+              - button "Exit (ESC)" [ref=e218] [cursor=pointer]:
+                - img [ref=e219]
+        - generic [ref=e234]:
+          - generic [ref=e243]:
+            - generic [ref=e245]: Launching
+            - generic [ref=e246]: Event Ticket Pass
+          - iframe [ref=e247]:
+            
+        - button "Toggle chat" [ref=e248] [cursor=pointer]:
+          - img [ref=e249]
+    - complementary [ref=e251]:
+      - generic [ref=e252]:
+        - heading "Technical Info" [level=2] [ref=e254]
+        - generic [ref=e255]:
+          - generic [ref=e256]:
+            - generic [ref=e257]: 🌐
+            - generic [ref=e258]: Chain
+          - generic [ref=e259]:
+            - generic [ref=e261]: Neo N3
+            - generic [ref=e262]:
+              - generic [ref=e263]: Chain ID
+              - generic "neo-n3-mainnet" [ref=e266]
+            - generic [ref=e267]:
+              - generic [ref=e268]: RPC
+              - generic "mainnet1.neo.coz.io:443" [ref=e270]
+            - generic [ref=e271]:
+              - generic [ref=e272]: Master Account
+              - generic [ref=e273]:
+                - link "NhWxco...hSMK" [ref=e274] [cursor=pointer]:
+                  - /url: https://explorer.onegate.space/address/NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK
+                - button "Copy" [ref=e275] [cursor=pointer]:
+                  - img [ref=e276]
+        - generic [ref=e278]:
+          - generic [ref=e279]:
+            - generic [ref=e280]: 👛
+            - generic [ref=e281]: Connected Wallet
+          - generic [ref=e283]:
+            - generic [ref=e284]: 👛
+            - generic [ref=e285]: No wallet connected
+        - generic [ref=e286]:
+          - generic [ref=e287]:
+            - generic [ref=e288]: 📜
+            - generic [ref=e289]: MiniApp Contract
+          - generic [ref=e290]:
+            - generic [ref=e291]:
+              - generic [ref=e292]: App ID
+              - generic "miniapp-event-ticket-pass" [ref=e294]
+            - generic [ref=e295]:
+              - generic [ref=e296]: Contract Address
+              - generic "No contract deployed" [ref=e298]
+        - generic [ref=e299]:
+          - generic [ref=e300]:
+            - generic [ref=e301]: 🏛️
+            - generic [ref=e302]: Platform Contracts
+          - generic [ref=e303]:
+            - generic [ref=e304]:
+              - generic [ref=e305]: Service Gateway
+              - generic [ref=e306]:
+                - link "NfaEbV...Ztai" [ref=e307] [cursor=pointer]:
+                  - /url: https://explorer.onegate.space/address/NfaEbVnKnUQSd4MhNXz9pY4Uire7EiZtai
+                - button "Copy" [ref=e308] [cursor=pointer]:
+                  - img [ref=e309]
+            - generic [ref=e311]:
+              - generic [ref=e312]: Governance
+              - generic [ref=e313]:
+                - link "NMhpz6...3VJn" [ref=e314] [cursor=pointer]:
+                  - /url: https://explorer.onegate.space/address/NMhpz6kT77SKaYwNHrkTv8QXpoPuSd3VJn
+                - button "Copy" [ref=e315] [cursor=pointer]:
+                  - img [ref=e316]
+        - link "🔍 View Wallet on Explorer" [ref=e319] [cursor=pointer]:
+          - /url: https://explorer.onegate.space/address/
+          - generic [ref=e320]: 🔍
+          - generic [ref=e321]: View Wallet on Explorer
+  - alert [ref=e322]
+```

@@ -15,7 +15,11 @@ func (s *Service) handlePaymentReceivedEvent(ctx context.Context, event *chain.C
 	if event == nil {
 		return nil
 	}
-	if s.paymentHubAddress != "" && normalizeContractAddress(event.Contract) != s.paymentHubAddress {
+	chainCtx := s.getChainContext(event.ChainID)
+	if chainCtx == nil {
+		return nil
+	}
+	if chainCtx.PaymentHubAddress != "" && normalizeContractAddress(event.Contract) != chainCtx.PaymentHubAddress {
 		return nil
 	}
 
@@ -43,7 +47,7 @@ func (s *Service) handlePaymentReceivedEvent(ctx context.Context, event *chain.C
 
 	if s.repo != nil {
 		var app *neorequestsupabase.MiniApp
-		app, err = s.loadMiniApp(ctx, parsed.AppID)
+		app, err = s.loadMiniApp(ctx, parsed.AppID, event.ChainID)
 		switch {
 		case err != nil && database.IsNotFound(err):
 			return nil
@@ -52,7 +56,7 @@ func (s *Service) handlePaymentReceivedEvent(ctx context.Context, event *chain.C
 		case app != nil && !isAppActive(app.Status):
 			return nil
 		case app != nil && s.enforceAppRegistry:
-			if regErr := s.validateAppRegistry(ctx, app); regErr != nil {
+			if regErr := s.validateAppRegistry(ctx, app, event.ChainID); regErr != nil {
 				logger.WithContext(ctx).WithError(regErr).Warn("app registry validation failed")
 				return nil
 			}
@@ -95,7 +99,7 @@ func (s *Service) handlePaymentReceivedEvent(ctx context.Context, event *chain.C
 		}
 	}
 
-	if err := s.repo.BumpMiniAppUsage(ctx, user.ID, parsed.AppID, s.chainID, amount, nil); err != nil {
+	if err := s.repo.BumpMiniAppUsage(ctx, user.ID, parsed.AppID, event.ChainID, amount, nil); err != nil {
 		logger.WithContext(ctx).WithError(err).Warn("failed to bump miniapp usage")
 	}
 
@@ -133,7 +137,7 @@ func (s *Service) markPaymentProcessed(
 	}
 
 	processed := &neorequestsupabase.ProcessedEvent{
-		ChainID:         s.chainID,
+		ChainID:         event.ChainID,
 		TxHash:          event.TxHash,
 		LogIndex:        event.LogIndex,
 		BlockHeight:     event.BlockIndex,

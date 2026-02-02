@@ -49,7 +49,7 @@ const infoStats = computed<StatItem[]>(() => [
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .tab-content {
   padding: 20px;

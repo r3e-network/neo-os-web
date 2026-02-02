@@ -258,7 +258,7 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./explorer-theme.scss";
 
 :global(page) {

@@ -49,7 +49,7 @@ defineEmits(["update:searchQuery", "update:selectedNetwork", "search"]);
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .search-box-neo { display: flex; flex-direction: column; }
 .mb-2 { margin-bottom: 8px; }

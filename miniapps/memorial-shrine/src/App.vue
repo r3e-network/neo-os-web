@@ -15,7 +15,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss">
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 page {
   background: linear-gradient(180deg, #0a0d14 0%, #121620 50%, #1a2035 100%);

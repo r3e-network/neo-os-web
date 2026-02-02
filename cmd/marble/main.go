@@ -539,21 +539,28 @@ func main() {
 			URLAllowlist:   oracleAllowlist,
 		})
 	case "neorequests":
+		// Build chain configuration for neorequests
+		chains := []neorequests.ChainServiceConfig{}
+		if eventListener != nil || txProxyInvoker != nil || chainClient != nil {
+			chains = append(chains, neorequests.ChainServiceConfig{
+				ChainID:               chainID,
+				EventListener:         eventListener,
+				TxProxy:               txProxyInvoker,
+				ChainClient:           chainClient,
+				ServiceGatewayAddress: serviceGatewayAddress,
+				AppRegistryAddress:    appRegistryAddress,
+				PaymentHubAddress:     paymentHubAddress,
+			})
+		}
 		svc, err = neorequests.New(neorequests.Config{
-			Marble:                m,
-			DB:                    db,
-			RequestsRepo:          neorequestsRepo,
-			EventListener:         eventListener,
-			TxProxy:               txProxyInvoker,
-			ChainClient:           chainClient,
-			ServiceGatewayAddress: serviceGatewayAddress,
-			AppRegistryAddress:    appRegistryAddress,
-			PaymentHubAddress:     paymentHubAddress,
-			NeoVRFURL:             neovrfURL,
-			NeoOracleURL:          neooracleURL,
-			NeoComputeURL:         neocomputeURL,
-			HTTPClient:            m.HTTPClient(),
-			ChainID:               chainID,
+			Marble:        m,
+			DB:            db,
+			RequestsRepo:  neorequestsRepo,
+			Chains:        chains,
+			NeoVRFURL:     neovrfURL,
+			NeoOracleURL:  neooracleURL,
+			NeoComputeURL: neocomputeURL,
+			HTTPClient:    m.HTTPClient(),
 		})
 	case "neovrf":
 		svc, err = neovrf.New(neovrf.Config{

@@ -318,7 +318,7 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 @import "./ex-files-theme.scss";
 @import url("https://fonts.googleapis.com/css2?family=Special+Elite&display=swap");

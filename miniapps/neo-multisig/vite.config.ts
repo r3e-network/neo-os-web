@@ -17,6 +17,10 @@ export default createAppConfig(__dirname, {
   alias: {
     "@noble/hashes/scrypt": path.resolve(__dirname, "node_modules/@noble/hashes/esm/scrypt.js"),
     "@noble/hashes": path.resolve(__dirname, "node_modules/@noble/hashes/esm/index.js"),
+    "vite-plugin-node-polyfills/shims/buffer": path.resolve(
+      __dirname,
+      "node_modules/vite-plugin-node-polyfills/shims/buffer/dist/index.js"
+    ),
   },
   optimizeDeps: {
     include: ["@cityofzion/neon-core", "jspdf", "qrcode"],

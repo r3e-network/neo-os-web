@@ -80,7 +80,7 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .destruction-chamber-card {
   position: relative;

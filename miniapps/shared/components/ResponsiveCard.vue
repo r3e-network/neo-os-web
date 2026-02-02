@@ -184,8 +184,8 @@ const handleImageError = (event: Event) => {
 </script>
 
 <style lang="scss" scoped>
-@use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/responsive.scss" as responsive;
+@use "../styles/tokens.scss" as *;
+@use "../styles/responsive.scss" as responsive;
 
 // ============================================================================
 // Base Card Styles

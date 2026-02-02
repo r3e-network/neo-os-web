@@ -411,7 +411,7 @@ watch(address, () => loadPhotos());
 
 <style scoped lang="scss">
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @use "@shared/styles/responsive.scss" as responsive;
 @import "./forever-album-theme.scss";
 

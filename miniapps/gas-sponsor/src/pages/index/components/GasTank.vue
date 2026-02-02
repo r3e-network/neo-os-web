@@ -53,7 +53,7 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .gas-tank-card { margin-bottom: 16px; }
 .gas-tank-container { display: flex; flex-direction: column; align-items: center; padding: 24px; gap: 24px; }

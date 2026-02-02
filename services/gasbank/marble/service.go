@@ -23,6 +23,7 @@ import (
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/chain"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/crypto"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/httputil"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/runtime"
 	commonservice "github.com/R3E-Network/neo-miniapps-platform/infrastructure/service"
@@ -92,6 +93,9 @@ type Service struct {
 	db          database.RepositoryInterface
 
 	depositAddress string
+
+	// handlerHelper provides common HTTP handler utilities
+	handlerHelper *httputil.HandlerHelper
 }
 
 // getUserLock returns a per-user mutex for fine-grained locking.
@@ -151,6 +155,7 @@ func New(cfg Config) (*Service, error) {
 		chainClient:    cfg.ChainClient,
 		db:             cfg.DB,
 		depositAddress: depositAddress,
+		handlerHelper:  httputil.NewHandlerHelper(base.Logger()),
 	}
 
 	// Register deposit verification worker

@@ -33,7 +33,7 @@ func (s *Service) handleMiniAppContractEvent(ctx context.Context, event *chain.C
 		return nil
 	}
 
-	app, err := s.loadMiniAppByContractAddress(ctx, event.Contract)
+	app, err := s.loadMiniAppByContractAddress(ctx, event.ChainID, event.Contract)
 	if err != nil {
 		if database.IsNotFound(err) {
 			return nil
@@ -49,7 +49,7 @@ func (s *Service) handleMiniAppContractEvent(ctx context.Context, event *chain.C
 		return nil
 	}
 	if s.enforceAppRegistry {
-		if err := s.validateAppRegistry(ctx, app); err != nil {
+		if err := s.validateAppRegistry(ctx, app, event.ChainID); err != nil {
 			s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
 				"app_id":  app.AppID,
 				"event":   event.EventName,
@@ -58,7 +58,7 @@ func (s *Service) handleMiniAppContractEvent(ctx context.Context, event *chain.C
 			return nil
 		}
 	}
-	if contractAddress := appContractAddress(app, s.chainID); contractAddress != "" {
+	if contractAddress := appContractAddress(app, event.ChainID); contractAddress != "" {
 		if normalizeContractAddress(event.Contract) != contractAddress {
 			s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 				"app_id":           app.AppID,

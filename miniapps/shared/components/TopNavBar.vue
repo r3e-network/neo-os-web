@@ -28,7 +28,7 @@ defineEmits<{
 </script>
 
 <style lang="scss">
-@use "@shared/styles/tokens.scss" as *;
+@use "../styles/tokens.scss" as *;
 
 .top-navbar {
   height: 60px;

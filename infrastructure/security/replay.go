@@ -11,21 +11,30 @@ import (
 // seen request IDs within a time window. It automatically cleans up expired
 // entries to prevent memory leaks.
 type ReplayProtection struct {
-	window       time.Duration
-	mu           sync.RWMutex
-	seenRequests map[string]time.Time
-	logger       *logging.Logger
+	window          time.Duration
+	maxSize         int
+	mu              sync.RWMutex
+	seenRequests    map[string]time.Time
+	logger          *logging.Logger
 }
 
 // NewReplayProtection creates a new replay protection instance.
 // window: How long to remember request IDs (e.g., 5 * time.Minute)
 func NewReplayProtection(window time.Duration, logger *logging.Logger) *ReplayProtection {
+	return NewReplayProtectionWithMaxSize(window, 0, logger)
+}
+
+// NewReplayProtectionWithMaxSize creates a new replay protection instance with a maximum size limit.
+// window: How long to remember request IDs (e.g., 5 * time.Minute)
+// maxSize: Maximum number of request IDs to track (0 = unlimited)
+func NewReplayProtectionWithMaxSize(window time.Duration, maxSize int, logger *logging.Logger) *ReplayProtection {
 	if window <= 0 {
 		window = 5 * time.Minute
 	}
 
 	return &ReplayProtection{
 		window:       window,
+		maxSize:      maxSize,
 		seenRequests: make(map[string]time.Time),
 		logger:       logger,
 	}
@@ -35,7 +44,7 @@ func NewReplayProtection(window time.Duration, logger *logging.Logger) *ReplayPr
 // Returns true if the request is valid (not a replay), false if it's a replay.
 func (rp *ReplayProtection) ValidateAndMark(requestID string) bool {
 	if requestID == "" {
-		return true // Empty IDs can't be tracked, assume valid
+		return false // Empty IDs are rejected for security
 	}
 
 	rp.mu.Lock()
@@ -59,6 +68,20 @@ func (rp *ReplayProtection) ValidateAndMark(requestID string) bool {
 		}
 		// Expired, remove old entry
 		delete(rp.seenRequests, requestID)
+	}
+
+	// Check max size limit
+	if rp.maxSize > 0 && len(rp.seenRequests) >= rp.maxSize {
+		// Emergency cleanup of expired entries
+		rp.cleanupExpired()
+		// If still at capacity, reject new requests
+		if len(rp.seenRequests) >= rp.maxSize {
+			if rp.logger != nil {
+				rp.logger.WithField("max_size", rp.maxSize).
+					Warn("replay protection at capacity, rejecting request")
+			}
+			return false
+		}
 	}
 
 	// Mark as seen

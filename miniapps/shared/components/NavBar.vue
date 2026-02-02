@@ -99,7 +99,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
-@use "@shared/styles/tokens.scss" as *;
+@use "../styles/tokens.scss" as *;
 
 // Mobile bottom navigation bar
 .navbar {

@@ -316,7 +316,7 @@ function parseInvokeResult(result: unknown): unknown {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./red-envelope-theme.scss";
 
 .app-container {

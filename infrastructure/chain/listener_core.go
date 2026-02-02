@@ -16,6 +16,7 @@ import (
 type EventListener struct {
 	mu                sync.RWMutex
 	client            *Client
+	chainID           string
 	contractAddresses map[string]bool // Multiple contracts to monitor
 	handlers          map[string][]EventHandler
 	anyHandlers       []EventHandler
@@ -33,10 +34,12 @@ type EventListener struct {
 type EventHandler func(event *ContractEvent) error
 
 // TxHandler is a callback for transaction-level events.
+// TxHandler is a callback for transaction-level events.
 type TxHandler func(event *TransactionEvent) error
 
 // ContractEvent represents a contract event.
 type ContractEvent struct {
+	ChainID    string
 	TxHash     string
 	BlockIndex uint64
 	BlockHash  string
@@ -50,6 +53,7 @@ type ContractEvent struct {
 
 // TransactionEvent represents a transaction invocation.
 type TransactionEvent struct {
+	ChainID    string
 	TxHash     string
 	BlockIndex uint64
 	BlockHash  string
@@ -62,6 +66,7 @@ type TransactionEvent struct {
 // ListenerConfig holds event listener configuration.
 type ListenerConfig struct {
 	Client        *Client
+	ChainID       string
 	Contracts     ContractAddresses // All contract addresses to monitor
 	PollInterval  time.Duration
 	StartBlock    uint64
@@ -116,6 +121,7 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 
 	return &EventListener{
 		client:            cfg.Client,
+		chainID:           cfg.ChainID,
 		contractAddresses: contractAddresses,
 		handlers:          make(map[string][]EventHandler),
 		pollInterval:      interval,
@@ -280,6 +286,7 @@ func (l *EventListener) processTransaction(
 			}).WithError(parseErr).Warn("failed to parse tx script")
 		} else if len(contracts) > 0 {
 			txEvent := &TransactionEvent{
+				ChainID:    l.chainID,
 				TxHash:     txHash,
 				BlockIndex: blockIndex,
 				BlockHash:  blockHash,
@@ -314,6 +321,7 @@ func (l *EventListener) processTransaction(
 			}
 
 			event := &ContractEvent{
+				ChainID:    l.chainID,
 				TxHash:     txHash,
 				BlockIndex: blockIndex,
 				BlockHash:  blockHash,

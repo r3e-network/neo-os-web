@@ -42,7 +42,7 @@ defineEmits(["claim"]);
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .rewards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 

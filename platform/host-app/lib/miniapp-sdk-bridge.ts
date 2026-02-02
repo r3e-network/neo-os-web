@@ -121,8 +121,25 @@ const handleGetConfig: BridgeHandler = async ({ sdk }) => {
   return sdk.getConfig();
 };
 
-const handleGetAddress: BridgeHandler = async ({ sdk, walletAddress }) => {
-  if (walletAddress) return walletAddress;
+const handleGetAddress: BridgeHandler = async ({ sdk, walletAddress, params }) => {
+  const [chainId] = params;
+
+  // Try to resolve from MultiChainStore to support specific chain address
+  try {
+    const { useMultiChainWallet } = await import("./wallet/multi-chain-store");
+    const mcState = useMultiChainWallet.getState();
+    const targetChainId = (typeof chainId === "string" && chainId) ? chainId : mcState.activeChainId;
+    
+    if (targetChainId && mcState.account?.accounts?.[targetChainId]) {
+      return mcState.account.accounts[targetChainId];
+    }
+  } catch (e) {
+    // Ignore if multi-chain store lookup fails
+  }
+
+  // Fallback to current address if no specific chain requested or lookup failed
+  if (walletAddress && (!chainId || typeof chainId !== "string")) return walletAddress;
+  
   if (sdk.wallet?.getAddress) return sdk.wallet.getAddress();
   if (sdk.getAddress) return sdk.getAddress();
   throw new Error("wallet.getAddress not available");

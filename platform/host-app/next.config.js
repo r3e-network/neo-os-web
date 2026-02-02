@@ -28,7 +28,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "meshmini.app",
+        hostname: "neomini.app",
         pathname: "/miniapps/**",
       },
     ],
@@ -61,6 +61,17 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
+      {
+        source: "/miniapp-assets/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" }, // ALLOW SANDBOXED IFRAMES
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" }, // Allow framing
+          { key: "Content-Security-Policy", value: ContentSecurityPolicy },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
       // Cache MiniApp static assets (images, etc) in /static/ folders
       {
         source: "/miniapps/:appId/static/:path*",
@@ -69,11 +80,11 @@ const nextConfig = {
         ],
       },
       {
-        source: "/((?!miniapps).*)",
+        source: "/((?!miniapps|miniapp-assets).*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Content-Security-Policy", value: ContentSecurityPolicy },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "X-XSS-Protection", value: "1; mode=block" },

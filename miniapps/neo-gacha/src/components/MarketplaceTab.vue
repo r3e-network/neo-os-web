@@ -313,7 +313,7 @@ const forSaleMachines = computed(() =>
   color: var(--text-primary);
 }
 .rank-value {
-  font-family: $font-mono;
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, 'Courier New', monospace;
   font-weight: 700;
   background: var(--gacha-rank-pill-bg);
   color: var(--gacha-rank-pill-text);

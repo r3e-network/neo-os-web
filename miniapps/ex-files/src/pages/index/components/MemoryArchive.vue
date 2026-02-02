@@ -91,7 +91,7 @@ const getCategoryLabel = (id?: number) => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .filter-section {
   margin-bottom: 20px;

@@ -20,7 +20,7 @@ onUnmounted(() => {
 // If not, I should define basic styles here.
 // I will comment them out and provide direct styles to be safe, 
 // OR check if they exist.
-/* @use "@shared/styles/variables.scss"; */
+/* @use "@shared/styles/variables.scss" as *; */
 /* @use "@shared/styles/tokens.scss" as *; */
 
 :root {

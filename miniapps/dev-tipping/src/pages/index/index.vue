@@ -133,7 +133,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./dev-tipping-theme.scss";
 
 :global(page) {

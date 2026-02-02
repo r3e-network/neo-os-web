@@ -42,7 +42,7 @@ const formattedPendingRewards = computed(() => `${formatToken(props.pendingRewar
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .rewards-row {
   display: flex;

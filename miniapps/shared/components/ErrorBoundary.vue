@@ -22,7 +22,7 @@
 
 <script setup lang="ts">
 import { ref, onErrorCaptured, watch } from 'vue';
-import { NeoButton } from './NeoButton.vue';
+import NeoButton from './NeoButton.vue';
 
 interface Props {
   showDetails?: boolean;

@@ -35,7 +35,7 @@ export function Footer() {
             <div className="inline-flex items-center gap-3 mb-6">
               <div className="relative">
                 <div className="absolute inset-0 bg-erobo-purple/50 blur-lg rounded-full opacity-50" />
-                <img src="/logo.jpg" alt="NeoHub" className="relative h-8 w-8" />
+                <img src="/logo.png" alt="NeoHub" className="relative h-8 w-8" />
               </div>
               <span className="text-xl font-bold text-erobo-ink dark:text-white tracking-tight">
                 Neo<span className="text-erobo-purple">Hub</span>

@@ -47,7 +47,7 @@ const handleConnect = async () => {
 </script>
 
 <style lang="scss" scoped>
-@use "@shared/styles/tokens.scss" as *;
+@use "../styles/tokens.scss" as *;
 
 .wallet-prompt {
   text-align: center;

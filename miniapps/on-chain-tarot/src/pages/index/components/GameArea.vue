@@ -59,7 +59,7 @@ defineEmits(["update:question", "draw", "reset", "flip"]);
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .mystical-card {
   padding: 24px;

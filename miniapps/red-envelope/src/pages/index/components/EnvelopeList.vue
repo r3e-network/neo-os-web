@@ -88,7 +88,7 @@ const formatAddress = (addr: string): string => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 $gold: #f1c40f;
 $premium-red-light: #e74c3c;

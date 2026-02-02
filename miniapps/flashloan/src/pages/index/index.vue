@@ -264,7 +264,7 @@ watch(chainType, () => fetchData());
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 @import "./flashloan-theme.scss";
 

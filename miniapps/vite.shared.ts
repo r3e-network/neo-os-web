@@ -79,15 +79,7 @@ export function createAppConfig(appDir: string, options: AppConfigOptions = {}) 
     css: {
       preprocessorOptions: {
         scss: {
-          // Sass importer to resolve @shared alias
-          importer: [
-            (url: string) => {
-              if (url.startsWith("@shared/")) {
-                return { file: url.replace("@shared/", sharedDir + "/") };
-              }
-              return null;
-            },
-          ],
+
         },
       },
     },
@@ -96,10 +88,17 @@ export function createAppConfig(appDir: string, options: AppConfigOptions = {}) 
       assetsDir: "static",
       copyPublicDir: true,
       rollupOptions: {
+        external: [
+          // Public folder assets accessed via absolute paths
+          /^\/logo\.(png|jpg|svg)$/,
+          /^\/banner\.(png|jpg|svg)$/,
+          // vite-plugin-node-polyfills shims
+          /^vite-plugin-node-polyfills\/shims\//,
+        ],
         output: {
-          manualChunks: {
-            "vue-vendor": ["vue", "@dcloudio/uni-app", "@dcloudio/uni-h5"],
-          },
+          // manualChunks: {
+          //   "vue-vendor": ["vue", "@dcloudio/uni-app", "@dcloudio/uni-h5"],
+          // },
         },
       },
       ...options.build,

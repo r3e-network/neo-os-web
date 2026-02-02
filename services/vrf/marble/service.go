@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/config"
@@ -16,6 +15,7 @@ import (
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/runtime"
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/security"
 	commonservice "github.com/R3E-Network/neo-miniapps-platform/infrastructure/service"
 )
 
@@ -28,13 +28,11 @@ const (
 // Service implements the VRF service.
 type Service struct {
 	*commonservice.BaseService
-	signingKey      []byte
-	privateKey      *ecdsa.PrivateKey
-	publicKey       []byte
-	attestationHash []byte
-	replayWindow    time.Duration
-	replayMu        sync.Mutex
-	seenRequests    map[string]time.Time
+	signingKey       []byte
+	privateKey       *ecdsa.PrivateKey
+	publicKey        []byte
+	attestationHash  []byte
+	replayProtection *security.ReplayProtection
 }
 
 // Config holds VRF service configuration.
@@ -92,17 +90,11 @@ func New(cfg Config) (*Service, error) {
 	if replayWindow <= 0 {
 		replayWindow = 10 * time.Minute
 	}
-	s.replayWindow = replayWindow
-	s.seenRequests = make(map[string]time.Time)
+	s.replayProtection = security.NewReplayProtection(replayWindow, base.Logger())
 
 	base.WithStats(s.statistics)
 	base.RegisterStandardRoutes()
 	s.registerRoutes()
-
-	base.AddTickerWorker(1*time.Minute, func(ctx context.Context) error {
-		s.cleanupReplay()
-		return nil
-	}, commonservice.WithTickerWorkerName("replay-cleanup"))
 
 	return s, nil
 }
@@ -110,7 +102,6 @@ func New(cfg Config) (*Service, error) {
 // markSeen checks if a request has been seen within the replay window.
 // SECURITY: Returns false if request was already seen (replay attack).
 // Returns true if this is a new request and marks it as seen.
-// IMPORTANT: Empty requestID is explicitly rejected as a security measure.
 func (s *Service) markSeen(requestID string) bool {
 	requestID = strings.TrimSpace(requestID)
 	if requestID == "" {
@@ -127,32 +118,13 @@ func (s *Service) markSeen(requestID string) bool {
 		return false
 	}
 
-	now := time.Now()
-	s.replayMu.Lock()
-	defer s.replayMu.Unlock()
-
-	if until, ok := s.seenRequests[requestID]; ok && now.Before(until) {
+	if !s.replayProtection.ValidateAndMark(requestID) {
 		s.Logger().Warn(context.Background(), "VRF replay attack detected", map[string]any{
 			"request_id": requestID,
-			"expires_at": until,
 		})
 		return false
 	}
-
-	s.seenRequests[requestID] = now.Add(s.replayWindow)
 	return true
-}
-
-func (s *Service) cleanupReplay() {
-	now := time.Now()
-	s.replayMu.Lock()
-	defer s.replayMu.Unlock()
-
-	for key, until := range s.seenRequests {
-		if now.After(until) {
-			delete(s.seenRequests, key)
-		}
-	}
 }
 
 func (s *Service) initSigningKey() error {

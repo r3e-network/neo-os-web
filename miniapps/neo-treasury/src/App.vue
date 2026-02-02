@@ -15,7 +15,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss">
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "@shared/styles/theme.scss";
 
 page {

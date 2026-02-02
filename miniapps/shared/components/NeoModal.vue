@@ -37,7 +37,8 @@ defineEmits<{
 </script>
 
 <style lang="scss">
-@use "@shared/styles/tokens.scss" as *;
+@use "../styles/tokens.scss" as *;
+@use "../styles/variables.scss" as *;
 
 .neo-modal {
   position: fixed;

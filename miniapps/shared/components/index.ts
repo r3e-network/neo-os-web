@@ -67,10 +67,10 @@ export { default as ChainWarning } from "./ChainWarning.vue";
 // ============================================================================
 // Vue Components - Specialized
 // ============================================================================
-export { default as WalletPrompt } from "./WalletPrompt.vue";
-export { default as ChainWarning } from "./ChainWarning.vue";
-export { default as Fireworks } from "./Fireworks.vue";
+
+
 export { default as ErrorBoundary } from "./ErrorBoundary.vue";
+export { default as Fireworks } from "./Fireworks.vue";
 
 // ============================================================================
 // Type Exports

@@ -1,6 +1,7 @@
 package security
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -57,12 +58,13 @@ func TestReplayProtection_ValidateAndMark(t *testing.T) {
 func TestReplayProtection_ValidateAndMark_EmptyID(t *testing.T) {
 	rp := NewReplayProtection(5*time.Minute, nil)
 
-	// Empty ID should always be valid
-	if !rp.ValidateAndMark("") {
-		t.Error("Empty ID should be valid")
+	// Empty ID should be rejected for security
+	if rp.ValidateAndMark("") {
+		t.Error("Empty ID should be rejected")
 	}
-	if !rp.ValidateAndMark("") {
-		t.Error("Empty ID should always be valid")
+	// Empty ID should always be rejected
+	if rp.ValidateAndMark("") {
+		t.Error("Empty ID should always be rejected")
 	}
 }
 
@@ -180,5 +182,33 @@ func TestReplayProtection_CleanupExpired(t *testing.T) {
 	finalSize := rp.Size()
 	if finalSize > 2 {
 		t.Errorf("after cleanup size = %d, want <= 2", finalSize)
+	}
+}
+
+func TestReplayProtection_MaxSize(t *testing.T) {
+	// Create replay protection with max size of 5
+	rp := NewReplayProtectionWithMaxSize(5*time.Minute, 5, nil)
+
+	// Add 5 requests (should all succeed)
+	for i := 0; i < 5; i++ {
+		if !rp.ValidateAndMark(fmt.Sprintf("req-%d", i)) {
+			t.Errorf("Request %d should be accepted", i)
+		}
+	}
+
+	// 6th request should be rejected (at capacity)
+	if rp.ValidateAndMark("req-6") {
+		t.Error("6th request should be rejected at capacity")
+	}
+
+	// Wait for first request to expire
+	time.Sleep(5 * time.Millisecond)
+
+	// After expiration, a new request should be accepted
+	// (cleanup happens on every 100th request, so we need to trigger it)
+	rp.Clear() // Manually clear for testing
+
+	if !rp.ValidateAndMark("req-after-cleanup") {
+		t.Error("Request after cleanup should be accepted")
 	}
 }

@@ -13,6 +13,7 @@ import (
 // InvokeRequest requests an allowlisted on-chain contract invocation.
 type InvokeRequest struct {
 	RequestID string `json:"request_id"`
+	ChainID   string `json:"chain_id,omitempty"`
 	// Intent optionally enables additional policy gates.
 	//
 	// Supported values:

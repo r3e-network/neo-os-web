@@ -1,6 +1,5 @@
 <template>
-  :desktop-breakpoint <ResponsiveLayout="1024" class="theme-soulbound-certificate" :tabs="navTabs" :active-tab="activeTab" @tab-change="onTabChange">
-
+  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-soulbound-certificate" :tabs="navTabs" :active-tab="activeTab" @tab-change="onTabChange">
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
           <text class="sidebar-title">{{ t('overview') }}</text>
@@ -380,7 +379,7 @@ watch(address, async (newAddr) => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./soulbound-certificate-theme.scss";
 
 :global(page) {

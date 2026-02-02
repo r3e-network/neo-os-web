@@ -20,7 +20,7 @@ defineProps<{
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .reading-card-container {
   margin-top: $space-6;

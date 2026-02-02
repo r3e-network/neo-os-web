@@ -1,6 +1,7 @@
 package neogasbank
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -13,19 +14,9 @@ import (
 
 // handleGetAccount returns the gas bank account for the authenticated user.
 func (s *Service) handleGetAccount(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-
-	account, err := s.GetAccount(r.Context(), userID)
-	if err != nil {
-		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to get account")
-		httputil.InternalError(w, "failed to get account")
-		return
-	}
-
-	httputil.WriteJSON(w, http.StatusOK, account)
+	s.handlerHelper.HandleAuthenticated(w, r, func(ctx context.Context, userID string) (interface{}, error) {
+		return s.GetAccount(ctx, userID)
+	})
 }
 
 // handleDeductFee deducts a service fee from a user's balance.

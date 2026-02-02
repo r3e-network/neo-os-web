@@ -15,7 +15,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss">
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 page {
   background: var(--bg-primary);

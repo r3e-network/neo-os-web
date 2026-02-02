@@ -121,8 +121,8 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
-@use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/theme.scss" as *;
+@use "../styles/tokens.scss" as *;
+@use "../styles/theme.scss" as *;
 
 // ============================================================================
 // Global Reset

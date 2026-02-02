@@ -389,7 +389,7 @@ const docFeatures = computed(() => [
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./unbreakable-vault-theme.scss";
 
 :global(page) {

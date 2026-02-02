@@ -26,7 +26,7 @@ export type PlatformStats = {
   platformFeeBps: number;
 };
 
-const APP_ID = "miniapp-self-loan";
+export const APP_ID = "miniapp-self-loan";
 
 export function useSelfLoanCore() {
   const { t } = useI18n();

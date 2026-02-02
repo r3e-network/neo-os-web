@@ -191,14 +191,7 @@ func New(cfg Config) (*Service, error) {
 	s.attestationHash = marble.ComputeAttestationHash(cfg.Marble, ServiceID)
 
 	// Initialize circuit breaker for HTTP calls
-	cbConfig := resilience.DefaultConfig()
-	cbConfig.OnStateChange = func(from, to resilience.State) {
-		s.Logger().WithFields(map[string]interface{}{
-			"from_state": from.String(),
-			"to_state":   to.String(),
-		}).Warn("circuit breaker state changed")
-	}
-	s.httpCircuitBreaker = resilience.New(cbConfig)
+	s.httpCircuitBreaker = resilience.New(resilience.DefaultServiceCBConfig(s.Logger()))
 
 	// Initialize rate limiter (defaults: 100 req/s, burst 200)
 	rateLimitPerSecond := cfg.RateLimitPerSecond

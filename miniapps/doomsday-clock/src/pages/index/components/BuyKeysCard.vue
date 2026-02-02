@@ -34,7 +34,7 @@ defineEmits(["update:keyCount", "buy"]);
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .card-title-glass {
   font-size: 14px;

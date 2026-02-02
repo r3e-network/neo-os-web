@@ -525,7 +525,7 @@ describe("getServerSideProps", () => {
 
     const result = await getServerSideProps(context);
 
-    expect((result as { props: { app: { entry_url: string } } }).props.app.entry_url).toBe("/miniapps/coin-flip/index.html");
+    expect((result as { props: { app: { entry_url: string } } }).props.app.entry_url).toBe("/miniapp-assets/coin-flip/index.html");
   });
 
   it("should return app with required fields", async () => {

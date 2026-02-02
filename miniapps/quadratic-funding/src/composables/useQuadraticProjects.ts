@@ -3,7 +3,7 @@ import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "./useI18n";
-import { requireNeoChain, chainType } from "@shared/utils/chain";
+import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult } from "@shared/utils/neo";
 import type { ProjectItem } from "../pages/index/components/ProjectList.vue";
 import type { RoundItem } from "../pages/index/components/RoundList.vue";
@@ -14,7 +14,7 @@ export function useQuadraticProjects(
   setStatus: (msg: string, type: "success" | "error") => void
 ) {
   const { t } = useI18n();
-  const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
+  const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
 
   const projects = ref<ProjectItem[]>([]);
   const isRefreshingProjects = ref(false);

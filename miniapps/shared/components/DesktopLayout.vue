@@ -146,8 +146,8 @@ validateTabs();
 </script>
 
 <style lang="scss" scoped>
-@use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/theme-base.scss" as *;
+@use "../styles/tokens.scss" as *;
+@use "../styles/theme-base.scss" as *;
 
 // Desktop container with proper sizing
 .desktop-container {

@@ -1,12 +1,10 @@
 package txproxy
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/chain"
@@ -14,6 +12,7 @@ import (
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/middleware"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/runtime"
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/security"
 	commonservice "github.com/R3E-Network/neo-miniapps-platform/infrastructure/service"
 )
 
@@ -35,11 +34,7 @@ type Service struct {
 	chainClient *chain.Client
 	signer      chain.TEESigner
 
-	replayWindow time.Duration
-	replayMu     sync.Mutex
-	seenRequests map[string]time.Time
-	// SECURITY FIX [M-02]: Add maximum capacity to prevent memory exhaustion
-	maxSeenRequests int
+	replayProtection *security.ReplayProtection
 	// Rate limiter for /invoke endpoint to prevent DoS attacks
 	rateLimiter *middleware.RateLimiter
 }
@@ -130,6 +125,8 @@ func New(cfg Config) (*Service, error) {
 		DB:      cfg.DB,
 	})
 
+	// SECURITY FIX [M-02]: Limit replay cache size to prevent memory exhaustion
+	const maxReplayEntries = 100000
 	s := &Service{
 		BaseService:       base,
 		allowlist:         allowlist,
@@ -138,10 +135,7 @@ func New(cfg Config) (*Service, error) {
 		governanceAddress: normalizeContractAddress(governanceAddress),
 		chainClient:       cfg.ChainClient,
 		signer:            cfg.Signer,
-		replayWindow:      replayWindow,
-		seenRequests:      make(map[string]time.Time),
-		// SECURITY FIX [M-02]: Limit replay cache size to prevent memory exhaustion
-		maxSeenRequests: 100000,
+		replayProtection:  security.NewReplayProtectionWithMaxSize(replayWindow, maxReplayEntries, base.Logger()),
 		// SECURITY FIX [R-01]: Add rate limiting to prevent DoS attacks
 		// Allow 100 requests per minute with burst of 200
 		rateLimiter: middleware.NewRateLimiterWithWindow(100, time.Minute, 200, base.Logger()),
@@ -149,12 +143,6 @@ func New(cfg Config) (*Service, error) {
 
 	base.RegisterStandardRoutes()
 	s.registerRoutes()
-
-	// Best-effort cleanup of the replay cache.
-	base.AddTickerWorker(1*time.Minute, func(ctx context.Context) error {
-		s.cleanupReplay()
-		return nil
-	}, commonservice.WithTickerWorkerName("replay-cleanup"))
 
 	return s, nil
 }
@@ -170,46 +158,12 @@ func (s *Service) registerRoutes() {
 	).Methods(http.MethodPost)
 }
 
+// markSeen checks if a request ID has been seen (replay protection).
+// Returns true if the request is new and valid, false if it's a replay or empty.
 func (s *Service) markSeen(requestID string) bool {
 	requestID = strings.TrimSpace(requestID)
 	if requestID == "" {
 		return false
 	}
-
-	now := time.Now()
-	s.replayMu.Lock()
-	defer s.replayMu.Unlock()
-
-	if until, ok := s.seenRequests[requestID]; ok && now.Before(until) {
-		return false
-	}
-
-	// SECURITY FIX [M-02]: Enforce maximum capacity to prevent memory exhaustion
-	// If at capacity, perform emergency cleanup of expired entries
-	if len(s.seenRequests) >= s.maxSeenRequests {
-		for key, until := range s.seenRequests {
-			if now.After(until) {
-				delete(s.seenRequests, key)
-			}
-		}
-		// If still at capacity after cleanup, reject new requests
-		if len(s.seenRequests) >= s.maxSeenRequests {
-			return false
-		}
-	}
-
-	s.seenRequests[requestID] = now.Add(s.replayWindow)
-	return true
-}
-
-func (s *Service) cleanupReplay() {
-	now := time.Now()
-	s.replayMu.Lock()
-	defer s.replayMu.Unlock()
-
-	for key, until := range s.seenRequests {
-		if now.After(until) {
-			delete(s.seenRequests, key)
-		}
-	}
+	return s.replayProtection.ValidateAndMark(requestID)
 }

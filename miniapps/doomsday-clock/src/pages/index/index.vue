@@ -179,7 +179,7 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./doomsday-clock-theme.scss";
 @import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap");
 :global(page) { background: var(--bg-primary); }

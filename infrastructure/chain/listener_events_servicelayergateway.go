@@ -9,6 +9,7 @@ import "fmt"
 // ServiceRequestedEvent represents a ServiceRequested event.
 // Event: ServiceRequested(requestId, appId, serviceType, requester, callbackContract, callbackMethod, payload)
 type ServiceRequestedEvent struct {
+	ChainID          string
 	RequestID        string
 	AppID            string
 	ServiceType      string
@@ -62,6 +63,7 @@ func ParseServiceRequestedEvent(event *ContractEvent) (*ServiceRequestedEvent, e
 	}
 
 	return &ServiceRequestedEvent{
+		ChainID:          event.ChainID,
 		RequestID:        requestID.String(),
 		AppID:            appID,
 		ServiceType:      serviceType,
@@ -75,6 +77,7 @@ func ParseServiceRequestedEvent(event *ContractEvent) (*ServiceRequestedEvent, e
 // ServiceFulfilledEvent represents a ServiceFulfilled event.
 // Event: ServiceFulfilled(requestId, success, result, error)
 type ServiceFulfilledEvent struct {
+	ChainID   string
 	RequestID string
 	Success   bool
 	Result    []byte
@@ -110,6 +113,7 @@ func ParseServiceFulfilledEvent(event *ContractEvent) (*ServiceFulfilledEvent, e
 	}
 
 	return &ServiceFulfilledEvent{
+		ChainID:   event.ChainID,
 		RequestID: requestID.String(),
 		Success:   success,
 		Result:    result,

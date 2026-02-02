@@ -62,7 +62,7 @@ const glowStyle = computed(() => ({
 </script>
 
 <style lang="scss">
-@use "@shared/styles/tokens.scss" as *;
+@use "../styles/tokens.scss" as *;
 .gradient-card {
   position: relative;
   border-radius: var(--card-radius, 20px);

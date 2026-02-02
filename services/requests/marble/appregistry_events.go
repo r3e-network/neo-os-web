@@ -15,10 +15,11 @@ func (s *Service) handleAppRegistryEvent(ctx context.Context, event *chain.Contr
 	if event == nil {
 		return nil
 	}
-	if s.appRegistry == nil || s.appRegistryAddress == "" {
+	chainCtx := s.getChainContext(event.ChainID)
+	if chainCtx == nil || chainCtx.AppRegistry == nil || chainCtx.AppRegistryAddress == "" {
 		return nil
 	}
-	if normalizeContractAddress(event.Contract) != s.appRegistryAddress {
+	if normalizeContractAddress(event.Contract) != chainCtx.AppRegistryAddress {
 		return nil
 	}
 
@@ -58,7 +59,7 @@ func (s *Service) handleAppRegistryEvent(ctx context.Context, event *chain.Contr
 		logger.WithError(storeErr).Warn("failed to store contract event")
 	}
 
-	if _, loadErr := s.loadMiniApp(ctx, appID); loadErr != nil {
+	if _, loadErr := s.loadMiniApp(ctx, appID, event.ChainID); loadErr != nil {
 		if database.IsNotFound(loadErr) {
 			return nil
 		}
@@ -66,7 +67,7 @@ func (s *Service) handleAppRegistryEvent(ctx context.Context, event *chain.Contr
 		return nil
 	}
 
-	info, err := s.appRegistry.GetApp(ctx, appID)
+	info, err := chainCtx.AppRegistry.GetApp(ctx, appID)
 	if err != nil {
 		logger.WithContext(ctx).WithError(err).Warn("failed to read AppRegistry entry")
 		return nil
@@ -76,7 +77,7 @@ func (s *Service) handleAppRegistryEvent(ctx context.Context, event *chain.Contr
 	}
 
 	update := &neorequestsupabase.MiniAppRegistryUpdate{
-		ChainID:   s.chainID,
+		ChainID:   event.ChainID,
 		Status:    mapAppRegistryStatus(info.Status),
 		UpdatedAt: time.Now().UTC(),
 	}

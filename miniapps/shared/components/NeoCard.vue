@@ -48,7 +48,7 @@ defineEmits<{
 </script>
 
 <style lang="scss" scoped>
-@use "@shared/styles/tokens.scss" as *;
+@use "../styles/tokens.scss" as *;
 
 .neo-card {
   background: var(--bg-card, rgba(255, 255, 255, 0.02));

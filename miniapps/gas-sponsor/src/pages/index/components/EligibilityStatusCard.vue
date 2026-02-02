@@ -32,7 +32,7 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .eligibility-check { display: flex; flex-direction: column; gap: $space-2; }
 .check-item { display: flex; align-items: center; gap: $space-2; font-size: 10px; font-weight: $font-weight-bold; }

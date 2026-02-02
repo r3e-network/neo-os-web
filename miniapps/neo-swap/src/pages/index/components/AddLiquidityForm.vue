@@ -61,7 +61,7 @@ defineEmits(["update:amountA", "update:amountB", "calculateA", "calculateB", "ad
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .token-input-section {
   background: var(--swap-panel-bg);

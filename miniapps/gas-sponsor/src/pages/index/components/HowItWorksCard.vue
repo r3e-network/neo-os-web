@@ -29,7 +29,7 @@ defineProps<{
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .help-item { display: flex; align-items: center; gap: $space-3; padding: $space-2 0; }
 .help-num {

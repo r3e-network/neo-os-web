@@ -17,7 +17,7 @@ func (s *Service) trackMiniAppTx(ctx context.Context, appID, sender string, even
 	if strings.TrimSpace(sender) == "" {
 		sender = event.Sender
 	}
-	s.logMiniAppTx(ctx, appID, sender, event.TxHash, event.Timestamp)
+	s.logMiniAppTx(ctx, appID, sender, event.TxHash, event.ChainID, event.Timestamp)
 }
 
 func (s *Service) handleMiniAppTxEvent(ctx context.Context, event *chain.TransactionEvent) error {
@@ -35,7 +35,7 @@ func (s *Service) handleMiniAppTxEvent(ctx context.Context, event *chain.Transac
 			continue
 		}
 
-		app, err := s.repo.GetMiniAppByContractAddress(ctx, s.chainID, normalized)
+		app, err := s.repo.GetMiniAppByContractAddress(ctx, event.ChainID, normalized)
 		if err != nil {
 			if database.IsNotFound(err) {
 				continue
@@ -50,7 +50,7 @@ func (s *Service) handleMiniAppTxEvent(ctx context.Context, event *chain.Transac
 			continue
 		}
 		if s.enforceAppRegistry {
-			if err := s.validateAppRegistry(ctx, app); err != nil {
+			if err := s.validateAppRegistry(ctx, app, event.ChainID); err != nil {
 				s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
 					"app_id":  app.AppID,
 					"tx_hash": event.TxHash,
@@ -58,7 +58,7 @@ func (s *Service) handleMiniAppTxEvent(ctx context.Context, event *chain.Transac
 				continue
 			}
 		}
-		if contractAddress := appContractAddress(app, s.chainID); contractAddress != "" {
+		if contractAddress := appContractAddress(app, event.ChainID); contractAddress != "" {
 			if contractAddress != normalized {
 				s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 					"app_id":           app.AppID,
@@ -76,13 +76,13 @@ func (s *Service) handleMiniAppTxEvent(ctx context.Context, event *chain.Transac
 			continue
 		}
 
-		s.logMiniAppTx(ctx, app.AppID, sender, event.TxHash, event.Timestamp)
+		s.logMiniAppTx(ctx, app.AppID, sender, event.TxHash, event.ChainID, event.Timestamp)
 	}
 
 	return nil
 }
 
-func (s *Service) logMiniAppTx(ctx context.Context, appID, sender, txHash string, timestamp time.Time) {
+func (s *Service) logMiniAppTx(ctx context.Context, appID, sender, txHash, chainID string, timestamp time.Time) {
 	if s == nil || !s.onchainTxUsage || s.repo == nil {
 		return
 	}
@@ -93,7 +93,7 @@ func (s *Service) logMiniAppTx(ctx context.Context, appID, sender, txHash string
 	}
 
 	address := normalizeSenderAddress(sender)
-	if err := s.repo.LogMiniAppTx(ctx, appID, s.chainID, txHash, address, timestamp); err != nil {
+	if err := s.repo.LogMiniAppTx(ctx, appID, chainID, txHash, address, timestamp); err != nil {
 		s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
 			"app_id":  appID,
 			"tx_hash": txHash,

@@ -62,7 +62,7 @@ const BUILTIN_APPS_SHORT_MAP: Record<string, MiniAppInfo> = Object.fromEntries(
   BUILTIN_APPS.map((app) => {
     let shortId = app.app_id.replace("miniapp-", "");
     if (app.entry_url) {
-      const match = app.entry_url.match(/\/miniapps\/([^/]+)/);
+      const match = app.entry_url.match(/\/(?:miniapps|miniapp-assets)\/([^/]+)/);
       if (match) shortId = match[1];
     }
     return [shortId, app];

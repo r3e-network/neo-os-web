@@ -8,9 +8,10 @@ import (
 // It provides a fluent API for constructing statistics with optional locking
 // and conditional field inclusion.
 type StatsCollector struct {
-	mu     *sync.RWMutex
-	stats  map[string]any
-	locked bool
+	mu       *sync.RWMutex
+	stats    map[string]any
+	locked   bool
+	collMu   sync.Mutex // Protects the stats map during concurrent writes
 }
 
 // NewStatsCollector creates a new StatsCollector with an empty stats map.
@@ -33,6 +34,8 @@ func (sc *StatsCollector) WithRLock(mu *sync.RWMutex) *StatsCollector {
 
 // Add adds a key-value pair to the statistics map.
 func (sc *StatsCollector) Add(key string, value any) *StatsCollector {
+	sc.collMu.Lock()
+	defer sc.collMu.Unlock()
 	sc.stats[key] = value
 	return sc
 }
@@ -40,6 +43,8 @@ func (sc *StatsCollector) Add(key string, value any) *StatsCollector {
 // AddIf adds a key-value pair only if the condition is true.
 func (sc *StatsCollector) AddIf(condition bool, key string, value any) *StatsCollector {
 	if condition {
+		sc.collMu.Lock()
+		defer sc.collMu.Unlock()
 		sc.stats[key] = value
 	}
 	return sc
@@ -48,6 +53,8 @@ func (sc *StatsCollector) AddIf(condition bool, key string, value any) *StatsCol
 // AddNonNil adds a key-value pair only if the value is not nil.
 func (sc *StatsCollector) AddNonNil(key string, value any) *StatsCollector {
 	if value != nil {
+		sc.collMu.Lock()
+		defer sc.collMu.Unlock()
 		sc.stats[key] = value
 	}
 	return sc
@@ -55,6 +62,8 @@ func (sc *StatsCollector) AddNonNil(key string, value any) *StatsCollector {
 
 // AddMap merges another map into the statistics.
 func (sc *StatsCollector) AddMap(m map[string]any) *StatsCollector {
+	sc.collMu.Lock()
+	defer sc.collMu.Unlock()
 	for k, v := range m {
 		sc.stats[k] = v
 	}

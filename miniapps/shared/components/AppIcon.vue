@@ -217,7 +217,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use "@shared/styles/tokens.scss" as *;
+@use "../styles/tokens.scss" as *;
 
 // Base icon container styles
 .app-icon {

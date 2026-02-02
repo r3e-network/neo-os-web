@@ -36,7 +36,7 @@ const getRankIcon = (rank: number): string => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .stats-grid {
   display: grid;

@@ -523,7 +523,7 @@ watch(address, async (newAddr) => {
 </script>
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./event-ticket-pass-theme.scss";
 :global(page) {
   background: linear-gradient(135deg, var(--ticket-bg-start) 0%, var(--ticket-bg-end) 100%);

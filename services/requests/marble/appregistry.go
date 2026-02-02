@@ -17,15 +17,16 @@ type appRegistryCacheEntry struct {
 	checkedAt time.Time
 }
 
-func (s *Service) validateAppRegistry(ctx context.Context, app *neorequestsupabase.MiniApp) error {
-	if s == nil || !s.enforceAppRegistry || s.appRegistry == nil {
+func (s *Service) validateAppRegistry(ctx context.Context, app *neorequestsupabase.MiniApp, chainID string) error {
+	chainCtx := s.getChainContext(chainID)
+	if s == nil || !s.enforceAppRegistry || chainCtx == nil || chainCtx.AppRegistry == nil {
 		return nil
 	}
 	if app == nil || strings.TrimSpace(app.AppID) == "" {
 		return fmt.Errorf("app registry check requires app_id")
 	}
 
-	info, err := s.getAppRegistryInfo(ctx, app.AppID)
+	info, err := s.getAppRegistryInfo(ctx, app.AppID, chainID)
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,7 @@ func (s *Service) validateAppRegistry(ctx context.Context, app *neorequestsupaba
 	}
 
 	if len(info.ContractAddress) > 0 {
-		contractAddress := appContractAddress(app, s.chainID)
+		contractAddress := appContractAddress(app, chainCtx.ChainID)
 		if contractAddress != "" && hex.EncodeToString(info.ContractAddress) != contractAddress {
 			return fmt.Errorf("contract address mismatch")
 		}
@@ -63,8 +64,9 @@ func (s *Service) validateAppRegistry(ctx context.Context, app *neorequestsupaba
 	return nil
 }
 
-func (s *Service) getAppRegistryInfo(ctx context.Context, appID string) (*chain.AppRegistryApp, error) {
-	if s == nil || s.appRegistry == nil || !s.enforceAppRegistry {
+func (s *Service) getAppRegistryInfo(ctx context.Context, appID string, chainID string) (*chain.AppRegistryApp, error) {
+	chainCtx := s.getChainContext(chainID)
+	if s == nil || !s.enforceAppRegistry || chainCtx == nil || chainCtx.AppRegistry == nil {
 		return nil, nil
 	}
 
@@ -73,26 +75,28 @@ func (s *Service) getAppRegistryInfo(ctx context.Context, appID string) (*chain.
 		return nil, fmt.Errorf("app registry lookup requires app_id")
 	}
 
+	cacheKey := fmt.Sprintf("%s:%s", chainID, appID)
+
 	if s.appRegistryTTL > 0 {
-		if info, ok := s.getAppRegistryCached(appID); ok {
+		if info, ok := s.getAppRegistryCached(cacheKey); ok {
 			return info, nil
 		}
 	}
 
-	info, err := s.appRegistry.GetApp(ctx, appID)
+	info, err := chainCtx.AppRegistry.GetApp(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
 
 	if s.appRegistryTTL > 0 {
-		s.setAppRegistryCached(appID, info)
+		s.setAppRegistryCached(cacheKey, info)
 	}
 	return info, nil
 }
 
-func (s *Service) getAppRegistryCached(appID string) (*chain.AppRegistryApp, bool) {
+func (s *Service) getAppRegistryCached(key string) (*chain.AppRegistryApp, bool) {
 	s.appRegistryMu.RLock()
-	entry, ok := s.appRegistryCache[appID]
+	entry, ok := s.appRegistryCache[key]
 	s.appRegistryMu.RUnlock()
 	if !ok {
 		return nil, false
@@ -106,12 +110,12 @@ func (s *Service) getAppRegistryCached(appID string) (*chain.AppRegistryApp, boo
 	return entry.info, true
 }
 
-func (s *Service) setAppRegistryCached(appID string, info *chain.AppRegistryApp) {
+func (s *Service) setAppRegistryCached(key string, info *chain.AppRegistryApp) {
 	if s.appRegistryTTL <= 0 {
 		return
 	}
 	s.appRegistryMu.Lock()
-	s.appRegistryCache[appID] = appRegistryCacheEntry{
+	s.appRegistryCache[key] = appRegistryCacheEntry{
 		info:      info,
 		checkedAt: time.Now().UTC(),
 	}

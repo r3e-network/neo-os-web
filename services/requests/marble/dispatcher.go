@@ -29,7 +29,11 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 	if event == nil {
 		return nil
 	}
-	if s.serviceGatewayAddress != "" && normalizeContractAddress(event.Contract) != s.serviceGatewayAddress {
+	chainCtx := s.getChainContext(event.ChainID)
+	if chainCtx == nil {
+		return nil
+	}
+	if chainCtx.ServiceGatewayAddress != "" && normalizeContractAddress(event.Contract) != chainCtx.ServiceGatewayAddress {
 		return nil
 	}
 
@@ -66,7 +70,7 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 		logger.WithError(storeErr).Warn("failed to store contract event")
 	}
 
-	app, appErr := s.loadMiniApp(ctx, appID)
+	app, appErr := s.loadMiniApp(ctx, appID, event.ChainID)
 	if appErr != nil {
 		logger.WithError(appErr).Warn("miniapp not found")
 		return nil
@@ -79,7 +83,7 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 		return nil
 	}
 
-	if regErr := s.validateAppRegistry(ctx, app); regErr != nil {
+	if regErr := s.validateAppRegistry(ctx, app, event.ChainID); regErr != nil {
 		logger.WithError(regErr).Warn("app registry validation failed")
 		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
 		s.updateServiceRequest(ctx, serviceReq, "failed", nil, regErr.Error())
@@ -88,7 +92,7 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 
 	s.trackMiniAppTx(ctx, appID, "", event)
 
-	manifestInfo, err := parseManifestInfo(app.Manifest, s.chainID)
+	manifestInfo, err := parseManifestInfo(app.Manifest, event.ChainID)
 	if err != nil {
 		logger.WithError(err).Warn("invalid manifest")
 		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
@@ -141,7 +145,8 @@ func (s *Service) handleServiceFulfilled(ctx context.Context, event *chain.Contr
 	if event == nil {
 		return nil
 	}
-	if s.serviceGatewayAddress != "" && normalizeContractAddress(event.Contract) != s.serviceGatewayAddress {
+	chainCtx := s.getChainContext(event.ChainID)
+	if chainCtx != nil && chainCtx.ServiceGatewayAddress != "" && normalizeContractAddress(event.Contract) != chainCtx.ServiceGatewayAddress {
 		return nil
 	}
 
@@ -407,8 +412,9 @@ func (s *Service) executeCompute(ctx context.Context, userID, appID string, payl
 }
 
 func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequestedEvent, _ string, result serviceResult, execErr error, serviceReq *neorequestsupabase.ServiceRequest) error {
-	if s.txProxy == nil {
-		return fmt.Errorf("txproxy not configured")
+	chainCtx := s.getChainContext(req.ChainID)
+	if chainCtx == nil || chainCtx.TxProxy == nil {
+		return fmt.Errorf("txproxy not configured for chain %s", req.ChainID)
 	}
 
 	success := execErr == nil
@@ -427,8 +433,8 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 		RequestID:       requestKey,
 		FromService:     ServiceID,
 		TxType:          "service_callback",
-		ChainID:         s.chainID,
-		ContractAddress: "0x" + s.serviceGatewayAddress,
+		ChainID:         req.ChainID,
+		ContractAddress: "0x" + chainCtx.ServiceGatewayAddress,
 		MethodName:      "fulfillRequest",
 		Params:          neorequestsupabase.MarshalParams(params),
 		Status:          "pending",
@@ -445,9 +451,10 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 		}
 	}
 
-	resp, txErr := s.txProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
+	resp, txErr := chainCtx.TxProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
 		RequestID:       requestKey,
-		ContractAddress: "0x" + s.serviceGatewayAddress,
+		ChainID:         req.ChainID,
+		ContractAddress: "0x" + chainCtx.ServiceGatewayAddress,
 		Method:          "fulfillRequest",
 		Params:          params,
 		Wait:            s.txWait,
@@ -532,7 +539,7 @@ func (s *Service) createServiceRequest(ctx context.Context, app *neorequestsupab
 
 	req := &neorequestsupabase.ServiceRequest{
 		UserID:      app.DeveloperUserID,
-		ChainID:     s.chainID,
+		ChainID:     parsed.ChainID,
 		ServiceType: serviceType,
 		Status:      "processing",
 		Payload:     neorequestsupabase.MarshalParams(payloadAudit),
@@ -545,7 +552,7 @@ func (s *Service) createServiceRequest(ctx context.Context, app *neorequestsupab
 	return req
 }
 
-func (s *Service) loadMiniApp(ctx context.Context, appID string) (*neorequestsupabase.MiniApp, error) {
+func (s *Service) loadMiniApp(ctx context.Context, appID, chainID string) (*neorequestsupabase.MiniApp, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
@@ -563,17 +570,17 @@ func (s *Service) loadMiniApp(ctx context.Context, appID string) (*neorequestsup
 	app, err := s.repo.GetMiniApp(ctx, appID)
 	if err != nil {
 		if database.IsNotFound(err) {
-			s.cacheMiniAppNotFound(appID, "")
+			s.cacheMiniAppNotFound(appID, "", "")
 		}
 		return nil, err
 	}
 
-	contractAddress := appContractAddress(app, s.chainID)
-	s.cacheMiniApp(app, contractAddress)
+	contractAddress := appContractAddress(app, chainID)
+	s.cacheMiniApp(app, chainID, contractAddress)
 	return app, nil
 }
 
-func (s *Service) loadMiniAppByContractAddress(ctx context.Context, contractAddress string) (*neorequestsupabase.MiniApp, error) {
+func (s *Service) loadMiniAppByContractAddress(ctx context.Context, chainID, contractAddress string) (*neorequestsupabase.MiniApp, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("repository not configured")
 	}
@@ -581,22 +588,22 @@ func (s *Service) loadMiniAppByContractAddress(ctx context.Context, contractAddr
 	if normalized == "" {
 		return nil, fmt.Errorf("contract_address cannot be empty")
 	}
-	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("contract:", s.chainID, normalized)); ok {
+	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("contract:", chainID, normalized)); ok {
 		if notFound {
 			return nil, miniAppNotFoundError(normalized)
 		}
 		return app, nil
 	}
 
-	app, err := s.repo.GetMiniAppByContractAddress(ctx, s.chainID, normalized)
+	app, err := s.repo.GetMiniAppByContractAddress(ctx, chainID, normalized)
 	if err != nil {
 		if database.IsNotFound(err) {
-			s.cacheMiniAppNotFound("", normalized)
+			s.cacheMiniAppNotFound("", chainID, normalized)
 		}
 		return nil, err
 	}
 
-	s.cacheMiniApp(app, normalized)
+	s.cacheMiniApp(app, chainID, normalized)
 	return app, nil
 }
 
@@ -614,7 +621,7 @@ func (s *Service) markEventProcessed(ctx context.Context, event *chain.ContractE
 	}
 
 	processed := &neorequestsupabase.ProcessedEvent{
-		ChainID:         s.chainID,
+		ChainID:         event.ChainID,
 		TxHash:          event.TxHash,
 		LogIndex:        event.LogIndex,
 		BlockHeight:     event.BlockIndex,
@@ -633,7 +640,7 @@ func (s *Service) storeContractEvent(ctx context.Context, event *chain.ContractE
 	}
 
 	record := &neorequestsupabase.ContractEvent{
-		ChainID:         s.chainID,
+		ChainID:         event.ChainID,
 		TxHash:          event.TxHash,
 		BlockIndex:      event.BlockIndex,
 		ContractAddress: event.Contract,
@@ -997,9 +1004,9 @@ func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.Cont
 		var app *neorequestsupabase.MiniApp
 		var loadErr error
 		if strings.TrimSpace(parsed.AppID) != "" {
-			app, loadErr = s.loadMiniApp(ctx, parsed.AppID)
+			app, loadErr = s.loadMiniApp(ctx, parsed.AppID, event.ChainID)
 		} else if strings.TrimSpace(event.Contract) != "" {
-			app, loadErr = s.loadMiniAppByContractAddress(ctx, event.Contract)
+			app, loadErr = s.loadMiniAppByContractAddress(ctx, event.ChainID, event.Contract)
 			if loadErr == nil && app != nil {
 				parsed.AppID = app.AppID
 				logger = s.Logger().WithFields(map[string]interface{}{
@@ -1016,16 +1023,16 @@ func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.Cont
 		case app != nil && !isAppActive(app.Status):
 			return nil
 		case app != nil && s.enforceAppRegistry:
-			if regErr := s.validateAppRegistry(ctx, app); regErr != nil {
+			if regErr := s.validateAppRegistry(ctx, app, event.ChainID); regErr != nil {
 				logger.WithContext(ctx).WithError(regErr).Warn("app registry validation failed")
 				return nil
 			}
 		case app != nil:
-			info, parseErr := parseManifestInfo(app.Manifest, s.chainID)
+			info, parseErr := parseManifestInfo(app.Manifest, event.ChainID)
 			if parseErr == nil && info.NewsIntegration != nil && !*info.NewsIntegration {
 				return nil
 			}
-			if contractAddress := appContractAddress(app, s.chainID); contractAddress != "" {
+			if contractAddress := appContractAddress(app, event.ChainID); contractAddress != "" {
 				if normalizeContractAddress(event.Contract) != contractAddress {
 					logger.WithContext(ctx).Warn("miniapp contract address mismatch")
 					return nil
@@ -1047,7 +1054,7 @@ func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.Cont
 	// Store notification in database via repository
 	err = s.repo.CreateNotification(ctx, &neorequestsupabase.Notification{
 		AppID:            parsed.AppID,
-		ChainID:          s.chainID,
+		ChainID:          event.ChainID,
 		Title:            parsed.Title,
 		Content:          parsed.Content,
 		NotificationType: parsed.NotificationType,
@@ -1095,9 +1102,9 @@ func (s *Service) handleMetricEvent(ctx context.Context, event *chain.ContractEv
 		var app *neorequestsupabase.MiniApp
 		var loadErr error
 		if strings.TrimSpace(parsed.AppID) != "" {
-			app, loadErr = s.loadMiniApp(ctx, parsed.AppID)
+			app, loadErr = s.loadMiniApp(ctx, parsed.AppID, event.ChainID)
 		} else if strings.TrimSpace(event.Contract) != "" {
-			app, loadErr = s.loadMiniAppByContractAddress(ctx, event.Contract)
+			app, loadErr = s.loadMiniAppByContractAddress(ctx, event.ChainID, event.Contract)
 			if loadErr == nil && app != nil {
 				parsed.AppID = app.AppID
 				logger = s.Logger().WithFields(map[string]interface{}{
@@ -1114,12 +1121,12 @@ func (s *Service) handleMetricEvent(ctx context.Context, event *chain.ContractEv
 		case app != nil && !isAppActive(app.Status):
 			return nil
 		case app != nil && s.enforceAppRegistry:
-			if regErr := s.validateAppRegistry(ctx, app); regErr != nil {
+			if regErr := s.validateAppRegistry(ctx, app, event.ChainID); regErr != nil {
 				logger.WithContext(ctx).WithError(regErr).Warn("app registry validation failed")
 				return nil
 			}
 		case app != nil:
-			if contractAddress := appContractAddress(app, s.chainID); contractAddress != "" {
+			if contractAddress := appContractAddress(app, event.ChainID); contractAddress != "" {
 				if normalizeContractAddress(event.Contract) != contractAddress {
 					logger.WithContext(ctx).Warn("miniapp contract address mismatch")
 					return nil
@@ -1154,7 +1161,7 @@ func (s *Service) markNotificationProcessed(ctx context.Context, event *chain.Co
 	}
 
 	processed := &neorequestsupabase.ProcessedEvent{
-		ChainID:         s.chainID,
+		ChainID:         event.ChainID,
 		TxHash:          event.TxHash,
 		LogIndex:        event.LogIndex,
 		BlockHeight:     event.BlockIndex,
@@ -1173,7 +1180,7 @@ func (s *Service) markGenericProcessed(ctx context.Context, event *chain.Contrac
 	}
 
 	processed := &neorequestsupabase.ProcessedEvent{
-		ChainID:         s.chainID,
+		ChainID:         event.ChainID,
 		TxHash:          event.TxHash,
 		LogIndex:        event.LogIndex,
 		BlockHeight:     event.BlockIndex,
@@ -1203,7 +1210,7 @@ func (s *Service) markMetricProcessed(ctx context.Context, event *chain.Contract
 	}
 
 	processed := &neorequestsupabase.ProcessedEvent{
-		ChainID:         s.chainID,
+		ChainID:         event.ChainID,
 		TxHash:          event.TxHash,
 		LogIndex:        event.LogIndex,
 		BlockHeight:     event.BlockIndex,

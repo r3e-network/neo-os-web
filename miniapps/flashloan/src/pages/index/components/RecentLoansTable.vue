@@ -49,7 +49,7 @@ const statusText = (status: LoanStatus) => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .stats-title-glass {
   font-size: 14px;

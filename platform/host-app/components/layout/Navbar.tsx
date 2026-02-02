@@ -56,7 +56,7 @@ export function Navbar() {
             <div className="relative">
               <div className="absolute inset-0 bg-erobo-purple/50 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
               <img
-                src="/logo.jpg"
+                src="/logo.png"
                 alt="NeoHub"
                 className="relative h-8 w-8 transition-transform group-hover:scale-105"
               />

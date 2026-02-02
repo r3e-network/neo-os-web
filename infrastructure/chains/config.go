@@ -13,6 +13,7 @@ type ChainType string
 
 const (
 	ChainTypeNeoN3 ChainType = "neo-n3"
+	ChainTypeEVM   ChainType = "evm"
 )
 
 type NativeCurrency struct {
@@ -123,7 +124,7 @@ func (c ChainConfig) Validate() error {
 		return errors.New("chain id is required")
 	}
 	if c.Type != ChainTypeNeoN3 {
-		return fmt.Errorf("chain %s has invalid type %q", c.ID, c.Type)
+		return fmt.Errorf("chain %s has invalid type %q (only neo-n3 is supported)", c.ID, c.Type)
 	}
 	if len(c.RPCUrls) == 0 {
 		return fmt.Errorf("chain %s must have at least one rpc_url", c.ID)

@@ -104,7 +104,7 @@ const emit = defineEmits<{
     oracle: string;
     initialLiquidity: number;
   }];
-}];
+}>();
 
 const formData = reactive({
   question: "",

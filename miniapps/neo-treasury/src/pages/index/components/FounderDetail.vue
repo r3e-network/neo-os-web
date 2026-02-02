@@ -121,7 +121,7 @@ function toggleWallet(idx: number) {
   
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .mb-6 { margin-bottom: 24px; }
 

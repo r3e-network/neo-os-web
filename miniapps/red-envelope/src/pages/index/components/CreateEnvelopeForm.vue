@@ -59,7 +59,7 @@ defineEmits(["update:name", "update:description", "update:amount", "update:count
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 $gold: #f1c40f;
 $gold-dark: #d4ac0d;

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.jpg" alt="NeoHub" width="128" />
+  <img src="public/logo.png" alt="NeoHub" width="128" />
 </p>
 
 # NeoHub Host App (Next.js)

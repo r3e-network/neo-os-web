@@ -1,13 +1,11 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-lottery" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-lottery" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
           <text class="sidebar-title">{{ t('overview') }}</text>
         </view>
       </template>
->
     <!-- Chain Warning - Framework Component -->
     <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
@@ -214,6 +212,7 @@ import { useLotteryTypes, type LotteryTypeInfo } from "../../shared/composables/
 import { useScratchCard, type ScratchTicket } from "../../shared/composables/useScratchCard";
 import { useLotteryState } from "./composables/useLotteryState";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
+import { useI18n } from "@/composables/useI18n";
 
 const { t } = useI18n();
 const { handleError, getUserMessage, canRetry, clearError } = useErrorHandler();
@@ -398,7 +397,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./lottery-theme.scss";
 
 .wallet-prompt-container {

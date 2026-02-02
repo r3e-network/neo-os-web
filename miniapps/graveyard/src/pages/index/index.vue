@@ -335,7 +335,7 @@ watch(activeTab, async (tab) => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./graveyard-theme.scss";
 
 :global(page) {

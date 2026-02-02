@@ -35,7 +35,7 @@ defineProps<{
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .reward-milestones { display: flex; justify-content: space-between; gap: 12px; }
 

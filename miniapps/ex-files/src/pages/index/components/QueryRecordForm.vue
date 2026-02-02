@@ -77,7 +77,7 @@ defineEmits(["update:queryInput", "query"]);
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .section-icon {
   font-size: 20px;

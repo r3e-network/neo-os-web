@@ -65,7 +65,7 @@ const effectStyle = computed(() => ({
 </script>
 
 <style lang="scss">
-@use "@shared/styles/tokens.scss" as *;
+@use "../styles/tokens.scss" as *;
 .blur-glow {
   position: relative;
   overflow: hidden;

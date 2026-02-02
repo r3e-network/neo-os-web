@@ -122,7 +122,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./grant-share-theme.scss";
 
 :global(page) {

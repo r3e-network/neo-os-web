@@ -419,7 +419,7 @@ watch(activeTab, (next) => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./milestone-escrow-theme.scss";
 
 :global(page) {

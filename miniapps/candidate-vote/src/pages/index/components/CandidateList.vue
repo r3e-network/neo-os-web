@@ -143,7 +143,7 @@ const getRankClass = (index: number) => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 
 .candidate-list-card {
   margin-bottom: 24px;

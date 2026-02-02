@@ -1,13 +1,11 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-daily-checkin" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-daily-checkin" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
           <text class="sidebar-title">{{ t('overview') }}</text>
         </view>
       </template>
->
     <!-- Chain Warning - Framework Component -->
     <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
@@ -369,7 +367,7 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./daily-checkin-theme.scss";
 @import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Quicksand:wght@300;400;500;600;700&display=swap");
 

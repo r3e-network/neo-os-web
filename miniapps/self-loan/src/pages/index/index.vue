@@ -1,11 +1,10 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-self-loan" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
+  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-self-loan" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
           <text class="sidebar-title">{{ t('overview') }}</text>
         </view>
       </template>
->
     <ErrorBoundary 
       @error="handleBoundaryError" 
       @retry="resetAndReload"
@@ -246,7 +245,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss";
+@use "@shared/styles/variables.scss" as *;
 @import "./self-loan-theme.scss";
 
 :global(page) {
