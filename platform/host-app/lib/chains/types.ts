@@ -99,7 +99,7 @@ export type ChainConfig = NeoN3ChainConfig;
 /**
  * Wallet provider types by chain type
  */
-export type NeoWalletProvider = "neoline" | "o3" | "onegate" | "auth0";
+export type NeoWalletProvider = "neoline" | "o3" | "onegate";
 export type WalletProviderType = NeoWalletProvider;
 
 /**

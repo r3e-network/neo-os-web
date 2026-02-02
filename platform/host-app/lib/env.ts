@@ -5,11 +5,6 @@ export const env = createEnv({
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
-    AUTH0_SECRET: z.string().min(1).optional(),
-    AUTH0_BASE_URL: z.string().url().optional(),
-    AUTH0_ISSUER_BASE_URL: z.string().url().optional(),
-    AUTH0_CLIENT_ID: z.string().min(1).optional(),
-    AUTH0_CLIENT_SECRET: z.string().min(1).optional(),
     SENDGRID_API_KEY: z.string().min(1).optional(),
     EDGE_BASE_URL: z.string().url().optional(),
     EDGE_RPC_ALLOWLIST: z.string().optional(),
@@ -28,11 +23,6 @@ export const env = createEnv({
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    AUTH0_SECRET: process.env.AUTH0_SECRET,
-    AUTH0_BASE_URL: process.env.AUTH0_BASE_URL,
-    AUTH0_ISSUER_BASE_URL: process.env.AUTH0_ISSUER_BASE_URL,
-    AUTH0_CLIENT_ID: process.env.AUTH0_CLIENT_ID,
-    AUTH0_CLIENT_SECRET: process.env.AUTH0_CLIENT_SECRET,
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
     EDGE_BASE_URL: process.env.EDGE_BASE_URL,
     EDGE_RPC_ALLOWLIST: process.env.EDGE_RPC_ALLOWLIST,

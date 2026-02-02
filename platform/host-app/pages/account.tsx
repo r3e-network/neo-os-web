@@ -4,7 +4,6 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
 import {
   Shield,
@@ -13,13 +12,6 @@ import {
   Zap,
   TrendingUp,
   Flame,
-  User,
-  LogOut,
-  Mail,
-  Check,
-  Github,
-  Twitter,
-  Chrome,
   Copy,
 } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
@@ -30,10 +22,7 @@ import {
   TokenManagement,
   AccountBackup,
   PasswordChange,
-  NeoAccountManagement,
-  NeoHubAccountPanel,
 } from "@/components/features/account";
-import { useUser } from "@auth0/nextjs-auth0/client";
 import { useTranslation } from "@/lib/i18n/react";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +31,6 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 export default function AccountPage() {
   const { t } = useTranslation("host");
   const { address, connected } = useWalletStore();
-  const { user } = useUser();
   const { stats, levelInfo } = useGamification(address);
 
   // Fallback values
@@ -124,135 +112,6 @@ export default function AccountPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </ScrollReveal>
-
-              {/* NeoHub Account Panel - for social account users */}
-              <ScrollReveal animation="fade-up" delay={0.2}>
-                {user && <NeoHubAccountPanel />}
-              </ScrollReveal>
-
-              {/* Auth/Profile Section with Socials */}
-              <ScrollReveal animation="fade-up" delay={0.3}>
-                <Card className="erobo-card rounded-[28px]">
-                  <CardHeader className="border-b border-white/60 dark:border-white/10 pb-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-xl font-bold text-erobo-ink dark:text-white flex items-center gap-2">
-                          <User className="text-erobo-purple" size={24} strokeWidth={2} />
-                          {t("account.auth.title")}
-                        </CardTitle>
-                        <CardDescription className="mt-1 text-erobo-ink-soft/70 dark:text-gray-400">
-                          {t("account.auth.subtitle")}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-6 space-y-6">
-                    {/* Main Auth Status */}
-                    {user ? (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-erobo-sky/60 dark:bg-white/5 border border-white/60 dark:border-white/10">
-                        <div className="flex items-center gap-4">
-                          {user.picture ? (
-                            <img
-                              src={user.picture}
-                              alt=""
-                              className="w-12 h-12 rounded-xl border border-white/60 dark:border-white/10"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-xl bg-erobo-purple/20 flex items-center justify-center text-erobo-purple">
-                              <User size={24} strokeWidth={2} />
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-base font-semibold text-erobo-ink dark:text-white">{user.name}</p>
-                            <p className="text-sm text-erobo-ink-soft/70 dark:text-gray-400 font-mono">
-                              {user.email}
-                            </p>
-                          </div>
-                        </div>
-                        <a href="/api/auth/logout" className="w-full sm:w-auto">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full sm:w-auto gap-2 rounded-lg border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-medium hover:bg-red-100 dark:hover:bg-red-500/20 transition-all"
-                          >
-                            <LogOut size={16} strokeWidth={2} />
-                            {t("account.auth.logout")}
-                          </Button>
-                        </a>
-                      </div>
-                    ) : (
-                      <div className="p-8 rounded-2xl bg-white/70 dark:bg-white/5 border border-dashed border-white/60 dark:border-white/10 text-center">
-                        <p className="text-erobo-ink-soft/70 dark:text-gray-400 mb-4">{t("account.notConnected")}</p>
-                        <a href="/api/auth/login">
-                          <Button className="rounded-full bg-erobo-ink text-white hover:brightness-110 transition-all font-medium min-w-[200px]">
-                            {t("account.auth.signIn")}
-                          </Button>
-                        </a>
-                      </div>
-                    )}
-
-                    {/* Email Settings */}
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-erobo-ink-soft dark:text-gray-300 flex items-center gap-2">
-                        <Mail size={16} strokeWidth={2} />
-                        {t("account.auth.email")}
-                      </h3>
-                      <div className="flex gap-3">
-                        <Input
-                          defaultValue={user?.email || ""}
-                          placeholder="your@email.com"
-                          className="rounded-full border border-white/60 dark:border-white/10 bg-white/70 dark:bg-white/5 font-mono"
-                          readOnly={!!user?.email}
-                        />
-                        <Button
-                          variant="outline"
-                          disabled={!user}
-                          className="rounded-full border border-white/60 dark:border-white/10 font-medium hover:bg-erobo-peach/30 dark:hover:bg-white/5"
-                        >
-                          {t("account.auth.update")}
-                        </Button>
-                      </div>
-                      {!user?.email_verified && user?.email && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                          <Zap size={14} fill="currentColor" /> Email not verified. Check your inbox.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Social Connections */}
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-erobo-ink-soft dark:text-gray-300 flex items-center gap-2">
-                        {t("account.auth.connectedAccounts")}
-                      </h3>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        {/* Google */}
-                        <SocialButton
-                          icon={<Chrome size={20} strokeWidth={2.5} />}
-                          label={t("account.auth.google")}
-                          connected={user?.sub?.includes("google-oauth2")}
-                        />
-                        {/* GitHub */}
-                        <SocialButton
-                          icon={<Github size={20} strokeWidth={2.5} />}
-                          label={t("account.auth.github")}
-                          connected={user?.sub?.includes("github")}
-                        />
-                        {/* Twitter */}
-                        <SocialButton
-                          icon={<Twitter size={20} strokeWidth={2.5} />}
-                          label={t("account.auth.twitter")}
-                          connected={user?.sub?.includes("twitter")}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </ScrollReveal>
-
-              {/* Neo Account Management for Social Users */}
-              <ScrollReveal animation="fade-up" delay={0.4}>
-                {user && <NeoAccountManagement walletAddress={address} />}
               </ScrollReveal>
 
               {/* Sub-components for Advanced Settings */}
@@ -407,34 +266,5 @@ function StatItem({ label, value }: { label: string; value: string | number }) {
       <div className="text-xl font-bold text-erobo-ink dark:text-white tabular-nums">{value}</div>
       <div className="text-[10px] text-erobo-ink-soft/70 dark:text-gray-400 mt-1 leading-tight">{label}</div>
     </div>
-  );
-}
-
-function SocialButton({ icon, label, connected }: { icon: React.ReactNode; label: string; connected?: boolean }) {
-  const { t } = useTranslation("host");
-  return (
-    <Button
-      variant="ghost"
-      className={cn(
-        "w-full justify-between h-auto py-3 px-4 rounded-full border transition-all",
-        connected
-          ? "bg-erobo-purple/10 text-erobo-purple border-erobo-purple/20"
-          : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft dark:text-gray-300 border-white/60 dark:border-white/10 hover:bg-erobo-peach/30 dark:hover:bg-white/10",
-      )}
-      onClick={() => !connected && (window.location.href = `/api/auth/login?connection=${label.toLowerCase()}`)}
-    >
-      <div className="flex items-center gap-3">
-        <div className={cn(connected ? "text-erobo-purple" : "text-erobo-ink-soft dark:text-gray-400")}>{icon}</div>
-        <span className="text-sm font-medium">{label}</span>
-      </div>
-      {connected ? (
-        <Badge className="ml-2 bg-erobo-purple/10 text-erobo-purple border border-erobo-purple/20 rounded-full text-[10px] font-medium">
-          <Check size={10} className="mr-1" />
-          {t("account.auth.connected")}
-        </Badge>
-      ) : (
-        <span className="text-xs text-erobo-ink-soft/70 dark:text-gray-500">{t("account.auth.connect")}</span>
-      )}
-    </Button>
   );
 }

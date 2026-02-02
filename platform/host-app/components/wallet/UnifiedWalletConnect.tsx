@@ -1,14 +1,11 @@
 /**
  * UnifiedWalletConnect - Wallet connection component
  *
- * Supports both social accounts and extension wallets
+ * Supports extension wallets only
  */
 
 import { useState, useCallback } from "react";
-import { useUser } from "@auth0/nextjs-auth0/client";
 import { useWalletStore, walletOptions } from "@/lib/wallet/store";
-import { useMultiChainAccountSetup } from "@/lib/wallet/hooks/useMultiChainAccountSetup";
-import { PasswordSetupModal } from "./PasswordSetupModal";
 import type { ChainId, ChainType } from "@/lib/chains/types";
 
 // Chains to generate accounts for on social login (platform-level, not MiniApp-specific)
@@ -23,39 +20,11 @@ interface UnifiedWalletConnectProps {
 }
 
 export function UnifiedWalletConnect({ onConnect, onError }: UnifiedWalletConnectProps) {
-  const { user, isLoading: userLoading } = useUser();
   const { connect, connected, address, loading, error } = useWalletStore();
-  const { needsSetup, setupMultipleAccounts, isLoading: setupLoading } = useMultiChainAccountSetup();
-
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [, setConnectMode] = useState<"social" | "extension" | null>(null);
-
-  // Handle social account connection
-  const handleSocialConnect = useCallback(async () => {
-    if (!user) {
-      // Redirect to login
-      window.location.href = "/api/auth/login";
-      return;
-    }
-
-    if (needsSetup) {
-      setShowPasswordModal(true);
-      setConnectMode("social");
-      return;
-    }
-
-    try {
-      await connect("auth0");
-      onConnect?.(address);
-    } catch (err) {
-      onError?.(err instanceof Error ? err.message : "Connection failed");
-    }
-  }, [user, needsSetup, connect, address, onConnect, onError]);
 
   // Handle extension wallet connection
   const handleExtensionConnect = useCallback(
     async (provider: "neoline" | "o3" | "onegate") => {
-      setConnectMode("extension");
       try {
         await connect(provider);
         onConnect?.(address);
@@ -64,21 +33,6 @@ export function UnifiedWalletConnect({ onConnect, onError }: UnifiedWalletConnec
       }
     },
     [connect, address, onConnect, onError],
-  );
-
-  // Handle password setup completion - generates accounts for platform supported chains
-  const handlePasswordSetup = useCallback(
-    async (password: string) => {
-      try {
-        await setupMultipleAccounts(ACCOUNT_SETUP_CHAINS, password);
-        setShowPasswordModal(false);
-        await connect("auth0");
-        onConnect?.(address);
-      } catch (err) {
-        onError?.(err instanceof Error ? err.message : "Setup failed");
-      }
-    },
-    [setupMultipleAccounts, connect, address, onConnect, onError],
   );
 
   if (connected) {
@@ -96,21 +50,6 @@ export function UnifiedWalletConnect({ onConnect, onError }: UnifiedWalletConnec
   return (
     <>
       <div className="space-y-4">
-        {/* Social Account Option */}
-        <div className="p-6 bg-white dark:bg-card/40 border border-gray-200 dark:border-white/10 rounded-2xl backdrop-blur-md transition-all hover:bg-gray-50 dark:hover:bg-card/60">
-          <h3 className="mb-2 font-bold text-gray-900 dark:text-white tracking-tight">Social Account</h3>
-          <p className="mb-6 text-sm text-gray-500 dark:text-white/50">
-            Sign in with Google, GitHub, or Twitter. No extension needed.
-          </p>
-          <button
-            onClick={handleSocialConnect}
-            disabled={loading || userLoading || setupLoading}
-            className="w-full py-3 bg-neo text-black font-bold rounded-full shadow-[0_0_15px_rgba(0,229,153,0.3)] hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(0,229,153,0.5)] transition-all disabled:opacity-50"
-          >
-            {userLoading || setupLoading ? "Loading..." : user ? "Connect Social Account" : "Sign In"}
-          </button>
-        </div>
-
         {/* Extension Wallets */}
         <div className="p-6 bg-white dark:bg-card/40 border border-gray-200 dark:border-white/10 rounded-2xl backdrop-blur-md transition-all hover:bg-gray-50 dark:hover:bg-card/60">
           <h3 className="mb-2 font-bold text-gray-900 dark:text-white tracking-tight">Extension Wallet</h3>
@@ -134,14 +73,6 @@ export function UnifiedWalletConnect({ onConnect, onError }: UnifiedWalletConnec
 
         {error && <p className="text-sm font-bold text-red-400 text-center">{error}</p>}
       </div>
-
-      {/* Password Setup Modal */}
-      <PasswordSetupModal
-        isOpen={showPasswordModal}
-        onSetup={handlePasswordSetup}
-        onCancel={() => setShowPasswordModal(false)}
-        isLoading={setupLoading}
-      />
     </>
   );
 }

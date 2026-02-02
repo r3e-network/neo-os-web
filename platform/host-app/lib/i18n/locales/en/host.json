@@ -208,7 +208,7 @@
     "auth": {
       "title": "Account",
       "subtitle": "Sign in with Google, Twitter, or GitHub",
-      "signIn": "Sign in with Auth0",
+      "signIn": "Connect Wallet",
       "logout": "Logout",
       "connectedAccounts": "Connected Accounts",
       "google": "Google",
@@ -613,9 +613,9 @@
       "comparisonDesc": "NeoHub provides a unique dual-authentication system. While users can log in via social media (Google, X, GitHub) for convenience, certain high-security actions still require a connected Neo wallet.",
       "socialTitle": "Social Auth",
       "socialItems": [
-        "Easy onboarding via Auth0",
-        "Enables profile synchronization",
-        "Perfect for casually exploring apps"
+        "Easy wallet connection",
+        "Direct on-chain identity",
+        "Full control over digital assets"
       ],
       "walletTitle": "Wallet Auth",
       "walletItems": [
@@ -629,7 +629,7 @@
         "rows": [
           [
             "Onboarding",
-            "Seconds (Auth0)",
+            "Instant",
             "Manual Wallet Connect"
           ],
           [

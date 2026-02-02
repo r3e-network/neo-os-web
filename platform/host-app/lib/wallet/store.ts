@@ -1,14 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { WalletAdapter, WalletBalance, SignedMessage, NeoInvokeParams, TransactionResult } from "./adapters";
-import { NeoLineAdapter, O3Adapter, OneGateAdapter, Auth0Adapter, WalletNotInstalledError } from "./adapters";
-import { PasswordCache } from "./password-cache";
+import { NeoLineAdapter, O3Adapter, OneGateAdapter, WalletNotInstalledError } from "./adapters";
 import type { ChainId, ChainType } from "../chains/types";
 import { getChainRegistry } from "../chains/registry";
 import { getChainRpcUrl } from "../chain/rpc-client";
 
 // Multi-chain wallet provider types
-export type NeoWalletProvider = "neoline" | "o3" | "onegate" | "auth0";
+export type NeoWalletProvider = "neoline" | "o3" | "onegate";
 export type WalletProvider = NeoWalletProvider | string; // Allow string for future extensibility
 
 /** Initial chain for wallet state */
@@ -79,7 +78,6 @@ const neoAdapters: Record<string, WalletAdapter> = {
   neoline: new NeoLineAdapter(),
   o3: new O3Adapter(),
   onegate: new OneGateAdapter(),
-  auth0: new Auth0Adapter(),
 };
 
 // Helper to check if provider is Neo
@@ -207,24 +205,6 @@ export const useWalletStore = create<WalletStore>()(
           throw new Error("Unsupported provider for signing");
         }
 
-        if (provider === "auth0") {
-          const pwdPromise = new Promise<string>((resolve, reject) => {
-            set({ passwordCallback: { resolve, reject } });
-          });
-
-          try {
-            const password = await pwdPromise;
-            try {
-              return await (neoAdapters.auth0 as Auth0Adapter).signWithPassword(message, password);
-            } catch (err) {
-              PasswordCache.clear();
-              throw err;
-            }
-          } finally {
-            set({ passwordCallback: null });
-          }
-        }
-
         return neoAdapters[provider].signMessage(message);
       },
 
@@ -236,25 +216,7 @@ export const useWalletStore = create<WalletStore>()(
           throw new Error("Unsupported provider for Neo invocation");
         }
 
-        if (provider === "auth0") {
-          const pwdPromise = new Promise<string>((resolve, reject) => {
-            set({ passwordCallback: { resolve, reject } });
-          });
-
-          try {
-            const password = await pwdPromise;
-            try {
-              return await (neoAdapters.auth0 as Auth0Adapter).invokeWithPassword(params, password, chainId);
-            } catch (err) {
-              PasswordCache.clear();
-              throw err;
-            }
-          } finally {
-            set({ passwordCallback: null });
-          }
-        }
-
-        return neoAdapters[provider].invoke(params);
+        return neoAdapters[provider].invoke(params, chainId);
       },
 
       submitPassword: (password: string) => {
@@ -331,11 +293,6 @@ export const useWalletStore = create<WalletStore>()(
         chainId: state.chainId,
         chainType: state.chainType,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state?.provider === "auth0") {
-          state.provider = null;
-        }
-      },
     },
   ),
 );
@@ -368,10 +325,4 @@ export function getActiveRpcUrl(): string {
   const state = useWalletStore.getState();
   const { customRpcUrls, chainId } = state.networkConfig;
   return customRpcUrls[chainId] || getChainRpcUrl(chainId);
-}
-
-/** Check if user can configure network (social accounts only) */
-export function canConfigureNetwork(): boolean {
-  const provider = useWalletStore.getState().provider;
-  return provider === "auth0";
 }

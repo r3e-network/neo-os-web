@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useWalletStore } from "@/lib/wallet/store";
-import { useUser } from "@auth0/nextjs-auth0/client";
 
 export interface UseRequireWalletOptions {
   /** URL to redirect to if not connected (default: "/") */
@@ -38,11 +37,10 @@ export function useRequireWallet(options: UseRequireWalletOptions | string = {})
 
   const router = useRouter();
   const { connected, loading: walletLoading, address, provider } = useWalletStore();
-  const { user, isLoading: authLoading } = useUser();
   const [showModal, setShowModal] = useState(false);
 
-  const isLoading = walletLoading || authLoading;
-  const isConnected = connected || !!user;
+  const isLoading = walletLoading;
+  const isConnected = connected;
 
   const checkConnection = useCallback(() => {
     if (isLoading) return true; // Still loading, assume connected

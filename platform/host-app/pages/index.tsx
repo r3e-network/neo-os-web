@@ -37,7 +37,6 @@ import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
 import { DiscoveryCarousel } from "@/components/features/discovery";
 import { useRecommendations } from "@/components/features/recommendations";
 import { useWalletStore } from "@/lib/wallet/store";
-import { useUser } from "@auth0/nextjs-auth0/client";
 import { FeaturedHeroCarousel } from "@/components/features/discovery/FeaturedHeroCarousel";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
@@ -237,10 +236,9 @@ export default function LandingPage() {
     };
   }, [platformStats]);
 
-  // Platform Mode Logic
+  // Platform Mode Logic - wallet only
   const { connected } = useWalletStore();
-  const { user } = useUser();
-  const showDashboard = connected || !!user;
+  const showDashboard = connected;
 
   // Filter apps for Featured Carousel (e.g., promoted or high rating)
   const featuredApps = useMemo(() => {

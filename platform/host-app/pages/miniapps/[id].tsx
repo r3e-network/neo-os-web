@@ -212,10 +212,10 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   useEffect(() => {
     if (!app || !walletChainId) return;
     if (storeChainId === walletChainId) return;
-    if (!connected || provider === "auth0") {
+    if (!connected) {
       setChainId(walletChainId);
     }
-  }, [app, walletChainId, storeChainId, connected, provider, setChainId]);
+  }, [app, walletChainId, storeChainId, connected, setChainId]);
 
   // Ref for accessing wallet in callbacks
   const walletRef = useRef(wallet);

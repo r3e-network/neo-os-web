@@ -105,6 +105,6 @@ module.exports = {
     ],
   },
   transformIgnorePatterns: [
-    "/node_modules/(?!(@noble/hashes|@auth0/nextjs-auth0|\\.pnpm/@noble\\+hashes|\\.pnpm/@auth0\\+nextjs-auth0))",
+    "/node_modules/(?!(@noble/hashes|\\.pnpm/@noble\\+hashes))",
   ],
 };

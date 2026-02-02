@@ -3,14 +3,13 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { Menu, X, Globe, User, LogIn, Heart } from "lucide-react";
+import { Menu, X, Globe, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useCallback } from "react";
 import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
 import { NotificationDropdown } from "@/components/features/notifications/NotificationDropdown";
 import { SearchAutocomplete } from "@/components/features/search";
-import { useUser } from "@auth0/nextjs-auth0/client";
 
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
@@ -29,7 +28,6 @@ export function Navbar() {
   const router = useRouter();
   const { locale, setLocale, t } = useI18n();
   const { address: walletAddress } = useWalletStore();
-  const { user, isLoading: authLoading } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogoClick = useCallback(
@@ -117,46 +115,7 @@ export function Navbar() {
           {/* Notification Dropdown */}
           <NotificationDropdown />
 
-          {/* User Account / Login */}
-          {authLoading ? (
-            <div className="w-10 h-10 rounded-full bg-white/70 dark:bg-white/10 animate-pulse" />
-          ) : user ? (
-            <Link
-              href="/account"
-              className="flex items-center gap-2 p-1 rounded-full hover:bg-erobo-peach/30 dark:hover:bg-white/5 transition-all"
-              title={user?.name || "Account"}
-            >
-              {user?.picture ? (
-                <img
-                  src={user.picture}
-                  alt=""
-                  className="w-8 h-8 rounded-full border border-white/60 dark:border-white/10"
-                />
-              ) : (
-                <div className="w-8 h-8 bg-erobo-purple/20 text-erobo-purple flex items-center justify-center rounded-full border border-erobo-purple/30">
-                  <User size={16} />
-                </div>
-              )}
-            </Link>
-          ) : walletAddress ? (
-            /* Wallet connected - show disabled social login */
-            <div
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-white/60 dark:border-gray-700 bg-white/70 dark:bg-gray-900/50 text-gray-400 rounded-full cursor-not-allowed"
-              title={t("wallet.socialDisabledWhenConnected") || "Social login disabled (wallet connected)"}
-            >
-              <LogIn size={16} strokeWidth={2.5} />
-              <span className="hidden sm:inline">{t("actions.login") || "Login"}</span>
-            </div>
-          ) : (
-            <a
-              href="/api/auth/login"
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-erobo-ink text-white hover:brightness-110 transition-all rounded-full shadow-[0_18px_45px_rgba(27,27,47,0.35)] hover:shadow-[0_24px_60px_rgba(27,27,47,0.45)]"
-            >
-              <LogIn size={16} strokeWidth={2.5} />
-              <span className="hidden sm:inline">{t("actions.login") || "Login"}</span>
-            </a>
-          )}
-
+          {/* Wallet Connect Button */}
           <ConnectButton />
 
           {/* Mobile Menu Button */}

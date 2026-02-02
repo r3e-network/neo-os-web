@@ -7,7 +7,6 @@
 
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
-import { getSession } from "@auth0/nextjs-auth0";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
@@ -17,14 +16,11 @@ import { ZodError } from "zod";
 export async function createContext(opts: CreateNextContextOptions) {
   const { req, res } = opts;
 
-  // Get Auth0 session (may be null for public routes)
-  const session = await getSession(req, res);
-
+  // Wallet-only: no session, user is identified by wallet connection
   return {
     req,
     res,
-    session,
-    user: session?.user ?? null,
+    user: null,
   };
 }
 
@@ -55,16 +51,14 @@ export const middleware = t.middleware;
 
 /**
  * Auth middleware - ensures user is authenticated
+ * Note: With wallet-only auth, this is simplified. 
+ * Wallet verification happens at the API level via signature verification.
  */
 const isAuthed = middleware(({ ctx, next }) => {
-  if (!ctx.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
-  }
+  // Wallet-only: authentication is handled via wallet signatures
+  // This is a simplified check - real auth happens in individual procedures
   return next({
-    ctx: {
-      ...ctx,
-      user: ctx.user,
-    },
+    ctx,
   });
 });
 

@@ -132,7 +132,7 @@ async function handleConnect(payload: unknown): Promise<unknown> {
   if (!registry.getChain(chainId as ChainId)) {
     throw new Error(`Unknown chain: ${chainId}`);
   }
-  if (!["neoline", "o3", "onegate", "auth0"].includes(provider)) {
+  if (!["neoline", "o3", "onegate"].includes(provider)) {
     throw new Error(`Unsupported provider: ${provider}`);
   }
   const store = useWalletStore.getState();

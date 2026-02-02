@@ -24,7 +24,7 @@ import {
 } from "./wallet-service";
 
 import type { WalletBalance, SignedMessage, TransactionResult } from "./adapters/base";
-import { NeoLineAdapter, O3Adapter, OneGateAdapter, Auth0Adapter } from "./adapters";
+import { NeoLineAdapter, O3Adapter, OneGateAdapter } from "./adapters";
 import type { ChainId } from "../chains/types";
 import { getChainRegistry } from "../chains/registry";
 
@@ -48,8 +48,6 @@ class WalletServiceImpl implements IWalletService {
     o3: new O3Adapter(),
     onegate: new OneGateAdapter(),
   };
-
-  private readonly socialAdapter = new Auth0Adapter();
 
   get isConnected(): boolean {
     return this._account !== null;
@@ -83,10 +81,6 @@ class WalletServiceImpl implements IWalletService {
       throw new Error("Chain ID not set - connect to a specific chain first");
     }
 
-    if (this._providerType === "social") {
-      return this.socialAdapter.getBalance(this._account.address, this._chainId);
-    }
-
     if (this._extensionProvider && this._extensionProvider in this.neoAdapters) {
       return this.neoAdapters[this._extensionProvider as NeoExtensionProvider].getBalance(
         this._account.address,
@@ -100,11 +94,6 @@ class WalletServiceImpl implements IWalletService {
   async signMessage(request: SignRequest): Promise<SignedMessage> {
     if (!this._account) {
       throw new WalletNotConnectedError();
-    }
-
-    if (this._providerType === "social") {
-      const password = request.password || (await this.requestPassword());
-      return this.socialAdapter.signWithPassword(request.message, password);
     }
 
     if (this._extensionProvider && this._extensionProvider in this.neoAdapters) {
@@ -130,11 +119,6 @@ class WalletServiceImpl implements IWalletService {
       signers: request.signers,
     };
 
-    if (this._providerType === "social") {
-      const password = request.password || (await this.requestPassword());
-      return this.socialAdapter.invokeWithPassword(params, password, this._chainId);
-    }
-
     if (this._extensionProvider && this._extensionProvider in this.neoAdapters) {
       return this.neoAdapters[this._extensionProvider as NeoExtensionProvider].invoke(params);
     }
@@ -147,33 +131,7 @@ class WalletServiceImpl implements IWalletService {
     providerName?: string,
     chainId?: ChainId,
   ): Promise<UnifiedWalletAccount> {
-    if (providerType === "social") {
-      return this.connectSocial(chainId);
-    }
-
     return this.connectExtension(providerName as ExtensionProvider, chainId);
-  }
-
-  private async connectSocial(chainId: ChainId = "neo-n3-mainnet"): Promise<UnifiedWalletAccount> {
-    const walletAccount = await this.socialAdapter.connect();
-    const registry = getChainRegistry();
-    const chain = registry.getChain(chainId);
-
-    this._account = {
-      address: walletAccount.address,
-      publicKey: walletAccount.publicKey,
-      providerType: "social",
-      providerName: "Social Account",
-      chainId,
-      chainType: chain?.type || "neo-n3",
-      label: walletAccount.label,
-    };
-    this._providerType = "social";
-    this._extensionProvider = null;
-    this._chainId = chainId;
-
-    this.emit({ type: "connected", data: this._account });
-    return this._account;
   }
 
   private async connectExtension(

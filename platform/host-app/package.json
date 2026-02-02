@@ -16,7 +16,6 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@auth0/nextjs-auth0": "^4.14.1",
     "@cityofzion/neon-js": "^5.8.0",
     "@noble/curves": "^2.0.1",
     "@noble/hashes": "^2.0.1",

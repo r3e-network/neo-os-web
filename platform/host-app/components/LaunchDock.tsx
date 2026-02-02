@@ -3,7 +3,6 @@ import { ArrowLeft, X, Share2, Globe, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WalletState } from "./types";
 import { NetworkSelector } from "./features/wallet/NetworkSelector";
-import { RpcSettingsModal } from "./features/wallet/RpcSettingsModal";
 import type { ChainId } from "@/lib/chains/types";
 
 export type LaunchDockProps = {
@@ -26,9 +25,6 @@ export function LaunchDock({
   onExit,
   onShare,
 }: LaunchDockProps) {
-  const [showRpcSettings, setShowRpcSettings] = useState(false);
-  const isSocialAccount = wallet.provider === "auth0";
-
   const getNetworkStatus = () => {
     if (networkLatency === null) return { color: "text-red-500", dot: "bg-red-500", label: "Offline" };
     if (networkLatency < 100) return { color: "text-neo", dot: "bg-neo", label: "Good" };
@@ -38,12 +34,10 @@ export function LaunchDock({
 
   const networkStatus = getNetworkStatus();
   const walletDisplay = wallet.connected
-    ? wallet.provider === "auth0"
-      ? "Social"
-      : `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
+    ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
     : "No Wallet";
 
-  const walletDotColor = wallet.connected ? (wallet.provider === "auth0" ? "bg-blue-500" : "bg-neo") : "bg-red-500";
+  const walletDotColor = wallet.connected ? "bg-neo" : "bg-red-500";
 
   return (
     <div className="fixed top-0 left-0 right-0 h-14 bg-white/70 dark:bg-[#0b0c16]/90 backdrop-blur-xl border-b border-white/60 dark:border-white/10 flex items-center px-4 gap-4 z-[9999] shadow-sm">
@@ -65,13 +59,11 @@ export function LaunchDock({
       <div className="flex-1" />
 
       <div className="flex items-center gap-2 md:gap-4">
-        {/* Network Selector - clickable for social accounts, display-only for wallets */}
+        {/* Network Selector */}
         {wallet.connected && (
           <NetworkSelector
             compact
-            showSettings={isSocialAccount}
             allowedChainIds={supportedChainIds}
-            onSettingsClick={() => setShowRpcSettings(true)}
           />
         )}
 
@@ -107,9 +99,6 @@ export function LaunchDock({
           </button>
         </div>
       </div>
-
-      {/* RPC Settings Modal for social accounts */}
-      {isSocialAccount && <RpcSettingsModal isOpen={showRpcSettings} onClose={() => setShowRpcSettings(false)} />}
     </div>
   );
 }

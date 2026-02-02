@@ -208,7 +208,7 @@
     "auth": {
       "title": "账户",
       "subtitle": "使用 Google、Twitter 或 GitHub 登录",
-      "signIn": "使用 Auth0 登录",
+      "signIn": "连接钱包",
       "logout": "退出登录",
       "connectedAccounts": "已连接账户",
       "google": "Google",
@@ -613,9 +613,9 @@
       "comparisonDesc": "NeoHub 提供独特的双重认证系统。用户可以通过社交媒体（Google、X、GitHub）方便地登录，但某些高安全性操作仍需要连接 Neo 钱包。",
       "socialTitle": "社交认证",
       "socialItems": [
-        "通过 Auth0 轻松快速入门",
-        "支持个人资料同步",
-        "适合随意浏览应用"
+        "轻松连接钱包",
+        "直接链上身份",
+        "完全控制数字资产"
       ],
       "walletTitle": "钱包认证",
       "walletItems": [
@@ -629,7 +629,7 @@
         "rows": [
           [
             "入门体验",
-            "秒级 (Auth0)",
+            "即时",
             "手动连接钱包"
           ],
           [

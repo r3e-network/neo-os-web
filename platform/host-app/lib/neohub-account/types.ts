@@ -19,7 +19,6 @@ export interface LinkedIdentity {
   neohubAccountId: string;
   provider: "google-oauth2" | "twitter" | "github";
   providerUserId: string;
-  auth0Sub: string;
   email?: string;
   name?: string;
   avatar?: string;
@@ -77,7 +76,6 @@ export interface NeoHubAccountFull extends NeoHubAccount {
 
 export interface CreateAccountParams {
   password: string;
-  auth0Sub: string;
   provider: string;
   email?: string;
   name?: string;
@@ -86,7 +84,6 @@ export interface CreateAccountParams {
 
 export interface LinkIdentityParams {
   neohubAccountId: string;
-  auth0Sub: string;
   provider: string;
   providerUserId: string;
   email?: string;
@@ -114,7 +111,6 @@ export interface IdentityRow {
   neohub_account_id: string;
   provider: string;
   provider_user_id: string;
-  auth0_sub: string;
   email?: string;
   name?: string;
   avatar?: string;

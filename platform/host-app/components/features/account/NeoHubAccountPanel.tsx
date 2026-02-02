@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Users, Wallet } from "lucide-react";
-import { useUser } from "@auth0/nextjs-auth0/client";
+import { useWalletStore } from "@/lib/wallet/store";
 import { useTranslation } from "@/lib/i18n/react";
 import { LinkedIdentitiesList } from "./LinkedIdentitiesList";
 import { LinkedNeoAccountsList } from "./LinkedNeoAccountsList";
@@ -13,15 +13,22 @@ interface NeoHubAccountData {
   linkedNeoAccounts: LinkedNeoAccount[];
 }
 
+/**
+ * @deprecated This component is for social account management only.
+ * For wallet-based authentication, the connected wallet serves as the primary account.
+ */
 export function NeoHubAccountPanel() {
   const { t } = useTranslation("host");
-  const { user } = useUser();
+  const { connected, address } = useWalletStore();
   const [accountData, setAccountData] = useState<NeoHubAccountData | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Fetch account data
   useEffect(() => {
-    if (!user) return;
+    if (!connected) {
+      setLoading(false);
+      return;
+    }
 
     const fetchData = async () => {
       try {
@@ -42,96 +49,77 @@ export function NeoHubAccountPanel() {
     };
 
     fetchData();
-  }, [user]);
+  }, [connected]);
 
-  // Unlink identity handler
-  const handleUnlinkIdentity = async (identityId: string, password: string) => {
-    const res = await fetch("/api/account/unlink-identity", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identityId, password }),
-    });
-
-    if (res.ok) {
-      setAccountData((prev) =>
-        prev
-          ? {
-            ...prev,
-            linkedIdentities: prev.linkedIdentities.filter((i) => i.id !== identityId),
-          }
-          : null,
-      );
-      return true;
-    }
+  // Unlink identity handler - not supported in wallet mode
+  const handleUnlinkIdentity = async (_identityId: string, _password: string) => {
     return false;
   };
 
-  // Unlink Neo account handler
-  const handleUnlinkNeo = async (neoAccountId: string, password: string) => {
-    const res = await fetch("/api/account/unlink-neo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ neoAccountId, password }),
-    });
-
-    if (res.ok) {
-      setAccountData((prev) =>
-        prev
-          ? {
-            ...prev,
-            linkedNeoAccounts: prev.linkedNeoAccounts.filter((n) => n.id !== neoAccountId),
-          }
-          : null,
-      );
-      return true;
-    }
+  // Unlink Neo account handler - not supported in wallet mode
+  const handleUnlinkNeo = async (_neoAccountId: string, _password: string) => {
     return false;
   };
 
-  if (!user || loading) return null;
-  if (!accountData) return null;
-
-  const totalAccounts = accountData.linkedIdentities.length + accountData.linkedNeoAccounts.length;
-  const canUnlink = totalAccounts > 1;
+  // Show wallet connection info instead of social account info
+  if (!connected) return null;
 
   return (
     <Card className="erobo-card">
       <CardHeader className="border-b border-gray-100 dark:border-white/5 pb-6">
         <CardTitle className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
           <Users size={28} className="text-neo" />
-          {t("account.neohub.title")}
+          {t("account.wallet.title") || "Connected Wallet"}
         </CardTitle>
         <CardDescription className="mt-1 text-gray-500 dark:text-gray-400">
-          {t("account.neohub.subtitle")}
+          {t("account.wallet.subtitle") || "Your wallet connection details"}
         </CardDescription>
       </CardHeader>
 
       <CardContent className="pt-6 space-y-8">
-        {/* Linked Social Accounts */}
-        <div>
-          <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
-            <Users size={16} className="text-gray-400" />
-            {t("account.neohub.linkedIdentities")}
-          </h3>
-          <LinkedIdentitiesList
-            identities={accountData.linkedIdentities}
-            canUnlink={canUnlink}
-            onUnlink={handleUnlinkIdentity}
-          />
+        {/* Current Wallet Address */}
+        <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+          <div className="flex items-center gap-2 mb-2">
+            <Wallet size={16} className="text-gray-400" />
+            <span className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              {t("account.wallet.address") || "Wallet Address"}
+            </span>
+          </div>
+          <p className="text-sm font-mono font-medium text-gray-900 dark:text-white break-all">
+            {address}
+          </p>
         </div>
 
-        {/* Linked Neo Wallets */}
-        <div>
-          <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
-            <Wallet size={16} className="text-gray-400" />
-            {t("account.neohub.linkedNeoAccounts")}
-          </h3>
-          <LinkedNeoAccountsList
-            accounts={accountData.linkedNeoAccounts}
-            canUnlink={canUnlink}
-            onUnlink={handleUnlinkNeo}
-          />
-        </div>
+        {/* Linked accounts sections - only show if account data exists */}
+        {accountData && (
+          <>
+            {/* Linked Social Accounts */}
+            <div>
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
+                <Users size={16} className="text-gray-400" />
+                {t("account.neohub.linkedIdentities")}
+              </h3>
+              <LinkedIdentitiesList
+                identities={accountData.linkedIdentities}
+                canUnlink={false}
+                onUnlink={handleUnlinkIdentity}
+              />
+            </div>
+
+            {/* Linked Neo Wallets */}
+            <div>
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
+                <Wallet size={16} className="text-gray-400" />
+                {t("account.neohub.linkedNeoAccounts")}
+              </h3>
+              <LinkedNeoAccountsList
+                accounts={accountData.linkedNeoAccounts}
+                canUnlink={false}
+                onUnlink={handleUnlinkNeo}
+              />
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

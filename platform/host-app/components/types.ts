@@ -130,7 +130,7 @@ export type MiniAppNotification = {
 export type WalletState = {
   connected: boolean;
   address: string;
-  provider: "neoline" | "o3" | "onegate" | "auth0" | null;
+  provider: "neoline" | "o3" | "onegate" | null;
   /** Active chain ID - null if app has no chain support or wallet not connected */
   chainId: ChainId | null;
   /** Balance on active chain */

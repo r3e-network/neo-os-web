@@ -9,13 +9,9 @@ import type { ChainId } from "@/lib/chains/types";
 import type {
   NeoHubAccount,
   NeoHubAccountFull,
-  LinkedIdentity,
   LinkedNeoAccount,
   LinkedChainAccount,
-  CreateAccountParams,
-  LinkIdentityParams,
   LinkNeoAccountParams,
-  IdentityRow,
   NeoAccountRow,
   ChainAccountRow,
 } from "./types";
@@ -66,22 +62,6 @@ export async function getNeoHubAccount(accountId: string): Promise<NeoHubAccount
 }
 
 /**
- * Get NeoHub account by Auth0 sub (social login)
- */
-export async function getNeoHubAccountByAuth0Sub(auth0Sub: string): Promise<NeoHubAccountFull | null> {
-  // Find linked identity
-  const { data: identity } = await supabase
-    .from("linked_identities")
-    .select("neohub_account_id")
-    .eq("auth0_sub", auth0Sub)
-    .single();
-
-  if (!identity) return null;
-
-  return getFullNeoHubAccount(identity.neohub_account_id);
-}
-
-/**
  * Get full NeoHub account with all linked accounts
  */
 export async function getFullNeoHubAccount(accountId: string): Promise<NeoHubAccountFull | null> {
@@ -105,25 +85,19 @@ export async function getFullNeoHubAccount(accountId: string): Promise<NeoHubAcc
 
   return {
     ...account,
-    linkedIdentities: (identities || []).map(mapIdentity),
+    linkedIdentities: (identities || []).map((row) => ({
+      id: row.id,
+      neohubAccountId: row.neohub_account_id,
+      provider: row.provider as "google-oauth2" | "twitter" | "github",
+      providerUserId: row.provider_user_id,
+      email: row.email,
+      name: row.name,
+      avatar: row.avatar,
+      linkedAt: row.linked_at,
+      lastUsedAt: row.last_used_at,
+    })),
     linkedNeoAccounts: (neoAccounts || []).map(mapNeoAccount),
     linkedChainAccounts: (chainAccounts || []).map(mapChainAccount),
-  };
-}
-
- 
-function mapIdentity(row: IdentityRow): LinkedIdentity {
-  return {
-    id: row.id,
-    neohubAccountId: row.neohub_account_id,
-    provider: row.provider as LinkedIdentity["provider"],
-    providerUserId: row.provider_user_id,
-    auth0Sub: row.auth0_sub,
-    email: row.email,
-    name: row.name,
-    avatar: row.avatar,
-    linkedAt: row.linked_at,
-    lastUsedAt: row.last_used_at,
   };
 }
 
@@ -151,55 +125,6 @@ function mapChainAccount(row: ChainAccountRow): LinkedChainAccount {
     chainId: row.chain_id as ChainId,
     chainType: row.chain_type as "neo-n3",
   };
-}
-
-/**
- * Create a new NeoHub account with initial social identity
- */
-export async function createNeoHubAccount(params: CreateAccountParams): Promise<NeoHubAccountFull> {
-  const { password, auth0Sub, provider, email, name, avatar } = params;
-
-  // Hash password
-  const { hash, salt } = hashPassword(password);
-
-  // Extract provider user ID from auth0_sub (e.g., "google-oauth2|123456" -> "123456")
-  const providerUserId = auth0Sub.includes("|") ? auth0Sub.split("|")[1] : auth0Sub;
-
-  // Create NeoHub account
-  const { data: account, error: accountError } = await supabase
-    .from("neohub_accounts")
-    .insert({
-      password_hash: hash,
-      password_salt: salt,
-      password_iterations: PASSWORD_ITERATIONS,
-      display_name: name,
-      avatar_url: avatar,
-    })
-    .select()
-    .single();
-
-  if (accountError || !account) {
-    throw new Error(`Failed to create NeoHub account: ${accountError?.message}`);
-  }
-
-  // Link initial social identity
-  const { error: identityError } = await supabase.from("linked_identities").insert({
-    neohub_account_id: account.id,
-    provider,
-    provider_user_id: providerUserId,
-    auth0_sub: auth0Sub,
-    email,
-    name,
-    avatar,
-  });
-
-  if (identityError) {
-    // Rollback account creation
-    await supabase.from("neohub_accounts").delete().eq("id", account.id);
-    throw new Error(`Failed to link identity: ${identityError.message}`);
-  }
-
-  return getFullNeoHubAccount(account.id) as Promise<NeoHubAccountFull>;
 }
 
 /**
@@ -271,35 +196,6 @@ export async function linkNeoAccount(params: LinkNeoAccountParams): Promise<Link
 }
 
 /**
- * Link additional social identity to NeoHub account
- */
-export async function linkIdentity(params: LinkIdentityParams): Promise<LinkedIdentity> {
-  const { neohubAccountId, auth0Sub, provider, providerUserId, email, name, avatar } = params;
-
-  const { data: identity, error } = await supabase
-    .from("linked_identities")
-    .insert({
-      neohub_account_id: neohubAccountId,
-      provider,
-      provider_user_id: providerUserId,
-      auth0_sub: auth0Sub,
-      email,
-      name,
-      avatar,
-    })
-    .select()
-    .single();
-
-  if (error || !identity) {
-    throw new Error(`Failed to link identity: ${error?.message}`);
-  }
-
-  await logAccountChange(neohubAccountId, "link_identity", { provider, auth0Sub });
-
-  return mapIdentity(identity);
-}
-
-/**
  * Unlink social identity (requires at least 1 identity or Neo account remaining)
  */
 export async function unlinkIdentity(
@@ -326,7 +222,7 @@ export async function unlinkIdentity(
   // Get identity info for logging
   const { data: identity } = await supabase
     .from("linked_identities")
-    .select("provider, auth0_sub")
+    .select("provider")
     .eq("id", identityId)
     .single();
 
@@ -339,7 +235,6 @@ export async function unlinkIdentity(
 
   await logAccountChange(neohubAccountId, "unlink_identity", {
     provider: identity?.provider,
-    auth0Sub: identity?.auth0_sub,
   });
 
   return { success: true };

@@ -14,8 +14,7 @@ export function WalletAutoReconnect() {
 
     useEffect(() => {
         // Only run if we have a persisted provider, but we think we are disconnected.
-        // Also, ignoring 'auth0' because that is handled by AuthWalletSync and requires explicit login.
-        if (provider && !connected && provider !== "auth0" && !attempted) {
+        if (provider && !connected && !attempted) {
             const _adapter = getWalletAdapter();
 
             // If the adapter is not installed (e.g. extension not ready yet), we might want to wait/retry.

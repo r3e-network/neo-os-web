@@ -112,10 +112,10 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   useEffect(() => {
     if (!effectiveChainId) return;
     if (storeChainId === effectiveChainId) return;
-    if (!connected || provider === "auth0") {
+    if (!connected) {
       setChainId(effectiveChainId);
     }
-  }, [effectiveChainId, storeChainId, connected, provider, setChainId]);
+  }, [effectiveChainId, storeChainId, connected, setChainId]);
 
   // Network latency monitoring
   useEffect(() => {

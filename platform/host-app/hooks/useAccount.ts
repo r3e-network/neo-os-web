@@ -1,17 +1,13 @@
 /**
- * useAccount - Unified account management hook
- * Abstracts wallet and OAuth signing differences
+ * useAccount - Wallet-based account management hook
+ * Provides unified wallet signing interface
  */
 
 import { useState, useCallback, useMemo } from "react";
 import { useWalletStore } from "@/lib/wallet/store";
-import type { AccountMode } from "@/lib/auth0/account-store";
-import { useAccountStore } from "@/lib/auth0/account-store";
-import { useUser } from "@auth0/nextjs-auth0/client";
-import { Auth0Adapter } from "@/lib/wallet/adapters/auth0";
 
 export interface SigningContext {
-  mode: AccountMode;
+  mode: "wallet";
   address: string;
   publicKey: string;
   requiresPassword: boolean;
@@ -21,7 +17,7 @@ export interface UseAccountResult {
   // State
   isConnected: boolean;
   isLoading: boolean;
-  mode: AccountMode;
+  mode: "wallet" | null;
   address: string | null;
   publicKey: string | null;
   error: Error | null;
@@ -34,10 +30,10 @@ export interface UseAccountResult {
   pendingAction: (() => Promise<void>) | null;
 
   // Actions
-  signMessage: (message: string, password?: string) => Promise<string>;
+  signMessage: (message: string, _password?: string) => Promise<string>;
   invokeContract: (
     params: { scriptHash: string; operation: string; args?: Array<{ type: string; value: unknown }> },
-    password?: string,
+    _password?: string,
   ) => Promise<{ txid: string }>;
 
   // Password flow
@@ -48,46 +44,40 @@ export interface UseAccountResult {
 }
 
 /**
- * Unified account management hook
- * Handles both wallet and OAuth signing flows
+ * Wallet-based account management hook
+ * Handles wallet signing flows only
  */
 export function useAccount(): UseAccountResult {
   const walletStore = useWalletStore();
-  const accountStore = useAccountStore();
-  const { user, isLoading: authLoading } = useUser();
 
   const [error, setError] = useState<Error | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
-  const [_pendingPassword, setPendingPassword] = useState<string | null>(null);
 
   // Determine connection state and mode
-  const isConnected = walletStore.connected || !!user;
-  const isLoading = walletStore.loading || authLoading;
+  const isConnected = walletStore.connected;
+  const isLoading = walletStore.loading;
 
-  const mode: AccountMode = useMemo(() => {
-    if (walletStore.connected && walletStore.provider !== "auth0") {
+  const mode: "wallet" | null = useMemo(() => {
+    if (walletStore.connected) {
       return "wallet";
     }
-    if (user || walletStore.provider === "auth0") {
-      return "oauth";
-    }
     return null;
-  }, [walletStore.connected, walletStore.provider, user]);
+  }, [walletStore.connected]);
 
-  const address = walletStore.address || accountStore.address || null;
-  const publicKey = walletStore.publicKey || accountStore.publicKey || null;
+  const address = walletStore.address || null;
+  const publicKey = walletStore.publicKey || null;
 
   // Signing context
   const signingContext: SigningContext | null = useMemo(() => {
-    if (!isConnected || !mode || !address) return null;
+    if (!isConnected || !address) return null;
     return {
-      mode,
+      mode: "wallet",
       address,
       publicKey: publicKey || "",
-      requiresPassword: mode === "oauth",
+      requiresPassword: false,
     };
-  }, [isConnected, mode, address, publicKey]);
+  }, [isConnected, address, publicKey]);
 
   // Clear error
   const clearError = useCallback(() => setError(null), []);
@@ -101,12 +91,10 @@ export function useAccount(): UseAccountResult {
   const cancelPassword = useCallback(() => {
     setShowPasswordModal(false);
     setPendingAction(null);
-    setPendingPassword(null);
   }, []);
 
   const submitPassword = useCallback(
     async (password: string) => {
-      setPendingPassword(password);
       setShowPasswordModal(false);
       if (pendingAction) {
         try {
@@ -116,14 +104,13 @@ export function useAccount(): UseAccountResult {
         }
       }
       setPendingAction(null);
-      setPendingPassword(null);
     },
     [pendingAction],
   );
 
-  // Sign message - unified for both modes
+  // Sign message - wallet mode only
   const signMessage = useCallback(
-    async (message: string, password?: string): Promise<string> => {
+    async (message: string, _password?: string): Promise<string> => {
       if (!signingContext) {
         throw new Error("Not connected");
       }
@@ -131,19 +118,8 @@ export function useAccount(): UseAccountResult {
       setError(null);
 
       try {
-        if (signingContext.mode === "wallet") {
-          // Wallet mode - use wallet adapter
-          const result = await walletStore.signMessage(message);
-          return result.data;
-        } else {
-          // OAuth mode - requires password
-          if (!password) {
-            throw new Error("Password required for OAuth signing");
-          }
-          const adapter = new Auth0Adapter();
-          const result = await adapter.signWithPassword(message, password);
-          return result.data;
-        }
+        const result = await walletStore.signMessage(message);
+        return result.data;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Signing failed");
         setError(error);
@@ -153,11 +129,11 @@ export function useAccount(): UseAccountResult {
     [signingContext, walletStore],
   );
 
-  // Invoke contract - unified for both modes
+  // Invoke contract - wallet mode only
   const invokeContract = useCallback(
     async (
       params: { scriptHash: string; operation: string; args?: Array<{ type: string; value: unknown }> },
-      password?: string,
+      _password?: string,
     ): Promise<{ txid: string }> => {
       if (!signingContext) {
         throw new Error("Not connected");
@@ -172,17 +148,8 @@ export function useAccount(): UseAccountResult {
           args: params.args || [],
         };
 
-        if (signingContext.mode === "wallet") {
-          const result = await walletStore.invoke(invokeParams);
-          return { txid: result.txid };
-        } else {
-          if (!password) {
-            throw new Error("Password required for OAuth transactions");
-          }
-          const adapter = new Auth0Adapter();
-          const result = await adapter.invokeWithPassword(invokeParams, password, walletStore.chainId);
-          return { txid: result.txid };
-        }
+        const result = await walletStore.invoke(invokeParams);
+        return { txid: result.txid };
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Transaction failed");
         setError(error);

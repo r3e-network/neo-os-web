@@ -1,21 +1,12 @@
 /**
- * useMultiChainAccountSetup - Hook for multi-chain social account setup
+ * useMultiChainAccountSetup - Hook for multi-chain account setup
  *
- * Handles:
- * 1. Check if user needs account setup for specific chains
- * 2. Generate accounts for Neo N3 chains client-side
- * 3. Encrypt with user password
- * 4. Store encrypted keys in database
+ * This hook is now a placeholder for wallet-based multi-chain account setup.
+ * Wallet-based authentication handles multi-chain support natively through
+ * the wallet provider.
  */
 
-import { useState, useCallback, useEffect } from "react";
-import { useUser } from "@auth0/nextjs-auth0/client";
-import type {
-  EncryptedMultiChainAccount} from "../../auth0/multichain-account-browser";
-import {
-  generateEncryptedMultiChainAccount,
-  generateMultipleChainAccounts
-} from "../../auth0/multichain-account-browser";
+import { useState, useCallback } from "react";
 import type { ChainId, ChainType } from "../../chains/types";
 
 // ============================================================================
@@ -33,7 +24,6 @@ interface ChainAccountStatus {
 interface MultiChainAccountStatus {
   accounts: ChainAccountStatus[];
   needsPasswordSetup: boolean;
-  oauthProvider?: string;
 }
 
 interface SetupState {
@@ -45,12 +35,12 @@ interface SetupState {
 interface UseMultiChainAccountSetupReturn {
   state: SetupState;
   checkStatus: () => Promise<void>;
-  setupAccount: (chainId: ChainId, chainType: ChainType, password: string) => Promise<ChainAccountStatus>;
+  setupAccount: (_chainId: ChainId, _chainType: ChainType, _password: string) => Promise<ChainAccountStatus>;
   setupMultipleAccounts: (
-    chains: Array<{ chainId: ChainId; chainType: ChainType }>,
-    password: string,
+    _chains: Array<{ chainId: ChainId; chainType: ChainType }>,
+    _password: string,
   ) => Promise<ChainAccountStatus[]>;
-  getAccountForChain: (chainId: ChainId) => ChainAccountStatus | undefined;
+  getAccountForChain: (_chainId: ChainId) => ChainAccountStatus | undefined;
   isLoading: boolean;
   needsSetup: boolean;
 }
@@ -59,158 +49,52 @@ interface UseMultiChainAccountSetupReturn {
 // Hook Implementation
 // ============================================================================
 
+/**
+ * @deprecated Wallet-based authentication handles multi-chain support natively.
+ * This hook is kept for API compatibility but does nothing in wallet-only mode.
+ */
 export function useMultiChainAccountSetup(): UseMultiChainAccountSetupReturn {
-  const { user, isLoading: userLoading } = useUser();
   const [state, setState] = useState<SetupState>({
-    status: "idle",
-    accountStatus: null,
+    status: "complete",
+    accountStatus: {
+      accounts: [],
+      needsPasswordSetup: false,
+    },
     error: null,
   });
 
-  // Check account status for all chains
+  // Check account status - wallet-based auth doesn't require setup
   const checkStatus = useCallback(async () => {
-    if (!user) return;
+    setState((s) => ({
+      ...s,
+      status: "complete",
+      error: null,
+    }));
+  }, []);
 
-    setState((s) => ({ ...s, status: "checking", error: null }));
-
-    try {
-      const res = await fetch("/api/auth/multichain-account");
-      if (!res.ok) {
-        throw new Error("Failed to check account status");
-      }
-
-      const data = await res.json();
-      const accounts: ChainAccountStatus[] = (data.accounts || []).map(
-        (acc: { chainId: ChainId; chainType: ChainType; address: string; publicKey: string }) => ({
-          ...acc,
-          hasAccount: true,
-        }),
-      );
-
-      setState({
-        status: accounts.length === 0 ? "needs_setup" : "complete",
-        accountStatus: {
-          accounts,
-          needsPasswordSetup: accounts.length === 0,
-        },
-        error: null,
-      });
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        status: "error",
-        error: err instanceof Error ? err.message : "Unknown error",
-      }));
-    }
-  }, [user]);
-
-  // Auto-check on mount when user is available
-  useEffect(() => {
-    if (user && !userLoading && state.status === "idle") {
-      checkStatus();
-    }
-  }, [user, userLoading, state.status, checkStatus]);
-
-  // Setup single chain account
+  // Setup single chain account - not supported in wallet mode
   const setupAccount = useCallback(
-    async (chainId: ChainId, chainType: ChainType, password: string): Promise<ChainAccountStatus> => {
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-
-      setState((s) => ({ ...s, status: "setting_up", error: null }));
-
-      try {
-        // 1. Generate and encrypt account client-side
-        const encryptedAccount = await generateEncryptedMultiChainAccount(chainId, chainType, password);
-
-        // 2. Store in database
-        const result = await storeAccount(encryptedAccount);
-
-        // 3. Update state
-        const newAccount: ChainAccountStatus = {
-          chainId: result.chainId,
-          chainType,
-          address: result.address,
-          publicKey: result.publicKey,
-          hasAccount: true,
-        };
-
-        setState((s) => ({
-          status: "complete",
-          accountStatus: {
-            accounts: [...(s.accountStatus?.accounts || []), newAccount],
-            needsPasswordSetup: false,
-          },
-          error: null,
-        }));
-
-        return newAccount;
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : "Setup failed";
-        setState((s) => ({ ...s, status: "error", error: errorMsg }));
-        throw err;
-      }
+    async (_chainId: ChainId, _chainType: ChainType, _password: string): Promise<ChainAccountStatus> => {
+      throw new Error("Account setup is not required for wallet-based authentication");
     },
-    [user],
+    [],
   );
 
-  // Setup multiple chain accounts at once
+  // Setup multiple chain accounts - not supported in wallet mode
   const setupMultipleAccounts = useCallback(
     async (
-      chains: Array<{ chainId: ChainId; chainType: ChainType }>,
-      password: string,
+      _chains: Array<{ chainId: ChainId; chainType: ChainType }>,
+      _password: string,
     ): Promise<ChainAccountStatus[]> => {
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-
-      setState((s) => ({ ...s, status: "setting_up", error: null }));
-
-      try {
-        // 1. Generate and encrypt all accounts client-side
-        const encryptedAccounts = await generateMultipleChainAccounts(chains, password);
-
-        // 2. Store all accounts in database
-        const results: ChainAccountStatus[] = [];
-        for (const encryptedAccount of encryptedAccounts) {
-          const result = await storeAccount(encryptedAccount);
-          results.push({
-            chainId: result.chainId,
-            chainType: encryptedAccount.chainType,
-            address: result.address,
-            publicKey: result.publicKey,
-            hasAccount: true,
-          });
-        }
-
-        // 3. Update state
-        setState((s) => ({
-          status: "complete",
-          accountStatus: {
-            accounts: [...(s.accountStatus?.accounts || []), ...results],
-            needsPasswordSetup: false,
-          },
-          error: null,
-        }));
-
-        return results;
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : "Setup failed";
-        setState((s) => ({ ...s, status: "error", error: errorMsg }));
-        throw err;
-      }
+      throw new Error("Account setup is not required for wallet-based authentication");
     },
-    [user],
+    [],
   );
 
-  // Get account for specific chain
-  const getAccountForChain = useCallback(
-    (chainId: ChainId): ChainAccountStatus | undefined => {
-      return state.accountStatus?.accounts.find((acc) => acc.chainId === chainId);
-    },
-    [state.accountStatus],
-  );
+  // Get account for specific chain - wallet-based auth handles this natively
+  const getAccountForChain = useCallback((_chainId: ChainId): ChainAccountStatus | undefined => {
+    return undefined;
+  }, []);
 
   return {
     state,
@@ -218,40 +102,7 @@ export function useMultiChainAccountSetup(): UseMultiChainAccountSetupReturn {
     setupAccount,
     setupMultipleAccounts,
     getAccountForChain,
-    isLoading: state.status === "checking" || state.status === "setting_up" || userLoading,
-    needsSetup: state.status === "needs_setup",
+    isLoading: false,
+    needsSetup: false,
   };
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-async function storeAccount(
-  encryptedAccount: EncryptedMultiChainAccount,
-): Promise<{ chainId: ChainId; address: string; publicKey: string }> {
-  const res = await fetch("/api/auth/multichain-account", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chainId: encryptedAccount.chainId,
-      chainType: encryptedAccount.chainType,
-      address: encryptedAccount.address,
-      publicKey: encryptedAccount.publicKey,
-      encrypted: {
-        encryptedData: encryptedAccount.encrypted.encryptedData,
-        salt: encryptedAccount.encrypted.salt,
-        iv: encryptedAccount.encrypted.iv,
-        tag: encryptedAccount.encrypted.tag,
-        iterations: encryptedAccount.encrypted.iterations,
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || "Failed to store account");
-  }
-
-  return res.json();
 }
