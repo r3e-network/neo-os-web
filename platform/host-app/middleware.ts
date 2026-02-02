@@ -53,7 +53,7 @@ function buildCSP(nonce: string, allowFrameAncestors: boolean = false): string {
     "https://*.neo.org",
     "https://*.banelabs.org",
     "https://*.ngd.network",
-    "https://api.coingecko.com"
+    "https://api.coingecko.com",
   );
   const connectSrc = connectSources.join(" ");
 
@@ -96,7 +96,8 @@ export function middleware(req: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/robots") ||
-    pathname.startsWith("/miniapps/")
+    pathname.startsWith("/miniapps/") ||
+    pathname.startsWith("/miniapp-assets/")
   ) {
     return NextResponse.next();
   }
