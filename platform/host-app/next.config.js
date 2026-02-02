@@ -20,10 +20,11 @@ const MiniAppCSP = `
   .replace(/\s{2,}/g, " ")
   .trim();
 
-// Stricter CSP for main application
+// CSP for main application - more permissive to allow wallet connections
 const MainCSP = `
   default-src 'self' 'unsafe-inline' 'unsafe-eval';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: 'unsafe-hashes';
+  script-src-elem 'self' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   style-src-elem 'self' 'unsafe-inline';
   img-src 'self' data: blob: *;
@@ -71,6 +72,11 @@ const nextConfig = {
   },
   // Reduce build output size
   productionBrowserSourceMaps: false,
+  // Disable Sentry's automatic instrumentation to avoid CSP nonce issues
+  sentry: {
+    disableServerWebpackPlugin: true,
+    disableClientWebpackPlugin: true,
+  },
   // MiniApps are now served locally from public/miniapp-assets/
   // Static assets (logo, banner) use /miniapp-assets/ path to avoid conflict with pages router
   async headers() {
