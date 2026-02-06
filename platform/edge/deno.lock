@@ -1,14 +1,11 @@
 {
-  "version": "3",
-  "packages": {
-    "specifiers": {
-      "npm:@types/node": "npm:@types/node@18.16.19"
-    },
-    "npm": {
-      "@types/node@18.16.19": {
-        "integrity": "sha512-IXl7o+R9iti9eBW4Wg2hx1xQDig183jj7YLn8F7udNceyfkbn1ZxmzZXuak20gR40D7pIkIY1kYGx5VIGbaHKA==",
-        "dependencies": {}
-      }
+  "version": "5",
+  "specifiers": {
+    "npm:@types/node@*": "18.16.19"
+  },
+  "npm": {
+    "@types/node@18.16.19": {
+      "integrity": "sha512-IXl7o+R9iti9eBW4Wg2hx1xQDig183jj7YLn8F7udNceyfkbn1ZxmzZXuak20gR40D7pIkIY1kYGx5VIGbaHKA=="
     }
   },
   "redirects": {
@@ -155,6 +152,9 @@
     "https://deno.land/std@0.224.0/path/windows/resolve.ts": "8dae1dadfed9d46ff46cc337c9525c0c7d959fb400a6308f34595c45bdca1972",
     "https://deno.land/std@0.224.0/path/windows/to_file_url.ts": "40e560ee4854fe5a3d4d12976cef2f4e8914125c81b11f1108e127934ced502e",
     "https://deno.land/std@0.224.0/path/windows/to_namespaced_path.ts": "4ffa4fb6fae321448d5fe810b3ca741d84df4d7897e61ee29be961a6aac89a4c",
+    "https://esm.sh/@noble/curves@1.4.0/p256": "5a416aeda11c9e22e22b6de45302fd446fc85f05899231766660553d29502ff3",
+    "https://esm.sh/@noble/hashes@1.4.0/ripemd160": "9a672b5b8e65990fc6bc5f1a5261d97276d1804a6aef8f3c41354bff955a82ac",
+    "https://esm.sh/@noble/hashes@1.4.0/sha256": "be4b1f62855f75d41a2d10ef639862e672877cc0d72c21f986afb6c90f31ac83",
     "https://esm.sh/@supabase/auth-js@2.68.0/denonext/auth-js.mjs": "c3c7ee55b70b7bfac11c1085db2ee95b6ebccf10590336d071b219cf226bb212",
     "https://esm.sh/@supabase/auth-js@2.93.3/denonext/auth-js.mjs": "6141ddd120e72168995fe8179b53fc75e7d52293db41351edb2d27f3572dde68",
     "https://esm.sh/@supabase/functions-js@2.4.4/denonext/functions-js.mjs": "7adeb257410ef3c4a8a1eb9b4ff416c0075d1c32860ca04913c8a9dace1de6a6",

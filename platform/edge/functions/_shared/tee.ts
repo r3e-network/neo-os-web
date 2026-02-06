@@ -28,7 +28,7 @@ function getMTLSClient(): Deno.HttpClient | undefined {
           "\n  - Consequence: TEE service requests will fail with HTTP 503" +
           "\n  - Impact: Compute, RNG, and secrets services will be unavailable" +
           "\n  - Fix: Set environment variables TEE_MTLS_CERT_PEM, TEE_MTLS_KEY_PEM, TEE_MTLS_ROOT_CA_PEM" +
-          "\n  - Reference: See deployment guide for certificate setup instructions",
+          "\n  - Reference: See deployment guide for certificate setup instructions"
       );
       mtlsWarningLogged = true;
     }
@@ -41,15 +41,13 @@ function getMTLSClient(): Deno.HttpClient | undefined {
     return undefined;
   }
 
-  const opts: Deno.HttpClientOptions = { cert, key };
+  const opts: { cert: string; key: string; caCerts?: string[] } = { cert, key };
   if (ca) {
     opts.caCerts = [ca];
   }
 
   mtlsClient = Deno.createHttpClient(opts);
-  logMTLSStatus(
-    `mTLS enabled: cert=${cert.length} key=${key.length} ca=${ca ? ca.length : 0}`,
-  );
+  logMTLSStatus(`mTLS enabled: cert=${cert.length} key=${key.length} ca=${ca ? ca.length : 0}`);
   return mtlsClient;
 }
 
@@ -60,7 +58,7 @@ export async function requestJSON(
     headers?: Record<string, string>;
     body?: unknown;
   },
-  req?: Request,
+  req?: Request
 ): Promise<unknown | Response> {
   if (isProductionEnv() && !url.toLowerCase().startsWith("https://")) {
     return error(400, "TEE service URL must use https:// in production", "INSECURE_TEE_URL", req);
@@ -106,11 +104,15 @@ export async function postJSON(
   url: string,
   body: unknown,
   headers: Record<string, string> = {},
-  req?: Request,
+  req?: Request
 ): Promise<unknown | Response> {
   return requestJSON(url, { method: "POST", headers, body }, req);
 }
 
-export async function getJSON(url: string, headers: Record<string, string> = {}, req?: Request): Promise<unknown | Response> {
+export async function getJSON(
+  url: string,
+  headers: Record<string, string> = {},
+  req?: Request
+): Promise<unknown | Response> {
   return requestJSON(url, { method: "GET", headers }, req);
 }

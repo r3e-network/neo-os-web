@@ -135,7 +135,7 @@ export async function handler(req: Request): Promise<Response> {
     return json(response, {}, req);
   } catch (error) {
     console.error("Publish error:", error);
-    return errorResponse("SERVER_ERROR", { message: (error as Error).message }, req);
+    return errorResponse("SERVER_001", { message: (error as Error).message }, req);
   }
 }
 

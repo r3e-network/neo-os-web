@@ -11,7 +11,7 @@ import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError } from "../_shared/error-codes.ts";
-import { requireAuth } from "../_shared/supabase.ts";
+import { requireAuth, type AuthContext } from "../_shared/supabase.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { cloneRepo, getCommitInfo, cleanup, normalizeGitUrl, parseGitUrl } from "../_shared/build/git-manager.ts";
@@ -55,8 +55,10 @@ export async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 
   const isServiceRole = isServiceRoleRequest(req);
-  const auth = isServiceRole ? null : await requireAuth(req);
-  if (!isServiceRole && auth instanceof Response) return auth;
+  const authResult = isServiceRole ? null : await requireAuth(req);
+  if (!isServiceRole && authResult instanceof Response) return authResult;
+  // After guard: authResult is null (service role) or AuthContext
+  const auth = authResult as AuthContext | null;
   const rl = await requireRateLimit(req, "miniapp-submit", auth ?? undefined);
   if (rl) return rl;
   if (auth) {

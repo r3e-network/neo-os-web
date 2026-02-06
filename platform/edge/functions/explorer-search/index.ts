@@ -20,7 +20,7 @@ const corsHeaders = {
 };
 
 export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req, corsHeaders);
+  const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
 

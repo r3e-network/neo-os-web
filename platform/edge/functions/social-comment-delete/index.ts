@@ -30,7 +30,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const userId = auth.userId;
 
   // Verify comment exists and belongs to user
   const { data: comment, error: fetchErr } = await supabase

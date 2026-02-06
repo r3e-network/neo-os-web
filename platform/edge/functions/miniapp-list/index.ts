@@ -73,7 +73,7 @@ export async function handler(req: Request): Promise<Response> {
   const { data: miniapps, error } = await query;
 
   if (error) {
-    return errorResponse("SERVER_ERROR", { message: error.message }, req);
+    return errorResponse("SERVER_001", { message: error.message }, req);
   }
 
   // Transform to host app format

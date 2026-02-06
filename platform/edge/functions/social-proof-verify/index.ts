@@ -42,7 +42,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const userId = auth.userId;
 
   // Check existing proof cache
   const { data: cached } = await supabase
@@ -63,7 +63,7 @@ export async function handler(req: Request): Promise<Response> {
         can_comment: true,
       },
       {},
-      req,
+      req
     );
   }
 
@@ -80,7 +80,7 @@ export async function handler(req: Request): Promise<Response> {
         reason: "no wallet linked",
       },
       {},
-      req,
+      req
     );
   }
 
@@ -103,7 +103,7 @@ export async function handler(req: Request): Promise<Response> {
         reason: "no transactions found",
       },
       {},
-      req,
+      req
     );
   }
 
@@ -126,7 +126,7 @@ export async function handler(req: Request): Promise<Response> {
       can_comment: true,
     },
     {},
-    req,
+    req
   );
 }
 

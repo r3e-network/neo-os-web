@@ -49,7 +49,7 @@ export async function handler(req: Request): Promise<Response> {
   const sanitizedReview = review_text ? sanitizeInput(review_text.trim().slice(0, 1000)) : null;
 
   const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const userId = auth.userId;
 
   // Verify proof of interaction
   const proof = await verifyProofOfInteraction(supabase, app_id, userId, req);
@@ -69,7 +69,7 @@ export async function handler(req: Request): Promise<Response> {
         review_text: sanitizedReview,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "app_id,rater_user_id" },
+      { onConflict: "app_id,rater_user_id" }
     )
     .select()
     .single();

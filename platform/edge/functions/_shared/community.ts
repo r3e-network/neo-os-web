@@ -3,7 +3,7 @@
  * Provides helpers for proof-of-interaction, spam checking, and rating calculations
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { error } from "./response.ts";
 
 // -----------------------------------------------------------------------------
@@ -41,7 +41,7 @@ export async function verifyProofOfInteraction(
   supabase: SupabaseClient,
   appId: string,
   userId: string,
-  req?: Request,
+  req?: Request
 ): Promise<ProofOfInteraction | Response> {
   // Check cached proof first
   const { data: cached, error: cacheErr } = await supabase
@@ -86,7 +86,7 @@ export async function checkSpamLimit(
   userId: string,
   actionType: string,
   appId?: string,
-  req?: Request,
+  req?: Request
 ): Promise<boolean | Response> {
   const { data, error: err } = await supabase.rpc("check_spam_limit", {
     p_user_id: userId,
@@ -114,7 +114,7 @@ export async function logSpamAction(
   supabase: SupabaseClient,
   userId: string,
   actionType: string,
-  appId?: string,
+  appId?: string
 ): Promise<void> {
   await supabase.rpc("log_spam_action", {
     p_user_id: userId,
@@ -132,7 +132,7 @@ export async function logSpamAction(
  */
 export async function getCommentVoteCounts(
   supabase: SupabaseClient,
-  commentIds: string[],
+  commentIds: string[]
 ): Promise<Map<string, CommentVoteCounts>> {
   if (commentIds.length === 0) {
     return new Map();

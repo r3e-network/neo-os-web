@@ -45,7 +45,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const userId = auth.userId;
 
   // Check spam limit for voting
   const spamCheck = await checkSpamLimit(supabase, userId, "vote", undefined, req);
@@ -60,7 +60,7 @@ export async function handler(req: Request): Promise<Response> {
     .single();
 
   if (commentErr || !comment) {
-    return errorResponse("NOT_FOUND_001", { resource: "comment" }, req);
+    return errorResponse("NOTFOUND_001", { resource: "comment" }, req);
   }
 
   // Upsert vote (update if exists, insert if not)

@@ -180,7 +180,7 @@ export function unauthorizedError(message = ERROR_CODES.AUTH_001.message, req?: 
 /**
  * Create a forbidden error response (403)
  */
-export function forbiddenError(message = ERROR_CODES.AUTH_004.message, req?: Request): Response {
+export function forbiddenError(message: string = ERROR_CODES.AUTH_004.message, req?: Request): Response {
   return errorResponse("AUTH_004", message, req);
 }
 

@@ -7,8 +7,8 @@ export function buildSubmissionPayload(input: {
   appId: string;
   manifest: Record<string, unknown>;
   manifestHash: string;
-  assets: Record<string, unknown>;
-  buildConfig: Record<string, unknown>;
+  assets: Record<string, unknown> | object;
+  buildConfig: Record<string, unknown> | object;
   autoApproved: boolean;
   submittedBy?: string | null;
 }): Record<string, unknown> {
