@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   setup:
@@ -20,7 +20,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: "1.23.x"
           cache: true
 
       - name: Cache Go modules
@@ -46,7 +46,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: "1.23.x"
           cache: true
 
       - name: Run golangci-lint
@@ -67,7 +67,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: "1.23.x"
           cache: true
 
       - name: Download dependencies
@@ -110,7 +110,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: "1.23.x"
           cache: true
 
       - name: Run unit tests
@@ -135,13 +135,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: "1.23.x"
           cache: true
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: "9.0.x"
 
       - name: Install Neo tooling (nccs, neo-express)
         run: |
@@ -168,7 +168,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: "1.23.x"
           cache: true
 
       - name: Run integration tests
@@ -186,7 +186,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: "1.23.x"
           cache: true
 
       - name: Run E2E tests
@@ -206,8 +206,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Turbo Cache
         uses: actions/cache@v4
@@ -237,8 +237,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
@@ -261,7 +261,7 @@ jobs:
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v1.x
+          deno-version: v2.x
 
       - name: Typecheck Edge functions
         working-directory: platform/edge
@@ -279,13 +279,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: "1.23.x"
           cache: true
 
       - name: Run Gosec Security Scanner
         uses: securego/gosec@v2.22.11
         with:
-          args: '-fmt sarif -out gosec.sarif ./...'
+          args: "-fmt sarif -out gosec.sarif ./..."
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v4
@@ -295,15 +295,15 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
 
       - name: Upload Trivy results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
   docker-build:
     name: Docker Build
@@ -331,7 +331,19 @@ jobs:
 
   summary:
     name: CI Summary
-    needs: [lint, build, unit-tests, integration-tests, e2e-tests, host-app-build, sdk-build, edge-functions-check, security-scan, docker-build]
+    needs:
+      [
+        lint,
+        build,
+        unit-tests,
+        integration-tests,
+        e2e-tests,
+        host-app-build,
+        sdk-build,
+        edge-functions-check,
+        security-scan,
+        docker-build,
+      ]
     runs-on: ubuntu-latest
     if: always()
     steps:

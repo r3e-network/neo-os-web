@@ -4,21 +4,21 @@ on:
   push:
     branches: [main]
     paths:
-      - 'miniapps/**'
+      - "miniapps/**"
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Deployment environment'
+        description: "Deployment environment"
         required: true
-        default: 'staging'
+        default: "staging"
         type: choice
         options:
           - staging
           - production
       app_id:
-        description: 'Specific miniapp ID to deploy (optional)'
+        description: "Specific miniapp ID to deploy (optional)"
         required: false
-        default: ''
+        default: ""
 
 env:
   R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -45,14 +45,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+          node-version: "22"
+          cache: "pnpm"
 
       - name: Determine bucket
         id: bucket
@@ -100,7 +100,7 @@ jobs:
           APP_ID="${{ github.event.inputs.app_id }}"
           ENV="${{ steps.bucket.outputs.env }}"
           BUCKET="${{ steps.bucket.outputs.bucket }}"
-          
+
           for dir in miniapps/*/; do
             if [ -n "$APP_ID" ] && [ "$(basename $dir)" != "$APP_ID" ]; then
               echo "Skipping $(basename $dir) - not the target app"
@@ -173,10 +173,10 @@ jobs:
             
             DEPLOYED=$((DEPLOYED + 1))
           done
-          
+
           echo "deployed=$DEPLOYED" >> "$GITHUB_OUTPUT"
           echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
-          
+
           echo ""
           echo "=========================================="
           echo "Deployment Summary"
@@ -209,7 +209,7 @@ jobs:
         run: |
           DEPLOYED=${{ needs.sync-miniapps.outputs.deployed }}
           FAILED=${{ needs.sync-miniapps.outputs.failed }}
-          
+
           if [ $FAILED -gt 0 ]; then
             echo "❌ Deployment completed with $FAILED failures"
             exit 1
@@ -250,11 +250,11 @@ jobs:
           title: "chore: staging deployment ${{ github.sha }}"
           body: |
             ## Staging Deployment
-            
+
             - **Commit:** `${{ github.sha }}`
             - **Deployed:** ${{ needs.sync-miniapps.outputs.deployed }} miniapp(s)
             - **Environment:** staging
-            
+
             Auto-generated PR for staging deployment.
           branch: staging-deploy-${{ github.sha }}
           delete-branch: true
