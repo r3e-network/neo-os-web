@@ -42,8 +42,8 @@ const getActionIcon = (type: string) => {
 .history-item {
   display: flex;
   align-items: center;
-  gap: $space-4;
-  padding: $space-4;
+  gap: $spacing-4;
+  padding: $spacing-4;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   background: transparent;
   color: var(--text-primary);

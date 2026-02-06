@@ -122,7 +122,6 @@ export const useWalletStore = create<WalletStore>()(
         // Use requested chain, or current state chain, or default
         const currentChainId = get().chainId;
         const targetChainId = chainId || currentChainId || DEFAULT_CHAIN_ID;
-        const _targetChainType = getChainTypeFromId(targetChainId);
 
         try {
           if (isNeoProvider(provider)) {
@@ -209,14 +208,14 @@ export const useWalletStore = create<WalletStore>()(
       },
 
       invoke: async (params: NeoInvokeParams) => {
-        const { provider, chainId } = get();
+        const { provider } = get();
         if (!provider) throw new Error("Wallet not connected");
 
         if (!isNeoProvider(provider)) {
           throw new Error("Unsupported provider for Neo invocation");
         }
 
-        return neoAdapters[provider].invoke(params, chainId);
+        return neoAdapters[provider].invoke(params);
       },
 
       submitPassword: (password: string) => {

@@ -73,8 +73,8 @@ defineEmits(['select']);
 .card-header {
   display: flex;
   align-items: center;
-  gap: $space-3;
-  margin-bottom: $space-3;
+  gap: $spacing-3;
+  margin-bottom: $spacing-3;
 }
 
 .machine-icon-wrapper {
@@ -120,9 +120,9 @@ defineEmits(['select']);
 .card-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: $space-2;
-  margin-bottom: $space-3;
-  padding: $space-2;
+  gap: $spacing-2;
+  margin-bottom: $spacing-3;
+  padding: $spacing-2;
   background: var(--gacha-surface-strong);
   border-radius: 8px;
 }
@@ -155,7 +155,7 @@ defineEmits(['select']);
   justify-content: space-between;
   align-items: center;
   border-top: 1px solid var(--gacha-divider);
-  padding-top: $space-3;
+  padding-top: $spacing-3;
 }
 
 .price-tag {

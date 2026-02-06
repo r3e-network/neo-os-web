@@ -185,13 +185,13 @@ const handleRequestLoan = async () => {
 
 .tabs {
   display: flex;
-  gap: $space-2;
-  margin-bottom: $space-4;
+  gap: $spacing-2;
+  margin-bottom: $spacing-4;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tab {
-  padding: $space-3 $space-4;
+  padding: $spacing-3 $spacing-4;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -208,22 +208,22 @@ const handleRequestLoan = async () => {
 .tab-content {
   display: flex;
   flex-direction: column;
-  gap: $space-3;
+  gap: $spacing-3;
 }
 
 .input-section {
-  margin-bottom: $space-3;
+  margin-bottom: $spacing-3;
 }
 
 .execute-btn {
-  margin-top: $space-2;
+  margin-top: $spacing-2;
 }
 
 .status-grid {
-  margin-top: $space-4;
+  margin-top: $spacing-4;
   display: grid;
   gap: 10px;
-  padding: $space-4;
+  padding: $spacing-4;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -233,7 +233,7 @@ const handleRequestLoan = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: $space-3;
+  gap: $spacing-3;
 }
 
 .status-label {
@@ -267,8 +267,8 @@ const handleRequestLoan = async () => {
 }
 
 .empty-state {
-  margin-top: $space-4;
-  padding: $space-4;
+  margin-top: $spacing-4;
+  padding: $spacing-4;
   border: 1px dashed rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   text-align: center;
@@ -285,18 +285,18 @@ const handleRequestLoan = async () => {
 .form-section {
   display: flex;
   flex-direction: column;
-  gap: $space-3;
+  gap: $spacing-3;
 }
 
 .section-title {
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: $space-2;
+  margin-bottom: $spacing-2;
 }
 
 .info-box {
-  padding: $space-3;
+  padding: $spacing-3;
   background: rgba(0, 229, 153, 0.1);
   border: 1px solid rgba(0, 229, 153, 0.2);
   border-radius: 8px;

@@ -149,14 +149,14 @@ class OriginValidator {
       if (process.env.NODE_ENV === "development") {
         console.warn(
           "[MiniApp SDK] Cannot determine parent origin. " +
-          "Host app should set window.__MINIAPP_PARENT_ORIGIN__ before loading MiniApp iframe."
+            "Host app should set window.__MINIAPP_PARENT_ORIGIN__ before loading MiniApp iframe."
         );
       }
 
       // Fail secure - throw error instead of using "*"
       throw new Error(
         "Cannot communicate securely with parent - origin unknown. " +
-        "Ensure host app sets __MINIAPP_PARENT_ORIGIN__ or uses a supported browser."
+          "Ensure host app sets __MINIAPP_PARENT_ORIGIN__ or uses a supported browser."
       );
     }
 
@@ -183,8 +183,8 @@ export function resolveLayout(config?: Partial<MiniAppSDKConfig>): "web" | "mobi
   if (typeof window !== "undefined") {
     const params = new URLSearchParams(window.location.search);
     const layoutParam = params.get("layout");
-  if (layoutParam === "web" || layoutParam === "mobile") return layoutParam;
-  if (window.ReactNativeWebView) return "mobile";
+    if (layoutParam === "web" || layoutParam === "mobile") return layoutParam;
+    if (window.ReactNativeWebView) return "mobile";
   }
 
   return "web";
@@ -212,7 +212,11 @@ function createPostMessageSDK(): MiniAppSDK {
 
   const invoke = (method: string, ...args: unknown[]): Promise<unknown> => {
     return new Promise((resolve, reject) => {
-      const id = `sdk-${++requestId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const rnd =
+        typeof crypto !== "undefined" && crypto.getRandomValues
+          ? Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, "0")).join("")
+          : Math.random().toString(36).slice(2, 10);
+      const id = `sdk-${++requestId}-${Date.now()}-${rnd}`;
       const timer = setTimeout(() => {
         window.removeEventListener("message", handler);
         reject(new Error("SDK invoke timeout"));
@@ -306,7 +310,7 @@ function createPostMessageSDK(): MiniAppSDK {
         taskName: string,
         taskType: string,
         payload?: Record<string, unknown>,
-        schedule?: { intervalSeconds?: number; maxRuns?: number },
+        schedule?: { intervalSeconds?: number; maxRuns?: number }
       ) => invoke("automation.register", taskName, taskType, payload, schedule),
       unregister: (taskName: string) => invoke("automation.unregister", taskName),
       status: (taskName: string) => invoke("automation.status", taskName),
@@ -314,15 +318,14 @@ function createPostMessageSDK(): MiniAppSDK {
       update: (
         taskId: string,
         payload?: Record<string, unknown>,
-        schedule?: { intervalSeconds?: number; cron?: string; maxRuns?: number },
+        schedule?: { intervalSeconds?: number; cron?: string; maxRuns?: number }
       ) => invoke("automation.update", taskId, payload, schedule),
       enable: (taskId: string) => invoke("automation.enable", taskId),
       disable: (taskId: string) => invoke("automation.disable", taskId),
       logs: (taskId?: string, limit?: number) => invoke("automation.logs", taskId, limit),
     },
     share: {
-      openModal: (options?: { page?: string; params?: Record<string, string> }) =>
-        invoke("share.openModal", options),
+      openModal: (options?: { page?: string; params?: Record<string, string> }) => invoke("share.openModal", options),
       getUrl: (options?: { page?: string; params?: Record<string, string> }) =>
         invoke("share.getUrl", options) as Promise<string>,
       copy: (options?: { page?: string; params?: Record<string, string> }) =>

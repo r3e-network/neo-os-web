@@ -10,6 +10,7 @@
  */
 import { defineConfig, UserConfig } from "vite";
 import uni from "@dcloudio/vite-plugin-uni";
+import fs from "fs";
 import path from "path";
 
 export interface AppConfigOptions {
@@ -45,6 +46,19 @@ export function createAppConfig(appDir: string, options: AppConfigOptions = {}) 
   const nobleHashesSha512Shim = path.resolve(sharedDir, "shims/noble-hashes-sha512.js");
   const nobleCurvesAbstractUtilsShim = path.resolve(sharedDir, "shims/noble-curves-abstract-utils.js");
   const nobleCurvesP256Shim = path.resolve(sharedDir, "shims/noble-curves-p256.js");
+  const polyfillShimsRoot = path.resolve(appDir, "node_modules/vite-plugin-node-polyfills/shims");
+  const polyfillAliases: { find: string; replacement: string }[] = [];
+
+  const addPolyfillAlias = (find: string, relativePath: string) => {
+    const replacement = path.resolve(polyfillShimsRoot, relativePath);
+    if (fs.existsSync(replacement)) {
+      polyfillAliases.push({ find, replacement });
+    }
+  };
+
+  addPolyfillAlias("vite-plugin-node-polyfills/shims/buffer", "buffer/dist/index.js");
+  addPolyfillAlias("vite-plugin-node-polyfills/shims/global", "global/dist/index.js");
+  addPolyfillAlias("vite-plugin-node-polyfills/shims/process", "process/dist/index.js");
   const optionAliases = options.alias
     ? Object.entries(options.alias).map(([find, replacement]) => ({ find, replacement }))
     : [];
@@ -57,6 +71,7 @@ export function createAppConfig(appDir: string, options: AppConfigOptions = {}) 
         ...optionAliases,
         { find: "@", replacement: path.resolve(appDir, "src") },
         { find: "@shared", replacement: sharedDir },
+        ...polyfillAliases,
         { find: "@noble/curves/p256", replacement: nobleCurvesP256Shim },
         { find: "@noble/curves/p256.js", replacement: nobleCurvesP256Shim },
         { find: "@noble/curves/p384", replacement: "@noble/curves/nist.js" },
@@ -73,7 +88,7 @@ export function createAppConfig(appDir: string, options: AppConfigOptions = {}) 
         { find: "@noble/hashes/sha256.js", replacement: nobleHashesSha256Shim },
         { find: "@noble/hashes/sha512", replacement: nobleHashesSha512Shim },
         { find: "@noble/hashes/sha512.js", replacement: nobleHashesSha512Shim },
-        { find: /^@noble\/hashes\/([^./]+)$/, replacement: "@noble/hashes/$1.js" },
+        { find: /^@noble\/hashes\/(.+?)\.js$/, replacement: "@noble/hashes/$1" },
       ],
     },
     css: {
@@ -92,8 +107,6 @@ export function createAppConfig(appDir: string, options: AppConfigOptions = {}) 
           // Public folder assets accessed via absolute paths
           /^\/logo\.(png|jpg|svg)$/,
           /^\/banner\.(png|jpg|svg)$/,
-          // vite-plugin-node-polyfills shims
-          /^vite-plugin-node-polyfills\/shims\//,
         ],
         output: {
           // manualChunks: {

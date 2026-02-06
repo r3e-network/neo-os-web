@@ -50,7 +50,7 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
 @use "@shared/styles/variables.scss" as *;
 
 .tab-content {
-  padding: $space-3;
+  padding: $spacing-3;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -64,8 +64,8 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
   background: var(--bg-card);
   border: $border-width-md solid var(--border-color);
   box-shadow: $shadow-md;
-  padding: $space-4;
-  margin-bottom: $space-3;
+  padding: $spacing-4;
+  margin-bottom: $spacing-3;
 }
 
 .stats-title {
@@ -74,11 +74,11 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
   color: var(--neo-green);
   text-transform: uppercase;
   display: block;
-  margin-bottom: $space-3;
+  margin-bottom: $spacing-3;
 }
 
 .history-item {
-  padding: $space-2 0;
+  padding: $spacing-2 0;
   border-bottom: $border-width-sm dashed var(--border-color);
   font-size: $font-size-sm;
   color: var(--text-primary);
@@ -101,6 +101,6 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
   color: var(--text-muted);
   text-align: center;
   display: block;
-  padding: $space-4;
+  padding: $spacing-4;
 }
 </style>

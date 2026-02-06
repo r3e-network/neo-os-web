@@ -1,6 +1,10 @@
 import { ref, computed, onMounted } from "vue";
+import { PRODUCTION_ORIGINS, DEV_ORIGINS } from "../config";
 
 export type Locale = "en" | "zh";
+
+/** Allowed origins for postMessage-based locale changes */
+const ALLOWED_ORIGINS: ReadonlySet<string> = new Set([...PRODUCTION_ORIGINS, ...DEV_ORIGINS]);
 
 /**
  * Global locale state - shared across all composable instances
@@ -85,6 +89,8 @@ export function useI18n(appId: string) {
     });
 
     window.addEventListener("message", (event: MessageEvent) => {
+      // Only accept locale messages from known host origins
+      if (!ALLOWED_ORIGINS.has(event.origin) && event.origin !== window.location.origin) return;
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
       if (data.type !== "language-change") return;

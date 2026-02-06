@@ -167,7 +167,7 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
   gap: 12px;
   background: var(--grave-danger-soft, rgba(239, 68, 68, 0.1));
   color: var(--grave-warning-text, #fec);
-  padding: $space-4;
+  padding: $spacing-4;
   border-radius: 12px;
   border: 1px solid var(--grave-danger-border, rgba(239, 68, 68, 0.3));
   margin-bottom: 24px;

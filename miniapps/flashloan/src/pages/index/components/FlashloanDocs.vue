@@ -190,19 +190,19 @@ defineProps<{
 .docs-container {
   display: flex;
   flex-direction: column;
-  gap: $space-4;
-  padding-bottom: $space-8;
+  gap: $spacing-4;
+  padding-bottom: $spacing-8;
 }
 
 .hero-doc {
-  padding: $space-2;
+  padding: $spacing-2;
 }
 
 .doc-subtitle {
   font-weight: $font-weight-black;
   font-size: 16px;
   display: block;
-  margin-bottom: $space-2;
+  margin-bottom: $spacing-2;
   text-transform: uppercase;
 }
 
@@ -215,7 +215,7 @@ defineProps<{
 .info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: $space-4;
+  gap: $spacing-4;
 }
 
 .info-item {
@@ -250,7 +250,7 @@ defineProps<{
 .hash-box {
   background: var(--bg-elevated, #f5f5f5);
   border: 1px solid var(--border-color, black);
-  padding: $space-3;
+  padding: $spacing-3;
   color: var(--text-primary, #000);
 }
 
@@ -265,10 +265,10 @@ defineProps<{
 }
 
 .method-card {
-  padding: $space-4;
+  padding: $spacing-4;
   background: var(--bg-elevated, #fafafa);
   border: 2px solid var(--border-color, black);
-  margin-bottom: $space-4;
+  margin-bottom: $spacing-4;
   color: var(--text-primary, #000);
   &:last-child {
     margin-bottom: 0;
@@ -278,8 +278,8 @@ defineProps<{
 .method-header {
   display: flex;
   align-items: center;
-  gap: $space-3;
-  margin-bottom: $space-2;
+  gap: $spacing-3;
+  margin-bottom: $spacing-2;
 }
 
 .method-name {
@@ -307,14 +307,14 @@ defineProps<{
 .method-desc {
   font-size: 12px;
   opacity: 0.7;
-  margin-bottom: $space-3;
+  margin-bottom: $spacing-3;
   display: block;
 }
 
 .method-params {
   background: black;
   color: var(--text-primary);
-  padding: $space-3;
+  padding: $spacing-3;
 }
 
 .params-title {
@@ -322,12 +322,12 @@ defineProps<{
   font-weight: $font-weight-black;
   opacity: 0.6;
   display: block;
-  margin-bottom: $space-2;
+  margin-bottom: $spacing-2;
 }
 
 .param-item {
   display: flex;
-  gap: $space-2;
+  gap: $spacing-2;
   margin-bottom: 4px;
   font-size: 11px;
 }
@@ -350,12 +350,12 @@ defineProps<{
 .usage-steps {
   display: flex;
   flex-direction: column;
-  gap: $space-4;
+  gap: $spacing-4;
 }
 
 .u-step {
   display: flex;
-  gap: $space-4;
+  gap: $spacing-4;
 }
 
 .u-num {
@@ -384,9 +384,9 @@ defineProps<{
 .warning-box {
   background: #fff4e5;
   border: 2px solid #ffa500;
-  padding: $space-4;
+  padding: $spacing-4;
   display: flex;
-  gap: $space-3;
+  gap: $spacing-3;
   align-items: flex-start;
 }
 
@@ -397,6 +397,6 @@ defineProps<{
 }
 
 .mt-4 {
-  margin-top: $space-4;
+  margin-top: $spacing-4;
 }
 </style>

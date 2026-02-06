@@ -11,11 +11,9 @@ import type {
   WalletBalance,
   TransactionResult,
   SignedMessage,
-  InvokeParams} from "./base";
-import {
-  WalletNotInstalledError,
-  WalletConnectionError,
+  NeoInvokeParams,
 } from "./base";
+import { WalletNotInstalledError, WalletConnectionError } from "./base";
 
 /** Window with OneGate wallet */
 interface OneGateWindow {
@@ -29,7 +27,7 @@ interface OneGateInstance {
     gas: string;
   }>;
   signMessage(params: { message: string }): Promise<SignedMessage>;
-  invoke(params: InvokeParams): Promise<{ txid: string }>;
+  invoke(params: NeoInvokeParams): Promise<{ txid: string }>;
 }
 
 export class OneGateAdapter implements WalletAdapter {
@@ -90,7 +88,7 @@ export class OneGateAdapter implements WalletAdapter {
     return this.getWindow().OneGate!.signMessage({ message });
   }
 
-  async invoke(params: InvokeParams): Promise<TransactionResult> {
+  async invoke(params: NeoInvokeParams): Promise<TransactionResult> {
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError(this.name);
     }

@@ -37,12 +37,12 @@ defineProps<{
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.stats-card { margin-bottom: $space-4; }
+.stats-card { margin-bottom: $spacing-4; }
 
 .stat-row {
   display: flex;
   justify-content: space-between;
-  padding: $space-3 0;
+  padding: $spacing-3 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .stat-label {

@@ -238,9 +238,9 @@ const publish = () => {
 @use "@shared/styles/tokens.scss" as *;
 
 .studio-header {
-  margin-bottom: $space-4;
+  margin-bottom: $spacing-4;
   border-bottom: 1px solid var(--gacha-divider);
-  padding-bottom: $space-3;
+  padding-bottom: $spacing-3;
 }
 
 .title {
@@ -255,7 +255,7 @@ const publish = () => {
 }
 
 .form-step {
-  margin-bottom: $space-4;
+  margin-bottom: $spacing-4;
 }
 
 .label {

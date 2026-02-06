@@ -9,11 +9,9 @@ import type {
   WalletBalance,
   TransactionResult,
   SignedMessage,
-  InvokeParams} from "./base";
-import {
-  WalletNotInstalledError,
-  WalletConnectionError,
+  NeoInvokeParams,
 } from "./base";
+import { WalletNotInstalledError, WalletConnectionError } from "./base";
 import { logger } from "../../logger";
 import { getNeoContract, getGasContract } from "../../chains/registry";
 import type { ChainId } from "../../chains/types";
@@ -182,7 +180,11 @@ export class NeoLineAdapter implements WalletAdapter {
 
         // Handle both 'contract' and 'asset_hash' field names
         const balItem = b as Record<string, unknown>;
-        const contractField = b.contract || (typeof balItem.asset_hash === "string" ? balItem.asset_hash : undefined) || (typeof balItem.assetHash === "string" ? balItem.assetHash : "") || "";
+        const contractField =
+          b.contract ||
+          (typeof balItem.asset_hash === "string" ? balItem.asset_hash : undefined) ||
+          (typeof balItem.assetHash === "string" ? balItem.assetHash : "") ||
+          "";
         const contractNorm = normalizeContract(contractField);
         const symbol = (b.symbol || "").toUpperCase();
         const amount = b.amount || (typeof balItem.balance === "string" ? balItem.balance : undefined) || "0";
@@ -227,7 +229,7 @@ export class NeoLineAdapter implements WalletAdapter {
     return instance.signMessage({ message });
   }
 
-  async invoke(params: InvokeParams): Promise<TransactionResult> {
+  async invoke(params: NeoInvokeParams): Promise<TransactionResult> {
     const instance = await this.getInstance();
     return instance.invoke(params);
   }

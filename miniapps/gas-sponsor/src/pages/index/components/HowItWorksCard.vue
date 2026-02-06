@@ -31,7 +31,7 @@ defineProps<{
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.help-item { display: flex; align-items: center; gap: $space-3; padding: $space-2 0; }
+.help-item { display: flex; align-items: center; gap: $spacing-3; padding: $spacing-2 0; }
 .help-num {
   width: 24px; height: 24px; background: var(--neo-green); border: 1px solid black;
   display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: $font-weight-black;

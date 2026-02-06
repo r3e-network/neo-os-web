@@ -10,11 +10,12 @@
 // ============================================================================
 
 // Font Family
-$font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans",
+$font-family:
+  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans",
   "Helvetica Neue", sans-serif;
 
 // Monospace Font (for code, addresses, numeric values)
-$font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, 'Courier New', monospace;
+$font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Consolas, "Courier New", monospace;
 
 // Font Sizes
 $font-size-xs: 11px;
@@ -54,19 +55,6 @@ $spacing-8: 32px;
 $spacing-10: 40px;
 $spacing-12: 48px;
 $spacing-16: 64px;
-
-// Aliases for backward compatibility
-$space-0: $spacing-0;
-$space-1: $spacing-1;
-$space-2: $spacing-2;
-$space-3: $spacing-3;
-$space-4: $spacing-4;
-$space-5: $spacing-5;
-$space-6: $spacing-6;
-$space-8: $spacing-8;
-$space-10: $spacing-10;
-$space-12: $spacing-12;
-$space-16: $spacing-16;
 
 // ============================================================================
 // Border Radius
@@ -112,8 +100,8 @@ $z-index-tooltip: 700;
 $z-modal: $z-index-modal;
 $z-dropdown: $z-index-dropdown;
 $z-fixed: $z-index-fixed;
-$z-index-popover: 600;
-$z-index-tooltip: 700;
+$z-popover: $z-index-popover;
+$z-tooltip: $z-index-tooltip;
 
 // ============================================================================
 // Breakpoints (for reference - not directly used in SCSS)

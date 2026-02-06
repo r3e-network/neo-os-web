@@ -88,9 +88,9 @@ defineEmits([
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.create-card { margin-top: $space-6; }
+.create-card { margin-top: $spacing-6; }
 .policy-row {
-  margin-bottom: $space-4;
+  margin-bottom: $spacing-4;
 }
 .policy-label {
   display: block;
@@ -99,18 +99,18 @@ defineEmits([
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-secondary);
-  margin-bottom: $space-2;
+  margin-bottom: $spacing-2;
 }
 .policy-actions {
   display: flex;
-  gap: $space-2;
+  gap: $spacing-2;
   flex-wrap: wrap;
 }
 .price-row {
   display: flex;
   align-items: flex-end;
-  gap: $space-3;
-  margin-bottom: $space-3;
+  gap: $spacing-3;
+  margin-bottom: $spacing-3;
 }
 
 .price-btn {
@@ -121,7 +121,7 @@ defineEmits([
   font-size: 10px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: $space-4;
+  margin-bottom: $spacing-4;
   display: block;
 }
 </style>

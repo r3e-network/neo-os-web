@@ -6,6 +6,13 @@
         "navigationBarTitleText": "Prediction Market",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/docs/index",
+      "style": {
+        "navigationBarTitleText": "Docs",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

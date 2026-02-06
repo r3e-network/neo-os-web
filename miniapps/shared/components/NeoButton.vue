@@ -38,7 +38,7 @@ withDefaults(
     disabled: false,
     loading: false,
     ariaLabel: undefined,
-  },
+  }
 );
 
 defineEmits<{
@@ -53,7 +53,7 @@ defineEmits<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: $space-2;
+  gap: $spacing-2;
   font-family: $font-family;
   font-weight: 700;
   text-transform: uppercase;
@@ -77,6 +77,12 @@ defineEmits<{
     opacity: 0.5;
     cursor: not-allowed;
     filter: grayscale(0.5);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #3b82f6);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
   }
 
   &--block {

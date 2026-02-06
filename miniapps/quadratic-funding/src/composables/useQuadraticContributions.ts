@@ -3,7 +3,7 @@ import { ref, reactive } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "./useI18n";
-import { requireNeoChain, chainType } from "@shared/utils/chain";
+import { requireNeoChain } from "@shared/utils/chain";
 import type { RoundItem } from "../pages/index/components/RoundList.vue";
 import type { ProjectItem } from "../pages/index/components/ProjectList.vue";
 
@@ -15,7 +15,7 @@ export function useQuadraticContributions(
   refreshRounds: () => Promise<void>
 ) {
   const { t } = useI18n();
-  const { address, connect, invokeContract } = useWallet() as WalletSDK;
+  const { address, connect, invokeContract, chainType } = useWallet() as WalletSDK;
 
   const isContributing = ref(false);
 
@@ -31,12 +31,7 @@ export function useQuadraticContributions(
     contributeForm.roundId = project.roundId;
   };
 
-  const contribute = async (data: {
-    roundId: string;
-    projectId: string;
-    amount: string;
-    memo: string;
-  }) => {
+  const contribute = async (data: { roundId: string; projectId: string; amount: string; memo: string }) => {
     if (!requireNeoChain(chainType, t)) return;
     if (isContributing.value) return;
     if (!selectedRound.value) {
@@ -53,10 +48,17 @@ export function useQuadraticContributions(
     const decimals = selectedRound.value.assetSymbol === "NEO" ? 0 : 8;
     const amount = (() => {
       const [intPart, fracPart = ""] = data.amount.split(".");
+      // NEO is indivisible — reject fractional amounts explicitly
+      if (decimals === 0 && fracPart.length > 0) {
+        setStatus(t("neoNoFractional"), "error");
+        return null;
+      }
       const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
       const value = `${intPart}${normalized}`;
       return value.replace(/^0+/, "") || "0";
     })();
+
+    if (amount === null) return;
 
     if (!amount || amount === "0") {
       setStatus(t("invalidContribution"), "error");

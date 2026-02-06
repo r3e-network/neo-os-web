@@ -151,7 +151,7 @@ const formatMeta = (item: any) => {
 .gacha-machine-view {
   display: flex;
   flex-direction: column;
-  gap: $space-4;
+  gap: $spacing-4;
 }
 
 .machine-display {
@@ -163,7 +163,7 @@ const formatMeta = (item: any) => {
 .machine-meta {
   display: flex;
   flex-direction: column;
-  gap: $space-2;
+  gap: $spacing-2;
 }
 
 .machine-title {
@@ -204,7 +204,7 @@ const formatMeta = (item: any) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: $space-2;
+    margin-bottom: $spacing-2;
   }
   .sale-title {
     font-weight: 700;
@@ -217,7 +217,7 @@ const formatMeta = (item: any) => {
 .capsule-container {
   width: 200px;
   height: 300px;
-  margin: 0 auto $space-4;
+  margin: 0 auto $spacing-4;
   position: relative;
 }
 
@@ -301,7 +301,7 @@ const formatMeta = (item: any) => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: $space-2;
+  gap: $spacing-2;
 }
 
 .play-btn {
@@ -321,7 +321,7 @@ const formatMeta = (item: any) => {
   text-transform: uppercase;
   color: var(--text-secondary);
   font-weight: 700;
-  margin-bottom: $space-3;
+  margin-bottom: $spacing-3;
   display: block;
 }
 
@@ -335,7 +335,7 @@ const formatMeta = (item: any) => {
   font-size: 12px;
   color: var(--text-secondary);
   text-align: center;
-  padding: $space-4 0;
+  padding: $spacing-4 0;
 }
 
 .odds-row {
@@ -386,12 +386,12 @@ const formatMeta = (item: any) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: $space-4;
+  padding: $spacing-4;
 }
 
 .result-icon-lg {
   font-size: 64px;
-  margin-bottom: $space-4;
+  margin-bottom: $spacing-4;
   animation: bounce 1s infinite;
 }
 

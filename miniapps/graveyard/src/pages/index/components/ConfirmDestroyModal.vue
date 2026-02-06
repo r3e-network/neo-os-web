@@ -41,12 +41,12 @@ defineEmits(["cancel", "confirm"]);
   align-items: center;
   justify-content: center;
   z-index: 100;
-  padding: $space-4;
+  padding: $spacing-4;
 }
 .confirm-modal {
   background: var(--bg-card, white);
   border: 6px solid var(--border-color, black);
-  padding: $space-10;
+  padding: $spacing-10;
   width: 100%;
   max-width: 400px;
   text-align: center;
@@ -56,35 +56,35 @@ defineEmits(["cancel", "confirm"]);
 .confirm-skull {
   font-size: 80px;
   display: block;
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
 }
 .confirm-title {
   font-size: 28px;
   font-weight: $font-weight-black;
   text-transform: uppercase;
-  margin-bottom: $space-4;
+  margin-bottom: $spacing-4;
   color: var(--text-primary, black);
   font-style: italic;
 }
 .confirm-text {
   font-size: 14px;
   font-weight: $font-weight-black;
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
   text-transform: uppercase;
 }
 .confirm-hash {
   font-family: $font-mono;
   font-size: 12px;
   background: var(--bg-elevated, #f0f0f0);
-  padding: $space-4;
+  padding: $spacing-4;
   border: 3px solid var(--border-color, black);
   word-break: break-all;
-  margin-bottom: $space-8;
+  margin-bottom: $spacing-8;
   font-weight: $font-weight-bold;
   color: var(--text-primary, black);
 }
 .confirm-actions {
   display: flex;
-  gap: $space-6;
+  gap: $spacing-6;
 }
 </style>

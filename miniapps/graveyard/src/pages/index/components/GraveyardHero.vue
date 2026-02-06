@@ -50,7 +50,7 @@ const formatNum = (n: number) => formatNumber(n, 2);
   display: flex;
   justify-content: space-around;
   align-items: flex-end;
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
   position: relative;
   background: linear-gradient(180deg, var(--grave-panel-soft), var(--grave-panel-strong));
   border-radius: 8px;
@@ -97,14 +97,14 @@ const formatNum = (n: number) => formatNumber(n, 2);
 
 .hero-stats-glass {
   display: flex;
-  gap: $space-4;
+  gap: $spacing-4;
 }
 
 .hero-stat-glass {
   flex: 1;
   text-align: center;
   background: var(--grave-panel-soft);
-  padding: $space-4;
+  padding: $spacing-4;
   border-radius: 8px;
   border: 1px solid var(--grave-panel-border);
   transition: background 0.2s;

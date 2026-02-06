@@ -58,7 +58,7 @@ defineProps<{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
 }
 .clock-label {
   font-size: 12px;
@@ -111,8 +111,8 @@ defineProps<{
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: $space-8 0;
-  padding: $space-6;
+  margin: $spacing-8 0;
+  padding: $spacing-6;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
@@ -147,7 +147,7 @@ defineProps<{
 }
 
 .danger-meter-glass {
-  margin-top: $space-6;
+  margin-top: $spacing-6;
 }
 .meter-labels {
   display: flex;
@@ -190,8 +190,8 @@ defineProps<{
 }
 
 .event-description-glass {
-  margin-top: $space-6;
-  padding: $space-4;
+  margin-top: $spacing-6;
+  padding: $spacing-4;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;

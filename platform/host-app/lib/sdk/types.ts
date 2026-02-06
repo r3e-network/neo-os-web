@@ -15,8 +15,6 @@ export type MiniAppChainContracts = Record<ChainId, MiniAppChainContract>;
 export interface MiniAppSDKConfig {
   edgeBaseUrl?: string;
   appId?: string;
-  /** @deprecated Use chainId instead */
-  network?: "testnet" | "mainnet";
   /** Multi-chain support, null if app has no chain support */
   chainId?: ChainId | null;
   chainType?: "neo-n3";

@@ -6,7 +6,7 @@
  *
  * @example
  * ```ts
- * const { isLoading, error, activeTab, setError, clearError } = usePageState("game");
+ * const { isLoading, error, activeTab, setError, clearError } = usePageState({ defaultTab: "game" });
  * ```
  */
 

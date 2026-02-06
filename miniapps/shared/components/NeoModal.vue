@@ -1,13 +1,29 @@
 <template>
-  <view v-if="visible" class="neo-modal" @click.self="closeable && $emit('close')">
-    <view class="neo-modal__content" :class="`neo-modal--${variant}`">
+  <view
+    v-if="visible"
+    class="neo-modal"
+    role="dialog"
+    aria-modal="true"
+    :aria-label="title || 'Dialog'"
+    @click.self="closeable && $emit('close')"
+    @keydown.escape="closeable && $emit('close')"
+  >
+    <view ref="contentRef" class="neo-modal__content" :class="`neo-modal--${variant}`">
       <view v-if="title" class="neo-modal__header">
         <text class="neo-modal__title">{{ title }}</text>
-        <view v-if="closeable" class="neo-modal__close" @click="$emit('close')">
+        <view
+          v-if="closeable"
+          class="neo-modal__close"
+          role="button"
+          tabindex="0"
+          aria-label="Close dialog"
+          @click="$emit('close')"
+          @keydown.enter="$emit('close')"
+          @keydown.space.prevent="$emit('close')"
+        >
           <AppIcon name="x" :size="20" />
         </view>
       </view>
-
 
       <view class="neo-modal__body">
         <slot />
@@ -20,11 +36,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, nextTick, onUnmounted } from "vue";
 import AppIcon from "./AppIcon.vue";
 
 export type ModalVariant = "default" | "success" | "warning" | "danger";
 
-defineProps<{
+const props = defineProps<{
   visible: boolean;
   title?: string;
   variant?: ModalVariant;
@@ -34,6 +51,31 @@ defineProps<{
 defineEmits<{
   (e: "close"): void;
 }>();
+
+const contentRef = ref<HTMLElement | null>(null);
+let previouslyFocused: HTMLElement | null = null;
+
+watch(
+  () => props.visible,
+  async (isVisible) => {
+    if (isVisible) {
+      previouslyFocused = typeof document !== "undefined" ? (document.activeElement as HTMLElement) : null;
+      await nextTick();
+      // Focus the first focusable element inside the modal, or the content itself
+      const focusable = contentRef.value?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      (focusable || contentRef.value)?.focus?.();
+    } else if (previouslyFocused) {
+      previouslyFocused.focus?.();
+      previouslyFocused = null;
+    }
+  }
+);
+
+onUnmounted(() => {
+  previouslyFocused = null;
+});
 </script>
 
 <style lang="scss">
@@ -47,7 +89,7 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: $space-5;
+  padding: $spacing-5;
   background: rgba(0, 0, 0, 0.85);
   animation: fadeIn 0.2s ease;
 
@@ -77,7 +119,7 @@ defineEmits<{
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: $space-4 $space-5;
+    padding: $spacing-4 $spacing-5;
     border-bottom: $border-width-sm solid var(--border-color);
   }
 
@@ -106,13 +148,13 @@ defineEmits<{
   }
 
   &__body {
-    padding: $space-5;
+    padding: $spacing-5;
   }
   &__footer {
-    padding: $space-4 $space-5;
+    padding: $spacing-4 $spacing-5;
     border-top: $border-width-sm solid var(--border-color);
     display: flex;
-    gap: $space-3;
+    gap: $spacing-3;
     justify-content: flex-end;
   }
 }

@@ -100,14 +100,14 @@ const healthGlowColor = computed(() => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.health-section { margin-bottom: $space-6; text-align: center; }
+.health-section { margin-bottom: $spacing-6; text-align: center; }
 
 .section-label {
   display: block;
   font-size: 14px;
   font-weight: 800;
   color: var(--text-primary);
-  margin-bottom: $space-4;
+  margin-bottom: $spacing-4;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -117,7 +117,7 @@ const healthGlowColor = computed(() => {
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  margin: 0 auto $space-4;
+  margin: 0 auto $spacing-4;
   display: flex;
   align-items: center;
   justify-content: center;

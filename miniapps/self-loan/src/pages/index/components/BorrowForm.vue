@@ -130,10 +130,10 @@ const getLTVColor = () => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.input-section { margin-bottom: $space-6; }
+.input-section { margin-bottom: $spacing-6; }
 
 .tier-section {
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
 }
 
 .tier-label {
@@ -193,7 +193,7 @@ const getLTVColor = () => {
 }
 
 .ltv-section-glass {
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
   padding: 16px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -264,7 +264,7 @@ const getLTVColor = () => {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
 }
 
 .calc-row {

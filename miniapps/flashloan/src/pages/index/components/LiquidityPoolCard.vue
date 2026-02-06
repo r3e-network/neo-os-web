@@ -41,7 +41,7 @@ const formatNum = (n: number) => formatNumber(n, 4);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
 }
 
 .card-title {
@@ -96,7 +96,7 @@ const formatNum = (n: number) => formatNumber(n, 4);
 .liquidity-item {
   display: flex;
   flex-direction: column;
-  gap: $space-3;
+  gap: $spacing-3;
 }
 
 .item-header {

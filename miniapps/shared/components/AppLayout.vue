@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import NavBar, { type NavTab } from "./NavBar.vue";
 import TopNavBar from "./TopNavBar.vue";
 
@@ -42,8 +42,8 @@ import TopNavBar from "./TopNavBar.vue";
  * ```
  */
 
-// Check if running in embedded mode
-const isEmbedded = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embedded") === "1";
+// Embedded mode detection — deferred to onMounted for SSR safety
+const isEmbedded = ref(false);
 
 const props = withDefaults(
   defineProps<{
@@ -70,7 +70,7 @@ const props = withDefaults(
     activeTab: "",
     allowScroll: true,
     theme: "",
-  },
+  }
 );
 
 const emit = defineEmits<{
@@ -102,19 +102,23 @@ const handleBack = (): void => {
  * Validate props configuration on mount
  */
 onMounted(() => {
+  // Detect embedded mode (safe — only runs client-side)
+  isEmbedded.value =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embedded") === "1";
+
   // Validate active tab exists in tabs array
   if (props.tabs && props.tabs.length > 0 && props.activeTab) {
     const activeTabExists = props.tabs.some((t) => t.id === props.activeTab);
     if (!activeTabExists) {
       console.warn(
         `[AppLayout] Active tab "${props.activeTab}" not found in tabs array. ` +
-          `Available tabs: ${props.tabs.map((t) => t.id).join(", ")}`,
+          `Available tabs: ${props.tabs.map((t) => t.id).join(", ")}`
       );
     }
   }
 
   // Log embedded mode for debugging
-  if (isEmbedded) {
+  if (isEmbedded.value) {
     console.log("[AppLayout] Running in embedded mode");
   }
 });

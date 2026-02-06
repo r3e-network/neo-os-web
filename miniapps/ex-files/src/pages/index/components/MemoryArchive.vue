@@ -125,15 +125,15 @@ const getCategoryLabel = (id?: number) => {
 .section-header-neo {
   display: flex;
   align-items: center;
-  gap: $space-3;
-  padding: $space-2 0;
-  margin-bottom: $space-4;
+  gap: $spacing-3;
+  padding: $spacing-2 0;
+  margin-bottom: $spacing-4;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .section-icon { font-size: 20px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
 .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-primary); }
 
-.file-body { padding: $space-2 0; }
+.file-body { padding: $spacing-2 0; }
 .file-title {
   font-size: 16px; font-weight: 700; text-transform: uppercase; color: var(--text-primary);
   margin-bottom: 8px; letter-spacing: 0.05em;
@@ -162,8 +162,8 @@ const getCategoryLabel = (id?: number) => {
 }
 
 .file-footer-neo {
-  display: flex; justify-content: space-between; align-items: center; padding-top: $space-3;
-  border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: $space-3;
+  display: flex; justify-content: space-between; align-items: center; padding-top: $spacing-3;
+  border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: $spacing-3;
 }
 .view-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #9f9df3; }
 .file-id { color: var(--text-secondary); font-family: $font-mono; }

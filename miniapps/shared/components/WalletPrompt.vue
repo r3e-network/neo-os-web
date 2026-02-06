@@ -54,7 +54,7 @@ const handleConnect = async () => {
 
   &__desc {
     display: block;
-    margin-bottom: $space-5;
+    margin-bottom: $spacing-5;
     color: var(--text-secondary);
     font-size: $font-size-sm;
     line-height: 1.5;
@@ -65,7 +65,7 @@ const handleConnect = async () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: $space-2;
+    gap: $spacing-2;
   }
 }
 </style>

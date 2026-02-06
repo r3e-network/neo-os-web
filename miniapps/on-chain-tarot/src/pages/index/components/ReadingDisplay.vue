@@ -23,7 +23,7 @@ defineProps<{
 @use "@shared/styles/variables.scss" as *;
 
 .reading-card-container {
-  margin-top: $space-6;
+  margin-top: $spacing-6;
 }
 
 .fortune-container-glass {

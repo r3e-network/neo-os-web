@@ -1,7 +1,11 @@
 <template>
   <view
     :class="['neo-card', `neo-card--${variant}`, { 'neo-card--hoverable': hoverable, 'neo-card--flat': flat }]"
+    :role="hoverable ? 'button' : undefined"
+    :tabindex="hoverable ? 0 : undefined"
     @click="hoverable && $emit('click', $event)"
+    @keydown.enter="hoverable && $emit('click', $event as any)"
+    @keydown.space.prevent="hoverable && $emit('click', $event as any)"
   >
     <view v-if="title || $slots.header" class="neo-card__header">
       <text v-if="title" class="neo-card__title">{{ title }}</text>
@@ -39,7 +43,7 @@ withDefaults(
     variant: "default",
     hoverable: false,
     flat: false,
-  },
+  }
 );
 
 defineEmits<{
@@ -79,6 +83,10 @@ defineEmits<{
     &:active {
       transform: translateY(-1px);
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent-primary, #3b82f6);
+      outline-offset: 2px;
     }
   }
 

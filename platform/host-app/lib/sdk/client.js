@@ -54,9 +54,9 @@ const DEFAULT_NEO_RPC_ENDPOINTS = {
 };
 let rpcRequestId = 0;
 
-function resolveNeoNetwork(chainId, config) {
+function resolveNeoNetwork(chainId) {
   if (chainId && String(chainId).includes("mainnet")) return "mainnet";
-  return config?.network === "mainnet" ? "mainnet" : "testnet";
+  return "testnet";
 }
 
 function inferChainType(chainId, config) {
@@ -73,18 +73,18 @@ function inferChainType(chainId, config) {
   return "neo-n3";
 }
 
-function resolveRpcUrl(chainId, chainType, config) {
+function resolveRpcUrl(chainId) {
   const registry = getChainRegistry();
   const chain = chainId ? registry.getChain(chainId) : null;
   if (chain && Array.isArray(chain.rpcUrls) && chain.rpcUrls.length > 0) {
     return chain.rpcUrls[0];
   }
-  const fallback = resolveNeoNetwork(chainId, config);
+  const fallback = resolveNeoNetwork(chainId);
   return DEFAULT_NEO_RPC_ENDPOINTS[fallback] || DEFAULT_NEO_RPC_ENDPOINTS.testnet;
 }
 
-async function rpcCall(method, params, chainId, chainType, config) {
-  const endpoint = resolveRpcUrl(chainId, chainType, config);
+async function rpcCall(method, params, chainId) {
+  const endpoint = resolveRpcUrl(chainId);
   if (!endpoint) {
     throw new Error("RPC endpoint unavailable");
   }
@@ -108,8 +108,8 @@ async function rpcCall(method, params, chainId, chainType, config) {
   return data.result;
 }
 
-async function getApplicationLog(txid, chainId, chainType, config) {
-  return rpcCall("getapplicationlog", [txid], chainId, chainType, config);
+async function getApplicationLog(txid, chainId) {
+  return rpcCall("getapplicationlog", [txid], chainId);
 }
 
 function extractReceiptIdFromLog(log) {
@@ -131,10 +131,10 @@ function extractReceiptIdFromLog(log) {
   return null;
 }
 
-async function waitForReceipt(txid, chainId, chainType, config, attempts = 10, delayMs = 1200) {
+async function waitForReceipt(txid, chainId, attempts = 10, delayMs = 1200) {
   for (let i = 0; i < attempts; i++) {
     try {
-      const log = await getApplicationLog(txid, chainId, chainType, config);
+      const log = await getApplicationLog(txid, chainId);
       const receiptId = extractReceiptIdFromLog(log);
       if (receiptId) return receiptId;
     } catch (e) {
@@ -256,7 +256,7 @@ export function createMiniAppSDK(config) {
     const txid = extractTxId(result);
     if (!txid) return { ...response, txid: null };
 
-    const receiptId = await waitForReceipt(txid, chainId, chainType, config).catch(() => null);
+    const receiptId = await waitForReceipt(txid, chainId).catch(() => null);
     updateIntent(requestId, { receipt_id: receiptId });
     if (receiptId) {
       const entry = getIntent(requestId);
@@ -307,7 +307,7 @@ export function createMiniAppSDK(config) {
         }
         const contract = params.contract;
         if (!contract) throw new Error("contract address required");
-        return rpcCall("invokefunction", [contract, params.method, params.args || []], targetChainId, targetChainType, config);
+        return rpcCall("invokefunction", [contract, params.method, params.args || []], targetChainId);
       }
 
       throw new Error(`Unsupported invoke method: ${method}`);
@@ -396,9 +396,9 @@ export function createMiniAppSDK(config) {
         return response;
       },
       getCandidates: async () => {
-        const candidates = await rpcCall("getcandidates", [], chainId, chainType, config);
-        const committee = await rpcCall("getcommittee", [], chainId, chainType, config).catch(() => []);
-        const blockHeight = await rpcCall("getblockcount", [], chainId, chainType, config).catch(() => 0);
+        const candidates = await rpcCall("getcandidates", [], chainId);
+        const committee = await rpcCall("getcommittee", [], chainId).catch(() => []);
+        const blockHeight = await rpcCall("getblockcount", [], chainId).catch(() => 0);
         const committeeSet = new Set(Array.isArray(committee) ? committee : []);
         const list = Array.isArray(candidates)
           ? candidates.map((row) => ({
@@ -443,9 +443,9 @@ export function createMiniAppSDK(config) {
       getNetworkStats: async () => {
         // Fetch network stats from Neo RPC
         const [blockCount, validators, version] = await Promise.all([
-          rpcCall("getblockcount", [], chainId, chainType, config),
-          rpcCall("getnextblockvalidators", [], chainId, chainType, config).catch(() => []),
-          rpcCall("getversion", [], chainId, chainType, config).catch(() => ({})),
+          rpcCall("getblockcount", [], chainId),
+          rpcCall("getnextblockvalidators", [], chainId).catch(() => []),
+          rpcCall("getversion", [], chainId).catch(() => ({})),
         ]);
         return {
           blockHeight: blockCount || 0,
@@ -456,7 +456,7 @@ export function createMiniAppSDK(config) {
       },
       getRecentTransactions: async (limit = 10) => {
         // Fetch recent blocks and extract transactions
-        const blockCount = await rpcCall("getblockcount", [], chainId, chainType, config);
+        const blockCount = await rpcCall("getblockcount", [], chainId);
         const transactions = [];
         const blocksToFetch = Math.min(limit, 5);
 
@@ -464,7 +464,7 @@ export function createMiniAppSDK(config) {
           const blockHeight = blockCount - 1 - i;
           if (blockHeight < 0) break;
           try {
-            const block = await rpcCall("getblock", [blockHeight, true], chainId, chainType, config);
+            const block = await rpcCall("getblock", [blockHeight, true], chainId);
             if (block?.tx && Array.isArray(block.tx)) {
               for (const tx of block.tx) {
                 if (transactions.length >= limit) break;

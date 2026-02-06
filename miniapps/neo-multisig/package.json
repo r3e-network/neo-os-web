@@ -27,6 +27,8 @@
     "dompurify": "^3.3.1",
     "elliptic": "^6.6.1",
     "fflate": "^0.8.2",
+    "fast-png": "^6.4.0",
+    "iobuffer": "^5.3.2",
     "hash.js": "^1.1.7",
     "hmac-drbg": "^1.0.1",
     "html2canvas": "^1.4.1",
@@ -38,6 +40,7 @@
     "minimalistic-assert": "^1.0.1",
     "minimalistic-crypto-utils": "^1.0.1",
     "qrcode": "^1.5.3",
+    "pako": "^2.1.0",
     "raf": "^3.4.1",
     "rgbcolor": "^1.0.1",
     "stackblur-canvas": "^2.7.0",
@@ -60,5 +63,12 @@
     "util": "^0.12.5",
     "vite": "catalog:",
     "vite-plugin-node-polyfills": "^0.25.0"
+  },
+  "overrides": {
+    "@intlify/core-base": ">=9.14.0",
+    "@intlify/message-resolver": ">=9.1.11",
+    "@intlify/shared": ">=9.14.0",
+    "qs": ">=6.13.0",
+    "esbuild": ">=0.25.0"
   }
 }

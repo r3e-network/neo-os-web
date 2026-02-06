@@ -58,9 +58,11 @@ test.describe("MiniApp Validation", () => {
       await page.goto(`/miniapps/miniapp-${appId}`);
       await page.waitForLoadState("networkidle");
 
-      // Wait for iframe to load
-      const iframe = page.frameLocator("iframe");
-      await expect(iframe.locator("body")).toBeVisible({ timeout: 10000 });
+      // Use title-based selector to target the specific MiniApp iframe
+      // and contentFrame() (Playwright 1.58+ API) to access frame content
+      const iframeLocator = page.locator('iframe[title$="MiniApp"]').first();
+      const frame = iframeLocator.contentFrame();
+      await expect(frame.locator("body")).toBeVisible({ timeout: 10000 });
 
       // Check that content is loaded
       const content = await page.content();
@@ -71,17 +73,18 @@ test.describe("MiniApp Validation", () => {
       await page.goto(`/miniapps/miniapp-${appId}`);
       await page.waitForLoadState("networkidle");
 
-      // Wait for iframe
-      const iframe = page.frameLocator("iframe");
-      await expect(iframe.locator("body")).toBeVisible({ timeout: 10000 });
+      // Use title-based selector + contentFrame() (Playwright 1.58+ API)
+      const iframeLocator = page.locator('iframe[title$="MiniApp"]').first();
+      const frame = iframeLocator.contentFrame();
+      await expect(frame.locator("body")).toBeVisible({ timeout: 10000 });
 
       // Look for docs tab in navbar
-      const docsTab = iframe.locator('[data-tab="docs"], .nav-item:has-text("Docs")');
+      const docsTab = frame.locator('[data-tab="docs"], .nav-item:has-text("Docs")');
       if ((await docsTab.count()) > 0) {
         await docsTab.first().click();
         await page.waitForTimeout(500);
         // Verify NeoDoc component is visible
-        const neoDoc = iframe.locator(".neo-doc, .doc-container");
+        const neoDoc = frame.locator(".neo-doc, .doc-container");
         expect(await neoDoc.count()).toBeGreaterThanOrEqual(0);
       }
     });

@@ -76,11 +76,11 @@ const getDestructionIcon = (index: number) => {
 @use "@shared/styles/variables.scss" as *;
 
 .tab-content {
-  padding: $space-4;
+  padding: $spacing-4;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: $space-4;
+  gap: $spacing-4;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -89,8 +89,8 @@ const getDestructionIcon = (index: number) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $space-2;
-  padding: 0 $space-1;
+  margin-bottom: $spacing-2;
+  padding: 0 $spacing-1;
 }
 
 .history-label {

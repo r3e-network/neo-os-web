@@ -54,14 +54,14 @@ const formatNum = (n: number) => {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: $space-4;
+  gap: $spacing-4;
 }
 
 .stat-box-glass {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: $space-3;
+  padding: $spacing-3;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -84,15 +84,15 @@ const formatNum = (n: number) => {
 }
 
 .stats-subgrid {
-  margin-top: $space-6;
+  margin-top: $spacing-6;
   display: flex;
   flex-direction: column;
-  gap: $space-3;
+  gap: $spacing-3;
 }
 .stat-row-glass {
   display: flex;
   justify-content: space-between;
-  padding: $space-3;
+  padding: $spacing-3;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;

@@ -30,7 +30,7 @@ const statsData = computed<StatItem[]>(() => [
 @use "@shared/styles/variables.scss" as *;
 
 .tab-content-glass {
-  padding: $space-6;
+  padding: $spacing-6;
   flex: 1;
   background: transparent;
 }

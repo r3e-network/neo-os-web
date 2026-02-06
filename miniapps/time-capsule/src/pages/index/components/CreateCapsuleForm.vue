@@ -122,13 +122,13 @@ defineEmits(["update:title", "update:content", "update:days", "update:isPublic",
 @use "@shared/styles/variables.scss" as *;
 
 .form-section {
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
 }
 .form-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  margin-bottom: $space-2;
+  margin-bottom: $spacing-2;
   display: block;
   color: var(--text-secondary);
   letter-spacing: 0.05em;
@@ -140,8 +140,8 @@ defineEmits(["update:title", "update:content", "update:days", "update:isPublic",
 .date-picker {
   display: flex;
   align-items: center;
-  gap: $space-4;
-  margin-bottom: $space-2;
+  gap: $spacing-4;
+  margin-bottom: $spacing-2;
 }
 .days-input {
   width: 100px;
@@ -163,18 +163,18 @@ defineEmits(["update:title", "update:content", "update:days", "update:isPublic",
 
 .helper-text.neutral {
   color: var(--text-secondary);
-  margin-top: $space-2;
+  margin-top: $spacing-2;
 }
 
 .visibility-actions {
   display: flex;
-  gap: $space-3;
-  margin-bottom: $space-2;
+  gap: $spacing-3;
+  margin-bottom: $spacing-2;
 }
 
 .category-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: $space-2;
+  gap: $spacing-2;
 }
 </style>

@@ -105,5 +105,12 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-node-polyfills": "^0.25.0"
+  },
+  "overrides": {
+    "@intlify/core-base": ">=9.14.0",
+    "@intlify/message-resolver": ">=9.1.11",
+    "@intlify/shared": ">=9.14.0",
+    "qs": ">=6.13.0",
+    "esbuild": ">=0.25.0"
   }
 }

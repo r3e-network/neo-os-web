@@ -27,6 +27,9 @@ export interface WalletTransaction {
   counterparty: string;
 }
 
+// Per-instance fallback state is managed inside onMounted to avoid
+// cross-instance race conditions from module-level mutable globals.
+
 export function useWallet() {
   const address = ref<string | null>(null);
   const balances = ref<WalletBalances>({});
@@ -89,7 +92,11 @@ export function useWallet() {
     error.value = null;
     try {
       const sdk = await waitForSDK();
-      address.value = await sdk.wallet.getAddress();
+      const addr = await sdk.wallet.getAddress();
+      if (!addr) {
+        throw new Error("wallet returned empty address");
+      }
+      address.value = addr;
       isConnected.value = true;
       const config = sdk.getConfig?.();
       chainId.value = config?.chainId ?? null;
@@ -159,7 +166,11 @@ export function useWallet() {
     if (sdk.invoke) {
       try {
         const remote = (await sdk.invoke("getConfig")) as
-          | { contractAddress?: string | null; chainId?: string | null; chainContracts?: Record<string, { address?: string | null }> }
+          | {
+              contractAddress?: string | null;
+              chainId?: string | null;
+              chainContracts?: Record<string, { address?: string | null }>;
+            }
           | undefined;
         if (remote?.contractAddress) return remote.contractAddress;
         if (remote?.chainId && remote?.chainContracts?.[remote.chainId]?.address) {
@@ -188,7 +199,9 @@ export function useWallet() {
     const config = await getAppConfig();
     const target =
       config?.chainId ||
-      (Array.isArray(config?.supportedChains) && config.supportedChains.length > 0 ? config.supportedChains[0] : null) ||
+      (Array.isArray(config?.supportedChains) && config.supportedChains.length > 0
+        ? config.supportedChains[0]
+        : null) ||
       fallbackChainId ||
       null;
     if (!target) {
@@ -247,7 +260,7 @@ export function useWallet() {
       const params = new URLSearchParams({ limit: String(validLimit) });
       if (activeChainId) params.set("chain_id", activeChainId);
       const data = await apiGet<{ transactions: WalletTransaction[] }>(`/wallet-transactions?${params.toString()}`);
-      return data.transactions;
+      return data?.transactions ?? [];
     } catch (e) {
       error.value = e as Error;
       throw e;
@@ -304,18 +317,16 @@ export function useWallet() {
     });
 
     // Fallback: try SDK directly (only if not already connected via host state)
-    // Use a flag to prevent race condition with subscription updates
     const sdk = getSDKSync();
     if (sdk?.getConfig) {
       applyAppConfig(sdk.getConfig());
     }
     if (sdk && !isConnected.value) {
-      const wasConnectedBefore = isConnected.value;
       sdk.wallet
         .getAddress()
-        .then((addr) => {
-          // Only update if state hasn't changed since we started
-          if (!wasConnectedBefore && !isConnected.value) {
+        .then((addr: string) => {
+          // Guard: only apply if subscription hasn't already connected us
+          if (!isConnected.value && addr) {
             address.value = addr;
             isConnected.value = true;
             const config = sdk.getConfig?.();
@@ -324,8 +335,9 @@ export function useWallet() {
             applyAppConfig(config);
           }
         })
-        .catch((e) => {
-          console.debug("[MiniApp SDK] Fallback wallet connection failed:", e?.message || e);
+        .catch((e: unknown) => {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.debug("[MiniApp SDK] Fallback wallet connection failed:", msg);
         });
     }
 

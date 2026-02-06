@@ -59,7 +59,6 @@ overrides:
   esbuild: '>=0.25.0'
   dompurify: '>=3.2.4'
   lodash: '>=4.17.23'
-  elliptic: npm:@noble/curves@^2.0.1
   ws: '>=8.17.1'
   semver: '>=7.5.4'
   postcss: '>=8.4.31'
@@ -106,6 +105,9 @@ importers:
       typescript-eslint:
         specifier: ^8.53.1
         version: 8.53.1(eslint@9.39.2(jiti@2.4.2))(typescript@5.9.3)
+      vite-plugin-node-polyfills:
+        specifier: ^0.25.0
+        version: 0.25.0(rollup@4.56.0)(vite@5.4.21(@types/node@25.0.10)(lightningcss@1.31.1)(sass@1.97.3)(terser@5.46.0))
 
   miniapps/breakup-contract:
     dependencies:
@@ -1238,12 +1240,21 @@ importers:
       dompurify:
         specifier: '>=3.2.4'
         version: 3.3.1
+      elliptic:
+        specifier: ^6.6.1
+        version: 6.6.1
+      fast-png:
+        specifier: ^6.4.0
+        version: 6.4.0
       fflate:
         specifier: ^0.8.2
         version: 0.8.2
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
+      iobuffer:
+        specifier: ^5.3.2
+        version: 5.4.0
       jspdf:
         specifier: '>=4.0.0'
         version: 4.0.0
@@ -1256,6 +1267,9 @@ importers:
       loglevel-plugin-prefix:
         specifier: ^0.8.4
         version: 0.8.4
+      pako:
+        specifier: ^2.1.0
+        version: 2.1.0
       qrcode:
         specifier: ^1.5.3
         version: 1.5.3
@@ -1403,8 +1417,11 @@ importers:
         specifier: '>=3.2.4'
         version: 3.3.1
       elliptic:
-        specifier: npm:@noble/curves@^2.0.1
-        version: '@noble/curves@2.0.1'
+        specifier: ^6.6.1
+        version: 6.6.1
+      fast-png:
+        specifier: ^6.4.0
+        version: 6.4.0
       fflate:
         specifier: ^0.8.2
         version: 0.8.2
@@ -1420,6 +1437,9 @@ importers:
       inherits:
         specifier: ^2.0.4
         version: 2.0.4
+      iobuffer:
+        specifier: ^5.3.2
+        version: 5.4.0
       jspdf:
         specifier: '>=4.0.0'
         version: 4.0.0
@@ -1438,6 +1458,9 @@ importers:
       minimalistic-crypto-utils:
         specifier: ^1.0.1
         version: 1.0.1
+      pako:
+        specifier: ^2.1.0
+        version: 2.1.0
       qrcode:
         specifier: ^1.5.3
         version: 1.5.3
@@ -8170,6 +8193,9 @@ packages:
   electron-to-chromium@1.5.278:
     resolution: {integrity: sha512-dQ0tM1svDRQOwxnXxm+twlGTjr9Upvt8UFWAgmLsxEzFQxhbti4VwxmMjsDxVC51Zo84swW7FVCXEV+VAkhuPw==}
 
+  elliptic@6.6.1:
+    resolution: {integrity: sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==}
+
   emittery@0.13.1:
     resolution: {integrity: sha512-DeWwawk6r5yR9jFgnDKYt4sLS0LmHJJi3ZOnb5/JdbYwj3nW+FxQnHIjhBKz8YLC7oRNPVM9NQ47I3CVx34eqQ==}
     engines: {node: '>=12'}
@@ -14034,7 +14060,7 @@ snapshots:
       buffer: 6.0.3
       cross-fetch: 4.1.0(encoding@0.1.13)
       crypto-js: 4.2.0
-      elliptic: '@noble/curves@2.0.1'
+      elliptic: 6.6.1
       ethereum-cryptography: 3.0.0
       lodash: 4.17.23
       loglevel: 1.9.2
@@ -14664,7 +14690,7 @@ snapshots:
       '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.8.0
       bn.js: 5.2.2
-      elliptic: '@noble/curves@2.0.1'
+      elliptic: 6.6.1
       hash.js: 1.1.7
 
   '@ethersproject/solidity@5.8.0':
@@ -19458,7 +19484,7 @@ snapshots:
       browserify-rsa: 4.1.1
       create-hash: 1.2.0
       create-hmac: 1.1.7
-      elliptic: '@noble/curves@2.0.1'
+      elliptic: 6.6.1
       inherits: 2.0.4
       parse-asn1: 5.1.9
       readable-stream: 2.3.8
@@ -19830,7 +19856,7 @@ snapshots:
   create-ecdh@4.0.4:
     dependencies:
       bn.js: 4.12.2
-      elliptic: '@noble/curves@2.0.1'
+      elliptic: 6.6.1
 
   create-hash@1.2.0:
     dependencies:
@@ -20201,6 +20227,16 @@ snapshots:
       jake: 10.9.4
 
   electron-to-chromium@1.5.278: {}
+
+  elliptic@6.6.1:
+    dependencies:
+      bn.js: 4.12.2
+      brorand: 1.1.0
+      hash.js: 1.1.7
+      hmac-drbg: 1.0.1
+      inherits: 2.0.4
+      minimalistic-assert: 1.0.1
+      minimalistic-crypto-utils: 1.0.1
 
   emittery@0.13.1: {}
 

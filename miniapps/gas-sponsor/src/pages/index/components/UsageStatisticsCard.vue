@@ -46,7 +46,7 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: $space-2;
+  gap: $spacing-2;
 }
 .stat-value {
   font-size: 14px;

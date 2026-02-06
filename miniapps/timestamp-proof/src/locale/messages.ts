@@ -33,6 +33,13 @@ export const messages = {
   step3: { en: "Receive a verifiable proof certificate", zh: "接收可验证的证明证书" },
   step4: { en: "Anyone can verify the proof anytime", zh: "任何人都可以随时验证证明" },
 
+  feature1Name: { en: "Immutable Proof", zh: "不可变证明" },
+  feature1Desc: { en: "Timestamps are permanently recorded on-chain", zh: "时间戳永久记录在链上" },
+  feature2Name: { en: "Instant Verification", zh: "即时验证" },
+  feature2Desc: { en: "Anyone can verify proofs at any time", zh: "任何人都可以随时验证证明" },
+  feature3Name: { en: "Universal Hashing", zh: "通用哈希" },
+  feature3Desc: { en: "Works with any text, document, or data hash", zh: "适用于任何文本、文档或数据哈希" },
+
   wrongChain: { en: "Wrong Network", zh: "网络错误" },
   wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
   switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },

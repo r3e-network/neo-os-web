@@ -1,37 +1,38 @@
 const { withSentryConfig } = require("@sentry/nextjs");
 
 // Content Security Policy
-// Permissive CSP for miniapp iframes (allows inline scripts)
+// MiniApp CSP: allows inline scripts (uni-app requirement) but restricts external script loading.
+// connect-src remains permissive because miniapps interact with diverse blockchain RPC endpoints.
 const MiniAppCSP = `
-  default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
-  script-src * 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' blob:;
-  script-src-elem * 'unsafe-inline';
-  style-src * 'unsafe-inline';
-  style-src-elem * 'unsafe-inline';
-  img-src * data: blob:;
-  font-src * data:;
+  default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' blob:;
+  script-src-elem 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  style-src-elem 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https:;
+  font-src 'self' data: https:;
   connect-src *;
-  frame-src *;
-  frame-ancestors *;
-  form-action *;
+  frame-src 'none';
+  frame-ancestors 'self' https://neomini.app https://*.miniapp.neo.org;
+  form-action 'self';
   base-uri 'self';
   object-src 'none';
 `
   .replace(/\s{2,}/g, " ")
   .trim();
 
-// CSP for main application - more permissive to allow wallet connections
+// CSP for main application - allows wallet/RPC connections but restricts framing
 const MainCSP = `
   default-src 'self' 'unsafe-inline' 'unsafe-eval';
   script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: 'unsafe-hashes';
   script-src-elem 'self' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   style-src-elem 'self' 'unsafe-inline';
-  img-src 'self' data: blob: *;
-  font-src 'self' data: *;
-  connect-src 'self' *;
-  frame-src 'self' *;
-  frame-ancestors 'self' *;
+  img-src 'self' data: blob: https:;
+  font-src 'self' data: https:;
+  connect-src 'self' https://*.neo.org https://*.neo.coz.io https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
+  frame-src 'self' blob:;
+  frame-ancestors 'self';
   form-action 'self';
   base-uri 'self';
   object-src 'none';
@@ -98,7 +99,7 @@ const nextConfig = {
           { key: "Access-Control-Allow-Origin", value: "*" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "ALLOWALL" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Content-Security-Policy", value: MiniAppCSP },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
@@ -106,9 +107,7 @@ const nextConfig = {
       // Cache MiniApp static assets
       {
         source: "/miniapp-assets/:appId/static/:path*",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=86400, immutable" },
-        ],
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, immutable" }],
       },
       {
         source: "/((?!miniapps|miniapp-assets).*)",
@@ -119,6 +118,7 @@ const nextConfig = {
           { key: "Content-Security-Policy", value: MainCSP },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "X-XSS-Protection", value: "1; mode=block" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
         ],
       },
     ];

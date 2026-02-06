@@ -335,10 +335,10 @@ watch(address, async () => {
 @use "@shared/styles/variables.scss" as *;
 
 .tab-container-glass {
-  padding: $space-4;
+  padding: $spacing-4;
   display: flex;
   flex-direction: column;
-  gap: $space-4;
+  gap: $spacing-4;
   background: transparent;
   color: var(--text-primary);
 }
@@ -352,14 +352,14 @@ watch(address, async () => {
 }
 
 .garden-card-glass {
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
 }
 
 .garden-grid-glass {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: $space-4;
-  padding: $space-2;
+  gap: $spacing-4;
+  padding: $spacing-2;
 }
 
 .plot-glass {
@@ -468,14 +468,14 @@ watch(address, async () => {
 .seeds-list {
   display: flex;
   flex-direction: column;
-  gap: $space-6;
+  gap: $spacing-6;
 }
 
 .seed-item-glass {
   display: flex;
   align-items: center;
-  gap: $space-6;
-  padding: $space-4;
+  gap: $spacing-6;
+  padding: $spacing-4;
   background: var(--garden-seed-item-bg);
   border: 1px solid var(--garden-seed-item-border);
   border-radius: 16px;
@@ -548,6 +548,6 @@ watch(address, async () => {
 
 .action-btns-glass {
   display: flex;
-  gap: $space-4;
+  gap: $spacing-4;
 }
 </style>

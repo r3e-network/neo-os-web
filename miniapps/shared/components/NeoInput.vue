@@ -7,8 +7,10 @@
         :value="modelValue"
         :placeholder="placeholder"
         :disabled="disabled"
+        :aria-describedby="error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined"
+        :aria-invalid="!!error"
         class="neo-input__field neo-input__textarea"
-        @input="$emit('update:modelValue', ($event as any).detail.value)"
+        @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         @focus="$emit('focus', $event)"
         @blur="$emit('blur', $event)"
       />
@@ -18,8 +20,10 @@
         :type="type"
         :placeholder="placeholder"
         :disabled="disabled"
+        :aria-describedby="error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined"
+        :aria-invalid="!!error"
         class="neo-input__field"
-        @input="$emit('update:modelValue', ($event as any).detail.value)"
+        @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         @focus="$emit('focus', $event)"
         @blur="$emit('blur', $event)"
       />
@@ -28,13 +32,16 @@
         <text v-if="suffix">{{ suffix }}</text>
       </view>
     </view>
-    <text v-if="error" class="neo-input__error">{{ error }}</text>
-    <text v-else-if="hint" class="neo-input__hint">{{ hint }}</text>
+    <text v-if="error" :id="`${inputId}-error`" class="neo-input__error" role="alert">{{ error }}</text>
+    <text v-else-if="hint" :id="`${inputId}-hint`" class="neo-input__hint">{{ hint }}</text>
   </view>
 </template>
 
 <script setup lang="ts">
 import { AppIcon } from "./index";
+
+let globalInputCounter = 0;
+const inputId = `neo-input-${++globalInputCounter}`;
 
 defineProps<{
   modelValue?: string | number;

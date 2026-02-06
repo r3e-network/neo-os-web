@@ -47,7 +47,7 @@ const formatNum = (n: number) => formatNumber(n, 2);
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
-  margin-bottom: $space-4;
+  margin-bottom: $spacing-4;
   display: block;
   color: var(--text-primary);
   letter-spacing: 0.05em;
@@ -55,7 +55,7 @@ const formatNum = (n: number) => formatNumber(n, 2);
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: $space-4;
+  gap: $spacing-4;
 }
 .stat-card {
   padding: 16px;

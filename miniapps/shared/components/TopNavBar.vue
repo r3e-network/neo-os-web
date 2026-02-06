@@ -1,7 +1,16 @@
 <template>
-  <view class="top-navbar">
+  <view class="top-navbar" role="navigation" :aria-label="title">
     <view class="nav-left">
-      <view v-if="showBack" class="nav-btn" @click="$emit('back')">
+      <view
+        v-if="showBack"
+        class="nav-btn"
+        role="button"
+        tabindex="0"
+        aria-label="Go back"
+        @click="$emit('back')"
+        @keydown.enter="$emit('back')"
+        @keydown.space.prevent="$emit('back')"
+      >
         <AppIcon name="arrow-left" :size="20" />
       </view>
     </view>
@@ -69,9 +78,18 @@ defineEmits<{
   transition: all 0.2s ease;
   cursor: pointer;
 
+  &:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+
   &:active {
     transform: scale(0.95);
     background: rgba(255, 255, 255, 0.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #3b82f6);
+    outline-offset: 2px;
   }
 }
 

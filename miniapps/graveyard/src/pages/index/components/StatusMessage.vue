@@ -16,7 +16,7 @@ defineProps<{
 
 .status-msg {
   text-align: center;
-  padding: $space-4;
+  padding: $spacing-4;
   border: 4px solid var(--border-color, black);
   font-weight: $font-weight-black;
   text-transform: uppercase;

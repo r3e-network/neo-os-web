@@ -9,11 +9,9 @@ import type {
   WalletBalance,
   TransactionResult,
   SignedMessage,
-  InvokeParams} from "./base";
-import {
-  WalletNotInstalledError,
-  WalletConnectionError,
+  NeoInvokeParams,
 } from "./base";
+import { WalletNotInstalledError, WalletConnectionError } from "./base";
 import { getNeoContract, getGasContract } from "../../chains/registry";
 import type { ChainId } from "../../chains/types";
 
@@ -29,7 +27,7 @@ interface Neo3DapiInstance {
     [contract: string]: { amount: string; symbol: string };
   }>;
   signMessage(params: { message: string }): Promise<SignedMessage>;
-  invoke(params: InvokeParams): Promise<{ txid: string }>;
+  invoke(params: NeoInvokeParams): Promise<{ txid: string }>;
 }
 
 export class O3Adapter implements WalletAdapter {
@@ -102,7 +100,7 @@ export class O3Adapter implements WalletAdapter {
     return this.getWindow().neo3Dapi!.signMessage({ message });
   }
 
-  async invoke(params: InvokeParams): Promise<TransactionResult> {
+  async invoke(params: NeoInvokeParams): Promise<TransactionResult> {
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError(this.name);
     }

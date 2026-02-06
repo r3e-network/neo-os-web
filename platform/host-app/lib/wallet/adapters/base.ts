@@ -38,33 +38,6 @@ export interface TokenBalance {
   decimals: number;
 }
 
-/**
- * Legacy Neo N3 balance format for backward compatibility
- * @deprecated Use WalletBalance instead
- */
-export interface LegacyNeoBalance {
-  neo: string;
-  gas: string;
-}
-
-/** Convert legacy Neo balance to multi-chain format */
-export function toLegacyNeoBalance(balance: WalletBalance): LegacyNeoBalance {
-  return {
-    neo: balance.governance || "0",
-    gas: balance.native,
-  };
-}
-
-/** Convert legacy Neo balance from multi-chain format */
-export function fromLegacyNeoBalance(legacy: LegacyNeoBalance): WalletBalance {
-  return {
-    native: legacy.gas,
-    nativeSymbol: "GAS",
-    governance: legacy.neo,
-    governanceSymbol: "NEO",
-  };
-}
-
 export interface TransactionResult {
   txid: string;
   nodeUrl?: string;
@@ -93,12 +66,6 @@ export interface NeoInvokeParams {
   }>;
 }
 
-/**
- * Legacy InvokeParams for backward compatibility (Neo N3)
- * @deprecated Use NeoInvokeParams
- */
-export type InvokeParams = NeoInvokeParams;
-
 export interface WalletAdapter {
   readonly name: string;
   readonly icon: string;
@@ -122,7 +89,7 @@ export interface WalletAdapter {
   signMessage(message: string): Promise<SignedMessage>;
 
   /** Invoke a smart contract (Neo N3) */
-  invoke(params: InvokeParams): Promise<TransactionResult>;
+  invoke(params: NeoInvokeParams): Promise<TransactionResult>;
 }
 
 /** Wallet connection error types */

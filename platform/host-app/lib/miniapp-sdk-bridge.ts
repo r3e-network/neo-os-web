@@ -46,6 +46,8 @@ const PERMISSION_MAP: Record<string, keyof NonNullable<MiniAppInfo["permissions"
   "automation.enable": "automation",
   "automation.disable": "automation",
   "automation.logs": "automation",
+  "wallet.invokeIntent": "payments",
+  "events.emit": "datafeed",
 };
 
 const SAFE_METHODS = new Set([
@@ -53,12 +55,12 @@ const SAFE_METHODS = new Set([
   "wallet.getAddress",
   "getAddress",
   "wallet.switchChain",
-  "wallet.invokeIntent",
+  // TODO: invokeFunction/invokeRead need contract-level ACL (restrict to app's own contract).
+  // Kept safe for now because all miniapps depend on them for core functionality.
   "invokeRead",
   "invokeFunction",
   "stats.getMyUsage",
   "events.list",
-  "events.emit",
   "transactions.list",
   "share.openModal",
   "share.getUrl",
@@ -98,7 +100,11 @@ export function resolveIframeOrigin(entryUrl: string): string | null {
   }
 }
 
-function buildShareUrl(appId: string, chainId?: string, options?: { page?: string; params?: Record<string, string> }): string {
+function buildShareUrl(
+  appId: string,
+  chainId?: string,
+  options?: { page?: string; params?: Record<string, string> },
+): string {
   const baseUrl = `${window.location.origin}/miniapps/${appId}`;
   const queryParams = new URLSearchParams();
   if (chainId) queryParams.set("chain", chainId);
@@ -128,8 +134,8 @@ const handleGetAddress: BridgeHandler = async ({ sdk, walletAddress, params }) =
   try {
     const { useMultiChainWallet } = await import("./wallet/multi-chain-store");
     const mcState = useMultiChainWallet.getState();
-    const targetChainId = (typeof chainId === "string" && chainId) ? chainId : mcState.activeChainId;
-    
+    const targetChainId = typeof chainId === "string" && chainId ? chainId : mcState.activeChainId;
+
     if (targetChainId && mcState.account?.accounts?.[targetChainId]) {
       return mcState.account.accounts[targetChainId];
     }
@@ -139,7 +145,7 @@ const handleGetAddress: BridgeHandler = async ({ sdk, walletAddress, params }) =
 
   // Fallback to current address if no specific chain requested or lookup failed
   if (walletAddress && (!chainId || typeof chainId !== "string")) return walletAddress;
-  
+
   if (sdk.wallet?.getAddress) return sdk.wallet.getAddress();
   if (sdk.getAddress) return sdk.getAddress();
   throw new Error("wallet.getAddress not available");
@@ -159,21 +165,29 @@ const handleSwitchChain: BridgeHandler = async ({ sdk, params }) => {
   return true;
 };
 
-const handleInvoke: BridgeHandler = async ({ sdk, params }) => {
+const handleInvokeRead: BridgeHandler = async ({ sdk, params }) => {
   if (!sdk.invoke) throw new Error("invoke not available");
   const [payload] = params;
   if (!payload || typeof payload !== "object") throw new Error("invoke params required");
   return sdk.invoke("invokeRead", payload);
 };
 
+const handleInvokeFunction: BridgeHandler = async ({ sdk, params }) => {
+  if (!sdk.invoke) throw new Error("invoke not available");
+  const [payload] = params;
+  if (!payload || typeof payload !== "object") throw new Error("invoke params required");
+  return sdk.invoke("invokeFunction", payload);
+};
+
 const handleSignMessage: BridgeHandler = async ({ sdk, params }) => {
   if (!sdk.wallet?.signMessage) throw new Error("wallet.signMessage not available");
   const [payload] = params;
-  const message = typeof payload === "string"
-    ? payload
-    : payload && typeof payload === "object"
-      ? String((payload as { message?: unknown }).message ?? "")
-      : "";
+  const message =
+    typeof payload === "string"
+      ? payload
+      : payload && typeof payload === "object"
+        ? String((payload as { message?: unknown }).message ?? "")
+        : "";
   if (!message) throw new Error("message required");
   return sdk.wallet.signMessage(message);
 };
@@ -294,7 +308,8 @@ const handleAutomationRegister: BridgeHandler = async ({ sdk, params }) => {
   const type = String(taskType ?? "").trim();
   if (!name || !type) throw new Error("taskName and taskType required");
   return sdk.automation.register(
-    name, type,
+    name,
+    type,
     payload && typeof payload === "object" ? (payload as Record<string, unknown>) : undefined,
     schedule && typeof schedule === "object" ? (schedule as { intervalSeconds?: number; maxRuns?: number }) : undefined,
   );
@@ -327,7 +342,9 @@ const handleAutomationUpdate: BridgeHandler = async ({ sdk, params }) => {
   return sdk.automation.update(
     id,
     payload && typeof payload === "object" ? (payload as Record<string, unknown>) : undefined,
-    schedule && typeof schedule === "object" ? (schedule as { intervalSeconds?: number; cron?: string; maxRuns?: number }) : undefined,
+    schedule && typeof schedule === "object"
+      ? (schedule as { intervalSeconds?: number; cron?: string; maxRuns?: number })
+      : undefined,
   );
 };
 
@@ -359,21 +376,24 @@ const handleAutomationLogs: BridgeHandler = async ({ sdk, params }) => {
 
 const handleShareOpenModal: BridgeHandler = async ({ params, appId }) => {
   const [options] = params;
-  const shareOptions = options && typeof options === "object" ? options as { page?: string; params?: Record<string, string> } : {};
+  const shareOptions =
+    options && typeof options === "object" ? (options as { page?: string; params?: Record<string, string> }) : {};
   window.dispatchEvent(new CustomEvent("miniapp-share-request", { detail: { appId, ...shareOptions } }));
   return { success: true };
 };
 
 const handleShareGetUrl: BridgeHandler = async ({ sdk, params, appId }) => {
   const [options] = params;
-  const shareOptions = options && typeof options === "object" ? options as { page?: string; params?: Record<string, string> } : {};
+  const shareOptions =
+    options && typeof options === "object" ? (options as { page?: string; params?: Record<string, string> }) : {};
   const chainId = sdk.getConfig?.()?.chainId;
   return buildShareUrl(appId, chainId ?? undefined, shareOptions);
 };
 
 const handleShareCopy: BridgeHandler = async ({ sdk, params, appId }) => {
   const [options] = params;
-  const shareOptions = options && typeof options === "object" ? options as { page?: string; params?: Record<string, string> } : {};
+  const shareOptions =
+    options && typeof options === "object" ? (options as { page?: string; params?: Record<string, string> }) : {};
   const chainId = sdk.getConfig?.()?.chainId;
   const url = buildShareUrl(appId, chainId ?? undefined, shareOptions);
   try {
@@ -389,13 +409,13 @@ const handleShareCopy: BridgeHandler = async ({ sdk, params, appId }) => {
 // ============================================================================
 
 const HANDLERS: Record<string, BridgeHandler> = {
-  "getConfig": handleGetConfig,
+  getConfig: handleGetConfig,
   "wallet.getAddress": handleGetAddress,
-  "getAddress": handleGetAddress,
+  getAddress: handleGetAddress,
   "wallet.invokeIntent": handleInvokeIntent,
   "wallet.switchChain": handleSwitchChain,
-  "invokeRead": handleInvoke,
-  "invokeFunction": handleInvoke,
+  invokeRead: handleInvokeRead,
+  invokeFunction: handleInvokeFunction,
   "wallet.signMessage": handleSignMessage,
   "payments.payGAS": handlePayGAS,
   "payments.payGASAndInvoke": handlePayGASAndInvoke,

@@ -60,7 +60,8 @@ function readStorageValue(key: string): string | undefined {
 function resolveAuthToken(options?: InstallOptions): (() => Promise<string | undefined>) | undefined {
   if (options?.getAuthToken) return options.getAuthToken;
   if (options?.authToken) {
-    return async () => options.authToken;
+    const token = options.authToken;
+    return async () => token;
   }
   return async () => readStorageValue(AUTH_TOKEN_STORAGE_KEY);
 }
@@ -68,7 +69,8 @@ function resolveAuthToken(options?: InstallOptions): (() => Promise<string | und
 function resolveAPIKey(options?: InstallOptions): (() => Promise<string | undefined>) | undefined {
   if (options?.getAPIKey) return options.getAPIKey;
   if (options?.apiKey) {
-    return async () => options.apiKey;
+    const key = options.apiKey;
+    return async () => key;
   }
   return undefined;
 }

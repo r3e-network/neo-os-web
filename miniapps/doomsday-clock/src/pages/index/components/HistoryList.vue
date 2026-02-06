@@ -37,7 +37,7 @@ defineProps<{
 
 .empty-state {
   text-align: center;
-  padding: $space-6;
+  padding: $spacing-6;
   opacity: 0.6;
   font-weight: $font-weight-bold;
   text-transform: uppercase;
@@ -48,14 +48,14 @@ defineProps<{
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: $space-4;
+  gap: $spacing-4;
 }
 .history-item-glass {
-  padding: $space-4;
+  padding: $spacing-4;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  margin-bottom: $space-2;
+  margin-bottom: $spacing-2;
   transition: all 0.2s ease;
   
   &:active {

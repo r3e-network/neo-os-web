@@ -113,8 +113,8 @@ const getCountdown = (unlockTime: number) => {
   background: var(--bg-card, white);
   border: 4px solid var(--border-color, black);
   box-shadow: 10px 10px 0 var(--shadow-color, black);
-  padding: $space-6;
-  margin-bottom: $space-6;
+  padding: $spacing-6;
+  margin-bottom: $spacing-6;
   color: var(--text-primary, black);
 }
 
@@ -122,7 +122,7 @@ const getCountdown = (unlockTime: number) => {
   color: var(--text-primary, black);
   font-size: 24px;
   font-weight: $font-weight-black;
-  margin-bottom: $space-6;
+  margin-bottom: $spacing-6;
   text-transform: uppercase;
   border-bottom: 4px solid var(--brutal-yellow);
   display: inline-block;
@@ -130,7 +130,7 @@ const getCountdown = (unlockTime: number) => {
 
 .empty-state {
   text-align: center;
-  padding: $space-8;
+  padding: $spacing-8;
   background: rgba(255, 255, 255, 0.02);
   border-radius: 12px;
   border: 1px dashed rgba(255, 255, 255, 0.1);
@@ -139,19 +139,19 @@ const getCountdown = (unlockTime: number) => {
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
-  margin-top: $space-4;
+  margin-top: $spacing-4;
   display: block;
   color: var(--text-secondary);
 }
 
 .capsule-container {
   display: flex;
-  gap: $space-4;
-  padding: $space-4;
+  gap: $spacing-4;
+  padding: $spacing-4;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
-  margin-bottom: $space-5;
+  margin-bottom: $spacing-5;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   color: var(--text-primary);
   backdrop-filter: blur(10px);
@@ -224,8 +224,8 @@ const getCountdown = (unlockTime: number) => {
 
 .capsule-tags {
   display: flex;
-  gap: $space-2;
-  margin-bottom: $space-2;
+  gap: $spacing-2;
+  margin-bottom: $spacing-2;
 }
 .capsule-tag {
   font-size: 9px;
@@ -240,7 +240,7 @@ const getCountdown = (unlockTime: number) => {
 .countdown-display {
   display: flex;
   align-items: center;
-  gap: $space-2;
+  gap: $spacing-2;
   margin: 6px 0;
 }
 .countdown-unit {

@@ -1,15 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import type {
-  MiniAppInfo,
-  MiniAppStats,
-  MiniAppNotification,
-  WalletState} from "../../components";
-import {
-  AppDetailHeader,
-  AppNewsList
-} from "../../components";
+import type { MiniAppInfo, MiniAppStats, MiniAppNotification, WalletState } from "../../components";
+import { AppDetailHeader, AppNewsList } from "../../components";
 import { useTheme } from "../../components/providers/ThemeProvider";
 import { ActivityTicker } from "../../components/ActivityTicker";
 import { AppSecretsTab } from "../../components/features/secrets/AppSecretsTab";
@@ -65,88 +58,9 @@ function sanitizeForJson<T>(obj: T): T {
   return result as T;
 }
 
-type StatCardConfig = {
-  title: string;
-  value: string | number;
-  icon: string;
-  trend?: "up" | "down" | "neutral";
-  trendValue?: string;
-};
-
 type RequestLike = {
   headers?: Record<string, string | string[] | undefined>;
 };
-
-const DEFAULT_STATS_DISPLAY = ["total_transactions", "view_count", "total_gas_used", "daily_active_users"];
-
-const STAT_KEY_ALIASES: Record<string, string> = {
-  tx_count: "total_transactions",
-  gas_burned: "total_gas_used",
-  gas_consumed: "total_gas_used",
-};
-
-// Factory function to create stat card builders with i18n support
-function createStatCardBuilders(
-  t: (key: string) => string,
-): Record<string, (stats: MiniAppStats) => StatCardConfig | null> {
-  return {
-    total_transactions: (stats) =>
-      stats.total_transactions != null
-        ? {
-          title: t("detail.totalTxs"),
-          value: stats.total_transactions.toLocaleString(),
-          icon: "📊",
-          trend: "neutral",
-        }
-        : null,
-    total_users: (stats) =>
-      stats.total_users != null
-        ? { title: t("detail.totalUsers"), value: stats.total_users.toLocaleString(), icon: "👥", trend: "neutral" }
-        : null,
-    total_gas_used: (stats) => ({
-      title: t("detail.gasBurned"),
-      value: formatGas(stats.total_gas_used),
-      icon: "🔥",
-      trend: "neutral",
-    }),
-    total_gas_earned: (stats) => ({
-      title: t("detail.gasEarned"),
-      value: formatGas(stats.total_gas_earned),
-      icon: "💰",
-      trend: "neutral",
-    }),
-    daily_active_users: (stats) =>
-      stats.daily_active_users != null
-        ? {
-          title: t("detail.dailyActiveUsers"),
-          value: stats.daily_active_users.toLocaleString(),
-          icon: "👥",
-          trend: "up",
-        }
-        : null,
-    weekly_active_users: (stats) =>
-      stats.weekly_active_users != null
-        ? {
-          title: t("detail.weeklyActive"),
-          value: stats.weekly_active_users.toLocaleString(),
-          icon: "📈",
-          trend: "up",
-        }
-        : null,
-    view_count: (stats) => ({
-      title: t("detail.views"),
-      value: (stats.view_count || 0).toLocaleString(),
-      icon: "👁️",
-      trend: "neutral",
-    }),
-    last_activity_at: (stats) => ({
-      title: t("detail.lastActive"),
-      value: formatLastActive(stats.last_activity_at),
-      icon: "⏱",
-      trend: "neutral",
-    }),
-  };
-}
 
 export type AppDetailPageProps = {
   app: MiniAppInfo | null;
@@ -225,7 +139,6 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   }, [connected, address, provider]);
 
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
-  const [toastMessage] = useState<string | null>(null);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
@@ -292,7 +205,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   useEffect(() => {
     if (!app?.app_id || !walletChainId) return;
     const chainQuery = `?chain_id=${encodeURIComponent(walletChainId)}`;
-    fetch(`/api/miniapps/${app.app_id}/view${chainQuery}`, { method: "POST" }).catch(() => { });
+    fetch(`/api/miniapps/${app.app_id}/view${chainQuery}`, { method: "POST" }).catch(() => {});
   }, [app?.app_id, walletChainId]);
 
   // Initialize SDK
@@ -417,8 +330,8 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
           const res = result as Record<string, unknown>;
           if (res.attestation || res.txHash || res.txid) {
             setTeeVerification({
-              txHash: res.txHash || res.txid || "N/A",
-              attestation: res.attestation || "Hardware Attested",
+              txHash: String(res.txHash || res.txid || "N/A"),
+              attestation: String(res.attestation || "Hardware Attested"),
               method,
               timestamp: Date.now(),
             });
@@ -469,7 +382,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [app?.app_id, iframeSrc, app?.permissions, federated, entryUrl, chainType]);
 
   // Safety timeout: dismiss loading overlay after 10 seconds even if signals fail
@@ -480,7 +393,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       setIsIframeLoading(false);
     }, 10000);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [app?.app_id, federated, isIframeLoading]);
 
   // Listen for share requests from SDK
@@ -540,12 +453,6 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     router.push("/miniapps");
   }, [router]);
 
-  // Stats cards builder function kept for future use
-  void useMemo(() => {
-    if (!app || !stats) return [];
-    return buildStatCards(stats, app.stats_display ?? undefined, t);
-  }, [app, stats, t]);
-
   if (error || !app) {
     return (
       <div className="min-h-screen bg-background text-foreground">
@@ -589,40 +496,52 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
 
         {/* Tabs */}
         <section className="mb-8">
-          <div className="flex gap-2 border-b border-border mb-6">
+          <div className="flex gap-2 border-b border-border mb-6" role="tablist" aria-label="App sections">
             <button
-              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "overview"
-                ? "border-neo text-neo"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              role="tab"
+              aria-selected={activeTab === "overview"}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                activeTab === "overview"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
               onClick={() => setActiveTab("overview")}
             >
               {t("detail.overview")}
             </button>
             <button
-              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "reviews"
-                ? "border-neo text-neo"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              role="tab"
+              aria-selected={activeTab === "reviews"}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                activeTab === "reviews"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
               onClick={() => setActiveTab("reviews")}
             >
               ⭐ {t("detail.reviews")}
             </button>
             <button
-              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "forum"
-                ? "border-neo text-neo"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              role="tab"
+              aria-selected={activeTab === "forum"}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                activeTab === "forum"
+                  ? "border-neo text-neo"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
               onClick={() => setActiveTab("forum")}
             >
               💬 {t("detail.forum")}
             </button>
             {showNews && (
               <button
-                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "news"
-                  ? "border-neo text-neo"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                role="tab"
+                aria-selected={activeTab === "news"}
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                  activeTab === "news"
+                    ? "border-neo text-neo"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
                 onClick={() => setActiveTab("news")}
               >
                 {t("detail.news")} ({notifications.length})
@@ -630,10 +549,13 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             )}
             {showSecrets && (
               <button
-                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${activeTab === "secrets"
-                  ? "border-neo text-neo"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                role="tab"
+                aria-selected={activeTab === "secrets"}
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                  activeTab === "secrets"
+                    ? "border-neo text-neo"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
                 onClick={() => setActiveTab("secrets")}
               >
                 🔐 {t("detail.secrets")}
@@ -641,7 +563,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
             )}
           </div>
 
-          <div className="min-h-[200px]">
+          <div className="min-h-[200px]" role="tabpanel" aria-label={activeTab}>
             {activeTab === "overview" && <OverviewTab app={app} t={t} entryUrl={entryUrl} chainId={walletChainId} />}
             {activeTab === "reviews" && <ReviewsTab appId={app.app_id} />}
             {activeTab === "forum" && <ForumTab appId={app.app_id} />}
@@ -660,7 +582,6 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   );
 
   // Right panel: MiniApp iframe
-  // Right panel: MiniApp iframe
   const rightPanel = (
     <div className="relative h-full bg-transparent flex flex-col overflow-hidden">
       <LaunchDock
@@ -678,12 +599,21 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
           <MiniAppFrame layout={layout}>
             {federated ? (
               <div className="w-full h-full overflow-y-auto overflow-x-hidden">
-                <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} layout={layout} />
+                <FederatedMiniApp
+                  appId={federated.appId}
+                  view={federated.view}
+                  remote={federated.remote}
+                  layout={layout}
+                />
               </div>
             ) : (
               <>
                 {isIframeLoading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white via-[#f5f6ff] to-[#e6fbf3] dark:from-[#05060d] dark:via-[#090a14] dark:to-[#050a0d] z-10 overflow-hidden">
+                  <div
+                    role="status"
+                    aria-label={`${t("detail.launching")} ${appName}`}
+                    className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white via-[#f5f6ff] to-[#e6fbf3] dark:from-[#05060d] dark:via-[#090a14] dark:to-[#050a0d] z-10 overflow-hidden"
+                  >
                     {/* E-Robo Water Wave Background */}
                     <div className="absolute inset-0 overflow-hidden">
                       <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] bg-[radial-gradient(ellipse_at_center,rgba(159,157,243,0.15)_0%,transparent_50%)] animate-[water-wave_12s_ease-in-out_infinite]" />
@@ -718,8 +648,9 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
                   src={iframeSrc}
                   ref={iframeRef}
                   onLoad={() => setIsIframeLoading(false)}
-                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${isIframeLoading ? "opacity-0" : "opacity-100"
-                    }`}
+                  className={`w-full h-full border-0 bg-white dark:bg-[#0a0f1a] transition-opacity duration-500 ${
+                    isIframeLoading ? "opacity-0" : "opacity-100"
+                  }`}
                   sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
                   title={`${appName} MiniApp`}
                   allowFullScreen
@@ -729,12 +660,6 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
           </MiniAppFrame>
         </MiniAppTransition>
       </div>
-      {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#00ff88]/90 text-black px-6 py-3 rounded-lg font-semibold text-sm z-[9999] shadow-lg">
-          {toastMessage}
-        </div>
-      )}
-
       {/* TEE Verification Overlay */}
       {teeVerification && (
         <div className="absolute bottom-6 right-6 w-[340px] bg-[#0a0f1a]/95 backdrop-blur-xl rounded-2xl border border-[#00ff88]/30 shadow-[0_12px_40px_rgba(0,0,0,0.4)] text-white z-[1000] overflow-hidden animate-in fade-in slide-in-from-bottom-4">
@@ -846,11 +771,7 @@ function OverviewTab({
     <div className="flex flex-col gap-6">
       {/* Screenshots Gallery */}
       {app.screenshots && app.screenshots.length > 0 && (
-        <ScreenshotGallery
-          screenshots={app.screenshots}
-          appName={app.name}
-          className="mb-2"
-        />
+        <ScreenshotGallery screenshots={app.screenshots} appName={app.name} className="mb-2" />
       )}
 
       {/* Permissions Card - Enhanced */}
@@ -858,11 +779,7 @@ function OverviewTab({
 
       {/* Version History */}
       {app.versions && app.versions.length > 0 && (
-        <VersionHistory
-          versions={app.versions}
-          currentVersion={app.currentVersion}
-          maxVisible={3}
-        />
+        <VersionHistory versions={app.versions} currentVersion={app.currentVersion} maxVisible={3} />
       )}
 
       {app.limits && (
@@ -917,47 +834,6 @@ function OverviewTab({
       </div>
     </div>
   );
-}
-
-
-
-function buildStatCards(stats: MiniAppStats, display?: string[], t?: (key: string) => string): StatCardConfig[] {
-  const keys = display ? display : DEFAULT_STATS_DISPLAY;
-  const cards: StatCardConfig[] = [];
-  const builders = createStatCardBuilders(t || ((key) => key));
-  for (const rawKey of keys) {
-    const key = String(rawKey || "")
-      .trim()
-      .toLowerCase();
-    if (!key) continue;
-    const canonicalKey = STAT_KEY_ALIASES[key] ?? key;
-    const builder = builders[canonicalKey];
-    if (!builder) continue;
-    const card = builder(stats);
-    if (card) cards.push(card);
-  }
-  return cards;
-}
-
-function formatGas(value?: string): string {
-  if (!value) return "0.00";
-  const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed)) return "0.00";
-  return parsed.toFixed(2);
-}
-
-function formatLastActive(value: string | null): string {
-  if (!value) return "Never";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
-  const diffMs = Date.now() - date.getTime();
-  if (diffMs <= 0) return "Just now";
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 }
 
 // Server-Side Props
