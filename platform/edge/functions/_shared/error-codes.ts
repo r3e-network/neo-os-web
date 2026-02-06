@@ -8,7 +8,7 @@
  * Example: AUTH_001 = "Unauthorized access"
  */
 
-import { withCors } from "./cors.ts";
+import { json } from "./response.ts";
 
 // ============================================================================
 // Error Code Categories
@@ -211,34 +211,4 @@ export function rpcError(message: string, req?: Request): Response {
  */
 export function contractError(message: string, req?: Request): Response {
   return errorResponse("CONTRACT_001", { contractMessage: message }, req);
-}
-
-// ============================================================================
-// Legacy Compatibility
-// ============================================================================
-
-/**
- * Legacy error function for backward compatibility
- * @deprecated Use errorResponse() with specific error code instead
- */
-export function error(status: number, message: string, _code = "ERROR", req?: Request): Response {
-  // Map legacy status codes to new error codes
-  let codeKey: ErrorCodeKey = "SERVER_001";
-
-  if (status === 400) codeKey = "VAL_001";
-  else if (status === 401) codeKey = "AUTH_001";
-  else if (status === 403) codeKey = "AUTH_004";
-  else if (status === 404) codeKey = "NOTFOUND_001";
-  else if (status === 405) codeKey = "METHOD_NOT_ALLOWED";
-  else if (status === 429) codeKey = "RATE_001";
-  else if (status === 500) codeKey = "SERVER_001";
-
-  return errorResponse(codeKey, { message }, req);
-}
-
-// Internal JSON helper
-function json(data: unknown, init: ResponseInit = {}, req?: Request): Response {
-  const headers = withCors(init.headers || {}, req);
-  headers.set("Content-Type", "application/json; charset=utf-8");
-  return new Response(JSON.stringify(data), { ...init, headers });
 }

@@ -8,7 +8,7 @@ declare const Deno: {
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getChainConfig } from "../_shared/chains.ts";
-import { normalizeUInt160 } from "../_shared/contracts.ts";
+import { normalizeUInt160 } from "../_shared/hex.ts";
 import { mustGetEnv, getEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
 import { json } from "../_shared/response.ts";

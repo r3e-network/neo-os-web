@@ -51,8 +51,7 @@ export async function invokeTxProxy(
   context: { requestId: string; req?: Request },
   wait = false
 ): Promise<InvokeResult | Response> {
-  const { getServiceConfig } = await import("./k8s-config.ts");
-  const { error } = await import("./error-codes.ts");
+  const { error } = await import("./response.ts");
 
   const config = getServiceConfig();
 

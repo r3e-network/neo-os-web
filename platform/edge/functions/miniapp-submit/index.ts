@@ -8,6 +8,7 @@ declare const Deno: {
 };
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { sha256Hex } from "../_shared/hex.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError } from "../_shared/error-codes.ts";
@@ -135,11 +136,7 @@ export async function handler(req: Request): Promise<Response> {
 
         // Generate manifest hash
         const manifestString = JSON.stringify(manifest);
-        const encoder = new TextEncoder();
-        const data = encoder.encode(manifestString);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        manifestHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        manifestHash = await sha256Hex(manifestString);
       } catch (error) {
         errors.push(`Failed to read manifest: ${(error as Error).message}`);
       }

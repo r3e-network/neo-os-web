@@ -9,7 +9,7 @@ declare const Deno: {
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getChainConfig } from "../_shared/chains.ts";
-import { normalizeUInt160 } from "../_shared/contracts.ts";
+import { normalizeUInt160 } from "../_shared/hex.ts";
 import { getEnv, mustGetEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
@@ -72,9 +72,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const support = body.support ?? true;
 
-  const amountStr = String(
-    body.neo_amount ?? body.bneo_amount ?? body.neoAmount ?? body.bneoAmount ?? "",
-  ).trim();
+  const amountStr = String(body.neo_amount ?? body.bneo_amount ?? body.neoAmount ?? body.bneoAmount ?? "").trim();
   if (!/^\d+$/.test(amountStr)) {
     return validationError("neo_amount", "neo_amount must be an integer string", req);
   }
@@ -84,7 +82,9 @@ export async function handler(req: Request): Promise<Response> {
     return errorResponse("VAL_009", { message: "neo_amount exceeds manifest limit" }, req);
   }
 
-  const requestedChainId = String(body.chain_id ?? body.chainId ?? "").trim().toLowerCase();
+  const requestedChainId = String(body.chain_id ?? body.chainId ?? "")
+    .trim()
+    .toLowerCase();
   const chainId = requestedChainId || policy?.supportedChains?.[0] || "neo-n3-mainnet";
   if (policy?.supportedChains?.length && !policy.supportedChains.includes(chainId)) {
     return errorResponse("VAL_006", { chain_id: chainId }, req);
@@ -107,9 +107,7 @@ export async function handler(req: Request): Promise<Response> {
   });
   if (usageErr) return usageErr;
 
-  const governanceAddress = normalizeUInt160(
-    chain.contracts?.governance || mustGetEnv("CONTRACT_GOVERNANCE_ADDRESS"),
-  );
+  const governanceAddress = normalizeUInt160(chain.contracts?.governance || mustGetEnv("CONTRACT_GOVERNANCE_ADDRESS"));
 
   const requestId = crypto.randomUUID();
 
@@ -134,7 +132,7 @@ export async function handler(req: Request): Promise<Response> {
       },
     },
     {},
-    req,
+    req
   );
 }
 

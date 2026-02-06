@@ -1,6 +1,6 @@
 import { getChainConfig } from "./chains.ts";
 import { isProductionEnv } from "./env.ts";
-import { bytesToHex, normalizeHex, normalizeHexBytes } from "./hex.ts";
+import { normalizeHex, normalizeHexBytes, sha256Hex } from "./hex.ts";
 
 export type MiniAppChainContract = {
   address: string | null;
@@ -84,7 +84,7 @@ export function stableStringify(value: unknown): string {
 function normalizeStringList(
   value: unknown,
   label: string,
-  mode: "upper" | "lower" | "preserve" = "preserve",
+  mode: "upper" | "lower" | "preserve" = "preserve"
 ): string[] {
   if (!Array.isArray(value)) throw new Error(`${label} must be an array`);
   const items = value
@@ -104,7 +104,11 @@ function normalizeSupportedChains(value: unknown, label: string): string[] {
     throw new Error(`${label} must be an array`);
   }
   const list = value
-    .map((v) => String(v ?? "").trim().toLowerCase())
+    .map((v) =>
+      String(v ?? "")
+        .trim()
+        .toLowerCase()
+    )
     .filter(Boolean)
     .filter((v) => CHAIN_ID_PATTERN.test(v));
   const deduped = Array.from(new Set(list)).sort();
@@ -142,8 +146,7 @@ function normalizeContractEntry(chainId: string, raw: unknown): MiniAppChainCont
 
   let callback: MiniAppChainContract["callback"];
   const callbackObj = asObject(obj.callback);
-  const callbackAddressRaw =
-    obj.callback_contract ?? callbackObj.address ?? callbackObj.contract;
+  const callbackAddressRaw = obj.callback_contract ?? callbackObj.address ?? callbackObj.contract;
   const callbackMethodRaw = obj.callback_method ?? callbackObj.method;
   if (callbackAddressRaw || callbackMethodRaw) {
     if (!callbackAddressRaw || !callbackMethodRaw) {
@@ -163,15 +166,14 @@ function normalizeContractEntry(chainId: string, raw: unknown): MiniAppChainCont
   return out;
 }
 
-function normalizeContracts(
-  value: unknown,
-  supportedChains: string[],
-): Record<string, MiniAppChainContract> {
+function normalizeContracts(value: unknown, supportedChains: string[]): Record<string, MiniAppChainContract> {
   const obj = asObject(value);
   const contracts: Record<string, MiniAppChainContract> = {};
 
   for (const [chainIdRaw, entry] of Object.entries(obj)) {
-    const chainId = String(chainIdRaw ?? "").trim().toLowerCase();
+    const chainId = String(chainIdRaw ?? "")
+      .trim()
+      .toLowerCase();
     if (!CHAIN_ID_PATTERN.test(chainId)) continue;
     if (!getChainConfig(chainId)) {
       throw new Error(`manifest.contracts contains unknown chain: ${chainId}`);
@@ -198,7 +200,9 @@ function normalizeAssetPolicy(value: unknown, label: string): string[] | Record<
   const obj = value as Record<string, unknown>;
   const out: Record<string, string[]> = {};
   for (const [chainIdRaw, list] of Object.entries(obj)) {
-    const chainId = String(chainIdRaw ?? "").trim().toLowerCase();
+    const chainId = String(chainIdRaw ?? "")
+      .trim()
+      .toLowerCase();
     if (!CHAIN_ID_PATTERN.test(chainId)) {
       throw new Error(`${label} contains invalid chain id: ${chainId}`);
     }
@@ -315,7 +319,9 @@ function normalizeStatsDisplay(value: unknown): string[] {
 }
 
 function normalizeCategory(value: unknown): string {
-  const raw = String(value ?? "").trim().toLowerCase();
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (!raw) {
     throw new Error("manifest.category must be a non-empty string");
   }
@@ -388,7 +394,7 @@ export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, u
   if ("governance_assets_allowed" in m) {
     out.governance_assets_allowed = normalizeAssetPolicy(
       m.governance_assets_allowed,
-      "manifest.governance_assets_allowed",
+      "manifest.governance_assets_allowed"
     );
   }
   if ("sandbox_flags" in m) {
@@ -415,8 +421,7 @@ export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, u
     statsDisplay = normalizeStatsDisplay(m.stats_display);
     out.stats_display = statsDisplay;
   }
-  const requiresContracts =
-    newsIntegrationRaw !== false || (Array.isArray(statsDisplay) && statsDisplay.length > 0);
+  const requiresContracts = newsIntegrationRaw !== false || (Array.isArray(statsDisplay) && statsDisplay.length > 0);
   const hasContractAddress = Object.values(contracts).some((entry) => Boolean(entry?.address));
   if (requiresContracts && !hasContractAddress) {
     throw new Error("manifest.contracts address required when news/stats are enabled");
@@ -425,16 +430,10 @@ export function canonicalizeMiniAppManifest(manifest: unknown): Record<string, u
   return out;
 }
 
-export async function computeSHA256Hex(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return bytesToHex(new Uint8Array(digest));
-}
-
 export async function computeManifestHashHex(manifest: unknown): Promise<string> {
   const canonical = canonicalizeMiniAppManifest(manifest);
   const payload = stableStringify(canonical);
-  return computeSHA256Hex(payload);
+  return sha256Hex(payload);
 }
 
 function isModuleFederationEntry(entryUrl: string): boolean {
@@ -469,13 +468,16 @@ export function enforceMiniAppAssetPolicy(manifest: unknown): void {
 
     const assetsAllowed = resolvePolicy("manifest.assets_allowed", canonical.assets_allowed, chainId) ?? ["GAS"];
     if (assetsAllowed.length !== 1 || assetsAllowed[0] !== "GAS") {
-      throw new Error("manifest.assets_allowed must be exactly [\"GAS\"] for neo-n3 chains");
+      throw new Error('manifest.assets_allowed must be exactly ["GAS"] for neo-n3 chains');
     }
 
-    const governanceAllowed =
-      resolvePolicy("manifest.governance_assets_allowed", canonical.governance_assets_allowed, chainId) ?? ["NEO"];
+    const governanceAllowed = resolvePolicy(
+      "manifest.governance_assets_allowed",
+      canonical.governance_assets_allowed,
+      chainId
+    ) ?? ["NEO"];
     if (governanceAllowed.length !== 1 || governanceAllowed[0] !== "NEO") {
-      throw new Error("manifest.governance_assets_allowed must be exactly [\"NEO\"] for neo-n3 chains");
+      throw new Error('manifest.governance_assets_allowed must be exactly ["NEO"] for neo-n3 chains');
     }
   }
 

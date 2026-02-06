@@ -9,7 +9,7 @@ declare const Deno: {
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getChainConfig } from "../_shared/chains.ts";
-import { normalizeUInt160 } from "../_shared/contracts.ts";
+import { normalizeUInt160 } from "../_shared/hex.ts";
 import { getEnv, mustGetEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";

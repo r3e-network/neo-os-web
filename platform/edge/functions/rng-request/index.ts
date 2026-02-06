@@ -3,7 +3,7 @@ import "../_shared/init.ts";
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getChainConfig } from "../_shared/chains.ts";
-import { normalizeUInt160 } from "../_shared/contracts.ts";
+import { normalizeUInt160 } from "../_shared/hex.ts";
 import { getEnv, mustGetEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
@@ -75,7 +75,7 @@ export async function handler(req: Request): Promise<Response> {
     `${neovrfURL.replace(/\/$/, "")}/random`,
     { request_id: requestId },
     { "X-User-ID": auth.userId },
-    req,
+    req
   );
   if (vrfResult instanceof Response) return vrfResult;
 
@@ -100,7 +100,7 @@ export async function handler(req: Request): Promise<Response> {
   if (getEnv("RNG_ANCHOR") === "1") {
     const txproxyURL = mustGetEnv("TXPROXY_URL");
     const randomnessLogAddress = normalizeUInt160(
-      chain.contracts?.randomness_log || mustGetEnv("CONTRACT_RANDOMNESS_LOG_ADDRESS"),
+      chain.contracts?.randomness_log || mustGetEnv("CONTRACT_RANDOMNESS_LOG_ADDRESS")
     );
     const timestamp = Math.floor(Date.now() / 1000);
     const reportHashHex = attestationHash || randomnessHex.slice(0, 64);
@@ -120,7 +120,7 @@ export async function handler(req: Request): Promise<Response> {
         wait: true,
       },
       { "X-Service-ID": "gateway" },
-      req,
+      req
     );
     if (txRes instanceof Response) return txRes;
     anchoredTx = txRes;
@@ -139,7 +139,7 @@ export async function handler(req: Request): Promise<Response> {
       anchored_tx: anchoredTx,
     },
     {},
-    req,
+    req
   );
 }
 

@@ -18,3 +18,14 @@ export function bytesToHex(bytes: Uint8Array): string {
   for (const b of bytes) out += b.toString(16).padStart(2, "0");
   return out;
 }
+
+export function normalizeUInt160(value: string): string {
+  const s = normalizeHexBytes(value, 20, "UInt160");
+  return `0x${s}`;
+}
+
+export async function sha256Hex(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value);
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+  return bytesToHex(digest);
+}

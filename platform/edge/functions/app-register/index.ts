@@ -8,7 +8,7 @@ declare const Deno: {
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getChainConfig } from "../_shared/chains.ts";
-import { normalizeUInt160 } from "../_shared/contracts.ts";
+import { normalizeUInt160 } from "../_shared/hex.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { upsertMiniAppManifest } from "../_shared/apps.ts";
 import { canonicalizeMiniAppManifest, parseMiniAppManifestCore } from "../_shared/manifest.ts";
@@ -17,7 +17,18 @@ import { errorResponse, validationError, notFoundError } from "../_shared/error-
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
-import { isPlainObject, assertNonEmptyString, isValidChainId } from "../_shared/type-utils.ts";
+
+// Inlined from type-utils.ts (sole consumer – avoids 408-line module for 3 helpers)
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value) && !(value instanceof Date);
+}
+function assertNonEmptyString(value: unknown, message?: string): string {
+  if (typeof value !== "string" || value.length === 0) throw new Error(message || "Value must be a non-empty string");
+  return value;
+}
+function isValidChainId(value: unknown): value is string {
+  return typeof value === "string" && /^[a-z0-9-]+$/.test(value) && value.length > 0;
+}
 
 type AppRegisterRequest = {
   chain_id?: string;
