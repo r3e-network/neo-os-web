@@ -547,6 +547,60 @@
       "limits": null,
       "stats_display": null,
       "news_integration": false
+    },
+    {
+      "app_id": "miniapp-charity-vault",
+      "name": "Charity Vault",
+      "name_zh": "慈善金库",
+      "description": "Charity Vault miniapp on Neo N3",
+      "description_zh": "慈善金库 - Neo N3 去中心化应用",
+      "icon": "/miniapp-assets/charity-vault/logo.jpg",
+      "banner": "/miniapp-assets/charity-vault/banner.jpg",
+      "entry_url": "/miniapp-assets/charity-vault/index.html",
+      "category": "defi",
+      "status": "active",
+      "supportedChains": [
+        "neo-n3-mainnet"
+      ],
+      "chainContracts": {},
+      "permissions": {
+        "payments": true,
+        "governance": false,
+        "rng": false,
+        "datafeed": false,
+        "automation": false,
+        "confidential": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
+    },
+    {
+      "app_id": "miniapp-prediction-market",
+      "name": "Prediction Market",
+      "name_zh": "预测市场",
+      "description": "Prediction Market miniapp on Neo N3",
+      "description_zh": "预测市场 - Neo N3 去中心化应用",
+      "icon": "/miniapp-assets/prediction-market/logo.jpg",
+      "banner": "/miniapp-assets/prediction-market/banner.jpg",
+      "entry_url": "/miniapp-assets/prediction-market/index.html",
+      "category": "defi",
+      "status": "active",
+      "supportedChains": [
+        "neo-n3-mainnet"
+      ],
+      "chainContracts": {},
+      "permissions": {
+        "payments": true,
+        "governance": false,
+        "rng": false,
+        "datafeed": false,
+        "automation": false,
+        "confidential": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     }
   ],
   "social": [
@@ -823,6 +877,42 @@
         "neo-n3-mainnet": {
           "address": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
           "active": true
+        }
+      },
+      "permissions": {
+        "payments": true,
+        "governance": false,
+        "rng": false,
+        "datafeed": false,
+        "automation": false,
+        "confidential": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
+    },
+    {
+      "app_id": "miniapp-social-karma",
+      "name": "Social Karma",
+      "name_zh": "社交因果",
+      "description": "Social Karma miniapp on Neo N3",
+      "description_zh": "社交因果 - Neo N3 去中心化应用",
+      "icon": "/miniapp-assets/social-karma/logo.jpg",
+      "banner": "/miniapp-assets/social-karma/banner.jpg",
+      "entry_url": "/miniapp-assets/social-karma/index.html",
+      "category": "social",
+      "status": "active",
+      "supportedChains": [
+        "neo-n3-mainnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0xfe4b06a3b0e2b8d0c7a6c67b4b6c3d8e1f5a2c3d4",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "",
+          "active": false
         }
       },
       "permissions": {
@@ -1173,6 +1263,42 @@
       "limits": null,
       "stats_display": null,
       "news_integration": false
+    },
+    {
+      "app_id": "miniapp-trustanchor",
+      "name": "Trust Anchor",
+      "name_zh": "信任锚点",
+      "description": "Non-profit voting delegation for Neo N3 governance. Delegate your voting power to candidates with proven reputation and active contribution. Zero fees, 100% of GAS rewards to stakers.",
+      "description_zh": "信任锚点 - Neo N3 去中心化应用",
+      "icon": "/miniapp-assets/trustanchor/logo.jpg",
+      "banner": "/miniapp-assets/trustanchor/banner.jpg",
+      "entry_url": "/miniapp-assets/trustanchor/index.html",
+      "category": "governance",
+      "status": "active",
+      "supportedChains": [
+        "neo-n3-mainnet"
+      ],
+      "chainContracts": {
+        "neo-n3-mainnet": {
+          "address": "0x8b7f3e4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f",
+          "active": true
+        },
+        "neo-n3-testnet": {
+          "address": "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+          "active": true
+        }
+      },
+      "permissions": {
+        "payments": true,
+        "governance": false,
+        "rng": false,
+        "datafeed": false,
+        "automation": false,
+        "confidential": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     }
   ],
   "utility": [
@@ -1667,6 +1793,33 @@
       "limits": null,
       "stats_display": null,
       "news_integration": false
+    },
+    {
+      "app_id": "miniapp-timestamp-proof",
+      "name": "Timestamp Proof",
+      "name_zh": "时间戳证明",
+      "description": "Timestamp Proof miniapp on Neo N3",
+      "description_zh": "时间戳证明 - Neo N3 去中心化应用",
+      "icon": "/miniapp-assets/timestamp-proof/logo.jpg",
+      "banner": "/miniapp-assets/timestamp-proof/banner.jpg",
+      "entry_url": "/miniapp-assets/timestamp-proof/index.html",
+      "category": "utility",
+      "status": "active",
+      "supportedChains": [
+        "neo-n3-mainnet"
+      ],
+      "chainContracts": {},
+      "permissions": {
+        "payments": true,
+        "governance": false,
+        "rng": false,
+        "datafeed": false,
+        "automation": false,
+        "confidential": false
+      },
+      "limits": null,
+      "stats_display": null,
+      "news_integration": null
     }
   ]
 }

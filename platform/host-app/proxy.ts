@@ -89,7 +89,7 @@ function buildCSP(nonce: string, allowFrameAncestors: boolean = false): string {
   return csp.join("; ");
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   // Skip CSP for Next.js internals, static assets, and miniapps static files.
   const pathname = req.nextUrl.pathname;
   if (

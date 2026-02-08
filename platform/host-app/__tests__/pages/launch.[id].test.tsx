@@ -5,6 +5,7 @@ import LaunchPage, { getServerSideProps } from "../../pages/launch/[id]";
 import type { MiniAppInfo } from "../../components/types";
 import { installMiniAppSDK } from "../../lib/miniapp-sdk";
 import { logger } from "../../lib/logger";
+import { useWalletStore } from "../../lib/wallet/store";
 
 jest.mock("../../components/providers/ThemeProvider", () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -420,6 +421,53 @@ describe("LaunchPage", () => {
 
       const response7 = await sendMessage(contentWindow, "unsupported.method", []);
       expect(response7?.[0]).toEqual(expect.objectContaining({ ok: false, id: "unsupported.method" }));
+    });
+
+    it("broadcasts wallet state changes to iframe", async () => {
+      await renderLaunchPage();
+      const { contentWindow } = setupFrame();
+
+      await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
+
+      act(() => {
+        useWalletStore.setState({
+          connected: false,
+          address: "",
+          chainId: "neo-n3-mainnet",
+          chainType: "neo-n3",
+          balance: null,
+        });
+      });
+
+      contentWindow.postMessage.mockClear();
+
+      act(() => {
+        useWalletStore.setState({
+          connected: true,
+          address: "NeoWalletState123",
+          chainId: "neo-n3-mainnet",
+          chainType: "neo-n3",
+          balance: {
+            native: "1.5",
+            governance: "10",
+            nativeSymbol: "GAS",
+            governanceSymbol: "NEO",
+          },
+        });
+      });
+
+      await waitFor(() =>
+        expect(contentWindow.postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: "miniapp_wallet_state_change",
+            connected: true,
+            address: "NeoWalletState123",
+            chainId: "neo-n3-mainnet",
+            chainType: "neo-n3",
+          }),
+          "https://example.com",
+        ),
+      );
     });
 
     it("denies requests without manifest permissions", async () => {

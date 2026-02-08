@@ -9,6 +9,8 @@ interface LiveChatProps {
   appId: string;
   walletAddress?: string;
   userName?: string;
+  /** "floating" = fixed bottom-right widget (default), "inline" = embedded in parent container */
+  mode?: "floating" | "inline";
 }
 
 function timeAgo(date: string): string {
@@ -24,8 +26,9 @@ function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
-export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function LiveChat({ appId, walletAddress, userName, mode = "floating" }: LiveChatProps) {
+  const isInline = mode === "inline";
+  const [isOpen, setIsOpen] = useState(isInline);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [participantCount, setParticipantCount] = useState(0);
@@ -108,23 +111,30 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
 
   return (
     <>
-      {/* Chat Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "fixed bottom-6 right-6 z-50 flex items-center justify-center",
-          "w-14 h-14 rounded-full shadow-lg transition-all duration-300",
-          "bg-emerald-500 hover:bg-emerald-600 text-white",
-          isOpen && "rotate-90",
-        )}
-        aria-label="Toggle chat"
-      >
-        {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
-      </button>
+      {/* Chat Toggle Button — hidden in inline mode */}
+      {!isInline && (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "fixed bottom-6 right-6 z-50 flex items-center justify-center",
+            "w-14 h-14 rounded-full shadow-lg transition-all duration-300",
+            "bg-emerald-500 hover:bg-emerald-600 text-white",
+            isOpen && "rotate-90",
+          )}
+          aria-label="Toggle chat"
+        >
+          {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
+        </button>
+      )}
 
       {/* Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[480px] flex flex-col rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+        <div
+          className={cn(
+            "flex flex-col rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden",
+            isInline ? "w-full max-h-[400px]" : "fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[480px]",
+          )}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-emerald-500 text-white">
             <div className="flex items-center gap-2">
@@ -211,7 +221,9 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
           <span className={cn("text-xs font-medium text-gray-700 dark:text-gray-300", isOwn && "order-2")}>
             {message.userName}
           </span>
-          <span suppressHydrationWarning className={cn("text-xs text-gray-400", isOwn && "order-1")}>{timeAgo(message.timestamp)}</span>
+          <span suppressHydrationWarning className={cn("text-xs text-gray-400", isOwn && "order-1")}>
+            {timeAgo(message.timestamp)}
+          </span>
         </div>
         <div
           className={cn(

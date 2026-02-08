@@ -1,3 +1,4 @@
+const path = require("path");
 const { withSentryConfig } = require("@sentry/nextjs");
 
 // Content Security Policy
@@ -43,7 +44,6 @@ const MainCSP = `
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Performance optimizations
   poweredByHeader: false,
   compress: true,
   images: {
@@ -63,23 +63,17 @@ const nextConfig = {
     externalDir: true,
     optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
   },
-  // Disable TypeScript type checking during build (handled separately by tsc)
+  // Prevent Next from inferring an incorrect repo root when multiple lockfiles exist.
+  turbopack: {
+    root: path.resolve(__dirname, "../.."),
+  },
+  // Type checks are handled separately by dedicated tsc steps.
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Disable ESLint during build (handled separately)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Reduce build output size
   productionBrowserSourceMaps: false,
-  // Disable Sentry's automatic instrumentation to avoid CSP nonce issues
-  sentry: {
-    disableServerWebpackPlugin: true,
-    disableClientWebpackPlugin: true,
-  },
-  // MiniApps are now served locally from public/miniapp-assets/
-  // Static assets (logo, banner) use /miniapp-assets/ path to avoid conflict with pages router
+  // MiniApps are served locally from public/miniapp-assets/.
+  // Static assets (logo, banner) use /miniapp-assets/ to avoid page route conflicts.
   async headers() {
     return [
       {
@@ -104,7 +98,6 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
-      // Cache MiniApp static assets
       {
         source: "/miniapp-assets/:appId/static/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400, immutable" }],

@@ -186,6 +186,51 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
   useEffect(() => {
     if (federated) return;
+
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+
+    const origin = resolveIframeOrigin(entryUrl);
+    if (!origin) return;
+
+    const sandboxAttr = iframe.getAttribute("sandbox") || "";
+    const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
+    const targetOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
+
+    const sendWalletState = () => {
+      const state = useWalletStore.getState();
+      iframe.contentWindow?.postMessage(
+        {
+          type: "miniapp_wallet_state_change",
+          connected: state.connected,
+          address: state.connected ? state.address : null,
+          chainId: state.chainId,
+          chainType: state.chainType,
+          balance: state.balance
+            ? {
+                native: state.balance.native || "0",
+                nativeSymbol: state.balance.nativeSymbol,
+                governance: state.balance.governance,
+                governanceSymbol: state.balance.governanceSymbol,
+              }
+            : null,
+        },
+        targetOrigin,
+      );
+    };
+
+    const unsubscribe = useWalletStore.subscribe(sendWalletState);
+    sendWalletState();
+    const delayedSend = window.setTimeout(sendWalletState, 500);
+
+    return () => {
+      unsubscribe();
+      window.clearTimeout(delayedSend);
+    };
+  }, [entryUrl, federated, app.app_id]);
+
+  useEffect(() => {
+    if (federated) return;
     if (typeof window === "undefined") return;
 
     const iframe = iframeRef.current;

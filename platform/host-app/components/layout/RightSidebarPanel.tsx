@@ -10,13 +10,13 @@ import { getChainRegistry } from "../../lib/chains/registry";
 import { getChainRpcUrl } from "../../lib/chain/rpc-client";
 
 // Platform master accounts (Neo N3 only)
-const CHAIN_MASTER_ACCOUNTS: Partial<Record<ChainId, string>> = {
+export const CHAIN_MASTER_ACCOUNTS: Partial<Record<ChainId, string>> = {
   "neo-n3-mainnet": "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK",
   "neo-n3-testnet": "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK",
 };
 
 // Platform Core Contracts by chain (Neo N3 only)
-const CORE_CONTRACTS: Partial<
+export const CORE_CONTRACTS: Partial<
   Record<
     ChainId,
     Record<
@@ -56,7 +56,7 @@ const CORE_CONTRACTS: Partial<
 };
 
 // Platform Service Contracts by chain (Neo N3 only)
-const PLATFORM_SERVICES: Partial<
+export const PLATFORM_SERVICES: Partial<
   Record<
     ChainId,
     Record<
@@ -105,13 +105,13 @@ const PLATFORM_SERVICES: Partial<
   },
 };
 
-interface ServiceContract {
+export interface ServiceContract {
   name: string;
   address: string;
   description?: string;
 }
 
-interface ContractInfo {
+export interface ContractInfo {
   contractAddress?: string | null;
   masterKeyAddress?: string;
   gasContractAddress?: string;
@@ -119,7 +119,7 @@ interface ContractInfo {
 }
 
 // MiniApp permissions structure
-interface MiniAppPermissions {
+export interface MiniAppPermissions {
   payments?: boolean;
   governance?: boolean;
   rng?: boolean;
@@ -129,7 +129,7 @@ interface MiniAppPermissions {
 }
 
 // Map permissions to platform service keys
-const PERMISSION_TO_SERVICE: Record<string, string> = {
+export const PERMISSION_TO_SERVICE: Record<string, string> = {
   payments: "PaymentHub",
   rng: "RandomnessOracle",
   datafeed: "PriceFeed",
@@ -144,7 +144,7 @@ interface RightSidebarPanelProps {
   chainId?: ChainId | null;
 }
 
-function truncateAddress(address: string, start = 6, end = 4): string {
+export function truncateAddress(address: string, start = 6, end = 4): string {
   if (!address || address.length <= start + end) return address;
   return `${address.slice(0, start)}...${address.slice(-end)}`;
 }
@@ -158,7 +158,7 @@ const KNOWN_ADDRESSES: Record<string, string> = {
 };
 
 // Convert script hash (0x...) to Neo N3 address using proper Base58Check
-async function scriptHashToAddressAsync(scriptHash: string): Promise<string> {
+export async function scriptHashToAddressAsync(scriptHash: string): Promise<string> {
   try {
     // Check known addresses first
     const normalized = scriptHash.toLowerCase();
@@ -213,8 +213,6 @@ async function scriptHashToAddressAsync(scriptHash: string): Promise<string> {
     return scriptHash;
   }
 }
-
-
 
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
@@ -490,10 +488,10 @@ export function RightSidebarPanel({
 }
 
 // Theme colors type
-type ThemeColors = ReturnType<typeof getThemeColors>;
+export type ThemeColors = ReturnType<typeof getThemeColors>;
 
 // Section Component
-function Section({
+export function Section({
   title,
   icon,
   children,
@@ -518,7 +516,7 @@ function Section({
 }
 
 // Info Row Component
-function InfoRow({
+export function InfoRow({
   label,
   value,
   fullValue,
@@ -547,8 +545,9 @@ function InfoRow({
       <div className="flex items-center gap-1.5 min-w-0">
         {indicator && (
           <span
-            className={`w-2 h-2 rounded-full ${indicator === "green" ? "bg-emerald-500" : indicator === "amber" ? "bg-amber-500" : "bg-red-500"
-              }`}
+            className={`w-2 h-2 rounded-full ${
+              indicator === "green" ? "bg-emerald-500" : indicator === "amber" ? "bg-amber-500" : "bg-red-500"
+            }`}
           />
         )}
         {link ? (
@@ -591,7 +590,7 @@ function InfoRow({
   );
 }
 
-function CopyIcon({ color }: { color: string }) {
+export function CopyIcon({ color }: { color: string }) {
   return (
     <svg className="w-3 h-3" fill="none" stroke={color} viewBox="0 0 24 24">
       <path
