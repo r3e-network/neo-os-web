@@ -43,9 +43,24 @@ export function useChainValidation() {
     }
   };
 
+  /**
+   * Pre-bound props object for ChainWarning component.
+   * Eliminates 5-10 lines of prop-wiring boilerplate per app.
+   *
+   * @example
+   * ```vue
+   * <ChainWarning v-if="chainWarningProps.show" v-bind="chainWarningProps" />
+   * ```
+   */
+  const chainWarningProps = computed(() => ({
+    show: showWarning.value,
+    onSwitch: switchToAppChain,
+  }));
+
   return {
     showWarning,
     switchToAppChain,
+    chainWarningProps,
   };
 }
 

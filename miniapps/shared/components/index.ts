@@ -68,9 +68,13 @@ export { default as ChainWarning } from "./ChainWarning.vue";
 // Vue Components - Specialized
 // ============================================================================
 
-
 export { default as ErrorBoundary } from "./ErrorBoundary.vue";
 export { default as Fireworks } from "./Fireworks.vue";
+
+// ============================================================================
+// Vue Components - Template System
+// ============================================================================
+export { default as MiniAppTemplate } from "./MiniAppTemplate.vue";
 
 // ============================================================================
 // Type Exports

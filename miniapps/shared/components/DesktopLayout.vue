@@ -30,6 +30,10 @@
         </view>
       </view>
 
+      <view v-if="hasDesktopSidebar" class="sidebar-panel" role="complementary" aria-label="Sidebar details">
+        <slot name="desktop-sidebar" />
+      </view>
+
       <!-- Sidebar Footer -->
       <view class="sidebar-footer">
         <view class="footer-status" role="status" aria-live="polite">
@@ -60,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, useSlots } from "vue";
 import AppIcon from "./AppIcon.vue";
 import type { NavTab } from "./NavBar.vue";
 
@@ -114,6 +118,8 @@ const emit = defineEmits<{
 }>();
 
 const themeClass = computed(() => (props.theme ? `theme-${props.theme}` : ""));
+const slots = useSlots();
+const hasDesktopSidebar = computed(() => Boolean(slots["desktop-sidebar"]));
 
 /**
  * Handle tab change with proper keyboard and mouse interaction
@@ -342,6 +348,53 @@ validateTabs();
 }
 
 // Sidebar Footer
+
+.sidebar-panel {
+  margin: 0 var(--spacing-3, 12px);
+  padding: var(--spacing-3, 12px);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  flex-shrink: 0;
+  max-height: min(34vh, 280px);
+  overflow: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+  }
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+
+  :deep(.sidebar-title) {
+    display: block;
+    margin-bottom: var(--spacing-2, 8px);
+    font-size: var(--font-size-sm, 12px);
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-tertiary, rgba(248, 250, 252, 0.6));
+  }
+
+  :deep(.sidebar-value) {
+    display: block;
+    font-size: var(--font-size-xl, 18px);
+    font-weight: 700;
+    color: var(--text-primary, #f8fafc);
+  }
+}
+
 .sidebar-footer {
   padding: var(--spacing-4, 16px) var(--spacing-6, 24px) var(--spacing-8, 32px);
   border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
@@ -561,6 +614,7 @@ validateTabs();
       }
     }
 
+    .sidebar-panel,
     .sidebar-footer {
       display: none;
     }

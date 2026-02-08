@@ -72,6 +72,13 @@ const iconEmojis: Record<string, string> = {
   close: "✕",
   x: "✕",
   menu: "☰",
+  activity: "📡",
+  award: "🏅",
+  archive: "🗄️",
+  rocket: "🚀",
+  cart: "🛒",
+  ticket: "🎟️",
+  bag: "👜",
 
   // Action icons
   trending: "📈",

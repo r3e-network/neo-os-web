@@ -13,20 +13,31 @@ import { ref } from "vue";
 import { usePayments, useWallet, useEvents } from "@neo/uniapp-sdk";
 import { pollForEvent } from "@shared/utils/errorHandling";
 
-export function usePaymentFlow(appId: string) {
+type InvokeArg = {
+  type: string;
+  value: string | number | boolean;
+};
+
+export interface PaymentFlowOptions {
+  /** Callback fired after successful payment flow completion */
+  onSuccess?: () => void;
+}
+
+export function usePaymentFlow(appId: string, options?: PaymentFlowOptions) {
   const { payGAS } = usePayments();
   const { address, connect, invokeContract } = useWallet() as any;
   const { list: listEvents } = useEvents();
 
   const isProcessing = ref(false);
   const error = ref<Error | null>(null);
+  /** Briefly true after a successful payment — bind to Fireworks :active */
+  const success = ref(false);
 
   /**
    * Process the complete payment flow
    */
   const processPayment = async (amount: string, memo: string) => {
     try {
-      // Ensure wallet is connected
       if (!address.value) {
         await connect();
       }
@@ -38,16 +49,26 @@ export function usePaymentFlow(appId: string) {
       isProcessing.value = true;
       error.value = null;
 
-      // Step 1: Pay GAS
       const payment = await payGAS(amount, memo);
       const receiptId = payment.receipt_id || "";
 
-      // Step 2: Return invoke function with receipt context
-      const invoke = async (
-        scriptHash: string,
-        operation: string,
-        args: unknown[],
-      ) => {
+      const invoke = async (first: string, second: string | InvokeArg[], third?: InvokeArg[] | string) => {
+        let scriptHash: string;
+        let operation: string;
+        let args: InvokeArg[];
+
+        if (typeof second === "string" && Array.isArray(third)) {
+          scriptHash = first;
+          operation = second;
+          args = third;
+        } else if (Array.isArray(second) && typeof third === "string") {
+          operation = first;
+          args = second;
+          scriptHash = third;
+        } else {
+          throw new Error("Invalid invoke signature");
+        }
+
         const tx = (await invokeContract({
           scriptHash,
           operation,
@@ -58,12 +79,7 @@ export function usePaymentFlow(appId: string) {
         return { txid, receiptId };
       };
 
-      // Step 3: Return waitForEvent function
-      const waitForEvent = async (
-        txid: string,
-        eventName: string,
-        timeoutMs = 30000,
-      ) => {
+      const waitForEvent = async (txid: string, eventName: string, timeoutMs = 30000) => {
         return pollForEvent(
           async () => {
             const result = await listEvents({
@@ -77,11 +93,20 @@ export function usePaymentFlow(appId: string) {
           {
             timeoutMs,
             errorMessage: `Event "${eventName}" not found for transaction ${txid}`,
-          },
+          }
         );
       };
 
-      return { receiptId, invoke, waitForEvent };
+      /** Signal success — sets success ref and calls onSuccess callback */
+      const triggerSuccess = () => {
+        success.value = true;
+        options?.onSuccess?.();
+        setTimeout(() => {
+          success.value = false;
+        }, 3500);
+      };
+
+      return { receiptId, invoke, waitForEvent, triggerSuccess };
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err));
       throw err;
@@ -92,7 +117,9 @@ export function usePaymentFlow(appId: string) {
 
   return {
     isProcessing,
+    isLoading: isProcessing,
     error,
+    success,
     processPayment,
   };
 }

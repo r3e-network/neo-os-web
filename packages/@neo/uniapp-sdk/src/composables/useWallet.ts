@@ -27,8 +27,29 @@ export interface WalletTransaction {
   counterparty: string;
 }
 
-// Per-instance fallback state is managed inside onMounted to avoid
-// cross-instance race conditions from module-level mutable globals.
+// Deduplicate concurrent fallback wallet initialization across multiple
+// composable instances while still avoiding stale shared state.
+let sharedInitialAddressRequest: Promise<string | null> | null = null;
+
+const getInitialAddressDeduped = (sdk: ReturnType<typeof getSDKSync>): Promise<string | null> => {
+  if (!sdk) return Promise.resolve(null);
+
+  if (!sharedInitialAddressRequest) {
+    sharedInitialAddressRequest = sdk.wallet
+      .getAddress()
+      .then((addr: string) => (addr ? addr : null))
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.debug("[MiniApp SDK] Fallback wallet connection failed:", msg);
+        return null;
+      })
+      .finally(() => {
+        sharedInitialAddressRequest = null;
+      });
+  }
+
+  return sharedInitialAddressRequest;
+};
 
 export function useWallet() {
   const address = ref<string | null>(null);
@@ -322,23 +343,17 @@ export function useWallet() {
       applyAppConfig(sdk.getConfig());
     }
     if (sdk && !isConnected.value) {
-      sdk.wallet
-        .getAddress()
-        .then((addr: string) => {
-          // Guard: only apply if subscription hasn't already connected us
-          if (!isConnected.value && addr) {
-            address.value = addr;
-            isConnected.value = true;
-            const config = sdk.getConfig?.();
-            chainId.value = config?.chainId ?? null;
-            chainType.value = config?.chainType ?? null;
-            applyAppConfig(config);
-          }
-        })
-        .catch((e: unknown) => {
-          const msg = e instanceof Error ? e.message : String(e);
-          console.debug("[MiniApp SDK] Fallback wallet connection failed:", msg);
-        });
+      getInitialAddressDeduped(sdk).then((addr: string | null) => {
+        // Guard: only apply if subscription has not already connected us
+        if (!isConnected.value && addr) {
+          address.value = addr;
+          isConnected.value = true;
+          const config = sdk.getConfig?.();
+          chainId.value = config?.chainId ?? null;
+          chainType.value = config?.chainType ?? null;
+          applyAppConfig(config);
+        }
+      });
     }
 
     waitForSDK()
