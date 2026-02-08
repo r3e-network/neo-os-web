@@ -1,11 +1,7 @@
 <template>
   <view class="opening-overlay" v-if="visible">
     <view class="envelope-stage">
-      <view
-        class="red-packet"
-        :class="{ 'is-opening': isOpening, 'is-shaking': !isOpening }"
-        @click="handleOpen"
-      >
+      <view class="red-packet" :class="{ 'is-opening': isOpening, 'is-shaking': !isOpening }" @click="handleOpen">
         <view class="packet-lid"></view>
         <view class="packet-body">
           <view class="packet-seal">
@@ -13,21 +9,32 @@
           </view>
         </view>
         <view class="packet-content">
-           <text class="packet-msg">
-             {{ envelope?.from ? t("fromLabel", { name: envelope.from }) : t("luckyPacket") }}
-           </text>
-           <text class="packet-note" v-if="envelope?.description">{{ envelope.description }}</text>
+          <text class="packet-msg">
+            {{ envelope?.from ? t("fromLabel", { name: envelope.from }) : t("luckyPacket") }}
+          </text>
+          <text class="packet-note" v-if="envelope?.description">{{ envelope.description }}</text>
         </view>
       </view>
 
+      <view v-if="eligibility" class="eligibility-info">
+        <view class="eligibility-row">
+          <text class="eligibility-label">{{ t("neoBalance") }}</text>
+          <text class="eligibility-value">{{ eligibility.neoBalance }} NEO</text>
+        </view>
+        <view class="eligibility-row">
+          <text class="eligibility-label">{{ t("holdingDays") }}</text>
+          <text class="eligibility-value">{{ eligibility.holdingDays }}d</text>
+        </view>
+        <view class="eligibility-badge" :class="eligibility.isEligible ? 'badge-eligible' : 'badge-ineligible'">
+          <text>{{ eligibility.isEligible ? t("eligible") : t("ineligible") }}</text>
+        </view>
+        <text v-if="!eligibility.isEligible" class="eligibility-reason">
+          {{ eligibility.reason === "insufficient NEO" ? t("insufficientNeo") : t("holdDurationNotMet") }}
+        </text>
+      </view>
+
       <view class="action-area">
-        <NeoButton
-          v-if="!isConnected"
-          variant="primary"
-          size="lg"
-          class="action-btn"
-          @click="handleConnect"
-        >
+        <NeoButton v-if="!isConnected" variant="primary" size="lg" class="action-btn" @click="handleConnect">
           {{ t("connectAndOpen") }}
         </NeoButton>
         <NeoButton
@@ -36,6 +43,7 @@
           size="lg"
           class="action-btn"
           :loading="isOpening"
+          :disabled="eligibility && !eligibility.isEligible"
           @click="handleOpen"
         >
           {{ isOpening ? t("opening") : t("openNow") }}
@@ -46,19 +54,30 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { NeoButton } from "@shared/components";
 import { useI18n } from "@/composables/useI18n";
+import type { ClaimItem } from "@/composables/useRedEnvelopeOpen";
 
 const props = defineProps<{
   visible: boolean;
   envelope: any;
+  claim?: ClaimItem | null;
   isConnected: boolean;
   isOpening: boolean;
+  eligibility?: {
+    isEligible: boolean;
+    neoBalance: number;
+    holdingDays: number;
+    reason: string;
+  } | null;
 }>();
 
 const { t } = useI18n();
 
-const emit = defineEmits(["connect", "open", "close"]);
+const emit = defineEmits(["connect", "open", "open-claim", "close"]);
+
+const isClaim = computed(() => !!props.claim);
 
 const handleConnect = () => {
   emit("connect");
@@ -67,6 +86,8 @@ const handleConnect = () => {
 const handleOpen = () => {
   if (!props.isConnected) {
     emit("connect");
+  } else if (isClaim.value && props.claim) {
+    emit("open-claim", props.claim);
   } else {
     emit("open");
   }
@@ -106,7 +127,7 @@ $gold-dark: #d4ac0d;
   background: linear-gradient(135deg, $premium-red 0%, $premium-red-dark 100%);
   border-radius: 20px;
   position: relative;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -123,10 +144,10 @@ $gold-dark: #d4ac0d;
   &.is-opening {
     animation: openPacket 1s forwards;
   }
-  
+
   /* Gold border detail */
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 10px;
     border: 1px solid rgba($gold, 0.3);
@@ -144,7 +165,7 @@ $gold-dark: #d4ac0d;
   align-items: center;
   justify-content: center;
   border: 4px solid #fff;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   z-index: 10;
 }
 
@@ -153,7 +174,7 @@ $gold-dark: #d4ac0d;
   color: $premium-red-dark;
   text-transform: uppercase;
   font-size: 14px;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .packet-content {
@@ -163,16 +184,16 @@ $gold-dark: #d4ac0d;
 }
 
 .packet-msg {
-  color: rgba(255,255,255,0.95);
+  color: rgba(255, 255, 255, 0.95);
   font-weight: 700;
   font-size: 18px;
   margin-bottom: 8px;
   display: block;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .packet-note {
-  color: rgba(255,255,255,0.8);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 13px;
   max-width: 200px;
   line-height: 1.4;
@@ -184,19 +205,38 @@ $gold-dark: #d4ac0d;
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0) rotateX(0); }
-  50% { transform: translateY(-10px) rotateX(2deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotateX(0);
+  }
+  50% {
+    transform: translateY(-10px) rotateX(2deg);
+  }
 }
 
 @keyframes openPacket {
-  0% { transform: scale(1); }
-  20% { transform: scale(0.9); }
-  50% { transform: scale(1.1) rotateY(180deg); opacity: 0.5; }
-  100% { transform: scale(0) rotateY(360deg); opacity: 0; }
+  0% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.1) rotateY(180deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0) rotateY(360deg);
+    opacity: 0;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 </style>

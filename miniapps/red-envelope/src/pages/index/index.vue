@@ -1,63 +1,100 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-red-envelope" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-red-envelope">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      :fireworks-active="!!luckyMessage"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-    <view v-if="activeTab === 'create' || activeTab === 'claim'" class="app-container">
-      <LuckyOverlay :lucky-message="luckyMessage" :t="t" @close="luckyMessage = null" />
-      <Fireworks :active="!!luckyMessage" :duration="3000" />
-      <OpeningModal
-        :visible="showOpeningModal"
-        :envelope="openingEnvelope"
-        :is-connected="!!address"
-        :is-opening="!!openingId"
-        @connect="handleConnect"
-        @open="() => openingEnvelope && claim(openingEnvelope, true)"
-        @close="showOpeningModal = false"
-      />
+      <!-- Create Tab (default) -->
+      <template #content>
+        <view class="app-container">
+          <LuckyOverlay :lucky-message="luckyMessage" :t="t" @close="luckyMessage = null" />
+          <OpeningModal
+            :visible="showOpeningModal"
+            :envelope="openingEnvelope"
+            :is-connected="!!address"
+            :is-opening="!!openingId"
+            :eligibility="address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null"
+            @connect="handleConnect"
+            @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
+            @close="showOpeningModal = false"
+          />
 
-      <AppStatus :status="status" />
+          <AppStatus :status="status" />
 
-      <view v-if="activeTab === 'create'" class="tab-content">
-        <CreateForm
-          :is-loading="isLoading"
-          :t="t"
-          v-model:name="name"
-          v-model:description="description"
-          v-model:amount="amount"
-          v-model:count="count"
-          v-model:expiryHours="expiryHours"
-          @create="create"
-        />
-      </view>
+          <CreateForm
+            :is-loading="isLoading"
+            :t="t"
+            v-model:name="name"
+            v-model:description="description"
+            v-model:amount="amount"
+            v-model:count="count"
+            v-model:expiryHours="expiryHours"
+            v-model:minNeoRequired="minNeoRequired"
+            v-model:minHoldDays="minHoldDays"
+            v-model:envelopeType="envelopeType"
+            @create="create"
+          />
+        </view>
+      </template>
 
-      <view v-if="activeTab === 'claim'" class="tab-content">
-        <ClaimInterface
-          :envelopes="envelopes"
-          :t="t"
-          @select="openFromList"
-        />
-      </view>
-    </view>
+      <!-- Claim Tab -->
+      <template #tab-claim>
+        <view class="app-container">
+          <AppStatus :status="status" />
+          <ClaimPool :pools="pools" :t="t" @claim="handleClaimFromPool" />
+        </view>
+      </template>
 
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      <!-- My Envelopes Tab -->
+      <template #tab-myEnvelopes>
+        <view class="app-container">
+          <LuckyOverlay :lucky-message="luckyMessage" :t="t" @close="luckyMessage = null" />
+          <OpeningModal
+            :visible="showOpeningModal"
+            :envelope="openingEnvelope"
+            :claim="openingClaim"
+            :is-connected="!!address"
+            :is-opening="!!openingId"
+            :eligibility="openingClaim ? null : address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null"
+            @connect="handleConnect"
+            @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
+            @open-claim="handleOpenClaim"
+            @close="showOpeningModal = false"
+          />
+          <TransferModal
+            :visible="showTransferModal"
+            :envelope="transferringEnvelope"
+            @transfer="handleTransfer"
+            @close="showTransferModal = false"
+          />
+
+          <MyEnvelopes
+            :envelopes="envelopes"
+            :claims="claims"
+            :current-address="address || ''"
+            :t="t"
+            @open="openFromList"
+            @transfer="startTransfer"
+            @reclaim="reclaimEnvelope"
+            @open-claim="openClaimFromList"
+            @transfer-claim="startTransferClaim"
+            @reclaim-pool="handleReclaimPool"
+          />
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -68,34 +105,58 @@ import { useI18n } from "@/composables/useI18n";
 import { toFixed8, fromFixed8 } from "@shared/utils/format";
 import { parseStackItem } from "@shared/utils/neo";
 import { pollForEvent } from "@shared/utils/errorHandling";
-import { ResponsiveLayout, NeoDoc, Fireworks, ChainWarning } from "@shared/components";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 
 import { useRedEnvelopeCreation } from "@/composables/useRedEnvelopeCreation";
-import { useRedEnvelopeClaim } from "@/composables/useRedEnvelopeClaim";
+import { useRedEnvelopeOpen } from "@/composables/useRedEnvelopeOpen";
+import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
+import { useNeoEligibility } from "@/composables/useNeoEligibility";
 import LuckyOverlay from "./components/LuckyOverlay.vue";
 import OpeningModal from "./components/OpeningModal.vue";
 import AppStatus from "./components/AppStatus.vue";
 import CreateForm from "./components/CreateForm.vue";
-import ClaimInterface from "./components/ClaimInterface.vue";
+import MyEnvelopes from "./components/MyEnvelopes.vue";
+import TransferModal from "./components/TransferModal.vue";
+import ClaimPool from "./components/ClaimPool.vue";
 
 const { t } = useI18n();
 const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
 const { list: listEvents } = useEvents();
 
 const APP_ID = "miniapp-redenvelope";
+const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
 const activeTab = ref<string>("create");
-const navTabs = computed(() => [
-  { id: "create", label: t("createTab"), icon: "envelope" },
-  { id: "claim", label: t("claimTab"), icon: "gift" },
-  { id: "docs", label: t("docs"), icon: "book" },
-]);
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "create", labelKey: "createTab", icon: "🧧", default: true },
+    { key: "claim", labelKey: "claimTabLabel", icon: "🎯" },
+    { key: "myEnvelopes", labelKey: "myEnvelopes", icon: "🎁" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
+
+const appState = computed(() => ({
+  envelopeCount: envelopes.value.length,
+  hasLucky: !!luckyMessage.value,
+}));
 
 // Use composables
 const {
@@ -104,26 +165,48 @@ const {
   amount,
   count,
   expiryHours,
+  minNeoRequired,
+  minHoldDays,
   status,
   isLoading,
   defaultBlessing,
   ensureContractAddress: ensureCreationContract,
-  processPayment,
 } = useRedEnvelopeCreation();
 
 const {
   envelopes,
   loadingEnvelopes,
   contractAddress,
-  ensureContractAddress: ensureClaimContract,
+  ensureContractAddress: ensureOpenContract,
   fetchEnvelopeDetails,
   loadEnvelopes,
-} = useRedEnvelopeClaim();
+  // Type 2 (Lucky Money)
+  claims,
+  pools,
+  loadingPools,
+  claimFromPool,
+  openClaim,
+  transferClaim,
+  reclaimPool,
+} = useRedEnvelopeOpen();
+
+const {
+  isEligible,
+  neoBalance,
+  holdingDays,
+  reason: eligibilityReason,
+  checking: checkingEligibility,
+  checkEligibility,
+} = useNeoEligibility();
 
 const luckyMessage = ref<{ amount: number; from: string } | null>(null);
 const openingId = ref<string | null>(null);
 const showOpeningModal = ref(false);
 const openingEnvelope = ref<any>(null);
+const showTransferModal = ref(false);
+const transferringEnvelope = ref<any>(null);
+const openingClaim = ref<any>(null);
+const envelopeType = ref<EnvelopeType>("spreading");
 
 const handleConnect = async () => {
   try {
@@ -134,6 +217,7 @@ const handleConnect = async () => {
 const create = async () => {
   if (isLoading.value) return;
   try {
+    isLoading.value = true;
     status.value = null;
     if (!address.value) {
       await connect();
@@ -141,6 +225,7 @@ const create = async () => {
     if (!address.value) {
       throw new Error(t("connectWallet"));
     }
+
     const contract = await ensureCreationContract();
 
     const totalValue = Number(amount.value);
@@ -153,25 +238,44 @@ const create = async () => {
     if (!Number.isFinite(expiryValue) || expiryValue <= 0) throw new Error(t("invalidExpiry"));
     const expirySeconds = Math.round(expiryValue * 3600);
 
-    const { receiptId, invoke, waitForEvent } = await processPayment(amount.value, `redenvelope:${count.value}`);
-    if (!receiptId) {
-      throw new Error(t("receiptMissing"));
-    }
-
     const finalDescription = description.value.trim() || defaultBlessing.value;
+    const minNeo = Number(minNeoRequired.value) || 100;
+    const holdSeconds = Math.round((Number(minHoldDays.value) || 2) * 86400);
+    const envelopeTypeValue = envelopeType.value === "lucky" ? "1" : "0";
 
-    const tx = await invoke(contract, "createEnvelope", [
-      { type: "Hash160", value: address.value },
-      { type: "String", value: name.value || "" },
-      { type: "String", value: finalDescription },
-      { type: "Integer", value: toFixed8(amount.value) },
-      { type: "Integer", value: String(packetCount) },
-      { type: "Integer", value: String(expirySeconds) },
-      { type: "Integer", value: receiptId },
-    ]);
+    const tx = await invokeContract({
+      scriptHash: GAS_HASH,
+      operation: "transfer",
+      args: [
+        { type: "Hash160", value: address.value },
+        { type: "Hash160", value: contract },
+        { type: "Integer", value: toFixed8(amount.value) },
+        {
+          type: "Array",
+          value: [
+            { type: "Integer", value: String(packetCount) },
+            { type: "Integer", value: String(expirySeconds) },
+            { type: "String", value: finalDescription },
+            { type: "Integer", value: String(minNeo) },
+            { type: "Integer", value: String(holdSeconds) },
+            { type: "Integer", value: envelopeTypeValue },
+          ],
+        },
+      ],
+    });
 
-    const txid = (tx as { txid?: string })?.txid || "";
-    const createdEvt = txid ? await waitForEvent(txid, "EnvelopeCreated") : null;
+    const txid = String((tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "");
+    const createdEvt = txid
+      ? await pollForEvent(
+          async () => {
+            const result = await listEvents({ app_id: APP_ID, event_name: "EnvelopeCreated", limit: 40 });
+            return result.events || [];
+          },
+          (evt: any) => evt.tx_hash === txid,
+          { timeoutMs: 30000, errorMessage: t("envelopePending") },
+        )
+      : null;
+
     if (!createdEvt) {
       throw new Error(t("envelopePending"));
     }
@@ -184,10 +288,12 @@ const create = async () => {
     await loadEnvelopes();
   } catch (e: unknown) {
     status.value = { msg: (e as Error)?.message || t("error"), type: "error" };
+  } finally {
+    isLoading.value = false;
   }
 };
 
-const claim = async (env: any, fromModal = false) => {
+const openEnvelope = async (env: any) => {
   if (openingId.value) return;
 
   if (!address.value) {
@@ -197,28 +303,35 @@ const claim = async (env: any, fromModal = false) => {
 
   try {
     status.value = null;
-    const contract = await ensureClaimContract();
+    const contract = await ensureOpenContract();
 
     if (env.expired) throw new Error(t("envelopeExpired"));
-    if (!env.ready) throw new Error(t("envelopeNotReady"));
-    if (env.remaining <= 0) throw new Error(t("envelopeEmpty"));
+    if (!env.active) throw new Error(t("envelopeNotReady"));
+    if (env.depleted) throw new Error(t("envelopeEmpty"));
 
-    const hasClaimedRes = await invokeRead({
+    // Check if already opened
+    const hasOpenedRes = await invokeRead({
       scriptHash: contract,
-      operation: "HasClaimed",
+      operation: "HasOpened",
       args: [
         { type: "Integer", value: env.id },
         { type: "Hash160", value: address.value },
       ],
     });
-    if (Boolean(parseInvokeResult(hasClaimedRes))) {
-      throw new Error(t("alreadyClaimed"));
+    if (Boolean(parseInvokeResult(hasOpenedRes))) {
+      throw new Error(t("alreadyOpened"));
+    }
+
+    // Check NEO eligibility
+    await checkEligibility(contract, env.id);
+    if (!isEligible.value) {
+      throw new Error(eligibilityReason.value === "insufficient NEO" ? t("insufficientNeo") : t("holdDurationNotMet"));
     }
 
     openingId.value = env.id;
     const tx = await invokeContract({
       scriptHash: contract,
-      operation: "Claim",
+      operation: "OpenEnvelope",
       args: [
         { type: "Integer", value: env.id },
         { type: "Hash160", value: address.value },
@@ -226,38 +339,33 @@ const claim = async (env: any, fromModal = false) => {
     });
 
     const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
+      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
     );
-    const claimedEvt = txid
+    const openedEvt = txid
       ? await pollForEvent(
           async () => {
-            const result = await listEvents({ app_id: APP_ID, event_name: "EnvelopeClaimed", limit: 25 });
+            const result = await listEvents({ app_id: APP_ID, event_name: "EnvelopeOpened", limit: 25 });
             return result.events || [];
           },
           (evt: any) => evt.tx_hash === txid,
-          { timeoutMs: 30000, errorMessage: t("claimPending") },
+          { timeoutMs: 30000, errorMessage: t("openPending") }
         )
       : null;
 
-    if (!claimedEvt) {
-      throw new Error(t("claimPending"));
+    if (!openedEvt) {
+      throw new Error(t("openPending"));
     }
-    const values = Array.isArray((claimedEvt as any)?.state) ? (claimedEvt as any).state.map(parseStackItem) : [];
-    const claimedAmount = fromFixed8(Number(values[2] ?? 0));
-    const remaining = Number(values[3] ?? env.remaining);
+    const values = Array.isArray((openedEvt as any)?.state) ? (openedEvt as any).state.map(parseStackItem) : [];
+    const openedAmount = fromFixed8(Number(values[2] ?? 0));
 
     showOpeningModal.value = false;
 
     luckyMessage.value = {
-      amount: Number(claimedAmount.toFixed(2)),
+      amount: Number(openedAmount.toFixed(2)),
       from: env.from,
     };
 
-    env.remaining = Math.max(0, remaining);
-    env.canClaim = env.remaining > 0 && env.ready && !env.expired;
-
-    status.value = { msg: t("claimedFrom").replace("{0}", env.from), type: "success" };
-
+    status.value = { msg: t("openedFrom").replace("{0}", env.from), type: "success" };
     await loadEnvelopes();
   } catch (e: unknown) {
     status.value = { msg: (e as Error)?.message || t("error"), type: "error" };
@@ -272,6 +380,129 @@ const openFromList = (env: any) => {
   showOpeningModal.value = true;
 };
 
+const startTransfer = (env: any) => {
+  transferringEnvelope.value = env;
+  showTransferModal.value = true;
+};
+
+const handleTransfer = async (recipient: string) => {
+  if (!address.value || !transferringEnvelope.value) return;
+  try {
+    status.value = null;
+    const contract = await ensureOpenContract();
+    const env = transferringEnvelope.value;
+
+    if (env.poolId) {
+      await transferClaim(env.id, recipient);
+    } else {
+      await invokeContract({
+        scriptHash: contract,
+        operation: "transferEnvelope",
+        args: [
+          { type: "Integer", value: env.id },
+          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: recipient },
+          { type: "Any", value: null },
+        ],
+      });
+    }
+
+    showTransferModal.value = false;
+    transferringEnvelope.value = null;
+    status.value = { msg: t("transferSuccess"), type: "success" };
+    await loadEnvelopes();
+  } catch (e: unknown) {
+    status.value = { msg: (e as Error)?.message || t("error"), type: "error" };
+  }
+};
+
+const reclaimEnvelope = async (env: any) => {
+  if (!address.value) return;
+  try {
+    status.value = null;
+    const contract = await ensureOpenContract();
+
+    await invokeContract({
+      scriptHash: contract,
+      operation: "ReclaimEnvelope",
+      args: [
+        { type: "Integer", value: env.id },
+        { type: "Hash160", value: address.value },
+      ],
+    });
+
+    status.value = { msg: t("reclaimSuccess"), type: "success" };
+    await loadEnvelopes();
+  } catch (e: unknown) {
+    status.value = { msg: (e as Error)?.message || t("error"), type: "error" };
+  }
+};
+
+// --- Type 2 (Lucky Money) handlers ---
+
+const handleClaimFromPool = async (poolId: string) => {
+  if (!address.value) {
+    await connect();
+    if (!address.value) return;
+  }
+  try {
+    status.value = null;
+    const { txid } = await claimFromPool(poolId);
+    status.value = { msg: t("claimSuccess"), type: "success" };
+    await loadEnvelopes();
+  } catch (e: unknown) {
+    status.value = { msg: (e as Error)?.message || t("error"), type: "error" };
+  }
+};
+
+const openClaimFromList = (claim: any) => {
+  openingClaim.value = claim;
+  openingEnvelope.value = null;
+  showOpeningModal.value = true;
+};
+
+const handleOpenClaim = async (claim: any) => {
+  if (!address.value || openingId.value) return;
+  try {
+    status.value = null;
+    openingId.value = claim.id;
+    const { txid } = await openClaim(claim.id);
+
+    showOpeningModal.value = false;
+    openingClaim.value = null;
+
+    luckyMessage.value = {
+      amount: Number(claim.amount?.toFixed?.(2) ?? claim.amount),
+      from: `Pool #${claim.poolId}`,
+    };
+
+    status.value = { msg: t("claimSuccess"), type: "success" };
+    await loadEnvelopes();
+  } catch (e: unknown) {
+    status.value = { msg: (e as Error)?.message || t("error"), type: "error" };
+    showOpeningModal.value = false;
+  } finally {
+    openingId.value = null;
+  }
+};
+
+const startTransferClaim = (claim: any) => {
+  transferringEnvelope.value = claim;
+  showTransferModal.value = true;
+};
+
+const handleReclaimPool = async (pool: any) => {
+  if (!address.value) return;
+  try {
+    status.value = null;
+    const { txid } = await reclaimPool(pool.id);
+    status.value = { msg: t("reclaimSuccess"), type: "success" };
+    await loadEnvelopes();
+  } catch (e: unknown) {
+    status.value = { msg: (e as Error)?.message || t("error"), type: "error" };
+  }
+};
+
 onMounted(async () => {
   await loadEnvelopes();
 
@@ -282,14 +513,14 @@ onMounted(async () => {
       const found = envelopes.value.find((e) => e.id === id);
       if (found) {
         openFromList(found);
-        activeTab.value = "claim";
+        activeTab.value = "myEnvelopes";
       } else {
-        const contract = await ensureClaimContract();
+        const contract = await ensureOpenContract();
         const env = await fetchEnvelopeDetails(contract, id);
         if (env) {
           openingEnvelope.value = env;
           showOpeningModal.value = true;
-          activeTab.value = "claim";
+          activeTab.value = "myEnvelopes";
         }
       }
     }
@@ -297,7 +528,9 @@ onMounted(async () => {
 });
 
 watch(activeTab, async (tab) => {
-  if (tab === "claim") {
+  if (tab === "myEnvelopes") {
+    await loadEnvelopes();
+  } else if (tab === "claim") {
     await loadEnvelopes();
   }
 });

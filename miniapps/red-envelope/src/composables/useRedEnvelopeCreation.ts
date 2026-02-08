@@ -1,14 +1,12 @@
-import { ref } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
+import { ref, computed } from "vue";
+import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "./useI18n";
 import { toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
 const APP_ID = "miniapp-redenvelope";
 
-// Contract constants (matches MiniAppRedEnvelope.Hybrid.cs)
 const MIN_AMOUNT = 10000000n; // 0.1 GAS in fixed8
 const MAX_PACKETS = 100;
 const MIN_PER_PACKET = 1000000n; // 0.01 GAS in fixed8
@@ -17,14 +15,16 @@ const BEST_LUCK_BONUS_RATE = 5n; // 5%
 export function useRedEnvelopeCreation() {
   const { t } = useI18n();
   const { address, connect, chainType, getContractAddress } = useWallet() as WalletSDK;
-  const { processPayment, isProcessing: isLoading } = usePaymentFlow(APP_ID);
 
   const name = ref("");
   const description = ref("");
   const amount = ref("");
   const count = ref("");
   const expiryHours = ref("24");
+  const minNeoRequired = ref("100");
+  const minHoldDays = ref("2");
   const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
+  const isLoading = ref(false);
 
   const defaultBlessing = computed(() => t("defaultBlessing"));
 
@@ -39,10 +39,6 @@ export function useRedEnvelopeCreation() {
     return contract;
   };
 
-  /**
-   * Generate deterministic seed from user input (for preview only).
-   * Actual distribution uses TEE RNG service.
-   */
   const generatePreviewSeed = (totalAmount: string, packetCount: string): Uint8Array => {
     const data = `preview:${totalAmount}:${packetCount}:${Date.now()}`;
     const encoder = new TextEncoder();
@@ -54,9 +50,6 @@ export function useRedEnvelopeCreation() {
     return hash;
   };
 
-  /**
-   * Get random value from seed at index (matches contract logic).
-   */
   const getRandFromSeed = (seed: Uint8Array, index: number): bigint => {
     const combined = new Uint8Array(seed.length + 4);
     combined.set(seed);
@@ -72,9 +65,6 @@ export function useRedEnvelopeCreation() {
     return hash < 0n ? -hash : hash;
   };
 
-  /**
-   * Preview distribution calculation (matches contract PreviewDistribution).
-   */
   const previewDistribution = (totalAmountGas: number, packetCount: number): bigint[] => {
     if (packetCount <= 0 || packetCount > MAX_PACKETS) return [];
 
@@ -115,21 +105,18 @@ export function useRedEnvelopeCreation() {
     amount,
     count,
     expiryHours,
+    minNeoRequired,
+    minHoldDays,
     status,
     isLoading,
     defaultBlessing,
     ensureContractAddress,
     previewDistribution,
-    calculateBestLuckBonus,
     MIN_AMOUNT,
     MAX_PACKETS,
     MIN_PER_PACKET,
-    BEST_LUCK_BONUS_RATE,
     address,
     connect,
-    processPayment,
     APP_ID,
   };
 }
-
-import { computed } from "vue";
