@@ -1,101 +1,90 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-neo-treasury" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-neo-treasury">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-    <view v-if="activeTab !== 'docs'" class="app-container">
-      <!-- Status Message -->
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="status-text">{{ status.msg }}</text>
-      </NeoCard>
 
-      <!-- Main Content -->
-      <view v-if="data" class="fade-in">
-        <!-- Background Refresh Indicator -->
-        <view v-if="loading" class="soft-loading">
-          <AppIcon name="loader" :size="16" class="animate-spin" />
-          <text class="soft-loading-text">{{ t("refreshing") }}</text>
+      <!-- Overview Tab (default) -->
+      <template #content>
+        <view class="app-container">
+          <!-- Main Content -->
+          <view v-if="data" class="fade-in">
+            <!-- Background Refresh Indicator -->
+            <view v-if="loading" class="soft-loading">
+              <AppIcon name="loader" :size="16" class="animate-spin" />
+              <text class="soft-loading-text">{{ t("refreshing") }}</text>
+            </view>
+
+            <TotalSummaryCard
+              :total-usd="data.totalUsd"
+              :total-neo="data.totalNeo"
+              :total-gas="data.totalGas"
+              :last-updated="data.lastUpdated"
+              :t="t as any"
+            />
+
+            <PriceGrid :prices="data.prices" />
+
+            <FoundersList :categories="data.categories" :t="t as any" @select="goToFounder" />
+          </view>
+
+          <!-- Initial Loading State (Only if no data) -->
+          <view v-else-if="loading" class="loading-container">
+            <view class="skeleton-card mb-4"></view>
+            <view class="skeleton-grid mb-4"></view>
+            <view class="skeleton-list"></view>
+            <view class="loading-overlay">
+              <AppIcon name="loader" :size="48" class="mb-4 animate-spin" />
+              <text class="loading-label">{{ t("loading") }}</text>
+            </view>
+          </view>
+
+          <!-- Error State -->
+          <view v-else-if="error" class="error-container">
+            <AppIcon name="alert-circle" :size="48" class="text-danger mb-4" />
+            <text class="error-label">{{ error }}</text>
+            <NeoButton variant="primary" class="mt-4" @click="loadData">
+              {{ t("retry") }}
+            </NeoButton>
+          </view>
         </view>
+      </template>
 
-        <!-- Overview Tab -->
-        <view v-if="activeTab === 'total'" class="tab-content">
-          <TotalSummaryCard
-            :total-usd="data.totalUsd"
-            :total-neo="data.totalNeo"
-            :total-gas="data.totalGas"
-            :last-updated="data.lastUpdated"
-            :t="t as any"
-          />
-
-          <PriceGrid :prices="data.prices" />
-
-          <FoundersList :categories="data.categories" :t="t as any" @select="goToFounder" />
+      <!-- Da Hongfei Tab -->
+      <template #tab-da>
+        <view class="app-container">
+          <view v-if="data" class="fade-in">
+            <FounderDetail :category="daCategory!" :prices="data.prices" :t="t as any" />
+          </view>
         </view>
+      </template>
 
-        <!-- Founder Tabs -->
-        <view v-if="activeTab === 'da'" class="tab-content">
-          <FounderDetail :category="daCategory!" :prices="data.prices" :t="t as any" />
+      <!-- Erik Zhang Tab -->
+      <template #tab-erik>
+        <view class="app-container">
+          <view v-if="data" class="fade-in">
+            <FounderDetail :category="erikCategory!" :prices="data.prices" :t="t as any" />
+          </view>
         </view>
-
-        <view v-if="activeTab === 'erik'" class="tab-content">
-          <FounderDetail :category="erikCategory!" :prices="data.prices" :t="t as any" />
-        </view>
-      </view>
-
-      <!-- Initial Loading State (Only if no data) -->
-      <view v-else-if="loading" class="loading-container">
-        <view class="skeleton-card mb-4"></view>
-        <view class="skeleton-grid mb-4"></view>
-        <view class="skeleton-list"></view>
-        <view class="loading-overlay">
-          <AppIcon name="loader" :size="48" class="animate-spin mb-4" />
-          <text class="loading-label">{{ t("loading") }}</text>
-        </view>
-      </view>
-
-      <!-- Error State -->
-      <view v-else-if="error" class="error-container">
-        <AppIcon name="alert-circle" :size="48" class="mb-4 text-danger" />
-        <text class="error-label">{{ error }}</text>
-        <NeoButton variant="primary" class="mt-4" @click="loadData">
-          {{ t("retry") }}
-        </NeoButton>
-      </view>
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
-
-// Responsive state
-const windowWidth = ref(window.innerWidth);
-const isMobile = computed(() => windowWidth.value < 768);
-const isDesktop = computed(() => windowWidth.value >= 1024);
-const handleResize = () => { windowWidth.value = window.innerWidth; };
-
-onMounted(() => window.addEventListener('resize', handleResize));
-onUnmounted(() => window.removeEventListener('resize', handleResize));
-import { ResponsiveLayout, NeoCard, NeoButton, NeoDoc, AppIcon, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { ref, computed, onMounted } from "vue";
+import { MiniAppTemplate, NeoCard, NeoButton, AppIcon } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { fetchTreasuryData, type TreasuryData, type CategoryBalance } from "@/utils/treasury";
 
@@ -106,12 +95,30 @@ import FounderDetail from "./components/FounderDetail.vue";
 
 const { t } = useI18n();
 
-const navTabs = computed<NavTab[]>(() => [
-  { id: "total", icon: "chart", label: t("tabTotal") },
-  { id: "da", icon: "user", label: t("tabDa") },
-  { id: "erik", icon: "user", label: t("tabErik") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "dashboard",
+  tabs: [
+    { key: "total", labelKey: "tabTotal", icon: "📊", default: true },
+    { key: "da", labelKey: "tabDa", icon: "👤" },
+    { key: "erik", labelKey: "tabErik", icon: "👤" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("total");
 const loading = ref(true);
@@ -119,12 +126,11 @@ const error = ref("");
 const status = ref<{ msg: string; type: string } | null>(null);
 const data = ref<TreasuryData | null>(null);
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-]);
+const appState = computed(() => ({
+  loading: loading.value,
+  error: error.value,
+  totalUsd: data.value?.totalUsd,
+}));
 
 const daCategory = computed<CategoryBalance | null>(() => {
   return data.value?.categories.find((c: CategoryBalance) => c.name === "Da Hongfei") || null;
@@ -386,7 +392,6 @@ onMounted(() => {
     margin: 0 auto;
   }
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

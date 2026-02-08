@@ -1,61 +1,55 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-explorer" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-explorer">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view class="app-container">
-      <!-- Network Tab -->
-      <view v-if="activeTab === 'network'" class="tab-content">
-        <NetworkStats :mainnet-stats="mainnetStats" :testnet-stats="testnetStats" :t="t as any" />
-      </view>
 
-      <!-- Chain Warning - Framework Component -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
+      <template #content>
+        <view class="app-container">
+          <!-- Status Message -->
+          <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
+            <text class="status-text">{{ status.msg }}</text>
+          </NeoCard>
 
-      <!-- Status Message -->
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="status-text">{{ status.msg }}</text>
-      </NeoCard>
+          <SearchPanel
+            v-model:searchQuery="searchQuery"
+            v-model:selectedNetwork="selectedNetwork"
+            :is-loading="isLoading"
+            :t="t as any"
+            @search="search"
+          />
 
-      <!-- Search Tab -->
-      <view v-if="activeTab === 'search'" class="tab-content">
-        <SearchPanel
-          v-model:searchQuery="searchQuery"
-          v-model:selectedNetwork="selectedNetwork"
-          :is-loading="isLoading"
-          :t="t as any"
-          @search="search"
-        />
+          <view v-if="isLoading" class="loading">
+            <text>{{ t("searching") }}</text>
+          </view>
 
-        <view v-if="isLoading" class="loading">
-          <text>{{ t("searching") }}</text>
+          <SearchResult :result="searchResult" :t="t as any" @viewTx="viewTx" />
         </view>
+      </template>
 
-        <SearchResult :result="searchResult" :t="t as any" @viewTx="viewTx" />
-      </view>
+      <template #tab-network>
+        <view class="app-container">
+          <NetworkStats :mainnet-stats="mainnetStats" :testnet-stats="testnetStats" :t="t as any" />
+        </view>
+      </template>
 
-      <!-- History Tab -->
-      <view v-if="activeTab === 'history'" class="tab-content">
-        <RecentTransactions :transactions="recentTxs" :t="t as any" @viewTx="viewTx" />
-      </view>
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      <template #tab-history>
+        <view class="app-container">
+          <RecentTransactions :transactions="recentTxs" :t="t as any" @viewTx="viewTx" />
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -65,13 +59,15 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 const windowWidth = ref(window.innerWidth);
 const isMobile = computed(() => windowWidth.value < 768);
 const isDesktop = computed(() => windowWidth.value >= 1024);
-const handleResize = () => { windowWidth.value = window.innerWidth; };
+const handleResize = () => {
+  windowWidth.value = window.innerWidth;
+};
 import { formatNumber } from "@shared/utils/format";
 import { useI18n } from "@/composables/useI18n";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { ResponsiveLayout, NeoDoc, NeoCard, NeoButton, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import type { StatItem } from "@shared/components/NeoStats.vue";
 
 import NetworkStats from "./components/NetworkStats.vue";
@@ -95,20 +91,103 @@ const getApiBase = () => {
   return "/api/explorer";
 };
 const API_BASE = getApiBase();
+const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const LOCAL_STATS_MOCK = {
+  mainnet: { height: 6482031, txCount: 134209874 },
+  testnet: { height: 582441, txCount: 2841937 },
+};
 
+const LOCAL_RECENT_MOCK: Record<"mainnet" | "testnet", any[]> = {
+  mainnet: [
+    {
+      hash: "0x8f0a81db92c8a8b0d99577ad44d4d6f1835ff3b9e1d34a6bca8f1c2d20a4f001",
+      vmState: "HALT",
+      blockIndex: 6482031,
+      blockTime: "2026-02-07T09:12:00.000Z",
+      sender: "Nb2f7G2kq3dN5Jq8m7j1vWkz4Z9K2p6mQ",
+    },
+    {
+      hash: "0x3cbb4a71f3b63a1ea8ef0f0b0dfde1d6a83807f8e4a7e9bc0ca4ffb49e9e2002",
+      vmState: "HALT",
+      blockIndex: 6482028,
+      blockTime: "2026-02-07T09:08:00.000Z",
+      sender: "NeUQdQ5Ti3sB5Nw2vHg2Wd1nBv8zMP4v2K",
+    },
+    {
+      hash: "0xf8e2cd54d3a2f70f1b0eb7c2cd1b32ad9f4632f0570f780f9c7d2d6fb9133003",
+      vmState: "FAULT",
+      blockIndex: 6482023,
+      blockTime: "2026-02-07T09:02:00.000Z",
+      sender: "NLsQmVGr8c1Yf5oTj4T1kqqfY4Hw4i1XzQ",
+    },
+  ],
+  testnet: [
+    {
+      hash: "0x1aa233f3f5b6b8c8d9e01ab12cd34ef56ab78cd90ef1234567890abcdeff1001",
+      vmState: "HALT",
+      blockIndex: 582441,
+      blockTime: "2026-02-07T09:11:00.000Z",
+      sender: "NX1Wg6A4Zwq8n4QfY5K7Q9dW3Qx1s9R2LM",
+    },
+    {
+      hash: "0x2bb344f4a6c7d8e9f001bc23de45fa67bc89de01fa2345678901bcdef0aa2002",
+      vmState: "HALT",
+      blockIndex: 582437,
+      blockTime: "2026-02-07T09:06:00.000Z",
+      sender: "NV5hV7mVj3Gm1jW5Qv2dC9A4vV6x2N9DQP",
+    },
+    {
+      hash: "0x3cc45505b7d8e9f0012cd34ef56ab78cd90ef1234567890abcdeff1122333003",
+      vmState: "HALT",
+      blockIndex: 582430,
+      blockTime: "2026-02-07T08:57:00.000Z",
+      sender: "Nex8kL8zS4mD2fG7pN5qR7uV1xY2wZ3aBc",
+    },
+  ],
+};
+
+const parseResponseData = (payload: unknown) => {
+  if (typeof payload === "string") {
+    try {
+      return JSON.parse(payload);
+    } catch {
+      return null;
+    }
+  }
+  return payload;
+};
+
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "dashboard",
+  tabs: [
+    { key: "search", labelKey: "tabSearch", icon: "🔍", default: true },
+    { key: "network", labelKey: "mainnet", icon: "📡" },
+    { key: "history", labelKey: "tabHistory", icon: "🕐" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("search");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "search", icon: "search", label: t("tabSearch") },
-  { id: "network", icon: "activity", label: t("mainnet") },
-  { id: "history", icon: "clock", label: t("tabHistory") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+  isLoading: isLoading.value,
+  selectedNetwork: selectedNetwork.value,
+  searchResult: searchResult.value,
+}));
 
 const { chainType } = useWallet() as WalletSDK;
 
@@ -144,55 +223,69 @@ const TXS_CACHE_KEY = "explorer_txs_cache";
 
 // Fetch stats via SDK datafeed service
 const fetchStats = async () => {
-  // Try cache first
   try {
     const cached = uni.getStorageSync(STATS_CACHE_KEY);
     if (cached) stats.value = JSON.parse(cached);
   } catch {}
 
-  let freshStats = null;
+  let freshStats: any = null;
 
-  try {
-    const res = await uni.request({
-      url: `${API_BASE}/stats`,
-      method: "GET",
-    });
-    if (res.statusCode === 200 && res.data) {
-      freshStats = res.data as any;
-    }
-  } catch {
-    // Ignore and fall back to cached stats.
+  if (isLocalPreview) {
+    freshStats = LOCAL_STATS_MOCK;
   }
 
-  if (freshStats) {
-    stats.value = freshStats;
+  if (!freshStats) {
+    try {
+      const res = await uni.request({
+        url: `${API_BASE}/stats`,
+        method: "GET",
+      });
+      if (res.statusCode === 200 && res.data) {
+        freshStats = parseResponseData(res.data);
+      }
+    } catch {
+      // Ignore and fall back to cached stats.
+    }
+  }
+
+  if (freshStats && typeof freshStats === "object") {
+    stats.value = freshStats as any;
     uni.setStorageSync(STATS_CACHE_KEY, JSON.stringify(freshStats));
   }
 };
 
 // Fetch recent transactions via SDK datafeed service
 const fetchRecentTxs = async () => {
-  // Try cache first
   try {
     const cached = uni.getStorageSync(TXS_CACHE_KEY);
     if (cached) recentTxs.value = JSON.parse(cached);
   } catch {}
 
-  let freshTxs = null;
+  let freshTxs: any[] = [];
+  let hasFreshTxs = false;
 
-  try {
-    const res = await uni.request({
-      url: `${API_BASE}/recent?network=${selectedNetwork.value}&limit=10`,
-      method: "GET",
-    });
-    if (res.statusCode === 200 && res.data) {
-      freshTxs = (res.data as any).transactions || [];
-    }
-  } catch {
-    // Ignore and fall back to cached txs.
+  if (isLocalPreview) {
+    freshTxs = LOCAL_RECENT_MOCK[selectedNetwork.value];
+    hasFreshTxs = true;
   }
 
-  if (freshTxs) {
+  if (!hasFreshTxs) {
+    try {
+      const res = await uni.request({
+        url: `${API_BASE}/recent?network=${selectedNetwork.value}&limit=10`,
+        method: "GET",
+      });
+      if (res.statusCode === 200 && res.data) {
+        const parsed = parseResponseData(res.data) as any;
+        freshTxs = Array.isArray(parsed?.transactions) ? parsed.transactions : [];
+        hasFreshTxs = true;
+      }
+    } catch {
+      // Ignore and fall back to cached txs.
+    }
+  }
+
+  if (hasFreshTxs) {
     recentTxs.value = freshTxs;
     uni.setStorageSync(TXS_CACHE_KEY, JSON.stringify(freshTxs));
   }
@@ -210,13 +303,38 @@ const search = async () => {
   status.value = null;
 
   try {
+    if (isLocalPreview) {
+      const txMatch = recentTxs.value.find((tx: any) =>
+        String(tx?.hash || "")
+          .toLowerCase()
+          .includes(query.toLowerCase())
+      );
+
+      if (txMatch) {
+        searchResult.value = { type: "transaction", data: txMatch };
+      } else if (query.length >= 20) {
+        const transactions = recentTxs.value.slice(0, 3);
+        searchResult.value = {
+          type: "address",
+          data: {
+            address: query,
+            txCount: transactions.length,
+            transactions,
+          },
+        };
+      } else {
+        status.value = { msg: t("noResults"), type: "error" };
+      }
+      return;
+    }
+
     const res = await uni.request({
       url: `${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.value}`,
       method: "GET",
     });
 
     if (res.statusCode === 200 && res.data) {
-      searchResult.value = res.data;
+      searchResult.value = parseResponseData(res.data);
     } else {
       status.value = { msg: t("noResults"), type: "error" };
     }
@@ -237,11 +355,11 @@ onMounted(() => {
   fetchStats();
   fetchRecentTxs();
   statsInterval = setInterval(fetchStats, 15000);
-  window.addEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
+  window.removeEventListener("resize", handleResize);
 });
 
 watch(selectedNetwork, () => {
@@ -385,7 +503,6 @@ onUnmounted(() => {
     gap: 20px;
   }
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

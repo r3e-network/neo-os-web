@@ -1,83 +1,89 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-gov-merc" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-gov-merc">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Rent Tab -->
-    <view v-if="activeTab === 'rent'" class="tab-content">
-      <!-- Chain Warning - Framework Component -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="status-text font-bold uppercase tracking-wider">{{ status.msg }}</text>
-      </NeoCard>
+      <template #content>
+        <view class="tab-content">
+          <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
+            <text class="status-text font-bold tracking-wider uppercase">{{ status.msg }}</text>
+          </NeoCard>
 
-      <NeoCard class="mb-6" variant="erobo">
-        <view class="form-group-neo">
-          <NeoInput v-model="depositAmount" type="number" placeholder="0" suffix="NEO" :label="t('depositAmount')" />
-          <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
-            {{ isBusy ? t("depositNeo") : t("depositNeo") }}
-          </NeoButton>
+          <NeoCard class="mb-6" variant="erobo">
+            <view class="form-group-neo">
+              <NeoInput
+                v-model="depositAmount"
+                type="number"
+                placeholder="0"
+                suffix="NEO"
+                :label="t('depositAmount')"
+              />
+              <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
+                {{ isBusy ? t("depositNeo") : t("depositNeo") }}
+              </NeoButton>
+            </view>
+          </NeoCard>
+
+          <NeoCard class="mb-6" variant="erobo">
+            <view class="form-group-neo">
+              <NeoInput
+                v-model="withdrawAmount"
+                type="number"
+                placeholder="0"
+                suffix="NEO"
+                :label="t('withdrawAmount')"
+              />
+              <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
+                {{ isBusy ? t("withdrawNeo") : t("withdrawNeo") }}
+              </NeoButton>
+            </view>
+          </NeoCard>
         </view>
-      </NeoCard>
+      </template>
 
-      <NeoCard class="mb-6" variant="erobo">
-        <view class="form-group-neo">
-          <NeoInput v-model="withdrawAmount" type="number" placeholder="0" suffix="NEO" :label="t('withdrawAmount')" />
-          <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
-            {{ isBusy ? t("withdrawNeo") : t("withdrawNeo") }}
-          </NeoButton>
+      <template #tab-market>
+        <view class="tab-content">
+          <NeoCard variant="erobo" class="mb-6">
+            <view class="form-group-neo">
+              <NeoInput v-model="bidAmount" type="number" placeholder="0" suffix="GAS" :label="t('bidAmount')" />
+              <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="placeBid">
+                {{ isBusy ? t("placeBid") : t("placeBid") }}
+              </NeoButton>
+            </view>
+          </NeoCard>
+
+          <NeoCard variant="erobo">
+            <view v-if="bids.length === 0" class="empty-neo p-8 text-center font-bold uppercase opacity-60">
+              {{ t("noBids") }}
+            </view>
+            <view v-for="bid in bids" :key="bid.address" class="bid-row">
+              <view class="bid-address">{{ bid.address }}</view>
+              <view class="bid-amount">{{ formatNum(bid.amount, 2) }} GAS</view>
+            </view>
+          </NeoCard>
         </view>
-      </NeoCard>
-    </view>
+      </template>
 
-    <!-- Market Tab -->
-    <view v-if="activeTab === 'market'" class="tab-content">
-      <!-- Chain Warning - Framework Component -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-      <NeoCard variant="erobo" class="mb-6">
-        <view class="form-group-neo">
-          <NeoInput v-model="bidAmount" type="number" placeholder="0" suffix="GAS" :label="t('bidAmount')" />
-          <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="placeBid">
-            {{ isBusy ? t("placeBid") : t("placeBid") }}
-          </NeoButton>
+      <template #tab-stats>
+        <view class="tab-content">
+          <NeoCard variant="erobo-neo">
+            <NeoStats :stats="poolStats" />
+          </NeoCard>
         </view>
-      </NeoCard>
-
-      <NeoCard variant="erobo">
-        <view v-if="bids.length === 0" class="empty-neo text-center p-8 opacity-60 uppercase font-bold">
-          {{ t("noBids") }}
-        </view>
-        <view v-for="bid in bids" :key="bid.address" class="bid-row">
-          <view class="bid-address">{{ bid.address }}</view>
-          <view class="bid-amount">{{ formatNum(bid.amount, 2) }} GAS</view>
-        </view>
-      </NeoCard>
-    </view>
-
-    <!-- Stats Tab -->
-    <view v-if="activeTab === 'stats'" class="tab-content">
-      <NeoCard variant="erobo-neo">
-        <NeoStats :stats="poolStats" />
-      </NeoCard>
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -88,26 +94,45 @@ import { useI18n } from "@/composables/useI18n";
 import { formatNumber, parseGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { ResponsiveLayout, NeoDoc, NeoButton, NeoInput, NeoCard, NeoStats, ChainWarning } from "@shared/components";
+import { MiniAppTemplate, NeoButton, NeoInput, NeoCard, NeoStats } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import type { StatItem } from "@shared/components/NeoStats.vue";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
 const { t } = useI18n();
 
-const navTabs = computed(() => [
-  { id: "rent", icon: "wallet", label: t("rent") },
-  { id: "market", icon: "cart", label: t("market") },
-  { id: "stats", icon: "chart", label: t("tabStats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
-
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "market-list",
+  tabs: [
+    { key: "rent", labelKey: "rent", icon: "💰", default: true },
+    { key: "market", labelKey: "market", icon: "🛒" },
+    { key: "stats", labelKey: "tabStats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("rent");
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+  address: address.value,
+  totalPool: totalPool.value,
+  currentEpoch: currentEpoch.value,
+  isLoading: dataLoading.value,
+}));
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
 const APP_ID = "miniapp-gov-merc";
 const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
 const { list: listEvents } = useEvents();
@@ -294,7 +319,7 @@ const placeBid = async () => {
         { type: "Integer", value: toFixed8(bidAmount.value) },
         { type: "Integer", value: receiptId },
       ],
-      contract,
+      contract
     );
     status.value = { msg: t("bidSuccess"), type: "success" };
     bidAmount.value = "";
@@ -458,7 +483,6 @@ watch(address, () => fetchData());
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

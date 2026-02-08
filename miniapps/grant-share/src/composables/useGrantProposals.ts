@@ -33,6 +33,64 @@ export function useGrantProposals() {
   onMounted(() => window.addEventListener('resize', handleResize));
   onUnmounted(() => window.removeEventListener('resize', handleResize));
 
+  const isLocalPreview =
+    typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
+  const LOCAL_PROPOSALS_MOCK = {
+    total: 3,
+    items: [
+      {
+        offchain_id: "101",
+        title: "Developer Education Sprint",
+        proposer: "NfYhP6Yw5tM4oX2Qz7bR5mU8dC6jK9vW1Q",
+        state: "active",
+        votes_amount_accept: 152340,
+        votes_amount_reject: 12340,
+        discussion_url: "https://forum.grantshares.io/t/dev-education-sprint",
+        offchain_creation_timestamp: "2026-01-30T08:12:00.000Z",
+        offchain_comments_count: 18,
+        onchain_id: 57,
+        description: "Build a 6-week education sprint focused on secure NEO smart contract development.",
+      },
+      {
+        offchain_id: "102",
+        title: "Neo Wallet UX Research",
+        proposer: "NQf1fY3mP8jC2rL7nD4sX9aV6kW3mP5tYH",
+        state: "review",
+        votes_amount_accept: 92340,
+        votes_amount_reject: 4560,
+        discussion_url: "https://forum.grantshares.io/t/wallet-ux-research",
+        offchain_creation_timestamp: "2026-02-01T13:20:00.000Z",
+        offchain_comments_count: 9,
+        onchain_id: 58,
+        description: "Research and prototype better onboarding and transaction clarity for first-time users.",
+      },
+      {
+        offchain_id: "103",
+        title: "Cross-Chain Tooling Maintenance",
+        proposer: "NdR6mX4tW8qL2dP5sH9fV3bN1kJ7gC2qZT",
+        state: "executed",
+        votes_amount_accept: 210340,
+        votes_amount_reject: 7830,
+        discussion_url: "https://forum.grantshares.io/t/cross-chain-tooling-maintenance",
+        offchain_creation_timestamp: "2025-12-18T10:45:00.000Z",
+        offchain_comments_count: 24,
+        onchain_id: 54,
+        description: "Maintain bridge and indexing tooling to improve reliability and incident response.",
+      },
+    ],
+  };
+
+  const parseResponseData = (payload: unknown) => {
+    if (typeof payload === "string") {
+      try {
+        return JSON.parse(payload);
+      } catch {
+        return null;
+      }
+    }
+    return payload;
+  };
+
   const activeProposals = computed(() => grants.value.filter((grant) => isActiveState(grant.state)).length);
   const displayedProposals = computed(() => grants.value.length);
 
@@ -87,13 +145,21 @@ export function useGrantProposals() {
     loading.value = true;
     fetchError.value = false;
     try {
-      const res = await new Promise<any>((resolve, reject) => {
-        uni.request({
-          url: "/api/grantshares/proposals",
-          success: (r) => resolve(r.data),
-          fail: (e) => reject(e),
+      let res: any = null;
+
+      if (isLocalPreview) {
+        res = LOCAL_PROPOSALS_MOCK;
+      }
+
+      if (!res) {
+        res = await new Promise<any>((resolve, reject) => {
+          uni.request({
+            url: "/api/grantshares/proposals",
+            success: (r) => resolve(parseResponseData(r.data)),
+            fail: (e) => reject(e),
+          });
         });
-      });
+      }
 
       if (res && Array.isArray(res.items)) {
         grants.value = res.items

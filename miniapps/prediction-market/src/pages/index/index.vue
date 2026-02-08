@@ -1,15 +1,6 @@
 <template>
   <view class="theme-prediction-market">
-    <ResponsiveLayout 
-      :title="t('title')"
-      :nav-items="navItems"
-      :active-tab="activeTab"
-      :show-sidebar="isDesktop"
-      layout="sidebar"
-      @navigate="handleTabChange"
-    >
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="handleTabChange">
       <!-- Desktop Sidebar - Stats -->
       <template #desktop-sidebar>
         <MarketStats
@@ -25,8 +16,8 @@
         />
       </template>
 
-      <!-- Markets Tab -->
-      <view v-if="activeTab === 'markets'" class="tab-content">
+      <!-- Markets Tab (default content) -->
+      <template #content>
         <MarketList
           :markets="filteredMarkets"
           :categories="categories"
@@ -39,23 +30,25 @@
           @selectCategory="setCategory"
           @toggleSort="toggleSort"
         />
-      </view>
+      </template>
 
       <!-- Trading Tab -->
-      <view v-if="activeTab === 'trading' && selectedMarket" class="tab-content">
+      <template #tab-trading>
         <MarketDetail
+          v-if="selectedMarket"
           :market="selectedMarket"
           :your-orders="yourOrders"
           :your-positions="yourPositions"
           :is-trading="isTrading"
+          :t="t"
           @trade="executeTrade"
           @cancel-order="cancelOrder"
           @back="handleBackToMarkets"
         />
-      </view>
+      </template>
 
       <!-- Portfolio Tab -->
-      <view v-if="activeTab === 'portfolio'" class="tab-content">
+      <template #tab-portfolio>
         <view class="portfolio-summary">
           <view class="summary-card">
             <text class="summary-label">{{ t("portfolioValue") }}</text>
@@ -63,44 +56,29 @@
           </view>
           <view class="summary-card" :class="{ positive: totalPnL > 0, negative: totalPnL < 0 }">
             <text class="summary-label">{{ t("totalPnL") }}</text>
-            <text class="summary-value">{{ totalPnL > 0 ? '+' : '' }}{{ formatCurrency(totalPnL) }} GAS</text>
+            <text class="summary-value">{{ totalPnL > 0 ? "+" : "" }}{{ formatCurrency(totalPnL) }} GAS</text>
           </view>
         </view>
-        <PortfolioView
-          :positions="yourPositions"
-          :orders="yourOrders"
-          @claim="claimWinnings"
-        />
-      </view>
+        <PortfolioView :positions="yourPositions" :orders="yourOrders" @claim="claimWinnings" />
+      </template>
 
       <!-- Create Tab -->
-      <view v-if="activeTab === 'create'" class="tab-content">
+      <template #tab-create>
         <CreateMarketForm :is-creating="isCreating" @submit="createMarket" />
-      </view>
+      </template>
+    </MiniAppTemplate>
 
-      <!-- Docs Tab -->
-      <view v-if="activeTab === 'docs'" class="tab-content">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-
-      <!-- Error Toast -->
-      <view v-if="error" class="error-toast">
-        <text>{{ error }}</text>
-      </view>
-    </ResponsiveLayout>
+    <!-- Error Toast (fixed overlay, outside template) -->
+    <view v-if="error" class="error-toast">
+      <text>{{ error }}</text>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { ResponsiveLayout, NeoDoc, ChainWarning } from "@shared/components";
-import type { NavItem } from "@shared/components/ResponsiveLayout.vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { usePredictionMarkets, type PredictionMarket } from "@/composables/usePredictionMarkets";
 import { usePredictionTrading, type TradeParams } from "@/composables/usePredictionTrading";
@@ -147,12 +125,32 @@ const {
 
 const error = computed(() => marketsError.value || tradingError.value);
 
-const navItems = computed<NavItem[]>(() => [
-  { key: "markets", label: t("markets"), icon: "📊" },
-  { key: "portfolio", label: t("portfolio"), icon: "💼" },
-  { key: "create", label: t("create"), icon: "➕" },
-  { key: "docs", label: t("docs"), icon: "📖" },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "market-list",
+  tabs: [
+    { key: "markets", labelKey: "markets", icon: "📊", default: true },
+    { key: "trading", labelKey: "trading", icon: "📈" },
+    { key: "portfolio", labelKey: "portfolio", icon: "💼" },
+    { key: "create", labelKey: "create", icon: "➕" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+        { nameKey: "feature4Name", descKey: "feature4Desc" },
+      ],
+    },
+  },
+};
 
 const isDesktop = computed(() => {
   try {
@@ -171,13 +169,14 @@ const sortLabel = computed(() => {
   return labels[filters.value.sortBy] || t("sortByVolume");
 });
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-  { name: t("feature4Name"), desc: t("feature4Desc") },
-]);
+// Reactive state bridge for MiniAppTemplate
+const appState = computed(() => ({
+  totalMarkets: markets.value.length,
+  totalVolume: totalVolume.value,
+  activeTraders: activeTraders.value,
+  portfolioValue: portfolioValue.value,
+  totalPnL: totalPnL.value,
+}));
 
 const handleTabChange = (tab: string) => {
   activeTab.value = tab;
@@ -238,7 +237,7 @@ onMounted(() => {
 
 .tab-content {
   padding: 16px;
-  
+
   @media (min-width: 768px) {
     padding: 0;
   }
@@ -249,7 +248,7 @@ onMounted(() => {
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 16px;
-  
+
   @media (min-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
@@ -262,14 +261,14 @@ onMounted(() => {
   border-radius: 12px;
   padding: 16px;
   text-align: center;
-  
+
   &.positive {
     border-color: rgba(16, 185, 129, 0.3);
     .summary-value {
       color: var(--pm-success);
     }
   }
-  
+
   &.negative {
     border-color: rgba(239, 68, 68, 0.3);
     .summary-value {

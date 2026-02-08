@@ -1,90 +1,94 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-neo-gacha" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
-    <template #desktop-sidebar>
-      <view class="desktop-sidebar">
-        <text class="sidebar-title">{{ t('overview') }}</text>
-      </view>
-    </template>
+  <view class="theme-neo-gacha">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      :fireworks-active="showFireworks"
+      @tab-change="activeTab = $event"
+    >
+      <template #desktop-sidebar>
+        <view class="desktop-sidebar">
+          <text class="sidebar-title">{{ t("overview") }}</text>
+        </view>
+      </template>
 
-    <view class="app-container">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-      <NeoCard v-if="status" :variant="status.variant" class="mb-4">
-        <text class="status-text">{{ status.msg }}</text>
-      </NeoCard>
+      <template #content>
+        <view class="app-container">
+          <NeoCard v-if="status" :variant="status.variant" class="mb-4">
+            <text class="status-text">{{ status.msg }}</text>
+          </NeoCard>
 
-      <MarketplaceTab
-        v-if="activeTab === 'market'"
-        :machines="machines"
-        :is-loading="isLoadingMachines"
-        :selected-machine="selectedMachine"
-        :wallet-hash="walletHash"
-        :is-playing="isPlaying"
-        :show-result="showResult"
-        :result-item="resultItem"
-        :play-error="playError"
-        @select-machine="selectMachine"
-        @browse-all="activeTab = 'discover'"
-        @back="selectedMachine = null"
-        @play="handlePlay"
-        @close-result="resetResult"
-        @buy="handleBuy"
-      />
+          <MarketplaceTab
+            :machines="machines"
+            :is-loading="isLoadingMachines"
+            :selected-machine="selectedMachine"
+            :wallet-hash="walletHash"
+            :is-playing="isPlaying"
+            :show-result="showResult"
+            :result-item="resultItem"
+            :play-error="playError"
+            @select-machine="selectMachine"
+            @browse-all="activeTab = 'discover'"
+            @back="selectedMachine = null"
+            @play="handlePlay"
+            @close-result="resetResult"
+            @buy="handleBuy"
+          />
+        </view>
+      </template>
 
-      <DiscoverTab
-        v-if="activeTab === 'discover'"
-        :machines="machines"
-        :is-loading="isLoadingMachines"
-        @select-machine="handleSelectFromDiscover"
-      />
+      <template #tab-discover>
+        <view class="app-container">
+          <DiscoverTab
+            :machines="machines"
+            :is-loading="isLoadingMachines"
+            @select-machine="handleSelectFromDiscover"
+          />
+        </view>
+      </template>
 
-      <CreatorStudio
-        v-if="activeTab === 'create'"
-        :publishing="isPublishing"
-        @publish="handlePublish"
-      />
+      <template #tab-create>
+        <view class="app-container">
+          <CreatorStudio :publishing="isPublishing" @publish="handlePublish" />
+        </view>
+      </template>
 
-      <ManageTab
-        v-if="activeTab === 'manage'"
-        :machines="machines"
-        :address="address"
-        :is-loading="isLoadingMachines"
-        :action-loading="actionLoading"
-        @connect-wallet="handleWalletConnect"
-        @update-price="handleUpdatePrice"
-        @toggle-active="handleToggleActive"
-        @toggle-listed="handleToggleListed"
-        @list-for-sale="handleListForSale"
-        @cancel-sale="handleCancelSale"
-        @withdraw-revenue="handleWithdrawRevenue"
-        @deposit-item="handleDepositItem"
-        @withdraw-item="handleWithdrawItem"
-      />
+      <template #tab-manage>
+        <view class="app-container">
+          <ManageTab
+            :machines="machines"
+            :address="address"
+            :is-loading="isLoadingMachines"
+            :action-loading="actionLoading"
+            @connect-wallet="handleWalletConnect"
+            @update-price="handleUpdatePrice"
+            @toggle-active="handleToggleActive"
+            @toggle-listed="handleToggleListed"
+            @list-for-sale="handleListForSale"
+            @cancel-sale="handleCancelSale"
+            @withdraw-revenue="handleWithdrawRevenue"
+            @deposit-item="handleDepositItem"
+            @withdraw-item="handleWithdrawItem"
+          />
+        </view>
+      </template>
+    </MiniAppTemplate>
 
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-    </view>
-
-    <Fireworks :active="showFireworks" :duration="3000" />
     <WalletPrompt
       :visible="showWalletPrompt"
       :message="walletMessage"
       @close="showWalletPrompt = false"
       @connect="handleWalletConnect"
     />
-  </ResponsiveLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import { ResponsiveLayout, NeoCard, NeoDoc, WalletPrompt, ChainWarning } from "@shared/components";
-import Fireworks from "@shared/components/Fireworks.vue";
+import { MiniAppTemplate, NeoCard, WalletPrompt } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useGachaMachines, type Machine } from "@/composables/useGachaMachines";
 import { useGachaPlay } from "@/composables/useGachaPlay";
@@ -98,15 +102,38 @@ import ManageTab from "@/components/ManageTab.vue";
 
 const { t } = useI18n();
 
-const navTabs = computed(() => [
-  { id: "market", icon: "bag", label: t("market") },
-  { id: "discover", icon: "compass", label: t("discover") },
-  { id: "create", icon: "edit", label: t("create") },
-  { id: "manage", icon: "settings", label: t("manage") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "game-board",
+  tabs: [
+    { key: "market", labelKey: "market", icon: "🎰", default: true },
+    { key: "discover", labelKey: "discover", icon: "🧭" },
+    { key: "create", labelKey: "create", icon: "✏️" },
+    { key: "manage", labelKey: "manage", icon: "⚙️" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("market");
+const appState = computed(() => ({
+  machines: machines.value.length,
+  isPlaying: isPlaying.value,
+  showFireworks: showFireworks.value,
+}));
 
 interface Status {
   msg: string;
@@ -118,17 +145,30 @@ const setStatus = (msg: string, variant: Status["variant"]) => {
   status.value = { msg, variant };
 };
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-]);
-
-const { machines, selectedMachine, isLoadingMachines, fetchMachines, selectMachine, setActionLoading, actionLoading, ensureContractAddress, walletHash } = useGachaMachines();
-const { isPlaying, showResult, resultItem, playError, showFireworks, resetResult, playMachine, buyMachine } = useGachaPlay();
+const {
+  machines,
+  selectedMachine,
+  isLoadingMachines,
+  fetchMachines,
+  selectMachine,
+  setActionLoading,
+  actionLoading,
+  ensureContractAddress,
+  walletHash,
+} = useGachaMachines();
+const { isPlaying, showResult, resultItem, playError, showFireworks, resetResult, playMachine, buyMachine } =
+  useGachaPlay();
 const { address, showWalletPrompt, walletMessage, requestWallet, handleWalletConnect } = useGachaWallet();
-const { updateMachinePrice, toggleMachineActive, toggleMachineListed, listMachineForSale, cancelMachineSale, withdrawMachineRevenue, depositItem, withdrawItem } = useGachaManagement();
+const {
+  updateMachinePrice,
+  toggleMachineActive,
+  toggleMachineListed,
+  listMachineForSale,
+  cancelMachineSale,
+  withdrawMachineRevenue,
+  depositItem,
+  withdrawItem,
+} = useGachaManagement();
 const { isPublishing, publishMachine } = useGachaPublish();
 
 const requireAddress = async () => {
@@ -202,11 +242,35 @@ const handleWithdrawRevenue = async (machine: Machine) => {
   setStatus(t("revenueClaimed"), "success");
 };
 
-const handleDepositItem = async ({ machine, item, index, amount, tokenId }: { machine: Machine; item: any; index: number; amount: string; tokenId: string }) => {
+const handleDepositItem = async ({
+  machine,
+  item,
+  index,
+  amount,
+  tokenId,
+}: {
+  machine: Machine;
+  item: any;
+  index: number;
+  amount: string;
+  tokenId: string;
+}) => {
   await depositItem(machine, item, index, amount || "", tokenId || "", fetchMachines);
 };
 
-const handleWithdrawItem = async ({ machine, item, index, amount, tokenId }: { machine: Machine; item: any; index: number; amount: string; tokenId: string }) => {
+const handleWithdrawItem = async ({
+  machine,
+  item,
+  index,
+  amount,
+  tokenId,
+}: {
+  machine: Machine;
+  item: any;
+  index: number;
+  amount: string;
+  tokenId: string;
+}) => {
   await withdrawItem(machine, item, index, amount || "", tokenId || "", fetchMachines);
 };
 

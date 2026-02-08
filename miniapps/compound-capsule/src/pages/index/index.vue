@@ -1,71 +1,60 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-compound-capsule" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
+  <view class="theme-compound-capsule">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      :fireworks-active="status?.type === 'success'"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Main Tab -->
-    <view v-if="activeTab === 'main'" class="tab-content">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="font-bold status-msg">{{ status.msg }}</text>
-      </NeoCard>
+      <template #content>
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
+          <text class="status-msg font-bold">{{ status.msg }}</text>
+        </NeoCard>
 
-      <CapsuleCreate
-        v-model="selectedPeriod"
-        :is-loading="isLoading"
-        :min-lock-days="MIN_LOCK_DAYS"
-        @create="createCapsule"
-      />
+        <CapsuleCreate
+          v-model="selectedPeriod"
+          :is-loading="isLoading"
+          :min-lock-days="MIN_LOCK_DAYS"
+          @create="createCapsule"
+        />
 
-      <RewardClaim :position="position" />
-    </view>
+        <RewardClaim :position="position" />
+      </template>
 
-    <!-- Stats Tab -->
-    <view v-if="activeTab === 'stats'" class="tab-content scrollable">
-      <CapsuleDetails :vault="vault" />
+      <template #tab-stats>
+        <CapsuleDetails :vault="vault" />
 
-      <CapsuleList
-        :capsules="activeCapsules"
-        :is-loading="isLoading"
-        @unlock="unlockCapsule"
-      />
+        <CapsuleList :capsules="activeCapsules" :is-loading="isLoading" @unlock="unlockCapsule" />
 
-      <!-- Statistics -->
-      <NeoCard variant="erobo-neo">
-        <view class="stats-grid-glass">
-          <view class="stat-box-glass">
-            <text class="stat-label">{{ t("totalCapsules") }}</text>
-            <text class="stat-value">{{ stats.totalCapsules }}</text>
+        <!-- Statistics -->
+        <NeoCard variant="erobo-neo">
+          <view class="stats-grid-glass">
+            <view class="stat-box-glass">
+              <text class="stat-label">{{ t("totalCapsules") }}</text>
+              <text class="stat-value">{{ stats.totalCapsules }}</text>
+            </view>
+            <view class="stat-box-glass">
+              <text class="stat-label">{{ t("totalLocked") }}</text>
+              <text class="stat-value">{{ fmt(stats.totalLocked, 0) }} NEO</text>
+            </view>
+            <view class="stat-box-glass">
+              <text class="stat-label">{{ t("totalAccrued") }}</text>
+              <text class="stat-value">{{ fmt(stats.totalAccrued, 4) }} GAS</text>
+            </view>
           </view>
-          <view class="stat-box-glass">
-            <text class="stat-label">{{ t("totalLocked") }}</text>
-            <text class="stat-value">{{ fmt(stats.totalLocked, 0) }} NEO</text>
-          </view>
-          <view class="stat-box-glass">
-            <text class="stat-label">{{ t("totalAccrued") }}</text>
-            <text class="stat-value">{{ fmt(stats.totalAccrued, 4) }} GAS</text>
-          </view>
-        </view>
-      </NeoCard>
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-    <Fireworks :active="status?.type === 'success'" :duration="3000" />
-  </ResponsiveLayout>
+        </NeoCard>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -76,7 +65,8 @@ import { formatNumber } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoDoc, NeoCard, Fireworks, ChainWarning } from "@shared/components";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CapsuleCreate from "./components/CapsuleCreate.vue";
 import RewardClaim from "./components/RewardClaim.vue";
 import CapsuleDetails from "./components/CapsuleDetails.vue";
@@ -86,13 +76,36 @@ const isLoading = ref(false);
 
 const { t, locale } = useI18n();
 
-const navTabs = computed(() => [
-  { id: "main", icon: "wallet", label: t("main") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "main", labelKey: "main", icon: "💊", default: true },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("main");
+
+const appState = computed(() => ({
+  totalCapsules: stats.value.totalCapsules,
+  totalLocked: stats.value.totalLocked,
+  totalAccrued: stats.value.totalAccrued,
+}));
 
 type StatusType = "success" | "error";
 type Status = { msg: string; type: StatusType };
@@ -108,11 +121,6 @@ type Capsule = {
   status: "Ready" | "Locked";
 };
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
 const { address, connect, chainType, getContractAddress, invokeContract, invokeRead } = useWallet() as WalletSDK;
 const contractAddress = ref<string | null>(null);
 
@@ -169,7 +177,7 @@ const fetchData = async () => {
       args: [],
     });
     const totalCapsules = Number(parseInvokeResult(totalResult) || 0);
-    const lockedResult = await invokeRead({ contractAddress: contract,       operation: "TotalLocked", args: [] });
+    const lockedResult = await invokeRead({ contractAddress: contract, operation: "TotalLocked", args: [] });
     const platformLocked = Number(parseInvokeResult(lockedResult) || 0);
     const userCapsules: Capsule[] = [];
     let userLocked = 0;
@@ -232,7 +240,7 @@ const createCapsule = async (): Promise<void> => {
   if (isLoading.value) return;
   // Note: amount comes from CapsuleCreate component internal state
   // We'll need to access it differently - for now, keeping simple
-  
+
   isLoading.value = true;
   try {
     if (!address.value) {

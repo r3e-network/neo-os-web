@@ -1,59 +1,53 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-breakup-contract" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-breakup-contract">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view v-if="activeTab === 'create' || activeTab === 'contracts'" class="app-container">
-      <!-- Chain Warning - Framework Component -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4 text-center">
-        <text class="font-bold status-msg">{{ status.msg }}</text>
-      </NeoCard>
+      <template #content>
+        <view class="app-container">
+          <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4 text-center">
+            <text class="status-msg font-bold">{{ status.msg }}</text>
+          </NeoCard>
 
-      <!-- Create Contract Tab -->
-      <view v-if="activeTab === 'create'" class="tab-content">
-        <CreateContractForm
-          v-model:partnerAddress="partnerAddress"
-          v-model:stakeAmount="stakeAmount"
-          v-model:duration="duration"
-          v-model:title="contractTitle"
-          v-model:terms="contractTerms"
-          :address="address"
-          :is-loading="isLoading"
-          :t="t as any"
-          @create="createContract"
-        />
-      </view>
+          <!-- Create Contract Tab -->
+          <CreateContractForm
+            v-model:partnerAddress="partnerAddress"
+            v-model:stakeAmount="stakeAmount"
+            v-model:duration="duration"
+            v-model:title="contractTitle"
+            v-model:terms="contractTerms"
+            :address="address"
+            :is-loading="isLoading"
+            :t="t as any"
+            @create="createContract"
+          />
+        </view>
+      </template>
 
-      <!-- Active Contracts Tab -->
-      <view v-if="activeTab === 'contracts'" class="tab-content">
-        <ContractList
-          :contracts="contracts"
-          :address="address"
-          :t="t as any"
-          @sign="signContract"
-          @break="breakContract"
-        />
-      </view>
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      <template #tab-contracts>
+        <view class="app-container">
+          <ContractList
+            :contracts="contracts"
+            :address="address"
+            :t="t as any"
+            @sign="signContract"
+            @break="breakContract"
+          />
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -64,32 +58,47 @@ import { parseGas, toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoDoc, NeoCard, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CreateContractForm from "./components/CreateContractForm.vue";
 import ContractList from "./components/ContractList.vue";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
 const { t } = useI18n();
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "create", labelKey: "tabCreate", icon: "💔", default: true },
+    { key: "contracts", labelKey: "tabContracts", icon: "📋" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
+
+const activeTab = ref<string>("create");
+
+const appState = computed(() => ({
+  contracts: contracts.value.length,
+}));
 
 const APP_ID = "miniapp-breakupcontract";
 const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
 const { list: listEvents } = useEvents();
 const { processPayment, isLoading } = usePaymentFlow(APP_ID);
 const contractAddress = ref<string | null>(null);
-
-const activeTab = ref<string>("create");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "create", label: t("tabCreate"), icon: "💔" },
-  { id: "contracts", label: t("tabContracts"), icon: "📋" },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
 
 const partnerAddress = ref("");
 const stakeAmount = ref("");
@@ -302,7 +311,7 @@ const createContract = async () => {
         { type: "String", value: termsValue },
         { type: "Integer", value: receiptId },
       ],
-      contractAddress.value!,
+      contractAddress.value!
     );
     status.value = { msg: t("contractCreated"), type: "success" };
     partnerAddress.value = "";
@@ -331,7 +340,7 @@ const signContract = async (contract: RelationshipContractView) => {
         { type: "Hash160", value: address.value },
         { type: "Integer", value: receiptId },
       ],
-      contractAddress.value!,
+      contractAddress.value!
     );
     status.value = { msg: t("contractSigned"), type: "success" };
     await loadContracts();
@@ -462,7 +471,6 @@ onMounted(() => {
   border-radius: 0 !important;
   color: var(--heartbreak-status-text) !important;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

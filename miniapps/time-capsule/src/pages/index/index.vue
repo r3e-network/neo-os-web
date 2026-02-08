@@ -13,8 +13,7 @@
         <NeoCard
           v-if="status"
           :variant="status.type === 'success' ? 'success' : status.type === 'loading' ? 'accent' : 'danger'"
-          class="mb-4 text-center"
-        >
+          class="mb-4 text-center">
           <text class="status-text font-bold uppercase tracking-wider">{{ status.msg }}</text>
         </NeoCard>
 
@@ -28,8 +27,7 @@
               :loading="isBusy"
               :disabled="isBusy"
               class="mt-3"
-              @click="handleFish"
-            >
+              @click="handleFish">
               {{ t("fishButton") }}
             </NeoButton>
           </NeoCard>

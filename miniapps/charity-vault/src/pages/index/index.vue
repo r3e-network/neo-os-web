@@ -1,16 +1,6 @@
 <template>
   <view class="theme-charity-vault">
-    <ResponsiveLayout
-      :title="t('title')"
-      :nav-items="navTabs"
-      :active-tab="activeTab"
-      :show-sidebar="isDesktop"
-      layout="sidebar"
-      @tab-change="activeTab = $event"
-    >
-      <!-- Chain Warning -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="sidebar-stats">
@@ -32,10 +22,9 @@
         </view>
       </template>
 
-      <!-- Campaigns Tab -->
-      <view v-if="activeTab === 'campaigns'" class="tab-content">
-        <!-- Mobile: Category Filter -->
-        <view v-if="!isDesktop" class="category-filter">
+      <template #content>
+        <!-- Category Filter -->
+        <view class="category-filter">
           <scroll-view scroll-x class="category-scroll">
             <view
               v-for="cat in categories"
@@ -66,11 +55,11 @@
             @click="selectCampaign(campaign)"
           />
         </view>
-      </view>
+      </template>
 
-      <!-- Donate Tab (Selected Campaign) -->
-      <view v-if="activeTab === 'donate' && selectedCampaign" class="tab-content scrollable">
+      <template #tab-donate>
         <CampaignDetail
+          v-if="selectedCampaign"
           :campaign="selectedCampaign"
           :recent-donations="recentDonations"
           :is-donating="isDonating"
@@ -81,34 +70,21 @@
             selectedCampaign = null;
           "
         />
-      </view>
+      </template>
 
-      <!-- My Donations Tab -->
-      <view v-if="activeTab === 'my-donations'" class="tab-content scrollable">
+      <template #tab-my-donations>
         <MyDonationsView :donations="myDonations" :total-donated="totalDonated" :t="t as (key: string) => string" />
-      </view>
+      </template>
 
-      <!-- Create Tab -->
-      <view v-if="activeTab === 'create'" class="tab-content scrollable">
+      <template #tab-create>
         <CreateCampaignForm :is-creating="isCreating" :t="t as (key: string) => string" @submit="createCampaign" />
-      </view>
+      </template>
+    </MiniAppTemplate>
 
-      <!-- Docs Tab -->
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-
-      <!-- Error Toast -->
-      <view v-if="errorMessage" class="error-toast">
-        <text>{{ errorMessage }}</text>
-      </view>
-    </ResponsiveLayout>
+    <!-- Error Toast -->
+    <view v-if="errorMessage" class="error-toast">
+      <text>{{ errorMessage }}</text>
+    </view>
   </view>
 </template>
 
@@ -120,8 +96,8 @@ import { parseInvokeResult } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoDoc, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CampaignCard from "./components/CampaignCard.vue";
 import CampaignDetail from "./components/CampaignDetail.vue";
 import MyDonationsView from "./components/MyDonationsView.vue";
@@ -130,14 +106,38 @@ import CreateCampaignForm from "./components/CreateCampaignForm.vue";
 const { t } = useI18n();
 const APP_ID = "miniapp-charity-vault";
 
-const navTabs = computed<NavTab[]>(() => [
-  { id: "campaigns", icon: "heart", label: t("campaigns") },
-  { id: "my-donations", icon: "wallet", label: t("myDonationsTab") },
-  { id: "create", icon: "add", label: t("create") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "campaigns", labelKey: "campaigns", icon: "❤️", default: true },
+    { key: "donate", labelKey: "myDonationsTab", icon: "💰" },
+    { key: "my-donations", labelKey: "myDonationsTab", icon: "📋" },
+    { key: "create", labelKey: "create", icon: "➕" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+        { nameKey: "feature4Name", descKey: "feature4Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("campaigns");
+
+const appState = computed(() => ({
+  campaignCount: campaigns.value.length,
+  totalDonated: totalDonated.value,
+}));
 const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
 const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
 
@@ -175,15 +175,6 @@ const filteredCampaigns = computed(() => {
 const totalDonated = computed(() => {
   return myDonations.value.reduce((sum, d) => sum + d.amount, 0);
 });
-
-// Docs content
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-  { name: t("feature4Name"), desc: t("feature4Desc") },
-]);
 
 // Interfaces
 interface CharityCampaign {
@@ -340,7 +331,7 @@ const makeDonation = async (data: { amount: number; message: string }) => {
 
     const { receiptId, invoke } = await processPayment(
       data.amount.toFixed(8),
-      `donate:${selectedCampaign.value.id}:${data.message.slice(0, 50)}`,
+      `donate:${selectedCampaign.value.id}:${data.message.slice(0, 50)}`
     );
 
     const tx = (await invoke(
@@ -350,7 +341,7 @@ const makeDonation = async (data: { amount: number; message: string }) => {
         { type: "Integer", value: String(receiptId) },
         { type: "String", value: data.message },
       ],
-      contractAddress.value as string,
+      contractAddress.value as string
     )) as { txid: string };
 
     if (tx.txid) {
@@ -403,7 +394,7 @@ const createCampaign = async (data: {
         { type: "Array", value: data.multisigAddresses },
         { type: "Integer", value: String(receiptId) },
       ],
-      contractAddress.value as string,
+      contractAddress.value as string
     )) as { txid: string };
 
     if (tx.txid) {

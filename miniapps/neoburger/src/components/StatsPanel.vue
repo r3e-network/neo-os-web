@@ -2,7 +2,7 @@
   <view class="stats-container">
     <view class="section fade-up delay-2">
       <view class="section-media">
-        <image class="section-image" src="/static/neoburger-hero.svg" mode="widthFix" :alt="t('bneoHeroAlt')" />
+        <image class="section-image" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('bneoHeroAlt')" />
       </view>
       <view class="section-content">
         <text class="section-title">{{ t("whatIsBneoTitle") }}</text>
@@ -20,7 +20,7 @@
 
     <view class="section reverse fade-up delay-3">
       <view class="section-media">
-        <image class="section-image" src="/static/neoburger-split.gif" mode="widthFix" :alt="t('bneoSplitAlt')" />
+        <image class="section-image" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('bneoSplitAlt')" />
       </view>
       <view class="section-content">
         <text class="section-title">{{ t("whyNeedBneoTitle") }}</text>
@@ -34,7 +34,7 @@
       <text class="section-title">{{ t("rewardsSourceTitle") }}</text>
       <image
         class="section-image"
-        src="/static/neoburger-connection.svg"
+        src="/static/neoburger-placeholder.svg"
         mode="widthFix"
         :alt="t('rewardsConnectionAlt')"
       />
@@ -51,12 +51,12 @@
         </text>
       </view>
       <view class="section-media">
-        <image class="section-image" src="/static/neoburger-rewards.gif" mode="widthFix" :alt="t('rewardsAlt')" />
+        <image class="section-image" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('rewardsAlt')" />
       </view>
     </view>
 
     <view class="footer fade-up delay-6">
-      <image class="footer-logo" src="/logo.jpg" mode="widthFix" :alt="t('footerLogoAlt')" />
+      <image class="footer-logo" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('footerLogoAlt')" />
       <view class="footer-links">
         <template v-for="(link, index) in footerLinks" :key="link.label">
           <text class="footer-link" @click="emit('openLink', link.url)">{{ link.label }}</text>

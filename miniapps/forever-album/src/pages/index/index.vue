@@ -1,94 +1,78 @@
 <template>
-  <ResponsiveLayout 
-    class="theme-forever-album" 
-    :tabs="navTabs" 
-    :active-tab="activeTab"
-    :desktop-breakpoint="1024"
-    show-top-nav
-    @tab-change="onTabChange"
-  >
-    <template #desktop-sidebar>
-      <view class="desktop-sidebar">
-        <text class="sidebar-title">{{ t('overview') }}</text>
-      </view>
-    </template>
-
-    <view class="album-container">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-
-      <view class="header">
-        <text class="title">{{ t("title") }}</text>
-        <text class="subtitle">{{ t("subtitle") }}</text>
-      </view>
-
-      <NeoCard v-if="!address" variant="warning" class="connect-card">
-        <view class="connect-card__content">
-          <text class="connect-card__title">{{ t("connectPromptTitle") }}</text>
-          <text class="connect-card__desc">{{ t("connectPromptDesc") }}</text>
-          <NeoButton size="sm" variant="primary" @click="openWalletPrompt">
-            {{ t("connectWallet") }}
-          </NeoButton>
+  <view class="theme-forever-album">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="onTabChange">
+      <template #desktop-sidebar>
+        <view class="desktop-sidebar">
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
-      </NeoCard>
+      </template>
 
-      <AlbumGrid
-        :t="t"
-        :photos="photos"
-        :loading="loadingPhotos"
-        @view="viewPhoto"
-        @upload="openUpload"
-      />
+      <template #content>
+        <view class="album-container">
+          <view class="header">
+            <text class="title">{{ t("title") }}</text>
+            <text class="subtitle">{{ t("subtitle") }}</text>
+          </view>
 
-      <view class="helper-note">
-        <text>{{ t("tapToSelect") }}</text>
-      </view>
-    </view>
+          <NeoCard v-if="!address" variant="warning" class="connect-card">
+            <view class="connect-card__content">
+              <text class="connect-card__title">{{ t("connectPromptTitle") }}</text>
+              <text class="connect-card__desc">{{ t("connectPromptDesc") }}</text>
+              <NeoButton size="sm" variant="primary" @click="openWalletPrompt">
+                {{ t("connectWallet") }}
+              </NeoButton>
+            </view>
+          </NeoCard>
 
-    <PhotoUpload
-      :t="t"
-      :visible="showUpload"
-      :images="selectedImages"
-      :max-photos="MAX_PHOTOS_PER_UPLOAD"
-      :max-bytes="MAX_TOTAL_BYTES"
-      :total-size="totalPayloadSize"
-      :encrypted="isEncrypted"
-      :password="password"
-      :uploading="uploading"
-      @close="closeUpload"
-      @remove="removeImage"
-      @choose="chooseImages"
-      @confirm="uploadPhotos"
-      @update:encrypted="isEncrypted = $event"
-      @update:password="password = $event"
-    />
+          <AlbumGrid :t="t" :photos="photos" :loading="loadingPhotos" @view="viewPhoto" @upload="openUpload" />
 
-    <AlbumViewer
-      :t="t"
-      :visible="showViewer"
-      :photo="viewingPhoto"
-      @close="closeViewer"
-      @decrypt="openDecrypt"
-    />
+          <view class="helper-note">
+            <text>{{ t("tapToSelect") }}</text>
+          </view>
+        </view>
 
-    <DecryptModal
-      :t="t"
-      :visible="showDecrypt"
-      :decrypting="decrypting"
-      :preview="decryptedPreview"
-      @close="closeDecrypt"
-      @decrypt="handleDecrypt"
-      @preview="previewDecrypted"
-    />
+        <PhotoUpload
+          :t="t"
+          :visible="showUpload"
+          :images="selectedImages"
+          :max-photos="MAX_PHOTOS_PER_UPLOAD"
+          :max-bytes="MAX_TOTAL_BYTES"
+          :total-size="totalPayloadSize"
+          :encrypted="isEncrypted"
+          :password="password"
+          :uploading="uploading"
+          @close="closeUpload"
+          @remove="removeImage"
+          @choose="chooseImages"
+          @confirm="uploadPhotos"
+          @update:encrypted="isEncrypted = $event"
+          @update:password="password = $event"
+        />
 
-    <WalletPrompt :visible="showWalletPrompt" @close="closeWalletPrompt" @connect="handleConnect" />
-  </ResponsiveLayout>
+        <AlbumViewer :t="t" :visible="showViewer" :photo="viewingPhoto" @close="closeViewer" @decrypt="openDecrypt" />
+
+        <DecryptModal
+          :t="t"
+          :visible="showDecrypt"
+          :decrypting="decrypting"
+          :preview="decryptedPreview"
+          @close="closeDecrypt"
+          @decrypt="handleDecrypt"
+          @preview="previewDecrypted"
+        />
+
+        <WalletPrompt :visible="showWalletPrompt" @close="closeWalletPrompt" @connect="handleConnect" />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { ResponsiveLayout, NeoCard, NeoButton, WalletPrompt, ChainWarning } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, WalletPrompt } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useCrypto } from "@shared/composables";
 import { parseInvokeResult } from "@shared/utils/neo";
@@ -106,11 +90,26 @@ const MAX_PHOTOS_PER_UPLOAD = 5;
 const MAX_PHOTO_BYTES = 45000;
 const MAX_TOTAL_BYTES = 60000;
 
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "album", labelKey: "albumTab", icon: "📸", default: true },
+    { key: "docs", labelKey: "docsTab", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+  },
+};
 const activeTab = ref("album");
-const navTabs = computed(() => [
-  { id: "album", icon: "archive", label: t("albumTab") },
-  { id: "docs", icon: "book", label: t("docsTab") },
-]);
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+  address: address.value,
+  photosCount: photos.value.length,
+  loadingPhotos: loadingPhotos.value,
+  uploading: uploading.value,
+}));
 
 const onTabChange = (tabId: string) => {
   if (tabId === "docs") {
@@ -154,8 +153,8 @@ const showWalletPrompt = ref(false);
 
 const totalPayloadSize = computed(() => selectedImages.value.reduce((sum, item) => sum + item.size, 0));
 
-const openWalletPrompt = () => showWalletPrompt.value = true;
-const closeWalletPrompt = () => showWalletPrompt.value = false;
+const openWalletPrompt = () => (showWalletPrompt.value = true);
+const closeWalletPrompt = () => (showWalletPrompt.value = false);
 
 const handleConnect = async () => {
   try {
@@ -244,7 +243,7 @@ const openUpload = async () => {
   password.value = "";
 };
 
-const closeUpload = () => showUpload.value = false;
+const closeUpload = () => (showUpload.value = false);
 
 const chooseImages = () => {
   const remaining = MAX_PHOTOS_PER_UPLOAD - selectedImages.value.length;
@@ -422,12 +421,12 @@ watch(address, () => loadPhotos());
   display: flex;
   flex-direction: column;
   gap: 16px;
-  
+
   @include responsive.tablet-up {
     padding: 24px;
     gap: 20px;
   }
-  
+
   @include responsive.desktop {
     padding: 32px;
     max-width: 1400px;
@@ -445,11 +444,11 @@ watch(address, () => loadPhotos());
   font-weight: 800;
   display: block;
   letter-spacing: 0.02em;
-  
+
   @include responsive.tablet-up {
     font-size: 26px;
   }
-  
+
   @include responsive.desktop {
     font-size: 32px;
   }
@@ -458,7 +457,7 @@ watch(address, () => loadPhotos());
 .subtitle {
   font-size: 12px;
   color: var(--text-secondary);
-  
+
   @include responsive.desktop {
     font-size: 14px;
   }

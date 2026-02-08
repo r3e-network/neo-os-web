@@ -1,61 +1,42 @@
 <template>
-  <ResponsiveLayout 
-    :title="t('title')"
-    :nav-items="navItems"
-    :active-tab="activeTab"
-    :show-sidebar="isDesktop"
-    layout="sidebar"
-    @navigate="activeTab = $event"
-  >
-    <!-- Chain Warning -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-
-    <!-- Desktop Sidebar -->
-    <template #desktop-sidebar>
-      <view class="sidebar-info">
-        <text class="sidebar-title">{{ t("popularPairs") }}</text>
-        <view class="pair-list">
-          <view 
-            v-for="pair in popularPairs" 
-            :key="pair.id"
-            class="pair-item"
-            :class="{ active: selectedPair === pair.id }"
-            @click="selectedPair = pair.id"
-          >
-            <view class="pair-icons">
-              <image :src="pair.fromIcon" class="pair-icon" :alt="pair.fromSymbol || t('tokenIcon')" />
-              <image :src="pair.toIcon" class="pair-icon overlap" :alt="pair.toSymbol || t('tokenIcon')" />
-            </view>
-            <view class="pair-info">
-              <text class="pair-name">{{ pair.name }}</text>
-              <text class="pair-rate">{{ pair.rate }}</text>
+  <view class="theme-neo-swap">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
+      <!-- Desktop Sidebar -->
+      <template #desktop-sidebar>
+        <view class="sidebar-info">
+          <text class="sidebar-title">{{ t("popularPairs") }}</text>
+          <view class="pair-list">
+            <view
+              v-for="pair in popularPairs"
+              :key="pair.id"
+              class="pair-item"
+              :class="{ active: selectedPair === pair.id }"
+              @click="selectedPair = pair.id"
+            >
+              <view class="pair-icons">
+                <image :src="pair.fromIcon" class="pair-icon" :alt="pair.fromSymbol || t('tokenIcon')" />
+                <image :src="pair.toIcon" class="pair-icon overlap" :alt="pair.toSymbol || t('tokenIcon')" />
+              </view>
+              <view class="pair-info">
+                <text class="pair-name">{{ pair.name }}</text>
+                <text class="pair-rate">{{ pair.rate }}</text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
-    </template>
+      </template>
 
-    <!-- Swap Tab -->
-    <view v-if="activeTab === 'swap'" class="tab-content">
-      <SwapTab />
-    </view>
+      <!-- Swap Tab (default) -->
+      <template #content>
+        <SwapTab :t="t" />
+      </template>
 
-    <!-- Pool Tab -->
-    <view v-if="activeTab === 'pool'" class="tab-content">
-      <PoolTab />
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      <!-- Pool Tab -->
+      <template #tab-pool>
+        <PoolTab :t="t" />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -63,19 +44,37 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoDoc, ChainWarning } from "@shared/components";
-import type { NavItem } from "@shared/components/ResponsiveLayout.vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import SwapTab from "./components/SwapTab.vue";
 import PoolTab from "./components/PoolTab.vue";
 
 const { t } = useI18n();
 const { chainType } = useWallet() as WalletSDK;
 
-const navItems = computed<NavItem[]>(() => [
-  { key: "swap", label: t("tabSwap"), icon: "💱" },
-  { key: "pool", label: t("tabPool"), icon: "💧" },
-  { key: "docs", label: t("docs"), icon: "📖" },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "swap-interface",
+  tabs: [
+    { key: "swap", labelKey: "tabSwap", icon: "💱", default: true },
+    { key: "pool", labelKey: "tabPool", icon: "💧" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("swap");
 const selectedPair = ref("neo-gas");
@@ -85,22 +84,39 @@ const windowWidth = ref(window.innerWidth);
 const isMobile = computed(() => windowWidth.value < 768);
 const isDesktop = computed(() => windowWidth.value >= 1024);
 
-const handleResize = () => { windowWidth.value = window.innerWidth; };
-onMounted(() => window.addEventListener('resize', handleResize));
-onUnmounted(() => window.removeEventListener('resize', handleResize));
+const handleResize = () => {
+  windowWidth.value = window.innerWidth;
+};
+onMounted(() => window.addEventListener("resize", handleResize));
+onUnmounted(() => window.removeEventListener("resize", handleResize));
 
 const popularPairs = [
-  { id: "neo-gas", name: "NEO/GAS", rate: "1:45.2", fromIcon: "/static/neo-token.png", toIcon: "/static/gas-token.png" },
-  { id: "gas-bneo", name: "GAS/bNEO", rate: "1:0.95", fromIcon: "/static/gas-token.png", toIcon: "/static/bneo-token.png" },
-  { id: "neo-flm", name: "NEO/FLM", rate: "1:125.8", fromIcon: "/static/neo-token.png", toIcon: "/static/flm-token.png" },
+  {
+    id: "neo-gas",
+    name: "NEO/GAS",
+    rate: "1:45.2",
+    fromIcon: "/static/neo-token.png",
+    toIcon: "/static/gas-token.png",
+  },
+  {
+    id: "gas-bneo",
+    name: "GAS/bNEO",
+    rate: "1:0.95",
+    fromIcon: "/static/gas-token.png",
+    toIcon: "/static/neo-token.png",
+  },
+  {
+    id: "neo-flm",
+    name: "NEO/FLM",
+    rate: "1:125.8",
+    fromIcon: "/static/neo-token.png",
+    toIcon: "/static/gas-token.png",
+  },
 ];
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-]);
+const appState = computed(() => ({
+  selectedPair: selectedPair.value,
+}));
 </script>
 
 <style lang="scss" scoped>
@@ -116,7 +132,7 @@ const docFeatures = computed(() => [
 
 .tab-content {
   padding: 16px;
-  
+
   @media (min-width: 768px) {
     padding: 0;
   }
@@ -150,11 +166,11 @@ const docFeatures = computed(() => [
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.08);
   }
-  
+
   &.active {
     background: rgba(0, 166, 81, 0.1);
     border-color: var(--swap-primary);
@@ -163,12 +179,12 @@ const docFeatures = computed(() => [
 
 .pair-icons {
   position: relative;
-  
+
   .pair-icon {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    
+
     &.overlap {
       position: absolute;
       left: 16px;
@@ -196,7 +212,9 @@ const docFeatures = computed(() => [
 
 // Responsive styles
 @media (max-width: 767px) {
-  .tab-content { padding: 12px; }
+  .tab-content {
+    padding: 12px;
+  }
   .pair-list {
     flex-direction: row;
     overflow-x: auto;
@@ -209,6 +227,10 @@ const docFeatures = computed(() => [
   }
 }
 @media (min-width: 1024px) {
-  .tab-content { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .tab-content {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
 }
 </style>

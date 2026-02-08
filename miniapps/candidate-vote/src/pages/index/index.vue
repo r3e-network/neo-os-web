@@ -1,109 +1,97 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-candidate-vote" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-candidate-vote">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-    <!-- Vote Tab -->
-    <view v-if="activeTab === 'vote'" class="tab-content scrollable">
-      <NeoCard
-        v-if="status"
-        :variant="status.type === 'error' ? 'danger' : 'success'"
-        class="mb-4 text-center font-bold"
-      >
-        <text>{{ status.msg }}</text>
-      </NeoCard>
+      <template #content>
+        <NeoCard
+          v-if="status"
+          :variant="status.type === 'error' ? 'danger' : 'success'"
+          class="mb-4 text-center font-bold"
+        >
+          <text>{{ status.msg }}</text>
+        </NeoCard>
 
-      <!-- Candidate List -->
-      <CandidateList
-        :candidates="candidates"
-        :selected-candidate="selectedCandidate"
-        :user-voted-public-key="normalizedUserVotedPublicKey"
-        :total-votes="totalNetworkVotes"
-        :is-loading="candidatesLoading"
-        @select="selectCandidate"
-        @view-details="openCandidateDetail"
-      />
+        <!-- Candidate List -->
+        <CandidateList
+          :candidates="candidates"
+          :selected-candidate="selectedCandidate"
+          :user-voted-public-key="normalizedUserVotedPublicKey"
+          :total-votes="totalNetworkVotes"
+          :is-loading="candidatesLoading"
+          @select="selectCandidate"
+          @view-details="openCandidateDetail"
+        />
 
-      <!-- Vote Form -->
-      <NeoCard variant="erobo-neo">
-        <view class="vote-form">
-          <NeoCard v-if="selectedCandidate" variant="erobo-neo" flat class="selected-candidate-card glass-panel">
-            <text class="selected-label">{{ t("votingFor") }}</text>
-            <view class="candidate-badge">
-              <!-- Logo and Name Row -->
-              <view class="logo-name-row">
-                <image
-                  v-if="selectedCandidate.logo"
-                  class="candidate-logo-sm"
-                  :src="selectedCandidate.logo"
-                  mode="aspectFit"
-                  :alt="selectedCandidate.name || t('candidateLogo')"
-                />
-                <text class="candidate-name">{{ selectedCandidate.name || selectedCandidate.address }}</text>
-              </view>
-
-              <!-- Description -->
-              <text v-if="selectedCandidate.description" class="candidate-desc">
-                {{ selectedCandidate.description }}
-              </text>
-
-              <!-- Address Details -->
-              <view class="details-grid">
-                <view class="detail-item">
-                  <text class="detail-label">{{ t("publicKey") }}</text>
-                  <text class="detail-value mono">{{ selectedCandidate.publicKey }}</text>
+        <!-- Vote Form -->
+        <NeoCard variant="erobo-neo">
+          <view class="vote-form">
+            <NeoCard v-if="selectedCandidate" variant="erobo-neo" flat class="selected-candidate-card glass-panel">
+              <text class="selected-label">{{ t("votingFor") }}</text>
+              <view class="candidate-badge">
+                <view class="logo-name-row">
+                  <image
+                    v-if="selectedCandidate.logo"
+                    class="candidate-logo-sm"
+                    :src="selectedCandidate.logo"
+                    mode="aspectFit"
+                    :alt="selectedCandidate.name || t('candidateLogo')"
+                  />
+                  <text class="candidate-name">{{ selectedCandidate.name || selectedCandidate.address }}</text>
                 </view>
-                <view class="detail-item">
-                  <text class="detail-label">{{ t("address") }}</text>
-                  <text class="detail-value mono">{{ selectedCandidate.address }}</text>
+                <text v-if="selectedCandidate.description" class="candidate-desc">
+                  {{ selectedCandidate.description }}
+                </text>
+                <view class="details-grid">
+                  <view class="detail-item">
+                    <text class="detail-label">{{ t("publicKey") }}</text>
+                    <text class="detail-value mono">{{ selectedCandidate.publicKey }}</text>
+                  </view>
+                  <view class="detail-item">
+                    <text class="detail-label">{{ t("address") }}</text>
+                    <text class="detail-value mono">{{ selectedCandidate.address }}</text>
+                  </view>
                 </view>
               </view>
+            </NeoCard>
+
+            <NeoCard v-else variant="warning" flat class="no-candidate-card">
+              <text class="warning-text text-center">{{ t("selectCandidateFirst") }}</text>
+            </NeoCard>
+
+            <NeoButton
+              variant="primary"
+              size="lg"
+              block
+              :disabled="!selectedCandidate || !address || isLoading"
+              :loading="isLoading"
+              @click="handleVote"
+            >
+              {{ t("voteNow") }}
+            </NeoButton>
+
+            <view v-if="!address" class="connect-hint">
+              <text class="hint-text">{{ t("connectWallet") }}</text>
             </view>
-          </NeoCard>
-
-          <NeoCard v-else variant="warning" flat class="no-candidate-card">
-            <text class="warning-text text-center">{{ t("selectCandidateFirst") }}</text>
-          </NeoCard>
-
-          <NeoButton
-            variant="primary"
-            size="lg"
-            block
-            :disabled="!selectedCandidate || !address || isLoading"
-            :loading="isLoading"
-            @click="handleVote"
-          >
-            {{ t("voteNow") }}
-          </NeoButton>
-
-          <view v-if="!address" class="connect-hint">
-            <text class="hint-text">{{ t("connectWallet") }}</text>
           </view>
-        </view>
-      </NeoCard>
-    </view>
+        </NeoCard>
+      </template>
 
-    <!-- Info Tab -->
-    <InfoTab v-if="activeTab === 'info'" :address="address" />
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
+      <template #tab-info>
+        <InfoTab :address="address" />
+      </template>
+    </MiniAppTemplate>
 
     <!-- Candidate Detail Modal -->
     <CandidateDetailModal
@@ -119,7 +107,7 @@
       @close="closeCandidateDetail"
       @vote="handleVoteFromModal"
     />
-  </ResponsiveLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -130,8 +118,8 @@ import type { GovernanceCandidate } from "./utils";
 import { useI18n } from "@/composables/useI18n";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoDoc, NeoCard, NeoButton, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard, NeoButton } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CandidateList from "./components/CandidateList.vue";
 import CandidateDetailModal from "./components/CandidateDetailModal.vue";
 import InfoTab from "./components/InfoTab.vue";
@@ -139,24 +127,39 @@ import { fetchCandidates } from "./utils";
 
 const { t } = useI18n();
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "market-list",
+  tabs: [
+    { key: "vote", labelKey: "vote", icon: "📋", default: true },
+    { key: "info", labelKey: "info", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 
 const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 
 const { address, connect, invokeContract, invokeRead, chainType, chainId, appChainId, switchToAppChain } =
   useWallet() as WalletSDK;
 
-const navTabs = computed<NavTab[]>(() => [
-  { id: "vote", icon: "checkbox", label: t("vote") },
-  { id: "info", icon: "info", label: t("info") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
-
 const activeTab = ref("vote");
+
+const appState = computed(() => ({
+  candidateCount: candidates.value.length,
+  totalNetworkVotes: totalNetworkVotes.value,
+}));
 const isLoading = ref(false);
 const status = ref<{ msg: string; type: string } | null>(null);
 
@@ -180,9 +183,7 @@ const getCacheKey = (network: "mainnet" | "testnet") => `candidate_vote_candidat
 const preferredChainId = computed(() => appChainId.value || chainId.value || "neo-n3-testnet");
 
 const governancePortalUrl = computed(() =>
-  preferredChainId.value === "neo-n3-testnet"
-    ? "https://governance.neo.org/testnet#/"
-    : "https://governance.neo.org/#/",
+  preferredChainId.value === "neo-n3-testnet" ? "https://governance.neo.org/testnet#/" : "https://governance.neo.org/#/"
 );
 
 const showStatus = (msg: string, type: string) => {
@@ -325,7 +326,7 @@ const loadCandidates = async (force = false) => {
     if (selectedCandidate.value) {
       const match = candidates.value.find(
         (candidate) =>
-          normalizePublicKey(candidate.publicKey) === normalizePublicKey(selectedCandidate.value?.publicKey),
+          normalizePublicKey(candidate.publicKey) === normalizePublicKey(selectedCandidate.value?.publicKey)
       );
       selectedCandidate.value = match || null;
     }
@@ -337,7 +338,7 @@ const loadCandidates = async (force = false) => {
         totalVotes: totalNetworkVotes.value,
         blockHeight: blockHeight.value,
         timestamp: Date.now(),
-      }),
+      })
     );
   } catch (e: any) {
     if (candidates.value.length === 0) {
@@ -567,7 +568,6 @@ watch(preferredChainId, () => {
   background: var(--candidate-warning-bg) !important;
   border: 1px dashed var(--candidate-warning-border) !important;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

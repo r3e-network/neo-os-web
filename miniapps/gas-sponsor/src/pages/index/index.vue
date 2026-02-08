@@ -1,150 +1,144 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-gas-sponsor" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-gas-sponsor">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view class="app-container">
-      <NeoCard
-        v-if="status"
-        :variant="status.type === 'error' ? 'danger' : status.type === 'loading' ? 'warning' : 'success'"
-        class="mb-4 text-center glass-status"
-      >
-        <text class="status-msg">{{ status.msg }}</text>
-      </NeoCard>
 
-      <!-- Chain Warning - Framework Component -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
+      <template #content>
+        <view class="app-container">
+          <NeoCard
+            v-if="status"
+            :variant="status.type === 'error' ? 'danger' : status.type === 'loading' ? 'warning' : 'success'"
+            class="glass-status mb-4 text-center"
+          >
+            <text class="status-msg">{{ status.msg }}</text>
+          </NeoCard>
 
-      <!-- Sponsor Tab -->
-      <view v-if="activeTab === 'sponsor'" class="tab-content">
-        <!-- Request Sponsored Gas -->
-        <RequestGasCard
-          :is-eligible="isEligible"
-          :remaining-quota="remainingQuota"
-          v-model:requestAmount="requestAmount"
-          :max-request-amount="maxRequestAmount"
-          :is-requesting="isRequesting"
-          :quick-amounts="quickAmounts"
-          :t="t"
-          @request="requestSponsorship"
-        />
-        <!-- Gas Tank Visualization -->
-        <GasTank :fuel-level-percent="fuelLevelPercent" :gas-balance="gasBalance" :is-eligible="isEligible" :t="t" />
-      </view>
+          <!-- Request Sponsored Gas -->
+          <RequestGasCard
+            :is-eligible="isEligible"
+            :remaining-quota="remainingQuota"
+            v-model:requestAmount="requestAmount"
+            :max-request-amount="maxRequestAmount"
+            :is-requesting="isRequesting"
+            :quick-amounts="quickAmounts"
+            :t="t"
+            @request="requestSponsorship"
+          />
+          <!-- Gas Tank Visualization -->
+          <GasTank :fuel-level-percent="fuelLevelPercent" :gas-balance="gasBalance" :is-eligible="isEligible" :t="t" />
+        </view>
+      </template>
 
-      <!-- Donate Tab -->
-      <view v-if="activeTab === 'donate'" class="tab-content">
-        <NeoCard variant="accent" class="glass-container">
-          <view class="donate-form">
-            <text class="form-subtitle">{{ t("donateSubtitle") }}</text>
-            <text class="form-description">{{ t("donateDescription") }}</text>
-            <view class="input-section">
-              <text class="input-label">{{ t("donateAmount") }}</text>
-              <view class="preset-amounts">
-                <view
-                  v-for="amt in [0.1, 0.5, 1, 5]"
-                  :key="amt"
-                  :class="['preset-btn glass-btn', { active: donateAmount === amt.toString() }]"
-                  @click="donateAmount = amt.toString()"
-                >
-                  <text class="preset-value">{{ amt }}</text>
-                  <text class="preset-unit">GAS</text>
+      <template #tab-donate>
+        <view class="app-container">
+          <NeoCard variant="accent" class="glass-container">
+            <view class="donate-form">
+              <text class="form-subtitle">{{ t("donateSubtitle") }}</text>
+              <text class="form-description">{{ t("donateDescription") }}</text>
+              <view class="input-section">
+                <text class="input-label">{{ t("donateAmount") }}</text>
+                <view class="preset-amounts">
+                  <view
+                    v-for="amt in [0.1, 0.5, 1, 5]"
+                    :key="amt"
+                    :class="['preset-btn glass-btn', { active: donateAmount === amt.toString() }]"
+                    @click="donateAmount = amt.toString()"
+                  >
+                    <text class="preset-value">{{ amt }}</text>
+                    <text class="preset-unit">GAS</text>
+                  </view>
                 </view>
+                <NeoInput v-model="donateAmount" type="number" placeholder="0.1" suffix="GAS" />
               </view>
-              <NeoInput v-model="donateAmount" type="number" placeholder="0.1" suffix="GAS" />
+              <NeoButton variant="primary" size="lg" block :loading="isDonating" @click="handleDonate">
+                {{ isDonating ? t("donating") : t("donateBtn") }}
+              </NeoButton>
             </view>
-            <NeoButton variant="primary" size="lg" block :loading="isDonating" @click="handleDonate">
-              {{ isDonating ? t("donating") : t("donateBtn") }}
-            </NeoButton>
-          </view>
-        </NeoCard>
-      </view>
+          </NeoCard>
+        </view>
+      </template>
 
-      <!-- Send Tab -->
-      <view v-if="activeTab === 'send'" class="tab-content">
-        <NeoCard variant="accent" class="glass-container">
-          <view class="send-form">
-            <text class="form-subtitle">{{ t("sendSubtitle") }}</text>
-            <view class="input-section">
-              <text class="input-label">{{ t("recipientAddress") }}</text>
-              <NeoInput v-model="recipientAddress" :placeholder="t('recipientPlaceholder')" />
-            </view>
-            <view class="input-section">
-              <text class="input-label">{{ t("sendAmount") }}</text>
-              <view class="preset-amounts">
-                <view
-                  v-for="amt in [0.05, 0.1, 0.2, 0.5]"
-                  :key="amt"
-                  :class="['preset-btn glass-btn', { active: sendAmount === amt.toString() }]"
-                  @click="sendAmount = amt.toString()"
-                >
-                  <text class="preset-value">{{ amt }}</text>
-                  <text class="preset-unit">GAS</text>
+      <template #tab-send>
+        <view class="app-container">
+          <NeoCard variant="accent" class="glass-container">
+            <view class="send-form">
+              <text class="form-subtitle">{{ t("sendSubtitle") }}</text>
+              <view class="input-section">
+                <text class="input-label">{{ t("recipientAddress") }}</text>
+                <NeoInput v-model="recipientAddress" :placeholder="t('recipientPlaceholder')" />
+              </view>
+              <view class="input-section">
+                <text class="input-label">{{ t("sendAmount") }}</text>
+                <view class="preset-amounts">
+                  <view
+                    v-for="amt in [0.05, 0.1, 0.2, 0.5]"
+                    :key="amt"
+                    :class="['preset-btn glass-btn', { active: sendAmount === amt.toString() }]"
+                    @click="sendAmount = amt.toString()"
+                  >
+                    <text class="preset-value">{{ amt }}</text>
+                    <text class="preset-unit">GAS</text>
+                  </view>
                 </view>
+                <NeoInput v-model="sendAmount" type="number" placeholder="0.1" suffix="GAS" />
               </view>
-              <NeoInput v-model="sendAmount" type="number" placeholder="0.1" suffix="GAS" />
+              <NeoButton variant="primary" size="lg" block :loading="isSending" @click="handleSend">
+                {{ isSending ? t("sending") : t("sendBtn") }}
+              </NeoButton>
             </view>
-            <NeoButton variant="primary" size="lg" block :loading="isSending" @click="handleSend">
-              {{ isSending ? t("sending") : t("sendBtn") }}
-            </NeoButton>
-          </view>
-        </NeoCard>
-      </view>
+          </NeoCard>
+        </view>
+      </template>
 
-      <!-- Stats Tab -->
-      <view v-if="activeTab === 'stats'" class="tab-content scrollable">
-        <!-- User Balance Info -->
-        <UserBalanceInfo
-          :loading="loading"
-          :user-address="userAddress"
-          :gas-balance="gasBalance"
-          :is-eligible="isEligible"
-          :t="t"
-        />
+      <template #tab-stats>
+        <view class="app-container scrollable">
+          <!-- User Balance Info -->
+          <UserBalanceInfo
+            :loading="loading"
+            :user-address="userAddress"
+            :gas-balance="gasBalance"
+            :is-eligible="isEligible"
+            :t="t"
+          />
 
-        <DailyQuotaCard
-          :quota-percent="quotaPercent"
-          :daily-limit="dailyLimit"
-          :used-quota="usedQuota"
-          :remaining-quota="remainingQuota"
-          :reset-time="resetTime"
-          :t="t"
-        />
+          <DailyQuotaCard
+            :quota-percent="quotaPercent"
+            :daily-limit="dailyLimit"
+            :used-quota="usedQuota"
+            :remaining-quota="remainingQuota"
+            :reset-time="resetTime"
+            :t="t"
+          />
 
-        <UsageStatisticsCard
-          :used-quota="usedQuota"
-          :remaining-quota="remainingQuota"
-          :daily-limit="dailyLimit"
-          :reset-time="resetTime"
-          :t="t"
-        />
+          <UsageStatisticsCard
+            :used-quota="usedQuota"
+            :remaining-quota="remainingQuota"
+            :daily-limit="dailyLimit"
+            :reset-time="resetTime"
+            :t="t"
+          />
 
-        <EligibilityStatusCard
-          :gas-balance="gasBalance"
-          :remaining-quota="remainingQuota"
-          :user-address="userAddress"
-          :t="t"
-        />
-      </view>
-
-      <!-- Docs Tab -->
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-        <HowItWorksCard :t="t" />
-      </view>
-    </view>
-  </ResponsiveLayout>
+          <EligibilityStatusCard
+            :gas-balance="gasBalance"
+            :remaining-quota="remainingQuota"
+            :user-address="userAddress"
+            :t="t"
+          />
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
@@ -153,15 +147,14 @@ import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoCard, NeoDoc, NeoButton, NeoInput, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoInput } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import GasTank from "./components/GasTank.vue";
 import UserBalanceInfo from "./components/UserBalanceInfo.vue";
 import RequestGasCard from "./components/RequestGasCard.vue";
 import DailyQuotaCard from "./components/DailyQuotaCard.vue";
 import UsageStatisticsCard from "./components/UsageStatisticsCard.vue";
 import EligibilityStatusCard from "./components/EligibilityStatusCard.vue";
-import HowItWorksCard from "./components/HowItWorksCard.vue";
 
 const { t } = useI18n();
 
@@ -170,14 +163,38 @@ const { isRequestingSponsorship: isRequesting, checkEligibility, requestSponsors
 
 const ELIGIBILITY_THRESHOLD = 0.1;
 
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "sponsor", labelKey: "tabSponsor", icon: "🎁", default: true },
+    { key: "donate", labelKey: "tabDonate", icon: "❤️" },
+    { key: "send", labelKey: "tabSend", icon: "📤" },
+    { key: "stats", labelKey: "tabStats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("sponsor");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "sponsor", icon: "gift", label: t("tabSponsor") },
-  { id: "donate", icon: "heart", label: t("tabDonate") },
-  { id: "send", icon: "send", label: t("tabSend") },
-  { id: "stats", icon: "chart", label: t("tabStats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+  address: address.value,
+  gasBalance: gasBalance.value,
+  isEligible: isEligible.value,
+  isLoading: loading.value,
+}));
 
 const userAddress = ref("");
 const gasBalance = ref("0");
@@ -339,12 +356,6 @@ onMounted(() => {
   loadUserData();
   // We can't auto-refresh due to rate limits potentially, but could add a timer if needed
 });
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
 </script>
 
 <style lang="scss" scoped>
@@ -555,7 +566,6 @@ const docFeatures = computed(() => [
   text-align: center;
   backdrop-filter: blur(10px);
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

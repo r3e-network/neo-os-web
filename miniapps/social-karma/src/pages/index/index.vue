@@ -1,30 +1,23 @@
 <template>
   <view class="theme-social-karma">
-    <ResponsiveLayout
-      :title="t('title')"
-      :nav-items="navItems"
-      :active-tab="activeTab"
-      :show-sidebar="isDesktop"
-      layout="sidebar"
-      @navigate="activeTab = $event"
-    >
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
+      <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <SidebarKarmaCard :karma="userKarma" :rank="userRank" />
         <SidebarQuickActions :has-checked-in="hasCheckedIn" :is-checking-in="isCheckingIn" @check-in="dailyCheckIn" />
       </template>
 
-      <view v-if="activeTab === 'leaderboard'" class="tab-content">
+      <!-- Leaderboard Tab (default) -->
+      <template #content>
         <MobileKarmaSummary v-if="!isDesktop" :karma="userKarma" :rank="userRank" />
-        <LeaderboardSection
-          :leaderboard="leaderboard"
-          :user-address="address"
-          @refresh="loadLeaderboard"
-        />
-      </view>
+        <LeaderboardSection :leaderboard="leaderboard" :user-address="address" @refresh="loadLeaderboard" />
+        <view v-if="errorMessage" class="error-toast">
+          <text>{{ errorMessage }}</text>
+        </view>
+      </template>
 
-      <view v-if="activeTab === 'earn'" class="tab-content">
+      <!-- Earn Tab -->
+      <template #tab-earn>
         <CheckInSection
           v-if="!isDesktop"
           :streak="checkInStreak"
@@ -35,27 +28,14 @@
           @check-in="dailyCheckIn"
         />
         <GiveKarmaForm ref="giveKarmaFormRef" :is-giving="isGiving" @give="handleGiveKarma" />
-      </view>
+      </template>
 
-      <view v-if="activeTab === 'profile'" class="tab-content">
+      <!-- Profile Tab -->
+      <template #tab-profile>
         <BadgesGrid :badges="userBadges" />
         <AchievementsList :achievements="computedAchievements" />
-      </view>
-
-      <view v-if="activeTab === 'docs'" class="tab-content">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-
-      <view v-if="errorMessage" class="error-toast">
-        <text>{{ errorMessage }}</text>
-      </view>
-    </ResponsiveLayout>
+      </template>
+    </MiniAppTemplate>
   </view>
 </template>
 
@@ -67,8 +47,8 @@ import { parseInvokeResult } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoDoc, ChainWarning } from "@shared/components";
-import type { NavItem } from "@shared/components/ResponsiveLayout.vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import LeaderboardSection, { type LeaderboardEntry } from "./components/LeaderboardSection.vue";
 import CheckInSection from "./components/CheckInSection.vue";
 import GiveKarmaForm from "./components/GiveKarmaForm.vue";
@@ -81,14 +61,38 @@ import MobileKarmaSummary from "./components/MobileKarmaSummary.vue";
 const { t } = useI18n();
 const APP_ID = "miniapp-social-karma";
 
-const navItems = computed<NavItem[]>(() => [
-  { key: "leaderboard", label: t("leaderboard"), icon: "🏆" },
-  { key: "earn", label: t("earn"), icon: "✨" },
-  { key: "profile", label: t("profile"), icon: "👤" },
-  { key: "docs", label: t("docs"), icon: "📖" },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "custom",
+  tabs: [
+    { key: "leaderboard", labelKey: "leaderboard", icon: "🏆", default: true },
+    { key: "earn", labelKey: "earn", icon: "✨" },
+    { key: "profile", labelKey: "profile", icon: "👤" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+        { nameKey: "feature4Name", descKey: "feature4Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("leaderboard");
+
+const appState = computed(() => ({
+  karma: userKarma.value,
+  rank: userRank.value,
+}));
 const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
 const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
 
@@ -124,20 +128,36 @@ const userBadges = ref<Badge[]>([
 ]);
 
 const computedAchievements = computed<Achievement[]>(() => [
-  { id: "first", name: t("firstKarma"), progress: `${Math.min(userKarma.value, 1)}/1`, percent: Math.min(userKarma.value / 1 * 100, 100), unlocked: userKarma.value >= 1 },
-  { id: "k10", name: t("karma10"), progress: `${Math.min(userKarma.value, 10)}/10`, percent: Math.min(userKarma.value / 10 * 100, 100), unlocked: userKarma.value >= 10 },
-  { id: "k100", name: t("karma100"), progress: `${Math.min(userKarma.value, 100)}/100`, percent: Math.min(userKarma.value / 100 * 100, 100), unlocked: userKarma.value >= 100 },
-  { id: "k1000", name: t("karma1000"), progress: `${Math.min(userKarma.value, 1000)}/1000`, percent: Math.min(userKarma.value / 1000 * 100, 100), unlocked: userKarma.value >= 1000 },
+  {
+    id: "first",
+    name: t("firstKarma"),
+    progress: `${Math.min(userKarma.value, 1)}/1`,
+    percent: Math.min((userKarma.value / 1) * 100, 100),
+    unlocked: userKarma.value >= 1,
+  },
+  {
+    id: "k10",
+    name: t("karma10"),
+    progress: `${Math.min(userKarma.value, 10)}/10`,
+    percent: Math.min((userKarma.value / 10) * 100, 100),
+    unlocked: userKarma.value >= 10,
+  },
+  {
+    id: "k100",
+    name: t("karma100"),
+    progress: `${Math.min(userKarma.value, 100)}/100`,
+    percent: Math.min((userKarma.value / 100) * 100, 100),
+    unlocked: userKarma.value >= 100,
+  },
+  {
+    id: "k1000",
+    name: t("karma1000"),
+    progress: `${Math.min(userKarma.value, 1000)}/1000`,
+    percent: Math.min((userKarma.value / 1000) * 100, 100),
+    unlocked: userKarma.value >= 1000,
+  },
   { id: "gifter", name: t("gifter"), progress: "0/1", percent: 0, unlocked: false },
   { id: "philanthropist", name: t("philanthropist"), progress: "0/100", percent: 0, unlocked: false },
-]);
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-  { name: t("feature4Name"), desc: t("feature4Desc") },
 ]);
 
 const ensureContractAddress = async (): Promise<boolean> => {
@@ -189,18 +209,24 @@ const loadUserState = async () => {
       hasCheckedIn.value = (state as any).checkedIn || false;
       checkInStreak.value = Number((state as any).streak || 0);
     }
-  } catch (e: any) {
-  }
+  } catch (e: any) {}
 };
 
 const dailyCheckIn = async () => {
-  if (!address.value) { showError(t("connectWallet")); return; }
+  if (!address.value) {
+    showError(t("connectWallet"));
+    return;
+  }
   if (!(await ensureContractAddress())) return;
 
   try {
     isCheckingIn.value = true;
     const { receiptId, invoke } = await processPayment("0.1", "checkin");
-    const tx = (await invoke("dailyCheckIn", [{ type: "Integer", value: String(receiptId) }], contractAddress.value as string)) as { txid: string };
+    const tx = (await invoke(
+      "dailyCheckIn",
+      [{ type: "Integer", value: String(receiptId) }],
+      contractAddress.value as string
+    )) as { txid: string };
     if (tx.txid) {
       await waitForEvent(tx.txid, "KarmaEarned");
       hasCheckedIn.value = true;
@@ -221,7 +247,16 @@ const handleGiveKarma = async (data: { address: string; amount: number; reason: 
   try {
     isGiving.value = true;
     const { receiptId, invoke } = await processPayment("0.1", `reward:${data.amount}`);
-    const tx = (await invoke("giveKarma", [{ type: "Hash160", value: data.address }, { type: "Integer", value: data.amount }, { type: "String", value: data.reason }, { type: "Integer", value: String(receiptId) }], contractAddress.value as string)) as { txid: string };
+    const tx = (await invoke(
+      "giveKarma",
+      [
+        { type: "Hash160", value: data.address },
+        { type: "Integer", value: data.amount },
+        { type: "String", value: data.reason },
+        { type: "Integer", value: String(receiptId) },
+      ],
+      contractAddress.value as string
+    )) as { txid: string };
     if (tx.txid) {
       await waitForEvent(tx.txid, "KarmaGiven");
       giveKarmaFormRef.value?.reset();
@@ -290,7 +325,13 @@ onMounted(async () => {
 }
 
 @keyframes slideIn {
-  from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
-  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+  from {
+    transform: translateX(-50%) translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
 }
 </style>

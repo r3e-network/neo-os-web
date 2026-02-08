@@ -6,14 +6,14 @@
 
     <view class="card fade-up delay-1">
       <view class="card-header">
-        <image class="icon" src="/static/neoburger-address.svg" mode="widthFix" :alt="t('treasuryAddressTitle')" />
+        <image class="icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('treasuryAddressTitle')" />
         <text class="section-title">{{ t("treasuryAddressTitle") }}</text>
       </view>
       <view class="address-list">
         <view v-for="address in treasuryAddresses" :key="address" class="address-row">
           <text class="address-text">{{ address }}</text>
           <button class="icon-button" @click="emit('copy', address)">
-            <image class="icon" src="/static/neoburger-copy.svg" mode="widthFix" :alt="t('copyAlt')" />
+            <image class="icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('copyAlt')" />
           </button>
         </view>
       </view>
@@ -21,7 +21,7 @@
 
     <view class="card fade-up delay-2">
       <view class="card-header">
-        <image class="icon" src="/static/neoburger-list.svg" mode="widthFix" :alt="t('treasuryListTitle')" />
+        <image class="icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('treasuryListTitle')" />
         <text class="section-title">{{ t("treasuryListTitle") }}</text>
       </view>
       <text class="section-subtitle">{{ t("treasuryNep17") }}</text>
@@ -36,7 +36,7 @@
 
     <view class="card fade-up delay-3">
       <view class="card-header">
-        <image class="icon" src="/static/neoburger-neo-balance.svg" mode="widthFix" :alt="t('treasuryBalanceTitle')" />
+        <image class="icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('treasuryBalanceTitle')" />
         <text class="section-title">{{ t("treasuryBalanceTitle") }}</text>
       </view>
       <view class="chart-placeholder">{{ t("noData") }}</view>
@@ -44,7 +44,7 @@
 
     <view class="card fade-up delay-4">
       <view class="card-header">
-        <image class="icon" src="/static/neoburger-cost.svg" mode="widthFix" :alt="t('projectCostTitle')" />
+        <image class="icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('projectCostTitle')" />
         <view class="card-header-text">
           <text class="section-title">{{ t("projectCostTitle") }}</text>
           <text class="section-caption">{{ t("projectCostPeriod") }}</text>

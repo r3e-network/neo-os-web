@@ -1,5 +1,5 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-trustanchor" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
+  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-trustanchor" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
 
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
@@ -7,7 +7,6 @@
           <text class="sidebar-title">{{ t('overview') }}</text>
         </view>
       </template>
->
     <ChainWarning :title="t('warningTitle')" :message="t('warningMessage')" :button-text="t('switchButton')" />
 
     <view v-if="activeTab === 'overview'" class="tab-content scrollable">
@@ -83,8 +82,7 @@
             variant="primary"
             :loading="isClaiming"
             :disabled="pendingRewards <= 0"
-            @click="handleClaim"
-          >
+            @click="handleClaim">
             {{ t("claim") }}
           </NeoButton>
         </view>
@@ -188,7 +186,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { formatNumber, formatAddress } from "@shared/utils/format";
+import { formatNumber, formatAddress as formatAddressText } from "@shared/utils/format";
 import { ResponsiveLayout, NeoButton, NeoCard, ChainWarning } from "@shared/components";
 import StatsGrid from "./components/StatsGrid.vue";
 import { useI18n } from "@/composables/useI18n";
@@ -227,7 +225,7 @@ const navTabs = computed(() => [
 ]);
 
 const formatNum = (n: number | string) => formatNumber(n, 2);
-const formatAddress = (addr: string) => formatAddress(addr, 6);
+const formatAddress = (addr: string) => formatAddressText(addr, 6);
 
 const handleStake = async () => {
   const amount = parseFloat(stakeAmount.value);

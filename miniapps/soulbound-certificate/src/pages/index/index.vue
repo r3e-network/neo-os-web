@@ -1,78 +1,69 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-soulbound-certificate" :tabs="navTabs" :active-tab="activeTab" @tab-change="onTabChange">
+  <view class="theme-soulbound-certificate">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="onTabChange"
+    >
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
           <text class="sidebar-title">{{ t('overview') }}</text>
         </view>
       </template>
 
-    <view v-if="activeTab === 'templates'" class="tab-content">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
+      <template #content>
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
+          <text class="font-bold">{{ status.msg }}</text>
+        </NeoCard>
 
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
+        <CertificateForm :loading="isCreating" @create="createTemplate" />
 
-      <CertificateForm :loading="isCreating" @create="createTemplate" />
+        <TemplateList
+          :templates="templates"
+          :refreshing="isRefreshing"
+          :toggling-id="togglingId"
+          :has-address="!!address"
+          @refresh="refreshTemplates"
+          @connect="connectWallet"
+          @issue="openIssueModal"
+          @toggle="toggleTemplate"
+        />
+      </template>
 
-      <TemplateList
-        :templates="templates"
-        :refreshing="isRefreshing"
-        :toggling-id="togglingId"
-        :has-address="!!address"
-        @refresh="refreshTemplates"
-        @connect="connectWallet"
-        @issue="openIssueModal"
-        @toggle="toggleTemplate"
-      />
-    </view>
+      <template #tab-certificates>
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="text-center">
+          <text class="font-bold">{{ status.msg }}</text>
+        </NeoCard>
 
-    <view v-if="activeTab === 'certificates'" class="tab-content">
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
+        <CertificateGallery
+          :certificates="certificates"
+          :cert-qrs="certQrs"
+          :refreshing="isRefreshingCertificates"
+          :has-address="!!address"
+          @refresh="refreshCertificates"
+          @connect="connectWallet"
+          @copy-token-id="copyTokenId"
+        />
+      </template>
 
-      <CertificateGallery
-        :certificates="certificates"
-        :cert-qrs="certQrs"
-        :refreshing="isRefreshingCertificates"
-        :has-address="!!address"
-        @refresh="refreshCertificates"
-        @connect="connectWallet"
-        @copy-token-id="copyTokenId"
-      />
-    </view>
+      <template #tab-verify>
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="text-center">
+          <text class="font-bold">{{ status.msg }}</text>
+        </NeoCard>
 
-    <view v-if="activeTab === 'verify'" class="tab-content">
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
+        <VerifyCertificate
+          :looking-up="isLookingUp"
+          :revoking="isRevoking"
+          :result="lookup"
+          @lookup="lookupCertificate"
+          @revoke="revokeCertificate"
+        />
+      </template>
+    </MiniAppTemplate>
 
-      <VerifyCertificate
-        :looking-up="isLookingUp"
-        :revoking="isRevoking"
-        :result="lookup"
-        @lookup="lookupCertificate"
-        @revoke="revokeCertificate"
-      />
-    </view>
-
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="[t('step1'), t('step2'), t('step3'), t('step4')]"
-        :features="[
-          { name: t('feature1Name'), desc: t('feature1Desc') },
-          { name: t('feature2Name'), desc: t('feature2Desc') },
-          { name: t('feature3Name'), desc: t('feature3Desc') },
-        ]"
-      />
-    </view>
-  </ResponsiveLayout>
-
-  <IssueModal
+    <IssueModal
     :visible="issueModalOpen"
     :loading="isIssuing"
     :template-id="issueForm.templateId"

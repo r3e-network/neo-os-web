@@ -1,33 +1,46 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-neo-convert" :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-neo-convert">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-    <view class="content-area">
-      <view class="hero">
-        <ScrollReveal animation="fade-down" :duration="800">
-          <text class="hero-icon">🛠️</text>
-          <text class="hero-title">{{ t("heroTitle") }}</text>
-          <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
-        </ScrollReveal>
-      </view>
 
-      <ScrollReveal animation="fade-up" :delay="200" v-if="activeTab === 'generate'" key="gen">
-        <AccountGenerator />
-      </ScrollReveal>
+      <template #content>
+        <view class="content-area">
+          <view class="hero">
+            <ScrollReveal animation="fade-down" :duration="800">
+              <text class="hero-icon">🛠️</text>
+              <text class="hero-title">{{ t("heroTitle") }}</text>
+              <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
+            </ScrollReveal>
+          </view>
 
-      <ScrollReveal animation="fade-up" :delay="200" v-if="activeTab === 'convert'" key="conv">
-        <ConverterTool />
-      </ScrollReveal>
-    </view>
-  </ResponsiveLayout>
+          <ScrollReveal animation="fade-up" :delay="200" key="gen">
+            <AccountGenerator />
+          </ScrollReveal>
+        </view>
+      </template>
+
+      <template #tab-convert>
+        <view class="content-area">
+          <view class="hero">
+            <ScrollReveal animation="fade-down" :duration="800">
+              <text class="hero-icon">🛠️</text>
+              <text class="hero-title">{{ t("heroTitle") }}</text>
+              <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
+            </ScrollReveal>
+          </view>
+
+          <ScrollReveal animation="fade-up" :delay="200" key="conv">
+            <ConverterTool />
+          </ScrollReveal>
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -37,22 +50,35 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 const windowWidth = ref(window.innerWidth);
 const isMobile = computed(() => windowWidth.value < 768);
 const isDesktop = computed(() => windowWidth.value >= 1024);
-const handleResize = () => { windowWidth.value = window.innerWidth; };
+const handleResize = () => {
+  windowWidth.value = window.innerWidth;
+};
 
-onMounted(() => window.addEventListener('resize', handleResize));
-onUnmounted(() => window.removeEventListener('resize', handleResize));
-import { ResponsiveLayout, ScrollReveal, ChainWarning } from "@shared/components";
+onMounted(() => window.addEventListener("resize", handleResize));
+onUnmounted(() => window.removeEventListener("resize", handleResize));
+import { MiniAppTemplate, ScrollReveal } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import AccountGenerator from "./components/AccountGenerator.vue";
 import ConverterTool from "./components/ConverterTool.vue";
 import { useI18n } from "@/composables/useI18n";
 
 const { t } = useI18n();
-const activeTab = ref("generate");
 
-const tabs = computed(() => [
-  { id: "generate", label: t("tabGenerate"), icon: "wallet" },
-  { id: "convert", label: t("tabConvert"), icon: "sync" },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "swap-interface",
+  tabs: [
+    { key: "generate", labelKey: "tabGenerate", icon: "👛", default: true },
+    { key: "convert", labelKey: "tabConvert", icon: "🔄" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+  },
+};
+const activeTab = ref("generate");
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+}));
 </script>
 
 <style lang="scss" scoped>
@@ -134,7 +160,6 @@ const tabs = computed(() => [
     font-size: 32px;
   }
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

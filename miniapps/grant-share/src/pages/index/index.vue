@@ -1,37 +1,44 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-grant-share" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-grant-share">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="statusMessage ? { msg: statusMessage, type: statusType } : null"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view class="app-container">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <NeoCard v-if="statusMessage" :variant="statusType === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="font-bold uppercase tracking-wider">{{ statusMessage }}</text>
-      </NeoCard>
+      <template #content>
+        <view class="app-container">
+          <NeoCard
+            v-if="statusMessage"
+            :variant="statusType === 'error' ? 'danger' : 'success'"
+            class="mb-4 text-center"
+          >
+            <text class="font-bold tracking-wider uppercase">{{ statusMessage }}</text>
+          </NeoCard>
 
-      <!-- Grants Tab -->
-      <view v-if="activeTab === 'grants'" class="tab-content">
-        <ProposalGallery
-          :grants="grants"
-          :loading="loading"
-          :fetch-error="fetchError"
-          :t="t"
-          :format-count="formatCount"
-          :format-date="formatDate"
-          :get-status-label="getStatusLabel"
-          @select="goToDetail"
-          @copy-link="copyLink"
-        />
-      </view>
+          <ProposalGallery
+            :grants="grants"
+            :loading="loading"
+            :fetch-error="fetchError"
+            :t="t"
+            :format-count="formatCount"
+            :format-date="formatDate"
+            :get-status-label="getStatusLabel"
+            @select="goToDetail"
+            @copy-link="copyLink"
+          />
+        </view>
+      </template>
 
-      <!-- Stats Tab -->
-      <view v-if="activeTab === 'stats'" class="tab-content">
+      <template #tab-stats>
         <NeoCard variant="erobo" class="pool-overview-card">
           <view class="pool-stats">
             <view class="pool-stat-glass">
@@ -48,27 +55,16 @@
             </view>
           </view>
         </NeoCard>
-      </view>
-
-      <!-- Docs Tab -->
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-    </view>
-  </ResponsiveLayout>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoCard, NeoDoc, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 
 import { useGrantProposals } from "@/composables/useGrantProposals";
 import { useGrantVoting } from "@/composables/useGrantVoting";
@@ -91,18 +87,36 @@ const {
 
 const { statusMessage, statusType, copyLink } = useGrantVoting();
 
-const activeTab = ref<string>("grants");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "grants", icon: "gift", label: t("tabGrants") },
-  { id: "stats", icon: "chart", label: t("tabStats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "market-list",
+  tabs: [
+    { key: "grants", labelKey: "tabGrants", icon: "📋", default: true },
+    { key: "stats", labelKey: "tabStats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const activeTab = ref<string>("grants");
+
+const appState = computed(() => ({
+  totalProposals: totalProposals.value,
+  activeProposals: activeProposals.value,
+  displayedProposals: displayedProposals.value,
+}));
 
 function goToDetail(grant: any) {
   try {
@@ -226,7 +240,9 @@ onMounted(() => {
 }
 
 @media (max-width: 767px) {
-  .app-container { padding: 12px; }
+  .app-container {
+    padding: 12px;
+  }
   .pool-stats {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -234,10 +250,10 @@ onMounted(() => {
 }
 
 @media (min-width: 1024px) {
-  .app-container { 
-    padding: 24px; 
-    max-width: 1200px; 
-    margin: 0 auto; 
+  .app-container {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
   }
 }
 </style>

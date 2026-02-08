@@ -1,75 +1,62 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-heritage-trust" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-heritage-trust">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Main Tab -->
-    <view v-if="activeTab === 'main'" class="tab-content">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <view v-if="status" class="mb-4">
-        <NeoCard
-          :variant="status.type === 'error' ? 'danger' : status.type === 'loading' ? 'warning' : 'success'"
-          class="text-center"
-        >
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
-      </view>
+      <template #content>
+        <view v-if="status" class="mb-4">
+          <NeoCard
+            :variant="status.type === 'error' ? 'danger' : status.type === 'loading' ? 'warning' : 'success'"
+            class="text-center"
+          >
+            <text class="font-bold">{{ status.msg }}</text>
+          </NeoCard>
+        </view>
 
-      <TrustCreate
-        :is-loading="isLoading"
-        :t="t"
-        @create="handleCreate"
-      />
-    </view>
+        <TrustCreate :is-loading="isLoading" :t="t" @create="handleCreate" />
+      </template>
 
-    <!-- Mine Tab -->
-    <view v-if="activeTab === 'mine'" class="tab-content scrollable">
-      <view class="mine-dashboard">
-        <TrustList
-          :trusts="myCreatedTrusts"
-          :title="t('createdTrusts')"
-          :empty-text="t('noTrusts')"
-          empty-icon="📜"
-          :t="t"
-          @heartbeat="heartbeatTrust"
-          @claimYield="claimYield"
-          @execute="executeTrust"
-          @claimReleased="claimReleased"
-        />
+      <template #tab-mine>
+        <view class="mine-dashboard">
+          <TrustList
+            :trusts="myCreatedTrusts"
+            :title="t('createdTrusts')"
+            :empty-text="t('noTrusts')"
+            empty-icon="📜"
+            :t="t"
+            @heartbeat="heartbeatTrust"
+            @claimYield="claimYield"
+            @execute="executeTrust"
+            @claimReleased="claimReleased"
+          />
 
-        <BeneficiaryManager
-          :beneficiary-trusts="myBeneficiaryTrusts"
-          :t="t"
-          @heartbeat="heartbeatTrust"
-          @claimYield="claimYield"
-          @execute="executeTrust"
-          @claimReleased="claimReleased"
-        />
-      </view>
-    </view>
+          <BeneficiaryManager
+            :beneficiary-trusts="myBeneficiaryTrusts"
+            :t="t"
+            @heartbeat="heartbeatTrust"
+            @claimYield="claimYield"
+            @execute="executeTrust"
+            @claimReleased="claimReleased"
+          />
+        </view>
+      </template>
 
-    <!-- Stats Tab -->
-    <view v-if="activeTab === 'stats'" class="tab-content scrollable">
-      <StatsCard :stats="stats" :t="t" />
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      <template #tab-stats>
+        <StatsCard :stats="stats" :t="t" />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -77,8 +64,8 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoDoc, NeoCard, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseStackItem } from "@shared/utils/neo";
@@ -91,24 +78,39 @@ import TrustCreate from "./components/TrustCreate.vue";
 import StatsCard from "./components/StatsCard.vue";
 
 const { t } = useI18n();
-const { address, connect, invokeContract, getBalance, chainType, getContractAddress } =
-  useWallet() as WalletSDK;
+const { address, connect, invokeContract, getBalance, chainType, getContractAddress } = useWallet() as WalletSDK;
 
-const navTabs = computed<NavTab[]>(() => [
-  { id: "main", icon: "plus-circle", label: t("createTrust") },
-  { id: "mine", icon: "wallet", label: t("mine") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "main", labelKey: "createTrust", icon: "➕", default: true },
+    { key: "mine", labelKey: "mine", icon: "📋" },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("main");
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-]);
+const appState = computed(() => ({
+  totalTrusts: myCreatedTrusts.value.length,
+  beneficiaryTrusts: myBeneficiaryTrusts.value.length,
+}));
 
 const {
   isLoading,
@@ -235,7 +237,7 @@ const handleCreate = async () => {
     });
 
     const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
+      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
     );
     if (txid) {
       // Wait for TrustCreated event

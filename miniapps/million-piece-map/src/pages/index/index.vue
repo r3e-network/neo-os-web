@@ -1,15 +1,20 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
-    <template #desktop-sidebar>
-      <view class="desktop-sidebar">
-        <text class="sidebar-title">{{ t('overview') }}</text>
-      </view>
-    </template>
+  <view class="theme-million-piece">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      :fireworks-active="status?.type === 'success'"
+      @tab-change="activeTab = $event"
+    >
+      <template #desktop-sidebar>
+        <view class="desktop-sidebar">
+          <text class="sidebar-title">{{ t("overview") }}</text>
+        </view>
+      </template>
 
-    <view class="theme-million-piece">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-
-      <view v-if="activeTab === 'map'" class="tab-content">
+      <template #content>
         <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
           <text class="font-bold">{{ status.msg }}</text>
         </NeoCard>
@@ -36,9 +41,9 @@
           :t="t"
           @purchase="purchaseTile"
         />
-      </view>
+      </template>
 
-      <view v-if="activeTab === 'stats'" class="tab-content scrollable">
+      <template #tab-stats>
         <NeoCard variant="erobo" class="mb-4">
           <view class="stats-grid">
             <NeoCard flat variant="erobo-neo" class="flex flex-col items-center p-3 text-center">
@@ -59,20 +64,9 @@
         <NeoCard variant="erobo">
           <NeoStats :stats="statsData" />
         </NeoCard>
-      </view>
-
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-      <Fireworks :active="status?.type === 'success'" :duration="3000" />
-    </view>
-  </ResponsiveLayout>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -80,7 +74,8 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoCard, NeoStats, NeoDoc, Fireworks, ChainWarning, type StatItem } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoStats, type StatItem } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useMapTiles } from "@/composables/useMapTiles";
 import { useMapInteractions } from "@/composables/useMapInteractions";
 import MapGrid from "./components/MapGrid.vue";
@@ -89,18 +84,34 @@ import PurchasePanel from "./components/PurchasePanel.vue";
 const { t } = useI18n();
 const { address } = useWallet() as WalletSDK;
 
-const navTabs = computed(() => [
-  { id: "map", icon: "grid", label: t("map") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "custom",
+  tabs: [
+    { key: "map", labelKey: "map", icon: "🗺️", default: true },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("map");
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const appState = computed(() => ({
+  ownedTiles: ownedTiles.value,
+  coverage: coverage.value,
+  totalSpent: totalSpent.value,
+}));
 
 const {
   tiles,
@@ -122,7 +133,7 @@ const { isPurchasing, zoomLevel, status, zoomIn, zoomOut, purchaseTile } = useMa
   tiles,
   selectedTile,
   ensureContractAddress,
-  loadTiles,
+  loadTiles
 );
 
 const statsData = computed<StatItem[]>(() => [

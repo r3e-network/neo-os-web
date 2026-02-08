@@ -14,6 +14,9 @@
  * ```
  */
 
+import { useI18n } from "@/composables/useI18n";
+import { formatNumber } from "@shared/utils/format";
+
 interface Props {
   myStake: number;
   pendingRewards: number;
@@ -23,6 +26,7 @@ interface Props {
 defineProps<Props>();
 
 const { t } = useI18n();
+const formatNum = (n: number | string) => formatNumber(n, 2);
 </script>
 
 <template>

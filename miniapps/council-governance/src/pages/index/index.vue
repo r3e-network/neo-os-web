@@ -1,54 +1,42 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-council-governance" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-council-governance">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      :fireworks-active="status?.type === 'success'"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-    <ActiveProposalsTab
-      v-if="activeTab === 'active'"
-      :proposals="activeProposals"
-      :status="status"
-      :loading="loadingProposals"
-      :voting-power="votingPower"
-      :is-candidate="isCandidate"
-      :candidate-loaded="candidateLoaded"
-      :t="t as any"
-      @create="activeTab = 'create'"
-      @select="selectProposal"
-    />
+      <template #content>
+        <ActiveProposalsTab
+          :proposals="activeProposals"
+          :status="status"
+          :loading="loadingProposals"
+          :voting-power="votingPower"
+          :is-candidate="isCandidate"
+          :candidate-loaded="candidateLoaded"
+          :t="t as any"
+          @create="activeTab = 'create'"
+          @select="selectProposal"
+        />
+      </template>
 
-    <HistoryProposalsTab
-      v-if="activeTab === 'history'"
-      :proposals="historyProposals"
-      :t="t as any"
-      @select="selectProposal"
-    />
+      <template #tab-history>
+        <HistoryProposalsTab :proposals="historyProposals" :t="t as any" @select="selectProposal" />
+      </template>
 
-    <CreateProposalTab
-      v-if="activeTab === 'create'"
-      ref="createTabRef"
-      :t="t as any"
-      :status="status"
-      @submit="createProposal"
-    />
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
+      <template #tab-create>
+        <CreateProposalTab ref="createTabRef" :t="t as any" :status="status" @submit="createProposal" />
+      </template>
+    </MiniAppTemplate>
 
     <ProposalDetailsModal
       v-if="selectedProposal"
@@ -62,8 +50,7 @@
       @vote="castVote"
       @execute="executeProposal"
     />
-    <Fireworks :active="status?.type === 'success'" :duration="3000" />
-  </ResponsiveLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -73,9 +60,8 @@ import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoDoc, ChainWarning } from "@shared/components";
-import Fireworks from "@shared/components/Fireworks.vue";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import ActiveProposalsTab from "./components/ActiveProposalsTab.vue";
 import HistoryProposalsTab from "./components/HistoryProposalsTab.vue";
 import CreateProposalTab from "./components/CreateProposalTab.vue";
@@ -98,13 +84,36 @@ const getApiBase = () => {
 };
 const API_HOST = getApiBase();
 
-const navTabs = computed(() => [
-  { id: "active", icon: "vote", label: t("active") },
-  { id: "create", icon: "file", label: t("create") },
-  { id: "history", icon: "history", label: t("history") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "market-list",
+  tabs: [
+    { key: "active", labelKey: "active", icon: "🏛️", default: true },
+    { key: "create", labelKey: "create", icon: "📝" },
+    { key: "history", labelKey: "history", icon: "📜" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
+
 const activeTab = ref("active");
+
+const appState = computed(() => ({
+  activeProposals: activeProposals.value.length,
+  totalProposals: proposals.value.length,
+}));
 
 const { address, invokeContract, invokeRead, chainType, getContractAddress, appChainId, switchToAppChain } =
   useWallet() as WalletSDK;
@@ -127,7 +136,7 @@ watch(
       currentChainId.value = value;
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 const STATUS_ACTIVE = 1;
@@ -450,7 +459,7 @@ const refreshHasVoted = async (proposalIds?: number[]) => {
         ],
       });
       updates[id] = Boolean(parseInvokeResult(res));
-    }),
+    })
   );
   hasVotedMap.value = updates;
 };
@@ -466,12 +475,6 @@ watch(address, async () => {
   await refreshCandidateStatus();
   await refreshHasVoted();
 });
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
 </script>
 
 <style lang="scss" scoped>
@@ -552,7 +555,6 @@ const docFeatures = computed(() => [
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

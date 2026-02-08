@@ -33,7 +33,7 @@
     <button class="swap-toggle" @click="emit('toggleMode')">
       <image
         class="swap-toggle-icon"
-        src="/static/neoburger-exchange.svg"
+        src="/static/neoburger-placeholder.svg"
         mode="widthFix"
         :alt="t('swapToggleAlt')"
       />

@@ -1,64 +1,59 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-dev-tipping" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-dev-tipping">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      :fireworks-active="status?.type === 'success'"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view
-      v-if="activeTab === 'developers' || activeTab === 'send' || activeTab === 'stats'"
-      class="app-container theme-dev-tipping"
-    >
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4">
-        <text class="text-center font-bold text-glass">{{ status.msg }}</text>
-      </NeoCard>
+      <template #content>
+        <view class="app-container">
+          <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4">
+            <text class="text-glass text-center font-bold">{{ status.msg }}</text>
+          </NeoCard>
 
-      <view v-if="activeTab === 'developers'" class="tab-content">
-        <TipList :developers="developers" :formatNum="formatNum" :t="t" @select="handleSelectDev" />
-      </view>
+          <TipForm
+            :developers="developers"
+            v-model="selectedDevId"
+            v-model:amount="tipAmount"
+            v-model:message="tipMessage"
+            v-model:tipperName="tipperName"
+            v-model:anonymous="anonymous"
+            :isLoading="isLoading"
+            :t="t"
+            @submit="handleSendTip"
+          />
+        </view>
+      </template>
 
-      <view v-if="activeTab === 'send'" class="tab-content">
-        <TipForm
-          :developers="developers"
-          v-model="selectedDevId"
-          v-model:amount="tipAmount"
-          v-model:message="tipMessage"
-          v-model:tipperName="tipperName"
-          v-model:anonymous="anonymous"
-          :isLoading="isLoading"
-          :t="t"
-          @submit="handleSendTip"
-        />
-      </view>
+      <template #tab-developers>
+        <view class="app-container">
+          <TipList :developers="developers" :formatNum="formatNum" :t="t" @select="handleSelectDev" />
+        </view>
+      </template>
 
-      <view v-if="activeTab === 'stats'" class="tab-content">
-        <WalletInfo :totalDonated="totalDonated" :recentTips="recentTips" :formatNum="formatNum" :t="t" />
-      </view>
-    </view>
-
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-    <Fireworks :active="status?.type === 'success'" :duration="3000" />
-  </ResponsiveLayout>
+      <template #tab-stats>
+        <view class="app-container">
+          <WalletInfo :totalDonated="totalDonated" :recentTips="recentTips" :formatNum="formatNum" :t="t" />
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { ResponsiveLayout, NeoDoc, NeoCard, ChainWarning } from "@shared/components";
-import Fireworks from "@shared/components/Fireworks.vue";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useDevTippingStats, type Developer } from "@/composables/useDevTippingStats";
 import { useDevTippingWallet } from "@/composables/useDevTippingWallet";
@@ -73,24 +68,41 @@ const { developers, recentTips, totalDonated, formatNum, loadDevelopers, loadRec
 const { address, isLoading, status, sendTip } = useDevTippingWallet(APP_ID);
 
 const activeTab = ref<string>("send");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "send", label: t("sendTip"), icon: "💰" },
-  { id: "developers", label: t("developers"), icon: "👨‍💻" },
-  { id: "stats", label: t("stats"), icon: "chart" },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "send", labelKey: "sendTip", icon: "💰", default: true },
+    { key: "developers", labelKey: "developers", icon: "👨‍💻" },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
+
+const appState = computed(() => ({
+  totalDonated: totalDonated.value,
+  developerCount: developers.value.length,
+}));
 
 const selectedDevId = ref<number | null>(null);
 const tipAmount = ref("1");
 const tipMessage = ref("");
 const tipperName = ref("");
 const anonymous = ref(false);
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
 
 const refreshData = async () => {
   await loadDevelopers(t);
@@ -105,7 +117,7 @@ const handleSelectDev = (dev: Developer) => {
 
 const handleSendTip = async () => {
   if (!selectedDevId.value) return;
-  
+
   const success = await sendTip(
     selectedDevId.value,
     tipAmount.value,
@@ -120,7 +132,7 @@ const handleSendTip = async () => {
       anonymous.value = false;
     }
   );
-  
+
   if (success) {
     await refreshData();
   }

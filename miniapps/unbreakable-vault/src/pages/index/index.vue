@@ -4,8 +4,7 @@
     class="theme-unbreakable-vault" 
     :tabs="navTabs" 
     :active-tab="activeTab" 
-    @tab-change="activeTab = $event"
-  >
+    @tab-change="activeTab = $event">
     <template #desktop-sidebar>
       <view class="desktop-sidebar">
         <text class="sidebar-title">{{ t('overview') }}</text>
@@ -76,8 +75,7 @@
             block
             :loading="isLoading"
             :disabled="!canAttempt || isLoading"
-            @click="attemptBreak"
-          >
+            @click="attemptBreak">
             {{ isLoading ? t("attempting") : t("attemptBreak") }}
           </NeoButton>
         </view>

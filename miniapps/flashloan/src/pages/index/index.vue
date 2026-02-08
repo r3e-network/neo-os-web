@@ -1,31 +1,33 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
-        </view>
-      </template>
->
-    <ErrorBoundary 
-      @error="handleBoundaryError" 
-      @retry="resetAndReload"
-      :fallback-message="t('flashloanErrorFallback')"
-    >
-      <!-- Error Toast with Retry -->
-      <view v-if="errorMessage" class="error-toast" :class="{ 'error-retryable': canRetryError }">
-        <text>{{ errorMessage }}</text>
-        <view v-if="canRetryError" class="retry-actions">
-          <NeoButton variant="secondary" size="sm" @click="retryLastOperation">
-            {{ t('retry') }}
-          </NeoButton>
-        </view>
+  <MiniAppTemplate
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    @tab-change="activeTab = $event"
+  >
+    <!-- Desktop Sidebar -->
+    <template #desktop-sidebar>
+      <view class="desktop-sidebar">
+        <text class="sidebar-title">{{ t("overview") }}</text>
       </view>
+    </template>
 
-      <!-- Main Tab -->
-      <view v-if="activeTab === 'main'" class="tab-content theme-flashloan">
-        <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
+    <template #content>
+      <ErrorBoundary
+        @error="handleBoundaryError"
+        @retry="resetAndReload"
+        :fallback-message="t('flashloanErrorFallback')"
+      >
+        <!-- Error Toast with Retry -->
+        <view v-if="errorMessage" class="error-toast" :class="{ 'error-retryable': canRetryError }">
+          <text>{{ errorMessage }}</text>
+          <view v-if="canRetryError" class="retry-actions">
+            <NeoButton variant="secondary" size="sm" @click="retryLastOperation">
+              {{ t("retry") }}
+            </NeoButton>
+          </view>
+        </view>
 
         <LoanRequest
           v-model:loanId="loanIdInput"
@@ -39,32 +41,26 @@
           @lookup="handleLookup"
           @request-loan="handleRequestLoan"
         />
-      </view>
+      </ErrorBoundary>
+    </template>
 
-      <!-- Stats Tab -->
-      <view v-if="activeTab === 'stats'" class="tab-content scrollable theme-flashloan">
-        <ActiveLoans
-          :pool-balance="poolBalance"
-          :stats="stats"
-          :recent-loans="recentLoans"
-          :t="t"
-        />
+    <template #tab-stats>
+      <ActiveLoans :pool-balance="poolBalance" :stats="stats" :recent-loans="recentLoans" :t="t" />
 
-        <LoanCalculator :t="t" />
-      </view>
+      <LoanCalculator :t="t" />
+    </template>
 
-      <!-- Docs Tab -->
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable theme-flashloan">
-        <FlashloanDocs :t="t" :contract-address="contractAddress" />
-      </view>
-    </ErrorBoundary>
-  </ResponsiveLayout>
+    <template #tab-flashloan-docs>
+      <FlashloanDocs :t="t" :contract-address="contractAddress" />
+    </template>
+  </MiniAppTemplate>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoButton, ChainWarning, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoButton, ErrorBoundary } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 
 import { useFlashloanCore } from "@/composables/useFlashloanCore";
@@ -89,7 +85,6 @@ const {
   isLoading,
   validationError,
   lastOperation,
-  navTabs,
   validateLoanId,
   validateLoanRequest,
   fetchData,
@@ -100,7 +95,26 @@ const {
   invokeContract,
 } = useFlashloanCore();
 
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "swap-interface",
+  tabs: [
+    { key: "main", labelKey: "main", icon: "⚡", default: true },
+    { key: "stats", labelKey: "tabStats", icon: "📊" },
+    { key: "flashloan-docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+  },
+};
 const activeTab = ref("main");
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+  address: address.value,
+  isLoading: isLoading.value,
+  poolBalance: poolBalance.value,
+}));
 const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
 const errorMessage = ref<string | null>(null);
 const canRetryError = ref(false);
@@ -140,13 +154,13 @@ const resetAndReload = async () => {
 };
 
 const retryLastOperation = () => {
-  if (lastOperation.value === 'lookup') {
+  if (lastOperation.value === "lookup") {
     handleLookup();
-  } else if (lastOperation.value === 'requestLoan' && loanDetails.value) {
+  } else if (lastOperation.value === "requestLoan" && loanDetails.value) {
     handleRequestLoan({
       amount: "0",
       callbackContract: "",
-      callbackMethod: ""
+      callbackMethod: "",
     });
   }
 };
@@ -161,12 +175,12 @@ const handleLookup = async () => {
   validationError.value = null;
 
   const loanId = Number(loanIdInput.value);
-  lastOperation.value = 'lookup';
+  lastOperation.value = "lookup";
 
   try {
     isLoading.value = true;
     const contract = await ensureContractAddress();
-    
+
     try {
       const res = await invokeRead({
         contractAddress: contract,
@@ -174,7 +188,7 @@ const handleLookup = async () => {
         args: [{ type: "Integer", value: String(loanId) }],
       });
 
-      const parsed = await import("@shared/utils/neo").then(m => m.parseInvokeResult(res));
+      const parsed = await import("@shared/utils/neo").then((m) => m.parseInvokeResult(res));
       const details = buildLoanDetails(parsed, loanId);
       if (!details) {
         loanDetails.value = null;
@@ -226,7 +240,7 @@ const handleRequestLoan = async (data: { amount: string; callbackContract: strin
 
   isLoading.value = true;
   status.value = null;
-  lastOperation.value = 'requestLoan';
+  lastOperation.value = "requestLoan";
 
   try {
     const contract = await ensureContractAddress();
@@ -285,7 +299,9 @@ watch(chainType, () => fetchData());
   font-size: 14px;
   font-family: "Consolas", "Monaco", monospace;
   z-index: 3000;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 10px rgba(239, 68, 68, 0.5);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 10px rgba(239, 68, 68, 0.5);
   animation: toast-in 0.3s ease-out;
   max-width: 90%;
   text-align: center;

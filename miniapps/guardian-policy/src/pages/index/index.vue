@@ -1,59 +1,50 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-guardian-policy" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-guardian-policy">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Main Tab -->
-    <view v-if="activeTab === 'main'" class="tab-content">
-      <!-- Chain Warning - Framework Component -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
+      <template #content>
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
+          <text class="font-bold">{{ status.msg }}</text>
+        </NeoCard>
 
-      <!-- Create New Policy -->
-      <CreatePolicyForm
-        v-model:assetType="assetType"
-        v-model:policyType="policyType"
-        v-model:coverage="coverage"
-        v-model:threshold="threshold"
-        v-model:startPrice="startPrice"
-        :premium="premiumDisplay"
-        :is-fetching-price="isFetchingPrice"
-        :t="t"
-        @fetchPrice="fetchPrice"
-        @create="createPolicy"
-      />
+        <!-- Create New Policy -->
+        <CreatePolicyForm
+          v-model:assetType="assetType"
+          v-model:policyType="policyType"
+          v-model:coverage="coverage"
+          v-model:threshold="threshold"
+          v-model:startPrice="startPrice"
+          :premium="premiumDisplay"
+          :is-fetching-price="isFetchingPrice"
+          :t="t"
+          @fetchPrice="fetchPrice"
+          @create="createPolicy"
+        />
 
-      <!-- Policy Rules -->
-      <PoliciesList :policies="policies" :t="t" @claim="requestClaim" />
-    </view>
+        <!-- Policy Rules -->
+        <PoliciesList :policies="policies" :t="t" @claim="requestClaim" />
+      </template>
 
-    <!-- Stats Tab -->
-    <view v-if="activeTab === 'stats'" class="tab-content scrollable">
-      <StatsCard :stats="stats" :t="t" />
+      <template #tab-stats>
+        <StatsCard :stats="stats" :t="t" />
 
-      <!-- Action History -->
-      <ActionHistory :action-history="actionHistory" :t="t" />
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+        <!-- Action History -->
+        <ActionHistory :action-history="actionHistory" :t="t" />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -61,9 +52,9 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useWallet, useEvents, useDatafeed } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoCard, NeoDoc, NeoButton, ChainWarning } from "@shared/components";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { requireNeoChain } from "@shared/utils/chain";
-import type { NavTab } from "@shared/components/NavBar.vue";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
@@ -80,19 +71,36 @@ const APP_ID = "miniapp-guardianpolicy";
 const { processPayment } = usePaymentFlow(APP_ID);
 const contractAddress = ref<string | null>(null);
 
-const navTabs = computed<NavTab[]>(() => [
-  { id: "main", icon: "wallet", label: t("main") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "main", labelKey: "main", icon: "📋", default: true },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("main");
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const appState = computed(() => ({
+  totalPolicies: stats.value.totalPolicies,
+  activePolicies: stats.value.activePolicies,
+  claimedPolicies: stats.value.claimedPolicies,
+}));
 
 const policies = ref<Policy[]>([]);
 const actionHistory = ref<ActionHistoryItem[]>([]);
@@ -386,7 +394,7 @@ const createPolicy = async () => {
         { type: "Integer", value: String(thresholdPercent) },
         { type: "Integer", value: String(receiptId) },
       ],
-      contract,
+      contract
     );
     status.value = { msg: t("policyCreated"), type: "success" };
     assetType.value = "";
@@ -528,7 +536,6 @@ watch(address, () => {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

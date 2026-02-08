@@ -1,126 +1,122 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-hall-of-fame" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-hall-of-fame">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="statusMessage ? { msg: statusMessage, type: statusType } : null"
+      :fireworks-active="!!statusMessage && statusType === 'success'"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-    <view class="app-container">
-      <!-- Status Message -->
-      <NeoCard v-if="statusMessage" :variant="statusType === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="font-bold uppercase tracking-wider">{{ statusMessage }}</text>
-      </NeoCard>
-
-      <!-- Leaderboard Tab -->
-      <view v-if="activeTab === 'leaderboard'" class="tab-content">
-        <!-- Category Tabs -->
-        <view class="category-tabs-glass">
-          <view
-            v-for="c in categories"
-            :key="c.id"
-            class="category-tab-glass"
-            :class="{ active: activeCategory === c.id }"
-            @click="setCategory(c.id)"
-          >
-            <text>{{ c.label }}</text>
-          </view>
-        </view>
-
-        <!-- Period Filter -->
-        <view class="period-filter-glass">
-          <view
-            v-for="p in periods"
-            :key="p.id"
-            class="period-btn-glass"
-            :class="{ active: activePeriod === p.id }"
-            @click="setPeriod(p.id)"
-          >
-            <text>{{ p.label }}</text>
-          </view>
-        </view>
-
-        <!-- Leaderboard List -->
-        <view class="leaderboard-list">
+      <template #content>
+        <view class="app-container">
+          <!-- Status Message -->
           <NeoCard
-            v-for="(entrant, index) in leaderboard"
-            :key="entrant.id"
-            :variant="index === 0 ? 'erobo-neo' : 'erobo'"
-            class="entrant-card-glass"
+            v-if="statusMessage"
+            :variant="statusType === 'error' ? 'danger' : 'success'"
+            class="mb-4 text-center"
           >
-            <view class="entrant-inner">
-              <!-- Rank -->
-              <view class="rank-glass" :class="'rank-' + (index + 1)">
-                <text>#{{ index + 1 }}</text>
+            <text class="font-bold tracking-wider uppercase">{{ statusMessage }}</text>
+          </NeoCard>
+
+          <!-- Category Tabs -->
+          <view class="category-tabs-glass">
+            <view
+              v-for="c in categories"
+              :key="c.id"
+              class="category-tab-glass"
+              :class="{ active: activeCategory === c.id }"
+              @click="setCategory(c.id)"
+            >
+              <text>{{ c.label }}</text>
+            </view>
+          </view>
+
+          <!-- Period Filter -->
+          <view class="period-filter-glass">
+            <view
+              v-for="p in periods"
+              :key="p.id"
+              class="period-btn-glass"
+              :class="{ active: activePeriod === p.id }"
+              @click="setPeriod(p.id)"
+            >
+              <text>{{ p.label }}</text>
+            </view>
+          </view>
+
+          <!-- Leaderboard List -->
+          <view class="leaderboard-list">
+            <NeoCard
+              v-for="(entrant, index) in leaderboard"
+              :key="entrant.id"
+              :variant="index === 0 ? 'erobo-neo' : 'erobo'"
+              class="entrant-card-glass"
+            >
+              <view class="entrant-inner">
+                <!-- Rank -->
+                <view class="rank-glass" :class="'rank-' + (index + 1)">
+                  <text>#{{ index + 1 }}</text>
+                </view>
+
+                <!-- Avatar -->
+                <view class="avatar-glass">
+                  <text class="avatar-text-glass">{{ entrant.name.charAt(0) }}</text>
+                </view>
+
+                <!-- Info -->
+                <view class="entrant-info">
+                  <text class="entrant-name-glass">{{ entrant.name }}</text>
+                  <view class="score-row">
+                    <text class="fire-glass">🔥</text>
+                    <text class="score-glass">{{ formatNumber(entrant.score, 0) }} GAS</text>
+                  </view>
+                </view>
+
+                <!-- Vote Button -->
+                <NeoButton
+                  variant="primary"
+                  size="sm"
+                  :disabled="!!votingId"
+                  :loading="votingId === entrant.id"
+                  @click="handleVote(entrant)"
+                >
+                  {{ t("boost") }}
+                </NeoButton>
               </view>
 
-              <!-- Avatar -->
-              <view class="avatar-glass">
-                <text class="avatar-text-glass">{{ entrant.name.charAt(0) }}</text>
-              </view>
-
-              <!-- Info -->
-              <view class="entrant-info">
-                <text class="entrant-name-glass">{{ entrant.name }}</text>
-                <view class="score-row">
-                  <text class="fire-glass">🔥</text>
-                  <text class="score-glass">{{ formatNumber(entrant.score, 0) }} GAS</text>
+              <!-- Progress Bar -->
+              <view class="progress-track-glass">
+                <view
+                  class="progress-bar-glass"
+                  :class="{ gold: index === 0 }"
+                  :style="{ width: getProgressWidth(entrant.score) }"
+                >
+                  <view class="progress-glow" v-if="index === 0"></view>
                 </view>
               </view>
+            </NeoCard>
+          </view>
 
-              <!-- Vote Button -->
-              <NeoButton
-                variant="primary"
-                size="sm"
-                :disabled="!!votingId"
-                :loading="votingId === entrant.id"
-                @click="handleVote(entrant)"
-              >
-                {{ t("boost") }}
-              </NeoButton>
-            </view>
-
-            <!-- Progress Bar -->
-            <view class="progress-track-glass">
-              <view
-                class="progress-bar-glass"
-                :class="{ gold: index === 0 }"
-                :style="{ width: getProgressWidth(entrant.score) }"
-              >
-                <view class="progress-glow" v-if="index === 0"></view>
-              </view>
+          <NeoCard v-if="!isLoading && leaderboard.length === 0" variant="erobo" class="empty-state-card">
+            <view class="empty-state-content">
+              <text class="empty-state-title">{{
+                fetchError ? t("leaderboardUnavailable") : t("leaderboardEmpty")
+              }}</text>
+              <text v-if="fetchError" class="empty-state-subtitle">{{ t("tryAgain") }}</text>
             </view>
           </NeoCard>
         </view>
-
-        <NeoCard v-if="!isLoading && leaderboard.length === 0" variant="erobo" class="empty-state-card">
-          <view class="empty-state-content">
-            <text class="empty-state-title">{{
-              fetchError ? t("leaderboardUnavailable") : t("leaderboardEmpty")
-            }}</text>
-            <text v-if="fetchError" class="empty-state-subtitle">{{ t("tryAgain") }}</text>
-          </view>
-        </NeoCard>
-      </view>
-
-      <!-- Docs Tab -->
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-    </view>
-    <Fireworks :active="!!statusMessage && statusType === 'success'" :duration="3000" />
-  </ResponsiveLayout>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -130,9 +126,8 @@ import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
 import { formatNumber } from "@shared/utils/format";
-import { ResponsiveLayout, NeoButton, NeoCard, NeoDoc, ChainWarning } from "@shared/components";
-import Fireworks from "@shared/components/Fireworks.vue";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoButton, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
 const { t } = useI18n();
@@ -152,10 +147,33 @@ interface Entrant {
 }
 
 const activeTab = ref("leaderboard");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "leaderboard", icon: "trophy", label: t("tabLeaderboard") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "market-list",
+  tabs: [
+    { key: "leaderboard", labelKey: "tabLeaderboard", icon: "📋", default: true },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
+
+const appState = computed(() => ({
+  leaderboardCount: leaderboard.value.length,
+  activeCategory: activeCategory.value,
+}));
 
 const categories = computed(() => [
   { id: "people", label: t("catPeople") },
@@ -168,12 +186,6 @@ const periods = computed(() => [
   { id: "week", label: t("period7d") },
   { id: "month", label: t("period30d") },
   { id: "all", label: t("periodAll") },
-]);
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
 ]);
 
 const activeCategory = ref<Category>("people");
@@ -576,7 +588,6 @@ onMounted(async () => {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

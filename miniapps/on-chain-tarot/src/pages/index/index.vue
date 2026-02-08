@@ -1,57 +1,54 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-on-chain-tarot" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-on-chain-tarot">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-    <view v-if="activeTab === 'game'" class="tab-content mystical-bg">
-      <!-- Mystical Background Decorations -->
-      <view class="cosmic-stars">
-        <text class="star star-1">✨</text>
-        <text class="star star-2">⭐</text>
-        <text class="star star-3">✨</text>
-        <text class="star star-4">⭐</text>
-        <text class="moon-decoration">🌙</text>
-      </view>
+      <!-- Game Tab (default) -->
+      <template #content>
+        <view class="mystical-bg">
+          <!-- Mystical Background Decorations -->
+          <view class="cosmic-stars">
+            <text class="star star-1">✨</text>
+            <text class="star star-2">⭐</text>
+            <text class="star star-3">✨</text>
+            <text class="star star-4">⭐</text>
+            <text class="moon-decoration">🌙</text>
+          </view>
 
-      <AppStatus :status="status" />
+          <AppStatus :status="status" />
 
-      <GameArea
-        v-model:question="question"
-        :drawn="drawn"
-        :has-drawn="hasDrawn"
-        :is-loading="isLoading"
-        :t="t as any"
-        @draw="draw"
-        @reset="reset"
-        @flip="flipCard"
-      />
+          <GameArea
+            v-model:question="question"
+            :drawn="drawn"
+            :has-drawn="hasDrawn"
+            :is-loading="isLoading"
+            :t="t as any"
+            @draw="draw"
+            @reset="reset"
+            @flip="flipCard"
+          />
 
-      <ReadingDisplay v-if="hasDrawn && allFlipped" :reading="getReading()" />
-    </view>
+          <ReadingDisplay v-if="hasDrawn && allFlipped" :reading="getReading()" />
+        </view>
+      </template>
 
-    <view v-if="activeTab === 'stats'" class="tab-content scrollable">
-      <StatisticsTab :readings-count="readingsCount" :t="t as any" />
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      <!-- Stats Tab -->
+      <template #tab-stats>
+        <StatisticsTab :readings-count="readingsCount" :t="t as any" />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -61,8 +58,8 @@ import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { parseStackItem } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoDoc, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
 import AppStatus from "./components/AppStatus.vue";
@@ -74,18 +71,33 @@ import { TAROT_DECK } from "./components/tarot-data";
 
 const { t } = useI18n();
 
-const navTabs = computed<NavTab[]>(() => [
-  { id: "game", icon: "game", label: t("game") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "game-board",
+  tabs: [
+    { key: "game", labelKey: "game", icon: "🎴", default: true },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("game");
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const appState = computed(() => ({
+  readingsCount: readingsCount.value,
+  hasDrawn: hasDrawn.value,
+}));
 const APP_ID = "miniapp-onchaintarot";
 const { address, connect, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
 const { processPayment, isLoading } = usePaymentFlow(APP_ID);
@@ -157,11 +169,11 @@ const draw = async () => {
         { type: "Integer", value: "0" }, // category: 0 = general
         { type: "Integer", value: receiptId },
       ],
-      contract,
+      contract
     );
 
     const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
+      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
     );
     const requestedEvt = txid ? await waitForEvent(txid, "ReadingRequested") : null;
     if (!requestedEvt) throw new Error(t("readingPending"));
@@ -355,7 +367,6 @@ onMounted(async () => {
     transform: scale(0.98);
   }
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

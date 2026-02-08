@@ -1,0 +1,7 @@
+<svg width="320" height="320" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="320" rx="48" fill="#0F172A"/>
+  <circle cx="160" cy="160" r="112" fill="#22D3EE" fill-opacity="0.18"/>
+  <circle cx="160" cy="160" r="82" fill="#0B1220" stroke="#22D3EE" stroke-width="10"/>
+  <text x="160" y="178" fill="#E2E8F0" text-anchor="middle" font-family="Manrope, Arial" font-weight="800" font-size="52">b</text>
+  <text x="186" y="178" fill="#22D3EE" text-anchor="middle" font-family="Manrope, Arial" font-weight="800" font-size="52">NEO</text>
+</svg>

@@ -1,74 +1,65 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-milestone-escrow" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-milestone-escrow">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
-  >
-    <view v-if="activeTab === 'create'" class="tab-content">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
-
-      <EscrowForm @create="handleCreateEscrow" ref="escrowFormRef" />
-    </view>
-
-    <view v-if="activeTab === 'escrows'" class="tab-content scrollable">
-      <view class="escrows-header">
-        <text class="section-title">{{ t("escrowsTab") }}</text>
-        <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
-          {{ t("refresh") }}
-        </NeoButton>
-      </view>
-
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
-
-      <view v-if="!address" class="empty-state">
-        <NeoCard variant="erobo" class="p-6 text-center">
-          <text class="text-sm block mb-3">{{ t("walletNotConnected") }}</text>
-          <NeoButton size="sm" variant="primary" @click="connectWallet">
-            {{ t("connectWallet") }}
-          </NeoButton>
+      <template #content>
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
+          <text class="font-bold">{{ status.msg }}</text>
         </NeoCard>
-      </view>
 
-      <EscrowList
-        v-else
-        :creator-escrows="creatorEscrows"
-        :beneficiary-escrows="beneficiaryEscrows"
-        :approving-id="approvingId"
-        :cancelling-id="cancellingId"
-        :claiming-id="claimingId"
-        :status-label-func="statusLabel"
-        :format-amount-func="formatAmount"
-        :format-address-func="formatAddress"
-        @approve="approveMilestone"
-        @cancel="cancelEscrow"
-        @claim="claimMilestone"
-      />
-    </view>
+        <EscrowForm @create="handleCreateEscrow" ref="escrowFormRef" />
+      </template>
 
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="[t('step1'), t('step2'), t('step3'), t('step4')]"
-        :features="[
-          { name: t('feature1Name'), desc: t('feature1Desc') },
-          { name: t('feature2Name'), desc: t('feature2Desc') },
-          { name: t('feature3Name'), desc: t('feature3Desc') },
-        ]"
-      />
-    </view>
-  </ResponsiveLayout>
+      <template #tab-escrows>
+        <view class="escrows-header">
+          <text class="section-title">{{ t("escrowsTab") }}</text>
+          <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
+            {{ t("refresh") }}
+          </NeoButton>
+        </view>
+
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="text-center">
+          <text class="font-bold">{{ status.msg }}</text>
+        </NeoCard>
+
+        <view v-if="!address" class="empty-state">
+          <NeoCard variant="erobo" class="p-6 text-center">
+            <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
+            <NeoButton size="sm" variant="primary" @click="connectWallet">
+              {{ t("connectWallet") }}
+            </NeoButton>
+          </NeoCard>
+        </view>
+
+        <EscrowList
+          v-else
+          :creator-escrows="creatorEscrows"
+          :beneficiary-escrows="beneficiaryEscrows"
+          :approving-id="approvingId"
+          :cancelling-id="cancellingId"
+          :claiming-id="claimingId"
+          :status-label-func="statusLabel"
+          :format-amount-func="formatAmount"
+          :format-address-func="formatAddress"
+          @approve="approveMilestone"
+          @cancel="cancelEscrow"
+          @claim="claimMilestone"
+        />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -76,8 +67,8 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoCard, NeoButton, NeoDoc, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard, NeoButton } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatGas, formatAddress, toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
@@ -91,12 +82,33 @@ const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH_NORMALIZED = normalizeScriptHash(NEO_HASH);
 
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "create", labelKey: "createTab", icon: "➕", default: true },
+    { key: "escrows", labelKey: "escrowsTab", icon: "📄" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("create");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "create", icon: "plus", label: t("createTab") },
-  { id: "escrows", icon: "file", label: t("escrowsTab") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const appState = computed(() => ({
+  creatorEscrows: creatorEscrows.value.length,
+  beneficiaryEscrows: beneficiaryEscrows.value.length,
+}));
 
 const status = ref<{ msg: string; type: string } | null>(null);
 const isRefreshing = ref(false);
@@ -248,7 +260,13 @@ const connectWallet = async () => {
   }
 };
 
-const handleCreateEscrow = async (data: { name: string; beneficiary: string; asset: string; notes: string; milestones: Array<{ amount: string }> }) => {
+const handleCreateEscrow = async (data: {
+  name: string;
+  beneficiary: string;
+  asset: string;
+  notes: string;
+  milestones: Array<{ amount: string }>;
+}) => {
   if (isLoading.value) return;
   if (!requireNeoChain(chainType, t)) return;
 

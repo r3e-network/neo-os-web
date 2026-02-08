@@ -1,7 +1,7 @@
 <template>
   <view class="hero fade-up">
     <view class="hero-content">
-      <image class="hero-logo" src="/logo.jpg" mode="widthFix" :alt="t('heroLogoAlt')" />
+      <image class="hero-logo" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('heroLogoAlt')" />
       <text class="hero-title">{{ t("heroTitle") }}</text>
       <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
 
@@ -22,11 +22,11 @@
     <view class="hero-media">
       <image
         class="hero-background"
-        src="/static/neoburger-m-background.svg"
+        src="/static/neoburger-placeholder.svg"
         mode="widthFix"
         :alt="t('heroBackgroundAlt')"
       />
-      <image class="hero-gif" src="/static/neoburger-intro.gif" mode="widthFix" :alt="t('heroIntroAlt')" />
+      <image class="hero-gif" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('heroIntroAlt')" />
     </view>
   </view>
 </template>

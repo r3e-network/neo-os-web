@@ -6,7 +6,6 @@
           <text class="sidebar-title">{{ t('overview') }}</text>
         </view>
       </template>
-    >
     <view v-if="activeTab === 'create'" class="tab-content">
       <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
@@ -43,16 +42,14 @@
           :streams="createdStreams"
           :label="t('myCreated')"
           :empty-text="t('emptyVaults')"
-          type="created"
-        >
+          type="created">
           <template #actions="{ stream: s }">
             <NeoButton
               size="sm"
               variant="secondary"
               :loading="cancellingId === s.id"
               :disabled="s.status !== 'active'"
-              @click="cancelStream(s)"
-            >
+              @click="cancelStream(s)">
               {{ cancellingId === s.id ? t("cancelling") : t("cancel") }}
             </NeoButton>
           </template>
@@ -62,16 +59,14 @@
           :streams="beneficiaryStreams"
           :label="t('beneficiaryVaults')"
           :empty-text="t('emptyVaults')"
-          type="beneficiary"
-        >
+          type="beneficiary">
           <template #actions="{ stream: s }">
             <NeoButton
               size="sm"
               variant="primary"
               :loading="claimingId === s.id"
               :disabled="s.status !== 'active' || s.claimable === 0n"
-              @click="claimStream(s)"
-            >
+              @click="claimStream(s)">
               {{ claimingId === s.id ? t("claiming") : t("claim") }}
             </NeoButton>
           </template>

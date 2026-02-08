@@ -1,20 +1,14 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-daily-checkin" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
-        </view>
-      </template>
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-
-    <!-- Check-in Tab -->
-    <view v-if="activeTab === 'checkin'" class="tab-content">
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4">
-        <text class="text-center font-bold status-msg">{{ status.msg }}</text>
-      </NeoCard>
-
+  <MiniAppTemplate
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :fireworks-active="status?.type === 'success'"
+    class="theme-daily-checkin"
+  >
+    <!-- Main content: Timer + Check-in Button -->
+    <template #content>
       <NeoButton
         variant="primary"
         size="lg"
@@ -38,10 +32,10 @@
       />
 
       <StreakDisplay :current-streak="currentStreak" :highest-streak="highestStreak" />
-    </view>
+    </template>
 
-    <!-- Stats Tab -->
-    <view v-if="activeTab === 'stats'" class="tab-content scrollable">
+    <!-- Stats tab: custom content (complex formatting) -->
+    <template #tab-stats>
       <RewardProgress :milestones="milestones" :current-streak="currentStreak" />
       <UserRewards
         :unclaimed-rewards="unclaimedRewards"
@@ -51,20 +45,8 @@
         class="mb-4"
       />
       <StatsTab :global-stats="globalStats" :user-stats="userStats" :checkin-history="checkinHistory" />
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-    <Fireworks :active="status?.type === 'success'" :duration="3000" />
-  </ResponsiveLayout>
+    </template>
+  </MiniAppTemplate>
 </template>
 
 <script setup lang="ts">
@@ -75,8 +57,8 @@ import { useI18n } from "@/composables/useI18n";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { formatGas } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoButton, NeoCard, NeoDoc, type StatItem, ChainWarning } from "@shared/components";
-import Fireworks from "@shared/components/Fireworks.vue";
+import { MiniAppTemplate, NeoButton, type StatItem } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CountdownHero from "./components/CountdownHero.vue";
 import StreakDisplay from "./components/StreakDisplay.vue";
 import RewardProgress from "./components/RewardProgress.vue";
@@ -94,18 +76,36 @@ const { address, connect, invokeContract, invokeRead, chainType, getContractAddr
 const { processPayment, isLoading } = usePaymentFlow(APP_ID);
 const { list: listEvents } = useEvents();
 
-const activeTab = ref("checkin");
-const navTabs = computed(() => [
-  { id: "checkin", icon: "check", label: t("checkin") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+// Template configuration
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "timer-hero",
+  tabs: [
+    { key: "checkin", labelKey: "checkin", icon: "✅", default: true },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+// Reactive state bridge for template stat bindings
+const appState = computed(() => ({
+  currentStreak: currentStreak.value,
+  highestStreak: highestStreak.value,
+  totalUserCheckins: totalUserCheckins.value,
+}));
 
 // User state
 const currentStreak = ref(0);
@@ -293,11 +293,11 @@ const doCheckIn = async () => {
         { type: "Hash160", value: address.value },
         { type: "Integer", value: String(receiptId) },
       ],
-      contract,
+      contract
     );
 
     const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
+      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
     );
     const result = txid ? await waitForEvent(txid, "CheckedIn") : { event: null, pending: true };
 
@@ -329,7 +329,7 @@ const claimRewards = async () => {
     const tx = await invoke("claimRewards", [{ type: "Hash160", value: address.value }], contract);
 
     const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
+      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
     );
     const result = txid ? await waitForEvent(txid, "RewardsClaimed") : { event: null, pending: true };
 
@@ -487,7 +487,6 @@ onUnmounted(() => {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

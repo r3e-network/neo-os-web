@@ -1,7 +1,7 @@
 <template>
   <view class="page-shell airdrop-shell">
     <view class="page-hero fade-up">
-      <image class="page-hero-logo" src="/static/neoburger-nobug-airdrop.svg" mode="widthFix" :alt="t('nobugAlt')" />
+      <image class="page-hero-logo" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('nobugAlt')" />
       <text class="page-hero-title">{{ t("airdropTitle") }}</text>
     </view>
 
@@ -51,12 +51,12 @@
         <view v-for="item in nobugUsageTabs" :key="item" class="usage-tab">
           <image
             class="usage-vector"
-            src="/static/neoburger-vector-right.svg"
+            src="/static/neoburger-placeholder.svg"
             mode="widthFix"
             :alt="t('vectorAlt')"
           />
           <text class="usage-text">{{ item }}</text>
-          <image class="usage-vector" src="/static/neoburger-vector-left.svg" mode="widthFix" :alt="t('vectorAlt')" />
+          <image class="usage-vector" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('vectorAlt')" />
         </view>
       </view>
       <text class="section-text">{{ t("nobugUsageDesc1") }}</text>

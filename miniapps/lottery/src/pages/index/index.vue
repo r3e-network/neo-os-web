@@ -1,141 +1,147 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-lottery" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
+  <view class="theme-lottery">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :fireworks-active="showFireworks"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-    <ErrorBoundary 
-      @error="handleBoundaryError" 
-      @retry="resetAndReload"
-      :fallback-message="t('lotteryErrorFallback')"
-    >
-      <!-- Error Toast -->
-      <view v-if="errorMessage" class="error-toast" :class="{ 'error-retryable': canRetryError }">
-        <text>{{ errorMessage }}</text>
-        <view v-if="canRetryError" class="retry-actions">
-          <NeoButton variant="secondary" size="sm" @click="retryLastOperation">
-            {{ t('retry') }}
-          </NeoButton>
-        </view>
-      </view>
-
-      <!-- Wallet Prompt -->
-      <view v-if="!address && activeTab === 'game'" class="wallet-prompt-container">
-        <NeoCard variant="warning" class="text-center mb-4">
-          <text class="font-bold block mb-2">{{ t('connectWalletToPlay') }}</text>
-          <NeoButton variant="primary" size="sm" @click="connectWallet">
-            {{ t('connectWallet') }}
-          </NeoButton>
-        </NeoCard>
-      </view>
-
-      <!-- Games Tab (Main) -->
-      <view v-if="activeTab === 'game'" class="tab-content scrollable">
-        <!-- Unscratched Tickets Reminder -->
-        <view v-if="unscratchedTickets.length > 0" class="mb-6 px-1">
-          <NeoCard variant="accent" class="border-gold">
-            <view class="flex justify-between items-center">
-              <view>
-                <text class="font-bold text-lg mb-1">{{ t("ticketsWaiting") }}</text>
-                <text class="text-sm opacity-80">{{
-                  t("ticketsWaitingDesc", { count: unscratchedTickets.length })
-                }}</text>
-              </view>
-              <NeoButton size="sm" variant="primary" @click="playUnscratched(unscratchedTickets[0])">
-                {{ t("playNow") }}
+      <template #content>
+        <ErrorBoundary
+          @error="handleBoundaryError"
+          @retry="resetAndReload"
+          :fallback-message="t('lotteryErrorFallback')"
+        >
+          <!-- Error Toast -->
+          <view v-if="errorMessage" class="error-toast" :class="{ 'error-retryable': canRetryError }">
+            <text>{{ errorMessage }}</text>
+            <view v-if="canRetryError" class="retry-actions">
+              <NeoButton variant="secondary" size="sm" @click="retryLastOperation">
+                {{ t("retry") }}
               </NeoButton>
             </view>
-          </NeoCard>
-        </view>
+          </view>
 
-        <view class="grid-layout px-1">
-          <view
-            v-for="game in instantTypes"
-            :key="game.key"
-            class="game-card h-full relative overflow-hidden group rounded-2xl flex flex-col p-4"
-            :class="[`card-${game.key.replace('neo-', '')}`]"
-          >
-            <!-- Shiny Animated Layer -->
-            <view class="shine-effect absolute inset-0 pointer-events-none z-0" />
+          <!-- Wallet Prompt -->
+          <view v-if="!address && activeTab === 'game'" class="wallet-prompt-container">
+            <NeoCard variant="warning" class="mb-4 text-center">
+              <text class="mb-2 block font-bold">{{ t("connectWalletToPlay") }}</text>
+              <NeoButton variant="primary" size="sm" @click="connectWallet">
+                {{ t("connectWallet") }}
+              </NeoButton>
+            </NeoCard>
+          </view>
 
-            <view class="game-header text-center mb-1 z-10 relative">
-              <text class="game-title text-sm font-black tracking-tighter uppercase opacity-80 decoration-2 text-white">
-                {{ game.name }}
-              </text>
-              <view class="flex justify-center mt-1">
+          <!-- Unscratched Tickets Reminder -->
+          <view v-if="unscratchedTickets.length > 0" class="mb-6 px-1">
+            <NeoCard variant="accent" class="border-gold">
+              <view class="flex items-center justify-between">
+                <view>
+                  <text class="mb-1 text-lg font-bold">{{ t("ticketsWaiting") }}</text>
+                  <text class="text-sm opacity-80">{{
+                    t("ticketsWaitingDesc", { count: unscratchedTickets.length })
+                  }}</text>
+                </view>
+                <NeoButton size="sm" variant="primary" @click="playUnscratched(unscratchedTickets[0])">
+                  {{ t("playNow") }}
+                </NeoButton>
+              </view>
+            </NeoCard>
+          </view>
+
+          <view class="grid-layout px-1">
+            <view
+              v-for="game in instantTypes"
+              :key="game.key"
+              class="game-card group relative flex h-full flex-col overflow-hidden rounded-2xl p-4"
+              :class="[`card-${game.key.replace('neo-', '')}`]"
+            >
+              <!-- Shiny Animated Layer -->
+              <view class="shine-effect pointer-events-none absolute inset-0 z-0" />
+
+              <view class="game-header relative z-10 mb-1 text-center">
                 <text
-                  class="game-price-tag text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/40 text-white/90 border border-white/10 uppercase tracking-widest"
+                  class="game-title text-sm font-black tracking-tighter text-white uppercase decoration-2 opacity-80"
                 >
-                  {{ game.priceDisplay }}
+                  {{ game.name }}
+                </text>
+                <view class="mt-1 flex justify-center">
+                  <text
+                    class="game-price-tag rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[10px] font-bold tracking-widest text-white/90 uppercase"
+                  >
+                    {{ game.priceDisplay }}
+                  </text>
+                </view>
+              </view>
+
+              <!-- Premium Ticket Visual Area -->
+              <view class="game-visual relative my-3 flex h-32 items-center justify-center">
+                <!-- Pulsing Glow behind icon -->
+                <view
+                  class="pulsar absolute h-20 w-20 rounded-full opacity-60 blur-3xl"
+                  :style="{ backgroundColor: game.color }"
+                />
+
+                <view
+                  class="relative z-10 flex transform flex-col items-center transition-all duration-300 group-hover:scale-110"
+                >
+                  <AppIcon name="ticket" :size="56" class="ticket-icon mb-1" />
+                  <text class="text-[9px] font-black tracking-[0.2em] text-white/40 uppercase">PREMIUM</text>
+                </view>
+              </view>
+
+              <view class="game-stats relative z-10 mt-auto mb-5 text-center">
+                <text class="mb-1 block text-[10px] font-bold tracking-[0.1em] text-white uppercase opacity-70">
+                  >JACKPOT</text
+                >
+                <text class="glow-text block text-3xl leading-none font-black text-white italic">
+                  {{ game.maxJackpotDisplay.split(" ")[0] }}
+                  <text class="ml-1 text-xs italic opacity-70">GAS</text>
+                </text>
+              </view>
+
+              <NeoButton
+                class="buy-button relative z-10 w-full"
+                variant="primary"
+                :loading="isLoading && buyingType === game.type"
+                :disabled="isLoading || !address"
+                @click="handleBuy(game)"
+              >
+                <view class="flex items-center gap-2">
+                  <text class="text-xs font-black uppercase italic">{{ t("buyTicket") }}</text>
+                  <AppIcon name="arrow-right" :size="14" />
+                </view>
+              </NeoButton>
+
+              <view class="mt-3 flex min-h-[32px] items-center justify-center">
+                <text class="px-2 text-center text-[10px] leading-tight font-medium text-white opacity-60">
+                  {{ game.description }}
                 </text>
               </view>
             </view>
-
-            <!-- Premium Ticket Visual Area -->
-            <view class="game-visual relative h-32 flex items-center justify-center my-3">
-              <!-- Pulsing Glow behind icon -->
-              <view
-                class="pulsar absolute w-20 h-20 rounded-full blur-3xl opacity-60"
-                :style="{ backgroundColor: game.color }"
-              />
-
-              <view
-                class="relative z-10 flex flex-col items-center transform transition-all duration-300 group-hover:scale-110"
-              >
-                <AppIcon name="ticket" :size="56" class="mb-1 ticket-icon" />
-                <text class="text-[9px] font-black uppercase tracking-[0.2em] text-white/40">PREMIUM</text>
-              </view>
-            </view>
-
-            <view class="game-stats mb-5 text-center z-10 relative mt-auto">
-              <text class="block text-[10px] uppercase font-bold opacity-70 text-white tracking-[0.1em] mb-1"
-                >JACKPOT</text
-              >
-              <text class="block text-3xl font-black text-white glow-text leading-none italic">
-                {{ game.maxJackpotDisplay.split(" ")[0] }}
-                <text class="text-xs italic ml-1 opacity-70">GAS</text>
-              </text>
-            </view>
-
-            <NeoButton
-              class="w-full z-10 relative buy-button"
-              variant="primary"
-              :loading="isLoading && buyingType === game.type"
-              :disabled="isLoading || !address"
-              @click="handleBuy(game)"
-            >
-              <view class="flex items-center gap-2">
-                <text class="font-black italic uppercase text-xs">{{ t("buyTicket") }}</text>
-                <AppIcon name="arrow-right" :size="14" />
-              </view>
-            </NeoButton>
-
-            <view class="mt-3 min-h-[32px] flex items-center justify-center">
-              <text class="text-center text-[10px] leading-tight font-medium opacity-60 text-white px-2">
-                {{ game.description }}
-              </text>
-            </view>
           </view>
-        </view>
-      </view>
+        </ErrorBoundary>
+      </template>
 
-      <!-- Winners Tab -->
-      <view v-if="activeTab === 'winners'" class="tab-content scrollable">
+      <template #tab-winners>
         <NeoCard variant="erobo">
           <view class="winners-list">
-            <text v-if="winners.length === 0" class="empty-text text-center text-glass py-8">{{ t("noWinners") }}</text>
+            <text v-if="winners.length === 0" class="empty-text text-glass py-8 text-center">{{ t("noWinners") }}</text>
             <view
               v-for="(w, i) in winners"
               :key="i"
-              class="winner-item glass-panel mb-2 p-3 flex justify-between items-center rounded-lg bg-white/5"
+              class="winner-item glass-panel mb-2 flex items-center justify-between rounded-lg bg-white/5 p-3"
             >
               <view class="flex items-center gap-3">
-                <view class="winner-medal w-8 h-8 flex items-center justify-center rounded-full bg-black/20">
+                <view class="winner-medal flex h-8 w-8 items-center justify-center rounded-full bg-black/20">
                   <text>{{ i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "🎖️" }}</text>
                 </view>
                 <view>
@@ -143,28 +149,27 @@
                   <text class="block text-xs opacity-60">{{ t("roundLabel", { round: w.round }) }}</text>
                 </view>
               </view>
-              <text class="text-green-400 font-bold">{{ formatNum(w.prize) }} GAS</text>
+              <text class="font-bold text-green-400">{{ formatNum(w.prize) }} GAS</text>
             </view>
           </view>
         </NeoCard>
-      </view>
+      </template>
 
-      <!-- Stats Tab -->
-      <view v-if="activeTab === 'stats'" class="tab-content scrollable">
+      <template #tab-stats>
         <view class="stats-grid mb-6 grid grid-cols-2 gap-4">
           <NeoCard variant="erobo-neo" class="stat-box text-center">
-            <text class="block text-2xl font-bold mb-1">{{ totalTickets }}</text>
+            <text class="mb-1 block text-2xl font-bold">{{ totalTickets }}</text>
             <text class="block text-xs opacity-60">{{ t("totalTickets") }}</text>
           </NeoCard>
           <NeoCard variant="erobo" class="stat-box text-center">
-            <text class="block text-2xl font-bold mb-1 text-gold">{{ formatNum(prizePool) }}</text>
+            <text class="text-gold mb-1 block text-2xl font-bold">{{ formatNum(prizePool) }}</text>
             <text class="block text-xs opacity-60">{{ t("totalPaidOut") }}</text>
           </NeoCard>
         </view>
 
         <NeoCard variant="erobo" class="p-4">
-          <text class="section-title block mb-4 font-bold border-b border-white/10 pb-2">{{ t("yourStats") }}</text>
-          <view class="flex justify-between mb-2">
+          <text class="section-title mb-4 block border-b border-white/10 pb-2 font-bold">{{ t("yourStats") }}</text>
+          <view class="mb-2 flex justify-between">
             <text class="opacity-80">{{ t("ticketsBought") }}</text>
             <text class="font-bold">{{ userTickets }}</text>
           </view>
@@ -173,19 +178,8 @@
             <text class="font-bold text-green-400">{{ formatNum(userWinnings) }} GAS</text>
           </view>
         </NeoCard>
-      </view>
-
-      <!-- Docs Tab -->
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-    </ErrorBoundary>
+      </template>
+    </MiniAppTemplate>
 
     <!-- Scratch Modal -->
     <ScratchModal
@@ -196,17 +190,15 @@
       :on-reveal="onReveal"
       @close="closeModal"
     />
-
-    <Fireworks :active="showFireworks" :duration="3000" />
-  </ResponsiveLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { ResponsiveLayout, NeoDoc, NeoButton, NeoCard, NeoStats, ChainWarning, ErrorBoundary } from "@shared/components";
-import Fireworks from "@shared/components/Fireworks.vue";
+import { MiniAppTemplate, NeoButton, NeoCard, ErrorBoundary } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import ScratchModal from "./components/ScratchModal.vue";
 import { useLotteryTypes, type LotteryTypeInfo } from "../../shared/composables/useLotteryTypes";
 import { useScratchCard, type ScratchTicket } from "../../shared/composables/useScratchCard";
@@ -234,12 +226,32 @@ const {
   loadWinners,
 } = useLotteryState(t);
 
-const navTabs = computed(() => [
-  { id: "game", icon: "game", label: t("game") },
-  { id: "winners", icon: "award", label: t("winners") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "game-board",
+  tabs: [
+    { key: "game", labelKey: "game", icon: "🎮", default: true },
+    { key: "winners", labelKey: "winners", icon: "📋" },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: false,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [],
+    },
+  },
+};
+
+const appState = computed(() => ({
+  totalTickets: totalTickets.value,
+  prizePool: prizePool.value,
+  userTickets: playerTickets.value.length,
+}));
 
 const userTickets = computed(() => playerTickets.value.length);
 const userWinnings = computed(() => playerTickets.value.reduce((acc, t) => acc + (t.prize || 0), 0));
@@ -249,9 +261,6 @@ const activeTicketTypeInfo = computed(() => {
   if (!activeTicket.value) return instantTypes.value[0];
   return getLotteryType(activeTicket.value.type) || instantTypes.value[0];
 });
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures: any[] = [];
 
 const errorMessage = ref<string | null>(null);
 const canRetryError = ref(false);
@@ -288,20 +297,16 @@ const resetAndReload = async () => {
   clearError();
   errorMessage.value = null;
   canRetryError.value = false;
-  
+
   try {
-    await Promise.all([
-      loadPlatformStats(),
-      loadWinners(),
-      address.value ? loadPlayerTickets() : Promise.resolve(),
-    ]);
+    await Promise.all([loadPlatformStats(), loadWinners(), address.value ? loadPlayerTickets() : Promise.resolve()]);
   } catch (e) {
     handleError(e, { operation: "resetAndReload" });
   }
 };
 
 const retryLastOperation = () => {
-  if (lastOperation.value === 'buy' && activeTicketTypeInfo.value) {
+  if (lastOperation.value === "buy" && activeTicketTypeInfo.value) {
     // Cannot retry exact same ticket type, but can refresh
     resetAndReload();
   }
@@ -326,8 +331,8 @@ const handleBuy = async (gameType: LotteryTypeInfo) => {
   }
 
   buyingType.value = gameType.type;
-  lastOperation.value = 'buy';
-  
+  lastOperation.value = "buy";
+
   try {
     const result = await buyTicket(gameType.type);
     const newTicket = playerTickets.value.find((t) => t.id === result.ticketId);
@@ -355,16 +360,13 @@ const onReveal = async (ticketId: string) => {
       showFireworks.value = true;
       setTimeout(() => (showFireworks.value = false), 3000);
     }
-    
+
     // Reload stats asynchronously
-    Promise.all([
-      loadPlatformStats(),
-      loadWinners(),
-    ]).catch(e => {
+    Promise.all([loadPlatformStats(), loadWinners()]).catch((e) => {
       // Non-critical - just log
       handleError(e, { operation: "reloadStatsAfterReveal" });
     });
-    
+
     return res;
   } catch (e) {
     handleError(e, { operation: "revealTicket", metadata: { ticketId } });
@@ -380,15 +382,12 @@ const closeModal = () => {
 // Lifecycle
 onMounted(() => {
   if (address.value) {
-    loadPlayerTickets().catch(e => {
+    loadPlayerTickets().catch((e) => {
       handleError(e, { operation: "loadPlayerTickets" });
     });
   }
-  
-  Promise.all([
-    loadPlatformStats(),
-    loadWinners(),
-  ]).catch(e => {
+
+  Promise.all([loadPlatformStats(), loadWinners()]).catch((e) => {
     handleError(e, { operation: "loadInitialStats" });
     showError(getUserMessage(e), canRetry(e));
   });
@@ -563,7 +562,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

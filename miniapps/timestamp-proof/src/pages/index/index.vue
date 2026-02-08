@@ -6,8 +6,7 @@
       :active-tab="activeTab"
       :show-sidebar="isDesktop"
       layout="sidebar"
-      @tab-change="activeTab = $event"
-    >
+      @tab-change="activeTab = $event">
       <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
       <!-- Desktop Sidebar -->
@@ -60,9 +59,8 @@
             <view v-for="proof in proofs" :key="proof.id" class="proof-card">
               <text class="proof-id">#{{ proof.id }}</text>
               <text class="proof-timestamp">{{ formatTime(proof.timestamp) }}</text>
-              <text class="proof-content"
-                >{{ proof.content.slice(0, 50) }}{{ proof.content.length > 50 ? "..." : "" }}</text
-              >
+              <text class="proof-content">
+                >{{ proof.content.slice(0, 50) }}{{ proof.content.length > 50 ? "..." : "" }}</text>
             </view>
           </view>
         </view>

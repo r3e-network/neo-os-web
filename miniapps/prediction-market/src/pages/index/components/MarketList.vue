@@ -40,7 +40,7 @@
           v-for="market in markets"
           :key="market.id"
           :market="market"
-          :is-compact="!isDesktop"
+          :t="t"
           @click="$emit('select', market)"
         />
       </view>

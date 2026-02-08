@@ -1,73 +1,64 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-event-ticket-pass" :tabs="navTabs" :active-tab="activeTab" @tab-change="onTabChange"
+  <view class="theme-event-ticket-pass">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="onTabChange"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view v-if="activeTab === 'create'" class="tab-content">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
-      <EventCreateForm
-        :t="t"
-        v-model:form="form"
-        :is-creating="isCreating"
-        @create="createEvent"
-      />
-      <EventList
-        :t="t"
-        :address="address"
-        :events="events"
-        :is-refreshing="isRefreshing"
-        :toggling-id="togglingId"
-        @refresh="refreshEvents"
-        @connect="connectWallet"
-        @issue="openIssueModal"
-        @toggle="toggleEvent"
-      />
-    </view>
-    <view v-if="activeTab === 'tickets'" class="tab-content">
-      <TicketManagement
-        :t="t"
-        :address="address"
-        :tickets="tickets"
-        :ticket-qrs="ticketQrs"
-        :is-refreshing="isRefreshingTickets"
-        @refresh="refreshTickets"
-        @connect="connectWallet"
-        @copy="copyTokenId"
-      />
-    </view>
-    <view v-if="activeTab === 'checkin'" class="tab-content">
-      <CheckinTab
-        :t="t"
-        v-model:token-id="checkin.tokenId"
-        :lookup="lookup"
-        :is-looking-up="isLookingUp"
-        :is-checking-in="isCheckingIn"
-        :status="status"
-        @lookup="lookupTicket"
-        @checkin="checkInTicket"
-      />
-    </view>
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="[t('step1'), t('step2'), t('step3'), t('step4')]"
-        :features="[
-          { name: t('feature1Name'), desc: t('feature1Desc') },
-          { name: t('feature2Name'), desc: t('feature2Desc') },
-          { name: t('feature3Name'), desc: t('feature3Desc') },
-        ]"
-      />
-    </view>
-  </ResponsiveLayout>
+
+      <template #content>
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
+          <text class="font-bold">{{ status.msg }}</text>
+        </NeoCard>
+        <EventCreateForm :t="t" v-model:form="form" :is-creating="isCreating" @create="createEvent" />
+        <EventList
+          :t="t"
+          :address="address"
+          :events="events"
+          :is-refreshing="isRefreshing"
+          :toggling-id="togglingId"
+          @refresh="refreshEvents"
+          @connect="connectWallet"
+          @issue="openIssueModal"
+          @toggle="toggleEvent"
+        />
+      </template>
+
+      <template #tab-tickets>
+        <TicketManagement
+          :t="t"
+          :address="address"
+          :tickets="tickets"
+          :ticket-qrs="ticketQrs"
+          :is-refreshing="isRefreshingTickets"
+          @refresh="refreshTickets"
+          @connect="connectWallet"
+          @copy="copyTokenId"
+        />
+      </template>
+
+      <template #tab-checkin>
+        <CheckinTab
+          :t="t"
+          v-model:token-id="checkin.tokenId"
+          :lookup="lookup"
+          :is-looking-up="isLookingUp"
+          :is-checking-in="isCheckingIn"
+          :status="status"
+          @lookup="lookupTicket"
+          @checkin="checkInTicket"
+        />
+      </template>
+    </MiniAppTemplate>
+  </view>
   <TicketIssueModal
     :t="t"
     :visible="issueModalOpen"
@@ -85,8 +76,8 @@ import QRCode from "qrcode";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoCard, NeoDoc, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { requireNeoChain } from "@shared/utils/chain";
 import { addressToScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { parseBigInt, parseBool, encodeTokenId, parseDateInput } from "@shared/utils/parsers";
@@ -97,13 +88,39 @@ import CheckinTab from "./components/CheckinTab.vue";
 import TicketIssueModal from "./components/TicketIssueModal.vue";
 const { t } = useI18n();
 const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "create", labelKey: "createTab", icon: "➕", default: true },
+    { key: "tickets", labelKey: "ticketsTab", icon: "🎫" },
+    { key: "checkin", labelKey: "checkinTab", icon: "✅" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("create");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "create", icon: "plus", label: t("createTab") },
-  { id: "tickets", icon: "ticket", label: t("ticketsTab") },
-  { id: "checkin", icon: "check", label: t("checkinTab") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+  address: address.value,
+  isCreating: isCreating.value,
+  isRefreshing: isRefreshing.value,
+  eventsCount: events.value.length,
+  ticketsCount: tickets.value.length,
+}));
 const form = reactive({
   name: "",
   venue: "",
@@ -278,7 +295,7 @@ const refreshTickets = async () => {
         });
         const detailParsed = parseInvokeResult(detailResult) as any;
         return parseTicket(detailParsed, tokenId);
-      }),
+      })
     );
     tickets.value = details.filter(Boolean) as TicketItem[];
     await Promise.all(
@@ -288,7 +305,7 @@ const refreshTickets = async () => {
             ticketQrs[ticket.tokenId] = await QRCode.toDataURL(ticket.tokenId, { margin: 1 });
           } catch {}
         }
-      }),
+      })
     );
   } catch (e: any) {
     setStatus(e.message || t("contractMissing"), "error");

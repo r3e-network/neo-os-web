@@ -1,65 +1,51 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-graveyard" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-graveyard">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      :fireworks-active="status?.type === 'success'"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-    <!-- Destroy Tab -->
-    <view v-if="activeTab === 'destroy'" class="tab-content">
-      <StatusMessage :status="status" />
+      <template #content>
+        <StatusMessage :status="status" />
 
-      <DestructionChamber
-        v-model:assetHash="assetHash"
-        v-model:memoryType="memoryType"
-        :memory-type-options="memoryTypeOptions"
-        :is-destroying="isDestroying"
-        :show-warning-shake="showWarningShake"
-        :t="t"
-        @initiate="initiateDestroy"
-      />
+        <DestructionChamber
+          v-model:assetHash="assetHash"
+          v-model:memoryType="memoryType"
+          :memory-type-options="memoryTypeOptions"
+          :is-destroying="isDestroying"
+          :show-warning-shake="showWarningShake"
+          :t="t"
+          @initiate="initiateDestroy"
+        />
 
-      <ConfirmDestroyModal
-        :show="showConfirm"
-        :asset-hash="assetHash"
-        :t="t"
-        @cancel="showConfirm = false"
-        @confirm="executeDestroy"
-      />
-    </view>
+        <ConfirmDestroyModal
+          :show="showConfirm"
+          :asset-hash="assetHash"
+          :t="t"
+          @cancel="showConfirm = false"
+          @confirm="executeDestroy"
+        />
+      </template>
 
-    <!-- Stats Tab -->
-    <view v-if="activeTab === 'stats'" class="tab-content">
-      <GraveyardHero :total-destroyed="totalDestroyed" :gas-reclaimed="gasReclaimed" :t="t" />
-    </view>
+      <template #tab-stats>
+        <GraveyardHero :total-destroyed="totalDestroyed" :gas-reclaimed="gasReclaimed" :t="t" />
+      </template>
 
-    <!-- History Tab -->
-    <HistoryTab
-      v-if="activeTab === 'history'"
-      :history="history"
-      :forgetting-id="forgettingId"
-      :t="t"
-      @forget="forgetMemory"
-    />
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-    <Fireworks :active="status?.type === 'success'" :duration="3000" />
-  </ResponsiveLayout>
+      <template #tab-history>
+        <HistoryTab :history="history" :forgetting-id="forgettingId" :t="t" @forget="forgetMemory" />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -69,8 +55,8 @@ import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoDoc, NeoCard, NeoButton, ChainWarning } from "@shared/components";
-import Fireworks from "@shared/components/Fireworks.vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import GraveyardHero from "./components/GraveyardHero.vue";
 import DestructionChamber from "./components/DestructionChamber.vue";
 import ConfirmDestroyModal from "./components/ConfirmDestroyModal.vue";
@@ -80,21 +66,37 @@ import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
 const { t } = useI18n();
 
-const navTabs = computed(() => [
-  { id: "destroy", icon: "trash", label: t("destroy") },
-  { id: "stats", icon: "chart", label: t("tabStats") },
-  { id: "history", icon: "time", label: t("history") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "market-list",
+  tabs: [
+    { key: "destroy", labelKey: "destroy", icon: "🗑️", default: true },
+    { key: "stats", labelKey: "tabStats", icon: "📊" },
+    { key: "history", labelKey: "history", icon: "📜" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("destroy");
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-]);
+const appState = computed(() => ({
+  totalDestroyed: totalDestroyed.value,
+  gasReclaimed: gasReclaimed.value,
+}));
 
 const APP_ID = "miniapp-graveyard";
 const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
@@ -181,11 +183,11 @@ const executeDestroy = async () => {
         { type: "Integer", value: String(memoryType.value) },
         { type: "Integer", value: String(receiptId) },
       ],
-      contract,
+      contract
     );
 
     const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
+      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
     );
     const evt = txid ? await waitForEvent(txid, "MemoryBuried") : null;
     if (!evt) throw new Error(t("buryPending"));
@@ -270,7 +272,7 @@ const loadHistory = async () => {
           time: new Date(evt.created_at || Date.now()).toLocaleString(),
           forgotten,
         };
-      }),
+      })
     );
     history.value = entries;
   } catch {}
@@ -309,7 +311,7 @@ const forgetMemory = async (item: HistoryItem) => {
         { type: "Integer", value: String(item.id) },
         { type: "Integer", value: String(receiptId) },
       ],
-      contract,
+      contract
     );
 
     history.value = history.value.map((entry) => (entry.id === item.id ? { ...entry, forgotten: true } : entry));
@@ -448,7 +450,6 @@ watch(activeTab, async (tab) => {
     box-shadow: 0 0 10px var(--grave-accent-glow) !important;
   }
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

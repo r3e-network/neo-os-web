@@ -1,150 +1,140 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-piggy-bank" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-piggy-bank">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Main Tab -->
-    <view v-if="activeTab === 'main'" class="tab-content">
-      <!-- Header with wallet status -->
-      <view class="header">
-        <view class="title-row">
-          <text class="title">{{ t("app.title") }}</text>
-          <text class="subtitle">{{ t("app.subtitle") }}</text>
-        </view>
-        <view class="status-row">
-          <text class="status-chip">{{ currentChain?.shortName || "Neo N3" }}</text>
-          <text class="status-chip" :class="{ connected: isConnected }">
-            {{ isConnected ? formatAddress(userAddress) : t("wallet.not_connected") }}
-          </text>
-          <button class="connect-btn" v-if="!isConnected" @click="handleConnect">
-            {{ t("wallet.connect") }}
-          </button>
-        </view>
-      </view>
 
-      <!-- Config warning -->
-      <view v-if="configIssues.length > 0" class="config-warning">
-        <text class="warning-title">{{ t("settings.missing_config") }}</text>
-        <text v-for="issue in configIssues" :key="issue" class="warning-item"> • {{ issue }} </text>
-      </view>
-
-      <!-- Piggy Banks list or empty state -->
-      <scroll-view v-if="piggyBanks.length === 0" scroll-y class="empty-state">
-        <text class="empty-text">{{ t("empty.banks") }}</text>
-        <button class="create-btn" @click="goToCreate">{{ t("create.create_btn") }}</button>
-      </scroll-view>
-
-      <scroll-view v-else scroll-y class="banks-list">
-        <view class="grid">
-          <view
-            v-for="bank in piggyBanks"
-            :key="bank.id"
-            class="card"
-            @click="goToDetail(bank.id)"
-            :style="{ borderColor: bank.themeColor, boxShadow: `0 0 10px ${bank.themeColor}40` }"
-          >
-            <view class="card-header">
-              <text class="bank-name">{{ bank.name }}</text>
-              <view class="status-badge" :class="{ locked: isLocked(bank) }">
-                {{ isLocked(bank) ? "🔒" : "🔓" }}
-              </view>
-            </view>
-
-            <text class="purpose">{{ bank.purpose }}</text>
-
-            <view class="progress-section">
-              <text class="label">
-                {{ t("create.target_label") }}: {{ bank.targetAmount }} {{ bank.targetToken.symbol }}
-              </text>
-              <view class="progress-bar-bg">
-                <view class="progress-bar-fill unknown"></view>
-              </view>
-            </view>
-
-            <text class="date-info">
-              {{ new Date(bank.unlockTime * 1000).toLocaleDateString() }}
+      <!-- Main Tab (default) -->
+      <template #content>
+        <!-- Header with wallet status -->
+        <view class="header">
+          <view class="title-row">
+            <text class="title">{{ t("app.title") }}</text>
+            <text class="subtitle">{{ t("app.subtitle") }}</text>
+          </view>
+          <view class="status-row">
+            <text class="status-chip">{{ currentChain?.shortName || "Neo N3" }}</text>
+            <text class="status-chip" :class="{ connected: isConnected }">
+              {{ isConnected ? formatAddress(userAddress) : t("wallet.not_connected") }}
             </text>
+            <button class="connect-btn" v-if="!isConnected" @click="handleConnect">
+              {{ t("wallet.connect") }}
+            </button>
           </view>
         </view>
-      </scroll-view>
 
-      <!-- FAB for creating new bank -->
-      <view v-if="piggyBanks.length > 0" class="fab" @click="goToCreate">
-        <text class="fab-icon">+</text>
-      </view>
-    </view>
+        <!-- Config warning -->
+        <view v-if="configIssues.length > 0" class="config-warning">
+          <text class="warning-title">{{ t("settings.missing_config") }}</text>
+          <text v-for="issue in configIssues" :key="issue" class="warning-item"> • {{ issue }} </text>
+        </view>
 
-    <!-- Settings Tab -->
-    <view v-if="activeTab === 'settings'" class="tab-content">
-      <view class="settings-container">
-        <view class="form-group">
-          <text class="label">{{ t("settings.network") }}</text>
-          <picker
-            mode="selector"
-            :value="currentChainIndex"
-            :range="chainOptions"
-            range-key="name"
-            @change="onChainChange"
-          >
-            <view class="picker-view">
-              {{ selectedChain?.name || t("settings.select_network") }}
+        <!-- Piggy Banks list or empty state -->
+        <scroll-view v-if="piggyBanks.length === 0" scroll-y class="empty-state">
+          <text class="empty-text">{{ t("empty.banks") }}</text>
+          <button class="create-btn" @click="goToCreate">{{ t("create.create_btn") }}</button>
+        </scroll-view>
+
+        <scroll-view v-else scroll-y class="banks-list">
+          <view class="grid">
+            <view
+              v-for="bank in piggyBanks"
+              :key="bank.id"
+              class="card"
+              @click="goToDetail(bank.id)"
+              :style="{ borderColor: bank.themeColor, boxShadow: `0 0 10px ${bank.themeColor}40` }"
+            >
+              <view class="card-header">
+                <text class="bank-name">{{ bank.name }}</text>
+                <view class="status-badge" :class="{ locked: isLocked(bank) }">
+                  {{ isLocked(bank) ? "🔒" : "🔓" }}
+                </view>
+              </view>
+
+              <text class="purpose">{{ bank.purpose }}</text>
+
+              <view class="progress-section">
+                <text class="label">
+                  {{ t("create.target_label") }}: {{ bank.targetAmount }} {{ bank.targetToken.symbol }}
+                </text>
+                <view class="progress-bar-bg">
+                  <view class="progress-bar-fill unknown"></view>
+                </view>
+              </view>
+
+              <text class="date-info">
+                {{ new Date(bank.unlockTime * 1000).toLocaleDateString() }}
+              </text>
             </view>
-          </picker>
-        </view>
+          </view>
+        </scroll-view>
 
-        <view class="form-group">
-          <text class="label">{{ t("settings.alchemy_key") }}</text>
-          <input
-            class="input-field"
-            type="password"
-            v-model="settingsForm.alchemyApiKey"
-            :placeholder="t('settings.alchemy_placeholder')"
-            placeholder-class="placeholder"
-          />
+        <!-- FAB for creating new bank -->
+        <view v-if="piggyBanks.length > 0" class="fab" @click="goToCreate">
+          <text class="fab-icon">+</text>
         </view>
+      </template>
 
-        <view class="form-group">
-          <text class="label">{{ t("settings.walletconnect") }}</text>
-          <input
-            class="input-field"
-            v-model="settingsForm.walletConnectProjectId"
-            :placeholder="t('settings.walletconnect_placeholder')"
-            placeholder-class="placeholder"
-          />
+      <!-- Settings Tab -->
+      <template #tab-settings>
+        <view class="settings-container">
+          <view class="form-group">
+            <text class="label">{{ t("settings.network") }}</text>
+            <picker
+              mode="selector"
+              :value="currentChainIndex"
+              :range="chainOptions"
+              range-key="name"
+              @change="onChainChange"
+            >
+              <view class="picker-view">
+                {{ selectedChain?.name || t("settings.select_network") }}
+              </view>
+            </picker>
+          </view>
+
+          <view class="form-group">
+            <text class="label">{{ t("settings.alchemy_key") }}</text>
+            <input
+              class="input-field"
+              type="password"
+              v-model="settingsForm.alchemyApiKey"
+              :placeholder="t('settings.alchemy_placeholder')"
+              placeholder-class="placeholder"
+            />
+          </view>
+
+          <view class="form-group">
+            <text class="label">{{ t("settings.walletconnect") }}</text>
+            <input
+              class="input-field"
+              v-model="settingsForm.walletConnectProjectId"
+              :placeholder="t('settings.walletconnect_placeholder')"
+              placeholder-class="placeholder"
+            />
+          </view>
+
+          <view class="form-group">
+            <text class="label">{{ t("settings.contract_address") }}</text>
+            <input
+              class="input-field"
+              v-model="settingsForm.contractAddress"
+              placeholder="0x..."
+              placeholder-class="placeholder"
+            />
+          </view>
+
+          <view class="settings-actions">
+            <button class="save-btn" @click="saveSettings">{{ t("common.confirm") }}</button>
+          </view>
         </view>
-
-        <view class="form-group">
-          <text class="label">{{ t("settings.contract_address") }}</text>
-          <input
-            class="input-field"
-            v-model="settingsForm.contractAddress"
-            placeholder="0x..."
-            placeholder-class="placeholder"
-          />
-        </view>
-
-        <view class="settings-actions">
-          <button class="save-btn" @click="saveSettings">{{ t("common.confirm") }}</button>
-        </view>
-      </view>
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('app.title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -153,8 +143,8 @@ import { usePiggyStore, type PiggyBank } from "@/stores/piggy";
 import { storeToRefs } from "pinia";
 import { useI18n } from "@/composables/useI18n";
 import { formatAddress } from "@shared/utils/format";
-import { ResponsiveLayout, NeoDoc } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 
 const { t } = useI18n();
 const store = usePiggyStore();
@@ -164,12 +154,37 @@ const { piggyBanks, currentChainId, alchemyApiKey, walletConnectProjectId, userA
 // Tab state
 const activeTab = ref("main");
 
-// Navigation tabs
-const navTabs = computed<NavTab[]>(() => [
-  { id: "main", icon: "game", label: t("tabMain") },
-  { id: "settings", icon: "setting", label: t("tabSettings") },
-  { id: "docs", icon: "book", label: t("tabDocs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "main", labelKey: "tabMain", icon: "🐷", default: true },
+    { key: "settings", labelKey: "tabSettings", icon: "⚙️" },
+    { key: "docs", labelKey: "tabDocs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: false,
+    statusMessages: true,
+    docs: {
+      titleKey: "app.title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["docStep1", "docStep2", "docStep3", "docStep4", "docStep5"],
+      featureKeys: [
+        { nameKey: "docFeature1Name", descKey: "docFeature1Desc" },
+        { nameKey: "docFeature2Name", descKey: "docFeature2Desc" },
+        { nameKey: "docFeature3Name", descKey: "docFeature3Desc" },
+        { nameKey: "docFeature4Name", descKey: "docFeature4Desc" },
+        { nameKey: "docFeature5Name", descKey: "docFeature5Desc" },
+        { nameKey: "docFeature6Name", descKey: "docFeature6Desc" },
+      ],
+    },
+  },
+};
+
+const appState = computed(() => ({
+  bankCount: piggyBanks.value.length,
+  isConnected: isConnected.value,
+}));
 
 // Settings form
 const chainOptions = computed(() => store.EVM_CHAINS);
@@ -178,8 +193,8 @@ const selectedChain = computed(() => chainOptions.value.find((chain) => chain.id
 const currentChainIndex = computed(() =>
   Math.max(
     0,
-    chainOptions.value.findIndex((chain) => chain.id === settingsForm.value.chainId),
-  ),
+    chainOptions.value.findIndex((chain) => chain.id === settingsForm.value.chainId)
+  )
 );
 
 const settingsForm = ref({
@@ -195,18 +210,6 @@ const configIssues = computed(() => {
   if (!store.getContractAddress(currentChainId.value)) issues.push(t("settings.issue_contract"));
   return issues;
 });
-
-// Documentation
-const docSteps = computed(() => [t("docStep1"), t("docStep2"), t("docStep3"), t("docStep4"), t("docStep5")]);
-
-const docFeatures = computed(() => [
-  { name: t("docFeature1Name"), desc: t("docFeature1Desc") },
-  { name: t("docFeature2Name"), desc: t("docFeature2Desc") },
-  { name: t("docFeature3Name"), desc: t("docFeature3Desc") },
-  { name: t("docFeature4Name"), desc: t("docFeature4Desc") },
-  { name: t("docFeature5Name"), desc: t("docFeature5Desc") },
-  { name: t("docFeature6Name"), desc: t("docFeature6Desc") },
-]);
 
 // Actions
 const isLocked = (bank: PiggyBank) => Date.now() / 1000 < bank.unlockTime;
@@ -252,9 +255,11 @@ const windowWidth = ref(window.innerWidth);
 const isMobile = computed(() => windowWidth.value < 768);
 const isDesktop = computed(() => windowWidth.value >= 1024);
 
-const handleResize = () => { windowWidth.value = window.innerWidth; };
-onMounted(() => window.addEventListener('resize', handleResize));
-onUnmounted(() => window.removeEventListener('resize', handleResize));
+const handleResize = () => {
+  windowWidth.value = window.innerWidth;
+};
+onMounted(() => window.addEventListener("resize", handleResize));
+onUnmounted(() => window.removeEventListener("resize", handleResize));
 </script>
 
 <style scoped lang="scss">
@@ -536,8 +541,12 @@ onUnmounted(() => window.removeEventListener('resize', handleResize));
 
 // Responsive styles
 @media (max-width: 767px) {
-  .header { padding: 12px; }
-  .title { font-size: 24px; }
+  .header {
+    padding: 12px;
+  }
+  .title {
+    font-size: 24px;
+  }
   .grid {
     padding: 0 12px;
     gap: 12px;
@@ -546,17 +555,22 @@ onUnmounted(() => window.removeEventListener('resize', handleResize));
     right: 12px;
     bottom: 70px;
   }
-  .settings-container { padding: 12px; }
+  .settings-container {
+    padding: 12px;
+  }
 }
 @media (min-width: 1024px) {
-  .tab-content { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .tab-content {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
   .grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
   }
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

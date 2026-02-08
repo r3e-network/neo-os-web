@@ -1,72 +1,65 @@
 <template>
-  <ResponsiveLayout
-    :desktop-breakpoint="1024"
-    class="theme-neo-multisig"
-    :tabs="tabs"
-    :active-tab="activeTab"
-    @tab-change="handleTabChange"
-  >
-    <template #desktop-sidebar>
-      <view class="desktop-sidebar">
-        <text class="sidebar-title">{{ t('overview') }}</text>
-      </view>
-    </template>
+  <view class="theme-neo-multisig">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="handleTabChange">
+      <template #desktop-sidebar>
+        <view class="desktop-sidebar">
+          <text class="sidebar-title">{{ t("overview") }}</text>
+        </view>
+      </template>
 
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
+      <template #content>
+        <view class="multisig-container">
+          <view class="bg-effects">
+            <view class="glow-orb orb-1"></view>
+            <view class="glow-orb orb-2"></view>
+            <view class="grid-overlay"></view>
+          </view>
 
-    <view class="multisig-container">
-      <view class="bg-effects">
-        <view class="glow-orb orb-1"></view>
-        <view class="glow-orb orb-2"></view>
-        <view class="grid-overlay"></view>
-      </view>
+          <HeroSection :title="t('appTitle')" :headline="t('homeTitle')" :subtitle="t('homeSubtitle')" />
 
-      <HeroSection
-        :title="t('appTitle')"
-        :headline="t('homeTitle')"
-        :subtitle="t('homeSubtitle')"
-      />
+          <MainCard
+            v-model="idInput"
+            :create-title="t('createCta')"
+            :create-desc="t('createDesc')"
+            :divider-text="t('dividerOr')"
+            :load-label="t('loadTitle')"
+            :load-placeholder="t('loadPlaceholder')"
+            :load-button-text="t('loadButton')"
+            @create="navigateToCreate"
+            @load="loadTransaction"
+          />
 
-      <MainCard
-        v-model="idInput"
-        :create-title="t('createCta')"
-        :create-desc="t('createDesc')"
-        :divider-text="t('dividerOr')"
-        :load-label="t('loadTitle')"
-        :load-placeholder="t('loadPlaceholder')"
-        :load-button-text="t('loadButton')"
-        @create="navigateToCreate"
-        @load="loadTransaction"
-      />
+          <ActivitySection
+            :items="history"
+            :count="history.length"
+            :title="t('recentTitle')"
+            :empty-title="'No Activity Yet'"
+            :empty-description="t('recentEmpty')"
+            :get-status-icon="getStatusIcon"
+            :status-label="statusLabel"
+            :shorten="shorten"
+            :format-date="formatDate"
+            @select="openHistory"
+          />
 
-      <ActivitySection
-        :items="history"
-        :count="history.length"
-        :title="t('recentTitle')"
-        :empty-title="'No Activity Yet'"
-        :empty-description="t('recentEmpty')"
-        :get-status-icon="getStatusIcon"
-        :status-label="statusLabel"
-        :shorten="shorten"
-        :format-date="formatDate"
-        @select="openHistory"
-      />
-
-      <StatsRow
-        :total="history.length"
-        :pending="pendingCount"
-        :completed="completedCount"
-        total-label="Total Txs"
-        :pending-label="t('statPending')"
-        :completed-label="t('statCompleted')"
-      />
-    </view>
-  </ResponsiveLayout>
+          <StatsRow
+            :total="history.length"
+            :pending="pendingCount"
+            :completed="completedCount"
+            total-label="Total Txs"
+            :pending-label="t('statPending')"
+            :completed-label="t('statCompleted')"
+          />
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { ResponsiveLayout, ChainWarning } from "@shared/components";
+import { ref, computed } from "vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useMultisigHistory } from "@/composables/useMultisigHistory";
 import { useMultisigUI } from "@/composables/useMultisigUI";
@@ -77,9 +70,25 @@ import StatsRow from "@/components/StatsRow.vue";
 
 const { t } = useI18n();
 const { history, pendingCount, completedCount } = useMultisigHistory();
-const { getStatusIcon, statusLabel, shorten, formatDate, tabs } = useMultisigUI();
+const { getStatusIcon, statusLabel, shorten, formatDate } = useMultisigUI();
 
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "home", labelKey: "tabHome", icon: "🏠", default: true },
+    { key: "docs", labelKey: "tabDocs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+  },
+};
 const activeTab = ref("home");
+const appState = computed(() => ({
+  totalTxs: history.value.length,
+  pending: pendingCount.value,
+  completed: completedCount.value,
+}));
 const idInput = ref("");
 
 const handleTabChange = (tabId: string) => {
@@ -160,8 +169,13 @@ const openHistory = (id: string) => {
 }
 
 @keyframes float {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(30px, -20px); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(30px, -20px);
+  }
 }
 
 .desktop-sidebar {

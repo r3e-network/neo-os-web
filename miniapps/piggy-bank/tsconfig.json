@@ -1,20 +1,6 @@
 {
+  "extends": "../tsconfig.miniapp.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "useDefineForClassFields": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "jsx": "preserve",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
-    "skipLibCheck": true,
-    "noEmit": true,
     "paths": {
       "@/*": [
         "./src/*"
@@ -31,5 +17,9 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.vue"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ]
 }

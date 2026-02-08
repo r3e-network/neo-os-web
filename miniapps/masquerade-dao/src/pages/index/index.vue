@@ -1,22 +1,21 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-masquerade">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="combinedStatus"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view class="theme-masquerade">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <view class="app-container">
-        <view v-if="maskStatus || voteStatus" :class="['status-msg', (maskStatus || voteStatus)?.type]">
-          <text>{{ (maskStatus || voteStatus)?.msg }}</text>
-        </view>
-
-        <view v-if="activeTab === 'identity'" class="tab-content">
+      <template #content>
+        <view class="app-container">
           <CreateProposal
             v-model="createForm"
             :identityHash="identityHash"
@@ -35,8 +34,10 @@
             @select="selectedMaskId = $event"
           />
         </view>
+      </template>
 
-        <view v-if="activeTab === 'vote'" class="tab-content">
+      <template #tab-vote>
+        <view class="app-container">
           <VoteForm
             v-model="voteForm"
             :masks="masks"
@@ -56,25 +57,15 @@
             @select="voteForm.proposalId = $event"
           />
         </view>
-      </view>
-
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-    </view>
-  </ResponsiveLayout>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { ResponsiveLayout, NeoDoc, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useMasqueradeProposals } from "@/composables/useMasqueradeProposals";
 import { useMasqueradeVoting, type VoteChoice } from "@/composables/useMasqueradeVoting";
@@ -100,20 +91,39 @@ const {
   createMask,
 } = useMasqueradeProposals(APP_ID);
 
-const {
-  proposalId,
-  status: voteStatus,
-  isLoading: isVoting,
-  canVote,
-  submitVote,
-} = useMasqueradeVoting(APP_ID);
+const { proposalId, status: voteStatus, isLoading: isVoting, canVote, submitVote } = useMasqueradeVoting(APP_ID);
 
 const activeTab = ref("identity");
-const navTabs = computed(() => [
-  { id: "identity", label: t("identity"), icon: "👤" },
-  { id: "vote", label: t("vote"), icon: "🗳️" },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "identity", labelKey: "identity", icon: "👤", default: true },
+    { key: "vote", labelKey: "vote", icon: "🗳️" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
+
+const appState = computed(() => ({
+  totalMasks: masks.value.length,
+  totalProposals: proposals.value.length,
+}));
+
+const combinedStatus = computed(() => maskStatus.value || voteStatus.value || null);
 
 const createForm = computed({
   get: () => ({ identitySeed: identitySeed.value, maskType: maskType.value }),
@@ -129,12 +139,6 @@ const voteForm = computed({
     proposalId.value = val.proposalId;
   },
 });
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
 
 const handleCreateMask = async () => {
   await createMask(t);

@@ -1,99 +1,98 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
-      <!-- Desktop Sidebar -->
+  <view class="theme-neo-news">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-    <!-- News Tab -->
-    <view v-if="activeTab === 'news'" class="nnt-container theme-neo-news">
-      <!-- Loading State -->
-      <view v-if="loading" class="nnt-loading">
-        <view class="nnt-spinner" />
-        <text class="nnt-loading-text">{{ t("loading") }}</text>
-      </view>
+      <template #content>
+        <view class="nnt-container">
+          <!-- Loading State -->
+          <view v-if="loading" class="nnt-loading">
+            <view class="nnt-spinner" />
+            <text class="nnt-loading-text">{{ t("loading") }}</text>
+          </view>
 
-      <!-- Articles List -->
-      <view v-else class="nnt-articles">
-        <NeoCard v-if="errorMessage" variant="danger" class="nnt-empty-card">
-          <text class="nnt-empty-text">{{ errorMessage }}</text>
-        </NeoCard>
-        <template v-else>
-          <NeoCard
-            v-for="article in articles"
-            :key="article.id"
-            variant="erobo"
-            class="nnt-article-card"
-            @click="openArticle(article)"
-          >
-            <view class="article-inner">
-              <image v-if="article.image" :src="article.image" class="nnt-article-image" mode="aspectFill" :alt="article.title || t('articleImage')" />
-              <view class="nnt-article-content">
-                <text class="nnt-article-title-glass">{{ article.title }}</text>
-                <view class="nnt-meta mb-2">
-                  <text class="nnt-article-date-glass">{{ formatDate(article.date) }}</text>
+          <!-- Articles List -->
+          <view v-else class="nnt-articles">
+            <NeoCard v-if="errorMessage" variant="danger" class="nnt-empty-card">
+              <text class="nnt-empty-text">{{ errorMessage }}</text>
+            </NeoCard>
+            <template v-else>
+              <NeoCard
+                v-for="article in articles"
+                :key="article.id"
+                variant="erobo"
+                class="nnt-article-card"
+                @click="openArticle(article)"
+              >
+                <view class="article-inner">
+                  <image
+                    v-if="article.image"
+                    :src="article.image"
+                    class="nnt-article-image"
+                    mode="aspectFill"
+                    :alt="article.title || t('articleImage')"
+                  />
+                  <view class="nnt-article-content">
+                    <text class="nnt-article-title-glass">{{ article.title }}</text>
+                    <view class="nnt-meta mb-2">
+                      <text class="nnt-article-date-glass">{{ formatDate(article.date) }}</text>
+                    </view>
+                    <text class="nnt-article-excerpt-glass">{{ article.excerpt }}</text>
+                    <view class="read-more mt-3">
+                      <text class="read-more-text">{{ t("readMore") }} →</text>
+                    </view>
+                  </view>
                 </view>
-                <text class="nnt-article-excerpt-glass">{{ article.excerpt }}</text>
-                <view class="read-more mt-3">
-                  <text class="read-more-text">{{ t("readMore") }} →</text>
-                </view>
-              </view>
-            </view>
-          </NeoCard>
-          <NeoCard v-if="articles.length === 0" variant="erobo" class="nnt-empty-card">
-            <text class="nnt-empty-text">{{ t("noArticles") }}</text>
-          </NeoCard>
-        </template>
-      </view>
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+              </NeoCard>
+              <NeoCard v-if="articles.length === 0" variant="erobo" class="nnt-empty-card">
+                <text class="nnt-empty-text">{{ t("noArticles") }}</text>
+              </NeoCard>
+            </template>
+          </view>
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from "vue";
-
-// Responsive state
-const windowWidth = ref(window.innerWidth);
-const isMobile = computed(() => windowWidth.value < 768);
-const isDesktop = computed(() => windowWidth.value >= 1024);
-const handleResize = () => { windowWidth.value = window.innerWidth; };
-
-onMounted(() => window.addEventListener('resize', handleResize));
-onUnmounted(() => window.removeEventListener('resize', handleResize));
-import { ResponsiveLayout, NeoCard, NeoDoc, ChainWarning } from "@shared/components";
+import { ref, onMounted, computed } from "vue";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
-import type { NavTab } from "@shared/components/NavBar.vue";
 
 const { t } = useI18n();
 
-const navTabs = computed<NavTab[]>(() => [
-  { id: "news", icon: "news", label: t("news") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "market-list",
+  tabs: [
+    { key: "news", labelKey: "news", icon: "📰", default: true },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      descriptionKey: "docDescription",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("news");
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const appState = computed(() => ({
+  articleCount: articles.value.length,
+  loading: loading.value,
+}));
 
 interface Article {
   id: string;
@@ -108,6 +107,36 @@ const loading = ref(true);
 const articles = ref<Article[]>([]);
 const errorMessage = ref("");
 
+const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
+const LOCAL_NEWS_MOCK = {
+  articles: [
+    {
+      id: "nnt-001",
+      title: "Neo Council Publishes Q1 Ecosystem Priorities",
+      summary: "A new roadmap highlights grants, infrastructure reliability, and developer onboarding improvements.",
+      pubDate: "2026-02-06T15:00:00.000Z",
+      imageUrl: "",
+      link: "https://neonewstoday.com/general/neo-council-q1-priorities",
+    },
+    {
+      id: "nnt-002",
+      title: "GrantShares Community Roundup: February",
+      summary: "An overview of active proposals, voting outcomes, and upcoming DAO milestones.",
+      pubDate: "2026-02-05T12:30:00.000Z",
+      imageUrl: "",
+      link: "https://neonewstoday.com/general/grantshares-roundup-february",
+    },
+    {
+      id: "nnt-003",
+      title: "Tooling Updates Improve Smart Contract Testing",
+      summary: "New updates streamline local testing workflows and improve transaction trace visibility.",
+      pubDate: "2026-02-03T09:20:00.000Z",
+      imageUrl: "",
+      link: "https://neonewstoday.com/development/tooling-updates-testing",
+    },
+  ],
+};
+
 onMounted(async () => {
   await fetchArticles();
 });
@@ -117,11 +146,17 @@ async function fetchArticles() {
   errorMessage.value = "";
   try {
     // Fetch from NNT RSS or API
-    const res = await fetch("/api/nnt-news?limit=20");
-    if (!res.ok) {
-      throw new Error(t("loadFailed"));
+    let data: any = null;
+
+    if (isLocalPreview) {
+      data = LOCAL_NEWS_MOCK;
+    } else {
+      const res = await fetch("/api/nnt-news?limit=20");
+      if (!res.ok) {
+        throw new Error(t("loadFailed"));
+      }
+      data = await res.json();
     }
-    const data = await res.json();
     const rawArticles = Array.isArray(data.articles) ? data.articles : [];
     articles.value = rawArticles
       .map((article: any) => ({
@@ -385,7 +420,6 @@ function openArticle(article: Article) {
     height: 220px;
   }
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

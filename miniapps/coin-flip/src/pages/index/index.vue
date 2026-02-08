@@ -20,34 +20,22 @@
       />
     </view>
 
-    <ResponsiveLayout :desktop-breakpoint="1024" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
-        </view>
-      </template>
->
-      <!-- Chain Warning - Framework Component -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-      
-      <ErrorBoundary 
-        @error="handleBoundaryError" 
-        @retry="resetGame"
-        :fallback-message="t('gameErrorFallback')"
+    <ErrorBoundary @error="handleBoundaryError" @retry="resetGame" :fallback-message="t('gameErrorFallback')">
+      <MiniAppTemplate
+        :config="templateConfig"
+        :state="appState"
+        :t="t"
+        :fireworks-active="showWinOverlay"
+        @tab-change="activeTab = $event"
       >
-        <!-- Game Tab -->
-        <view
-          v-if="activeTab === 'game'"
-          class="tab-content"
-        >
+        <!-- Game content -->
+        <template #content>
           <!-- Wallet Connection Warning -->
           <view v-if="!address" class="wallet-warning">
             <NeoCard variant="warning" class="text-center">
-              <text class="font-bold">{{ t('connectWalletToPlay') }}</text>
+              <text class="font-bold">{{ t("connectWalletToPlay") }}</text>
               <NeoButton variant="primary" size="sm" class="mt-2" @click="connectWallet">
-                {{ t('connectWallet') }}
+                {{ t("connectWallet") }}
               </NeoButton>
             </NeoCard>
           </view>
@@ -80,7 +68,7 @@
             <text>{{ errorMessage }}</text>
             <view v-if="canRetryError" class="retry-actions">
               <NeoButton variant="secondary" size="sm" @click="retryOperation">
-                {{ t('retry') }}
+                {{ t("retry") }}
               </NeoButton>
             </view>
           </view>
@@ -92,27 +80,16 @@
             :t="t as (key: string) => string"
             @close="showWinOverlay = false"
           />
-        </view>
+        </template>
 
-        <!-- Stats Tab -->
-        <view v-if="activeTab === 'stats'" class="tab-content scrollable">
+        <!-- Stats tab -->
+        <template #tab-stats>
           <NeoCard variant="erobo" class="mb-6">
             <NeoStats :stats="gameStats" />
           </NeoCard>
-        </view>
-
-        <!-- Docs Tab -->
-        <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-          <NeoDoc
-            :title="t('title')"
-            :subtitle="t('docSubtitle')"
-            :description="t('docDescription')"
-            :steps="docSteps"
-            :features="docFeatures"
-          />
-        </view>
-      </ErrorBoundary>
-    </ResponsiveLayout>
+        </template>
+      </MiniAppTemplate>
+    </ErrorBoundary>
   </view>
 </template>
 
@@ -126,9 +103,9 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { sha256Hex, sha256HexFromHex } from "@shared/utils/hash";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoCard, NeoStats, NeoDoc, NeoButton, type StatItem, ChainWarning, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoStats, NeoButton, type StatItem, ErrorBoundary } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { audioManager } from "../../utils/audio";
-import type { NavTab } from "@shared/components/NavBar.vue";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useGameState } from "@shared/composables/useGameState";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
@@ -140,18 +117,30 @@ import ResultOverlay from "./components/ResultOverlay.vue";
 const { t } = useI18n();
 const { handleError, getUserMessage, canRetry, clearError, lastCategory } = useErrorHandler();
 
-const navTabs = computed<NavTab[]>(() => [
-  { id: "game", icon: "game", label: t("game") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
-const activeTab = ref("game");
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "game-board",
+  tabs: [
+    { key: "game", labelKey: "game", icon: "🎮", default: true },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const activeTab = ref("game");
 
 const APP_ID = "miniapp-coinflip";
 const SCRIPT_NAME = "flip-coin";
@@ -196,7 +185,7 @@ const hashSeed = async (seed: string): Promise<string> => {
 
 const simulateCoinFlip = async (
   seed: string,
-  playerChoice: boolean,
+  playerChoice: boolean
 ): Promise<{ won: boolean; outcome: "heads" | "tails" }> => {
   const hashHex = await hashSeed(seed);
   const rand = hexToBigInt(hashHex);
@@ -236,6 +225,14 @@ const gameStats = computed<StatItem[]>(() => [
   { label: t("totalWon"), value: `${formatNum(totalWon.value)} GAS`, variant: "accent" },
 ]);
 
+// Reactive state bridge for MiniAppTemplate
+const appState = computed(() => ({
+  totalGames: wins.value + losses.value,
+  wins: wins.value,
+  losses: losses.value,
+  totalWon: totalWon.value,
+}));
+
 const showError = (msg: string, retryable = false) => {
   errorMessage.value = msg;
   canRetryError.value = retryable;
@@ -263,7 +260,7 @@ const ensureContractAddress = async () => {
 const ensureScriptHash = async () => {
   if (flipScriptHash.value) return flipScriptHash.value;
   const contract = await ensureContractAddress();
-  
+
   try {
     const info = await invokeRead({ scriptHash: contract, operation: "getFlipScriptInfo" });
     const parsed = parseInvokeResult(info);
@@ -364,7 +361,7 @@ const handleFlip = async () => {
     // Process payment and get invoke function
     const { receiptId, invoke: invokeWithReceipt } = await processPayment(
       betAmount.value,
-      `coinflip:${choice.value}:${betAmount.value}`,
+      `coinflip:${choice.value}:${betAmount.value}`
     );
 
     // Initiate bet using the invoke function from payment flow
@@ -403,7 +400,7 @@ const handleFlip = async () => {
     else audioManager.play("lose");
 
     const scriptHash = await ensureScriptHash();
-    
+
     try {
       const settleTx = await invokeContract({
         scriptHash: contract,
@@ -550,7 +547,6 @@ onUnmounted(() => {
     letter-spacing: -1px;
   }
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

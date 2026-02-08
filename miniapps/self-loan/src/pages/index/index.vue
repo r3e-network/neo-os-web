@@ -1,89 +1,95 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-self-loan" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
+  <view class="theme-self-loan">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="core.status.value"
+      @tab-change="activeTab = $event"
+    >
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
-    <ErrorBoundary 
-      @error="handleBoundaryError" 
-      @retry="resetAndReload"
-      :fallback-message="t('selfLoanErrorFallback')"
-    >
-      <view v-if="errorMessage" class="error-toast" :class="{ 'error-retryable': canRetryError }">
-        <text>{{ errorMessage }}</text>
-        <view v-if="canRetryError" class="retry-actions">
-          <NeoButton variant="secondary" size="sm" @click="retryLastOperation">
-            {{ t('retry') }}
-          </NeoButton>
-        </view>
-      </view>
 
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
+      <!-- Main Tab (default) -->
+      <template #content>
+        <ErrorBoundary
+          @error="handleBoundaryError"
+          @retry="resetAndReload"
+          :fallback-message="t('selfLoanErrorFallback')"
+        >
+          <view v-if="errorMessage" class="error-toast" :class="{ 'error-retryable': canRetryError }">
+            <text>{{ errorMessage }}</text>
+            <view v-if="canRetryError" class="retry-actions">
+              <NeoButton variant="secondary" size="sm" @click="retryLastOperation">
+                {{ t("retry") }}
+              </NeoButton>
+            </view>
+          </view>
 
-      <view v-if="activeTab === 'main'" class="tab-content">
-        <NeoCard v-if="core.status" :variant="core.status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-          <text class="font-bold">{{ core.status.msg }}</text>
-        </NeoCard>
-
-        <view v-if="!core.address" class="wallet-prompt mb-4">
-          <NeoCard variant="warning" class="text-center">
-            <text class="font-bold block mb-2">{{ t('connectWalletToUse') }}</text>
-            <NeoButton variant="primary" size="sm" @click="connectWallet">
-              {{ t('connectWallet') }}
-            </NeoButton>
+          <NeoCard
+            v-if="core.status.value"
+            :variant="core.status.value?.type === 'error' ? 'danger' : 'success'"
+            class="mb-4 text-center"
+          >
+            <text class="font-bold">{{ core.status.value?.msg }}</text>
           </NeoCard>
-        </view>
 
-        <BorrowForm
-          v-model="core.collateralAmount"
-          v-model:selectedTier="core.selectedTier"
-          :terms="core.borrowTerms"
-          :ltv-options="core.ltvOptions"
-          :platform-fee-bps="core.platformFeeBps"
-          :is-loading="core.isLoading"
-          :is-connected="!!core.address"
-          :validation-error="validationError"
-          :t="t as any"
-          @takeLoan="handleTakeLoan"
-        />
+          <view v-if="!core.address.value" class="wallet-prompt mb-4">
+            <NeoCard variant="warning" class="text-center">
+              <text class="mb-2 block font-bold">{{ t("connectWalletToUse") }}</text>
+              <NeoButton variant="primary" size="sm" @click="connectWallet">
+                {{ t("connectWallet") }}
+              </NeoButton>
+            </NeoCard>
+          </view>
 
-        <CollateralStatus
-          :loan="core.loan"
-          :available-collateral="core.neoBalance"
-          :collateral-utilization="core.collateralUtilization"
-          :t="t as any"
-        />
+          <BorrowForm
+            v-model="core.collateralAmount.value"
+            v-model:selectedTier="core.selectedTier.value"
+            :terms="core.borrowTerms.value"
+            :ltv-options="core.ltvOptions.value"
+            :platform-fee-bps="core.platformFeeBps.value"
+            :is-loading="core.isLoading.value"
+            :is-connected="!!core.address.value"
+            :validation-error="validationError"
+            :t="t as any"
+            @takeLoan="handleTakeLoan"
+          />
 
-        <PositionSummary
-          :loan="core.loan"
-          :terms="core.positionTerms"
-          :health-factor="core.healthFactor"
-          :current-l-t-v="core.currentLTV"
-          :t="t as any"
-        />
-      </view>
+          <CollateralStatus
+            :loan="core.loan.value"
+            :available-collateral="core.neoBalance.value"
+            :collateral-utilization="core.collateralUtilization.value"
+            :t="t as any"
+          />
 
-      <StatsTab v-if="activeTab === 'stats'" :stats="history.stats" :loan-history="history.loanHistory" :t="t as any" />
+          <PositionSummary
+            :loan="core.loan.value"
+            :terms="core.positionTerms.value"
+            :health-factor="core.healthFactor.value"
+            :current-l-t-v="core.currentLTV.value"
+            :t="t as any"
+          />
+        </ErrorBoundary>
+      </template>
 
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-    </ErrorBoundary>
-  </ResponsiveLayout>
+      <!-- Stats Tab -->
+      <template #tab-stats>
+        <StatsTab :stats="history.stats.value" :loan-history="history.loanHistory.value" :t="t as any" />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { toFixedDecimals } from "@shared/utils/format";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoDoc, NeoCard, NeoButton, ChainWarning, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import PositionSummary from "./components/PositionSummary.vue";
 import CollateralStatus from "./components/CollateralStatus.vue";
 import BorrowForm from "./components/BorrowForm.vue";
@@ -97,20 +103,36 @@ const { handleError, getUserMessage, canRetry, clearError } = useErrorHandler();
 const core = useSelfLoanCore();
 const history = useSelfLoanHistory();
 
-const navTabs = computed(() => [
-  { id: "main", icon: "wallet", label: t("main") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "main", labelKey: "main", icon: "💰", default: true },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 
 const activeTab = ref("main");
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-]);
+const appState = computed(() => ({
+  hasLoan: !!core.loan.value,
+  isConnected: !!core.address.value,
+}));
 
 const errorMessage = ref<string | null>(null);
 const canRetryError = ref(false);
@@ -152,14 +174,14 @@ const resetAndReload = async () => {
 };
 
 const retryLastOperation = () => {
-  if (lastOperation.value === 'takeLoan') {
+  if (lastOperation.value === "takeLoan") {
     handleTakeLoan();
   }
 };
 
 const handleTakeLoan = async (): Promise<void> => {
   if (core.isLoading.value) return;
-  
+
   const validation = core.validateCollateral(core.collateralAmount.value, core.neoBalance.value);
   if (validation) {
     validationError.value = validation;
@@ -167,7 +189,7 @@ const handleTakeLoan = async (): Promise<void> => {
     return;
   }
   validationError.value = null;
-  
+
   const collateral = Number(toFixedDecimals(core.collateralAmount.value, 0));
   const ltvPercent = core.selectedLtvPercent.value;
   const feeBps = core.platformFeeBps.value;
@@ -191,11 +213,11 @@ const handleTakeLoan = async (): Promise<void> => {
   }
 
   core.isLoading.value = true;
-  lastOperation.value = 'takeLoan';
-  
+  lastOperation.value = "takeLoan";
+
   try {
     const selfLoanAddress = await core.ensureContractAddress();
-    
+
     await core.invokeContract({
       scriptHash: selfLoanAddress,
       operation: "CreateLoan",
@@ -325,7 +347,7 @@ onMounted(() => {
     border-color: var(--checkbook-danger-border) !important;
     background: var(--checkbook-danger-bg) !important;
   }
-  
+
   &.variant-warning {
     border-color: var(--checkbook-accent) !important;
   }

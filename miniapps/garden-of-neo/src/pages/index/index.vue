@@ -1,43 +1,34 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-garden-of-neo" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-garden-of-neo">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view v-if="activeTab === 'garden'" class="flex flex-col h-full">
-      <!-- Chain Warning - Framework Component -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-      <GardenTab
-        :t="t"
-        :contract-address="contractAddress"
-        :ensure-contract-address="ensureContractAddress"
-        @update:stats="updateStats"
-      />
-    </view>
 
-    <StatsTab
-      v-if="activeTab === 'stats'"
-      :t="t"
-      :total-plants="stats.totalPlants"
-      :ready-to-harvest="stats.readyToHarvest"
-      :total-harvested="stats.totalHarvested"
-    />
+      <template #content>
+        <view class="flex h-full flex-col">
+          <GardenTab
+            :t="t"
+            :contract-address="contractAddress"
+            :ensure-contract-address="ensureContractAddress"
+            @update:stats="updateStats"
+          />
+        </view>
+      </template>
 
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+      <template #tab-stats>
+        <StatsTab
+          :t="t"
+          :total-plants="stats.totalPlants"
+          :ready-to-harvest="stats.readyToHarvest"
+          :total-harvested="stats.totalHarvested"
+        />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -46,19 +37,43 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoDoc, NeoCard, NeoButton, ChainWarning } from "@shared/components";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import GardenTab from "./components/GardenTab.vue";
 import StatsTab from "./components/StatsTab.vue";
 
 const { t } = useI18n();
 
-const navTabs = computed(() => [
-  { id: "garden", icon: "leaf", label: t("garden") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
-
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "custom",
+  tabs: [
+    { key: "garden", labelKey: "garden", icon: "🌱", default: true },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("garden");
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+  totalPlants: stats.value.totalPlants,
+  readyToHarvest: stats.value.readyToHarvest,
+  totalHarvested: stats.value.totalHarvested,
+}));
 
 // Stats State
 const stats = ref({
@@ -85,14 +100,6 @@ const ensureContractAddress = async () => {
   if (!contractAddress.value) throw new Error(t("missingContract"));
   return contractAddress.value;
 };
-
-// Docs
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-]);
 </script>
 
 <style lang="scss" scoped>
@@ -204,7 +211,6 @@ const docFeatures = computed(() => [
   background: var(--bg-primary);
   background-image: none;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

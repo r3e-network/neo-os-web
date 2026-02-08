@@ -1,100 +1,88 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-neo-sign-anything"
-    :title="t('appTitle')"
-    :show-top-nav="false"
-    :active-tab="currentTab"
-    :tabs="[
-      { id: 'home', label: t('home'), icon: 'Home' },
-      { id: 'docs', label: t('docs'), icon: 'Book' },
-    ]"
-    @tab-change="onTabChange"
-  
-
-      <!-- Desktop Sidebar -->
+  <view class="theme-neo-sign-anything">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="onTabChange">
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view class="container">
-      <!-- Chain Warning - Framework Component -->
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <view class="header">
-        <text class="title">{{ t("signTitle") }}</text>
-        <text class="subtitle">{{ t("signDesc") }}</text>
-      </view>
-
-      <NeoCard variant="erobo">
-        <view class="input-group">
-          <text class="label">{{ t("messageLabel") }}</text>
-          <textarea v-model="message" class="textarea" :placeholder="t('messagePlaceholder')" maxlength="1000" />
-          <view class="char-count">{{ message.length }}/1000</view>
-        </view>
-
-        <view class="actions">
-          <NeoButton variant="primary" block :loading="isSigning" @click="signMessage" :disabled="!message || !address">
-            {{ t("signBtn") }}
-          </NeoButton>
-
-          <NeoButton
-            variant="ghost"
-            block
-            :loading="isBroadcasting"
-            @click="broadcastMessage"
-            :disabled="!message || !address"
-            style="margin-top: 12px"
-          >
-            {{ t("broadcastBtn") }}
-          </NeoButton>
-        </view>
-      </NeoCard>
-
-      <view v-if="signature" class="result-card">
-        <NeoCard variant="erobo-neo">
-          <view class="result-header">
-            <text class="result-title">{{ t("signatureResult") }}</text>
-            <view class="copy-btn" @click="copyToClipboard(signature)">
-              <text class="copy-text">{{ t("copy") }}</text>
-            </view>
+      <template #content>
+        <view class="container">
+          <view class="header">
+            <text class="title">{{ t("signTitle") }}</text>
+            <text class="subtitle">{{ t("signDesc") }}</text>
           </view>
-          <text class="result-text">{{ signature }}</text>
-        </NeoCard>
-      </view>
 
-      <view v-if="txHash" class="result-card">
-        <NeoCard variant="erobo-purple">
-          <view class="result-header">
-            <text class="result-title">{{ t("broadcastResult") }}</text>
-            <view class="copy-btn" @click="copyToClipboard(txHash)">
-              <text class="copy-text">{{ t("copy") }}</text>
+          <NeoCard variant="erobo">
+            <view class="input-group">
+              <text class="label">{{ t("messageLabel") }}</text>
+              <textarea v-model="message" class="textarea" :placeholder="t('messagePlaceholder')" maxlength="1000" />
+              <view class="char-count">{{ message.length }}/1000</view>
             </view>
-          </view>
-          <text class="result-text">{{ txHash }}</text>
-          <text class="success-msg">{{ t("broadcastSuccess") }}</text>
-        </NeoCard>
-      </view>
 
-      <view v-if="!address" class="connect-prompt">
-        <text class="connect-text">{{ t("connectWallet") }}</text>
-      </view>
-    </view>
-  </ResponsiveLayout>
+            <view class="actions">
+              <NeoButton
+                variant="primary"
+                block
+                :loading="isSigning"
+                @click="signMessage"
+                :disabled="!message || !address"
+              >
+                {{ t("signBtn") }}
+              </NeoButton>
+
+              <NeoButton
+                variant="ghost"
+                block
+                :loading="isBroadcasting"
+                @click="broadcastMessage"
+                :disabled="!message || !address"
+                style="margin-top: 12px"
+              >
+                {{ t("broadcastBtn") }}
+              </NeoButton>
+            </view>
+          </NeoCard>
+
+          <view v-if="signature" class="result-card">
+            <NeoCard variant="erobo-neo">
+              <view class="result-header">
+                <text class="result-title">{{ t("signatureResult") }}</text>
+                <view class="copy-btn" @click="copyToClipboard(signature)">
+                  <text class="copy-text">{{ t("copy") }}</text>
+                </view>
+              </view>
+              <text class="result-text">{{ signature }}</text>
+            </NeoCard>
+          </view>
+
+          <view v-if="txHash" class="result-card">
+            <NeoCard variant="erobo-purple">
+              <view class="result-header">
+                <text class="result-title">{{ t("broadcastResult") }}</text>
+                <view class="copy-btn" @click="copyToClipboard(txHash)">
+                  <text class="copy-text">{{ t("copy") }}</text>
+                </view>
+              </view>
+              <text class="result-text">{{ txHash }}</text>
+              <text class="success-msg">{{ t("broadcastSuccess") }}</text>
+            </NeoCard>
+          </view>
+
+          <view v-if="!address" class="connect-prompt">
+            <text class="connect-text">{{ t("connectWallet") }}</text>
+          </view>
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
-
-// Responsive state
-const windowWidth = ref(window.innerWidth);
-const isMobile = computed(() => windowWidth.value < 768);
-const isDesktop = computed(() => windowWidth.value >= 1024);
-const handleResize = () => { windowWidth.value = window.innerWidth; };
-
-onMounted(() => window.addEventListener('resize', handleResize));
-onUnmounted(() => window.removeEventListener('resize', handleResize));
-import { ResponsiveLayout, NeoCard, NeoButton, ChainWarning } from "@shared/components";
+import { ref, computed } from "vue";
+import { MiniAppTemplate, NeoCard, NeoButton } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { requireNeoChain } from "@shared/utils/chain";
@@ -103,6 +91,18 @@ import { useI18n } from "@/composables/useI18n";
 // i18n
 const { t } = useI18n();
 
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "home", labelKey: "home", icon: "🏠", default: true },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+  },
+};
+
 // State
 const message = ref("");
 const signature = ref("");
@@ -110,6 +110,10 @@ const txHash = ref("");
 const isSigning = ref(false);
 const isBroadcasting = ref(false);
 const currentTab = ref("home");
+const appState = computed(() => ({
+  walletConnected: !!address.value,
+  hasSigned: !!signature.value,
+}));
 
 const { address, connect, signMessage: signWithWallet, invokeContract, chainType } = useWallet() as WalletSDK;
 const MAX_MESSAGE_BYTES = 1024;
@@ -398,7 +402,6 @@ const copyToClipboard = (text: string) => {
     font-size: 32px;
   }
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

@@ -1,63 +1,56 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-burn-league" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-burn-league">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      :fireworks-active="status?.type === 'success'"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-    <view v-if="activeTab === 'game'" class="tab-content">
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
+      <template #content>
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
+          <text class="font-bold">{{ status.msg }}</text>
+        </NeoCard>
 
-      <!-- Burn Action Card -->
-      <BurnActionCard
-        v-model:burnAmount="burnAmount"
-        :estimated-reward="estimatedReward"
-        :is-loading="isLoading"
-        :t="t as any"
-        @burn="burnTokens"
-      />
-    </view>
+        <!-- Burn Action Card -->
+        <BurnActionCard
+          v-model:burnAmount="burnAmount"
+          :estimated-reward="estimatedReward"
+          :is-loading="isLoading"
+          :t="t as any"
+          @burn="burnTokens"
+        />
+      </template>
 
-    <view v-if="activeTab === 'stats'" class="tab-content scrollable">
-      <!-- Total Burned Hero Section with Fire Animation -->
-      <HeroSection :total-burned="totalBurned" :t="t as any" />
+      <template #tab-stats>
+        <!-- Total Burned Hero Section with Fire Animation -->
+        <HeroSection :total-burned="totalBurned" :t="t as any" />
 
-      <!-- Stats Grid -->
-      <StatsGrid :user-burned="userBurned" :rank="rank" :t="t as any" />
+        <!-- Stats Grid -->
+        <StatsGrid :user-burned="userBurned" :rank="rank" :t="t as any" />
 
-      <StatsTab
-        :burn-count="burnCount"
-        :user-burned="userBurned"
-        :total-burned="totalBurned"
-        :rank="rank"
-        :estimated-reward="estimatedReward"
-        :t="t as any"
-      />
+        <StatsTab
+          :burn-count="burnCount"
+          :user-burned="userBurned"
+          :total-burned="totalBurned"
+          :rank="rank"
+          :estimated-reward="estimatedReward"
+          :t="t as any"
+        />
 
-      <!-- Leaderboard in Stats Tab -->
-      <LeaderboardList :leaderboard="leaderboard" />
-    </view>
-
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-    <Fireworks :active="status?.type === 'success'" :duration="3000" />
-  </ResponsiveLayout>
+        <!-- Leaderboard in Stats Tab -->
+        <LeaderboardList :leaderboard="leaderboard" />
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -69,9 +62,8 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { ResponsiveLayout, NeoCard, NeoDoc, ChainWarning } from "@shared/components";
-import Fireworks from "@shared/components/Fireworks.vue";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 
 import HeroSection from "./components/HeroSection.vue";
 import StatsGrid from "./components/StatsGrid.vue";
@@ -81,18 +73,37 @@ import StatsTab from "./components/StatsTab.vue";
 
 const { t } = useI18n();
 
-const navTabs = computed<NavTab[]>(() => [
-  { id: "game", icon: "game", label: t("game") },
-  { id: "stats", icon: "chart", label: t("stats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "custom",
+  tabs: [
+    { key: "game", labelKey: "game", icon: "🎮", default: true },
+    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: true,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
+
 const activeTab = ref("game");
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const appState = computed(() => ({
+  totalBurned: totalBurned.value,
+  userBurned: userBurned.value,
+  rank: rank.value,
+  burnCount: burnCount.value,
+}));
 
 const APP_ID = "miniapp-burn-league";
 const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
@@ -338,7 +349,6 @@ watch(address, () => {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

@@ -1,77 +1,68 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-memorial-shrine" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-memorial-shrine">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <!-- Chain Warning - Framework Component -->
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-    <!-- Memorials Tab -->
-    <view v-if="activeTab === 'memorials'" class="tab-content cemetery-bg">
-      <view class="header">
-        <text class="title">🕯️ {{ t("title") }}</text>
-        <text class="tagline">{{ t("tagline") }}</text>
-        <text class="subtitle">{{ t("subtitle") }}</text>
-      </view>
 
-      <view class="obituary-banner" v-if="recentObituaries.length">
-        <text class="banner-title">📜 {{ t("obituaries") }}</text>
-        <scroll-view scroll-x class="banner-scroll">
-          <view v-for="ob in recentObituaries" :key="ob.id" class="obituary-item" @click="openMemorial(ob.id)">
-            <text class="name">{{ ob.name }}</text>
-            <text class="text">{{ ob.text }}</text>
+      <template #content>
+        <view class="cemetery-bg">
+          <view class="header">
+            <text class="title">{{ t("title") }}</text>
+            <text class="tagline">{{ t("tagline") }}</text>
+            <text class="subtitle">{{ t("subtitle") }}</text>
           </view>
-        </scroll-view>
-      </view>
 
-      <view class="memorials-grid">
-        <TombstoneCard
-          v-for="memorial in memorials"
-          :key="memorial.id"
-          :memorial="memorial"
-          @click="openMemorial(memorial.id)"
-        />
-      </view>
-    </view>
+          <view class="obituary-banner" v-if="recentObituaries.length">
+            <text class="banner-title">{{ t("obituaries") }}</text>
+            <scroll-view scroll-x class="banner-scroll">
+              <view v-for="ob in recentObituaries" :key="ob.id" class="obituary-item" @click="openMemorial(ob.id)">
+                <text class="name">{{ ob.name }}</text>
+                <text class="text">{{ ob.text }}</text>
+              </view>
+            </scroll-view>
+          </view>
 
-    <!-- My Tributes Tab -->
-    <view v-if="activeTab === 'tributes'" class="tab-content cemetery-bg">
-      <view class="section-header">
-        <text class="section-title">🙏 {{ t("myTributes") }}</text>
-        <text class="section-desc">{{ t("myTributesDesc") }}</text>
-      </view>
-      <view class="memorials-grid" v-if="visitedMemorials.length">
-        <TombstoneCard
-          v-for="memorial in visitedMemorials"
-          :key="memorial.id"
-          :memorial="memorial"
-          @click="openMemorial(memorial.id)"
-        />
-      </view>
-      <view v-else class="empty-state">
-        <text>{{ t("noTributes") }}</text>
-      </view>
-    </view>
+          <view class="memorials-grid">
+            <TombstoneCard
+              v-for="memorial in memorials"
+              :key="memorial.id"
+              :memorial="memorial"
+              @click="openMemorial(memorial.id)"
+            />
+          </view>
+        </view>
+      </template>
 
-    <!-- Create Tab -->
-    <view v-if="activeTab === 'create'" class="tab-content cemetery-bg">
-      <CreateMemorialForm @created="onMemorialCreated" />
-    </view>
+      <template #tab-tributes>
+        <view class="cemetery-bg">
+          <view class="section-header">
+            <text class="section-title">{{ t("myTributes") }}</text>
+            <text class="section-desc">{{ t("myTributesDesc") }}</text>
+          </view>
+          <view class="memorials-grid" v-if="visitedMemorials.length">
+            <TombstoneCard
+              v-for="memorial in visitedMemorials"
+              :key="memorial.id"
+              :memorial="memorial"
+              @click="openMemorial(memorial.id)"
+            />
+          </view>
+          <view v-else class="empty-state">
+            <text>{{ t("noTributes") }}</text>
+          </view>
+        </view>
+      </template>
 
-    <!-- Docs Tab -->
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable cemetery-bg">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
+      <template #tab-create>
+        <view class="cemetery-bg">
+          <CreateMemorialForm @created="onMemorialCreated" />
+        </view>
+      </template>
+    </MiniAppTemplate>
 
     <!-- Memorial Detail Modal -->
     <MemorialDetailModal
@@ -87,7 +78,7 @@
     <view v-if="shareStatus" class="share-toast">
       <text>{{ shareStatus }}</text>
     </view>
-  </ResponsiveLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -96,7 +87,8 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { readQueryParam } from "@shared/utils/url";
-import { ResponsiveLayout, NeoDoc, ChainWarning } from "@shared/components";
+import { MiniAppTemplate } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import TombstoneCard from "./components/TombstoneCard.vue";
 import CreateMemorialForm from "./components/CreateMemorialForm.vue";
 import MemorialDetailModal from "./components/MemorialDetailModal.vue";
@@ -104,20 +96,36 @@ import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
 const { t } = useI18n();
 
-const navTabs = computed(() => [
-  { id: "memorials", icon: "home", label: t("memorials") },
-  { id: "tributes", icon: "heart", label: t("myTributes") },
-  { id: "create", icon: "plus", label: t("create") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "memorials", labelKey: "memorials", icon: "🕯️", default: true },
+    { key: "tributes", labelKey: "myTributes", icon: "🙏" },
+    { key: "create", labelKey: "create", icon: "➕" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: false,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
+
+const appState = computed(() => ({
+  totalMemorials: memorials.value.length,
+  visitedCount: visitedMemorials.value.length,
+}));
 
 const activeTab = ref("memorials");
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
 
 const APP_ID = "miniapp-memorial-shrine";
 const { address, connect, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
@@ -439,7 +447,6 @@ onMounted(async () => {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

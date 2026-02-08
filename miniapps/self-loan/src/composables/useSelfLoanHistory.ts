@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { useEvents } from "@neo/uniapp-sdk";
-import { parseGas, parseStackItem } from "@shared/utils/neo";
+import { parseStackItem } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useSelfLoanCore, APP_ID } from "./useSelfLoanCore";

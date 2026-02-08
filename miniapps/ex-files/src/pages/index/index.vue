@@ -1,22 +1,23 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
+  <view class="theme-ex-files">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view class="theme-ex-files">
-      <view v-if="activeTab === 'files' || activeTab === 'upload' || activeTab === 'stats'" class="app-container">
-        <!-- Chain Warning - Framework Component -->
-        <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-        <StatusMessage :status="status" />
+      <template #content>
+        <view class="app-container">
+          <StatusMessage :status="status" />
 
-        <!-- Files Archive Tab -->
-        <view v-if="activeTab === 'files'" class="tab-content">
           <QueryRecordForm
             v-model:queryInput="queryInput"
             :query-result="queryResult"
@@ -28,9 +29,10 @@
           <!-- Memory Archive -->
           <MemoryArchive :sorted-records="sortedRecords" :t="t as any" @view="viewRecord" />
         </view>
+      </template>
 
-        <!-- Upload Tab -->
-        <view v-if="activeTab === 'upload'" class="tab-content">
+      <template #tab-upload>
+        <view class="app-container">
           <UploadForm
             v-model:recordContent="recordContent"
             v-model:recordRating="recordRating"
@@ -41,27 +43,17 @@
             @create="createRecord"
           />
         </view>
+      </template>
 
-        <!-- Stats Tab -->
-        <view v-if="activeTab === 'stats'" class="tab-content">
+      <template #tab-stats>
+        <view class="app-container">
           <NeoCard variant="erobo">
             <NeoStats :stats="statsData" />
           </NeoCard>
         </view>
-      </view>
-
-      <!-- Docs Tab -->
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-    </view>
-  </ResponsiveLayout>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -73,8 +65,8 @@ import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { sha256Hex } from "@shared/utils/hash";
 import { formatHash } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoDoc, NeoCard, NeoStats, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard, NeoStats } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import type { StatItem } from "@shared/components/NeoStats.vue";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
@@ -85,12 +77,6 @@ import UploadForm from "./components/UploadForm.vue";
 
 const { t } = useI18n();
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
-
 const APP_ID = "miniapp-exfiles";
 const CREATE_FEE = "0.1";
 const QUERY_FEE = "0.05";
@@ -99,13 +85,36 @@ const { address, connect, invokeRead, invokeContract, chainType, getContractAddr
 const { processPayment, isLoading } = usePaymentFlow(APP_ID);
 const { list: listEvents } = useEvents();
 
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "files", labelKey: "tabFiles", icon: "📁", default: true },
+    { key: "upload", labelKey: "tabUpload", icon: "📤" },
+    { key: "stats", labelKey: "tabStats", icon: "📊" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    fireworks: false,
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 const activeTab = ref("files");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "files", icon: "folder", label: t("tabFiles") },
-  { id: "upload", icon: "upload", label: t("tabUpload") },
-  { id: "stats", icon: "chart", label: t("tabStats") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+  address: address.value,
+  recordsCount: records.value.length,
+  isLoading: isLoading.value,
+}));
 
 const contractAddress = ref<string | null>(null);
 const records = ref<RecordItem[]>([]);
@@ -188,8 +197,8 @@ const loadRecords = async () => {
           const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
           return Number(values[0] || 0);
         })
-        .filter((id: number) => id > 0),
-    ),
+        .filter((id: number) => id > 0)
+    )
   );
   const list: RecordItem[] = [];
   for (const id of ids) {
@@ -243,7 +252,7 @@ const createRecord = async () => {
         { type: "Integer", value: recordCategory.value },
         { type: "Integer", value: String(receiptId) },
       ],
-      contractAddress.value as string,
+      contractAddress.value as string
     );
     showStatus(t("recordCreated"), "success");
     recordContent.value = "";
@@ -279,10 +288,10 @@ const queryRecord = async () => {
         { type: "ByteArray", value: hashHex },
         { type: "Integer", value: String(receiptId) },
       ],
-      contractAddress.value as string,
+      contractAddress.value as string
     );
     const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
+      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
     );
     if (txid) {
       const evt = await waitForEvent(txid, "RecordQueried");
@@ -419,7 +428,6 @@ onMounted(async () => {
 .noir-warning-desc {
   color: var(--noir-text);
 }
-
 
 // Desktop sidebar
 .desktop-sidebar {

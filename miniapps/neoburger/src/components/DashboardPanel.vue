@@ -6,7 +6,7 @@
 
     <view class="card token-card fade-up delay-1">
       <view class="token-header">
-        <image class="token-icon" src="/static/neoburger-bneo-dashboard.svg" mode="widthFix" :alt="t('bneoAlt')" />
+        <image class="token-icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('bneoAlt')" />
         <text class="token-title">{{ t("tokenBneo") }}</text>
       </view>
       <view class="token-info">
@@ -44,7 +44,7 @@
 
     <view class="card token-card fade-up delay-2">
       <view class="token-header">
-        <image class="token-icon" src="/static/neoburger-nobug-logo.svg" mode="widthFix" :alt="t('nobugAlt')" />
+        <image class="token-icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('nobugAlt')" />
         <text class="token-title">{{ t("tokenNobug") }}</text>
       </view>
       <view class="token-info">
@@ -59,7 +59,7 @@
         <text class="section-title">{{ t("agentInfoTitle") }}</text>
         <view class="agent-right">
           <text class="agent-right-text">{{ t("candidatesWhitelist") }}</text>
-          <image class="icon" src="/static/neoburger-jump-logo.svg" mode="widthFix" :alt="t('jumpAlt')" />
+          <image class="icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('jumpAlt')" />
         </view>
       </view>
       <view class="table">

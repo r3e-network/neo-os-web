@@ -1,59 +1,41 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-neo-ns" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event"
-
-      <!-- Desktop Sidebar -->
+  <view class="theme-neo-ns">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="statusMessage ? { msg: statusMessage, type: statusType } : null"
+      @tab-change="activeTab = $event"
+    >
       <template #desktop-sidebar>
         <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t('overview') }}</text>
+          <text class="sidebar-title">{{ t("overview") }}</text>
         </view>
       </template>
->
-    <view v-if="activeTab !== 'docs'" class="app-container">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
 
-      <NeoCard v-if="statusMessage" :variant="statusType === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-        <text class="font-bold">{{ statusMessage }}</text>
-      </NeoCard>
+      <template #content>
+        <view class="app-container">
+          <DomainRegister :t="t" :nns-contract="NNS_CONTRACT" @status="showStatus" @refresh="loadMyDomains" />
+        </view>
+      </template>
 
-      <DomainRegister
-        v-if="activeTab === 'register'"
-        :t="t"
-        :nns-contract="NNS_CONTRACT"
-        @status="showStatus"
-        @refresh="loadMyDomains"
-      />
+      <template #tab-domains>
+        <view class="app-container">
+          <ManageDomain
+            v-if="managingDomain"
+            :t="t"
+            :domain="managingDomain"
+            :loading="loading"
+            @cancel="cancelManage"
+            @setTarget="handleSetTarget"
+            @transfer="handleTransfer"
+          />
 
-      <view v-if="activeTab === 'domains'" class="tab-content">
-        <ManageDomain
-          v-if="managingDomain"
-          :t="t"
-          :domain="managingDomain"
-          :loading="loading"
-          @cancel="cancelManage"
-          @setTarget="handleSetTarget"
-          @transfer="handleTransfer"
-        />
-
-        <DomainManagement
-          v-else
-          :t="t"
-          :domains="myDomains"
-          @manage="showManage"
-          @renew="handleRenew"
-        />
-      </view>
-    </view>
-
-    <view v-else class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+          <DomainManagement v-else :t="t" :domains="myDomains" @manage="showManage" @renew="handleRenew" />
+        </view>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -63,18 +45,36 @@ import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoDoc, NeoCard, ChainWarning } from "@shared/components";
+import { MiniAppTemplate, NeoCard } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import DomainRegister from "./components/DomainRegister.vue";
 import DomainManagement from "./components/DomainManagement.vue";
 import ManageDomain from "./components/ManageDomain.vue";
 
 const { t } = useI18n();
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "form-panel",
+  tabs: [
+    { key: "register", labelKey: "tabRegister", icon: "➕", default: true },
+    { key: "domains", labelKey: "tabDomains", icon: "📁" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      descriptionKey: "docDescription",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
 
 const APP_ID = "miniapp-neo-ns";
 const NNS_CONTRACT = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
@@ -88,11 +88,10 @@ interface Domain {
 }
 
 const activeTab = ref("register");
-const navTabs = computed(() => [
-  { id: "register", icon: "plus", label: t("tabRegister") },
-  { id: "domains", icon: "folder", label: t("tabDomains") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+const appState = computed(() => ({
+  domainCount: myDomains.value.length,
+  walletConnected: !!address.value,
+}));
 
 const loading = ref(false);
 const statusMessage = ref("");

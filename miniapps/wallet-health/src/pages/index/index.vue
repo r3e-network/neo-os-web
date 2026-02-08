@@ -60,8 +60,7 @@
             size="sm"
             :variant="item.done ? 'primary' : 'secondary'"
             :disabled="item.auto"
-            @click="toggleChecklist(item.id)"
-          >
+            @click="toggleChecklist(item.id)">
             <AppIcon :name="item.done ? 'check' : 'x'" :size="14" />
             <text class="checklist-action">
               {{ item.auto ? t("autoChecked") : item.done ? t("markUndo") : t("markDone") }}
