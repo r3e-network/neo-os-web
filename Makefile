@@ -192,16 +192,16 @@ check-git: ## Report untracked canonical source/exports
 	./scripts/git_completeness_check.sh
 
 frontend-install: ## Install frontend dependencies
-	cd platform/host-app && npm install
+	pnpm install --filter meshminiapp-host...
 
 frontend-dev: ## Start frontend development server
-	cd platform/host-app && npm run dev
+	pnpm -C platform/host-app dev
 
 frontend-build: ## Build frontend for production
-	cd platform/host-app && npm run build
+	pnpm -C platform/host-app build
 
 frontend-deploy: ## Deploy frontend to Vercel
-	cd platform/host-app && npm ci && npm run build
+	pnpm install --frozen-lockfile && pnpm -C platform/host-app build
 	vercel deploy --prod
 
 # =============================================================================
@@ -267,13 +267,13 @@ host-app-build: frontend-build ## Alias for frontend-build
 
 host-app-test: ## Run Host App tests
 	@echo "Running Host App tests..."
-	cd platform/host-app && npm run test
+	pnpm -C platform/host-app test
 
 host-app-test-watch: ## Run Host App tests in watch mode
-	cd platform/host-app && npm run test:watch
+	pnpm -C platform/host-app test:watch
 
 host-app-test-coverage: ## Run Host App tests with coverage
-	cd platform/host-app && npm run test:coverage
+	pnpm -C platform/host-app test:coverage
 
 host-app-clean: ## Clean Host App build artifacts
 	rm -rf platform/host-app/.next
@@ -426,8 +426,8 @@ install: ## Install all dependencies
 	@echo "Installing all dependencies..."
 	@echo "→ Go modules..."
 	go mod download
-	@echo "→ Host App (npm)..."
-	cd platform/host-app && npm install
+	@echo "→ Host App (pnpm)..."
+	pnpm install --filter meshminiapp-host...
 	@echo "→ MiniApp SDK (pnpm)..."
 	pnpm -C packages/@neo/uniapp-sdk install
 	@echo "All dependencies installed"
@@ -439,7 +439,7 @@ test-all: ## Run all tests (Go + Host App + MiniApps)
 	@echo "→ Go tests..."
 	go test -v ./...
 	@echo "→ Host App tests..."
-	cd platform/host-app && npm run test
+	pnpm -C platform/host-app test
 	@echo "All tests complete"
 
 build-all: ## Build all components

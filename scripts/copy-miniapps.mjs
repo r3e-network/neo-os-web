@@ -4,7 +4,7 @@
  * This script runs after miniapps are built with `pnpm build:miniapps`
  */
 
-import { readdirSync, existsSync, cpSync, mkdirSync, rmSync } from "fs";
+import { readdirSync, existsSync, cpSync, mkdirSync, rmSync, readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -12,6 +12,61 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 const miniappsDir = join(projectRoot, "miniapps");
 const targetDir = join(projectRoot, "platform/host-app/public/miniapp-assets");
+
+const IMPORT_MAP_SNIPPET = `
+  <script type="importmap">
+    {
+      "imports": {
+        "encode-utf8": "https://esm.sh/encode-utf8@1.0.3",
+        "dijkstrajs": "https://esm.sh/dijkstrajs@1.0.3"
+      }
+    }
+  </script>`;
+
+function injectImportMap(indexHtmlPath) {
+  if (!existsSync(indexHtmlPath)) return;
+
+  const html = readFileSync(indexHtmlPath, "utf-8");
+  if (html.includes('type="importmap"') || html.includes("type='importmap'")) {
+    return;
+  }
+
+  const patched = html.includes("<head>")
+    ? html.replace("<head>", `<head>${IMPORT_MAP_SNIPPET}`)
+    : `${IMPORT_MAP_SNIPPET}\n${html}`;
+
+  writeFileSync(indexHtmlPath, patched, "utf-8");
+}
+
+function patchAbsoluteStaticPaths(rootDir) {
+  const stack = [rootDir];
+
+  while (stack.length) {
+    const current = stack.pop();
+    if (!current || !existsSync(current)) continue;
+
+    const entries = readdirSync(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const entryPath = join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(entryPath);
+        continue;
+      }
+
+      if (!/\.(html|js|css)$/i.test(entry.name)) continue;
+
+      const source = readFileSync(entryPath, "utf-8");
+      const patched = source
+        .replace(/"\/static\//g, '"./static/')
+        .replace(/'\/static\//g, "'./static/")
+        .replace(/\(\/static\//g, "(./static/");
+
+      if (patched !== source) {
+        writeFileSync(entryPath, patched, "utf-8");
+      }
+    }
+  }
+}
 
 // Ensure target directory exists
 if (!existsSync(targetDir)) {
@@ -41,6 +96,9 @@ for (const app of miniapps) {
       rmSync(dest, { recursive: true });
     }
     cpSync(buildDir, dest, { recursive: true });
+
+    injectImportMap(join(dest, "index.html"));
+    patchAbsoluteStaticPaths(dest);
 
     // Copy public assets (banner, logo) if they exist
     const publicDir = join(miniappsDir, app, "public");

@@ -6,37 +6,17 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  GO_VERSION: "1.24.x"
+  NODE_VERSION: "20"
+
 jobs:
-  setup:
-    name: Setup
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    outputs:
-      go-cache-key: ${{ steps.go-cache.outputs.cache-hit }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.23.x"
-          cache: true
-
-      - name: Cache Go modules
-        id: go-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
   lint:
     name: Lint
-    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -46,7 +26,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.x"
+          go-version: "${{ env.GO_VERSION }}"
           cache: true
 
       - name: Run golangci-lint
@@ -57,7 +37,6 @@ jobs:
 
   build:
     name: Build
-    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -67,7 +46,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.x"
+          go-version: "${{ env.GO_VERSION }}"
           cache: true
 
       - name: Download dependencies
@@ -100,7 +79,7 @@ jobs:
 
   unit-tests:
     name: Unit Tests
-    needs: [setup, build]
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -110,7 +89,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.x"
+          go-version: "${{ env.GO_VERSION }}"
           cache: true
 
       - name: Run unit tests
@@ -119,13 +98,14 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.out
           flags: unittests
           name: codecov-umbrella
 
   contract-tests:
     name: Contracts (neo-express)
-    needs: [setup, build]
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -135,7 +115,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.x"
+          go-version: "${{ env.GO_VERSION }}"
           cache: true
 
       - name: Set up .NET
@@ -158,7 +138,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    needs: [setup, build]
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -168,7 +148,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.x"
+          go-version: "${{ env.GO_VERSION }}"
           cache: true
 
       - name: Run integration tests
@@ -176,7 +156,7 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    needs: [setup, build]
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -186,7 +166,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.x"
+          go-version: "${{ env.GO_VERSION }}"
           cache: true
 
       - name: Run E2E tests
@@ -206,8 +186,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "${{ env.NODE_VERSION }}"
           cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Turbo Cache
         uses: actions/cache@v4
@@ -237,7 +218,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "${{ env.NODE_VERSION }}"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
@@ -249,6 +230,38 @@ jobs:
 
       - name: Build SDK
         run: pnpm -C packages/@neo/uniapp-sdk build
+
+  miniapp-build:
+    name: MiniApps Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Turbo Cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-miniapps-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-miniapps-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all miniapps
+        run: pnpm build:miniapps
 
   edge-functions-check:
     name: Edge Functions Check (Deno)
@@ -267,9 +280,12 @@ jobs:
         working-directory: platform/edge
         run: deno task check
 
+      - name: Test Edge functions
+        working-directory: platform/edge
+        run: deno task test
+
   security-scan:
     name: Security Scan
-    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -279,7 +295,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.x"
+          go-version: "${{ env.GO_VERSION }}"
           cache: true
 
       - name: Run Gosec Security Scanner
@@ -336,10 +352,12 @@ jobs:
         lint,
         build,
         unit-tests,
+        contract-tests,
         integration-tests,
         e2e-tests,
         host-app-build,
         sdk-build,
+        miniapp-build,
         edge-functions-check,
         security-scan,
         docker-build,
@@ -352,25 +370,44 @@ jobs:
           echo "Lint: ${{ needs.lint.result }}"
           echo "Build: ${{ needs.build.result }}"
           echo "Unit Tests: ${{ needs.unit-tests.result }}"
+          echo "Contract Tests: ${{ needs.contract-tests.result }}"
           echo "Integration Tests: ${{ needs.integration-tests.result }}"
           echo "E2E Tests: ${{ needs.e2e-tests.result }}"
           echo "Host App Build: ${{ needs.host-app-build.result }}"
           echo "SDK Build: ${{ needs.sdk-build.result }}"
+          echo "MiniApps Build: ${{ needs.miniapp-build.result }}"
           echo "Edge Functions Check: ${{ needs.edge-functions-check.result }}"
           echo "Security Scan: ${{ needs.security-scan.result }}"
           echo "Docker Build: ${{ needs.docker-build.result }}"
 
-          if [ "${{ needs.lint.result }}" != "success" ] || \
-             [ "${{ needs.build.result }}" != "success" ] || \
-             [ "${{ needs.unit-tests.result }}" != "success" ] || \
-             [ "${{ needs.integration-tests.result }}" != "success" ] || \
-             [ "${{ needs.e2e-tests.result }}" != "success" ] || \
-             [ "${{ needs.host-app-build.result }}" != "success" ] || \
-             [ "${{ needs.sdk-build.result }}" != "success" ] || \
-             [ "${{ needs.edge-functions-check.result }}" != "success" ] || \
-             [ "${{ needs.docker-build.result }}" != "success" ]; then
-            echo "CI pipeline failed!"
+          FAILED=0
+          for job in lint build unit-tests contract-tests integration-tests \
+                     e2e-tests host-app-build sdk-build miniapp-build \
+                     edge-functions-check security-scan docker-build; do
+            RESULT="${{ needs.lint.result }}"
+            case "$job" in
+              lint) RESULT="${{ needs.lint.result }}" ;;
+              build) RESULT="${{ needs.build.result }}" ;;
+              unit-tests) RESULT="${{ needs.unit-tests.result }}" ;;
+              contract-tests) RESULT="${{ needs.contract-tests.result }}" ;;
+              integration-tests) RESULT="${{ needs.integration-tests.result }}" ;;
+              e2e-tests) RESULT="${{ needs.e2e-tests.result }}" ;;
+              host-app-build) RESULT="${{ needs.host-app-build.result }}" ;;
+              sdk-build) RESULT="${{ needs.sdk-build.result }}" ;;
+              miniapp-build) RESULT="${{ needs.miniapp-build.result }}" ;;
+              edge-functions-check) RESULT="${{ needs.edge-functions-check.result }}" ;;
+              security-scan) RESULT="${{ needs.security-scan.result }}" ;;
+              docker-build) RESULT="${{ needs.docker-build.result }}" ;;
+            esac
+            if [ "$RESULT" != "success" ]; then
+              echo "❌ $job: $RESULT"
+              FAILED=$((FAILED + 1))
+            fi
+          done
+
+          if [ "$FAILED" -gt 0 ]; then
+            echo "CI pipeline failed! ($FAILED job(s) did not succeed)"
             exit 1
           fi
 
-          echo "All CI checks passed!"
+          echo "✅ All CI checks passed!"

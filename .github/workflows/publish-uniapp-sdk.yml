@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - '@neo/uniapp-sdk@*'
+      - "@neo/uniapp-sdk@*"
 
 permissions:
   contents: read
@@ -16,24 +16,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build SDK
+        run: pnpm -C packages/@neo/uniapp-sdk build
+
       - name: Run SDK tests
         run: pnpm -C packages/@neo/uniapp-sdk test
 
+      - name: Check version not already published
+        working-directory: packages/@neo/uniapp-sdk
+        run: |
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          PKG_NAME=$(node -p "require('./package.json').name")
+          echo "Local version: $PKG_NAME@$LOCAL_VERSION"
+          PUBLISHED=$(npm view "$PKG_NAME@$LOCAL_VERSION" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$LOCAL_VERSION" ]; then
+            echo "::error::Version $LOCAL_VERSION is already published to npm"
+            exit 1
+          fi
+          echo "Version $LOCAL_VERSION is not yet published — proceeding"
+
       - name: Publish SDK
         working-directory: packages/@neo/uniapp-sdk
-        run: npm publish
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
