@@ -1,8 +1,12 @@
 /**
  * tRPC Provider Component
+ *
+ * Reuses the QueryClient from the outer QueryProvider so that tRPC queries
+ * and regular React Query queries share a single cache with unified defaults.
+ * Must be rendered inside <QueryProvider>.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { useState } from "react";
 import superjson from "superjson";
@@ -14,13 +18,13 @@ function getBaseUrl() {
 }
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const queryClient = useQueryClient();
   const [trpcClient] = useState(() =>
     trpc.createClient({
-      transformer: superjson,
       links: [
         httpBatchLink({
           url: `${getBaseUrl()}/api/trpc`,
+          transformer: superjson,
         }),
       ],
     }),
@@ -28,7 +32,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      {children}
     </trpc.Provider>
   );
 }

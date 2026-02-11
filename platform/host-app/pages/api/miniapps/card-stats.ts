@@ -5,7 +5,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 interface AppCardStats {
   users: number;

@@ -1,92 +1,114 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+/**
+ * Messaging Contracts API
+ * GET: Fetch data-sharing contracts for an app
+ * POST: Create a new contract (ownership verified)
+ * DELETE: Revoke a contract (ownership verified)
+ */
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!isSupabaseConfigured) {
-    return res.status(503).json({ error: "Database not configured" });
-  }
+import { createHandler } from "@/lib/api/create-handler";
 
-  if (req.method === "GET") {
-    return getContracts(req, res);
-  }
+export default createHandler({
+  auth: "wallet",
+  rateLimit: "api",
+  methods: {
+    GET: async (req, res, ctx) => {
+      const { appId, role } = req.query;
 
-  if (req.method === "POST") {
-    return createContract(req, res);
-  }
+      if (!appId || typeof appId !== "string") {
+        return res.status(400).json({ error: "Missing appId" });
+      }
 
-  if (req.method === "DELETE") {
-    return revokeContract(req, res);
-  }
+      const column = role === "consumer" ? "consumer_app_id" : "provider_app_id";
 
-  return res.status(405).json({ error: "Method not allowed" });
-}
+      const { data, error } = await ctx.db
+        .from("shared_data_contracts")
+        .select("*")
+        .eq(column, appId)
+        .eq("status", "active");
 
-async function getContracts(req: NextApiRequest, res: NextApiResponse) {
-  const { appId, role } = req.query;
+      if (error) return res.status(500).json({ error: "Failed to fetch contracts" });
+      return res.status(200).json({ contracts: data || [] });
+    },
 
-  if (!appId || typeof appId !== "string") {
-    return res.status(400).json({ error: "Missing appId" });
-  }
+    POST: {
+      rateLimit: "write",
+      handler: async (req, res, ctx) => {
+        const { provider_app_id, consumer_app_id, data_schema, permissions } = req.body;
 
-  const column = role === "consumer" ? "consumer_app_id" : "provider_app_id";
+        if (!provider_app_id || !consumer_app_id || !data_schema) {
+          return res.status(400).json({ error: "Missing required fields" });
+        }
 
-  const { data, error } = await supabase
-    .from("shared_data_contracts")
-    .select("*")
-    .eq(column, appId)
-    .eq("status", "active");
+        // Verify caller owns the provider app
+        const { data: app } = await ctx.db
+          .from("miniapp_registry")
+          .select("developer_address")
+          .eq("app_id", provider_app_id)
+          .single();
 
-  if (error) {
-    return res.status(500).json({ error: "Failed to fetch contracts" });
-  }
+        if (!app || app.developer_address !== ctx.address) {
+          return res.status(403).json({ error: "Not the provider app owner" });
+        }
 
-  return res.status(200).json({ contracts: data || [] });
-}
+        const { data, error } = await ctx.db
+          .from("shared_data_contracts")
+          .upsert(
+            {
+              provider_app_id,
+              consumer_app_id,
+              data_schema,
+              permissions: permissions || { read: true, write: false },
+              status: "active",
+            },
+            { onConflict: "provider_app_id,consumer_app_id" },
+          )
+          .select()
+          .single();
 
-async function createContract(req: NextApiRequest, res: NextApiResponse) {
-  const { provider_app_id, consumer_app_id, data_schema, permissions } = req.body;
-
-  if (!provider_app_id || !consumer_app_id || !data_schema) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  const { data, error } = await supabase
-    .from("shared_data_contracts")
-    .upsert(
-      {
-        provider_app_id,
-        consumer_app_id,
-        data_schema,
-        permissions: permissions || { read: true, write: false },
-        status: "active",
+        if (error) return res.status(500).json({ error: "Failed to create contract" });
+        return res.status(201).json({ contract: data });
       },
-      { onConflict: "provider_app_id,consumer_app_id" },
-    )
-    .select()
-    .single();
+    },
 
-  if (error) {
-    return res.status(500).json({ error: "Failed to create contract" });
-  }
+    DELETE: {
+      rateLimit: "write",
+      handler: async (req, res, ctx) => {
+        const { contract_id } = req.body;
 
-  return res.status(201).json({ contract: data });
-}
+        if (!contract_id) {
+          return res.status(400).json({ error: "Missing contract_id" });
+        }
 
-async function revokeContract(req: NextApiRequest, res: NextApiResponse) {
-  const { contract_id } = req.body;
+        // Look up contract to get provider_app_id
+        const { data: contract } = await ctx.db
+          .from("shared_data_contracts")
+          .select("provider_app_id")
+          .eq("contract_id", contract_id)
+          .single();
 
-  if (!contract_id) {
-    return res.status(400).json({ error: "Missing contract_id" });
-  }
+        if (!contract) {
+          return res.status(404).json({ error: "Contract not found" });
+        }
 
-  const { error } = await supabase
-    .from("shared_data_contracts")
-    .update({ status: "revoked" })
-    .eq("contract_id", contract_id);
+        // Verify caller owns the provider app
+        const { data: app } = await ctx.db
+          .from("miniapp_registry")
+          .select("developer_address")
+          .eq("app_id", contract.provider_app_id)
+          .single();
 
-  if (error) {
-    return res.status(500).json({ error: "Failed to revoke contract" });
-  }
+        if (!app || app.developer_address !== ctx.address) {
+          return res.status(403).json({ error: "Not the contract owner" });
+        }
 
-  return res.status(200).json({ success: true });
-}
+        const { error } = await ctx.db
+          .from("shared_data_contracts")
+          .update({ status: "revoked" })
+          .eq("contract_id", contract_id);
+
+        if (error) return res.status(500).json({ error: "Failed to revoke contract" });
+        return res.status(200).json({ success: true });
+      },
+    },
+  },
+});

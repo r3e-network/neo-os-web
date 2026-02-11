@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n/react";
+import type { HostTranslationFunction } from "@/lib/i18n/react";
 import { cn } from "@/lib/utils";
 import {
   Copy,
@@ -24,6 +25,7 @@ import {
   Wallet,
   Lock,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
 
@@ -36,12 +38,12 @@ interface DocItem {
 interface DocSection {
   id: string;
   title: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   items: DocItem[];
 }
 
 // Sidebar Definitions
-const getDocSections = (t: (key: string) => string): DocSection[] => [
+const getDocSections = (t: HostTranslationFunction): DocSection[] => [
   {
     id: "getting-started",
     title: t("docs.sidebar.gettingStarted"),
@@ -322,7 +324,7 @@ export default function DocsPage() {
 }
 
 // Sub-components for documentation content
-function IntroContent({ t }: { t: (key: string) => string }) {
+function IntroContent({ t }: { t: HostTranslationFunction }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{t("docs.items.intro")}</h1>
@@ -382,7 +384,7 @@ function IntroContent({ t }: { t: (key: string) => string }) {
   );
 }
 
-function QuickStartContent({ t }: { t: (key: string) => string }) {
+function QuickStartContent({ t }: { t: HostTranslationFunction }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{t("docs.items.quickstart")}</h1>
@@ -390,17 +392,19 @@ function QuickStartContent({ t }: { t: (key: string) => string }) {
 
       <h2 className="text-2xl font-bold mt-12 mb-6">{t("docs.quickstart.userTitle")}</h2>
       <div className="space-y-8 not-prose mt-8">
-        {(t("docs.quickstart.userSteps", { returnObjects: true }) as { title: string; desc: string }[]).map((item, idx) => (
-          <div key={idx} className="flex gap-6 items-start group">
-            <div className="text-4xl font-black text-erobo-purple opacity-20 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              0{idx + 1}
+        {(t("docs.quickstart.userSteps", { returnObjects: true }) as { title: string; desc: string }[]).map(
+          (item, idx) => (
+            <div key={idx} className="flex gap-6 items-start group">
+              <div className="text-4xl font-black text-erobo-purple opacity-20 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                0{idx + 1}
+              </div>
+              <div className="pt-2">
+                <h4 className="text-lg font-bold mb-1">{item.title}</h4>
+                <p className="text-sm text-erobo-ink-soft/80 dark:text-slate-400">{item.desc}</p>
+              </div>
             </div>
-            <div className="pt-2">
-              <h4 className="text-lg font-bold mb-1">{item.title}</h4>
-              <p className="text-sm text-erobo-ink-soft/80 dark:text-slate-400">{item.desc}</p>
-            </div>
-          </div>
-        ))}
+          ),
+        )}
       </div>
 
       <h2 className="text-2xl font-bold mt-16 mb-6">{t("docs.quickstart.devTitle")}</h2>
@@ -433,7 +437,7 @@ console.log("Connected wallet:", address);`}
   );
 }
 
-function AuthContent({ t }: { t: (key: string) => string }) {
+function AuthContent({ t }: { t: HostTranslationFunction }) {
   const comparisonHeaders = [t("docs.auth.table.feature"), t("docs.auth.socialTitle"), t("docs.auth.walletTitle")];
   const comparisonRows = t("docs.auth.table.rows", { returnObjects: true }) as string[][];
 
@@ -516,7 +520,7 @@ function AuthContent({ t }: { t: (key: string) => string }) {
   );
 }
 
-function APIKeysContent({ t }: { t: (key: string) => string }) {
+function APIKeysContent({ t }: { t: HostTranslationFunction }) {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-black mb-8 tracking-tight">{t("docs.items.api-keys")}</h1>
@@ -543,7 +547,7 @@ const data = await res.json();`}
   );
 }
 
-function SecurityModelContent({ t }: { t: (key: string) => string }) {
+function SecurityModelContent({ t }: { t: HostTranslationFunction }) {
   const securityComparisonHeaders = [
     t("docs.securityModel.table.level"),
     t("docs.securityModel.table.traditional"),
@@ -593,7 +597,7 @@ function SecurityModelContent({ t }: { t: (key: string) => string }) {
   );
 }
 
-function ArchitectureDetail({ id, t }: { id: string; t: (key: string) => string }) {
+function ArchitectureDetail({ id, t }: { id: string; t: HostTranslationFunction }) {
   const titles: Record<string, string> = {
     "tee-root": t("docs.items.tee-root"),
     "service-os": t("docs.items.service-os"),
@@ -654,7 +658,7 @@ function ArchitectureDetail({ id, t }: { id: string; t: (key: string) => string 
   );
 }
 
-function ServiceDetail({ id, t }: { id: string; t: (key: string) => string }) {
+function ServiceDetail({ id, t }: { id: string; t: HostTranslationFunction }) {
   const titles: Record<string, string> = {
     oracle: t("docs.items.oracle"),
     vrf: t("docs.items.vrf"),
@@ -771,7 +775,7 @@ console.log("Verified result:", result);`
   );
 }
 
-function APIReferenceDetail({ id, t }: { id: string; t: (key: string) => string }) {
+function APIReferenceDetail({ id, t }: { id: string; t: HostTranslationFunction }) {
   const idMap: Record<string, string> = {
     "rest-api": "restApi",
     websocket: "websocket",
@@ -900,7 +904,7 @@ function APIReferenceDetail({ id, t }: { id: string; t: (key: string) => string 
   );
 }
 
-function SDKDetail({ id, t }: { id: string; t: (key: string) => string }) {
+function SDKDetail({ id, t }: { id: string; t: HostTranslationFunction }) {
   const idMap: Record<string, string> = {
     "js-sdk": "jsSDK",
     "go-sdk": "goSDK",
@@ -1009,5 +1013,3 @@ function SDKDetail({ id, t }: { id: string; t: (key: string) => string }) {
     </div>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

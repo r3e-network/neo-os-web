@@ -6,10 +6,10 @@
  */
 import type { NextApiRequest, NextApiResponse } from "next";
 import { wallet } from "@cityofzion/neon-js";
-import { rpcCall } from "../../../lib/chain/rpc-client";
-import { getChainRegistry } from "../../../lib/chains/registry";
-import type { ChainId } from "../../../lib/chains/types";
-import { isNeoN3Chain } from "../../../lib/chains/types";
+import { rpcCall } from "@/lib/chains/rpc-functions";
+import { getChainRegistry } from "@/lib/chains/registry";
+import type { ChainId } from "@/lib/chains/types";
+import { isNeoN3Chain } from "@/lib/chains/types";
 
 type CommitteeResponse = string[] | { committee?: string[] } | Array<{ publicKey?: string; publickey?: string }>;
 

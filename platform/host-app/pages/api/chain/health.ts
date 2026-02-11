@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getChainRpcUrl } from "../../../lib/chain/rpc-client";
-import { getChainRegistry } from "../../../lib/chains/registry";
-import type { ChainId } from "../../../lib/chains/types";
+import { getChainRpcUrl } from "@/lib/chains/rpc-functions";
+import { getChainRegistry } from "@/lib/chains/registry";
+import type { ChainId } from "@/lib/chains/types";
 
 interface ChainHealth {
   chainId: ChainId;

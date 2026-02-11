@@ -4,8 +4,8 @@
  * Run once to seed the database with realistic data
  */
 
-import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseAdmin, isSupabaseConfigured } from "../../../lib/supabase";
+import type { NextApiResponse } from "next";
+import { createHandler } from "@/lib/api";
 
 // Realistic initial stats per category
 const INITIAL_STATS: Record<string, { users: number; txs: number; volume: number }> = {
@@ -34,85 +34,82 @@ const APP_CATEGORIES: Record<string, string> = {
   "miniapp-explorer": "utility",
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Only allow in development or with secret
-  const isDev = process.env.NODE_ENV === "development";
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
+export default createHandler({
+  auth: "cron",
+  methods: {
+    POST: async (_req, res: NextApiResponse, ctx) => {
+      // Fake stats initialization must never run in production
+      if (process.env.NODE_ENV === "production") {
+        return res.status(403).json({ error: "Disabled in production" });
+      }
 
-  if (!isDev && cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+      try {
+        // Get all miniapps
+        const { data: apps, error } = await ctx.db.from("miniapp_stats").select("id, app_id");
 
-  if (!isSupabaseConfigured || !supabaseAdmin) {
-    return res.status(500).json({ error: "Supabase not configured" });
-  }
+        if (error) throw error;
+        if (!apps || apps.length === 0) {
+          return res.status(404).json({ error: "No miniapps found" });
+        }
 
-  try {
-    // Get all miniapps
-    const { data: apps, error } = await supabaseAdmin.from("miniapp_stats").select("id, app_id");
+        let updated = 0;
+        for (const app of apps) {
+          // Determine category
+          const category = APP_CATEGORIES[app.app_id] || "utility";
+          const baseStats = INITIAL_STATS[category] || INITIAL_STATS.utility;
 
-    if (error) throw error;
-    if (!apps || apps.length === 0) {
-      return res.status(404).json({ error: "No miniapps found" });
-    }
+          // Add some randomness (+-30%)
+          const variance = () => 0.7 + Math.random() * 0.6;
+          const users = Math.floor(baseStats.users * variance());
+          const txs = Math.floor(baseStats.txs * variance());
+          const volume = (baseStats.volume * variance()).toFixed(2);
+          // Views should be 5-10x higher than users (realistic browsing behavior)
+          const viewMultiplier = 5 + Math.random() * 5; // 5-10x
+          const views = Math.floor(users * viewMultiplier);
 
-    let updated = 0;
-    for (const app of apps) {
-      // Determine category
-      const category = APP_CATEGORIES[app.app_id] || "utility";
-      const baseStats = INITIAL_STATS[category] || INITIAL_STATS.utility;
+          const { error: updateError } = await ctx.db
+            .from("miniapp_stats")
+            .update({
+              total_unique_users: users,
+              total_transactions: txs,
+              total_volume_gas: volume,
+              view_count: views,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", app.id);
 
-      // Add some randomness (±30%)
-      const variance = () => 0.7 + Math.random() * 0.6;
-      const users = Math.floor(baseStats.users * variance());
-      const txs = Math.floor(baseStats.txs * variance());
-      const volume = (baseStats.volume * variance()).toFixed(2);
-      // Views should be 5-10x higher than users (realistic browsing behavior)
-      const viewMultiplier = 5 + Math.random() * 5; // 5-10x
-      const views = Math.floor(users * viewMultiplier);
+          if (!updateError) updated++;
+        }
 
-      const { error: updateError } = await supabaseAdmin
-        .from("miniapp_stats")
-        .update({
-          total_unique_users: users,
-          total_transactions: txs,
-          total_volume_gas: volume,
-          view_count: views,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", app.id);
+        // Also initialize platform_stats with aggregated totals
+        const totalUsers = apps.length * 4000; // Average users across all apps
+        const totalTxs = apps.length * 25000; // Average transactions
+        const totalVolume = apps.length * 15000; // Average volume
 
-      if (!updateError) updated++;
-    }
+        await ctx.db.from("platform_stats").upsert(
+          {
+            id: 1,
+            total_users: totalUsers,
+            total_transactions: totalTxs,
+            total_volume_gas: totalVolume.toFixed(8),
+            total_gas_burned: (totalVolume * 0.1).toFixed(8),
+            active_apps: apps.length,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        );
 
-    // Also initialize platform_stats with aggregated totals
-    const totalUsers = apps.length * 4000; // Average users across all apps
-    const totalTxs = apps.length * 25000; // Average transactions
-    const totalVolume = apps.length * 15000; // Average volume
-
-    await supabaseAdmin.from("platform_stats").upsert(
-      {
-        id: 1,
-        total_users: totalUsers,
-        total_transactions: totalTxs,
-        total_volume_gas: totalVolume.toFixed(8),
-        total_gas_burned: (totalVolume * 0.1).toFixed(8),
-        active_apps: apps.length,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" },
-    );
-
-    res.status(200).json({
-      success: true,
-      updated,
-      total: apps.length,
-      platformStats: { totalUsers, totalTxs, totalVolume },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("Init stats error:", error);
-    res.status(500).json({ error: "Failed to initialize stats" });
-  }
-}
+        res.status(200).json({
+          success: true,
+          updated,
+          total: apps.length,
+          platformStats: { totalUsers, totalTxs, totalVolume },
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error("Init stats error:", error);
+        res.status(500).json({ error: "Failed to initialize stats" });
+      }
+    },
+  },
+});

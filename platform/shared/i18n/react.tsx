@@ -30,15 +30,89 @@ const translations = {
 
 export type TranslationNamespace = "common" | "host" | "admin" | "miniapp";
 
+export interface TranslationStringOptions {
+  defaultValue?: string;
+  returnObjects?: false | undefined;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface TranslationObjectOptions {
+  defaultValue?: unknown;
+  returnObjects: true;
+  [key: string]: unknown;
+}
+
+export type TranslationOptions = TranslationStringOptions | TranslationObjectOptions;
+
+export interface TranslationFunction {
+  (key: string, ns?: TranslationNamespace): string;
+  (key: string, ns: TranslationNamespace, options: TranslationObjectOptions): unknown;
+  (key: string, ns: TranslationNamespace, options?: TranslationStringOptions): string;
+}
+
+export interface NamespaceTranslationFunction {
+  (key: string): string;
+  (key: string, options: TranslationObjectOptions): unknown;
+  (key: string, options?: TranslationStringOptions): string;
+}
+
 type TranslationSet = Record<TranslationNamespace, Record<string, unknown>>;
 type TranslationCatalog<LocaleType extends string> = Record<LocaleType, TranslationSet>;
+type InterpolationValue = string | number | boolean;
+
+function resolveNestedValue(root: unknown, key: string): unknown {
+  let value = root;
+
+  for (const segment of key.split(".")) {
+    if (value && typeof value === "object") {
+      value = (value as Record<string, unknown>)[segment];
+    } else {
+      return undefined;
+    }
+  }
+
+  return value;
+}
+
+function getInterpolationValues(options?: TranslationOptions): Record<string, InterpolationValue> {
+  if (!options) {
+    return {};
+  }
+
+  const values: Record<string, InterpolationValue> = {};
+  for (const [optionKey, optionValue] of Object.entries(options)) {
+    if (optionKey === "defaultValue" || optionKey === "returnObjects") {
+      continue;
+    }
+
+    if (
+      typeof optionValue === "string" ||
+      typeof optionValue === "number" ||
+      typeof optionValue === "boolean"
+    ) {
+      values[optionKey] = optionValue;
+    }
+  }
+
+  return values;
+}
+
+function interpolateValue(template: string, options?: TranslationOptions): string {
+  const interpolationValues = getInterpolationValues(options);
+
+  return Object.entries(interpolationValues).reduce(
+    (result, [optionKey, optionValue]) =>
+      result.replace(new RegExp(`{${optionKey}}`, "g"), String(optionValue)),
+    template,
+  );
+}
 
 export interface I18nContextType<LocaleType extends string> {
   locale: LocaleType;
   locales: readonly LocaleType[];
   localeNames: Record<LocaleType, string>;
   setLocale: (locale: LocaleType) => void;
-  t: (key: string, ns?: TranslationNamespace, options?: Record<string, string | number>) => string;
+  t: TranslationFunction;
 }
 
 export interface I18nConfig<LocaleType extends string> {
@@ -53,7 +127,7 @@ export interface I18nConfig<LocaleType extends string> {
 export function createI18n<LocaleType extends string>(config: I18nConfig<LocaleType>) {
   const I18nContext = createContext<I18nContextType<LocaleType> | undefined>(undefined);
 
-  const defaultT = (key: string): string => key;
+  const defaultT: TranslationFunction = ((key: string) => key) as TranslationFunction;
 
   function I18nProvider({ children }: { children: React.ReactNode }) {
     const [locale, setLocaleState] = useState<LocaleType>(config.defaultLocale);
@@ -71,33 +145,27 @@ export function createI18n<LocaleType extends string>(config: I18nConfig<LocaleT
     }, []);
 
     const t = useCallback(
-      (key: string, ns: TranslationNamespace = "common", options?: Record<string, string | number>): string => {
+      ((key: string, ns: TranslationNamespace = "common", options?: TranslationOptions): string | unknown => {
         const localeTranslations =
           config.translations[locale] ?? config.translations[config.defaultLocale];
-        let value: unknown = localeTranslations?.[ns];
 
-        for (const k of key.split(".")) {
-          if (value && typeof value === "object") {
-            value = (value as Record<string, unknown>)[k];
-          } else {
-            return key;
-          }
+        const resolvedValue = resolveNestedValue(localeTranslations?.[ns], key);
+        const value = resolvedValue === undefined ? options?.defaultValue : resolvedValue;
+
+        if (options?.returnObjects === true) {
+          return value === undefined ? key : value;
         }
 
-        if (typeof value !== "string") {
-          return key;
+        if (typeof value === "string") {
+          return interpolateValue(value, options);
         }
 
-        if (!options) {
-          return value;
+        if (typeof value === "number" || typeof value === "boolean") {
+          return String(value);
         }
 
-        return Object.entries(options).reduce(
-          (result, [optionKey, optionValue]) =>
-            result.replace(new RegExp(`{${optionKey}}`, "g"), String(optionValue)),
-          value,
-        );
-      },
+        return key;
+      }) as TranslationFunction,
       [locale],
     );
 
@@ -133,9 +201,10 @@ export function createI18n<LocaleType extends string>(config: I18nConfig<LocaleT
   function useTranslation(ns: TranslationNamespace = "common") {
     const { t, locale, locales: availableLocales, localeNames: availableLocaleNames, setLocale } = useI18n();
     const translate = useCallback(
-      (key: string, options?: Record<string, string | number>) => t(key, ns, options),
+      ((key: string, options?: TranslationOptions) => (t as any)(key, ns, options)) as NamespaceTranslationFunction,
       [t, ns],
     );
+
     return {
       t: translate,
       locale,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { X, Globe, Check, AlertCircle, RefreshCw } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useTranslation } from "@/lib/i18n/react";
@@ -30,6 +30,21 @@ export function RpcSettingsModal({ isOpen, onClose }: RpcSettingsModalProps) {
       setTestResults({});
     }
   }, [isOpen, networkConfig.customRpcUrls]);
+
+  // Close on Escape key
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    },
+    [onClose],
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [isOpen, handleEscape]);
 
   if (!isOpen) return null;
 
@@ -107,14 +122,19 @@ export function RpcSettingsModal({ isOpen, onClose }: RpcSettingsModalProps) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-white dark:bg-[#050505] border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rpc-settings-title"
+        className="relative w-full max-w-md bg-white dark:bg-erobo-bg-deeper border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-neo/10 rounded-full text-neo">
               <Globe size={20} />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+            <h2 id="rpc-settings-title" className="text-lg font-bold text-gray-900 dark:text-white">
               {t("network.rpcSettings") || "RPC Settings"}
             </h2>
           </div>

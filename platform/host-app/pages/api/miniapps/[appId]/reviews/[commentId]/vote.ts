@@ -1,92 +1,69 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { createHandler } from "@/lib/api/create-handler";
+import { submitVoteBody } from "@/lib/schemas";
+import type { z } from "zod";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { commentId } = req.query;
+export default createHandler({
+  auth: "wallet",
+  rateLimit: "write",
+  methods: {
+    POST: {
+      schema: submitVoteBody,
+      handler: async (req, res, ctx) => {
+        const commentId = parseInt(req.query.commentId as string, 10);
+        if (Number.isNaN(commentId)) {
+          return res.status(400).json({ error: "Invalid commentId" });
+        }
 
-  if (!commentId || typeof commentId !== "string") {
-    return res.status(400).json({ error: "Missing commentId" });
-  }
+        const { vote_type } = ctx.parsedInput as z.infer<typeof submitVoteBody>;
 
-  if (!isSupabaseConfigured) {
-    return res.status(503).json({ error: "Database not configured" });
-  }
+        // Check existing vote — toggle if same type
+        const { data: existing } = await ctx.db
+          .from("comment_votes")
+          .select("vote_type")
+          .eq("comment_id", commentId)
+          .eq("wallet_address", ctx.address!)
+          .single();
 
-  if (req.method === "POST") {
-    return submitVote(commentId, req, res);
-  }
+        if (existing?.vote_type === vote_type) {
+          const { error } = await ctx.db
+            .from("comment_votes")
+            .delete()
+            .eq("comment_id", commentId)
+            .eq("wallet_address", ctx.address!);
 
-  if (req.method === "DELETE") {
-    return removeVote(commentId, req, res);
-  }
+          if (error) return res.status(500).json({ error: "Failed to remove vote" });
+          return res.status(200).json({ success: true, action: "removed" });
+        }
 
-  return res.status(405).json({ error: "Method not allowed" });
-}
+        // Upsert vote
+        const { error } = await ctx.db.from("comment_votes").upsert(
+          {
+            comment_id: commentId,
+            wallet_address: ctx.address!,
+            vote_type,
+          },
+          { onConflict: "comment_id,wallet_address" },
+        );
 
-async function submitVote(commentId: string, req: NextApiRequest, res: NextApiResponse) {
-  const { wallet, vote_type } = req.body;
-
-  if (!wallet || !["upvote", "downvote"].includes(vote_type)) {
-    return res.status(400).json({ error: "Invalid vote data" });
-  }
-
-  // Check existing vote
-  const { data: existing } = await supabase
-    .from("comment_votes")
-    .select("vote_type")
-    .eq("comment_id", parseInt(commentId))
-    .eq("wallet_address", wallet)
-    .single();
-
-  // Toggle: if same vote type, remove it
-  if (existing?.vote_type === vote_type) {
-    const { error } = await supabase
-      .from("comment_votes")
-      .delete()
-      .eq("comment_id", parseInt(commentId))
-      .eq("wallet_address", wallet);
-
-    if (error) {
-      return res.status(500).json({ error: "Failed to remove vote" });
-    }
-    return res.status(200).json({ success: true, action: "removed" });
-  }
-
-  // Upsert vote
-  const { error } = await supabase.from("comment_votes").upsert(
-    {
-      comment_id: parseInt(commentId),
-      wallet_address: wallet,
-      vote_type,
+        if (error) return res.status(500).json({ error: "Failed to submit vote" });
+        return res.status(200).json({ success: true, action: existing ? "changed" : "added" });
+      },
     },
-    { onConflict: "comment_id,wallet_address" },
-  );
 
-  if (error) {
-    console.error("Failed to submit vote:", error);
-    return res.status(500).json({ error: "Failed to submit vote" });
-  }
+    DELETE: async (req, res, ctx) => {
+      const commentId = parseInt(req.query.commentId as string, 10);
+      if (Number.isNaN(commentId)) {
+        return res.status(400).json({ error: "Invalid commentId" });
+      }
 
-  return res.status(200).json({ success: true, action: existing ? "changed" : "added" });
-}
+      const { error } = await ctx.db
+        .from("comment_votes")
+        .delete()
+        .eq("comment_id", commentId)
+        .eq("wallet_address", ctx.address!);
 
-async function removeVote(commentId: string, req: NextApiRequest, res: NextApiResponse) {
-  const wallet = req.headers["x-wallet-address"] as string;
-
-  if (!wallet) {
-    return res.status(401).json({ error: "Wallet address required" });
-  }
-
-  const { error } = await supabase
-    .from("comment_votes")
-    .delete()
-    .eq("comment_id", parseInt(commentId))
-    .eq("wallet_address", wallet);
-
-  if (error) {
-    console.error("Failed to remove vote:", error);
-    return res.status(500).json({ error: "Failed to remove vote" });
-  }
-
-  return res.status(200).json({ success: true });
-}
+      if (error) return res.status(500).json({ error: "Failed to remove vote" });
+      return res.status(200).json({ success: true });
+    },
+  },
+});

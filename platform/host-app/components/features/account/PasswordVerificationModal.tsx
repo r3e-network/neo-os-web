@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Lock, X, AlertTriangle } from "lucide-react";
@@ -23,6 +23,21 @@ export function PasswordVerificationModal({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Close on Escape key
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    },
+    [onClose],
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [isOpen, handleEscape]);
 
   if (!isOpen) return null;
 
@@ -58,16 +73,26 @@ export function PasswordVerificationModal({
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-white dark:bg-[#050505] border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="password-verify-title"
+        className="relative w-full max-w-md bg-white dark:bg-erobo-bg-deeper border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-neo/10 rounded-full text-neo">
               <Lock size={20} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title || t("account.neohub.passwordVerification")}</h3>
+            <h3 id="password-verify-title" className="text-lg font-bold text-gray-900 dark:text-white">
+              {title || t("account.neohub.passwordVerification")}
+            </h3>
           </div>
-          <button onClick={handleClose} className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
             <X size={20} />
           </button>
         </div>

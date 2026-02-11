@@ -5,7 +5,9 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHandler } from "@/lib/api";
+import { markNotificationsReadBody } from "@/lib/schemas";
 
 export interface Notification {
   id: string;
@@ -17,33 +19,22 @@ export interface Notification {
   created_at: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const wallet = req.headers["x-wallet-address"] as string;
+export default createHandler({
+  auth: "wallet",
+  methods: {
+    GET: (req, res, ctx) => getNotifications(ctx.db, ctx.address!, req, res),
+    POST: {
+      handler: (req, res, ctx) => markAsRead(ctx.db, ctx.address!, req, res),
+      schema: markNotificationsReadBody,
+    },
+  },
+});
 
-  if (!wallet) {
-    return res.status(401).json({ error: "Wallet address required" });
-  }
-
-  if (!isSupabaseConfigured) {
-    return res.status(503).json({ error: "Database not configured" });
-  }
-
-  if (req.method === "GET") {
-    return getNotifications(wallet, req, res);
-  }
-
-  if (req.method === "POST") {
-    return markAsRead(wallet, req, res);
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
-
-async function getNotifications(wallet: string, req: NextApiRequest, res: NextApiResponse) {
+async function getNotifications(db: SupabaseClient, wallet: string, req: NextApiRequest, res: NextApiResponse) {
   const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
   const unreadOnly = req.query.unread === "true";
 
-  let query = supabase
+  let query = db
     .from("notification_events")
     .select("*")
     .eq("wallet_address", wallet)
@@ -61,8 +52,7 @@ async function getNotifications(wallet: string, req: NextApiRequest, res: NextAp
     return res.status(500).json({ error: "Failed to fetch notifications" });
   }
 
-  // Get unread count
-  const { count } = await supabase
+  const { count } = await db
     .from("notification_events")
     .select("*", { count: "exact", head: true })
     .eq("wallet_address", wallet)
@@ -78,18 +68,14 @@ async function getNotifications(wallet: string, req: NextApiRequest, res: NextAp
     created_at: n.created_at,
   }));
 
-  return res.status(200).json({
-    notifications,
-    unreadCount: count || 0,
-  });
+  return res.status(200).json({ notifications, unreadCount: count || 0 });
 }
 
-async function markAsRead(wallet: string, req: NextApiRequest, res: NextApiResponse) {
+async function markAsRead(db: SupabaseClient, wallet: string, req: NextApiRequest, res: NextApiResponse) {
   const { ids, all } = req.body;
 
   if (all) {
-    // Mark all as read
-    const { error } = await supabase
+    const { error } = await db
       .from("notification_events")
       .update({ read: true })
       .eq("wallet_address", wallet)
@@ -101,11 +87,7 @@ async function markAsRead(wallet: string, req: NextApiRequest, res: NextApiRespo
     return res.status(200).json({ success: true });
   }
 
-  if (!Array.isArray(ids) || ids.length === 0) {
-    return res.status(400).json({ error: "ids array required" });
-  }
-
-  const { error } = await supabase
+  const { error } = await db
     .from("notification_events")
     .update({ read: true })
     .eq("wallet_address", wallet)

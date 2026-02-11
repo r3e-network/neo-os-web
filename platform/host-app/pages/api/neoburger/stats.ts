@@ -4,7 +4,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getNeoBurgerStats } from "../../../lib/neoburger";
+import { getNeoBurgerStats } from "@/lib/neoburger";
 import type { ChainId } from "@/lib/chains/types";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

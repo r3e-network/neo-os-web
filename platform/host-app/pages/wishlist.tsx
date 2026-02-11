@@ -211,7 +211,12 @@ function WishlistCard({
   return (
     <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/80 dark:bg-white/5 border border-white/60 dark:border-white/10 hover:border-erobo-purple/40 transition-all backdrop-blur-sm group">
       <Link href={`/miniapps/${item.app_id}`} className="flex-1 flex items-center gap-4">
-        <MiniAppLogo appId={item.app_id} category={category as "gaming" | "defi" | "social" | "nft" | "governance" | "utility"} size="md" iconUrl={app?.icon} />
+        <MiniAppLogo
+          appId={item.app_id}
+          category={category as "gaming" | "defi" | "social" | "nft" | "governance" | "utility"}
+          size="md"
+          iconUrl={app?.icon}
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-bold text-erobo-ink dark:text-white truncate group-hover:text-erobo-purple transition-colors">
@@ -244,5 +249,3 @@ function WishlistCard({
     </div>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

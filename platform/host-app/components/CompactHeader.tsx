@@ -37,7 +37,7 @@ export function CompactHeader({
   const walletDotColor = wallet.connected ? "bg-neo" : "bg-red-500";
 
   return (
-    <div className="h-12 bg-white/70 dark:bg-[#0b0c16]/90 backdrop-blur-xl border-b border-white/60 dark:border-white/10 flex items-center px-4 gap-4 shadow-sm">
+    <div className="h-12 bg-white/70 dark:bg-erobo-bg-dark/90 backdrop-blur-xl border-b border-white/60 dark:border-white/10 flex items-center px-4 gap-4 shadow-sm">
       {/* Left: back + app name */}
       <div className="flex items-center gap-2">
         <button

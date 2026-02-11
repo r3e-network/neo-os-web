@@ -42,7 +42,9 @@ async function testEmail() {
     console.log("✅ Email sent successfully!");
   } catch (error: unknown) {
     console.error("❌ Failed to send email:");
-    console.error(error.response?.body || error.message);
+
+    const sendGridError = error as { response?: { body?: unknown }; message?: string };
+    console.error(sendGridError.response?.body ?? sendGridError.message ?? error);
   }
 }
 

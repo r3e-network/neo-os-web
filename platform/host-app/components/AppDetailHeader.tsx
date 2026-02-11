@@ -50,7 +50,7 @@ export function AppDetailHeader({ app, stats, description }: Props) {
   const hasBanner = isBannerUrl(app.banner);
 
   return (
-    <header className="relative z-10 overflow-hidden bg-white/70 dark:bg-[#0b0c16]/90 backdrop-blur-xl border-b border-white/60 dark:border-white/10 transition-all duration-300">
+    <header className="relative z-10 overflow-hidden bg-white/70 dark:bg-erobo-bg-dark/90 backdrop-blur-xl border-b border-white/60 dark:border-white/10 transition-all duration-300">
       {/* Banner Section - force rebuild 2026-01-19T13:57 */}
       {hasBanner && (
         <div className="relative w-full h-48 overflow-hidden">
@@ -76,7 +76,7 @@ export function AppDetailHeader({ app, stats, description }: Props) {
       <div className={`px-6 py-6 relative ${hasBanner ? "-mt-16" : "pt-24"}`}>
         {/* Logo and Name Row */}
         <div className="flex items-center gap-5 mb-3">
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 group hover:scale-105 transition-transform duration-300 relative z-20 overflow-hidden shadow-xl border-4 border-white/80 dark:border-[#0b0c16]/80">
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 group hover:scale-105 transition-transform duration-300 relative z-20 overflow-hidden shadow-xl border-4 border-white/80 dark:border-erobo-bg-dark/80">
             {isIconUrl(app.icon) ? (
               <MiniAppLogo
                 appId={app.app_id}
@@ -104,18 +104,20 @@ export function AppDetailHeader({ app, stats, description }: Props) {
         {/* Status Row */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <div
-            className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] tracking-wider flex items-center gap-1.5 border shadow-sm backdrop-blur-sm ${statusKey === "online"
-              ? "bg-erobo-purple/10 text-erobo-purple border-erobo-purple/30"
-              : statusKey === "maintenance"
-                ? "bg-erobo-peach/40 text-erobo-ink border-white/60"
-                : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft/70 dark:text-gray-400 border-white/60 dark:border-white/10"
-              }`}
+            className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] tracking-wider flex items-center gap-1.5 border shadow-sm backdrop-blur-sm ${
+              statusKey === "online"
+                ? "bg-erobo-purple/10 text-erobo-purple border-erobo-purple/30"
+                : statusKey === "maintenance"
+                  ? "bg-erobo-peach/40 text-erobo-ink border-white/60"
+                  : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft/70 dark:text-gray-400 border-white/60 dark:border-white/10"
+            }`}
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full ${statusKey === "online"
-                ? "bg-erobo-purple animate-pulse shadow-[0_0_8px_currentColor]"
-                : "bg-current opacity-50"
-                }`}
+              className={`w-1.5 h-1.5 rounded-full ${
+                statusKey === "online"
+                  ? "bg-erobo-purple animate-pulse shadow-[0_0_8px_currentColor]"
+                  : "bg-current opacity-50"
+              }`}
             />
             {statusLabel}
           </div>
@@ -131,9 +133,7 @@ export function AppDetailHeader({ app, stats, description }: Props) {
 
         {/* Description */}
         {description && (
-          <p className="text-base text-muted-foreground leading-relaxed m-0 line-clamp-2">
-            {description}
-          </p>
+          <p className="text-base text-muted-foreground leading-relaxed m-0 line-clamp-2">{description}</p>
         )}
 
         <div className="flex flex-wrap items-center gap-2 pt-3">
@@ -144,7 +144,6 @@ export function AppDetailHeader({ app, stats, description }: Props) {
             {app.category}
           </Badge>
         </div>
-
 
         {/* Quick Stats Row */}
         {stats && (
@@ -173,6 +172,6 @@ export function AppDetailHeader({ app, stats, description }: Props) {
           </div>
         )}
       </div>
-    </header >
+    </header>
   );
 }

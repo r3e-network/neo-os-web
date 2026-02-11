@@ -1,7 +1,7 @@
 "use client";
 
 import { createI18n } from "../../../shared/i18n/react";
-import type { Locale} from "./index";
+import type { Locale } from "./index";
 import { defaultLocale, getStoredLocale, localeNames, locales, setStoredLocale } from "./index";
 
 // Import translations
@@ -31,3 +31,4 @@ const hostAppI18n = createI18n<Locale>({
 export const I18nProvider = hostAppI18n.I18nProvider;
 export const useI18n = hostAppI18n.useI18n;
 export const useTranslation = hostAppI18n.useTranslation;
+export type HostTranslationFunction = ReturnType<typeof hostAppI18n.useTranslation>["t"];

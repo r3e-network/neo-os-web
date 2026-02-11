@@ -134,10 +134,13 @@ const handleGetAddress: BridgeHandler = async ({ sdk, walletAddress, params }) =
   try {
     const { useMultiChainWallet } = await import("./wallet/multi-chain-store");
     const mcState = useMultiChainWallet.getState();
-    const targetChainId = typeof chainId === "string" && chainId ? chainId : mcState.activeChainId;
+    const targetChainId = (typeof chainId === "string" && chainId ? chainId : mcState.activeChainId) as ChainId | null;
 
-    if (targetChainId && mcState.account?.accounts?.[targetChainId]) {
-      return mcState.account.accounts[targetChainId];
+    if (targetChainId) {
+      const account = mcState.account?.accounts?.[targetChainId as keyof typeof mcState.account.accounts];
+      if (account) {
+        return account;
+      }
     }
   } catch (e) {
     // Ignore if multi-chain store lookup fails

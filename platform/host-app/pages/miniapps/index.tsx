@@ -1,7 +1,7 @@
 import Head from "next/head";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
-import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown, Rocket } from "lucide-react";
+import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown, Rocket, SlidersHorizontal } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { MiniAppGrid, MiniAppListItem, FilterSidebar } from "@/components/features/miniapp";
 import { FeaturedHeroCarousel, type FeaturedApp } from "@/components/features/discovery/FeaturedHeroCarousel";
@@ -16,7 +16,6 @@ import type { ChainId } from "@/lib/chains/types";
 import { getChainRegistry } from "@/lib/chains/registry";
 import { PREDEFINED_TAGS, APP_TAGS } from "@/components/features/tags";
 import { getLocalizedField } from "@neo/shared/i18n";
-
 
 type SortOption = "trending" | "users" | "transactions" | "recent";
 type ViewMode = "grid" | "list";
@@ -118,6 +117,7 @@ export default function MiniAppsPage() {
   const [displayCount, setDisplayCount] = useState(12); // Pagination: show 12 initially
   const [isUrlInitialized, setIsUrlInitialized] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const PAGE_SIZE = 12;
   const scrollRestoredRef = useRef(false);
 
@@ -275,8 +275,6 @@ export default function MiniAppsPage() {
     }
     scrollRestoredRef.current = true;
   }, [isDataReady]);
-
-
 
   useEffect(() => {
     // Try to restore cached stats first
@@ -473,12 +471,18 @@ export default function MiniAppsPage() {
         <WaterWaveBackground intensity="medium" colorScheme="mixed" className="opacity-70 z-0" />
 
         {/* Sidebar */}
-        <FilterSidebar sections={filterSections} selected={filters} onChange={handleFilterChange} />
+        <FilterSidebar
+          sections={filterSections}
+          selected={filters}
+          onChange={handleFilterChange}
+          isOpen={mobileFilterOpen}
+          onClose={() => setMobileFilterOpen(false)}
+        />
 
         {/* Main Content */}
         <main className="flex-1 w-0 relative z-10">
           {/* Header */}
-          <div className="sticky top-16 z-40 bg-white/70 dark:bg-[#0b0c16]/90 backdrop-blur-xl border-b border-white/60 dark:border-erobo-purple/10 px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="sticky top-16 z-40 bg-white/70 dark:bg-erobo-bg-dark/90 backdrop-blur-xl border-b border-white/60 dark:border-erobo-purple/10 px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-erobo-purple/10 flex items-center justify-center">
                 <Rocket size={24} className="text-erobo-purple" strokeWidth={2} />
@@ -492,6 +496,14 @@ export default function MiniAppsPage() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Mobile Filter Toggle */}
+              <button
+                onClick={() => setMobileFilterOpen(true)}
+                className="lg:hidden flex items-center gap-2 px-3 py-2 rounded-xl bg-erobo-purple/10 text-erobo-purple hover:bg-erobo-purple/20 transition-colors text-sm font-semibold"
+              >
+                <SlidersHorizontal size={16} />
+                <span>{t("miniapps.filters.title")}</span>
+              </button>
               {/* Sort Dropdown */}
               <div className="relative">
                 <button
@@ -612,5 +624,3 @@ export default function MiniAppsPage() {
     </Layout>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

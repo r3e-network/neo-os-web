@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getMiniAppStats, getAggregatedMiniAppStats } from "../../../../lib/miniapp-stats";
-import { apiError } from "../../../../lib/api-response";
-import { getChainRegistry } from "../../../../lib/chains/registry";
-import type { ChainId } from "../../../../lib/chains/types";
+import { getMiniAppStats, getAggregatedMiniAppStats } from "@/lib/miniapp-stats";
+import { apiError } from "@/lib/api-response";
+import { getChainRegistry } from "@/lib/chains/registry";
+import type { ChainId } from "@/lib/chains/types";
 
 /** Validate chain ID using registry */
 function validateChainId(value: string | undefined): ChainId | null {

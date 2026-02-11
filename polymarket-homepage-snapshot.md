@@ -1,0 +1,3957 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - link "Polymarket Logo" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img "Polymarket" [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e12]:
+            - img [ref=e14]
+            - generic: /
+            - textbox "Search polymarket" [ref=e17]
+          - button "How it works" [ref=e19] [cursor=pointer]:
+            - img
+            - generic [ref=e20]: How it works
+        - generic [ref=e22]:
+          - generic [ref=e24]:
+            - button "Log In" [ref=e25] [cursor=pointer]:
+              - generic [ref=e26]: Log In
+            - button "Sign Up" [ref=e27] [cursor=pointer]:
+              - generic [ref=e28]: Sign Up
+          - button "Open user menu" [ref=e30] [cursor=pointer]:
+            - img [ref=e32]
+      - generic [ref=e38]:
+        - link "Trending" [ref=e39] [cursor=pointer]:
+          - /url: /
+          - img [ref=e40]
+          - generic [ref=e43]: Trending
+        - link "Breaking" [ref=e44] [cursor=pointer]:
+          - /url: /breaking
+        - link "New" [ref=e45] [cursor=pointer]:
+          - /url: /new
+        - link "Politics" [ref=e47] [cursor=pointer]:
+          - /url: /politics
+        - link "Sports" [ref=e48] [cursor=pointer]:
+          - /url: /sports/live
+        - link "Crypto" [ref=e49] [cursor=pointer]:
+          - /url: /crypto
+        - link "Finance" [ref=e50] [cursor=pointer]:
+          - /url: /finance
+        - link "Geopolitics" [ref=e51] [cursor=pointer]:
+          - /url: /geopolitics
+        - link "Earnings" [ref=e52] [cursor=pointer]:
+          - /url: /earnings
+        - link "Tech" [ref=e53] [cursor=pointer]:
+          - /url: /tech
+        - link "Culture" [ref=e54] [cursor=pointer]:
+          - /url: /pop-culture
+        - link "World" [ref=e55] [cursor=pointer]:
+          - /url: /world
+        - link "Economy" [ref=e56] [cursor=pointer]:
+          - /url: /economy
+        - link "Climate & Science" [ref=e57] [cursor=pointer]:
+          - /url: /climate-science
+        - link "Elections" [ref=e58] [cursor=pointer]:
+          - /url: /dashboards/global-elections
+        - link "Mentions" [ref=e59] [cursor=pointer]:
+          - /url: /mentions
+        - link "Open more navigation links" [ref=e60] [cursor=pointer]:
+          - /url: "#"
+          - text: More
+          - img [ref=e61]
+    - generic [ref=e63]:
+      - main [ref=e66]:
+        - generic [ref=e67]:
+          - heading "Polymarket | The World's Largest Prediction Market™" [level=1] [ref=e68]
+          - generic [ref=e69]:
+            - generic [ref=e71]:
+              - generic [ref=e73]:
+                - generic "Market tabs" [ref=e75]:
+                  - tablist [ref=e77]:
+                    - tab "All" [selected] [ref=e78] [cursor=pointer]
+                    - tab "Supá Bowl" [ref=e79] [cursor=pointer]
+                    - tab "Olympics" [ref=e80] [cursor=pointer]
+                    - tab "Trump" [ref=e81] [cursor=pointer]
+                    - tab "Iran" [ref=e82] [cursor=pointer]
+                    - tab "IPOs" [ref=e83] [cursor=pointer]
+                    - tab "Thailand Election" [ref=e84] [cursor=pointer]
+                    - tab "Japan Election" [ref=e85] [cursor=pointer]
+                    - tab "Starmer" [ref=e86] [cursor=pointer]
+                    - tab "Tweet Markets" [ref=e87] [cursor=pointer]
+                    - tab "Gov Shutdown" [ref=e88] [cursor=pointer]
+                    - tab "Epstein" [ref=e89] [cursor=pointer]
+                    - tab "SpaceX" [ref=e90] [cursor=pointer]
+                    - tab "Derivatives" [ref=e91] [cursor=pointer]
+                    - tab "Fed" [ref=e92] [cursor=pointer]
+                    - tab "Gold" [ref=e93] [cursor=pointer]
+                    - tab "Silver" [ref=e94] [cursor=pointer]
+                    - tab "Minnesota Unrest" [ref=e95] [cursor=pointer]
+                    - tab "Claude 5" [ref=e96] [cursor=pointer]
+                    - tab "Earnings" [ref=e97] [cursor=pointer]
+                    - tab "Equities" [ref=e98] [cursor=pointer]
+                    - tab "Greenland" [ref=e99] [cursor=pointer]
+                    - tab "Oscars" [ref=e100] [cursor=pointer]
+                    - tab "Tariffs" [ref=e101] [cursor=pointer]
+                    - tab "Vietnam" [ref=e102] [cursor=pointer]
+                    - tab "Venezuela" [ref=e103] [cursor=pointer]
+                    - tab "Portugal Election" [ref=e104] [cursor=pointer]
+                    - tab "Ukraine" [ref=e105] [cursor=pointer]
+                    - tab "China" [ref=e106] [cursor=pointer]
+                    - tab "AI" [ref=e107] [cursor=pointer]
+                    - tab "Weather" [ref=e108] [cursor=pointer]
+                    - tab "Primaries" [ref=e109] [cursor=pointer]
+                    - tab "Midterms" [ref=e110] [cursor=pointer]
+                    - tab "Movies" [ref=e111] [cursor=pointer]
+                    - tab "Global Elections" [ref=e112] [cursor=pointer]
+                    - tab "Parlays" [ref=e113] [cursor=pointer]
+                    - tab "Israel" [ref=e114] [cursor=pointer]
+                    - tab "Crypto Prices" [ref=e115] [cursor=pointer]
+                    - tab "Commodities" [ref=e116] [cursor=pointer]
+                - button "Scroll right" [ref=e117] [cursor=pointer]:
+                  - img "Scroll right" [ref=e118]
+              - generic [ref=e120]:
+                - generic [ref=e121]:
+                  - button [ref=e123] [cursor=pointer]:
+                    - img
+                  - generic:
+                    - textbox "Search" [ref=e124]
+                    - generic:
+                      - img
+                - button "Toggle filters" [ref=e125] [cursor=pointer]:
+                  - img "sliders" [ref=e127]
+                - button "Toggle watchlist" [ref=e131] [cursor=pointer]
+            - generic [ref=e133]:
+              - generic [ref=e134]:
+                - generic [ref=e136]:
+                  - link "Seahawks 69% Patriots 32%" [ref=e137] [cursor=pointer]:
+                    - /url: /event/nfl-sea-ne-2026-02-08
+                    - generic [ref=e138]:
+                      - paragraph [ref=e141]: Seahawks
+                      - paragraph [ref=e142]: 69%
+                    - generic [ref=e143]:
+                      - paragraph [ref=e146]: Patriots
+                      - paragraph [ref=e147]: 32%
+                  - generic [ref=e148]:
+                    - generic [ref=e149]:
+                      - link "Seahawks" [ref=e150] [cursor=pointer]:
+                        - /url: /event/nfl-sea-ne-2026-02-08
+                        - paragraph [ref=e152]: Seahawks
+                      - link "Patriots" [ref=e154] [cursor=pointer]:
+                        - /url: /event/nfl-sea-ne-2026-02-08
+                        - paragraph [ref=e156]: Patriots
+                    - generic [ref=e159]:
+                      - generic [ref=e160]:
+                        - paragraph [ref=e161]: $13m Vol.
+                        - generic [ref=e162]: •
+                        - link "NFL" [ref=e163] [cursor=pointer]:
+                          - /url: /sports/nfl/games/week/15
+                        - generic [ref=e164]: •
+                        - text: Feb 09, 7:30 AM
+                      - button "Add to favorites" [ref=e167] [cursor=pointer]
+                - generic [ref=e170]:
+                  - generic [ref=e171]:
+                    - img "US strikes Iran by...? card icon" [ref=e173]
+                    - link "US strikes Iran by...?" [ref=e175] [cursor=pointer]:
+                      - /url: /event/us-strikes-iran-by
+                      - heading "US strikes Iran by...?" [level=2] [ref=e177]
+                  - generic [ref=e178]:
+                    - generic [ref=e183]:
+                      - generic [ref=e186]:
+                        - link "February 13" [ref=e188] [cursor=pointer]:
+                          - /url: /event/us-strikes-iran-by/us-strikes-iran-by-february-13-2026-721-759-497-124-197-797-992-641-418-789-676-262-791-574
+                          - paragraph [ref=e189]: February 13
+                        - generic [ref=e190]:
+                          - paragraph [ref=e191]: 8%
+                          - link "Yes 8%" [ref=e192] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e193]: "Yes"
+                            - generic [ref=e194]: 8%
+                          - link "No 92%" [ref=e195] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e196]: "No"
+                            - generic [ref=e197]: 92%
+                      - generic [ref=e200]:
+                        - link "February 20" [ref=e202] [cursor=pointer]:
+                          - /url: /event/us-strikes-iran-by/us-strikes-iran-by-february-20-2026-151-468-624-297
+                          - paragraph [ref=e203]: February 20
+                        - generic [ref=e204]:
+                          - paragraph [ref=e205]: 16%
+                          - link "Yes 16%" [ref=e206] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e207]: "Yes"
+                            - generic [ref=e208]: 16%
+                          - link "No 84%" [ref=e209] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e210]: "No"
+                            - generic [ref=e211]: 84%
+                      - generic [ref=e214]:
+                        - link "February 28" [ref=e216] [cursor=pointer]:
+                          - /url: /event/us-strikes-iran-by/us-strikes-iran-by-february-28-2026-227-967-547-688-589-491-592-418-452-924-384-915-464-672-196-157-993-596-269-535
+                          - paragraph [ref=e217]: February 28
+                        - generic [ref=e218]:
+                          - paragraph [ref=e219]: 24%
+                          - link "Yes 24%" [ref=e220] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e221]: "Yes"
+                            - generic [ref=e222]: 24%
+                          - link "No 76%" [ref=e223] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e224]: "No"
+                            - generic [ref=e225]: 76%
+                      - generic [ref=e228]:
+                        - link "March 31" [ref=e230] [cursor=pointer]:
+                          - /url: /event/us-strikes-iran-by/us-strikes-iran-by-march-31-2026-393-221-132-633-215-592-866-184-321-377-931-222-297-655-719-935-944-321-534-925-937-744-476-586-454-914-676-972-362
+                          - paragraph [ref=e231]: March 31
+                        - generic [ref=e232]:
+                          - paragraph [ref=e233]: 38%
+                          - link "Yes 38%" [ref=e234] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e235]: "Yes"
+                            - generic [ref=e236]: 38%
+                          - link "No 62%" [ref=e237] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e238]: "No"
+                            - generic [ref=e239]: 62%
+                      - generic [ref=e242]:
+                        - link "June 30" [ref=e244] [cursor=pointer]:
+                          - /url: /event/us-strikes-iran-by/us-strikes-iran-by-june-30-2026-699-664-723-485-753-218-567-164-387-443-377-384-159-973-494-631-694-956-361-443-224-518-537-678-486-386-275-153
+                          - paragraph [ref=e245]: June 30
+                        - generic [ref=e246]:
+                          - paragraph [ref=e247]: 47%
+                          - link "Yes 47%" [ref=e248] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e249]: "Yes"
+                            - generic [ref=e250]: 47%
+                          - link "No 53%" [ref=e251] [cursor=pointer]:
+                            - /url: /event/us-strikes-iran-by
+                            - generic [ref=e252]: "No"
+                            - generic [ref=e253]: 53%
+                    - generic [ref=e255]:
+                      - generic [ref=e256]:
+                        - paragraph [ref=e257]: $187m Vol.
+                        - img [ref=e259]
+                      - generic [ref=e265]:
+                        - button "View trading rewards" [ref=e266] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e267] [cursor=pointer]
+                - generic [ref=e270]:
+                  - generic [ref=e271]:
+                    - img "BTC 15 Minute Up or Down card icon" [ref=e273]
+                    - generic [ref=e274]:
+                      - link "BTC 15 Minute Up or Down" [ref=e275] [cursor=pointer]:
+                        - /url: /event/btc-updown-15m-1770457500
+                        - heading "BTC 15 Minute Up or Down" [level=2] [ref=e277]
+                      - generic [ref=e279]:
+                        - img [ref=e281]
+                        - generic [ref=e284]:
+                          - paragraph [ref=e285]: 30%
+                          - paragraph [ref=e286]: Up
+                  - generic [ref=e287]:
+                    - generic [ref=e288]:
+                      - link "Up" [ref=e289] [cursor=pointer]:
+                        - /url: /event/btc-updown-15m-1770457500
+                        - paragraph [ref=e290]: Up
+                      - link "Down" [ref=e291] [cursor=pointer]:
+                        - /url: /event/btc-updown-15m-1770457500
+                        - paragraph [ref=e292]: Down
+                    - generic [ref=e294]:
+                      - generic [ref=e296]:
+                        - paragraph [ref=e300]: Live
+                        - paragraph [ref=e301]: $30m Vol.
+                      - button "Add to favorites" [ref=e304] [cursor=pointer]
+                - generic [ref=e307]:
+                  - generic [ref=e308]:
+                    - img "What price will Bitcoin hit in February? card icon" [ref=e310]
+                    - link "What price will Bitcoin hit in February?" [ref=e312] [cursor=pointer]:
+                      - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                      - heading "What price will Bitcoin hit in February?" [level=2] [ref=e314]
+                  - generic [ref=e315]:
+                    - generic [ref=e320]:
+                      - generic [ref=e323]:
+                        - link "↑ 85,000" [ref=e325] [cursor=pointer]:
+                          - /url: /event/what-price-will-bitcoin-hit-in-february-2026/will-bitcoin-reach-85k-in-february-2026
+                          - paragraph [ref=e326]: ↑ 85,000
+                        - generic [ref=e327]:
+                          - paragraph [ref=e328]: 12%
+                          - link "Yes 12%" [ref=e329] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e330]: "Yes"
+                            - generic [ref=e331]: 12%
+                          - link "No 88%" [ref=e332] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e333]: "No"
+                            - generic [ref=e334]: 88%
+                      - generic [ref=e337]:
+                        - link "↑ 80,000" [ref=e339] [cursor=pointer]:
+                          - /url: /event/what-price-will-bitcoin-hit-in-february-2026/will-bitcoin-reach-80000-in-february-298
+                          - paragraph [ref=e340]: ↑ 80,000
+                        - generic [ref=e341]:
+                          - paragraph [ref=e342]: 24%
+                          - link "Yes 24%" [ref=e343] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e344]: "Yes"
+                            - generic [ref=e345]: 24%
+                          - link "No 76%" [ref=e346] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e347]: "No"
+                            - generic [ref=e348]: 76%
+                      - generic [ref=e351]:
+                        - link "↑ 75,000" [ref=e353] [cursor=pointer]:
+                          - /url: /event/what-price-will-bitcoin-hit-in-february-2026/will-bitcoin-reach-75000-in-february-858-936
+                          - paragraph [ref=e354]: ↑ 75,000
+                        - generic [ref=e355]:
+                          - paragraph [ref=e356]: 50%
+                          - link "Yes 50%" [ref=e357] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e358]: "Yes"
+                            - generic [ref=e359]: 50%
+                          - link "No 50%" [ref=e360] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e361]: "No"
+                            - generic [ref=e362]: 50%
+                      - generic [ref=e365]:
+                        - link "↓ 60,000" [ref=e367] [cursor=pointer]:
+                          - /url: /event/what-price-will-bitcoin-hit-in-february-2026/will-bitcoin-dip-to-60000-in-february-694
+                          - paragraph [ref=e368]: ↓ 60,000
+                        - generic [ref=e369]:
+                          - paragraph [ref=e370]: 44%
+                          - link "Yes 44%" [ref=e371] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e372]: "Yes"
+                            - generic [ref=e373]: 44%
+                          - link "No 56%" [ref=e374] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e375]: "No"
+                            - generic [ref=e376]: 56%
+                      - generic [ref=e379]:
+                        - link "↓ 55,000" [ref=e381] [cursor=pointer]:
+                          - /url: /event/what-price-will-bitcoin-hit-in-february-2026/will-bitcoin-dip-to-55k-in-february-2026-644-513-935
+                          - paragraph [ref=e382]: ↓ 55,000
+                        - generic [ref=e383]:
+                          - paragraph [ref=e384]: 23%
+                          - link "Yes 23%" [ref=e385] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e386]: "Yes"
+                            - generic [ref=e387]: 23%
+                          - link "No 77%" [ref=e388] [cursor=pointer]:
+                            - /url: /event/what-price-will-bitcoin-hit-in-february-2026
+                            - generic [ref=e389]: "No"
+                            - generic [ref=e390]: 77%
+                    - generic [ref=e392]:
+                      - generic [ref=e393]:
+                        - paragraph [ref=e394]: $34m Vol.
+                        - img [ref=e396]
+                      - button "Add to favorites" [ref=e403] [cursor=pointer]
+                - generic [ref=e406]:
+                  - generic [ref=e407]:
+                    - img "Fed decision in March? card icon" [ref=e409]
+                    - link "Fed decision in March?" [ref=e411] [cursor=pointer]:
+                      - /url: /event/fed-decision-in-march-885
+                      - heading "Fed decision in March?" [level=2] [ref=e413]
+                  - generic [ref=e414]:
+                    - generic [ref=e419]:
+                      - generic [ref=e422]:
+                        - link "50+ bps decrease" [ref=e424] [cursor=pointer]:
+                          - /url: /event/fed-decision-in-march-885/will-the-fed-decrease-interest-rates-by-50-bps-after-the-march-2026-meeting
+                          - paragraph [ref=e425]: 50+ bps decrease
+                        - generic [ref=e426]:
+                          - paragraph [ref=e427]: 1%
+                          - link "Yes 1%" [ref=e428] [cursor=pointer]:
+                            - /url: /event/fed-decision-in-march-885
+                            - generic [ref=e429]: "Yes"
+                            - generic [ref=e430]: 1%
+                          - link "No 99%" [ref=e431] [cursor=pointer]:
+                            - /url: /event/fed-decision-in-march-885
+                            - generic [ref=e432]: "No"
+                            - generic [ref=e433]: 99%
+                      - generic [ref=e436]:
+                        - link "25 bps decrease" [ref=e438] [cursor=pointer]:
+                          - /url: /event/fed-decision-in-march-885/will-the-fed-decrease-interest-rates-by-25-bps-after-the-march-2026-meeting
+                          - paragraph [ref=e439]: 25 bps decrease
+                        - generic [ref=e440]:
+                          - paragraph [ref=e441]: 13%
+                          - link "Yes 13%" [ref=e442] [cursor=pointer]:
+                            - /url: /event/fed-decision-in-march-885
+                            - generic [ref=e443]: "Yes"
+                            - generic [ref=e444]: 13%
+                          - link "No 87%" [ref=e445] [cursor=pointer]:
+                            - /url: /event/fed-decision-in-march-885
+                            - generic [ref=e446]: "No"
+                            - generic [ref=e447]: 87%
+                      - generic [ref=e450]:
+                        - link "No change" [ref=e452] [cursor=pointer]:
+                          - /url: /event/fed-decision-in-march-885/will-there-be-no-change-in-fed-interest-rates-after-the-march-2026-meeting
+                          - paragraph [ref=e453]: No change
+                        - generic [ref=e454]:
+                          - paragraph [ref=e455]: 86%
+                          - link "Yes 86%" [ref=e456] [cursor=pointer]:
+                            - /url: /event/fed-decision-in-march-885
+                            - generic [ref=e457]: "Yes"
+                            - generic [ref=e458]: 86%
+                          - link "No 14%" [ref=e459] [cursor=pointer]:
+                            - /url: /event/fed-decision-in-march-885
+                            - generic [ref=e460]: "No"
+                            - generic [ref=e461]: 14%
+                      - generic [ref=e464]:
+                        - link "25+ bps increase" [ref=e466] [cursor=pointer]:
+                          - /url: /event/fed-decision-in-march-885/will-the-fed-increase-interest-rates-by-25-bps-after-the-march-2026-meeting
+                          - paragraph [ref=e467]: 25+ bps increase
+                        - generic [ref=e468]:
+                          - paragraph [ref=e469]: 1%
+                          - link "Yes 1%" [ref=e470] [cursor=pointer]:
+                            - /url: /event/fed-decision-in-march-885
+                            - generic [ref=e471]: "Yes"
+                            - generic [ref=e472]: 1%
+                          - link "No 99%" [ref=e473] [cursor=pointer]:
+                            - /url: /event/fed-decision-in-march-885
+                            - generic [ref=e474]: "No"
+                            - generic [ref=e475]: 99%
+                    - generic [ref=e477]:
+                      - generic [ref=e478]:
+                        - paragraph [ref=e479]: $74m Vol.
+                        - img [ref=e481]
+                      - generic [ref=e487]:
+                        - button "View trading rewards" [ref=e488] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e489] [cursor=pointer]
+                - generic [ref=e492]:
+                  - link "Ninjas in Pyjamas 54% Team WE 47%" [ref=e493] [cursor=pointer]:
+                    - /url: /event/lol-nip-we-2026-02-07
+                    - generic [ref=e494]:
+                      - paragraph [ref=e497]: Ninjas in Pyjamas
+                      - paragraph [ref=e498]: 54%
+                    - generic [ref=e499]:
+                      - paragraph [ref=e502]: Team WE
+                      - paragraph [ref=e503]: 47%
+                  - generic [ref=e504]:
+                    - generic [ref=e505]:
+                      - link "Ninjas in" [ref=e506] [cursor=pointer]:
+                        - /url: /event/lol-nip-we-2026-02-07
+                        - paragraph [ref=e508]: Ninjas in
+                      - link "Team WE" [ref=e510] [cursor=pointer]:
+                        - /url: /event/lol-nip-we-2026-02-07
+                        - paragraph [ref=e512]: Team WE
+                    - generic [ref=e515]:
+                      - generic [ref=e516]:
+                        - paragraph [ref=e517]: $162k Vol.
+                        - generic [ref=e518]: •
+                        - link "LEAGUE OF-LEGENDS" [ref=e519] [cursor=pointer]:
+                          - /url: /sports/league-of-legends/games/week/1
+                        - generic [ref=e520]: •
+                        - text: 7:00 PM
+                      - button "Add to favorites" [ref=e523] [cursor=pointer]
+                - generic [ref=e526]:
+                  - link "Wolves 18% Chelsea 60%" [ref=e527] [cursor=pointer]:
+                    - /url: /event/epl-wol-che-2026-02-07
+                    - generic [ref=e528]:
+                      - paragraph [ref=e531]: Wolves
+                      - paragraph [ref=e532]: 18%
+                    - generic [ref=e533]:
+                      - paragraph [ref=e536]: Chelsea
+                      - paragraph [ref=e537]: 60%
+                  - generic [ref=e538]:
+                    - generic [ref=e539]:
+                      - link "Wolves" [ref=e540] [cursor=pointer]:
+                        - /url: /event/epl-wol-che-2026-02-07
+                        - paragraph [ref=e542]: Wolves
+                      - link "DRAW" [ref=e544] [cursor=pointer]:
+                        - /url: /event/epl-wol-che-2026-02-07
+                        - paragraph [ref=e545]: DRAW
+                      - link "Chelsea" [ref=e546] [cursor=pointer]:
+                        - /url: /event/epl-wol-che-2026-02-07
+                        - paragraph [ref=e548]: Chelsea
+                    - generic [ref=e551]:
+                      - generic [ref=e552]:
+                        - paragraph [ref=e553]: $587k Vol.
+                        - generic [ref=e554]: •
+                        - link "EPL" [ref=e555] [cursor=pointer]:
+                          - /url: /sports/epl/games/week/10
+                        - generic [ref=e556]: •
+                        - text: 11:00 PM
+                      - button "Add to favorites" [ref=e559] [cursor=pointer]
+                - generic [ref=e562]:
+                  - link "Yes 47% No 27%" [ref=e563] [cursor=pointer]:
+                    - /url: /event/bun-fre-wer-2026-02-07/bundesliga-2025
+                    - generic [ref=e564]:
+                      - paragraph [ref=e567]: "Yes"
+                      - paragraph [ref=e568]: 47%
+                    - generic [ref=e569]:
+                      - paragraph [ref=e572]: "No"
+                      - paragraph [ref=e573]: 27%
+                  - generic [ref=e574]:
+                    - generic [ref=e575]:
+                      - link "Yes" [ref=e576] [cursor=pointer]:
+                        - /url: /event/bun-fre-wer-2026-02-07
+                        - paragraph [ref=e578]: "Yes"
+                      - link "DRAW" [ref=e580] [cursor=pointer]:
+                        - /url: /event/bun-fre-wer-2026-02-07
+                        - paragraph [ref=e581]: DRAW
+                      - link "No" [ref=e582] [cursor=pointer]:
+                        - /url: /event/bun-fre-wer-2026-02-07
+                        - paragraph [ref=e584]: "No"
+                    - generic [ref=e587]:
+                      - generic [ref=e588]:
+                        - paragraph [ref=e589]: $356k Vol.
+                        - generic [ref=e590]: •
+                        - link "BUNDESLIGA" [ref=e591] [cursor=pointer]:
+                          - /url: /sports/bundesliga/games/week/12
+                        - generic [ref=e592]: •
+                        - text: 10:30 PM
+                      - button "Add to favorites" [ref=e595] [cursor=pointer]
+                - generic [ref=e598]:
+                  - link "Spirit 57% FURIA 43%" [ref=e599] [cursor=pointer]:
+                    - /url: /event/cs2-ts7-furia-2026-02-07
+                    - generic [ref=e600]:
+                      - paragraph [ref=e603]: Spirit
+                      - paragraph [ref=e604]: 57%
+                    - generic [ref=e605]:
+                      - paragraph [ref=e608]: FURIA
+                      - paragraph [ref=e609]: 43%
+                  - generic [ref=e610]:
+                    - generic [ref=e611]:
+                      - link "Spirit" [ref=e612] [cursor=pointer]:
+                        - /url: /event/cs2-ts7-furia-2026-02-07
+                        - paragraph [ref=e614]: Spirit
+                      - link "FURIA" [ref=e616] [cursor=pointer]:
+                        - /url: /event/cs2-ts7-furia-2026-02-07
+                        - paragraph [ref=e618]: FURIA
+                    - generic [ref=e621]:
+                      - generic [ref=e622]:
+                        - paragraph [ref=e623]: $336k Vol.
+                        - generic [ref=e624]: •
+                        - link "COUNTER STRIKE" [ref=e625] [cursor=pointer]:
+                          - /url: /sports/counter-strike/games/week/1
+                        - generic [ref=e626]: •
+                        - text: 10:45 PM
+                      - button "Add to favorites" [ref=e629] [cursor=pointer]
+                - generic [ref=e632]:
+                  - link "Burnley FC 77% West Ham 24%" [ref=e633] [cursor=pointer]:
+                    - /url: /event/epl-bur-wes-2026-02-07-more-markets/premier-league-2025
+                    - generic [ref=e634]:
+                      - paragraph [ref=e637]: Burnley FC
+                      - paragraph [ref=e638]: 77%
+                    - generic [ref=e639]:
+                      - paragraph [ref=e642]: West Ham
+                      - paragraph [ref=e643]: 24%
+                  - generic [ref=e644]:
+                    - generic [ref=e645]:
+                      - link "Burnley FC" [ref=e646] [cursor=pointer]:
+                        - /url: /event/epl-bur-wes-2026-02-07-more-markets
+                        - paragraph [ref=e648]: Burnley FC
+                      - link "West Ham" [ref=e650] [cursor=pointer]:
+                        - /url: /event/epl-bur-wes-2026-02-07-more-markets
+                        - paragraph [ref=e652]: West Ham
+                    - generic [ref=e655]:
+                      - generic [ref=e656]:
+                        - paragraph [ref=e657]: $381k Vol.
+                        - generic [ref=e658]: •
+                        - link "EPL" [ref=e659] [cursor=pointer]:
+                          - /url: /sports/epl/games
+                        - generic [ref=e660]: •
+                        - text: 11:00 PM
+                      - button "Add to favorites" [ref=e663] [cursor=pointer]
+                - generic [ref=e666]:
+                  - link "Vitality 66% MOUZ 35%" [ref=e667] [cursor=pointer]:
+                    - /url: /event/cs2-vit-mouz-2026-02-07
+                    - generic [ref=e668]:
+                      - paragraph [ref=e671]: Vitality
+                      - paragraph [ref=e672]: 66%
+                    - generic [ref=e673]:
+                      - paragraph [ref=e676]: MOUZ
+                      - paragraph [ref=e677]: 35%
+                  - generic [ref=e678]:
+                    - generic [ref=e679]:
+                      - link "Vitality" [ref=e680] [cursor=pointer]:
+                        - /url: /event/cs2-vit-mouz-2026-02-07
+                        - paragraph [ref=e682]: Vitality
+                      - link "MOUZ" [ref=e684] [cursor=pointer]:
+                        - /url: /event/cs2-vit-mouz-2026-02-07
+                        - paragraph [ref=e686]: MOUZ
+                    - generic [ref=e689]:
+                      - generic [ref=e690]:
+                        - paragraph [ref=e691]: $391k Vol.
+                        - generic [ref=e692]: •
+                        - link "COUNTER STRIKE" [ref=e693] [cursor=pointer]:
+                          - /url: /sports/counter-strike/games/week/1
+                        - generic [ref=e694]: •
+                        - text: Tomorrow 2:00 AM
+                      - button "Add to favorites" [ref=e697] [cursor=pointer]
+                - generic [ref=e700]:
+                  - link "Rockets 46% Thunder 55%" [ref=e701] [cursor=pointer]:
+                    - /url: /event/nba-hou-okc-2026-02-07
+                    - generic [ref=e702]:
+                      - paragraph [ref=e705]: Rockets
+                      - paragraph [ref=e706]: 46%
+                    - generic [ref=e707]:
+                      - paragraph [ref=e710]: Thunder
+                      - paragraph [ref=e711]: 55%
+                  - generic [ref=e712]:
+                    - generic [ref=e713]:
+                      - link "Rockets" [ref=e714] [cursor=pointer]:
+                        - /url: /event/nba-hou-okc-2026-02-07
+                        - paragraph [ref=e716]: Rockets
+                      - link "Thunder" [ref=e718] [cursor=pointer]:
+                        - /url: /event/nba-hou-okc-2026-02-07
+                        - paragraph [ref=e720]: Thunder
+                    - generic [ref=e723]:
+                      - generic [ref=e724]:
+                        - paragraph [ref=e725]: $987k Vol.
+                        - generic [ref=e726]: •
+                        - link "NBA" [ref=e727] [cursor=pointer]:
+                          - /url: /sports/nba/games/week/3
+                        - generic [ref=e728]: •
+                        - text: Tomorrow 4:30 AM
+                      - button "Add to favorites" [ref=e731] [cursor=pointer]
+                - generic [ref=e734]:
+                  - link "ACF Fiorentina 76% Torino FC 25%" [ref=e735] [cursor=pointer]:
+                    - /url: /event/sea-fio-tor-2026-02-07-more-markets/serie-a-2025
+                    - generic [ref=e736]:
+                      - paragraph [ref=e739]: ACF Fiorentina
+                      - paragraph [ref=e740]: 76%
+                    - generic [ref=e741]:
+                      - paragraph [ref=e744]: Torino FC
+                      - paragraph [ref=e745]: 25%
+                  - generic [ref=e746]:
+                    - generic [ref=e747]:
+                      - link "ACF Fior." [ref=e748] [cursor=pointer]:
+                        - /url: /event/sea-fio-tor-2026-02-07-more-markets
+                        - paragraph [ref=e750]: ACF Fior.
+                      - link "Torino FC" [ref=e752] [cursor=pointer]:
+                        - /url: /event/sea-fio-tor-2026-02-07-more-markets
+                        - paragraph [ref=e754]: Torino FC
+                    - generic [ref=e757]:
+                      - generic [ref=e758]:
+                        - paragraph [ref=e759]: $413k Vol.
+                        - generic [ref=e760]: •
+                        - link "SEA" [ref=e761] [cursor=pointer]:
+                          - /url: /sports/sea/games
+                        - generic [ref=e762]: •
+                        - text: Tomorrow 3:45 AM
+                      - button "Add to favorites" [ref=e765] [cursor=pointer]
+                - generic [ref=e768]:
+                  - generic [ref=e769]:
+                    - 'img "2026 Winter Olympics: Most Gold Medals card icon" [ref=e771]'
+                    - 'link "2026 Winter Olympics: Most Gold Medals" [ref=e773] [cursor=pointer]':
+                      - /url: /event/2026-winter-olympics-most-gold-medals
+                      - 'heading "2026 Winter Olympics: Most Gold Medals" [level=2] [ref=e775]'
+                  - generic [ref=e776]:
+                    - generic [ref=e781]:
+                      - generic [ref=e784]:
+                        - link "Norway" [ref=e786] [cursor=pointer]:
+                          - /url: /event/2026-winter-olympics-most-gold-medals/will-norway-win-the-most-gold-medals-in-the-2026-winter-olympics
+                          - paragraph [ref=e787]: Norway
+                        - generic [ref=e788]:
+                          - paragraph [ref=e789]: 62%
+                          - link "Yes 62%" [ref=e790] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e791]: "Yes"
+                            - generic [ref=e792]: 62%
+                          - link "No 38%" [ref=e793] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e794]: "No"
+                            - generic [ref=e795]: 38%
+                      - generic [ref=e798]:
+                        - link "United States" [ref=e800] [cursor=pointer]:
+                          - /url: /event/2026-winter-olympics-most-gold-medals/will-the-united-states-win-the-most-gold-medals-in-the-2026-winter-olympics
+                          - paragraph [ref=e801]: United States
+                        - generic [ref=e802]:
+                          - paragraph [ref=e803]: 27%
+                          - link "Yes 27%" [ref=e804] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e805]: "Yes"
+                            - generic [ref=e806]: 27%
+                          - link "No 73%" [ref=e807] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e808]: "No"
+                            - generic [ref=e809]: 73%
+                      - generic [ref=e812]:
+                        - link "Germany" [ref=e814] [cursor=pointer]:
+                          - /url: /event/2026-winter-olympics-most-gold-medals/will-germany-win-the-most-gold-medals-in-the-2026-winter-olympics
+                          - paragraph [ref=e815]: Germany
+                        - generic [ref=e816]:
+                          - paragraph [ref=e817]: 7%
+                          - link "Yes 7%" [ref=e818] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e819]: "Yes"
+                            - generic [ref=e820]: 7%
+                          - link "No 93%" [ref=e821] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e822]: "No"
+                            - generic [ref=e823]: 93%
+                      - generic [ref=e826]:
+                        - link "Canada" [ref=e828] [cursor=pointer]:
+                          - /url: /event/2026-winter-olympics-most-gold-medals/will-canada-win-the-most-gold-medals-in-the-2026-winter-olympics
+                          - paragraph [ref=e829]: Canada
+                        - generic [ref=e830]:
+                          - paragraph [ref=e831]: 3%
+                          - link "Yes 3%" [ref=e832] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e833]: "Yes"
+                            - generic [ref=e834]: 3%
+                          - link "No 97%" [ref=e835] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e836]: "No"
+                            - generic [ref=e837]: 97%
+                      - generic [ref=e840]:
+                        - link "Italy" [ref=e842] [cursor=pointer]:
+                          - /url: /event/2026-winter-olympics-most-gold-medals/will-italy-win-the-most-gold-medals-in-the-2026-winter-olympics
+                          - paragraph [ref=e843]: Italy
+                        - generic [ref=e844]:
+                          - paragraph [ref=e845]: 1%
+                          - link "Yes 1%" [ref=e846] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e847]: "Yes"
+                            - generic [ref=e848]: 1%
+                          - link "No 99%" [ref=e849] [cursor=pointer]:
+                            - /url: /event/2026-winter-olympics-most-gold-medals
+                            - generic [ref=e850]: "No"
+                            - generic [ref=e851]: 99%
+                    - generic [ref=e853]:
+                      - paragraph [ref=e855]: $2m Vol.
+                      - generic [ref=e857]:
+                        - button "View trading rewards" [ref=e858] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e859] [cursor=pointer]
+                - generic [ref=e862]:
+                  - generic [ref=e863]:
+                    - img "Thailand Legislative Election Winner card icon" [ref=e865]
+                    - link "Thailand Legislative Election Winner" [ref=e867] [cursor=pointer]:
+                      - /url: /event/thai-legislative-election-winner
+                      - heading "Thailand Legislative Election Winner" [level=2] [ref=e869]
+                  - generic [ref=e870]:
+                    - generic [ref=e875]:
+                      - generic [ref=e878]:
+                        - link "People’s Party (PPLE)" [ref=e880] [cursor=pointer]:
+                          - /url: /event/thai-legislative-election-winner/will-peoples-party-pple-win-the-most-seats-in-the-2026-thai-legislative-election
+                          - paragraph [ref=e881]: People’s Party (PPLE)
+                        - generic [ref=e882]:
+                          - paragraph [ref=e883]: 78%
+                          - link "Yes 78%" [ref=e884] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e885]: "Yes"
+                            - generic [ref=e886]: 78%
+                          - link "No 22%" [ref=e887] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e888]: "No"
+                            - generic [ref=e889]: 22%
+                      - generic [ref=e892]:
+                        - link "Bhumjaithai Party (BJT)" [ref=e894] [cursor=pointer]:
+                          - /url: /event/thai-legislative-election-winner/will-bhumjaithai-party-bjt-win-the-most-seats-in-the-2026-thai-legislative-election
+                          - paragraph [ref=e895]: Bhumjaithai Party (BJT)
+                        - generic [ref=e896]:
+                          - paragraph [ref=e897]: 19%
+                          - link "Yes 19%" [ref=e898] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e899]: "Yes"
+                            - generic [ref=e900]: 19%
+                          - link "No 81%" [ref=e901] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e902]: "No"
+                            - generic [ref=e903]: 81%
+                      - generic [ref=e906]:
+                        - link "Pheu Thai Party (PT)" [ref=e908] [cursor=pointer]:
+                          - /url: /event/thai-legislative-election-winner/will-pheu-thai-party-pt-win-the-most-seats-in-the-2026-thai-legislative-election
+                          - paragraph [ref=e909]: Pheu Thai Party (PT)
+                        - generic [ref=e910]:
+                          - paragraph [ref=e911]: 4%
+                          - link "Yes 4%" [ref=e912] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e913]: "Yes"
+                            - generic [ref=e914]: 4%
+                          - link "No 96%" [ref=e915] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e916]: "No"
+                            - generic [ref=e917]: 96%
+                      - generic [ref=e920]:
+                        - link "Palang Pracharath Party (PPRP)" [ref=e922] [cursor=pointer]:
+                          - /url: /event/thai-legislative-election-winner/will-palang-pracharath-party-pprp-win-the-most-seats-in-the-2026-thai-legislative-election
+                          - paragraph [ref=e923]: Palang Pracharath Party (PPRP)
+                        - generic [ref=e924]:
+                          - paragraph [ref=e925]: <1%
+                          - link "Yes <1%" [ref=e926] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e927]: "Yes"
+                            - generic [ref=e928]: <1%
+                          - link "No 100%" [ref=e929] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e930]: "No"
+                            - generic [ref=e931]: 100%
+                      - generic [ref=e934]:
+                        - link "Democrat Party (DP)" [ref=e936] [cursor=pointer]:
+                          - /url: /event/thai-legislative-election-winner/will-democrat-party-dp-win-the-most-seats-in-the-2026-thai-legislative-election
+                          - paragraph [ref=e937]: Democrat Party (DP)
+                        - generic [ref=e938]:
+                          - paragraph [ref=e939]: <1%
+                          - link "Yes <1%" [ref=e940] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e941]: "Yes"
+                            - generic [ref=e942]: <1%
+                          - link "No 100%" [ref=e943] [cursor=pointer]:
+                            - /url: /event/thai-legislative-election-winner
+                            - generic [ref=e944]: "No"
+                            - generic [ref=e945]: 100%
+                    - generic [ref=e947]:
+                      - paragraph [ref=e949]: $7m Vol.
+                      - generic [ref=e951]:
+                        - button "View trading rewards" [ref=e952] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e953] [cursor=pointer]
+                - generic [ref=e956]:
+                  - generic [ref=e957]:
+                    - img "S&P 500 (SPX) Opens Up or Down on February 9? card icon" [ref=e959]
+                    - generic [ref=e960]:
+                      - link "S&P 500 (SPX) Opens Up or Down on February 9?" [ref=e961] [cursor=pointer]:
+                        - /url: /event/spx-opens-up-or-down-on-february-9-2026
+                        - heading "S&P 500 (SPX) Opens Up or Down on February 9?" [level=2] [ref=e963]
+                      - generic [ref=e965]:
+                        - img [ref=e967]
+                        - generic [ref=e970]:
+                          - paragraph [ref=e971]: 51%
+                          - paragraph [ref=e972]: Up
+                  - generic [ref=e973]:
+                    - generic [ref=e974]:
+                      - link "Up" [ref=e975] [cursor=pointer]:
+                        - /url: /event/spx-opens-up-or-down-on-february-9-2026
+                        - paragraph [ref=e976]: Up
+                      - link "Down" [ref=e977] [cursor=pointer]:
+                        - /url: /event/spx-opens-up-or-down-on-february-9-2026
+                        - paragraph [ref=e978]: Down
+                    - generic [ref=e980]:
+                      - generic [ref=e981]:
+                        - generic [ref=e982]:
+                          - img [ref=e983]
+                          - paragraph [ref=e985]: NEW
+                        - img [ref=e987]
+                      - generic [ref=e993]:
+                        - button "View trading rewards" [ref=e994] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e995] [cursor=pointer]
+                - generic [ref=e998]:
+                  - generic [ref=e999]:
+                    - img "Starmer out by...? card icon" [ref=e1001]
+                    - link "Starmer out by...?" [ref=e1003] [cursor=pointer]:
+                      - /url: /event/starmer-out-in-2025
+                      - heading "Starmer out by...?" [level=2] [ref=e1005]
+                  - generic [ref=e1006]:
+                    - generic [ref=e1011]:
+                      - generic [ref=e1014]:
+                        - link "February 28" [ref=e1016] [cursor=pointer]:
+                          - /url: /event/starmer-out-in-2025/starmer-out-by-february-28-2026-352
+                          - paragraph [ref=e1017]: February 28
+                        - generic [ref=e1018]:
+                          - paragraph [ref=e1019]: 5%
+                          - link "Yes 5%" [ref=e1020] [cursor=pointer]:
+                            - /url: /event/starmer-out-in-2025
+                            - generic [ref=e1021]: "Yes"
+                            - generic [ref=e1022]: 5%
+                          - link "No 95%" [ref=e1023] [cursor=pointer]:
+                            - /url: /event/starmer-out-in-2025
+                            - generic [ref=e1024]: "No"
+                            - generic [ref=e1025]: 95%
+                      - generic [ref=e1028]:
+                        - link "June 30, 2026" [ref=e1030] [cursor=pointer]:
+                          - /url: /event/starmer-out-in-2025/starmer-out-by-june-30-2026-862
+                          - paragraph [ref=e1031]: June 30, 2026
+                        - generic [ref=e1032]:
+                          - paragraph [ref=e1033]: 40%
+                          - link "Yes 40%" [ref=e1034] [cursor=pointer]:
+                            - /url: /event/starmer-out-in-2025
+                            - generic [ref=e1035]: "Yes"
+                            - generic [ref=e1036]: 40%
+                          - link "No 60%" [ref=e1037] [cursor=pointer]:
+                            - /url: /event/starmer-out-in-2025
+                            - generic [ref=e1038]: "No"
+                            - generic [ref=e1039]: 60%
+                      - generic [ref=e1042]:
+                        - link "December 31, 2026" [ref=e1044] [cursor=pointer]:
+                          - /url: /event/starmer-out-in-2025/starmer-out-by-december-31-2026-936
+                          - paragraph [ref=e1045]: December 31, 2026
+                        - generic [ref=e1046]:
+                          - paragraph [ref=e1047]: 66%
+                          - link "Yes 66%" [ref=e1048] [cursor=pointer]:
+                            - /url: /event/starmer-out-in-2025
+                            - generic [ref=e1049]: "Yes"
+                            - generic [ref=e1050]: 66%
+                          - link "No 34%" [ref=e1051] [cursor=pointer]:
+                            - /url: /event/starmer-out-in-2025
+                            - generic [ref=e1052]: "No"
+                            - generic [ref=e1053]: 34%
+                    - generic [ref=e1055]:
+                      - paragraph [ref=e1057]: $3m Vol.
+                      - generic [ref=e1059]:
+                        - button "View trading rewards" [ref=e1060] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1061] [cursor=pointer]
+                - generic [ref=e1064]:
+                  - generic [ref=e1065]:
+                    - img "US-Iran nuclear deal before 2027? card icon" [ref=e1067]
+                    - generic [ref=e1068]:
+                      - link "US-Iran nuclear deal before 2027?" [ref=e1069] [cursor=pointer]:
+                        - /url: /event/us-iran-nuclear-deal-before-2027
+                        - heading "US-Iran nuclear deal before 2027?" [level=2] [ref=e1071]
+                      - generic [ref=e1073]:
+                        - img [ref=e1075]
+                        - generic [ref=e1078]:
+                          - paragraph [ref=e1079]: 45%
+                          - paragraph [ref=e1080]: chance
+                  - generic [ref=e1081]:
+                    - generic [ref=e1082]:
+                      - link "Yes" [ref=e1083] [cursor=pointer]:
+                        - /url: /event/us-iran-nuclear-deal-before-2027
+                        - paragraph [ref=e1084]: "Yes"
+                      - link "No" [ref=e1085] [cursor=pointer]:
+                        - /url: /event/us-iran-nuclear-deal-before-2027
+                        - paragraph [ref=e1086]: "No"
+                    - generic [ref=e1088]:
+                      - generic [ref=e1089]:
+                        - paragraph [ref=e1090]: $61k Vol.
+                        - img [ref=e1092]
+                      - generic [ref=e1098]:
+                        - button "View trading rewards" [ref=e1099] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1100] [cursor=pointer]
+                - generic [ref=e1103]:
+                  - generic [ref=e1104]:
+                    - img "Another US government shutdown by February 14? card icon" [ref=e1106]
+                    - generic [ref=e1107]:
+                      - link "Another US government shutdown by February 14?" [ref=e1108] [cursor=pointer]:
+                        - /url: /event/another-us-government-shutdown-by-february-14
+                        - heading "Another US government shutdown by February 14?" [level=2] [ref=e1110]
+                      - generic [ref=e1112]:
+                        - img [ref=e1114]
+                        - generic [ref=e1117]:
+                          - paragraph [ref=e1118]: 66%
+                          - paragraph [ref=e1119]: chance
+                  - generic [ref=e1120]:
+                    - generic [ref=e1121]:
+                      - link "Yes" [ref=e1122] [cursor=pointer]:
+                        - /url: /event/another-us-government-shutdown-by-february-14
+                        - paragraph [ref=e1123]: "Yes"
+                      - link "No" [ref=e1124] [cursor=pointer]:
+                        - /url: /event/another-us-government-shutdown-by-february-14
+                        - paragraph [ref=e1125]: "No"
+                    - generic [ref=e1127]:
+                      - generic [ref=e1128]:
+                        - paragraph [ref=e1129]: $607k Vol.
+                        - img [ref=e1131]
+                      - generic [ref=e1137]:
+                        - button "View trading rewards" [ref=e1138] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1139] [cursor=pointer]
+                - generic [ref=e1142]:
+                  - generic [ref=e1143]:
+                    - img "Which company has the best AI model end of February? card icon" [ref=e1145]
+                    - link "Which company has the best AI model end of February?" [ref=e1147] [cursor=pointer]:
+                      - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                      - heading "Which company has the best AI model end of February?" [level=2] [ref=e1149]
+                  - generic [ref=e1150]:
+                    - generic [ref=e1155]:
+                      - generic [ref=e1158]:
+                        - link "Anthropic" [ref=e1160] [cursor=pointer]:
+                          - /url: /event/which-company-has-the-best-ai-model-end-of-february/will-anthropic-have-the-best-ai-model-at-the-end-of-february-2026
+                          - paragraph [ref=e1161]: Anthropic
+                        - generic [ref=e1162]:
+                          - paragraph [ref=e1163]: 70%
+                          - link "Yes 70%" [ref=e1164] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1165]: "Yes"
+                            - generic [ref=e1166]: 70%
+                          - link "No 30%" [ref=e1167] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1168]: "No"
+                            - generic [ref=e1169]: 30%
+                      - generic [ref=e1172]:
+                        - link "Google" [ref=e1174] [cursor=pointer]:
+                          - /url: /event/which-company-has-the-best-ai-model-end-of-february/will-google-have-the-best-ai-model-at-the-end-of-february-2026
+                          - paragraph [ref=e1175]: Google
+                        - generic [ref=e1176]:
+                          - paragraph [ref=e1177]: 18%
+                          - link "Yes 18%" [ref=e1178] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1179]: "Yes"
+                            - generic [ref=e1180]: 18%
+                          - link "No 82%" [ref=e1181] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1182]: "No"
+                            - generic [ref=e1183]: 82%
+                      - generic [ref=e1186]:
+                        - link "OpenAI" [ref=e1188] [cursor=pointer]:
+                          - /url: /event/which-company-has-the-best-ai-model-end-of-february/will-openai-have-the-best-ai-model-at-the-end-of-february-2026
+                          - paragraph [ref=e1189]: OpenAI
+                        - generic [ref=e1190]:
+                          - paragraph [ref=e1191]: 6%
+                          - link "Yes 6%" [ref=e1192] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1193]: "Yes"
+                            - generic [ref=e1194]: 6%
+                          - link "No 94%" [ref=e1195] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1196]: "No"
+                            - generic [ref=e1197]: 94%
+                      - generic [ref=e1200]:
+                        - link "xAI" [ref=e1202] [cursor=pointer]:
+                          - /url: /event/which-company-has-the-best-ai-model-end-of-february/will-xai-have-the-best-ai-model-at-the-end-of-february-2026
+                          - paragraph [ref=e1203]: xAI
+                        - generic [ref=e1204]:
+                          - paragraph [ref=e1205]: 3%
+                          - link "Yes 3%" [ref=e1206] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1207]: "Yes"
+                            - generic [ref=e1208]: 3%
+                          - link "No 97%" [ref=e1209] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1210]: "No"
+                            - generic [ref=e1211]: 97%
+                      - generic [ref=e1214]:
+                        - link "DeepSeek" [ref=e1216] [cursor=pointer]:
+                          - /url: /event/which-company-has-the-best-ai-model-end-of-february/will-deepseek-have-the-best-ai-model-at-the-end-of-february-2026
+                          - paragraph [ref=e1217]: DeepSeek
+                        - generic [ref=e1218]:
+                          - paragraph [ref=e1219]: 1%
+                          - link "Yes 1%" [ref=e1220] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1221]: "Yes"
+                            - generic [ref=e1222]: 1%
+                          - link "No 99%" [ref=e1223] [cursor=pointer]:
+                            - /url: /event/which-company-has-the-best-ai-model-end-of-february
+                            - generic [ref=e1224]: "No"
+                            - generic [ref=e1225]: 99%
+                    - generic [ref=e1227]:
+                      - generic [ref=e1228]:
+                        - paragraph [ref=e1229]: $3m Vol.
+                        - img [ref=e1231]
+                      - generic [ref=e1237]:
+                        - button "View trading rewards" [ref=e1238] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1239] [cursor=pointer]
+                - generic [ref=e1242]:
+                  - generic [ref=e1243]:
+                    - img "Claude 5 released by…? card icon" [ref=e1245]
+                    - link "Claude 5 released by…?" [ref=e1247] [cursor=pointer]:
+                      - /url: /event/claude-5-released-by
+                      - heading "Claude 5 released by…?" [level=2] [ref=e1249]
+                  - generic [ref=e1250]:
+                    - generic [ref=e1255]:
+                      - generic [ref=e1258]:
+                        - link "February 14, 2026" [ref=e1260] [cursor=pointer]:
+                          - /url: /event/claude-5-released-by/will-claude-5-be-released-by-february-14-2026-449
+                          - paragraph [ref=e1261]: February 14, 2026
+                        - generic [ref=e1262]:
+                          - paragraph [ref=e1263]: 3%
+                          - link "Yes 3%" [ref=e1264] [cursor=pointer]:
+                            - /url: /event/claude-5-released-by
+                            - generic [ref=e1265]: "Yes"
+                            - generic [ref=e1266]: 3%
+                          - link "No 97%" [ref=e1267] [cursor=pointer]:
+                            - /url: /event/claude-5-released-by
+                            - generic [ref=e1268]: "No"
+                            - generic [ref=e1269]: 97%
+                      - generic [ref=e1272]:
+                        - link "February 28, 2026" [ref=e1274] [cursor=pointer]:
+                          - /url: /event/claude-5-released-by/will-claude-5-be-released-by-february-28-2026-352-784
+                          - paragraph [ref=e1275]: February 28, 2026
+                        - generic [ref=e1276]:
+                          - paragraph [ref=e1277]: 20%
+                          - link "Yes 20%" [ref=e1278] [cursor=pointer]:
+                            - /url: /event/claude-5-released-by
+                            - generic [ref=e1279]: "Yes"
+                            - generic [ref=e1280]: 20%
+                          - link "No 80%" [ref=e1281] [cursor=pointer]:
+                            - /url: /event/claude-5-released-by
+                            - generic [ref=e1282]: "No"
+                            - generic [ref=e1283]: 80%
+                      - generic [ref=e1286]:
+                        - link "March 31, 2026" [ref=e1288] [cursor=pointer]:
+                          - /url: /event/claude-5-released-by/will-claude-5-be-released-by-march-31-2026-243-489-141
+                          - paragraph [ref=e1289]: March 31, 2026
+                        - generic [ref=e1290]:
+                          - paragraph [ref=e1291]: 63%
+                          - link "Yes 63%" [ref=e1292] [cursor=pointer]:
+                            - /url: /event/claude-5-released-by
+                            - generic [ref=e1293]: "Yes"
+                            - generic [ref=e1294]: 63%
+                          - link "No 37%" [ref=e1295] [cursor=pointer]:
+                            - /url: /event/claude-5-released-by
+                            - generic [ref=e1296]: "No"
+                            - generic [ref=e1297]: 37%
+                    - generic [ref=e1299]:
+                      - paragraph [ref=e1301]: $1m Vol.
+                      - generic [ref=e1303]:
+                        - button "View trading rewards" [ref=e1304] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1305] [cursor=pointer]
+                - generic [ref=e1308]:
+                  - generic [ref=e1309]:
+                    - img "What will Gold (GC) hit__ by end of February? card icon" [ref=e1311]
+                    - link "What will Gold (GC) hit__ by end of February?" [ref=e1313] [cursor=pointer]:
+                      - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                      - heading "What will Gold (GC) hit__ by end of February?" [level=2] [ref=e1315]
+                  - generic [ref=e1316]:
+                    - generic [ref=e1321]:
+                      - generic [ref=e1324]:
+                        - link "↑ $5,800" [ref=e1326] [cursor=pointer]:
+                          - /url: /event/what-will-gold-gc-hit-by-end-of-february/will-gold-gc-hit-high-5800-by-end-of-february-759-378-429-713-662-579
+                          - paragraph [ref=e1327]: ↑ $5,800
+                        - generic [ref=e1328]:
+                          - paragraph [ref=e1329]: 12%
+                          - link "Yes 12%" [ref=e1330] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1331]: "Yes"
+                            - generic [ref=e1332]: 12%
+                          - link "No 88%" [ref=e1333] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1334]: "No"
+                            - generic [ref=e1335]: 88%
+                      - generic [ref=e1338]:
+                        - link "↑ $5,500" [ref=e1340] [cursor=pointer]:
+                          - /url: /event/what-will-gold-gc-hit-by-end-of-february/will-gold-gc-hit-high-5500-by-end-of-february-743-796-985-593-523-417-437
+                          - paragraph [ref=e1341]: ↑ $5,500
+                        - generic [ref=e1342]:
+                          - paragraph [ref=e1343]: 29%
+                          - link "Yes 29%" [ref=e1344] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1345]: "Yes"
+                            - generic [ref=e1346]: 29%
+                          - link "No 71%" [ref=e1347] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1348]: "No"
+                            - generic [ref=e1349]: 71%
+                      - generic [ref=e1352]:
+                        - link "↓ $4,600" [ref=e1354] [cursor=pointer]:
+                          - /url: /event/what-will-gold-gc-hit-by-end-of-february/will-gold-gc-hit-low-4600-by-end-of-february-292-259-212-256-398-758-656-625
+                          - paragraph [ref=e1355]: ↓ $4,600
+                        - generic [ref=e1356]:
+                          - paragraph [ref=e1357]: 43%
+                          - link "Yes 43%" [ref=e1358] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1359]: "Yes"
+                            - generic [ref=e1360]: 43%
+                          - link "No 57%" [ref=e1361] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1362]: "No"
+                            - generic [ref=e1363]: 57%
+                      - generic [ref=e1366]:
+                        - link "↓ $4,450" [ref=e1368] [cursor=pointer]:
+                          - /url: /event/what-will-gold-gc-hit-by-end-of-february/will-gold-gc-hit-low-4450-by-end-of-february-844-276-171-389-959-616-957-814
+                          - paragraph [ref=e1369]: ↓ $4,450
+                        - generic [ref=e1370]:
+                          - paragraph [ref=e1371]: 23%
+                          - link "Yes 23%" [ref=e1372] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1373]: "Yes"
+                            - generic [ref=e1374]: 23%
+                          - link "No 77%" [ref=e1375] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1376]: "No"
+                            - generic [ref=e1377]: 77%
+                      - generic [ref=e1380]:
+                        - link "↓ $4,200" [ref=e1382] [cursor=pointer]:
+                          - /url: /event/what-will-gold-gc-hit-by-end-of-february/will-gold-gc-hit-low-4200-by-end-of-february-891-227-734-585-416-787-933-185-752
+                          - paragraph [ref=e1383]: ↓ $4,200
+                        - generic [ref=e1384]:
+                          - paragraph [ref=e1385]: 12%
+                          - link "Yes 12%" [ref=e1386] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1387]: "Yes"
+                            - generic [ref=e1388]: 12%
+                          - link "No 88%" [ref=e1389] [cursor=pointer]:
+                            - /url: /event/what-will-gold-gc-hit-by-end-of-february
+                            - generic [ref=e1390]: "No"
+                            - generic [ref=e1391]: 88%
+                    - generic [ref=e1393]:
+                      - generic [ref=e1394]:
+                        - paragraph [ref=e1395]: $4m Vol.
+                        - img [ref=e1397]
+                      - generic [ref=e1403]:
+                        - button "View trading rewards" [ref=e1404] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1405] [cursor=pointer]
+                - generic [ref=e1408]:
+                  - generic [ref=e1409]:
+                    - img "Will Jesus Christ return before 2027? card icon" [ref=e1411]
+                    - generic [ref=e1412]:
+                      - link "Will Jesus Christ return before 2027?" [ref=e1413] [cursor=pointer]:
+                        - /url: /event/will-jesus-christ-return-before-2027
+                        - heading "Will Jesus Christ return before 2027?" [level=2] [ref=e1415]
+                      - generic [ref=e1417]:
+                        - img [ref=e1419]
+                        - generic [ref=e1422]:
+                          - paragraph [ref=e1423]: 4%
+                          - paragraph [ref=e1424]: chance
+                  - generic [ref=e1425]:
+                    - generic [ref=e1426]:
+                      - link "Yes" [ref=e1427] [cursor=pointer]:
+                        - /url: /event/will-jesus-christ-return-before-2027
+                        - paragraph [ref=e1428]: "Yes"
+                      - link "No" [ref=e1429] [cursor=pointer]:
+                        - /url: /event/will-jesus-christ-return-before-2027
+                        - paragraph [ref=e1430]: "No"
+                    - generic [ref=e1432]:
+                      - generic [ref=e1433]:
+                        - paragraph [ref=e1434]: $1m Vol.
+                        - img [ref=e1436]
+                      - button "Add to favorites" [ref=e1443] [cursor=pointer]
+                - generic [ref=e1446]:
+                  - generic [ref=e1447]:
+                    - img "Next UK Prime Minister in 2026? card icon" [ref=e1449]
+                    - link "Next UK Prime Minister in 2026?" [ref=e1451] [cursor=pointer]:
+                      - /url: /event/next-uk-prime-minister-in-2026-122
+                      - heading "Next UK Prime Minister in 2026?" [level=2] [ref=e1453]
+                  - generic [ref=e1454]:
+                    - generic [ref=e1459]:
+                      - generic [ref=e1462]:
+                        - link "No Next PM in 2026" [ref=e1464] [cursor=pointer]:
+                          - /url: /event/next-uk-prime-minister-in-2026-122/will-no-next-prime-minister-of-the-united-kingdom-be-appointed-in-2026
+                          - paragraph [ref=e1465]: No Next PM in 2026
+                        - generic [ref=e1466]:
+                          - paragraph [ref=e1467]: 33%
+                          - link "Yes 33%" [ref=e1468] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1469]: "Yes"
+                            - generic [ref=e1470]: 33%
+                          - link "No 67%" [ref=e1471] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1472]: "No"
+                            - generic [ref=e1473]: 67%
+                      - generic [ref=e1476]:
+                        - link "Angela Rayner" [ref=e1478] [cursor=pointer]:
+                          - /url: /event/next-uk-prime-minister-in-2026-122/will-angela-rayner-be-the-next-prime-minister-of-the-united-kingdom-in-2026-737
+                          - paragraph [ref=e1479]: Angela Rayner
+                        - generic [ref=e1480]:
+                          - paragraph [ref=e1481]: 23%
+                          - link "Yes 23%" [ref=e1482] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1483]: "Yes"
+                            - generic [ref=e1484]: 23%
+                          - link "No 77%" [ref=e1485] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1486]: "No"
+                            - generic [ref=e1487]: 77%
+                      - generic [ref=e1490]:
+                        - link "Wes Streeting" [ref=e1492] [cursor=pointer]:
+                          - /url: /event/next-uk-prime-minister-in-2026-122/will-wes-streeting-be-the-next-prime-minister-of-the-united-kingdom-in-2026-137
+                          - paragraph [ref=e1493]: Wes Streeting
+                        - generic [ref=e1494]:
+                          - paragraph [ref=e1495]: 18%
+                          - link "Yes 18%" [ref=e1496] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1497]: "Yes"
+                            - generic [ref=e1498]: 18%
+                          - link "No 82%" [ref=e1499] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1500]: "No"
+                            - generic [ref=e1501]: 82%
+                      - generic [ref=e1504]:
+                        - link "Nigel Farage" [ref=e1506] [cursor=pointer]:
+                          - /url: /event/next-uk-prime-minister-in-2026-122/will-nigel-farage-be-the-next-prime-minister-of-the-united-kingdom-in-2026-356
+                          - paragraph [ref=e1507]: Nigel Farage
+                        - generic [ref=e1508]:
+                          - paragraph [ref=e1509]: 7%
+                          - link "Yes 7%" [ref=e1510] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1511]: "Yes"
+                            - generic [ref=e1512]: 7%
+                          - link "No 93%" [ref=e1513] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1514]: "No"
+                            - generic [ref=e1515]: 93%
+                      - generic [ref=e1518]:
+                        - link "Andy Burnham" [ref=e1520] [cursor=pointer]:
+                          - /url: /event/next-uk-prime-minister-in-2026-122/will-andy-burnham-be-the-next-prime-minister-of-the-united-kingdom-in-2026-882
+                          - paragraph [ref=e1521]: Andy Burnham
+                        - generic [ref=e1522]:
+                          - paragraph [ref=e1523]: 4%
+                          - link "Yes 4%" [ref=e1524] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1525]: "Yes"
+                            - generic [ref=e1526]: 4%
+                          - link "No 96%" [ref=e1527] [cursor=pointer]:
+                            - /url: /event/next-uk-prime-minister-in-2026-122
+                            - generic [ref=e1528]: "No"
+                            - generic [ref=e1529]: 96%
+                    - generic [ref=e1531]:
+                      - generic [ref=e1532]:
+                        - generic [ref=e1533]:
+                          - img [ref=e1534]
+                          - paragraph [ref=e1536]: NEW
+                        - generic [ref=e1537]: •
+                        - paragraph [ref=e1538]: $122k Vol.
+                      - generic [ref=e1540]:
+                        - button "View trading rewards" [ref=e1541] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1542] [cursor=pointer]
+                - generic [ref=e1545]:
+                  - generic [ref=e1546]:
+                    - img "Bangladesh Parliamentary Election Winner card icon" [ref=e1548]
+                    - link "Bangladesh Parliamentary Election Winner" [ref=e1550] [cursor=pointer]:
+                      - /url: /event/bangladesh-parliamentary-election-winner-154
+                      - heading "Bangladesh Parliamentary Election Winner" [level=2] [ref=e1552]
+                  - generic [ref=e1553]:
+                    - generic [ref=e1558]:
+                      - generic [ref=e1561]:
+                        - link "Bangladesh Nationalist Party (BNP)" [ref=e1563] [cursor=pointer]:
+                          - /url: /event/bangladesh-parliamentary-election-winner-154/will-bangladesh-nationalist-party-win-the-most-seats-in-the-bangladesh-parliamentary-election
+                          - paragraph [ref=e1564]: Bangladesh Nationalist Party (BNP)
+                        - generic [ref=e1565]:
+                          - paragraph [ref=e1566]: 84%
+                          - link "Yes 84%" [ref=e1567] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1568]: "Yes"
+                            - generic [ref=e1569]: 84%
+                          - link "No 16%" [ref=e1570] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1571]: "No"
+                            - generic [ref=e1572]: 16%
+                      - generic [ref=e1575]:
+                        - link "Bangladesh Jamaat-e-Islami (BJI)" [ref=e1577] [cursor=pointer]:
+                          - /url: /event/bangladesh-parliamentary-election-winner-154/will-bangladesh-jamaat-e-islami-win-the-most-seats-in-the-bangladesh-parliamentary-election
+                          - paragraph [ref=e1578]: Bangladesh Jamaat-e-Islami (BJI)
+                        - generic [ref=e1579]:
+                          - paragraph [ref=e1580]: 16%
+                          - link "Yes 16%" [ref=e1581] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1582]: "Yes"
+                            - generic [ref=e1583]: 16%
+                          - link "No 84%" [ref=e1584] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1585]: "No"
+                            - generic [ref=e1586]: 84%
+                      - generic [ref=e1589]:
+                        - link "National Citizen Party (NCP)" [ref=e1591] [cursor=pointer]:
+                          - /url: /event/bangladesh-parliamentary-election-winner-154/will-national-citizen-party-win-the-most-seats-in-the-bangladesh-parliamentary-election
+                          - paragraph [ref=e1592]: National Citizen Party (NCP)
+                        - generic [ref=e1593]:
+                          - paragraph [ref=e1594]: <1%
+                          - link "Yes <1%" [ref=e1595] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1596]: "Yes"
+                            - generic [ref=e1597]: <1%
+                          - link "No 100%" [ref=e1598] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1599]: "No"
+                            - generic [ref=e1600]: 100%
+                      - generic [ref=e1603]:
+                        - link "Jatiya Party (JP(E))" [ref=e1605] [cursor=pointer]:
+                          - /url: /event/bangladesh-parliamentary-election-winner-154/will-jatiya-party-win-the-most-seats-in-the-bangladesh-parliamentary-election
+                          - paragraph [ref=e1606]: Jatiya Party (JP(E))
+                        - generic [ref=e1607]:
+                          - paragraph [ref=e1608]: <1%
+                          - link "Yes <1%" [ref=e1609] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1610]: "Yes"
+                            - generic [ref=e1611]: <1%
+                          - link "No 100%" [ref=e1612] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1613]: "No"
+                            - generic [ref=e1614]: 100%
+                      - generic [ref=e1617]:
+                        - link "Workers’ Party of Bangladesh (WPB)" [ref=e1619] [cursor=pointer]:
+                          - /url: /event/bangladesh-parliamentary-election-winner-154/will-workers-party-of-bangladesh-win-the-most-seats-in-the-bangladesh-parliamentary-election
+                          - paragraph [ref=e1620]: Workers’ Party of Bangladesh (WPB)
+                        - generic [ref=e1621]:
+                          - paragraph [ref=e1622]: <1%
+                          - link "Yes <1%" [ref=e1623] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1624]: "Yes"
+                            - generic [ref=e1625]: <1%
+                          - link "No 100%" [ref=e1626] [cursor=pointer]:
+                            - /url: /event/bangladesh-parliamentary-election-winner-154
+                            - generic [ref=e1627]: "No"
+                            - generic [ref=e1628]: 100%
+                    - generic [ref=e1630]:
+                      - paragraph [ref=e1632]: $722k Vol.
+                      - generic [ref=e1634]:
+                        - button "View trading rewards" [ref=e1635] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1636] [cursor=pointer]
+                - generic [ref=e1639]:
+                  - generic [ref=e1640]:
+                    - img "Jeffrey Epstein confirmed to be alive before 2027? card icon" [ref=e1642]
+                    - generic [ref=e1643]:
+                      - link "Jeffrey Epstein confirmed to be alive before 2027?" [ref=e1644] [cursor=pointer]:
+                        - /url: /event/is-jeffrey-epstein-alive-498
+                        - heading "Jeffrey Epstein confirmed to be alive before 2027?" [level=2] [ref=e1646]
+                      - generic [ref=e1648]:
+                        - img [ref=e1650]
+                        - generic [ref=e1653]:
+                          - paragraph [ref=e1654]: 6%
+                          - paragraph [ref=e1655]: chance
+                  - generic [ref=e1656]:
+                    - generic [ref=e1657]:
+                      - link "Yes" [ref=e1658] [cursor=pointer]:
+                        - /url: /event/is-jeffrey-epstein-alive-498
+                        - paragraph [ref=e1659]: "Yes"
+                      - link "No" [ref=e1660] [cursor=pointer]:
+                        - /url: /event/is-jeffrey-epstein-alive-498
+                        - paragraph [ref=e1661]: "No"
+                    - generic [ref=e1663]:
+                      - generic [ref=e1664]:
+                        - paragraph [ref=e1665]: $320k Vol.
+                        - img [ref=e1667]
+                      - generic [ref=e1673]:
+                        - button "View trading rewards" [ref=e1674] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1675] [cursor=pointer]
+                - generic [ref=e1678]:
+                  - generic [ref=e1679]:
+                    - img "Japan General Election Winner? card icon" [ref=e1681]
+                    - link "Japan General Election Winner?" [ref=e1683] [cursor=pointer]:
+                      - /url: /event/japan-general-election-winner
+                      - heading "Japan General Election Winner?" [level=2] [ref=e1685]
+                  - generic [ref=e1686]:
+                    - generic [ref=e1691]:
+                      - generic [ref=e1694]:
+                        - link "LDP" [ref=e1696] [cursor=pointer]:
+                          - /url: /event/japan-general-election-winner/will-the-liberal-democratic-party-win-the-most-seats-in-the-2026-japanese-general-election
+                          - paragraph [ref=e1697]: LDP
+                        - generic [ref=e1698]:
+                          - paragraph [ref=e1699]: 100%
+                          - link "Yes 100%" [ref=e1700] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1701]: "Yes"
+                            - generic [ref=e1702]: 100%
+                          - link "No <1%" [ref=e1703] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1704]: "No"
+                            - generic [ref=e1705]: <1%
+                      - generic [ref=e1708]:
+                        - link "CRA" [ref=e1710] [cursor=pointer]:
+                          - /url: /event/japan-general-election-winner/will-the-centrist-reform-alliance-win-the-most-seats-in-the-2026-japanese-general-election
+                          - paragraph [ref=e1711]: CRA
+                        - generic [ref=e1712]:
+                          - paragraph [ref=e1713]: <1%
+                          - link "Yes <1%" [ref=e1714] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1715]: "Yes"
+                            - generic [ref=e1716]: <1%
+                          - link "No 100%" [ref=e1717] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1718]: "No"
+                            - generic [ref=e1719]: 100%
+                      - generic [ref=e1722]:
+                        - link "DPFP" [ref=e1724] [cursor=pointer]:
+                          - /url: /event/japan-general-election-winner/will-the-democratic-party-for-the-people-win-the-most-seats-in-the-2026-japanese-general-election-299
+                          - paragraph [ref=e1725]: DPFP
+                        - generic [ref=e1726]:
+                          - paragraph [ref=e1727]: <1%
+                          - link "Yes <1%" [ref=e1728] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1729]: "Yes"
+                            - generic [ref=e1730]: <1%
+                          - link "No 100%" [ref=e1731] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1732]: "No"
+                            - generic [ref=e1733]: 100%
+                      - generic [ref=e1736]:
+                        - link "Sanseitō" [ref=e1738] [cursor=pointer]:
+                          - /url: /event/japan-general-election-winner/will-sanseit-win-the-most-seats-in-the-2026-japanese-general-election-636-198
+                          - paragraph [ref=e1739]: Sanseitō
+                        - generic [ref=e1740]:
+                          - paragraph [ref=e1741]: <1%
+                          - link "Yes <1%" [ref=e1742] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1743]: "Yes"
+                            - generic [ref=e1744]: <1%
+                          - link "No 100%" [ref=e1745] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1746]: "No"
+                            - generic [ref=e1747]: 100%
+                      - generic [ref=e1750]:
+                        - link "JCP" [ref=e1752] [cursor=pointer]:
+                          - /url: /event/japan-general-election-winner/will-the-japanese-communist-party-win-the-most-seats-in-the-2026-japanese-general-election-784-917
+                          - paragraph [ref=e1753]: JCP
+                        - generic [ref=e1754]:
+                          - paragraph [ref=e1755]: <1%
+                          - link "Yes <1%" [ref=e1756] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1757]: "Yes"
+                            - generic [ref=e1758]: <1%
+                          - link "No 100%" [ref=e1759] [cursor=pointer]:
+                            - /url: /event/japan-general-election-winner
+                            - generic [ref=e1760]: "No"
+                            - generic [ref=e1761]: 100%
+                    - generic [ref=e1763]:
+                      - paragraph [ref=e1765]: $1m Vol.
+                      - button "Add to favorites" [ref=e1768] [cursor=pointer]
+                - generic [ref=e1771]:
+                  - generic [ref=e1772]:
+                    - 'img "Oscars 2026: Best Picture Winner card icon" [ref=e1774]'
+                    - 'link "Oscars 2026: Best Picture Winner" [ref=e1776] [cursor=pointer]':
+                      - /url: /event/oscars-2026-best-picture-winner
+                      - 'heading "Oscars 2026: Best Picture Winner" [level=2] [ref=e1778]'
+                  - generic [ref=e1779]:
+                    - generic [ref=e1784]:
+                      - generic [ref=e1787]:
+                        - link "One Battle After Another" [ref=e1789] [cursor=pointer]:
+                          - /url: /event/oscars-2026-best-picture-winner/will-one-battle-after-another-win-best-picture-at-the-98th-academy-awards
+                          - paragraph [ref=e1790]: One Battle After Another
+                        - generic [ref=e1791]:
+                          - paragraph [ref=e1792]: 72%
+                          - link "Yes 72%" [ref=e1793] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1794]: "Yes"
+                            - generic [ref=e1795]: 72%
+                          - link "No 28%" [ref=e1796] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1797]: "No"
+                            - generic [ref=e1798]: 28%
+                      - generic [ref=e1801]:
+                        - link "Sinners" [ref=e1803] [cursor=pointer]:
+                          - /url: /event/oscars-2026-best-picture-winner/will-sinners-win-best-picture-at-the-98th-academy-awards
+                          - paragraph [ref=e1804]: Sinners
+                        - generic [ref=e1805]:
+                          - paragraph [ref=e1806]: 18%
+                          - link "Yes 18%" [ref=e1807] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1808]: "Yes"
+                            - generic [ref=e1809]: 18%
+                          - link "No 82%" [ref=e1810] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1811]: "No"
+                            - generic [ref=e1812]: 82%
+                      - generic [ref=e1815]:
+                        - link "Hamnet" [ref=e1817] [cursor=pointer]:
+                          - /url: /event/oscars-2026-best-picture-winner/will-hamnet-win-best-picture-at-the-98th-academy-awards
+                          - paragraph [ref=e1818]: Hamnet
+                        - generic [ref=e1819]:
+                          - paragraph [ref=e1820]: 6%
+                          - link "Yes 6%" [ref=e1821] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1822]: "Yes"
+                            - generic [ref=e1823]: 6%
+                          - link "No 94%" [ref=e1824] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1825]: "No"
+                            - generic [ref=e1826]: 94%
+                      - generic [ref=e1829]:
+                        - link "Marty Supreme" [ref=e1831] [cursor=pointer]:
+                          - /url: /event/oscars-2026-best-picture-winner/will-marty-supreme-win-best-picture-at-the-98th-academy-awards
+                          - paragraph [ref=e1832]: Marty Supreme
+                        - generic [ref=e1833]:
+                          - paragraph [ref=e1834]: 2%
+                          - link "Yes 2%" [ref=e1835] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1836]: "Yes"
+                            - generic [ref=e1837]: 2%
+                          - link "No 98%" [ref=e1838] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1839]: "No"
+                            - generic [ref=e1840]: 98%
+                      - generic [ref=e1843]:
+                        - link "Sentimental Value" [ref=e1845] [cursor=pointer]:
+                          - /url: /event/oscars-2026-best-picture-winner/will-sentimental-value-win-best-picture-at-the-98th-academy-awards
+                          - paragraph [ref=e1846]: Sentimental Value
+                        - generic [ref=e1847]:
+                          - paragraph [ref=e1848]: 1%
+                          - link "Yes 1%" [ref=e1849] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1850]: "Yes"
+                            - generic [ref=e1851]: 1%
+                          - link "No 99%" [ref=e1852] [cursor=pointer]:
+                            - /url: /event/oscars-2026-best-picture-winner
+                            - generic [ref=e1853]: "No"
+                            - generic [ref=e1854]: 99%
+                    - generic [ref=e1856]:
+                      - paragraph [ref=e1858]: $12m Vol.
+                      - generic [ref=e1860]:
+                        - button "View trading rewards" [ref=e1861] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1862] [cursor=pointer]
+                - generic [ref=e1865]:
+                  - generic [ref=e1866]:
+                    - img "Khamenei out as Supreme Leader of Iran by February 28? card icon" [ref=e1868]
+                    - generic [ref=e1869]:
+                      - link "Khamenei out as Supreme Leader of Iran by February 28?" [ref=e1870] [cursor=pointer]:
+                        - /url: /event/khamenei-out-as-supreme-leader-of-iran-by-february-28
+                        - heading "Khamenei out as Supreme Leader of Iran by February 28?" [level=2] [ref=e1872]
+                      - generic [ref=e1874]:
+                        - img [ref=e1876]
+                        - generic [ref=e1879]:
+                          - paragraph [ref=e1880]: 7%
+                          - paragraph [ref=e1881]: chance
+                  - generic [ref=e1882]:
+                    - generic [ref=e1883]:
+                      - link "Yes" [ref=e1884] [cursor=pointer]:
+                        - /url: /event/khamenei-out-as-supreme-leader-of-iran-by-february-28
+                        - paragraph [ref=e1885]: "Yes"
+                      - link "No" [ref=e1886] [cursor=pointer]:
+                        - /url: /event/khamenei-out-as-supreme-leader-of-iran-by-february-28
+                        - paragraph [ref=e1887]: "No"
+                    - generic [ref=e1889]:
+                      - generic [ref=e1890]:
+                        - paragraph [ref=e1891]: $6m Vol.
+                        - img [ref=e1893]
+                      - generic [ref=e1899]:
+                        - button "View trading rewards" [ref=e1900] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e1901] [cursor=pointer]
+                - generic [ref=e1904]:
+                  - generic [ref=e1905]:
+                    - img "US x Iran diplomatic meeting in person by...? card icon" [ref=e1907]
+                    - generic [ref=e1908]:
+                      - link "US x Iran meeting by February 6, 2026?" [ref=e1909] [cursor=pointer]:
+                        - /url: /event/us-x-iran-meeting-by
+                        - heading "US x Iran meeting by February 6, 2026?" [level=2] [ref=e1911]
+                      - generic [ref=e1913]:
+                        - img [ref=e1915]
+                        - generic [ref=e1918]:
+                          - paragraph [ref=e1919]: 100%
+                          - paragraph [ref=e1920]: chance
+                  - generic [ref=e1921]:
+                    - generic [ref=e1922]:
+                      - link "Yes" [ref=e1923] [cursor=pointer]:
+                        - /url: /event/us-x-iran-meeting-by
+                        - paragraph [ref=e1924]: "Yes"
+                      - link "No" [ref=e1925] [cursor=pointer]:
+                        - /url: /event/us-x-iran-meeting-by
+                        - paragraph [ref=e1926]: "No"
+                    - generic [ref=e1928]:
+                      - paragraph [ref=e1930]: $4m Vol.
+                      - button "Add to favorites" [ref=e1933] [cursor=pointer]
+                - generic [ref=e1936]:
+                  - generic [ref=e1937]:
+                    - img "Who will Trump nominate as Fed Chair? card icon" [ref=e1939]
+                    - link "Who will Trump nominate as Fed Chair?" [ref=e1941] [cursor=pointer]:
+                      - /url: /event/who-will-trump-nominate-as-fed-chair
+                      - heading "Who will Trump nominate as Fed Chair?" [level=2] [ref=e1943]
+                  - generic [ref=e1944]:
+                    - generic [ref=e1949]:
+                      - generic [ref=e1952]:
+                        - link "Kevin Warsh" [ref=e1954] [cursor=pointer]:
+                          - /url: /event/who-will-trump-nominate-as-fed-chair/will-trump-nominate-kevin-warsh-as-the-next-fed-chair
+                          - paragraph [ref=e1955]: Kevin Warsh
+                        - generic [ref=e1956]:
+                          - paragraph [ref=e1957]: 96%
+                          - link "Yes 96%" [ref=e1958] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e1959]: "Yes"
+                            - generic [ref=e1960]: 96%
+                          - link "No 4%" [ref=e1961] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e1962]: "No"
+                            - generic [ref=e1963]: 4%
+                      - generic [ref=e1966]:
+                        - link "Judy Shelton" [ref=e1968] [cursor=pointer]:
+                          - /url: /event/who-will-trump-nominate-as-fed-chair/will-trump-nominate-judy-shelton-as-the-next-fed-chair
+                          - paragraph [ref=e1969]: Judy Shelton
+                        - generic [ref=e1970]:
+                          - paragraph [ref=e1971]: 3%
+                          - link "Yes 3%" [ref=e1972] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e1973]: "Yes"
+                            - generic [ref=e1974]: 3%
+                          - link "No 97%" [ref=e1975] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e1976]: "No"
+                            - generic [ref=e1977]: 97%
+                      - generic [ref=e1980]:
+                        - link "Kevin Hassett" [ref=e1982] [cursor=pointer]:
+                          - /url: /event/who-will-trump-nominate-as-fed-chair/will-trump-nominate-kevin-hassett-as-the-next-fed-chair
+                          - paragraph [ref=e1983]: Kevin Hassett
+                        - generic [ref=e1984]:
+                          - paragraph [ref=e1985]: <1%
+                          - link "Yes <1%" [ref=e1986] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e1987]: "Yes"
+                            - generic [ref=e1988]: <1%
+                          - link "No 100%" [ref=e1989] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e1990]: "No"
+                            - generic [ref=e1991]: 100%
+                      - generic [ref=e1994]:
+                        - link "Rick Rieder" [ref=e1996] [cursor=pointer]:
+                          - /url: /event/who-will-trump-nominate-as-fed-chair/will-trump-nominate-rick-rieder-as-the-next-fed-chair
+                          - paragraph [ref=e1997]: Rick Rieder
+                        - generic [ref=e1998]:
+                          - paragraph [ref=e1999]: <1%
+                          - link "Yes <1%" [ref=e2000] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e2001]: "Yes"
+                            - generic [ref=e2002]: <1%
+                          - link "No 100%" [ref=e2003] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e2004]: "No"
+                            - generic [ref=e2005]: 100%
+                      - generic [ref=e2008]:
+                        - link "Christopher Waller" [ref=e2010] [cursor=pointer]:
+                          - /url: /event/who-will-trump-nominate-as-fed-chair/will-trump-nominate-christopher-waller-as-the-next-fed-chair
+                          - paragraph [ref=e2011]: Christopher Waller
+                        - generic [ref=e2012]:
+                          - paragraph [ref=e2013]: <1%
+                          - link "Yes <1%" [ref=e2014] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e2015]: "Yes"
+                            - generic [ref=e2016]: <1%
+                          - link "No 100%" [ref=e2017] [cursor=pointer]:
+                            - /url: /event/who-will-trump-nominate-as-fed-chair
+                            - generic [ref=e2018]: "No"
+                            - generic [ref=e2019]: 100%
+                    - generic [ref=e2021]:
+                      - paragraph [ref=e2023]: $420m Vol.
+                      - button "Add to favorites" [ref=e2026] [cursor=pointer]
+                - generic [ref=e2029]:
+                  - generic [ref=e2030]:
+                    - img "Republican Presidential Nominee 2028 card icon" [ref=e2032]
+                    - link "Republican Presidential Nominee 2028" [ref=e2034] [cursor=pointer]:
+                      - /url: /event/republican-presidential-nominee-2028
+                      - heading "Republican Presidential Nominee 2028" [level=2] [ref=e2036]
+                  - generic [ref=e2037]:
+                    - generic [ref=e2042]:
+                      - generic [ref=e2045]:
+                        - link "J.D. Vance" [ref=e2047] [cursor=pointer]:
+                          - /url: /event/republican-presidential-nominee-2028/will-jd-vance-win-the-2028-republican-presidential-nomination
+                          - paragraph [ref=e2048]: J.D. Vance
+                        - generic [ref=e2049]:
+                          - paragraph [ref=e2050]: 48%
+                          - link "Yes 48%" [ref=e2051] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2052]: "Yes"
+                            - generic [ref=e2053]: 48%
+                          - link "No 52%" [ref=e2054] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2055]: "No"
+                            - generic [ref=e2056]: 52%
+                      - generic [ref=e2059]:
+                        - link "Marco Rubio" [ref=e2061] [cursor=pointer]:
+                          - /url: /event/republican-presidential-nominee-2028/will-marco-rubio-win-the-2028-republican-presidential-nomination
+                          - paragraph [ref=e2062]: Marco Rubio
+                        - generic [ref=e2063]:
+                          - paragraph [ref=e2064]: 12%
+                          - link "Yes 12%" [ref=e2065] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2066]: "Yes"
+                            - generic [ref=e2067]: 12%
+                          - link "No 88%" [ref=e2068] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2069]: "No"
+                            - generic [ref=e2070]: 88%
+                      - generic [ref=e2073]:
+                        - link "Donald Trump" [ref=e2075] [cursor=pointer]:
+                          - /url: /event/republican-presidential-nominee-2028/will-donald-trump-win-the-2028-republican-presidential-nomination
+                          - paragraph [ref=e2076]: Donald Trump
+                        - generic [ref=e2077]:
+                          - paragraph [ref=e2078]: 5%
+                          - link "Yes 5%" [ref=e2079] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2080]: "Yes"
+                            - generic [ref=e2081]: 5%
+                          - link "No 95%" [ref=e2082] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2083]: "No"
+                            - generic [ref=e2084]: 95%
+                      - generic [ref=e2087]:
+                        - link "Ron DeSantis" [ref=e2089] [cursor=pointer]:
+                          - /url: /event/republican-presidential-nominee-2028/will-ron-desantis-win-the-2028-republican-presidential-nomination
+                          - paragraph [ref=e2090]: Ron DeSantis
+                        - generic [ref=e2091]:
+                          - paragraph [ref=e2092]: 3%
+                          - link "Yes 3%" [ref=e2093] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2094]: "Yes"
+                            - generic [ref=e2095]: 3%
+                          - link "No 97%" [ref=e2096] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2097]: "No"
+                            - generic [ref=e2098]: 97%
+                      - generic [ref=e2101]:
+                        - link "Ted Cruz" [ref=e2103] [cursor=pointer]:
+                          - /url: /event/republican-presidential-nominee-2028/will-ted-cruz-win-the-2028-republican-presidential-nomination
+                          - paragraph [ref=e2104]: Ted Cruz
+                        - generic [ref=e2105]:
+                          - paragraph [ref=e2106]: 2%
+                          - link "Yes 2%" [ref=e2107] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2108]: "Yes"
+                            - generic [ref=e2109]: 2%
+                          - link "No 98%" [ref=e2110] [cursor=pointer]:
+                            - /url: /event/republican-presidential-nominee-2028
+                            - generic [ref=e2111]: "No"
+                            - generic [ref=e2112]: 98%
+                    - generic [ref=e2114]:
+                      - paragraph [ref=e2116]: $255m Vol.
+                      - generic [ref=e2118]:
+                        - button "Earn 4% holding rewards" [ref=e2119] [cursor=pointer]:
+                          - img
+                        - button "View trading rewards" [ref=e2120] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e2121] [cursor=pointer]
+                - generic [ref=e2124]:
+                  - generic [ref=e2125]:
+                    - img "Democratic Presidential Nominee 2028 card icon" [ref=e2127]
+                    - link "Democratic Presidential Nominee 2028" [ref=e2129] [cursor=pointer]:
+                      - /url: /event/democratic-presidential-nominee-2028
+                      - heading "Democratic Presidential Nominee 2028" [level=2] [ref=e2131]
+                  - generic [ref=e2132]:
+                    - generic [ref=e2137]:
+                      - generic [ref=e2140]:
+                        - link "Gavin Newsom" [ref=e2142] [cursor=pointer]:
+                          - /url: /event/democratic-presidential-nominee-2028/will-gavin-newsom-win-the-2028-democratic-presidential-nomination-568
+                          - paragraph [ref=e2143]: Gavin Newsom
+                        - generic [ref=e2144]:
+                          - paragraph [ref=e2145]: 30%
+                          - link "Yes 30%" [ref=e2146] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2147]: "Yes"
+                            - generic [ref=e2148]: 30%
+                          - link "No 70%" [ref=e2149] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2150]: "No"
+                            - generic [ref=e2151]: 70%
+                      - generic [ref=e2154]:
+                        - link "Alexandria Ocasio-Cortez" [ref=e2156] [cursor=pointer]:
+                          - /url: /event/democratic-presidential-nominee-2028/will-alexandria-ocasio-cortez-win-the-2028-democratic-presidential-nomination-653
+                          - paragraph [ref=e2157]: Alexandria Ocasio-Cortez
+                        - generic [ref=e2158]:
+                          - paragraph [ref=e2159]: 8%
+                          - link "Yes 8%" [ref=e2160] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2161]: "Yes"
+                            - generic [ref=e2162]: 8%
+                          - link "No 92%" [ref=e2163] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2164]: "No"
+                            - generic [ref=e2165]: 92%
+                      - generic [ref=e2168]:
+                        - link "Kamala Harris" [ref=e2170] [cursor=pointer]:
+                          - /url: /event/democratic-presidential-nominee-2028/will-kamala-harris-win-the-2028-democratic-presidential-nomination-641
+                          - paragraph [ref=e2171]: Kamala Harris
+                        - generic [ref=e2172]:
+                          - paragraph [ref=e2173]: 6%
+                          - link "Yes 6%" [ref=e2174] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2175]: "Yes"
+                            - generic [ref=e2176]: 6%
+                          - link "No 94%" [ref=e2177] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2178]: "No"
+                            - generic [ref=e2179]: 94%
+                      - generic [ref=e2182]:
+                        - link "Josh Shapiro" [ref=e2184] [cursor=pointer]:
+                          - /url: /event/democratic-presidential-nominee-2028/will-josh-shapiro-win-the-2028-democratic-presidential-nomination-977
+                          - paragraph [ref=e2185]: Josh Shapiro
+                        - generic [ref=e2186]:
+                          - paragraph [ref=e2187]: 6%
+                          - link "Yes 6%" [ref=e2188] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2189]: "Yes"
+                            - generic [ref=e2190]: 6%
+                          - link "No 94%" [ref=e2191] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2192]: "No"
+                            - generic [ref=e2193]: 94%
+                      - generic [ref=e2196]:
+                        - link "Pete Buttigieg" [ref=e2198] [cursor=pointer]:
+                          - /url: /event/democratic-presidential-nominee-2028/will-pete-buttigieg-win-the-2028-democratic-presidential-nomination-687
+                          - paragraph [ref=e2199]: Pete Buttigieg
+                        - generic [ref=e2200]:
+                          - paragraph [ref=e2201]: 5%
+                          - link "Yes 5%" [ref=e2202] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2203]: "Yes"
+                            - generic [ref=e2204]: 5%
+                          - link "No 95%" [ref=e2205] [cursor=pointer]:
+                            - /url: /event/democratic-presidential-nominee-2028
+                            - generic [ref=e2206]: "No"
+                            - generic [ref=e2207]: 95%
+                    - generic [ref=e2209]:
+                      - paragraph [ref=e2211]: $614m Vol.
+                      - generic [ref=e2213]:
+                        - button "Earn 4% holding rewards" [ref=e2214] [cursor=pointer]:
+                          - img
+                        - button "View trading rewards" [ref=e2215] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e2216] [cursor=pointer]
+                - generic [ref=e2219]:
+                  - generic [ref=e2220]:
+                    - img "Presidential Election Winner 2028 card icon" [ref=e2222]
+                    - link "Presidential Election Winner 2028" [ref=e2224] [cursor=pointer]:
+                      - /url: /event/presidential-election-winner-2028
+                      - heading "Presidential Election Winner 2028" [level=2] [ref=e2226]
+                  - generic [ref=e2227]:
+                    - generic [ref=e2232]:
+                      - generic [ref=e2235]:
+                        - link "JD Vance" [ref=e2237] [cursor=pointer]:
+                          - /url: /event/presidential-election-winner-2028/will-jd-vance-win-the-2028-us-presidential-election
+                          - paragraph [ref=e2238]: JD Vance
+                        - generic [ref=e2239]:
+                          - paragraph [ref=e2240]: 25%
+                          - link "Yes 25%" [ref=e2241] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2242]: "Yes"
+                            - generic [ref=e2243]: 25%
+                          - link "No 75%" [ref=e2244] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2245]: "No"
+                            - generic [ref=e2246]: 75%
+                      - generic [ref=e2249]:
+                        - link "Gavin Newsom" [ref=e2251] [cursor=pointer]:
+                          - /url: /event/presidential-election-winner-2028/will-gavin-newsom-win-the-2028-us-presidential-election
+                          - paragraph [ref=e2252]: Gavin Newsom
+                        - generic [ref=e2253]:
+                          - paragraph [ref=e2254]: 19%
+                          - link "Yes 19%" [ref=e2255] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2256]: "Yes"
+                            - generic [ref=e2257]: 19%
+                          - link "No 81%" [ref=e2258] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2259]: "No"
+                            - generic [ref=e2260]: 81%
+                      - generic [ref=e2263]:
+                        - link "Marco Rubio" [ref=e2265] [cursor=pointer]:
+                          - /url: /event/presidential-election-winner-2028/will-marco-rubio-win-the-2028-us-presidential-election
+                          - paragraph [ref=e2266]: Marco Rubio
+                        - generic [ref=e2267]:
+                          - paragraph [ref=e2268]: 8%
+                          - link "Yes 8%" [ref=e2269] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2270]: "Yes"
+                            - generic [ref=e2271]: 8%
+                          - link "No 92%" [ref=e2272] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2273]: "No"
+                            - generic [ref=e2274]: 92%
+                      - generic [ref=e2277]:
+                        - link "Alexandria Ocasio-Cortez" [ref=e2279] [cursor=pointer]:
+                          - /url: /event/presidential-election-winner-2028/will-alexandria-ocasio-cortez-win-the-2028-us-presidential-election
+                          - paragraph [ref=e2280]: Alexandria Ocasio-Cortez
+                        - generic [ref=e2281]:
+                          - paragraph [ref=e2282]: 5%
+                          - link "Yes 5%" [ref=e2283] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2284]: "Yes"
+                            - generic [ref=e2285]: 5%
+                          - link "No 95%" [ref=e2286] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2287]: "No"
+                            - generic [ref=e2288]: 95%
+                      - generic [ref=e2291]:
+                        - link "Josh Shapiro" [ref=e2293] [cursor=pointer]:
+                          - /url: /event/presidential-election-winner-2028/will-josh-shapiro-win-the-2028-us-presidential-election
+                          - paragraph [ref=e2294]: Josh Shapiro
+                        - generic [ref=e2295]:
+                          - paragraph [ref=e2296]: 4%
+                          - link "Yes 4%" [ref=e2297] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2298]: "Yes"
+                            - generic [ref=e2299]: 4%
+                          - link "No 96%" [ref=e2300] [cursor=pointer]:
+                            - /url: /event/presidential-election-winner-2028
+                            - generic [ref=e2301]: "No"
+                            - generic [ref=e2302]: 96%
+                    - generic [ref=e2304]:
+                      - paragraph [ref=e2306]: $263m Vol.
+                      - generic [ref=e2308]:
+                        - button "Earn 4% holding rewards" [ref=e2309] [cursor=pointer]:
+                          - img
+                        - button "View trading rewards" [ref=e2310] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e2311] [cursor=pointer]
+                - generic [ref=e2314]:
+                  - generic [ref=e2315]:
+                    - img "English Premier League Winner card icon" [ref=e2317]
+                    - link "English Premier League Winner" [ref=e2319] [cursor=pointer]:
+                      - /url: /event/english-premier-league-winner
+                      - heading "English Premier League Winner" [level=2] [ref=e2321]
+                  - generic [ref=e2322]:
+                    - generic [ref=e2327]:
+                      - generic [ref=e2330]:
+                        - link "Arsenal" [ref=e2332] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-arsenal-win-the-202526-english-premier-league
+                          - paragraph [ref=e2333]: Arsenal
+                        - generic [ref=e2334]:
+                          - paragraph [ref=e2335]: 81%
+                          - link "Yes 81%" [ref=e2336] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2337]: "Yes"
+                            - generic [ref=e2338]: 81%
+                          - link "No 19%" [ref=e2339] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2340]: "No"
+                            - generic [ref=e2341]: 19%
+                      - generic [ref=e2344]:
+                        - link "Man City" [ref=e2346] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-manchester-city-win-the-202526-english-premier-league
+                          - paragraph [ref=e2347]: Man City
+                        - generic [ref=e2348]:
+                          - paragraph [ref=e2349]: 14%
+                          - link "Yes 14%" [ref=e2350] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2351]: "Yes"
+                            - generic [ref=e2352]: 14%
+                          - link "No 86%" [ref=e2353] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2354]: "No"
+                            - generic [ref=e2355]: 86%
+                      - generic [ref=e2358]:
+                        - link "Man United" [ref=e2360] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-manchester-united-win-the-202526-english-premier-league
+                          - paragraph [ref=e2361]: Man United
+                        - generic [ref=e2362]:
+                          - paragraph [ref=e2363]: 2%
+                          - link "Yes 2%" [ref=e2364] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2365]: "Yes"
+                            - generic [ref=e2366]: 2%
+                          - link "No 98%" [ref=e2367] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2368]: "No"
+                            - generic [ref=e2369]: 98%
+                      - generic [ref=e2372]:
+                        - link "Aston Villa" [ref=e2374] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-aston-villa-win-the-202526-english-premier-league
+                          - paragraph [ref=e2375]: Aston Villa
+                        - generic [ref=e2376]:
+                          - paragraph [ref=e2377]: 2%
+                          - link "Yes 2%" [ref=e2378] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2379]: "Yes"
+                            - generic [ref=e2380]: 2%
+                          - link "No 98%" [ref=e2381] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2382]: "No"
+                            - generic [ref=e2383]: 98%
+                      - generic [ref=e2386]:
+                        - link "Liverpool" [ref=e2388] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-liverpool-win-the-202526-english-premier-league
+                          - paragraph [ref=e2389]: Liverpool
+                        - generic [ref=e2390]:
+                          - paragraph [ref=e2391]: 1%
+                          - link "Yes 1%" [ref=e2392] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2393]: "Yes"
+                            - generic [ref=e2394]: 1%
+                          - link "No 99%" [ref=e2395] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2396]: "No"
+                            - generic [ref=e2397]: 99%
+                      - generic [ref=e2400]:
+                        - link "Chelsea" [ref=e2402] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-chelsea-win-the-202526-english-premier-league
+                          - paragraph [ref=e2403]: Chelsea
+                        - generic [ref=e2404]:
+                          - paragraph [ref=e2405]: 1%
+                          - link "Yes 1%" [ref=e2406] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2407]: "Yes"
+                            - generic [ref=e2408]: 1%
+                          - link "No 99%" [ref=e2409] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2410]: "No"
+                            - generic [ref=e2411]: 99%
+                      - generic [ref=e2414]:
+                        - link "Brentford" [ref=e2416] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-brentford-win-the-202526-english-premier-league
+                          - paragraph [ref=e2417]: Brentford
+                        - generic [ref=e2418]:
+                          - paragraph [ref=e2419]: <1%
+                          - link "Yes <1%" [ref=e2420] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2421]: "Yes"
+                            - generic [ref=e2422]: <1%
+                          - link "No 100%" [ref=e2423] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2424]: "No"
+                            - generic [ref=e2425]: 100%
+                      - generic [ref=e2428]:
+                        - link "Newcastle" [ref=e2430] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-newcastle-win-the-202526-english-premier-league
+                          - paragraph [ref=e2431]: Newcastle
+                        - generic [ref=e2432]:
+                          - paragraph [ref=e2433]: <1%
+                          - link "Yes <1%" [ref=e2434] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2435]: "Yes"
+                            - generic [ref=e2436]: <1%
+                          - link "No 100%" [ref=e2437] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2438]: "No"
+                            - generic [ref=e2439]: 100%
+                      - generic [ref=e2442]:
+                        - link "Crystal Palace" [ref=e2444] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-crystal-palace-win-the-202526-english-premier-league
+                          - paragraph [ref=e2445]: Crystal Palace
+                        - generic [ref=e2446]:
+                          - paragraph [ref=e2447]: <1%
+                          - link "Yes <1%" [ref=e2448] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2449]: "Yes"
+                            - generic [ref=e2450]: <1%
+                          - link "No 100%" [ref=e2451] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2452]: "No"
+                            - generic [ref=e2453]: 100%
+                      - generic [ref=e2456]:
+                        - link "Nottm Forest" [ref=e2458] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-nottm-forest-win-the-202526-english-premier-league
+                          - paragraph [ref=e2459]: Nottm Forest
+                        - generic [ref=e2460]:
+                          - paragraph [ref=e2461]: <1%
+                          - link "Yes <1%" [ref=e2462] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2463]: "Yes"
+                            - generic [ref=e2464]: <1%
+                          - link "No 100%" [ref=e2465] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2466]: "No"
+                            - generic [ref=e2467]: 100%
+                      - generic [ref=e2470]:
+                        - link "Brighton" [ref=e2472] [cursor=pointer]:
+                          - /url: /event/english-premier-league-winner/will-brighton-win-the-202526-english-premier-league
+                          - paragraph [ref=e2473]: Brighton
+                        - generic [ref=e2474]:
+                          - paragraph [ref=e2475]: <1%
+                          - link "Yes <1%" [ref=e2476] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2477]: "Yes"
+                            - generic [ref=e2478]: <1%
+                          - link "No 100%" [ref=e2479] [cursor=pointer]:
+                            - /url: /event/english-premier-league-winner
+                            - generic [ref=e2480]: "No"
+                            - generic [ref=e2481]: 100%
+                    - generic [ref=e2483]:
+                      - paragraph [ref=e2485]: $219m Vol.
+                      - generic [ref=e2487]:
+                        - button "View trading rewards" [ref=e2488] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e2489] [cursor=pointer]
+                - generic [ref=e2492]:
+                  - generic [ref=e2493]:
+                    - img "Total commitments for the Hurupay public sale on MetaDAO card icon" [ref=e2495]
+                    - link "Total commitments for the Hurupay public sale on MetaDAO" [ref=e2497] [cursor=pointer]:
+                      - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                      - heading "Total commitments for the Hurupay public sale on MetaDAO" [level=2] [ref=e2499]
+                  - generic [ref=e2500]:
+                    - generic [ref=e2505]:
+                      - generic [ref=e2508]:
+                        - link ">$1M" [ref=e2510] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-1m-committed-to-the-hurupay-public-sale-763
+                          - paragraph [ref=e2511]: ">$1M"
+                        - generic [ref=e2512]:
+                          - paragraph [ref=e2513]: 93%
+                          - link "Yes 93%" [ref=e2514] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2515]: "Yes"
+                            - generic [ref=e2516]: 93%
+                          - link "No 7%" [ref=e2517] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2518]: "No"
+                            - generic [ref=e2519]: 7%
+                      - generic [ref=e2522]:
+                        - link ">$2M" [ref=e2524] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-2m-committed-to-the-hurupay-public-sale-226-884-112-563
+                          - paragraph [ref=e2525]: ">$2M"
+                        - generic [ref=e2526]:
+                          - paragraph [ref=e2527]: 73%
+                          - link "Yes 73%" [ref=e2528] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2529]: "Yes"
+                            - generic [ref=e2530]: 73%
+                          - link "No 27%" [ref=e2531] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2532]: "No"
+                            - generic [ref=e2533]: 27%
+                      - generic [ref=e2536]:
+                        - link ">$3M" [ref=e2538] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-3m-committed-to-the-hurupay-public-sale-367-694-256-473-655
+                          - paragraph [ref=e2539]: ">$3M"
+                        - generic [ref=e2540]:
+                          - paragraph [ref=e2541]: 57%
+                          - link "Yes 57%" [ref=e2542] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2543]: "Yes"
+                            - generic [ref=e2544]: 57%
+                          - link "No 43%" [ref=e2545] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2546]: "No"
+                            - generic [ref=e2547]: 43%
+                      - generic [ref=e2550]:
+                        - link ">$5M" [ref=e2552] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-5m-committed-to-the-hurupay-public-sale-241-999-813-678-217-134-593-326
+                          - paragraph [ref=e2553]: ">$5M"
+                        - generic [ref=e2554]:
+                          - paragraph [ref=e2555]: 20%
+                          - link "Yes 20%" [ref=e2556] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2557]: "Yes"
+                            - generic [ref=e2558]: 20%
+                          - link "No 80%" [ref=e2559] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2560]: "No"
+                            - generic [ref=e2561]: 80%
+                      - generic [ref=e2564]:
+                        - link ">$7M" [ref=e2566] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-7m-committed-to-the-hurupay-public-sale-228-549-171-275-663-983
+                          - paragraph [ref=e2567]: ">$7M"
+                        - generic [ref=e2568]:
+                          - paragraph [ref=e2569]: 11%
+                          - link "Yes 11%" [ref=e2570] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2571]: "Yes"
+                            - generic [ref=e2572]: 11%
+                          - link "No 89%" [ref=e2573] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2574]: "No"
+                            - generic [ref=e2575]: 89%
+                      - generic [ref=e2578]:
+                        - link ">$10M" [ref=e2580] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-10m-committed-to-the-hurupay-public-sale-448-365-714-182-925-999-551
+                          - paragraph [ref=e2581]: ">$10M"
+                        - generic [ref=e2582]:
+                          - paragraph [ref=e2583]: 7%
+                          - link "Yes 7%" [ref=e2584] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2585]: "Yes"
+                            - generic [ref=e2586]: 7%
+                          - link "No 93%" [ref=e2587] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2588]: "No"
+                            - generic [ref=e2589]: 93%
+                      - generic [ref=e2592]:
+                        - link ">$20M" [ref=e2594] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-20m-committed-to-the-hurupay-public-sale-359-571-712-688-936-813-321
+                          - paragraph [ref=e2595]: ">$20M"
+                        - generic [ref=e2596]:
+                          - paragraph [ref=e2597]: 2%
+                          - link "Yes 2%" [ref=e2598] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2599]: "Yes"
+                            - generic [ref=e2600]: 2%
+                          - link "No 98%" [ref=e2601] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2602]: "No"
+                            - generic [ref=e2603]: 98%
+                      - generic [ref=e2606]:
+                        - link ">$30M" [ref=e2608] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-30m-committed-to-the-hurupay-public-sale-273-384-974-145-883-775-771
+                          - paragraph [ref=e2609]: ">$30M"
+                        - generic [ref=e2610]:
+                          - paragraph [ref=e2611]: 1%
+                          - link "Yes 1%" [ref=e2612] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2613]: "Yes"
+                            - generic [ref=e2614]: 1%
+                          - link "No 99%" [ref=e2615] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2616]: "No"
+                            - generic [ref=e2617]: 99%
+                      - generic [ref=e2620]:
+                        - link ">$40M" [ref=e2622] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-40m-committed-to-the-hurupay-public-sale-587-947-353-227-198-133-578
+                          - paragraph [ref=e2623]: ">$40M"
+                        - generic [ref=e2624]:
+                          - paragraph [ref=e2625]: 1%
+                          - link "Yes 1%" [ref=e2626] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2627]: "Yes"
+                            - generic [ref=e2628]: 1%
+                          - link "No 99%" [ref=e2629] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2630]: "No"
+                            - generic [ref=e2631]: 99%
+                      - generic [ref=e2634]:
+                        - link ">$50M" [ref=e2636] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-50m-committed-to-the-hurupay-public-sale-569-772-915-493-946-347-974
+                          - paragraph [ref=e2637]: ">$50M"
+                        - generic [ref=e2638]:
+                          - paragraph [ref=e2639]: <1%
+                          - link "Yes <1%" [ref=e2640] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2641]: "Yes"
+                            - generic [ref=e2642]: <1%
+                          - link "No 100%" [ref=e2643] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2644]: "No"
+                            - generic [ref=e2645]: 100%
+                      - generic [ref=e2648]:
+                        - link ">$60M" [ref=e2650] [cursor=pointer]:
+                          - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao/over-60m-committed-to-the-hurupay-public-sale-215-943-257-295-876-998-272
+                          - paragraph [ref=e2651]: ">$60M"
+                        - generic [ref=e2652]:
+                          - paragraph [ref=e2653]: <1%
+                          - link "Yes <1%" [ref=e2654] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2655]: "Yes"
+                            - generic [ref=e2656]: <1%
+                          - link "No 100%" [ref=e2657] [cursor=pointer]:
+                            - /url: /event/total-commitments-for-the-hurupay-public-sale-on-metadao
+                            - generic [ref=e2658]: "No"
+                            - generic [ref=e2659]: 100%
+                    - generic [ref=e2661]:
+                      - paragraph [ref=e2663]: $4m Vol.
+                      - generic [ref=e2665]:
+                        - button "View trading rewards" [ref=e2666] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e2667] [cursor=pointer]
+                - generic [ref=e2670]:
+                  - generic [ref=e2671]:
+                    - img "What price will Ethereum hit in February? card icon" [ref=e2673]
+                    - link "What price will Ethereum hit in February?" [ref=e2675] [cursor=pointer]:
+                      - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                      - heading "What price will Ethereum hit in February?" [level=2] [ref=e2677]
+                  - generic [ref=e2678]:
+                    - generic [ref=e2683]:
+                      - generic [ref=e2686]:
+                        - link "↑ 5,000" [ref=e2688] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-5000-in-february-2026
+                          - paragraph [ref=e2689]: ↑ 5,000
+                        - generic [ref=e2690]:
+                          - paragraph [ref=e2691]: <1%
+                          - link "Yes <1%" [ref=e2692] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2693]: "Yes"
+                            - generic [ref=e2694]: <1%
+                          - link "No 100%" [ref=e2695] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2696]: "No"
+                            - generic [ref=e2697]: 100%
+                      - generic [ref=e2700]:
+                        - link "↑ 4,400" [ref=e2702] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-4400-in-february-2026
+                          - paragraph [ref=e2703]: ↑ 4,400
+                        - generic [ref=e2704]:
+                          - paragraph [ref=e2705]: <1%
+                          - link "Yes <1%" [ref=e2706] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2707]: "Yes"
+                            - generic [ref=e2708]: <1%
+                          - link "No 100%" [ref=e2709] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2710]: "No"
+                            - generic [ref=e2711]: 100%
+                      - generic [ref=e2714]:
+                        - link "↑ 4,200" [ref=e2716] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-4200-in-february-2026
+                          - paragraph [ref=e2717]: ↑ 4,200
+                        - generic [ref=e2718]:
+                          - paragraph [ref=e2719]: 1%
+                          - link "Yes 1%" [ref=e2720] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2721]: "Yes"
+                            - generic [ref=e2722]: 1%
+                          - link "No 99%" [ref=e2723] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2724]: "No"
+                            - generic [ref=e2725]: 99%
+                      - generic [ref=e2728]:
+                        - link "↑ 4,000" [ref=e2730] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-4000-in-february-2026
+                          - paragraph [ref=e2731]: ↑ 4,000
+                        - generic [ref=e2732]:
+                          - paragraph [ref=e2733]: 1%
+                          - link "Yes 1%" [ref=e2734] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2735]: "Yes"
+                            - generic [ref=e2736]: 1%
+                          - link "No 99%" [ref=e2737] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2738]: "No"
+                            - generic [ref=e2739]: 99%
+                      - generic [ref=e2742]:
+                        - link "↑ 3,800" [ref=e2744] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-3800-in-february-2026
+                          - paragraph [ref=e2745]: ↑ 3,800
+                        - generic [ref=e2746]:
+                          - paragraph [ref=e2747]: 1%
+                          - link "Yes 1%" [ref=e2748] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2749]: "Yes"
+                            - generic [ref=e2750]: 1%
+                          - link "No 99%" [ref=e2751] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2752]: "No"
+                            - generic [ref=e2753]: 99%
+                      - generic [ref=e2756]:
+                        - link "↑ 3,600" [ref=e2758] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-3600-in-february-2026
+                          - paragraph [ref=e2759]: ↑ 3,600
+                        - generic [ref=e2760]:
+                          - paragraph [ref=e2761]: 1%
+                          - link "Yes 1%" [ref=e2762] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2763]: "Yes"
+                            - generic [ref=e2764]: 1%
+                          - link "No 99%" [ref=e2765] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2766]: "No"
+                            - generic [ref=e2767]: 99%
+                      - generic [ref=e2770]:
+                        - link "↑ 3,400" [ref=e2772] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-3400-in-february-2026
+                          - paragraph [ref=e2773]: ↑ 3,400
+                        - generic [ref=e2774]:
+                          - paragraph [ref=e2775]: 2%
+                          - link "Yes 2%" [ref=e2776] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2777]: "Yes"
+                            - generic [ref=e2778]: 2%
+                          - link "No 98%" [ref=e2779] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2780]: "No"
+                            - generic [ref=e2781]: 98%
+                      - generic [ref=e2784]:
+                        - link "↑ 3,200" [ref=e2786] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-3200-in-february-2026
+                          - paragraph [ref=e2787]: ↑ 3,200
+                        - generic [ref=e2788]:
+                          - paragraph [ref=e2789]: 3%
+                          - link "Yes 3%" [ref=e2790] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2791]: "Yes"
+                            - generic [ref=e2792]: 3%
+                          - link "No 97%" [ref=e2793] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2794]: "No"
+                            - generic [ref=e2795]: 97%
+                      - generic [ref=e2798]:
+                        - link "↑ 3,000" [ref=e2800] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-3000-in-february-2026
+                          - paragraph [ref=e2801]: ↑ 3,000
+                        - generic [ref=e2802]:
+                          - paragraph [ref=e2803]: 5%
+                          - link "Yes 5%" [ref=e2804] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2805]: "Yes"
+                            - generic [ref=e2806]: 5%
+                          - link "No 95%" [ref=e2807] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2808]: "No"
+                            - generic [ref=e2809]: 95%
+                      - generic [ref=e2812]:
+                        - link "↑ 2,800" [ref=e2814] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-reach-2800-in-february-2026
+                          - paragraph [ref=e2815]: ↑ 2,800
+                        - generic [ref=e2816]:
+                          - paragraph [ref=e2817]: 10%
+                          - link "Yes 10%" [ref=e2818] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2819]: "Yes"
+                            - generic [ref=e2820]: 10%
+                          - link "No 90%" [ref=e2821] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2822]: "No"
+                            - generic [ref=e2823]: 90%
+                      - generic [ref=e2826]:
+                        - link "↓ 1,600" [ref=e2828] [cursor=pointer]:
+                          - /url: /event/what-price-will-ethereum-hit-in-february-2026/will-ethereum-dip-to-1600-in-february-2026
+                          - paragraph [ref=e2829]: ↓ 1,600
+                        - generic [ref=e2830]:
+                          - paragraph [ref=e2831]: 27%
+                          - link "Yes 27%" [ref=e2832] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2833]: "Yes"
+                            - generic [ref=e2834]: 27%
+                          - link "No 73%" [ref=e2835] [cursor=pointer]:
+                            - /url: /event/what-price-will-ethereum-hit-in-february-2026
+                            - generic [ref=e2836]: "No"
+                            - generic [ref=e2837]: 73%
+                    - generic [ref=e2839]:
+                      - generic [ref=e2840]:
+                        - paragraph [ref=e2841]: $9m Vol.
+                        - generic [ref=e2842]:
+                          - img [ref=e2843]
+                          - generic [ref=e2848]: Monthly
+                      - button "Add to favorites" [ref=e2851] [cursor=pointer]
+                - generic [ref=e2854]:
+                  - generic [ref=e2855]:
+                    - img "What price will Solana hit in February? card icon" [ref=e2857]
+                    - link "What price will Solana hit in February?" [ref=e2859] [cursor=pointer]:
+                      - /url: /event/what-price-will-solana-hit-in-february-2026
+                      - heading "What price will Solana hit in February?" [level=2] [ref=e2861]
+                  - generic [ref=e2862]:
+                    - generic [ref=e2867]:
+                      - generic [ref=e2870]:
+                        - link "↑ 200" [ref=e2872] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-reach-200-in-february-2026
+                          - paragraph [ref=e2873]: ↑ 200
+                        - generic [ref=e2874]:
+                          - paragraph [ref=e2875]: 1%
+                          - link "Yes 1%" [ref=e2876] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2877]: "Yes"
+                            - generic [ref=e2878]: 1%
+                          - link "No 99%" [ref=e2879] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2880]: "No"
+                            - generic [ref=e2881]: 99%
+                      - generic [ref=e2884]:
+                        - link "↑ 190" [ref=e2886] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-reach-190-in-february-2026
+                          - paragraph [ref=e2887]: ↑ 190
+                        - generic [ref=e2888]:
+                          - paragraph [ref=e2889]: 1%
+                          - link "Yes 1%" [ref=e2890] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2891]: "Yes"
+                            - generic [ref=e2892]: 1%
+                          - link "No 99%" [ref=e2893] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2894]: "No"
+                            - generic [ref=e2895]: 99%
+                      - generic [ref=e2898]:
+                        - link "↑ 180" [ref=e2900] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-reach-180-in-february-2026
+                          - paragraph [ref=e2901]: ↑ 180
+                        - generic [ref=e2902]:
+                          - paragraph [ref=e2903]: 1%
+                          - link "Yes 1%" [ref=e2904] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2905]: "Yes"
+                            - generic [ref=e2906]: 1%
+                          - link "No 99%" [ref=e2907] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2908]: "No"
+                            - generic [ref=e2909]: 99%
+                      - generic [ref=e2912]:
+                        - link "↑ 170" [ref=e2914] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-reach-170-in-february-2026
+                          - paragraph [ref=e2915]: ↑ 170
+                        - generic [ref=e2916]:
+                          - paragraph [ref=e2917]: 2%
+                          - link "Yes 2%" [ref=e2918] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2919]: "Yes"
+                            - generic [ref=e2920]: 2%
+                          - link "No 98%" [ref=e2921] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2922]: "No"
+                            - generic [ref=e2923]: 98%
+                      - generic [ref=e2926]:
+                        - link "↑ 160" [ref=e2928] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-reach-160-in-february-2026
+                          - paragraph [ref=e2929]: ↑ 160
+                        - generic [ref=e2930]:
+                          - paragraph [ref=e2931]: 2%
+                          - link "Yes 2%" [ref=e2932] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2933]: "Yes"
+                            - generic [ref=e2934]: 2%
+                          - link "No 98%" [ref=e2935] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2936]: "No"
+                            - generic [ref=e2937]: 98%
+                      - generic [ref=e2940]:
+                        - link "↑ 150" [ref=e2942] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-reach-150-in-february-2026
+                          - paragraph [ref=e2943]: ↑ 150
+                        - generic [ref=e2944]:
+                          - paragraph [ref=e2945]: 2%
+                          - link "Yes 2%" [ref=e2946] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2947]: "Yes"
+                            - generic [ref=e2948]: 2%
+                          - link "No 98%" [ref=e2949] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2950]: "No"
+                            - generic [ref=e2951]: 98%
+                      - generic [ref=e2954]:
+                        - link "↑ 140" [ref=e2956] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-reach-140-in-february-2026
+                          - paragraph [ref=e2957]: ↑ 140
+                        - generic [ref=e2958]:
+                          - paragraph [ref=e2959]: 4%
+                          - link "Yes 4%" [ref=e2960] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2961]: "Yes"
+                            - generic [ref=e2962]: 4%
+                          - link "No 96%" [ref=e2963] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2964]: "No"
+                            - generic [ref=e2965]: 96%
+                      - generic [ref=e2968]:
+                        - link "↑ 130" [ref=e2970] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-reach-130-in-february-2026
+                          - paragraph [ref=e2971]: ↑ 130
+                        - generic [ref=e2972]:
+                          - paragraph [ref=e2973]: 8%
+                          - link "Yes 8%" [ref=e2974] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2975]: "Yes"
+                            - generic [ref=e2976]: 8%
+                          - link "No 92%" [ref=e2977] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2978]: "No"
+                            - generic [ref=e2979]: 92%
+                      - generic [ref=e2982]:
+                        - link "↑ 120" [ref=e2984] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-reach-120-in-february-2026
+                          - paragraph [ref=e2985]: ↑ 120
+                        - generic [ref=e2986]:
+                          - paragraph [ref=e2987]: 14%
+                          - link "Yes 14%" [ref=e2988] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2989]: "Yes"
+                            - generic [ref=e2990]: 14%
+                          - link "No 86%" [ref=e2991] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e2992]: "No"
+                            - generic [ref=e2993]: 86%
+                      - generic [ref=e2996]:
+                        - link "↓ 90" [ref=e2998] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-dip-to-90-in-february-2026
+                          - paragraph [ref=e2999]: ↓ 90
+                        - generic [ref=e3000]:
+                          - paragraph [ref=e3001]: 100%
+                          - link "Yes 100%" [ref=e3002] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e3003]: "Yes"
+                            - generic [ref=e3004]: 100%
+                          - link "No <1%" [ref=e3005] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e3006]: "No"
+                            - generic [ref=e3007]: <1%
+                      - generic [ref=e3010]:
+                        - link "↓ 60" [ref=e3012] [cursor=pointer]:
+                          - /url: /event/what-price-will-solana-hit-in-february-2026/will-solana-dip-to-60-in-february-2026
+                          - paragraph [ref=e3013]: ↓ 60
+                        - generic [ref=e3014]:
+                          - paragraph [ref=e3015]: 24%
+                          - link "Yes 24%" [ref=e3016] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e3017]: "Yes"
+                            - generic [ref=e3018]: 24%
+                          - link "No 76%" [ref=e3019] [cursor=pointer]:
+                            - /url: /event/what-price-will-solana-hit-in-february-2026
+                            - generic [ref=e3020]: "No"
+                            - generic [ref=e3021]: 76%
+                    - generic [ref=e3023]:
+                      - generic [ref=e3024]:
+                        - paragraph [ref=e3025]: $7m Vol.
+                        - generic [ref=e3026]:
+                          - img [ref=e3027]
+                          - generic [ref=e3032]: Monthly
+                      - button "Add to favorites" [ref=e3035] [cursor=pointer]
+                - generic [ref=e3038]:
+                  - generic [ref=e3039]:
+                    - img "Supá Bowl MVP card icon" [ref=e3041]
+                    - link "Supá Bowl MVP" [ref=e3043] [cursor=pointer]:
+                      - /url: /event/super-bowl-lx-mvp
+                      - heading "Supá Bowl MVP" [level=2] [ref=e3045]
+                  - generic [ref=e3046]:
+                    - generic [ref=e3051]:
+                      - generic [ref=e3054]:
+                        - link "Sam Darnold" [ref=e3056] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-sam-darnold-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3057]: Sam Darnold
+                        - generic [ref=e3058]:
+                          - paragraph [ref=e3059]: 44%
+                          - link "Yes 44%" [ref=e3060] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3061]: "Yes"
+                            - generic [ref=e3062]: 44%
+                          - link "No 56%" [ref=e3063] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3064]: "No"
+                            - generic [ref=e3065]: 56%
+                      - generic [ref=e3068]:
+                        - link "Drake Maye" [ref=e3070] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-drake-maye-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3071]: Drake Maye
+                        - generic [ref=e3072]:
+                          - paragraph [ref=e3073]: 26%
+                          - link "Yes 26%" [ref=e3074] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3075]: "Yes"
+                            - generic [ref=e3076]: 26%
+                          - link "No 74%" [ref=e3077] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3078]: "No"
+                            - generic [ref=e3079]: 74%
+                      - generic [ref=e3082]:
+                        - link "Jaxon Smith-Njigba" [ref=e3084] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-jaxon-smith-njigba-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3085]: Jaxon Smith-Njigba
+                        - generic [ref=e3086]:
+                          - paragraph [ref=e3087]: 15%
+                          - link "Yes 15%" [ref=e3088] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3089]: "Yes"
+                            - generic [ref=e3090]: 15%
+                          - link "No 85%" [ref=e3091] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3092]: "No"
+                            - generic [ref=e3093]: 85%
+                      - generic [ref=e3096]:
+                        - link "Kenneth Walker III" [ref=e3098] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-kenneth-walker-iii-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3099]: Kenneth Walker III
+                        - generic [ref=e3100]:
+                          - paragraph [ref=e3101]: 8%
+                          - link "Yes 8%" [ref=e3102] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3103]: "Yes"
+                            - generic [ref=e3104]: 8%
+                          - link "No 92%" [ref=e3105] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3106]: "No"
+                            - generic [ref=e3107]: 92%
+                      - generic [ref=e3110]:
+                        - link "Rhamondre Stevenson" [ref=e3112] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-rhamondre-stevenson-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3113]: Rhamondre Stevenson
+                        - generic [ref=e3114]:
+                          - paragraph [ref=e3115]: 2%
+                          - link "Yes 2%" [ref=e3116] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3117]: "Yes"
+                            - generic [ref=e3118]: 2%
+                          - link "No 98%" [ref=e3119] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3120]: "No"
+                            - generic [ref=e3121]: 98%
+                      - generic [ref=e3124]:
+                        - link "Rashid Shaheed" [ref=e3126] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-rashid-shaheed-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3127]: Rashid Shaheed
+                        - generic [ref=e3128]:
+                          - paragraph [ref=e3129]: 2%
+                          - link "Yes 2%" [ref=e3130] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3131]: "Yes"
+                            - generic [ref=e3132]: 2%
+                          - link "No 98%" [ref=e3133] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3134]: "No"
+                            - generic [ref=e3135]: 98%
+                      - generic [ref=e3138]:
+                        - link "Stefon Diggs" [ref=e3140] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-stefon-diggs-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3141]: Stefon Diggs
+                        - generic [ref=e3142]:
+                          - paragraph [ref=e3143]: 1%
+                          - link "Yes 1%" [ref=e3144] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3145]: "Yes"
+                            - generic [ref=e3146]: 1%
+                          - link "No 99%" [ref=e3147] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3148]: "No"
+                            - generic [ref=e3149]: 99%
+                      - generic [ref=e3152]:
+                        - link "DeMarcus Lawrence" [ref=e3154] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-demarcus-lawrence-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3155]: DeMarcus Lawrence
+                        - generic [ref=e3156]:
+                          - paragraph [ref=e3157]: 1%
+                          - link "Yes 1%" [ref=e3158] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3159]: "Yes"
+                            - generic [ref=e3160]: 1%
+                          - link "No 99%" [ref=e3161] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3162]: "No"
+                            - generic [ref=e3163]: 99%
+                      - generic [ref=e3166]:
+                        - link "Marcus Jones" [ref=e3168] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-marcus-jones-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3169]: Marcus Jones
+                        - generic [ref=e3170]:
+                          - paragraph [ref=e3171]: 1%
+                          - link "Yes 1%" [ref=e3172] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3173]: "Yes"
+                            - generic [ref=e3174]: 1%
+                          - link "No 99%" [ref=e3175] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3176]: "No"
+                            - generic [ref=e3177]: 99%
+                      - generic [ref=e3180]:
+                        - link "Christian Gonzalez" [ref=e3182] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-christian-gonzalez-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3183]: Christian Gonzalez
+                        - generic [ref=e3184]:
+                          - paragraph [ref=e3185]: 1%
+                          - link "Yes 1%" [ref=e3186] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3187]: "Yes"
+                            - generic [ref=e3188]: 1%
+                          - link "No 99%" [ref=e3189] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3190]: "No"
+                            - generic [ref=e3191]: 99%
+                      - generic [ref=e3194]:
+                        - link "Cooper Kupp" [ref=e3196] [cursor=pointer]:
+                          - /url: /event/super-bowl-lx-mvp/will-cooper-kupp-win-the-super-bowl-lx-mvp
+                          - paragraph [ref=e3197]: Cooper Kupp
+                        - generic [ref=e3198]:
+                          - paragraph [ref=e3199]: 1%
+                          - link "Yes 1%" [ref=e3200] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3201]: "Yes"
+                            - generic [ref=e3202]: 1%
+                          - link "No 99%" [ref=e3203] [cursor=pointer]:
+                            - /url: /event/super-bowl-lx-mvp
+                            - generic [ref=e3204]: "No"
+                            - generic [ref=e3205]: 99%
+                    - generic [ref=e3207]:
+                      - paragraph [ref=e3209]: $3m Vol.
+                      - generic [ref=e3211]:
+                        - button "View trading rewards" [ref=e3212] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e3213] [cursor=pointer]
+                - generic [ref=e3216]:
+                  - generic [ref=e3217]:
+                    - 'img "Elon Musk # tweets February 6 - February 13, 2026? card icon" [ref=e3219]'
+                    - 'link "Elon Musk # tweets February 6 - February 13, 2026?" [ref=e3221] [cursor=pointer]':
+                      - /url: /event/elon-musk-of-tweets-february-6-february-13
+                      - 'heading "Elon Musk # tweets February 6 - February 13, 2026?" [level=2] [ref=e3223]'
+                  - generic [ref=e3224]:
+                    - generic [ref=e3229]:
+                      - generic [ref=e3232]:
+                        - link "<20" [ref=e3234] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-0-19
+                          - paragraph [ref=e3235]: <20
+                        - generic [ref=e3236]:
+                          - paragraph [ref=e3237]: <1%
+                          - link "Yes <1%" [ref=e3238] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3239]: "Yes"
+                            - generic [ref=e3240]: <1%
+                          - link "No 100%" [ref=e3241] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3242]: "No"
+                            - generic [ref=e3243]: 100%
+                      - generic [ref=e3246]:
+                        - link "20-39" [ref=e3248] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-20-39
+                          - paragraph [ref=e3249]: 20-39
+                        - generic [ref=e3250]:
+                          - paragraph [ref=e3251]: <1%
+                          - link "Yes <1%" [ref=e3252] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3253]: "Yes"
+                            - generic [ref=e3254]: <1%
+                          - link "No 100%" [ref=e3255] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3256]: "No"
+                            - generic [ref=e3257]: 100%
+                      - generic [ref=e3260]:
+                        - link "40-59" [ref=e3262] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-40-59
+                          - paragraph [ref=e3263]: 40-59
+                        - generic [ref=e3264]:
+                          - paragraph [ref=e3265]: <1%
+                          - link "Yes <1%" [ref=e3266] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3267]: "Yes"
+                            - generic [ref=e3268]: <1%
+                          - link "No 100%" [ref=e3269] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3270]: "No"
+                            - generic [ref=e3271]: 100%
+                      - generic [ref=e3274]:
+                        - link "60-79" [ref=e3276] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-60-79
+                          - paragraph [ref=e3277]: 60-79
+                        - generic [ref=e3278]:
+                          - paragraph [ref=e3279]: <1%
+                          - link "Yes <1%" [ref=e3280] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3281]: "Yes"
+                            - generic [ref=e3282]: <1%
+                          - link "No 100%" [ref=e3283] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3284]: "No"
+                            - generic [ref=e3285]: 100%
+                      - generic [ref=e3288]:
+                        - link "80-99" [ref=e3290] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-80-99
+                          - paragraph [ref=e3291]: 80-99
+                        - generic [ref=e3292]:
+                          - paragraph [ref=e3293]: <1%
+                          - link "Yes <1%" [ref=e3294] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3295]: "Yes"
+                            - generic [ref=e3296]: <1%
+                          - link "No 100%" [ref=e3297] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3298]: "No"
+                            - generic [ref=e3299]: 100%
+                      - generic [ref=e3302]:
+                        - link "100-119" [ref=e3304] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-100-119
+                          - paragraph [ref=e3305]: 100-119
+                        - generic [ref=e3306]:
+                          - paragraph [ref=e3307]: <1%
+                          - link "Yes <1%" [ref=e3308] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3309]: "Yes"
+                            - generic [ref=e3310]: <1%
+                          - link "No 100%" [ref=e3311] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3312]: "No"
+                            - generic [ref=e3313]: 100%
+                      - generic [ref=e3316]:
+                        - link "120-139" [ref=e3318] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-120-139
+                          - paragraph [ref=e3319]: 120-139
+                        - generic [ref=e3320]:
+                          - paragraph [ref=e3321]: 1%
+                          - link "Yes 1%" [ref=e3322] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3323]: "Yes"
+                            - generic [ref=e3324]: 1%
+                          - link "No 99%" [ref=e3325] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3326]: "No"
+                            - generic [ref=e3327]: 99%
+                      - generic [ref=e3330]:
+                        - link "140-159" [ref=e3332] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-140-159
+                          - paragraph [ref=e3333]: 140-159
+                        - generic [ref=e3334]:
+                          - paragraph [ref=e3335]: 1%
+                          - link "Yes 1%" [ref=e3336] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3337]: "Yes"
+                            - generic [ref=e3338]: 1%
+                          - link "No 99%" [ref=e3339] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3340]: "No"
+                            - generic [ref=e3341]: 99%
+                      - generic [ref=e3344]:
+                        - link "160-179" [ref=e3346] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-160-179
+                          - paragraph [ref=e3347]: 160-179
+                        - generic [ref=e3348]:
+                          - paragraph [ref=e3349]: 2%
+                          - link "Yes 2%" [ref=e3350] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3351]: "Yes"
+                            - generic [ref=e3352]: 2%
+                          - link "No 98%" [ref=e3353] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3354]: "No"
+                            - generic [ref=e3355]: 98%
+                      - generic [ref=e3358]:
+                        - link "180-199" [ref=e3360] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-180-199
+                          - paragraph [ref=e3361]: 180-199
+                        - generic [ref=e3362]:
+                          - paragraph [ref=e3363]: 4%
+                          - link "Yes 4%" [ref=e3364] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3365]: "Yes"
+                            - generic [ref=e3366]: 4%
+                          - link "No 96%" [ref=e3367] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3368]: "No"
+                            - generic [ref=e3369]: 96%
+                      - generic [ref=e3372]:
+                        - link "200-219" [ref=e3374] [cursor=pointer]:
+                          - /url: /event/elon-musk-of-tweets-february-6-february-13/elon-musk-of-tweets-february-6-february-13-200-219
+                          - paragraph [ref=e3375]: 200-219
+                        - generic [ref=e3376]:
+                          - paragraph [ref=e3377]: 8%
+                          - link "Yes 8%" [ref=e3378] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3379]: "Yes"
+                            - generic [ref=e3380]: 8%
+                          - link "No 92%" [ref=e3381] [cursor=pointer]:
+                            - /url: /event/elon-musk-of-tweets-february-6-february-13
+                            - generic [ref=e3382]: "No"
+                            - generic [ref=e3383]: 92%
+                    - generic [ref=e3385]:
+                      - generic [ref=e3386]:
+                        - paragraph [ref=e3387]: $3m Vol.
+                        - generic [ref=e3388]:
+                          - img [ref=e3389]
+                          - generic [ref=e3394]: Weekly
+                      - button "Add to favorites" [ref=e3397] [cursor=pointer]
+                - generic [ref=e3400]:
+                  - generic [ref=e3401]:
+                    - img "Bitcoin price on February 7? card icon" [ref=e3403]
+                    - link "Bitcoin price on February 7?" [ref=e3405] [cursor=pointer]:
+                      - /url: /event/bitcoin-price-on-february-7
+                      - heading "Bitcoin price on February 7?" [level=2] [ref=e3407]
+                  - generic [ref=e3408]:
+                    - generic [ref=e3413]:
+                      - generic [ref=e3416]:
+                        - link "<72,000" [ref=e3418] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-less-than-72000-on-february-7
+                          - paragraph [ref=e3419]: <72,000
+                        - generic [ref=e3420]:
+                          - paragraph [ref=e3421]: 97%
+                          - link "Yes 97%" [ref=e3422] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3423]: "Yes"
+                            - generic [ref=e3424]: 97%
+                          - link "No 3%" [ref=e3425] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3426]: "No"
+                            - generic [ref=e3427]: 3%
+                      - generic [ref=e3430]:
+                        - link "72,000-74,000" [ref=e3432] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-between-72000-74000-on-february-7
+                          - paragraph [ref=e3433]: 72,000-74,000
+                        - generic [ref=e3434]:
+                          - paragraph [ref=e3435]: 1%
+                          - link "Yes 1%" [ref=e3436] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3437]: "Yes"
+                            - generic [ref=e3438]: 1%
+                          - link "No 99%" [ref=e3439] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3440]: "No"
+                            - generic [ref=e3441]: 99%
+                      - generic [ref=e3444]:
+                        - link "74,000-76,000" [ref=e3446] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-between-74000-76000-on-february-7
+                          - paragraph [ref=e3447]: 74,000-76,000
+                        - generic [ref=e3448]:
+                          - paragraph [ref=e3449]: 1%
+                          - link "Yes 1%" [ref=e3450] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3451]: "Yes"
+                            - generic [ref=e3452]: 1%
+                          - link "No 99%" [ref=e3453] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3454]: "No"
+                            - generic [ref=e3455]: 99%
+                      - generic [ref=e3458]:
+                        - link "76,000-78,000" [ref=e3460] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-between-76000-78000-on-february-7
+                          - paragraph [ref=e3461]: 76,000-78,000
+                        - generic [ref=e3462]:
+                          - paragraph [ref=e3463]: <1%
+                          - link "Yes <1%" [ref=e3464] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3465]: "Yes"
+                            - generic [ref=e3466]: <1%
+                          - link "No 100%" [ref=e3467] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3468]: "No"
+                            - generic [ref=e3469]: 100%
+                      - generic [ref=e3472]:
+                        - link "78,000-80,000" [ref=e3474] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-between-78000-80000-on-february-7
+                          - paragraph [ref=e3475]: 78,000-80,000
+                        - generic [ref=e3476]:
+                          - paragraph [ref=e3477]: <1%
+                          - link "Yes <1%" [ref=e3478] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3479]: "Yes"
+                            - generic [ref=e3480]: <1%
+                          - link "No 100%" [ref=e3481] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3482]: "No"
+                            - generic [ref=e3483]: 100%
+                      - generic [ref=e3486]:
+                        - link "80,000-82,000" [ref=e3488] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-between-80000-82000-on-february-7
+                          - paragraph [ref=e3489]: 80,000-82,000
+                        - generic [ref=e3490]:
+                          - paragraph [ref=e3491]: <1%
+                          - link "Yes <1%" [ref=e3492] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3493]: "Yes"
+                            - generic [ref=e3494]: <1%
+                          - link "No 100%" [ref=e3495] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3496]: "No"
+                            - generic [ref=e3497]: 100%
+                      - generic [ref=e3500]:
+                        - link "82,000-84,000" [ref=e3502] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-between-82000-84000-on-february-7
+                          - paragraph [ref=e3503]: 82,000-84,000
+                        - generic [ref=e3504]:
+                          - paragraph [ref=e3505]: <1%
+                          - link "Yes <1%" [ref=e3506] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3507]: "Yes"
+                            - generic [ref=e3508]: <1%
+                          - link "No 100%" [ref=e3509] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3510]: "No"
+                            - generic [ref=e3511]: 100%
+                      - generic [ref=e3514]:
+                        - link "84,000-86,000" [ref=e3516] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-between-84000-86000-on-february-7
+                          - paragraph [ref=e3517]: 84,000-86,000
+                        - generic [ref=e3518]:
+                          - paragraph [ref=e3519]: <1%
+                          - link "Yes <1%" [ref=e3520] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3521]: "Yes"
+                            - generic [ref=e3522]: <1%
+                          - link "No 100%" [ref=e3523] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3524]: "No"
+                            - generic [ref=e3525]: 100%
+                      - generic [ref=e3528]:
+                        - link "86,000-88,000" [ref=e3530] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-between-86000-88000-on-february-7
+                          - paragraph [ref=e3531]: 86,000-88,000
+                        - generic [ref=e3532]:
+                          - paragraph [ref=e3533]: <1%
+                          - link "Yes <1%" [ref=e3534] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3535]: "Yes"
+                            - generic [ref=e3536]: <1%
+                          - link "No 100%" [ref=e3537] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3538]: "No"
+                            - generic [ref=e3539]: 100%
+                      - generic [ref=e3542]:
+                        - link "88,000-90,000" [ref=e3544] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-between-88000-90000-on-february-7
+                          - paragraph [ref=e3545]: 88,000-90,000
+                        - generic [ref=e3546]:
+                          - paragraph [ref=e3547]: <1%
+                          - link "Yes <1%" [ref=e3548] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3549]: "Yes"
+                            - generic [ref=e3550]: <1%
+                          - link "No 100%" [ref=e3551] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3552]: "No"
+                            - generic [ref=e3553]: 100%
+                      - generic [ref=e3556]:
+                        - link ">90,000" [ref=e3558] [cursor=pointer]:
+                          - /url: /event/bitcoin-price-on-february-7/will-the-price-of-bitcoin-be-greater-than-90000-on-february-7
+                          - paragraph [ref=e3559]: ">90,000"
+                        - generic [ref=e3560]:
+                          - paragraph [ref=e3561]: <1%
+                          - link "Yes <1%" [ref=e3562] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3563]: "Yes"
+                            - generic [ref=e3564]: <1%
+                          - link "No 100%" [ref=e3565] [cursor=pointer]:
+                            - /url: /event/bitcoin-price-on-february-7
+                            - generic [ref=e3566]: "No"
+                            - generic [ref=e3567]: 100%
+                    - generic [ref=e3569]:
+                      - generic [ref=e3570]:
+                        - paragraph [ref=e3571]: $1m Vol.
+                        - generic [ref=e3572]:
+                          - img [ref=e3573]
+                          - generic [ref=e3578]: Weekly
+                      - button "Add to favorites" [ref=e3581] [cursor=pointer]
+                - generic [ref=e3584]:
+                  - generic [ref=e3585]:
+                    - img "Where will the US & Iran meet in person? card icon" [ref=e3587]
+                    - generic [ref=e3588]:
+                      - link "Will the next official US-Iran meeting be in Oman?" [ref=e3589] [cursor=pointer]:
+                        - /url: /event/where-will-the-us-iran-meet
+                        - heading "Will the next official US-Iran meeting be in Oman?" [level=2] [ref=e3591]
+                      - generic [ref=e3593]:
+                        - img [ref=e3595]
+                        - generic [ref=e3598]:
+                          - paragraph [ref=e3599]: 100%
+                          - paragraph [ref=e3600]: chance
+                  - generic [ref=e3601]:
+                    - generic [ref=e3602]:
+                      - link "Yes" [ref=e3603] [cursor=pointer]:
+                        - /url: /event/where-will-the-us-iran-meet
+                        - paragraph [ref=e3604]: "Yes"
+                      - link "No" [ref=e3605] [cursor=pointer]:
+                        - /url: /event/where-will-the-us-iran-meet
+                        - paragraph [ref=e3606]: "No"
+                    - generic [ref=e3608]:
+                      - paragraph [ref=e3610]: $1m Vol.
+                      - button "Add to favorites" [ref=e3613] [cursor=pointer]
+                - generic [ref=e3616]:
+                  - generic [ref=e3617]:
+                    - img "Bitcoin Up or Down - February 7, 3AM ET card icon" [ref=e3619]
+                    - generic [ref=e3620]:
+                      - link "Bitcoin Up or Down - February 7, 3AM ET" [ref=e3621] [cursor=pointer]:
+                        - /url: /event/bitcoin-up-or-down-february-7-3am-et
+                        - heading "Bitcoin Up or Down - February 7, 3AM ET" [level=2] [ref=e3623]
+                      - generic [ref=e3625]:
+                        - img [ref=e3627]
+                        - generic [ref=e3630]:
+                          - paragraph [ref=e3631]: 100%
+                          - paragraph [ref=e3632]: Up
+                  - generic [ref=e3633]:
+                    - generic [ref=e3634]:
+                      - link "Up" [ref=e3635] [cursor=pointer]:
+                        - /url: /event/bitcoin-up-or-down-february-7-3am-et
+                        - paragraph [ref=e3636]: Up
+                      - link "Down" [ref=e3637] [cursor=pointer]:
+                        - /url: /event/bitcoin-up-or-down-february-7-3am-et
+                        - paragraph [ref=e3638]: Down
+                    - generic [ref=e3640]:
+                      - generic [ref=e3641]:
+                        - paragraph [ref=e3642]: $980k Vol.
+                        - generic [ref=e3643]:
+                          - img [ref=e3644]
+                          - generic [ref=e3649]: Hourly
+                      - button "Add to favorites" [ref=e3652] [cursor=pointer]
+                - generic [ref=e3655]:
+                  - generic [ref=e3656]:
+                    - img "MegaETH market cap (FDV) one day after launch? card icon" [ref=e3658]
+                    - link "MegaETH market cap (FDV) one day after launch?" [ref=e3660] [cursor=pointer]:
+                      - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                      - heading "MegaETH market cap (FDV) one day after launch?" [level=2] [ref=e3662]
+                  - generic [ref=e3663]:
+                    - generic [ref=e3668]:
+                      - generic [ref=e3671]:
+                        - link ">$1B" [ref=e3673] [cursor=pointer]:
+                          - /url: /event/megaeth-market-cap-fdv-one-day-after-launch/megaeth-market-cap-fdv-1b-one-day-after-launch-gj9e
+                          - paragraph [ref=e3674]: ">$1B"
+                        - generic [ref=e3675]:
+                          - paragraph [ref=e3676]: 61%
+                          - link "Yes 61%" [ref=e3677] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3678]: "Yes"
+                            - generic [ref=e3679]: 61%
+                          - link "No 39%" [ref=e3680] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3681]: "No"
+                            - generic [ref=e3682]: 39%
+                      - generic [ref=e3685]:
+                        - link ">$1.5B" [ref=e3687] [cursor=pointer]:
+                          - /url: /event/megaeth-market-cap-fdv-one-day-after-launch/megaeth-market-cap-fdv-1pt5b-one-day-after-launch
+                          - paragraph [ref=e3688]: ">$1.5B"
+                        - generic [ref=e3689]:
+                          - paragraph [ref=e3690]: 29%
+                          - link "Yes 29%" [ref=e3691] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3692]: "Yes"
+                            - generic [ref=e3693]: 29%
+                          - link "No 71%" [ref=e3694] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3695]: "No"
+                            - generic [ref=e3696]: 71%
+                      - generic [ref=e3699]:
+                        - link ">$2B" [ref=e3701] [cursor=pointer]:
+                          - /url: /event/megaeth-market-cap-fdv-one-day-after-launch/megaeth-market-cap-fdv-2b-one-day-after-launch-738-867
+                          - paragraph [ref=e3702]: ">$2B"
+                        - generic [ref=e3703]:
+                          - paragraph [ref=e3704]: 19%
+                          - link "Yes 19%" [ref=e3705] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3706]: "Yes"
+                            - generic [ref=e3707]: 19%
+                          - link "No 81%" [ref=e3708] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3709]: "No"
+                            - generic [ref=e3710]: 81%
+                      - generic [ref=e3713]:
+                        - link ">$3B" [ref=e3715] [cursor=pointer]:
+                          - /url: /event/megaeth-market-cap-fdv-one-day-after-launch/megaeth-market-cap-fdv-2b-one-day-after-launch-392-656-565
+                          - paragraph [ref=e3716]: ">$3B"
+                        - generic [ref=e3717]:
+                          - paragraph [ref=e3718]: 5%
+                          - link "Yes 5%" [ref=e3719] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3720]: "Yes"
+                            - generic [ref=e3721]: 5%
+                          - link "No 95%" [ref=e3722] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3723]: "No"
+                            - generic [ref=e3724]: 95%
+                      - generic [ref=e3727]:
+                        - link ">$4B" [ref=e3729] [cursor=pointer]:
+                          - /url: /event/megaeth-market-cap-fdv-one-day-after-launch/megaeth-market-cap-fdv-4b-one-day-after-launch-484-688-448
+                          - paragraph [ref=e3730]: ">$4B"
+                        - generic [ref=e3731]:
+                          - paragraph [ref=e3732]: 3%
+                          - link "Yes 3%" [ref=e3733] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3734]: "Yes"
+                            - generic [ref=e3735]: 3%
+                          - link "No 97%" [ref=e3736] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3737]: "No"
+                            - generic [ref=e3738]: 97%
+                      - generic [ref=e3741]:
+                        - link ">$6B" [ref=e3743] [cursor=pointer]:
+                          - /url: /event/megaeth-market-cap-fdv-one-day-after-launch/megaeth-market-cap-fdv-6b-one-day-after-launch-365-559-334-815
+                          - paragraph [ref=e3744]: ">$6B"
+                        - generic [ref=e3745]:
+                          - paragraph [ref=e3746]: 1%
+                          - link "Yes 1%" [ref=e3747] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3748]: "Yes"
+                            - generic [ref=e3749]: 1%
+                          - link "No 99%" [ref=e3750] [cursor=pointer]:
+                            - /url: /event/megaeth-market-cap-fdv-one-day-after-launch
+                            - generic [ref=e3751]: "No"
+                            - generic [ref=e3752]: 99%
+                    - generic [ref=e3754]:
+                      - paragraph [ref=e3756]: $11m Vol.
+                      - button "Add to favorites" [ref=e3759] [cursor=pointer]
+                - generic [ref=e3762]:
+                  - generic [ref=e3763]:
+                    - img "NBA MVP card icon" [ref=e3765]
+                    - link "NBA MVP" [ref=e3767] [cursor=pointer]:
+                      - /url: /event/nba-mvp-694
+                      - heading "NBA MVP" [level=2] [ref=e3769]
+                  - generic [ref=e3770]:
+                    - generic [ref=e3775]:
+                      - generic [ref=e3778]:
+                        - link "Shai Gilgeous-Alexander" [ref=e3780] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-shai-gilgeous-alexander-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3781]: Shai Gilgeous-Alexander
+                        - generic [ref=e3782]:
+                          - paragraph [ref=e3783]: 65%
+                          - link "Yes 65%" [ref=e3784] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3785]: "Yes"
+                            - generic [ref=e3786]: 65%
+                          - link "No 35%" [ref=e3787] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3788]: "No"
+                            - generic [ref=e3789]: 35%
+                      - generic [ref=e3792]:
+                        - link "Nikola Jokic" [ref=e3794] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-nikola-jokic-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3795]: Nikola Jokic
+                        - generic [ref=e3796]:
+                          - paragraph [ref=e3797]: 19%
+                          - link "Yes 19%" [ref=e3798] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3799]: "Yes"
+                            - generic [ref=e3800]: 19%
+                          - link "No 81%" [ref=e3801] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3802]: "No"
+                            - generic [ref=e3803]: 81%
+                      - generic [ref=e3806]:
+                        - link "Luka Doncic" [ref=e3808] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-luka-doncic-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3809]: Luka Doncic
+                        - generic [ref=e3810]:
+                          - paragraph [ref=e3811]: 7%
+                          - link "Yes 7%" [ref=e3812] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3813]: "Yes"
+                            - generic [ref=e3814]: 7%
+                          - link "No 93%" [ref=e3815] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3816]: "No"
+                            - generic [ref=e3817]: 93%
+                      - generic [ref=e3820]:
+                        - link "Cade Cunningham" [ref=e3822] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-cade-cunningham-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3823]: Cade Cunningham
+                        - generic [ref=e3824]:
+                          - paragraph [ref=e3825]: 4%
+                          - link "Yes 4%" [ref=e3826] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3827]: "Yes"
+                            - generic [ref=e3828]: 4%
+                          - link "No 96%" [ref=e3829] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3830]: "No"
+                            - generic [ref=e3831]: 96%
+                      - generic [ref=e3834]:
+                        - link "Jaylen Brown" [ref=e3836] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-jaylen-brown-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3837]: Jaylen Brown
+                        - generic [ref=e3838]:
+                          - paragraph [ref=e3839]: 1%
+                          - link "Yes 1%" [ref=e3840] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3841]: "Yes"
+                            - generic [ref=e3842]: 1%
+                          - link "No 99%" [ref=e3843] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3844]: "No"
+                            - generic [ref=e3845]: 99%
+                      - generic [ref=e3848]:
+                        - link "Victor Wembanyama" [ref=e3850] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-victor-wembanyama-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3851]: Victor Wembanyama
+                        - generic [ref=e3852]:
+                          - paragraph [ref=e3853]: 1%
+                          - link "Yes 1%" [ref=e3854] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3855]: "Yes"
+                            - generic [ref=e3856]: 1%
+                          - link "No 99%" [ref=e3857] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3858]: "No"
+                            - generic [ref=e3859]: 99%
+                      - generic [ref=e3862]:
+                        - link "Anthony Edwards" [ref=e3864] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-anthony-edwards-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3865]: Anthony Edwards
+                        - generic [ref=e3866]:
+                          - paragraph [ref=e3867]: 1%
+                          - link "Yes 1%" [ref=e3868] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3869]: "Yes"
+                            - generic [ref=e3870]: 1%
+                          - link "No 99%" [ref=e3871] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3872]: "No"
+                            - generic [ref=e3873]: 99%
+                      - generic [ref=e3876]:
+                        - link "Tyrese Maxey" [ref=e3878] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-tyrese-maxey-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3879]: Tyrese Maxey
+                        - generic [ref=e3880]:
+                          - paragraph [ref=e3881]: <1%
+                          - link "Yes <1%" [ref=e3882] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3883]: "Yes"
+                            - generic [ref=e3884]: <1%
+                          - link "No 100%" [ref=e3885] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3886]: "No"
+                            - generic [ref=e3887]: 100%
+                      - generic [ref=e3890]:
+                        - link "Kawhi Leonard" [ref=e3892] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-kawhi-leonard-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3893]: Kawhi Leonard
+                        - generic [ref=e3894]:
+                          - paragraph [ref=e3895]: <1%
+                          - link "Yes <1%" [ref=e3896] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3897]: "Yes"
+                            - generic [ref=e3898]: <1%
+                          - link "No 100%" [ref=e3899] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3900]: "No"
+                            - generic [ref=e3901]: 100%
+                      - generic [ref=e3904]:
+                        - link "Jalen Brunson" [ref=e3906] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-jalen-brunson-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3907]: Jalen Brunson
+                        - generic [ref=e3908]:
+                          - paragraph [ref=e3909]: <1%
+                          - link "Yes <1%" [ref=e3910] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3911]: "Yes"
+                            - generic [ref=e3912]: <1%
+                          - link "No 100%" [ref=e3913] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3914]: "No"
+                            - generic [ref=e3915]: 100%
+                      - generic [ref=e3918]:
+                        - link "Donovan Mitchell" [ref=e3920] [cursor=pointer]:
+                          - /url: /event/nba-mvp-694/will-donovan-mitchell-win-the-20252026-nba-mvp
+                          - paragraph [ref=e3921]: Donovan Mitchell
+                        - generic [ref=e3922]:
+                          - paragraph [ref=e3923]: <1%
+                          - link "Yes <1%" [ref=e3924] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3925]: "Yes"
+                            - generic [ref=e3926]: <1%
+                          - link "No 100%" [ref=e3927] [cursor=pointer]:
+                            - /url: /event/nba-mvp-694
+                            - generic [ref=e3928]: "No"
+                            - generic [ref=e3929]: 100%
+                    - generic [ref=e3931]:
+                      - paragraph [ref=e3933]: $23m Vol.
+                      - generic [ref=e3935]:
+                        - button "View trading rewards" [ref=e3936] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e3937] [cursor=pointer]
+                - generic [ref=e3940]:
+                  - generic [ref=e3941]:
+                    - img "Bitcoin above ___ on February 8? card icon" [ref=e3943]
+                    - link "Bitcoin above ___ on February 8?" [ref=e3945] [cursor=pointer]:
+                      - /url: /event/bitcoin-above-on-february-8
+                      - heading "Bitcoin above ___ on February 8?" [level=2] [ref=e3947]
+                  - generic [ref=e3948]:
+                    - generic [ref=e3953]:
+                      - generic [ref=e3956]:
+                        - link "68,000" [ref=e3958] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-68k-on-february-8
+                          - paragraph [ref=e3959]: 68,000
+                        - generic [ref=e3960]:
+                          - paragraph [ref=e3961]: 52%
+                          - link "Yes 52%" [ref=e3962] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e3963]: "Yes"
+                            - generic [ref=e3964]: 52%
+                          - link "No 48%" [ref=e3965] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e3966]: "No"
+                            - generic [ref=e3967]: 48%
+                      - generic [ref=e3970]:
+                        - link "70,000" [ref=e3972] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-70k-on-february-8
+                          - paragraph [ref=e3973]: 70,000
+                        - generic [ref=e3974]:
+                          - paragraph [ref=e3975]: 20%
+                          - link "Yes 20%" [ref=e3976] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e3977]: "Yes"
+                            - generic [ref=e3978]: 20%
+                          - link "No 80%" [ref=e3979] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e3980]: "No"
+                            - generic [ref=e3981]: 80%
+                      - generic [ref=e3984]:
+                        - link "72,000" [ref=e3986] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-72k-on-february-8
+                          - paragraph [ref=e3987]: 72,000
+                        - generic [ref=e3988]:
+                          - paragraph [ref=e3989]: 6%
+                          - link "Yes 6%" [ref=e3990] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e3991]: "Yes"
+                            - generic [ref=e3992]: 6%
+                          - link "No 94%" [ref=e3993] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e3994]: "No"
+                            - generic [ref=e3995]: 94%
+                      - generic [ref=e3998]:
+                        - link "74,000" [ref=e4000] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-74k-on-february-8
+                          - paragraph [ref=e4001]: 74,000
+                        - generic [ref=e4002]:
+                          - paragraph [ref=e4003]: 3%
+                          - link "Yes 3%" [ref=e4004] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4005]: "Yes"
+                            - generic [ref=e4006]: 3%
+                          - link "No 97%" [ref=e4007] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4008]: "No"
+                            - generic [ref=e4009]: 97%
+                      - generic [ref=e4012]:
+                        - link "76,000" [ref=e4014] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-76k-on-february-8
+                          - paragraph [ref=e4015]: 76,000
+                        - generic [ref=e4016]:
+                          - paragraph [ref=e4017]: 2%
+                          - link "Yes 2%" [ref=e4018] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4019]: "Yes"
+                            - generic [ref=e4020]: 2%
+                          - link "No 98%" [ref=e4021] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4022]: "No"
+                            - generic [ref=e4023]: 98%
+                      - generic [ref=e4026]:
+                        - link "78,000" [ref=e4028] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-78k-on-february-8
+                          - paragraph [ref=e4029]: 78,000
+                        - generic [ref=e4030]:
+                          - paragraph [ref=e4031]: 1%
+                          - link "Yes 1%" [ref=e4032] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4033]: "Yes"
+                            - generic [ref=e4034]: 1%
+                          - link "No 99%" [ref=e4035] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4036]: "No"
+                            - generic [ref=e4037]: 99%
+                      - generic [ref=e4040]:
+                        - link "80,000" [ref=e4042] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-80k-on-february-8
+                          - paragraph [ref=e4043]: 80,000
+                        - generic [ref=e4044]:
+                          - paragraph [ref=e4045]: 1%
+                          - link "Yes 1%" [ref=e4046] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4047]: "Yes"
+                            - generic [ref=e4048]: 1%
+                          - link "No 99%" [ref=e4049] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4050]: "No"
+                            - generic [ref=e4051]: 99%
+                      - generic [ref=e4054]:
+                        - link "82,000" [ref=e4056] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-82k-on-february-8
+                          - paragraph [ref=e4057]: 82,000
+                        - generic [ref=e4058]:
+                          - paragraph [ref=e4059]: <1%
+                          - link "Yes <1%" [ref=e4060] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4061]: "Yes"
+                            - generic [ref=e4062]: <1%
+                          - link "No 100%" [ref=e4063] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4064]: "No"
+                            - generic [ref=e4065]: 100%
+                      - generic [ref=e4068]:
+                        - link "84,000" [ref=e4070] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-84k-on-february-8
+                          - paragraph [ref=e4071]: 84,000
+                        - generic [ref=e4072]:
+                          - paragraph [ref=e4073]: <1%
+                          - link "Yes <1%" [ref=e4074] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4075]: "Yes"
+                            - generic [ref=e4076]: <1%
+                          - link "No 100%" [ref=e4077] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4078]: "No"
+                            - generic [ref=e4079]: 100%
+                      - generic [ref=e4082]:
+                        - link "86,000" [ref=e4084] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-86k-on-february-8
+                          - paragraph [ref=e4085]: 86,000
+                        - generic [ref=e4086]:
+                          - paragraph [ref=e4087]: <1%
+                          - link "Yes <1%" [ref=e4088] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4089]: "Yes"
+                            - generic [ref=e4090]: <1%
+                          - link "No 100%" [ref=e4091] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4092]: "No"
+                            - generic [ref=e4093]: 100%
+                      - generic [ref=e4096]:
+                        - link "88,000" [ref=e4098] [cursor=pointer]:
+                          - /url: /event/bitcoin-above-on-february-8/bitcoin-above-88k-on-february-8
+                          - paragraph [ref=e4099]: 88,000
+                        - generic [ref=e4100]:
+                          - paragraph [ref=e4101]: <1%
+                          - link "Yes <1%" [ref=e4102] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4103]: "Yes"
+                            - generic [ref=e4104]: <1%
+                          - link "No 100%" [ref=e4105] [cursor=pointer]:
+                            - /url: /event/bitcoin-above-on-february-8
+                            - generic [ref=e4106]: "No"
+                            - generic [ref=e4107]: 100%
+                    - generic [ref=e4109]:
+                      - generic [ref=e4110]:
+                        - paragraph [ref=e4111]: $1m Vol.
+                        - generic [ref=e4112]:
+                          - img [ref=e4113]
+                          - generic [ref=e4118]: Weekly
+                      - button "Add to favorites" [ref=e4121] [cursor=pointer]
+                - generic [ref=e4124]:
+                  - generic [ref=e4125]:
+                    - img "Venezuela leader end of 2026? card icon" [ref=e4127]
+                    - link "Venezuela leader end of 2026?" [ref=e4129] [cursor=pointer]:
+                      - /url: /event/venezuela-leader-end-of-2026
+                      - heading "Venezuela leader end of 2026?" [level=2] [ref=e4131]
+                  - generic [ref=e4132]:
+                    - generic [ref=e4137]:
+                      - generic [ref=e4140]:
+                        - link "Delcy Rodríguez" [ref=e4142] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-delcy-rodrguez-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4143]: Delcy Rodríguez
+                        - generic [ref=e4144]:
+                          - paragraph [ref=e4145]: 69%
+                          - link "Yes 69%" [ref=e4146] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4147]: "Yes"
+                            - generic [ref=e4148]: 69%
+                          - link "No 31%" [ref=e4149] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4150]: "No"
+                            - generic [ref=e4151]: 31%
+                      - generic [ref=e4154]:
+                        - link "María Corina Machado" [ref=e4156] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-mara-corina-machado-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4157]: María Corina Machado
+                        - generic [ref=e4158]:
+                          - paragraph [ref=e4159]: 13%
+                          - link "Yes 13%" [ref=e4160] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4161]: "Yes"
+                            - generic [ref=e4162]: 13%
+                          - link "No 87%" [ref=e4163] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4164]: "No"
+                            - generic [ref=e4165]: 87%
+                      - generic [ref=e4168]:
+                        - link "Nicolás Maduro" [ref=e4170] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-nicols-maduro-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4171]: Nicolás Maduro
+                        - generic [ref=e4172]:
+                          - paragraph [ref=e4173]: 10%
+                          - link "Yes 10%" [ref=e4174] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4175]: "Yes"
+                            - generic [ref=e4176]: 10%
+                          - link "No 90%" [ref=e4177] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4178]: "No"
+                            - generic [ref=e4179]: 90%
+                      - generic [ref=e4182]:
+                        - link "Edmundo González" [ref=e4184] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-edmundo-gonzlez-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4185]: Edmundo González
+                        - generic [ref=e4186]:
+                          - paragraph [ref=e4187]: 6%
+                          - link "Yes 6%" [ref=e4188] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4189]: "Yes"
+                            - generic [ref=e4190]: 6%
+                          - link "No 94%" [ref=e4191] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4192]: "No"
+                            - generic [ref=e4193]: 94%
+                      - generic [ref=e4196]:
+                        - link "Diosdado Cabello Rondón" [ref=e4198] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-diosdado-cabello-rondn-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4199]: Diosdado Cabello Rondón
+                        - generic [ref=e4200]:
+                          - paragraph [ref=e4201]: 2%
+                          - link "Yes 2%" [ref=e4202] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4203]: "Yes"
+                            - generic [ref=e4204]: 2%
+                          - link "No 98%" [ref=e4205] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4206]: "No"
+                            - generic [ref=e4207]: 98%
+                      - generic [ref=e4210]:
+                        - link "Vladimir Padrino López" [ref=e4212] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-vladimir-padrino-lpez-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4213]: Vladimir Padrino López
+                        - generic [ref=e4214]:
+                          - paragraph [ref=e4215]: 2%
+                          - link "Yes 2%" [ref=e4216] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4217]: "Yes"
+                            - generic [ref=e4218]: 2%
+                          - link "No 98%" [ref=e4219] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4220]: "No"
+                            - generic [ref=e4221]: 98%
+                      - generic [ref=e4224]:
+                        - link "Donald Trump" [ref=e4226] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-donald-trump-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4227]: Donald Trump
+                        - generic [ref=e4228]:
+                          - paragraph [ref=e4229]: <1%
+                          - link "Yes <1%" [ref=e4230] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4231]: "Yes"
+                            - generic [ref=e4232]: <1%
+                          - link "No 100%" [ref=e4233] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4234]: "No"
+                            - generic [ref=e4235]: 100%
+                      - generic [ref=e4238]:
+                        - link "Jorge Rodríguez" [ref=e4240] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-jorge-rodrguez-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4241]: Jorge Rodríguez
+                        - generic [ref=e4242]:
+                          - paragraph [ref=e4243]: <1%
+                          - link "Yes <1%" [ref=e4244] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4245]: "Yes"
+                            - generic [ref=e4246]: <1%
+                          - link "No 100%" [ref=e4247] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4248]: "No"
+                            - generic [ref=e4249]: 100%
+                      - generic [ref=e4252]:
+                        - link "Marco Rubio" [ref=e4254] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-marco-rubio-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4255]: Marco Rubio
+                        - generic [ref=e4256]:
+                          - paragraph [ref=e4257]: <1%
+                          - link "Yes <1%" [ref=e4258] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4259]: "Yes"
+                            - generic [ref=e4260]: <1%
+                          - link "No 100%" [ref=e4261] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4262]: "No"
+                            - generic [ref=e4263]: 100%
+                      - generic [ref=e4266]:
+                        - link "No Head of State" [ref=e4268] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-there-be-no-head-of-state-of-venezuela-end-of-2026
+                          - paragraph [ref=e4269]: No Head of State
+                        - generic [ref=e4270]:
+                          - paragraph [ref=e4271]: <1%
+                          - link "Yes <1%" [ref=e4272] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4273]: "Yes"
+                            - generic [ref=e4274]: <1%
+                          - link "No 100%" [ref=e4275] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4276]: "No"
+                            - generic [ref=e4277]: 100%
+                      - generic [ref=e4280]:
+                        - link "Dinorah Figuera" [ref=e4282] [cursor=pointer]:
+                          - /url: /event/venezuela-leader-end-of-2026/will-dinorah-figuera-be-the-leader-of-venezuela-end-of-2026
+                          - paragraph [ref=e4283]: Dinorah Figuera
+                        - generic [ref=e4284]:
+                          - paragraph [ref=e4285]: <1%
+                          - link "Yes <1%" [ref=e4286] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4287]: "Yes"
+                            - generic [ref=e4288]: <1%
+                          - link "No 100%" [ref=e4289] [cursor=pointer]:
+                            - /url: /event/venezuela-leader-end-of-2026
+                            - generic [ref=e4290]: "No"
+                            - generic [ref=e4291]: 100%
+                    - generic [ref=e4293]:
+                      - paragraph [ref=e4295]: $17m Vol.
+                      - generic [ref=e4297]:
+                        - button "View trading rewards" [ref=e4298] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e4299] [cursor=pointer]
+                - generic [ref=e4302]:
+                  - generic [ref=e4303]:
+                    - img "Russia x Ukraine ceasefire by March 31, 2026? card icon" [ref=e4305]
+                    - generic [ref=e4306]:
+                      - link "Russia x Ukraine ceasefire by March 31, 2026?" [ref=e4307] [cursor=pointer]:
+                        - /url: /event/russia-x-ukraine-ceasefire-by-march-31-2026
+                        - heading "Russia x Ukraine ceasefire by March 31, 2026?" [level=2] [ref=e4309]
+                      - generic [ref=e4311]:
+                        - img [ref=e4313]
+                        - generic [ref=e4316]:
+                          - paragraph [ref=e4317]: 10%
+                          - paragraph [ref=e4318]: chance
+                  - generic [ref=e4319]:
+                    - generic [ref=e4320]:
+                      - link "Yes" [ref=e4321] [cursor=pointer]:
+                        - /url: /event/russia-x-ukraine-ceasefire-by-march-31-2026
+                        - paragraph [ref=e4322]: "Yes"
+                      - link "No" [ref=e4323] [cursor=pointer]:
+                        - /url: /event/russia-x-ukraine-ceasefire-by-march-31-2026
+                        - paragraph [ref=e4324]: "No"
+                    - generic [ref=e4326]:
+                      - generic [ref=e4327]:
+                        - paragraph [ref=e4328]: $15m Vol.
+                        - img [ref=e4330]
+                      - generic [ref=e4336]:
+                        - button "View trading rewards" [ref=e4337] [cursor=pointer]:
+                          - img
+                        - button "Add to favorites" [ref=e4338] [cursor=pointer]
+              - button "Show more markets" [ref=e4341] [cursor=pointer]
+      - contentinfo [ref=e4342]:
+        - generic [ref=e4344]:
+          - generic [ref=e4345]:
+            - link "Polymarket" [ref=e4346] [cursor=pointer]:
+              - /url: /
+              - img "Polymarket" [ref=e4347]
+            - paragraph [ref=e4348]: The World's Largest Prediction Market™
+          - generic [ref=e4349]:
+            - generic [ref=e4350]:
+              - heading "Markets by category" [level=3] [ref=e4351]
+              - generic [ref=e4353]:
+                - link "Climate & Science Predictions" [ref=e4354] [cursor=pointer]:
+                  - /url: /climate-science
+                  - generic [ref=e4355]: Climate & Science
+                  - generic [ref=e4356]: Predictions
+                - link "Crypto Price predictions" [ref=e4357] [cursor=pointer]:
+                  - /url: /crypto
+                  - generic [ref=e4358]: Crypto
+                  - generic [ref=e4359]: Price predictions
+                - link "Culture Trends & predictions" [ref=e4360] [cursor=pointer]:
+                  - /url: /culture
+                  - generic [ref=e4361]: Culture
+                  - generic [ref=e4362]: Trends & predictions
+                - link "Earnings Predictions" [ref=e4363] [cursor=pointer]:
+                  - /url: /earnings
+                  - generic [ref=e4364]: Earnings
+                  - generic [ref=e4365]: Predictions
+                - link "Economic Predictions & forecasts" [ref=e4366] [cursor=pointer]:
+                  - /url: /economy
+                  - generic [ref=e4367]: Economic
+                  - generic [ref=e4368]: Predictions & forecasts
+                - link "Election Forecasts & predictions" [ref=e4369] [cursor=pointer]:
+                  - /url: /elections
+                  - generic [ref=e4370]: Election
+                  - generic [ref=e4371]: Forecasts & predictions
+                - link "Financial Forecasts & predictions" [ref=e4372] [cursor=pointer]:
+                  - /url: /finance
+                  - generic [ref=e4373]: Financial
+                  - generic [ref=e4374]: Forecasts & predictions
+                - link "Geopolitical Predictions" [ref=e4375] [cursor=pointer]:
+                  - /url: /geopolitics
+                  - generic [ref=e4376]: Geopolitical
+                  - generic [ref=e4377]: Predictions
+                - link "Mention Markets" [ref=e4378] [cursor=pointer]:
+                  - /url: /mentions
+                  - generic [ref=e4379]: Mention
+                  - generic [ref=e4380]: Markets
+                - link "Political Odds & predictions" [ref=e4381] [cursor=pointer]:
+                  - /url: /politics
+                  - generic [ref=e4382]: Political
+                  - generic [ref=e4383]: Odds & predictions
+                - link "Sports Odds & predictions" [ref=e4384] [cursor=pointer]:
+                  - /url: /sports
+                  - generic [ref=e4385]: Sports
+                  - generic [ref=e4386]: Odds & predictions
+                - link "Tech Trends & predictions" [ref=e4387] [cursor=pointer]:
+                  - /url: /tech
+                  - generic [ref=e4388]: Tech
+                  - generic [ref=e4389]: Trends & predictions
+                - link "World Trends & predictions" [ref=e4390] [cursor=pointer]:
+                  - /url: /world
+                  - generic [ref=e4391]: World
+                  - generic [ref=e4392]: Trends & predictions
+            - generic [ref=e4393]:
+              - heading "Support & Social" [level=3] [ref=e4394]
+              - generic [ref=e4396]:
+                - link "Contact us" [ref=e4397] [cursor=pointer]:
+                  - /url: mailto:hello@polymarket.com
+                - link "Learn" [ref=e4398] [cursor=pointer]:
+                  - /url: https://learn.polymarket.com/
+                - link "𝕏 (Twitter)" [ref=e4399] [cursor=pointer]:
+                  - /url: https://x.com/Polymarket
+                - link "Instagram" [ref=e4400] [cursor=pointer]:
+                  - /url: https://www.instagram.com/polymarket
+                - link "Discord" [ref=e4401] [cursor=pointer]:
+                  - /url: https://discord.gg/Polymarket
+                - link "TikTok" [ref=e4402] [cursor=pointer]:
+                  - /url: https://www.tiktok.com/@polymarket
+                - link "News" [ref=e4403] [cursor=pointer]:
+                  - /url: https://news.polymarket.com
+            - generic [ref=e4404]:
+              - heading "Polymarket" [level=3] [ref=e4405]
+              - generic [ref=e4407]:
+                - link "Accuracy" [ref=e4408] [cursor=pointer]:
+                  - /url: /accuracy
+                - link "Activity" [ref=e4409] [cursor=pointer]:
+                  - /url: /activity
+                - link "Leaderboard" [ref=e4410] [cursor=pointer]:
+                  - /url: /leaderboard
+                - link "Rewards" [ref=e4411] [cursor=pointer]:
+                  - /url: /rewards
+                - link "Press" [ref=e4412] [cursor=pointer]:
+                  - /url: mailto:press@polymarket.com
+                - link "Careers" [ref=e4413] [cursor=pointer]:
+                  - /url: /careers
+                - link "APIs" [ref=e4414] [cursor=pointer]:
+                  - /url: https://docs.polymarket.com/quickstart/overview
+          - generic [ref=e4417]:
+            - generic [ref=e4418]:
+              - generic [ref=e4419]:
+                - generic [ref=e4420]: Adventure One QSS Inc. © 2026
+                - generic [ref=e4421]: /
+                - link "Privacy" [ref=e4422] [cursor=pointer]:
+                  - /url: /privacy
+                - generic [ref=e4423]: /
+                - link "Terms of Use" [ref=e4424] [cursor=pointer]:
+                  - /url: https://polymarket.com/tos
+                - generic [ref=e4425]: /
+                - link "Help Center" [ref=e4426] [cursor=pointer]:
+                  - /url: https://help.polymarket.com
+                - generic [ref=e4427]: /
+                - link "Docs" [ref=e4428] [cursor=pointer]:
+                  - /url: https://docs.polymarket.com
+              - generic [ref=e4429]:
+                - button "English" [ref=e4430] [cursor=pointer]:
+                  - img [ref=e4431]
+                  - generic [ref=e4434]: English
+                  - img [ref=e4435]
+                - generic [ref=e4437]:
+                  - link "Email" [ref=e4438] [cursor=pointer]:
+                    - /url: mailto:hello@polymarket.com
+                    - img [ref=e4439]
+                  - link "X (Twitter)" [ref=e4443] [cursor=pointer]:
+                    - /url: https://x.com/Polymarket
+                    - img [ref=e4444]
+                  - link "Instagram" [ref=e4446] [cursor=pointer]:
+                    - /url: https://www.instagram.com/polymarket
+                    - img [ref=e4447]
+                  - link "Discord" [ref=e4452] [cursor=pointer]:
+                    - /url: https://discord.gg/Polymarket
+                    - img [ref=e4453]
+                  - link "TikTok" [ref=e4455] [cursor=pointer]:
+                    - /url: https://www.tiktok.com/@polymarket
+                    - img [ref=e4456]
+            - paragraph [ref=e4459]:
+              - text: Polymarket operates globally through separate legal entities.
+              - link "Polymarket US" [ref=e4460] [cursor=pointer]:
+                - /url: https://polymarket.us/
+              - text: is operated by QCX LLC d/b/a Polymarket US, a CFTC-regulated Designated Contract Market. This international platform is not regulated by the CFTC and operates independently. Trading involves substantial risk of loss. See our
+              - link "Terms of Service" [ref=e4461] [cursor=pointer]:
+                - /url: https://polymarket.com/tos
+              - text: "&"
+              - link "Privacy Policy" [ref=e4462] [cursor=pointer]:
+                - /url: https://polymarket.com/privacy
+              - text: .
+    - region "Notifications (F8)":
+      - list
+  - alert [ref=e4463]

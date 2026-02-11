@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { Globe, Zap } from "lucide-react";
 import { MiniAppLogo } from "./MiniAppLogo";
@@ -15,7 +16,7 @@ interface MiniAppListItemProps {
   app: MiniAppInfo;
 }
 
-export function MiniAppListItem({ app }: MiniAppListItemProps) {
+export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppListItemProps) {
   const { t, locale } = useTranslation("host");
   const { t: tCommon } = useTranslation("common");
   const categoryLabel = t(`categories.${app.category}`);
@@ -107,4 +108,4 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
       </div>
     </Link>
   );
-}
+});

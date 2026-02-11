@@ -8,8 +8,47 @@ import type {
 } from "@/lib/db/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
-import { getChainRpcUrl } from "@/lib/chain/rpc-client";
+import { getChainRpcUrl } from "@/lib/chains/rpc-functions";
 import type { ChainId } from "@/lib/chains/types";
+
+// SSRF prevention: validate URLs before server-side fetch
+function validateUrl(url: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`Invalid URL: ${url}`);
+  }
+
+  // Only allow HTTPS
+  if (parsed.protocol !== "https:") {
+    throw new Error(`Only HTTPS URLs are allowed, got: ${parsed.protocol}`);
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // Block localhost variants
+  if (hostname === "localhost" || hostname === "0.0.0.0" || hostname === "[::1]") {
+    throw new Error(`Requests to localhost are not allowed`);
+  }
+
+  // Block private/reserved IP ranges
+  const ipv4Match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) {
+    const [, a, b] = ipv4Match.map(Number);
+    const isPrivate =
+      a === 127 || // 127.0.0.0/8 loopback
+      a === 10 || // 10.0.0.0/8 private
+      (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12 private
+      (a === 192 && b === 168) || // 192.168.0.0/16 private
+      (a === 169 && b === 254) || // 169.254.0.0/16 link-local
+      a === 0; // 0.0.0.0/8
+
+    if (isPrivate) {
+      throw new Error(`Requests to private IP addresses are not allowed: ${hostname}`);
+    }
+  }
+}
 
 // Lazy initialization to avoid errors when env vars are not set
 let _supabase: SupabaseClient | null = null;
@@ -28,6 +67,8 @@ function getSupabase(): SupabaseClient {
 
 // Generic action handlers
 async function handleCallApi(payload: CallApiPayload, task: AutomationTask): Promise<Record<string, unknown>> {
+  validateUrl(payload.url);
+
   const response = await fetch(payload.url, {
     method: payload.method || "POST",
     headers: {

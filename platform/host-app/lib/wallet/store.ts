@@ -4,7 +4,7 @@ import type { WalletAdapter, WalletBalance, SignedMessage, NeoInvokeParams, Tran
 import { NeoLineAdapter, O3Adapter, OneGateAdapter, WalletNotInstalledError } from "./adapters";
 import type { ChainId, ChainType } from "../chains/types";
 import { getChainRegistry } from "../chains/registry";
-import { getChainRpcUrl } from "../chain/rpc-client";
+import { getChainRpcUrl } from "../chains/rpc-functions";
 
 // Multi-chain wallet provider types
 export type NeoWalletProvider = "neoline" | "o3" | "onegate";
@@ -188,8 +188,8 @@ export const useWalletStore = create<WalletStore>()(
             const balance = await neoAdapters[provider].getBalance(address, chainId);
             set({ balance });
           }
-        } catch {
-          // Silently fail balance refresh
+        } catch (err) {
+          console.warn("Balance refresh failed:", err);
         }
       },
 

@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { buildEdgeUrl, forwardAuthHeaders } from "../../../lib/edge";
-import { apiError } from "../../../lib/api-response";
+import { buildEdgeUrl, forwardAuthHeaders } from "@/lib/edge";
+import { apiError } from "@/lib/api-response";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {

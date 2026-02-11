@@ -23,8 +23,8 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         const data = await res.json();
         setRating(data.rating);
       }
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.warn("fetchRating failed:", err);
     }
   }, [appId, walletAddress]);
 
@@ -135,8 +135,8 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
           const data = await res.json();
           return data.comments;
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        console.warn("fetchReplies failed:", err);
       }
       return [];
     },

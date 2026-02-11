@@ -45,26 +45,34 @@ namespace NeoMiniAppPlatform.Contracts
         #endregion
 
         #region Getters
-        /// <summary>Get admin address</summary>
-        public static UInt160 Admin() =>
-            (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+        /// <summary>Get admin address (null if not yet deployed)</summary>
+        public static UInt160 Admin()
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+            return raw != null ? (UInt160)raw : null;
+        }
 
         /// <summary>Check if platform is globally paused</summary>
-        public static bool IsGloballyPaused() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_GLOBAL_PAUSED) == 1;
+        public static bool IsGloballyPaused()
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_GLOBAL_PAUSED);
+            return data != null && (BigInteger)data == 1;
+        }
 
         /// <summary>Check if a specific app is paused</summary>
         public static bool IsAppPaused(string appId)
         {
             byte[] key = Helper.Concat(PREFIX_APP_PAUSED, (ByteString)appId);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
+            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            return data != null && (BigInteger)data == 1;
         }
 
         /// <summary>Check if an address is an operator</summary>
         public static bool IsOperator(UInt160 addr)
         {
             byte[] key = Helper.Concat(PREFIX_OPERATOR, (ByteString)addr);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
+            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            return data != null && (BigInteger)data == 1;
         }
 
         /// <summary>

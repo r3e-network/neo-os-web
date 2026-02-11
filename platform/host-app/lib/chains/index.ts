@@ -17,8 +17,39 @@ export type { IChainRegistry } from "./registry";
 // Hooks
 export { useChains } from "./hooks";
 
-// RPC Client
+// RPC Client (class-based)
 export { ChainRPCClient, getRPCClient } from "./rpc-client";
+
+// RPC Functions (functional API, migrated from lib/chain/)
+export {
+  rpcCall,
+  invokeRead,
+  getBlockCount,
+  getApplicationLog,
+  getChainRpcUrl,
+  setChainRpcUrl,
+  getChainTypeFromId,
+  isNeoN3ChainId,
+  chainRpcCall,
+  getBlockCountMultiChain,
+  getTransactionLogMultiChain,
+} from "./rpc-functions";
+export type { RpcRequest, RpcResponse, InvokeResult, StackItem } from "./rpc-functions";
+
+// Contract Queries (migrated from lib/chain/)
+export {
+  CONTRACTS,
+  getContractAddress,
+  isContractOnChain,
+  getContractChains,
+  getLotteryState,
+  getGameState,
+  getVotingState,
+  getContractStats,
+  parseInteger,
+  parseString,
+} from "./contract-queries";
+export type { LotteryState, GameState, VotingState, ContractStats } from "./contract-queries";
 
 // Chain Services
 export type { IChainService } from "./service-interface";

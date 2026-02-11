@@ -12,6 +12,7 @@ import { ArrowLeft } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import type { ChainId } from "@/lib/chains/types";
 import { getChainRegistry } from "@/lib/chains/registry";
+import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
 
 const categories = ["gaming", "defi", "social", "nft", "governance", "utility"] as const;
 
@@ -65,11 +66,12 @@ export default function CreateAppPage() {
         }
       });
 
+      const authHeaders = await getWalletAuthHeaders();
       const res = await fetch("/api/developer/apps", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-developer-address": address,
+          ...authHeaders,
         },
         body: JSON.stringify({
           name,
@@ -264,5 +266,3 @@ export default function CreateAppPage() {
     </Layout>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

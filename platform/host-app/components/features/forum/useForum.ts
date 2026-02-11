@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { ForumThread, ForumReply } from "./types";
+import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
 
 interface UseForumOptions {
   appId: string;
@@ -24,8 +25,8 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           setThreads(data.threads);
           setHasMore(data.hasMore);
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        console.warn("fetchThreads failed:", err);
       } finally {
         setLoading(false);
       }
@@ -37,18 +38,19 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
     async (title: string, content: string, category: string): Promise<ForumThread | null> => {
       if (!walletAddress) return null;
       try {
+        const authHeaders = await getWalletAuthHeaders();
         const res = await fetch(`/api/miniapps/${appId}/forum/threads`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wallet: walletAddress, title, content, category }),
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          body: JSON.stringify({ title, content, category }),
         });
         if (res.ok) {
           const data = await res.json();
           setThreads((prev) => [data.thread, ...prev]);
           return data.thread;
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        console.warn("createThread failed:", err);
       }
       return null;
     },
@@ -63,8 +65,8 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           const data = await res.json();
           return data.replies;
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        console.warn("fetchReplies failed:", err);
       }
       return [];
     },
@@ -75,17 +77,18 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
     async (threadId: string, content: string): Promise<ForumReply | null> => {
       if (!walletAddress) return null;
       try {
+        const authHeaders = await getWalletAuthHeaders();
         const res = await fetch(`/api/miniapps/${appId}/forum/${threadId}/replies`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wallet: walletAddress, content }),
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          body: JSON.stringify({ content }),
         });
         if (res.ok) {
           const data = await res.json();
           return data.reply;
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        console.warn("createReply failed:", err);
       }
       return null;
     },

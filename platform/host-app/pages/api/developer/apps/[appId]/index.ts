@@ -3,49 +3,23 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase";
-
-type ContractConfig = {
-  address?: string | null;
-  active?: boolean;
-  entry_url?: string;
-};
-
-function normalizeContracts(raw: unknown): Record<string, ContractConfig> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  const result: Record<string, ContractConfig> = {};
-
-  Object.entries(raw as Record<string, unknown>).forEach(([chainId, value]) => {
-    if (typeof value === "string") {
-      result[chainId] = { address: value };
-      return;
-    }
-
-    if (!value || typeof value !== "object" || Array.isArray(value)) return;
-    const obj = value as Record<string, unknown>;
-    const address = typeof obj.address === "string" ? obj.address : undefined;
-    const entryUrl = typeof obj.entry_url === "string" ? obj.entry_url : typeof obj.entryUrl === "string" ? obj.entryUrl : undefined;
-    const active = typeof obj.active === "boolean" ? obj.active : undefined;
-
-    result[chainId] = {
-      ...(address ? { address } : {}),
-      ...(entryUrl ? { entry_url: entryUrl } : {}),
-      ...(active !== undefined ? { active } : {}),
-    };
-  });
-
-  return result;
-}
+import { requireWalletAuth } from "@/lib/security/wallet-auth";
+import { normalizeContracts } from "@/lib/contracts";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Database not configured" });
   }
+  const db = supabaseAdmin;
 
-  const developerAddress = req.headers["x-developer-address"] as string;
-  if (!developerAddress) {
-    return res.status(401).json({ error: "Developer address required" });
+  // SECURITY: Verify wallet ownership via cryptographic signature
+  const auth = requireWalletAuth(req.headers);
+  if (!auth.ok) {
+    return res.status(auth.status).json({ error: auth.error });
   }
+  const developerAddress = auth.address;
 
   const { appId } = req.query;
   if (!appId || typeof appId !== "string") {
@@ -54,19 +28,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   switch (req.method) {
     case "GET":
-      return handleGet(res, appId, developerAddress);
+      return handleGet(db, res, appId, developerAddress);
     case "PUT":
-      return handleUpdate(req, res, appId, developerAddress);
+      return handleUpdate(db, req, res, appId, developerAddress);
     case "DELETE":
-      return handleDelete(res, appId, developerAddress);
+      return handleDelete(db, res, appId, developerAddress);
     default:
       return res.status(405).json({ error: "Method not allowed" });
   }
 }
 
-async function handleGet(res: NextApiResponse, appId: string, developerAddress: string) {
+async function handleGet(db: SupabaseClient, res: NextApiResponse, appId: string, developerAddress: string) {
   try {
-    const { data, error } = await supabaseAdmin!
+    const { data, error } = await db
       .from("miniapp_registry")
       .select("*")
       .eq("app_id", appId)
@@ -84,25 +58,49 @@ async function handleGet(res: NextApiResponse, appId: string, developerAddress: 
   }
 }
 
-async function handleUpdate(req: NextApiRequest, res: NextApiResponse, appId: string, developerAddress: string) {
-  const updates = req.body;
+async function handleUpdate(
+  db: SupabaseClient,
+  req: NextApiRequest,
+  res: NextApiResponse,
+  appId: string,
+  developerAddress: string,
+) {
+  /** Allowlist: only these fields may be updated by the developer. */
+  const ALLOWED_FIELDS = new Set([
+    "name",
+    "description",
+    "icon_url",
+    "banner_url",
+    "category",
+    "tags",
+    "website",
+    "source_url",
+    "supported_chains",
+    "contracts",
+    "permissions",
+    "metadata",
+  ]);
 
-  // Prevent updating protected fields
-  delete updates.app_id;
-  delete updates.developer_address;
-  delete updates.created_at;
-  delete updates.contracts_json;
+  const raw = req.body ?? {};
+  const updates: Record<string, unknown> = {};
+  for (const key of Object.keys(raw)) {
+    if (ALLOWED_FIELDS.has(key)) updates[key] = raw[key];
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: "No valid fields to update" });
+  }
 
   if (updates.supported_chains && !Array.isArray(updates.supported_chains)) {
     updates.supported_chains = [];
   }
 
   if (updates.contracts) {
-    updates.contracts = normalizeContracts(updates.contracts);
+    updates.contracts = normalizeContracts(updates.contracts as Parameters<typeof normalizeContracts>[0]);
   }
 
   try {
-    const { data, error } = await supabaseAdmin!
+    const { data, error } = await db
       .from("miniapp_registry")
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("app_id", appId)
@@ -119,9 +117,9 @@ async function handleUpdate(req: NextApiRequest, res: NextApiResponse, appId: st
   }
 }
 
-async function handleDelete(res: NextApiResponse, appId: string, developerAddress: string) {
+async function handleDelete(db: SupabaseClient, res: NextApiResponse, appId: string, developerAddress: string) {
   try {
-    const { error } = await supabaseAdmin!
+    const { error } = await db
       .from("miniapp_registry")
       .delete()
       .eq("app_id", appId)

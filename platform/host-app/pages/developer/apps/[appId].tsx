@@ -13,6 +13,7 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import type { ChainId } from "@/lib/chains/types";
 import { getChainRegistry } from "@/lib/chains/registry";
+import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
 
 interface App {
   app_id: string;
@@ -57,11 +58,11 @@ export default function AppDetailPage() {
 
   const fetchData = async () => {
     try {
-      const headers = { "x-developer-address": address || "" };
+      const authHeaders = await getWalletAuthHeaders();
 
       const [appRes, versionsRes] = await Promise.all([
-        fetch(`/api/developer/apps/${appId}`, { headers }),
-        fetch(`/api/developer/apps/${appId}/versions`, { headers }),
+        fetch(`/api/developer/apps/${appId}`, { headers: authHeaders }),
+        fetch(`/api/developer/apps/${appId}/versions`, { headers: authHeaders }),
       ]);
 
       const appData = await appRes.json();
@@ -82,11 +83,12 @@ export default function AppDetailPage() {
     entry_url: string;
     build_url?: string;
   }) => {
+    const authHeaders = await getWalletAuthHeaders();
     const res = await fetch(`/api/developer/apps/${appId}/versions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-developer-address": address || "",
+        ...authHeaders,
       },
       body: JSON.stringify(data),
     });
@@ -98,9 +100,10 @@ export default function AppDetailPage() {
   };
 
   const handlePublish = async (versionId: string) => {
+    const authHeaders = await getWalletAuthHeaders();
     await fetch(`/api/developer/apps/${appId}/versions/${versionId}/publish`, {
       method: "POST",
-      headers: { "x-developer-address": address || "" },
+      headers: authHeaders,
     });
     fetchData();
   };
@@ -207,7 +210,6 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 }
 
 function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
-  const { address } = useWalletStore();
   const [name, setName] = useState(app.name);
   const [nameZh, setNameZh] = useState(app.name_zh || "");
   const [description, setDescription] = useState(app.description);
@@ -237,11 +239,12 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const authHeaders = await getWalletAuthHeaders();
       await fetch(`/api/developer/apps/${app.app_id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-developer-address": address || "",
+          ...authHeaders,
         },
         body: JSON.stringify({
           name,
@@ -265,9 +268,7 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
         <h3 className="font-bold text-gray-900 dark:text-white mb-4">App Metadata</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              App Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">App Name</label>
             <input
               type="text"
               value={name}
@@ -288,9 +289,7 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description
-            </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
             <textarea
               rows={3}
               value={description}
@@ -374,5 +373,3 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
     </div>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

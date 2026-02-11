@@ -36,7 +36,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-lottery" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -54,7 +54,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "unknown-app-xyz" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -69,7 +69,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-coinflip" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -94,7 +94,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-lottery" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -107,7 +107,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-lottery" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -124,7 +124,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-lottery" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -140,7 +140,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-lottery" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -157,7 +157,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-lottery" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -174,7 +174,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-lottery" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -190,7 +190,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-lottery" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 
@@ -206,7 +206,7 @@ describe("/app/[id] Page", () => {
       const context = {
         params: { id: "miniapp-lottery" },
         req: { headers: { host: "localhost:3000" } },
-      } as { params: { id: string }; req: { headers: { host: string } } };
+      } as unknown as Parameters<typeof getServerSideProps>[0];
 
       const result = await getServerSideProps(context);
 

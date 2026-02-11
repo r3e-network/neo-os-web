@@ -7,7 +7,7 @@ import { useTheme } from "../../providers/ThemeProvider";
 import { getThemeColors } from "../../styles";
 import type { ChainId } from "../../../lib/chains/types";
 import { getChainRegistry } from "../../../lib/chains/registry";
-import { getChainRpcUrl } from "../../../lib/chain/rpc-client";
+import { getChainRpcUrl } from "../../../lib/chains/rpc-functions";
 import { ConnectButton } from "../wallet";
 import { NetworkSelector } from "../wallet/NetworkSelector";
 import { ActivityTicker } from "../../ActivityTicker";

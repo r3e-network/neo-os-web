@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +22,10 @@ export interface MiniAppInfo {
   description: string;
   description_zh?: string;
   icon: string;
+  entry_url?: string;
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
   source?: "builtin" | "community" | "verified";
+  created_at?: string;
   /** Supported chains for multi-chain apps */
   supportedChains?: ChainId[];
   stats?: {
@@ -37,7 +40,7 @@ export interface MiniAppInfo {
   [key: string]: unknown;
 }
 
-export function MiniAppCard({ app }: { app: MiniAppInfo }) {
+export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo }) {
   const { t, locale } = useTranslation("host");
   const showSourceBadge = app.source && app.source !== "builtin";
   const rippleId = app.app_id || app.entry_url || app.name;
@@ -126,4 +129,4 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
       </Link>
     </WaterRipple>
   );
-}
+});

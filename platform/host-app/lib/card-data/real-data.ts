@@ -11,7 +11,7 @@ import {
   getContractStats,
   getContractAddress,
   CONTRACTS,
-} from "@/lib/chain/contract-queries";
+} from "@/lib/chains/contract-queries";
 
 // ============================================================================
 // Card Data Types
@@ -66,13 +66,7 @@ export type CardType =
   | "live_voting"
   | "live_price";
 
-export type CardData =
-  | CountdownData
-  | MultiplierData
-  | StatsData
-  | VotingData
-  | CanvasData
-  | PriceData;
+export type CardData = CountdownData | MultiplierData | StatsData | VotingData | CanvasData | PriceData;
 
 // ============================================================================
 // App to Card Type Mapping
@@ -84,22 +78,22 @@ const APP_CARD_TYPES: Record<string, CardType> = {
   "miniapp-neo-crash": "live_multiplier",
   "miniapp-coinflip": "live_stats",
   "miniapp-dicegame": "live_stats",
-  
+
   // DeFi apps with stats
   "miniapp-flashloan": "live_stats",
   "miniapp-neoswap": "live_stats",
   "miniapp-neoburger": "live_stats",
   "miniapp-redenvelope": "live_stats",
-  
+
   // Governance apps with voting
   "miniapp-govbooster": "live_voting",
   "miniapp-secretvote": "live_voting",
   "miniapp-predictionmarket": "live_voting",
   "miniapp-candidate-vote": "live_voting",
-  
+
   // NFT/Canvas apps
   "miniapp-canvas": "live_canvas",
-  
+
   // Price feeds
   "miniapp-priceticker": "live_price",
 };
@@ -123,7 +117,7 @@ export async function getCountdownData(appId: string, chainId: ChainId): Promise
     if (!contractAddress) return defaultData;
 
     const state = await getLotteryState(contractAddress, chainId);
-    
+
     return {
       type: "live_countdown",
       endTime: state.endTime || Date.now() + 86400000,
@@ -149,7 +143,7 @@ export async function getMultiplierData(appId: string, chainId: ChainId): Promis
     if (!contractAddress) return defaultData;
 
     const state = await getGameState(contractAddress, chainId);
-    
+
     return {
       type: "live_multiplier",
       multiplier: state.currentMultiplier || 1.0,
@@ -185,7 +179,7 @@ export async function getStatsData(appId: string, chainId: ChainId): Promise<Sta
     if (!contractAddress) return defaultData;
 
     const stats = await getContractStats(contractAddress, chainId);
-    
+
     return {
       type: "live_stats",
       tvl: stats.totalValueLocked || "0",
@@ -211,14 +205,14 @@ export async function getVotingData(appId: string, chainId: ChainId): Promise<Vo
     if (!contractAddress) return defaultData;
 
     const state = await getVotingState(contractAddress, chainId);
-    
+
     // Calculate percentages from vote counts
     const total = state.options.reduce((sum, opt) => sum + opt.votes, 0);
-    const optionsWithPercentage = state.options.map(opt => ({
+    const optionsWithPercentage = state.options.map((opt) => ({
       label: opt.label,
       percentage: total > 0 ? Math.round((opt.votes / total) * 100) : 0,
     }));
-    
+
     return {
       type: "live_voting",
       title: state.title || "Active Proposal",
@@ -256,11 +250,7 @@ export async function getPriceData(_appId: string, _chainId: ChainId): Promise<P
 // Main Card Data Fetcher
 // ============================================================================
 
-export async function getCardData(
-  appId: string,
-  cardType: CardType,
-  chainId: ChainId,
-): Promise<CardData | null> {
+export async function getCardData(appId: string, cardType: CardType, chainId: ChainId): Promise<CardData | null> {
   switch (cardType) {
     case "live_countdown":
       return getCountdownData(appId, chainId);
@@ -300,7 +290,4 @@ export function hasCardData(appId: string): boolean {
   return appId in APP_CARD_TYPES;
 }
 
-export {
-  getContractAddress,
-  CONTRACTS,
-};
+export { getContractAddress, CONTRACTS };

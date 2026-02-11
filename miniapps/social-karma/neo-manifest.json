@@ -9,31 +9,24 @@
   "category": "social",
   "category_name": "Social",
   "category_name_zh": "社交",
-  "tags": [
-    "social"
-  ],
+  "tags": ["social"],
   "developer": {
     "name": "R3E Network",
     "email": "dev@r3e.network",
     "website": "https://r3e.network"
   },
   "contracts": {
-    "neo-n3-mainnet": "0xfe4b06a3b0e2b8d0c7a6c67b4b6c3d8e1f5a2c3d4",
+    "neo-n3-mainnet": "0xfe4b06a3b0e2b8d0c7a6c67b4b6c3d8e1f5a2c3d",
     "neo-n3-testnet": ""
   },
-  "supported_networks": [
-    "neo-n3-mainnet"
-  ],
+  "supported_networks": ["neo-n3-mainnet"],
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/social-karma/index.html",
     "icon": "/miniapps/social-karma/logo.jpg",
     "banner": "/miniapps/social-karma/banner.jpg"
   },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain"
-  ],
+  "permissions": ["invoke:primary", "read:blockchain"],
   "features": {
     "stateless": true,
     "offlineSupport": false,

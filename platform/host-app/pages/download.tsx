@@ -76,8 +76,6 @@ const WALLETS: WalletInfo[] = [
   },
 ];
 
-
-
 function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => string }) {
   return (
     <Card
@@ -297,5 +295,3 @@ export default function DownloadPage() {
     </Layout>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

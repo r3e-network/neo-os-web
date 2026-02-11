@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { StatsBar } from "@/components/features/stats";
@@ -65,17 +66,29 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   utility: Wrench,
 };
 
-export default function LandingPage() {
+/** Props provided by getStaticProps for ISR */
+interface LandingPageProps {
+  initialPlatformStats: PlatformStats | null;
+  initialAppStats: AppStats;
+  initialCommunityApps: MiniAppInfo[];
+}
+
+export default function LandingPage({
+  initialPlatformStats,
+  initialAppStats,
+  initialCommunityApps,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
   const { t } = useTranslation("host");
   const { sections: recommendationSections } = useRecommendations();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [activeFilter, setActiveFilter] = useState("trending");
-  const [appStats, setAppStats] = useState<AppStats>({});
-  const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
-  const [communityApps, setCommunityApps] = useState<MiniAppInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [displayedTxCount, setDisplayedTxCount] = useState(0);
+  const [appStats, setAppStats] = useState<AppStats>(initialAppStats ?? {});
+  const [platformStats, setPlatformStats] = useState<PlatformStats | null>(initialPlatformStats ?? null);
+  const [communityApps, setCommunityApps] = useState<MiniAppInfo[]>(initialCommunityApps ?? []);
+  const hasInitialData = Boolean(initialPlatformStats || initialCommunityApps?.length);
+  const [loading, setLoading] = useState(!hasInitialData);
+  const [displayedTxCount, setDisplayedTxCount] = useState(initialPlatformStats?.totalTransactions ?? 0);
   const [isUrlInitialized, setIsUrlInitialized] = useState(false);
   const router = useRouter();
 
@@ -104,7 +117,7 @@ export default function LandingPage() {
   useEffect(() => {
     if (!router.isReady || !isUrlInitialized) return;
 
-    const newQuery: Record<string, string> = { ...(router.query as Record<string, string | string[] | undefined>) };
+    const newQuery: Record<string, string | string[] | undefined> = { ...(router.query as Record<string, string | string[] | undefined>) };
 
     if (selectedCategory !== "all") {
       newQuery.category = selectedCategory;
@@ -138,11 +151,11 @@ export default function LandingPage() {
   // Real-time global activity feed
   const { activities } = useActivityFeed({ maxItems: 20 });
 
-  // Fetch real stats from API
+  // Fetch real stats from API (skip if SSG data already provided)
   useEffect(() => {
+    if (hasInitialData) return;
     async function fetchStats() {
       try {
-        // Fetch platform stats and per-app stats in parallel
         const [platformRes, cardStatsRes] = await Promise.all([
           fetch("/api/platform/stats"),
           fetch("/api/miniapps/card-stats"),
@@ -165,14 +178,15 @@ export default function LandingPage() {
       }
     }
     fetchStats();
-  }, []);
+  }, [hasInitialData]);
 
   useEffect(() => {
+    if (hasInitialData) return;
     fetch("/api/miniapps/community")
       .then((res) => res.json())
       .then((data) => setCommunityApps(data.apps || []))
       .catch(() => setCommunityApps([]));
-  }, []);
+  }, [hasInitialData]);
 
   const appsWithStats = useMemo(() => {
     const byId = new Map<string, MiniAppInfo>();
@@ -271,7 +285,11 @@ export default function LandingPage() {
 
       {/* Global E-Robo Water Wave Background */}
       <div className="fixed inset-0 -z-10 pointer-events-none">
-        <WaterWaveBackground intensity={showDashboard ? "subtle" : "medium"} colorScheme="mixed" className="opacity-60" />
+        <WaterWaveBackground
+          intensity={showDashboard ? "subtle" : "medium"}
+          colorScheme="mixed"
+          className="opacity-60"
+        />
       </div>
 
       {showDashboard ? (
@@ -427,7 +445,11 @@ export default function LandingPage() {
             <ScrollReveal animation="fade-up" delay={0.2} offset={-50}>
               <StatsBar
                 stats={[
-                  { label: t("stats.activeUsers"), value: loading ? "..." : totalStats.users.toLocaleString(), icon: Globe },
+                  {
+                    label: t("stats.activeUsers"),
+                    value: loading ? "..." : totalStats.users.toLocaleString(),
+                    icon: Globe,
+                  },
                   {
                     label: t("stats.totalTransactions"),
                     value: loading ? "..." : displayedTxCount.toLocaleString(),
@@ -554,10 +576,26 @@ export default function LandingPage() {
                       <div className="flex items-center gap-2 ml-auto">
                         {/* View Toggles */}
                         <div className="bg-white/70 dark:bg-white/5 p-1 flex items-center border border-white/60 dark:border-white/10 rounded-full backdrop-blur-md">
-                          <button onClick={() => setViewMode("grid")} className={cn("p-2 rounded-md transition-all", viewMode === "grid" ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm" : "hover:text-erobo-ink text-gray-400 dark:text-white/40")}>
+                          <button
+                            onClick={() => setViewMode("grid")}
+                            className={cn(
+                              "p-2 rounded-md transition-all",
+                              viewMode === "grid"
+                                ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm"
+                                : "hover:text-erobo-ink text-gray-400 dark:text-white/40",
+                            )}
+                          >
                             <LayoutGrid size={18} strokeWidth={2.5} />
                           </button>
-                          <button onClick={() => setViewMode("list")} className={cn("p-2 rounded-md transition-all", viewMode === "list" ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm" : "hover:text-erobo-ink text-gray-400 dark:text-white/40")}>
+                          <button
+                            onClick={() => setViewMode("list")}
+                            className={cn(
+                              "p-2 rounded-md transition-all",
+                              viewMode === "list"
+                                ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm"
+                                : "hover:text-erobo-ink text-gray-400 dark:text-white/40",
+                            )}
+                          >
                             <List size={18} strokeWidth={2.5} />
                           </button>
                         </div>
@@ -565,7 +603,12 @@ export default function LandingPage() {
                     </div>
                   </ScrollReveal>
 
-                  <div className={cn("grid gap-8", viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 gap-4")}>
+                  <div
+                    className={cn(
+                      "grid gap-8",
+                      viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 gap-4",
+                    )}
+                  >
                     {filteredApps.slice(0, 9).map((app, idx) => (
                       <ScrollReveal key={app.app_id} animation="scale-in" delay={idx * 0.05}>
                         {viewMode === "grid" ? <MiniAppCard app={app} /> : <MiniAppListItem app={app} />}
@@ -597,4 +640,138 @@ export default function LandingPage() {
   );
 }
 
-export const getServerSideProps = async () => ({ props: {} });
+/** Server-side helper: fetch platform stats directly from Supabase */
+async function fetchPlatformStats(
+  sbClient: import("@supabase/supabase-js").SupabaseClient,
+  miniappsData: Record<string, unknown>,
+  getNeoBurgerStats: (chainId: import("@/lib/chains/types").ChainId) => Promise<{ apr: string }>,
+): Promise<PlatformStats> {
+  function getTotalAppsCount(): number {
+    let count = 0;
+    for (const category of Object.values(miniappsData)) {
+      if (Array.isArray(category)) count += category.length;
+    }
+    return count;
+  }
+
+  const { data: chainData } = await sbClient
+    .from("platform_stats_by_chain")
+    .select("total_users, total_transactions, total_volume_gas, total_gas_burned, active_apps")
+    .limit(1)
+    .single();
+
+  const { data: platformData } = chainData
+    ? { data: chainData }
+    : await sbClient
+        .from("platform_stats")
+        .select("total_users, total_transactions, total_volume_gas, total_gas_burned, active_apps")
+        .eq("id", 1)
+        .single();
+
+  let stakingApr = "0";
+  try {
+    const nbStats = await getNeoBurgerStats("neo-n3-mainnet");
+    stakingApr = nbStats.apr;
+  } catch {
+    // NeoBurger unavailable at build time is acceptable
+  }
+
+  if (platformData) {
+    return {
+      totalUsers: platformData.total_users || 0,
+      totalTransactions: platformData.total_transactions || 0,
+      totalVolume: platformData.total_volume_gas || "0",
+      totalGasBurned: platformData.total_gas_burned || "0",
+      stakingApr,
+      activeApps: getTotalAppsCount(),
+    };
+  }
+
+  const { data: aggData } = await sbClient.from("miniapp_stats").select("*");
+  if (!aggData?.length) {
+    return {
+      totalUsers: 0,
+      totalTransactions: 0,
+      totalVolume: "0",
+      totalGasBurned: "0",
+      stakingApr,
+      activeApps: getTotalAppsCount(),
+    };
+  }
+
+  const totals = aggData.reduce(
+    (acc, row) => ({
+      users: acc.users + (row.total_unique_users || 0),
+      txs: acc.txs + (row.total_transactions || 0),
+      volume: acc.volume + parseFloat(row.total_volume_gas || "0"),
+      gasBurned: acc.gasBurned + parseFloat(row.total_gas_used || row.total_volume_gas || "0"),
+    }),
+    { users: 0, txs: 0, volume: 0, gasBurned: 0 },
+  );
+
+  return {
+    totalUsers: totals.users,
+    totalTransactions: totals.txs,
+    totalVolume: totals.volume.toFixed(2),
+    totalGasBurned: totals.gasBurned.toFixed(2),
+    stakingApr,
+    activeApps: getTotalAppsCount(),
+  };
+}
+
+/** Server-side helper: fetch per-app card stats from Supabase */
+async function fetchCardStats(sbClient: import("@supabase/supabase-js").SupabaseClient): Promise<AppStats> {
+  const { data, error } = await sbClient
+    .from("miniapp_stats_summary")
+    .select("app_id, total_unique_users, total_transactions, view_count");
+
+  if (error || !data) return {};
+
+  const stats: AppStats = {};
+  for (const row of data) {
+    if (!stats[row.app_id]) {
+      stats[row.app_id] = { users: 0, transactions: 0, views: 0 };
+    }
+    stats[row.app_id].users += row.total_unique_users || 0;
+    stats[row.app_id].transactions += row.total_transactions || 0;
+    stats[row.app_id].views += row.view_count || 0;
+  }
+  return stats;
+}
+
+/**
+ * ISR: Revalidate every 5 minutes.
+ * Fetches platform stats, card stats, and community apps server-side
+ * so the landing page renders with real data on first paint.
+ */
+export const getStaticProps: GetStaticProps<LandingPageProps> = async () => {
+  const { supabase: sbClient, isSupabaseConfigured } = await import("@/lib/supabase");
+  const { fetchCommunityApps } = await import("@/lib/community-apps");
+  const { getNeoBurgerStats } = await import("@/lib/neoburger");
+  const miniappsData = (await import("@/data/miniapps.json")).default;
+
+  const defaults: LandingPageProps = {
+    initialPlatformStats: null,
+    initialAppStats: {},
+    initialCommunityApps: [],
+  };
+
+  if (!isSupabaseConfigured) {
+    return { props: defaults, revalidate: 300 };
+  }
+
+  const [platformResult, cardStatsResult, communityResult] = await Promise.allSettled([
+    fetchPlatformStats(sbClient, miniappsData, getNeoBurgerStats),
+    fetchCardStats(sbClient),
+    fetchCommunityApps({ status: "active" }),
+  ]);
+
+  return {
+    props: {
+      initialPlatformStats: platformResult.status === "fulfilled" ? platformResult.value : null,
+      initialAppStats: cardStatsResult.status === "fulfilled" ? cardStatsResult.value : {},
+      initialCommunityApps: communityResult.status === "fulfilled" ? communityResult.value : [],
+    },
+    revalidate: 300,
+  };
+};

@@ -1,6 +1,6 @@
 {
   "name": "neo-service-layer",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "private": true,
   "packageManager": "pnpm@10.27.0",
   "scripts": {
@@ -10,8 +10,11 @@
     "build": "turbo build",
     "build:host": "turbo build --filter=meshminiapp-host",
     "build:mobile": "turbo build --filter=neo-miniapp-wallet",
-    "build:miniapps": "turbo build:h5 --filter='./miniapps/*'",
+    "build:miniapps": "node scripts/sync-miniapp-registry.mjs && turbo build:h5 --filter='./miniapps/*'",
     "postbuild:miniapps": "node scripts/copy-miniapps.mjs",
+    "create:miniapp": "node scripts/create-miniapp.mjs",
+    "sync:registry": "node scripts/sync-miniapp-registry.mjs",
+    "validate:miniapps": "node scripts/validate-miniapps.mjs",
     "test": "turbo test",
     "test:run": "turbo test:run",
     "lint": "turbo lint",
@@ -39,7 +42,7 @@
       "react-is": "^18.3.1",
       "@types/react": "^18.3.1",
       "@types/react-dom": "^18.3.0",
-      "jspdf": ">=4.0.0",
+      "jspdf": ">=4.1.0",
       "@intlify/core-base": ">=9.1.11",
       "@intlify/message-resolver": ">=9.1.11",
       "@intlify/vue-devtools>@intlify/message-resolver": ">=9.1.11",
@@ -50,8 +53,8 @@
       "semver": ">=7.5.4",
       "postcss": ">=8.4.31",
       "jose": ">=5.2.0",
-      "axios": ">=1.6.0",
-      "cross-sos": ">=7.0.3",
+      "axios": ">=1.7.4",
+      "cross-spawn": ">=7.0.6",
       "cookie": ">=0.6.0",
       "tar": ">=7.5.7"
     }

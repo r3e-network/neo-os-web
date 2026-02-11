@@ -1,85 +1,85 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+/**
+ * Developer Preferences API (Follow/Unfollow)
+ * GET: List followed developers (paginated)
+ * POST: Follow a developer
+ * DELETE: Unfollow a developer
+ */
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!isSupabaseConfigured) {
-    return res.status(503).json({ error: "Database not configured" });
-  }
+import { createHandler } from "@/lib/api/create-handler";
+import { paginationQuery } from "@/lib/schemas";
 
-  const { wallet } = req.query;
+export default createHandler({
+  auth: "wallet",
+  rateLimit: "api",
+  methods: {
+    GET: {
+      schema: paginationQuery,
+      handler: async (req, res, ctx) => {
+        const { limit, offset } = ctx.parsedInput as { limit: number; offset: number };
 
-  if (!wallet || typeof wallet !== "string") {
-    return res.status(400).json({ error: "Missing wallet address" });
-  }
+        const { data, error, count } = await ctx.db
+          .from("followed_developers")
+          .select("developer_address, created_at", { count: "exact" })
+          .eq("wallet_address", ctx.address!)
+          .order("created_at", { ascending: false })
+          .range(offset, offset + limit - 1);
 
-  if (req.method === "GET") {
-    return getFollowedDevelopers(wallet, res);
-  }
+        if (error) {
+          return res.status(500).json({ error: "Failed to fetch followed developers" });
+        }
 
-  if (req.method === "POST") {
-    return followDeveloper(wallet, req, res);
-  }
+        return res.status(200).json({
+          developers: data || [],
+          total: count ?? 0,
+          has_more: (count ?? 0) > offset + limit,
+        });
+      },
+    },
 
-  if (req.method === "DELETE") {
-    return unfollowDeveloper(wallet, req, res);
-  }
+    POST: {
+      rateLimit: "write",
+      handler: async (req, res, ctx) => {
+        const { developer_address } = req.body;
+        if (!developer_address) {
+          return res.status(400).json({ error: "Missing developer_address" });
+        }
 
-  return res.status(405).json({ error: "Method not allowed" });
-}
+        const { error } = await ctx.db.from("followed_developers").insert({
+          wallet_address: ctx.address!,
+          developer_address,
+        });
 
-async function getFollowedDevelopers(wallet: string, res: NextApiResponse) {
-  const { data, error } = await supabase
-    .from("followed_developers")
-    .select("developer_address, created_at")
-    .eq("wallet_address", wallet)
-    .order("created_at", { ascending: false });
+        if (error?.code === "23505") {
+          return res.status(409).json({ error: "Already following" });
+        }
+        if (error) {
+          return res.status(500).json({ error: "Failed to follow developer" });
+        }
 
-  if (error) {
-    return res.status(500).json({ error: "Failed to fetch followed developers" });
-  }
+        return res.status(201).json({ success: true });
+      },
+    },
 
-  return res.status(200).json({ developers: data || [] });
-}
+    DELETE: {
+      rateLimit: "write",
+      handler: async (req, res, ctx) => {
+        const { developer_address } = req.body;
+        if (!developer_address) {
+          return res.status(400).json({ error: "Missing developer_address" });
+        }
 
-async function followDeveloper(wallet: string, req: NextApiRequest, res: NextApiResponse) {
-  const { developer_address } = req.body;
+        const { error } = await ctx.db
+          .from("followed_developers")
+          .delete()
+          .eq("wallet_address", ctx.address!)
+          .eq("developer_address", developer_address);
 
-  if (!developer_address) {
-    return res.status(400).json({ error: "Missing developer_address" });
-  }
+        if (error) {
+          return res.status(500).json({ error: "Failed to unfollow developer" });
+        }
 
-  const { error } = await supabase.from("followed_developers").insert({
-    wallet_address: wallet,
-    developer_address,
-  });
-
-  if (error?.code === "23505") {
-    return res.status(409).json({ error: "Already following" });
-  }
-
-  if (error) {
-    return res.status(500).json({ error: "Failed to follow developer" });
-  }
-
-  return res.status(201).json({ success: true });
-}
-
-async function unfollowDeveloper(wallet: string, req: NextApiRequest, res: NextApiResponse) {
-  const { developer_address } = req.body;
-
-  if (!developer_address) {
-    return res.status(400).json({ error: "Missing developer_address" });
-  }
-
-  const { error } = await supabase
-    .from("followed_developers")
-    .delete()
-    .eq("wallet_address", wallet)
-    .eq("developer_address", developer_address);
-
-  if (error) {
-    return res.status(500).json({ error: "Failed to unfollow developer" });
-  }
-
-  return res.status(200).json({ success: true });
-}
+        return res.status(200).json({ success: true });
+      },
+    },
+  },
+});

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { SocialComment } from "@/components/types";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
+import { requireWalletAuth } from "@/lib/security/wallet-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
@@ -9,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "Missing appId" });
   }
 
-  if (!isSupabaseConfigured) {
+  if (!supabaseAdmin) {
     return res.status(503).json({ error: "Database not configured" });
   }
 
@@ -29,7 +30,7 @@ async function getComments(appId: string, req: NextApiRequest, res: NextApiRespo
   const offset = parseInt(req.query.offset as string) || 0;
 
   // Build query
-  let query = supabase.from("miniapp_comments").select("*").eq("app_id", appId);
+  let query = supabaseAdmin!.from("miniapp_comments").select("*").eq("app_id", appId);
 
   // Filter by parent_id
   if (parentId) {
@@ -74,21 +75,27 @@ async function getComments(appId: string, req: NextApiRequest, res: NextApiRespo
 }
 
 async function createComment(appId: string, req: NextApiRequest, res: NextApiResponse) {
-  const { wallet, content, parent_id } = req.body;
+  // SECURITY: Verify wallet ownership via cryptographic signature
+  const auth = requireWalletAuth(req.headers);
+  if (!auth.ok) {
+    return res.status(auth.status).json({ error: auth.error });
+  }
 
-  if (!wallet || !content?.trim()) {
-    return res.status(400).json({ error: "Missing wallet or content" });
+  const { content, parent_id } = req.body;
+
+  if (!content?.trim()) {
+    return res.status(400).json({ error: "Missing content" });
   }
 
   if (content.length > 2000) {
     return res.status(400).json({ error: "Comment too long" });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin!
     .from("miniapp_comments")
     .insert({
       app_id: appId,
-      wallet_address: wallet,
+      wallet_address: auth.address,
       parent_id: parent_id ? parseInt(parent_id) : null,
       content: content.trim(),
     })

@@ -27,7 +27,7 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-white dark:bg-[#050505] border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden p-0 gap-0">
+      <DialogContent className="sm:max-w-md bg-white dark:bg-erobo-bg-deeper border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden p-0 gap-0">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
             <div className="p-2 bg-neo/10 rounded-full text-neo">
@@ -69,7 +69,9 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
                       }}
                     />
                   </div>
-                  <span className="font-bold text-gray-900 dark:text-white group-hover:text-neo transition-colors">{wallet.name}</span>
+                  <span className="font-bold text-gray-900 dark:text-white group-hover:text-neo transition-colors">
+                    {wallet.name}
+                  </span>
                 </motion.button>
               ))}
             </div>
@@ -82,7 +84,7 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
                 <span className="w-full border-t border-gray-100 dark:border-white/5" />
               </div>
               <div className="relative flex justify-center text-xs font-medium uppercase tracking-widest">
-                <span className="bg-white dark:bg-[#050505] px-2 text-gray-400">{t("common.or")}</span>
+                <span className="bg-white dark:bg-erobo-bg-deeper px-2 text-gray-400">{t("common.or")}</span>
               </div>
             </div>
           )}
@@ -91,10 +93,11 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
           <Button
             onClick={handleSocialLogin}
             variant="outline"
-            className={`w-full flex items-center justify-center gap-2 rounded-xl h-12 border transition-all duration-300 ${connected
-              ? "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-              : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 hover:text-neo dark:hover:text-neo shadow-sm hover:shadow-md"
-              }`}
+            className={`w-full flex items-center justify-center gap-2 rounded-xl h-12 border transition-all duration-300 ${
+              connected
+                ? "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 hover:text-neo dark:hover:text-neo shadow-sm hover:shadow-md"
+            }`}
             disabled={loading || connected}
           >
             <User size={18} />
@@ -107,7 +110,9 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
           {/* Error Display */}
           {error && (
             <div className="rounded-lg border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-900/10 p-3 flex items-start gap-3">
-              <div className="text-red-500 mt-0.5"><div className="w-1.5 h-1.5 rounded-full bg-current" /></div>
+              <div className="text-red-500 mt-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-current" />
+              </div>
               <div className="flex-1">
                 <p className="text-sm text-red-600 dark:text-red-400 font-medium leading-tight">{error}</p>
                 <button

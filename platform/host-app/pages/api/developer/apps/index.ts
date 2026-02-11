@@ -5,39 +5,10 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseAdmin } from "@/lib/supabase";
-
-type ContractConfig = {
-  address?: string | null;
-  active?: boolean;
-  entry_url?: string;
-};
-
-function normalizeContracts(raw: unknown): Record<string, ContractConfig> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  const result: Record<string, ContractConfig> = {};
-
-  Object.entries(raw as Record<string, unknown>).forEach(([chainId, value]) => {
-    if (typeof value === "string") {
-      result[chainId] = { address: value };
-      return;
-    }
-
-    if (!value || typeof value !== "object" || Array.isArray(value)) return;
-    const obj = value as Record<string, unknown>;
-    const address = typeof obj.address === "string" ? obj.address : undefined;
-    const entryUrl = typeof obj.entry_url === "string" ? obj.entry_url : typeof obj.entryUrl === "string" ? obj.entryUrl : undefined;
-    const active = typeof obj.active === "boolean" ? obj.active : undefined;
-
-    result[chainId] = {
-      ...(address ? { address } : {}),
-      ...(entryUrl ? { entry_url: entryUrl } : {}),
-      ...(active !== undefined ? { active } : {}),
-    };
-  });
-
-  return result;
-}
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHandler } from "@/lib/api";
+import { createAppBody } from "@/lib/schemas";
+import { normalizeContracts } from "@/lib/contracts";
 
 export interface DeveloperApp {
   id: string;
@@ -55,45 +26,44 @@ export interface DeveloperApp {
   published_at?: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!supabaseAdmin) {
-    return res.status(500).json({ error: "Database not configured" });
-  }
+export default createHandler({
+  auth: "wallet",
+  rateLimit: "api",
+  methods: {
+    GET: (req, res, ctx) => handleGet(ctx.db, ctx.address!, req, res),
+    POST: {
+      handler: (req, res, ctx) => handlePost(ctx.db, ctx.address!, req, res),
+      schema: createAppBody,
+    },
+  },
+});
 
-  const developerAddress = req.headers["x-developer-address"] as string;
-  if (!developerAddress) {
-    return res.status(401).json({ error: "Developer address required" });
-  }
-
-  if (req.method === "GET") {
-    return handleGet(req, res, developerAddress);
-  }
-
-  if (req.method === "POST") {
-    return handlePost(req, res, developerAddress);
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
-
-async function handleGet(req: NextApiRequest, res: NextApiResponse, developerAddress: string) {
+async function handleGet(db: SupabaseClient, developerAddress: string, req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { data, error } = await supabaseAdmin!
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+
+    const { data, error, count } = await db
       .from("miniapp_registry")
-      .select("*")
+      .select("*", { count: "exact" })
       .eq("developer_address", developerAddress)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
-    return res.status(200).json({ apps: data || [] });
+    return res.status(200).json({
+      apps: data || [],
+      total: count ?? 0,
+      has_more: (count ?? 0) > offset + limit,
+    });
   } catch (error) {
     console.error("List apps error:", error);
     return res.status(500).json({ error: "Failed to list apps" });
   }
 }
 
-async function handlePost(req: NextApiRequest, res: NextApiResponse, developerAddress: string) {
+async function handlePost(db: SupabaseClient, developerAddress: string, req: NextApiRequest, res: NextApiResponse) {
   const {
     name,
     name_zh,
@@ -111,7 +81,6 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, developerAd
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  // Generate app_id from name
   const app_id = `dev-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(36)}`;
 
   try {
@@ -122,7 +91,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, developerAd
         : rawContracts;
     const contracts = normalizeContracts(contractsPayload);
 
-    const { data, error } = await supabaseAdmin!
+    const { data, error } = await db
       .from("miniapp_registry")
       .insert({
         app_id,

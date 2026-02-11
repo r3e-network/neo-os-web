@@ -64,12 +64,13 @@
     </MiniAppTemplate>
 
     <IssueModal
-    :visible="issueModalOpen"
-    :loading="isIssuing"
-    :template-id="issueForm.templateId"
-    @close="closeIssueModal"
-    @issue="issueCertificate"
-  />
+      :visible="issueModalOpen"
+      :loading="isIssuing"
+      :template-id="issueForm.templateId"
+      @close="closeIssueModal"
+      @issue="issueCertificate"
+    />
+  </view>
 </template>
 
 <script setup lang="ts">

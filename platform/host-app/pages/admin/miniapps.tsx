@@ -249,9 +249,7 @@ export default function AdminMiniApps() {
                               </Badge>
                             )}
                           </div>
-                          {item.app?.name_zh && (
-                            <div className="text-sm text-gray-500">{item.app.name_zh}</div>
-                          )}
+                          {item.app?.name_zh && <div className="text-sm text-gray-500">{item.app.name_zh}</div>}
                           <div className="text-sm text-gray-500 mt-1">{item.app?.description}</div>
                           {item.app?.description_zh && (
                             <div className="text-xs text-gray-400 mt-1">{item.app.description_zh}</div>
@@ -260,7 +258,8 @@ export default function AdminMiniApps() {
                       </div>
                       <div className="flex flex-col gap-2 text-sm text-gray-500">
                         <div>
-                          Developer: <span className="text-gray-900 dark:text-white">{item.app?.developer_name || "Unknown"}</span>
+                          Developer:{" "}
+                          <span className="text-gray-900 dark:text-white">{item.app?.developer_name || "Unknown"}</span>
                         </div>
                         {item.app?.developer_address && <div className="text-xs">{item.app.developer_address}</div>}
                         <div>
@@ -382,5 +381,3 @@ export default function AdminMiniApps() {
     </Layout>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

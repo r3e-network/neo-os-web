@@ -3,17 +3,22 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase";
+import { requireWalletAuth } from "@/lib/security/wallet-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Database not configured" });
   }
+  const db = supabaseAdmin;
 
-  const walletAddress = req.headers["x-wallet-address"] as string;
-  if (!walletAddress) {
-    return res.status(401).json({ error: "Wallet address required" });
+  // SECURITY: Verify wallet ownership via cryptographic signature
+  const auth = requireWalletAuth(req.headers);
+  if (!auth.ok) {
+    return res.status(auth.status).json({ error: auth.error });
   }
+  const walletAddress = auth.address;
 
   const { appId } = req.query;
   if (!appId || typeof appId !== "string") {
@@ -22,17 +27,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   switch (req.method) {
     case "GET":
-      return handleGet(res, appId, walletAddress);
+      return handleGet(db, res, appId, walletAddress);
     case "PUT":
-      return handleSave(req, res, appId, walletAddress);
+      return handleSave(db, req, res, appId, walletAddress);
     default:
       return res.status(405).json({ error: "Method not allowed" });
   }
 }
 
-async function handleGet(res: NextApiResponse, appId: string, walletAddress: string) {
+async function handleGet(db: SupabaseClient, res: NextApiResponse, appId: string, walletAddress: string) {
   try {
-    const { data, error } = await supabaseAdmin!
+    const { data, error } = await db
       .from("miniapp_cloud_saves")
       .select("*")
       .eq("app_id", appId)
@@ -47,7 +52,13 @@ async function handleGet(res: NextApiResponse, appId: string, walletAddress: str
   }
 }
 
-async function handleSave(req: NextApiRequest, res: NextApiResponse, appId: string, walletAddress: string) {
+async function handleSave(
+  db: SupabaseClient,
+  req: NextApiRequest,
+  res: NextApiResponse,
+  appId: string,
+  walletAddress: string,
+) {
   const { slot_name = "default", save_data, client_timestamp } = req.body;
 
   if (!save_data) {
@@ -55,7 +66,7 @@ async function handleSave(req: NextApiRequest, res: NextApiResponse, appId: stri
   }
 
   try {
-    const { data, error } = await supabaseAdmin!
+    const { data, error } = await db
       .from("miniapp_cloud_saves")
       .upsert(
         {

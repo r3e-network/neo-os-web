@@ -67,6 +67,11 @@ module.exports = {
           sky: "#d9ecff",
           ink: "#1b1b2f",
           "ink-soft": "#45455c",
+          // Unified dark mode surface tokens
+          "bg-dark": "#0b0c16",
+          "bg-deeper": "#050505",
+          "bg-card": "#1a1b26",
+          "bg-surface": "#080808",
         },
       },
       boxShadow: {

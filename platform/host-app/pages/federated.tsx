@@ -62,7 +62,7 @@ export default function FederatedMiniApp() {
     return () => {
       mounted = false;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appId]);
 
   return (
@@ -100,11 +100,6 @@ export default function FederatedMiniApp() {
     </>
   );
 }
-
-// Disable static generation - requires client-side router
-export const getServerSideProps = async () => {
-  return { props: {} };
-};
 
 const pageStyle: CSSProperties = {
   height: "100vh",

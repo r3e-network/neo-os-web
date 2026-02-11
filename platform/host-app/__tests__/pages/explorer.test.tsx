@@ -1,7 +1,7 @@
 import * as explorerPage from "../../pages/explorer";
 
 describe("explorer page", () => {
-  it("exports getServerSideProps to avoid static prerender", () => {
-    expect(typeof explorerPage.getServerSideProps).toBe("function");
+  it("exports a default component", () => {
+    expect(typeof explorerPage.default).toBe("function");
   });
 });

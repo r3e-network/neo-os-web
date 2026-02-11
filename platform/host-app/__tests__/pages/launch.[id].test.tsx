@@ -353,7 +353,7 @@ describe("LaunchPage", () => {
       const contentWindow = {
         postMessage: jest.fn(),
         dispatchEvent: jest.fn(),
-      } as { postMessage: jest.Mock; dispatchEvent: jest.Mock; };
+      } as { postMessage: jest.Mock; dispatchEvent: jest.Mock };
       Object.defineProperty(iframe, "contentWindow", {
         value: contentWindow,
         writable: true,
@@ -532,7 +532,7 @@ describe("getServerSideProps", () => {
     const context = {
       params: { id: "test-app" },
       req: { headers: { host: "localhost:3000" } },
-    } as { params: { id: string }; req: { headers: { host: string } } };
+    } as unknown as Parameters<typeof getServerSideProps>[0];
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       json: async () => ({ stats: [mockApp] }),
@@ -550,7 +550,7 @@ describe("getServerSideProps", () => {
     const context = {
       params: { id: "non-existent-app" },
       req: { headers: { host: "localhost:3000" } },
-    } as { params: { id: string }; req: { headers: { host: string } } };
+    } as unknown as Parameters<typeof getServerSideProps>[0];
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       json: async () => ({ stats: [] }),
@@ -565,7 +565,7 @@ describe("getServerSideProps", () => {
     const context = {
       params: { id: "miniapp-coinflip" },
       req: { headers: { host: "localhost:3000" } },
-    } as { params: { id: string }; req: { headers: { host: string } } };
+    } as unknown as Parameters<typeof getServerSideProps>[0];
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       json: async () => ({ stats: [] }),
@@ -573,14 +573,16 @@ describe("getServerSideProps", () => {
 
     const result = await getServerSideProps(context);
 
-    expect((result as { props: { app: { entry_url: string } } }).props.app.entry_url).toBe("/miniapp-assets/coin-flip/index.html");
+    expect((result as { props: { app: { entry_url: string } } }).props.app.entry_url).toBe(
+      "/miniapp-assets/coin-flip/index.html",
+    );
   });
 
   it("should return app with required fields", async () => {
     const context = {
       params: { id: "miniapp-lottery" },
       req: { headers: { host: "localhost:3000" } },
-    } as { params: { id: string }; req: { headers: { host: string } } };
+    } as unknown as Parameters<typeof getServerSideProps>[0];
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       json: async () => ({ stats: [] }),

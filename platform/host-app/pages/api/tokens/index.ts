@@ -5,33 +5,32 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { randomBytes, createHash } from "crypto";
+import { createHandler } from "@/lib/api";
+import { createTokenBody } from "@/lib/schemas";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { walletAddress } = req.query;
+export default createHandler({
+  auth: "wallet",
+  methods: {
+    GET: (req, res, ctx) => handleGet(ctx.db, ctx.address!, res),
+    POST: {
+      handler: (req, res, ctx) => handlePost(ctx.db, ctx.address!, req, res),
+      schema: createTokenBody,
+      rateLimit: "write",
+    },
+  },
+});
 
-  if (!walletAddress || typeof walletAddress !== "string") {
-    return res.status(400).json({ error: "Missing wallet address" });
-  }
-
-  if (req.method === "GET") {
-    return handleGet(walletAddress, res);
-  } else if (req.method === "POST") {
-    return handlePost(walletAddress, req, res);
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
-
-async function handleGet(walletAddress: string, res: NextApiResponse) {
+async function handleGet(db: SupabaseClient, walletAddress: string, res: NextApiResponse) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("developer_tokens")
       .select("id, token_prefix, name, scopes, last_used_at, expires_at, created_at")
       .eq("wallet_address", walletAddress)
       .is("revoked_at", null)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(100);
 
     if (error) {
       console.error("Failed to fetch tokens:", error);
@@ -45,24 +44,17 @@ async function handleGet(walletAddress: string, res: NextApiResponse) {
   }
 }
 
-async function handlePost(walletAddress: string, req: NextApiRequest, res: NextApiResponse) {
+async function handlePost(db: SupabaseClient, walletAddress: string, req: NextApiRequest, res: NextApiResponse) {
   try {
     const { name, scopes, expiresInDays } = req.body;
 
-    if (!name) {
-      return res.status(400).json({ error: "Token name is required" });
-    }
-
-    // Generate random token
     const token = `neo_${randomBytes(32).toString("hex")}`;
     const tokenHash = createHash("sha256").update(token).digest("hex");
     const tokenPrefix = token.substring(0, 12);
 
-    // Calculate expiration
     const expiresAt = expiresInDays ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString() : null;
 
-    // Store token
-    const { error } = await supabase.from("developer_tokens").insert({
+    const { error } = await db.from("developer_tokens").insert({
       wallet_address: walletAddress,
       token_hash: tokenHash,
       token_prefix: tokenPrefix,

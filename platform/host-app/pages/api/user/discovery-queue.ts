@@ -3,32 +3,21 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseAdmin } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHandler } from "@/lib/api";
+import { discoveryQueueBody } from "@/lib/schemas";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!supabaseAdmin) {
-    return res.status(500).json({ error: "Database not configured" });
-  }
+export default createHandler({
+  auth: "wallet",
+  methods: {
+    GET: (_req, res, ctx) => handleGet(ctx.db, ctx.address!, res),
+    POST: { handler: (req, res, ctx) => handleAction(ctx.db, ctx.address!, req, res), schema: discoveryQueueBody },
+  },
+});
 
-  const walletAddress = req.headers["x-wallet-address"] as string;
-  if (!walletAddress) {
-    return res.status(401).json({ error: "Wallet address required" });
-  }
-
-  if (req.method === "GET") {
-    return handleGet(res, walletAddress);
-  }
-
-  if (req.method === "POST") {
-    return handleAction(req, res, walletAddress);
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
-
-async function handleGet(res: NextApiResponse, walletAddress: string) {
+async function handleGet(db: SupabaseClient, walletAddress: string, res: NextApiResponse) {
   try {
-    const { data, error } = await supabaseAdmin!
+    const { data, error } = await db
       .from("miniapp_discovery_queue")
       .select("*")
       .eq("wallet_address", walletAddress)
@@ -44,15 +33,11 @@ async function handleGet(res: NextApiResponse, walletAddress: string) {
   }
 }
 
-async function handleAction(req: NextApiRequest, res: NextApiResponse, walletAddress: string) {
+async function handleAction(db: SupabaseClient, walletAddress: string, req: NextApiRequest, res: NextApiResponse) {
   const { app_id, action } = req.body;
 
-  if (!app_id || !action) {
-    return res.status(400).json({ error: "App ID and action required" });
-  }
-
   try {
-    await supabaseAdmin!
+    await db
       .from("miniapp_discovery_queue")
       .update({ action, shown_at: new Date().toISOString() })
       .eq("wallet_address", walletAddress)

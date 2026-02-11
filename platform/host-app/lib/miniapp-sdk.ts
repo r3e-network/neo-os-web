@@ -1,6 +1,7 @@
 import { createMiniAppSDK } from "./sdk/client.js";
 import type { MiniAppSDK, MiniAppSDKConfig, MiniAppChainContracts } from "./sdk/types";
-import { setChainRpcUrl } from "./chain/rpc-client";
+import { setChainRpcUrl } from "./chains/rpc-functions";
+import { getWalletAuthHeaders } from "./security/wallet-auth-client";
 import type { ChainId } from "./chains/types";
 
 type MiniAppPermissions = {
@@ -266,9 +267,10 @@ function scopeMiniAppSDK(sdk: MiniAppSDK, options?: InstallOptions): MiniAppSDK 
         requirePermission(permissions, "automation");
         const resolved = appId;
         if (!resolved) throw new Error("app_id required");
+        const authHeaders = await getWalletAuthHeaders();
         const res = await fetch("/api/automation/register", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeaders },
           body: JSON.stringify({ appId: resolved, taskName, taskType, payload, schedule }),
         });
         return res.json();

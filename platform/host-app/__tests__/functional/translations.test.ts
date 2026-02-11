@@ -26,10 +26,10 @@ describe("Translation Completeness", () => {
     it("should have matching keys between en and zh common", () => {
       const enKeys = getKeys(enCommon).sort();
       const zhKeys = getKeys(zhCommon).sort();
-      
+
       const missingInZh = enKeys.filter((k) => !zhKeys.includes(k));
       const missingInEn = zhKeys.filter((k) => !enKeys.includes(k));
-      
+
       expect(missingInZh).toEqual([]);
       expect(missingInEn).toEqual([]);
     });
@@ -37,7 +37,9 @@ describe("Translation Completeness", () => {
     it("should have non-empty values for all common keys", () => {
       const enKeys = getKeys(enCommon);
       enKeys.forEach((key) => {
-        const value = key.split(".").reduce((o: Record<string, unknown>, k: string) => (o as Record<string, unknown>)?.[k], enCommon as Record<string, unknown>);
+        const value = key
+          .split(".")
+          .reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], enCommon as Record<string, unknown>);
         expect(value).toBeTruthy();
       });
     });
@@ -47,10 +49,10 @@ describe("Translation Completeness", () => {
     it("should have matching keys between en and zh host", () => {
       const enKeys = getKeys(enHost).sort();
       const zhKeys = getKeys(zhHost).sort();
-      
+
       const missingInZh = enKeys.filter((k) => !zhKeys.includes(k));
       const missingInEn = zhKeys.filter((k) => !enKeys.includes(k));
-      
+
       expect(missingInZh).toEqual([]);
       expect(missingInEn).toEqual([]);
     });
@@ -61,7 +63,9 @@ describe("Translation Completeness", () => {
       const checkPlaceholders = (obj: object, _lang: string) => {
         const keys = getKeys(obj);
         keys.forEach((key) => {
-          const value = key.split(".").reduce((o: Record<string, unknown>, k: string) => (o as Record<string, unknown>)?.[k], obj as Record<string, unknown>);
+          const value = key
+            .split(".")
+            .reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], obj as Record<string, unknown>);
           if (typeof value === "string") {
             expect(value.toLowerCase()).not.toContain("todo");
             expect(value.toLowerCase()).not.toContain("fixme");
@@ -69,7 +73,7 @@ describe("Translation Completeness", () => {
           }
         });
       };
-      
+
       checkPlaceholders(enCommon, "en");
       checkPlaceholders(zhCommon, "zh");
     });

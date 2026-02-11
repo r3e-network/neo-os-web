@@ -5,24 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { WaterWaveBackground } from "@/components/ui/WaterWaveBackground";
-import {
-  Shield,
-  Wallet,
-  Trophy,
-  Zap,
-  TrendingUp,
-  Flame,
-  Copy,
-} from "lucide-react";
+import { Shield, Wallet, Trophy, Zap, TrendingUp, Flame, Copy } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useGamification } from "@/hooks/useGamification";
 import { BadgeGrid } from "@/components/features/gamification";
-import {
-  SecretManagement,
-  TokenManagement,
-  AccountBackup,
-  PasswordChange,
-} from "@/components/features/account";
+import { SecretManagement, TokenManagement, AccountBackup, PasswordChange } from "@/components/features/account";
 import { useTranslation } from "@/lib/i18n/react";
 import { cn } from "@/lib/utils";
 
@@ -257,8 +244,6 @@ export default function AccountPage() {
     </Layout>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });
 
 function StatItem({ label, value }: { label: string; value: string | number }) {
   return (

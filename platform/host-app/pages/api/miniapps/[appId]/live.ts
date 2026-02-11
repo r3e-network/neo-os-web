@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getLiveStatus } from "../../../../lib/miniapp-stats";
-import { getContractAddress } from "../../../../lib/chain";
-import { getChainRegistry } from "../../../../lib/chains/registry";
-import type { ChainId } from "../../../../lib/chains/types";
+import { getLiveStatus } from "@/lib/miniapp-stats";
+import { getContractAddress } from "@/lib/chains/contract-queries";
+import { getChainRegistry } from "@/lib/chains/registry";
+import type { ChainId } from "@/lib/chains/types";
 
 // Map app IDs to contract names
 const APP_CONTRACT_NAMES: Record<string, string> = {

@@ -23,10 +23,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
         return res.json(data);
     } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
         console.error("GrantShares Proxy Error Details:", {
-            message: error.message,
-            stack: error.stack,
-            cause: error.cause
+            message: err.message,
+            stack: err.stack,
+            cause: (err as { cause?: unknown }).cause
         });
         return res.status(500).json({ error: "Failed to fetch data", items: [], total: 0 });
     }

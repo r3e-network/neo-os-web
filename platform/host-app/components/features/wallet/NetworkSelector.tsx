@@ -84,7 +84,7 @@ export function ChainSelector({
       </button>
 
       {showMenu && (
-        <div className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-white/90 dark:bg-[#0b0c16]/95 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.2)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+        <div className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-white/90 dark:bg-erobo-bg-dark/95 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.2)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
           <div className="p-2">
             <div className="text-[10px] font-bold uppercase text-erobo-ink-soft/70 dark:text-gray-500 px-3 py-2 tracking-wider flex items-center gap-2">
               {t("network.selectChain") || "Select Chain"}

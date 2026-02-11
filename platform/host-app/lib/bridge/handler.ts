@@ -8,7 +8,8 @@ import type { BridgeMessage, BridgeResponse, MessageType } from "./types";
 import type { ChainId } from "../chains/types";
 import { getChainRegistry } from "../chains/registry";
 import { useWalletStore } from "../wallet/store";
-import { getTransactionLogMultiChain, invokeRead } from "../chain/rpc-client";
+import type { WalletProvider } from "../wallet/store";
+import { getTransactionLogMultiChain, invokeRead } from "../chains/rpc-functions";
 
 type HandlerContext = {
   source?: MessageEventSource | null;

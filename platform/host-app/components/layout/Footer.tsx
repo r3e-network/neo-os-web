@@ -23,7 +23,7 @@ export function Footer() {
   const { t } = useTranslation("common");
 
   return (
-    <footer className="relative border-t border-white/60 dark:border-white/10 bg-white/70 dark:bg-[#0b0c16] pt-16 pb-12 overflow-hidden">
+    <footer className="relative border-t border-white/60 dark:border-white/10 bg-white/70 dark:bg-erobo-bg-dark pt-16 pb-12 overflow-hidden">
       {/* Glass Background Elements */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-erobo-purple/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-erobo-peach/20 rounded-full blur-3xl pointer-events-none" />

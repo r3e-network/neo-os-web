@@ -3,6 +3,16 @@
  */
 
 import { renderHook, act } from "@testing-library/react";
+
+jest.mock("@/lib/security/wallet-auth-client", () => ({
+  getWalletAuthHeaders: jest.fn().mockResolvedValue({
+    "x-wallet-address": "NXtest",
+    "x-wallet-publickey": "03aa",
+    "x-wallet-signature": "deadbeef",
+    "x-wallet-message": "{}",
+  }),
+}));
+
 import { useCollectionStore } from "@/lib/collections/store";
 
 // Mock fetch

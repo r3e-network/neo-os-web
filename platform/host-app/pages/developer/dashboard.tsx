@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { AppCard } from "@/components/features/developer";
 import { Plus, Package, BarChart3, Settings } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
+import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
 
 interface App {
   app_id: string;
@@ -35,8 +36,9 @@ export default function DeveloperDashboard() {
 
   const fetchApps = async () => {
     try {
+      const authHeaders = await getWalletAuthHeaders();
       const res = await fetch("/api/developer/apps", {
-        headers: { "x-developer-address": address || "" },
+        headers: authHeaders,
       });
       const data = await res.json();
       setApps(data.apps || []);
@@ -164,5 +166,3 @@ function EmptyState() {
     </div>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

@@ -2,8 +2,9 @@
  * App Versions API - List and Create Versions
  */
 
-import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseAdmin } from "@/lib/supabase";
+import { createHandler } from "@/lib/api/create-handler";
+import { createVersionBody } from "@/lib/schemas";
+import type { z } from "zod";
 
 type ContractConfig = {
   address?: string | null;
@@ -24,7 +25,8 @@ function normalizeContracts(raw: unknown): Record<string, ContractConfig> {
     if (!value || typeof value !== "object" || Array.isArray(value)) return;
     const obj = value as Record<string, unknown>;
     const address = typeof obj.address === "string" ? obj.address : undefined;
-    const entryUrl = typeof obj.entry_url === "string" ? obj.entry_url : typeof obj.entryUrl === "string" ? obj.entryUrl : undefined;
+    const entryUrl =
+      typeof obj.entry_url === "string" ? obj.entry_url : typeof obj.entryUrl === "string" ? obj.entryUrl : undefined;
     const active = typeof obj.active === "boolean" ? obj.active : undefined;
 
     result[chainId] = {
@@ -37,123 +39,100 @@ function normalizeContracts(raw: unknown): Record<string, ContractConfig> {
   return result;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!supabaseAdmin) {
-    return res.status(500).json({ error: "Database not configured" });
-  }
-
-  const developerAddress = req.headers["x-developer-address"] as string;
-  if (!developerAddress) {
-    return res.status(401).json({ error: "Developer address required" });
-  }
-
-  const { appId } = req.query;
-  if (!appId || typeof appId !== "string") {
-    return res.status(400).json({ error: "App ID required" });
-  }
-
-  // Verify ownership
-  const { data: app } = await supabaseAdmin
+/** Verify the caller owns the app. Shared by GET and POST. */
+async function verifyOwnership(
+  ctx: { db: import("@supabase/supabase-js").SupabaseClient; address?: string },
+  appId: string,
+) {
+  const { data: app } = await ctx.db
     .from("miniapp_registry")
     .select("app_id")
     .eq("app_id", appId)
-    .eq("developer_address", developerAddress)
+    .eq("developer_address", ctx.address!)
     .single();
-
-  if (!app) {
-    return res.status(404).json({ error: "App not found" });
-  }
-
-  if (req.method === "GET") {
-    return handleGet(res, appId);
-  }
-
-  if (req.method === "POST") {
-    return handlePost(req, res, appId);
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
+  return !!app;
 }
 
-async function handleGet(res: NextApiResponse, appId: string) {
-  try {
-    const { data, error } = await supabaseAdmin!
-      .from("miniapp_versions")
-      .select("*")
-      .eq("app_id", appId)
-      .order("version_code", { ascending: false });
+export default createHandler({
+  auth: "wallet",
+  rateLimit: "api",
+  methods: {
+    GET: async (req, res, ctx) => {
+      const appId = req.query.appId as string;
+      if (!appId) return res.status(400).json({ error: "App ID required" });
 
-    if (error) throw error;
+      if (!(await verifyOwnership(ctx, appId))) {
+        return res.status(404).json({ error: "App not found" });
+      }
 
-    return res.status(200).json({ versions: data || [] });
-  } catch (error) {
-    console.error("List versions error:", error);
-    return res.status(500).json({ error: "Failed to list versions" });
-  }
-}
+      const { data, error } = await ctx.db
+        .from("miniapp_versions")
+        .select("*")
+        .eq("app_id", appId)
+        .order("version_code", { ascending: false });
 
-async function handlePost(req: NextApiRequest, res: NextApiResponse, appId: string) {
-  const { version, release_notes, entry_url, supported_chains, contracts, build_url } = req.body;
+      if (error) return res.status(500).json({ error: "Failed to list versions" });
+      return res.status(200).json({ versions: data || [] });
+    },
 
-  if (!version || !entry_url) {
-    return res.status(400).json({ error: "Version and entry_url required" });
-  }
+    POST: {
+      rateLimit: "write",
+      schema: createVersionBody,
+      handler: async (req, res, ctx) => {
+        const appId = req.query.appId as string;
+        if (!appId) return res.status(400).json({ error: "App ID required" });
 
-  const buildUrl = typeof build_url === "string" ? build_url.trim() : "";
-  if (buildUrl && !/^https?:\/\//i.test(buildUrl)) {
-    return res.status(400).json({ error: "Build URL must be http(s)" });
-  }
+        if (!(await verifyOwnership(ctx, appId))) {
+          return res.status(404).json({ error: "App not found" });
+        }
 
-  try {
-    // Get next version code
-    const { data: latest } = await supabaseAdmin!
-      .from("miniapp_versions")
-      .select("version_code")
-      .eq("app_id", appId)
-      .order("version_code", { ascending: false })
-      .limit(1)
-      .single();
+        const input = ctx.parsedInput as z.infer<typeof createVersionBody>;
+        const buildUrl = input.build_url?.trim() || "";
 
-    const version_code = (latest?.version_code || 0) + 1;
+        // Get next version code
+        const { data: latest } = await ctx.db
+          .from("miniapp_versions")
+          .select("version_code")
+          .eq("app_id", appId)
+          .order("version_code", { ascending: false })
+          .limit(1)
+          .single();
 
-    const supportedChains = Array.isArray(supported_chains) ? supported_chains : [];
-    const contractMap = normalizeContracts(contracts);
+        const version_code = (latest?.version_code || 0) + 1;
+        const supportedChains = input.supported_chains || [];
+        const contractMap = normalizeContracts(input.contracts);
 
-    const { data, error } = await supabaseAdmin!
-      .from("miniapp_versions")
-      .insert({
-        app_id: appId,
-        version,
-        version_code,
-        entry_url,
-        supported_chains: supportedChains,
-        contracts: contractMap,
-        release_notes,
-        status: "draft",
-      })
-      .select()
-      .single();
+        const { data, error } = await ctx.db
+          .from("miniapp_versions")
+          .insert({
+            app_id: appId,
+            version: input.version,
+            version_code,
+            entry_url: input.entry_url,
+            supported_chains: supportedChains,
+            contracts: contractMap,
+            release_notes: input.release_notes,
+            status: "draft",
+          })
+          .select()
+          .single();
 
-    if (error) throw error;
+        if (error) return res.status(500).json({ error: "Failed to create version" });
 
-    if (buildUrl) {
-      const buildNumber = 1;
-      await supabaseAdmin!
-        .from("miniapp_builds")
-        .insert({
-          version_id: data.id,
-          build_number: buildNumber,
-          platform: "web",
-          storage_path: buildUrl,
-          storage_provider: "external",
-          status: "ready",
-          completed_at: new Date().toISOString(),
-        });
-    }
+        if (buildUrl) {
+          await ctx.db.from("miniapp_builds").insert({
+            version_id: data.id,
+            build_number: 1,
+            platform: "web",
+            storage_path: buildUrl,
+            storage_provider: "external",
+            status: "ready",
+            completed_at: new Date().toISOString(),
+          });
+        }
 
-    return res.status(201).json({ version: data });
-  } catch (error) {
-    console.error("Create version error:", error);
-    return res.status(500).json({ error: "Failed to create version" });
-  }
-}
+        return res.status(201).json({ version: data });
+      },
+    },
+  },
+});

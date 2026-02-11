@@ -29,14 +29,6 @@ export function TokenManagement({ walletAddress }: TokenManagementProps) {
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  useEffect(() => {
-    if (walletAddress) {
-      loadTokens();
-    } else {
-      setLoading(false);
-    }
-  }, [walletAddress, loadTokens]);
-
   const loadTokens = useCallback(async () => {
     try {
       if (!walletAddress) return;
@@ -51,6 +43,14 @@ export function TokenManagement({ walletAddress }: TokenManagementProps) {
       setLoading(false);
     }
   }, [walletAddress]);
+
+  useEffect(() => {
+    if (walletAddress) {
+      loadTokens();
+    } else {
+      setLoading(false);
+    }
+  }, [walletAddress, loadTokens]);
 
   const handleRevoke = async (id: number) => {
     if (!confirm("Revoke this token? Applications using it will lose access.")) return;

@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseAdmin, isSupabaseConfigured } from "../../../lib/supabase";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { writeRateLimiter, withRateLimit } from "@/lib/security/ratelimit";
+import { requireWalletAuth } from "@/lib/security/wallet-auth";
+import { normalizeContracts } from "@/lib/contracts";
 
 export interface SubmitMiniAppRequest {
   name: string;
@@ -26,39 +29,7 @@ export interface SubmitMiniAppRequest {
   };
 }
 
-type ContractConfig = {
-  address?: string | null;
-  active?: boolean;
-  entry_url?: string;
-};
-
-function normalizeContracts(raw: unknown): Record<string, ContractConfig> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  const result: Record<string, ContractConfig> = {};
-
-  Object.entries(raw as Record<string, unknown>).forEach(([chainId, value]) => {
-    if (typeof value === "string") {
-      result[chainId] = { address: value };
-      return;
-    }
-
-    if (!value || typeof value !== "object" || Array.isArray(value)) return;
-    const obj = value as Record<string, unknown>;
-    const address = typeof obj.address === "string" ? obj.address : undefined;
-    const entryUrl = typeof obj.entry_url === "string" ? obj.entry_url : typeof obj.entryUrl === "string" ? obj.entryUrl : undefined;
-    const active = typeof obj.active === "boolean" ? obj.active : undefined;
-
-    result[chainId] = {
-      ...(address ? { address } : {}),
-      ...(entryUrl ? { entry_url: entryUrl } : {}),
-      ...(active !== undefined ? { active } : {}),
-    };
-  });
-
-  return result;
-}
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withRateLimit(writeRateLimiter, async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -67,17 +38,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Database not configured" });
   }
 
+  // SECURITY: Verify wallet ownership via cryptographic signature
+  const auth = requireWalletAuth(req.headers);
+  if (!auth.ok) {
+    return res.status(auth.status).json({ error: auth.error });
+  }
+
   const body = req.body as SubmitMiniAppRequest;
   const nameZh = typeof body.name_zh === "string" ? body.name_zh.trim() : "";
   const descriptionZh = typeof body.description_zh === "string" ? body.description_zh.trim() : "";
 
   // Validate required fields
-  if (!body.name || !nameZh || !body.description || !descriptionZh || !body.entry_url || !body.developer_address) {
+  if (!body.name || !nameZh || !body.description || !descriptionZh || !body.entry_url) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
+  if (!/^https?:\/\//i.test(body.entry_url)) {
+    return res.status(400).json({ error: "Entry URL must be http(s)" });
+  }
+
   // Generate app_id from name (append timestamp for uniqueness)
-  const slug = body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const slug = body.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
   const app_id = `community-${slug}-${Date.now().toString(36)}`;
   const supportedChains =
     Array.isArray(body.supported_chains) && body.supported_chains.length > 0 ? body.supported_chains : [];
@@ -89,11 +73,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Step 1: Insert registry entry
     const { data: registry, error: registryError } = await supabaseAdmin
       .from("miniapp_registry")
       .insert({
         app_id,
-        developer_address: body.developer_address,
+        developer_address: auth.address,
         name: body.name,
         name_zh: nameZh || null,
         description: body.description,
@@ -116,21 +101,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (registryError) throw registryError;
 
-    const { error: versionError } = await supabaseAdmin
-      .from("miniapp_versions")
-      .insert({
-        app_id,
-        version: "1.0.0",
-        version_code: 1,
-        entry_url: body.entry_url,
-        supported_chains: supportedChains,
-        contracts: contracts,
-        status: "pending_review",
-        is_current: false,
-      });
+    // Step 2: Insert version entry (rollback registry on failure)
+    const { error: versionError } = await supabaseAdmin.from("miniapp_versions").insert({
+      app_id,
+      version: "1.0.0",
+      version_code: 1,
+      entry_url: body.entry_url,
+      supported_chains: supportedChains,
+      contracts: contracts,
+      status: "pending_review",
+      is_current: false,
+    });
 
-    if (versionError) throw versionError;
+    if (versionError) {
+      await supabaseAdmin.from("miniapp_registry").delete().eq("app_id", app_id);
+      throw versionError;
+    }
 
+    // Step 3: Insert build entry if provided (rollback registry + version on failure)
     if (buildUrl) {
       const { data: versionRow } = await supabaseAdmin
         .from("miniapp_versions")
@@ -140,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .single();
 
       if (versionRow?.id) {
-        await supabaseAdmin.from("miniapp_builds").insert({
+        const { error: buildError } = await supabaseAdmin.from("miniapp_builds").insert({
           version_id: versionRow.id,
           build_number: 1,
           platform: "web",
@@ -149,6 +137,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           status: "ready",
           completed_at: new Date().toISOString(),
         });
+
+        if (buildError) {
+          await supabaseAdmin.from("miniapp_versions").delete().eq("app_id", app_id);
+          await supabaseAdmin.from("miniapp_registry").delete().eq("app_id", app_id);
+          throw buildError;
+        }
       }
     }
 
@@ -162,4 +156,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Submit error:", error);
     res.status(500).json({ error: "Failed to submit MiniApp" });
   }
-}
+});

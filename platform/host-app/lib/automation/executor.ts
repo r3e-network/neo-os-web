@@ -1,20 +1,10 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase";
 import type { AutomationTask, AutomationSchedule } from "@/lib/db/types";
 
-// Lazy initialization to avoid errors when env vars are not set
-let _supabase: SupabaseClient | null = null;
-
-function getSupabase(): SupabaseClient {
-  if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
-      throw new Error("Supabase configuration missing for automation executor");
-    }
-    _supabase = createClient(url, key);
-  }
-  return _supabase;
+/** Get DB client or throw */
+function db() {
+  if (!supabaseAdmin) throw new Error("Database not configured for automation executor");
+  return supabaseAdmin;
 }
 
 export interface ExecutionResult {
@@ -28,7 +18,7 @@ export interface ExecutionResult {
 export async function getReadyTasks(): Promise<Array<{ task: AutomationTask; schedule: AutomationSchedule }>> {
   const now = new Date().toISOString();
 
-  const { data, error } = await getSupabase()
+  const { data, error } = await db()
     .from("automation_schedules")
     .select("*, task:automation_tasks(*)")
     .lte("next_run_at", now)
@@ -80,7 +70,7 @@ async function logExecution(
   error?: string,
   durationMs?: number,
 ) {
-  await getSupabase().from("automation_logs").insert({
+  await db().from("automation_logs").insert({
     task_id: taskId,
     status,
     result,
@@ -104,8 +94,8 @@ async function updateSchedule(schedule: AutomationSchedule, _success: boolean) {
 
   // Check max runs
   if (schedule.max_runs && updates.run_count! >= schedule.max_runs) {
-    await getSupabase().from("automation_tasks").update({ status: "completed" }).eq("id", schedule.task_id);
+    await db().from("automation_tasks").update({ status: "completed" }).eq("id", schedule.task_id);
   }
 
-  await getSupabase().from("automation_schedules").update(updates).eq("id", schedule.id);
+  await db().from("automation_schedules").update(updates).eq("id", schedule.id);
 }

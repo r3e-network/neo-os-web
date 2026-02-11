@@ -1,13 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const pages = [
-  "account.tsx",
-  "analytics.tsx",
-  "download.tsx",
-  "home.tsx",
-  "leaderboard.tsx",
-];
+const pages = ["app/[id].tsx", "launch/[id].tsx", "miniapps/[id].tsx", "container.tsx"];
 
 const pagesDir = path.join(__dirname, "..", "..", "pages");
 

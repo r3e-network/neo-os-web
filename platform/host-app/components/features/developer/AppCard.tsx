@@ -34,7 +34,7 @@ export function AppCard({ app }: AppCardProps) {
 
   return (
     <Link href={`/developer/apps/${app.app_id}`}>
-      <div className="group rounded-2xl p-6 bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 hover:border-neo/40 hover:shadow-lg transition-all cursor-pointer">
+      <div className="group rounded-2xl p-6 bg-white dark:bg-erobo-bg-surface/80 border border-gray-200 dark:border-white/10 hover:border-neo/40 hover:shadow-lg transition-all cursor-pointer">
         <div className="flex items-start gap-4">
           {/* Icon */}
           <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-erobo-purple/20 to-erobo-pink/20 flex items-center justify-center flex-shrink-0">

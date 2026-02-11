@@ -3,33 +3,28 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseAdmin } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHandler } from "@/lib/api";
+import { wishlistBody } from "@/lib/schemas";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!supabaseAdmin) {
-    return res.status(500).json({ error: "Database not configured" });
-  }
+export default createHandler({
+  auth: "wallet",
+  methods: {
+    GET: (req, res, ctx) => handleGet(ctx.db, ctx.address!, res),
+    POST: {
+      handler: (req, res, ctx) => handleAdd(ctx.db, ctx.address!, req, res),
+      schema: wishlistBody,
+    },
+    DELETE: {
+      handler: (req, res, ctx) => handleRemove(ctx.db, ctx.address!, req, res),
+      schema: wishlistBody,
+    },
+  },
+});
 
-  const walletAddress = req.headers["x-wallet-address"] as string;
-  if (!walletAddress) {
-    return res.status(401).json({ error: "Wallet address required" });
-  }
-
-  switch (req.method) {
-    case "GET":
-      return handleGet(res, walletAddress);
-    case "POST":
-      return handleAdd(req, res, walletAddress);
-    case "DELETE":
-      return handleRemove(req, res, walletAddress);
-    default:
-      return res.status(405).json({ error: "Method not allowed" });
-  }
-}
-
-async function handleGet(res: NextApiResponse, walletAddress: string) {
+async function handleGet(db: SupabaseClient, walletAddress: string, res: NextApiResponse) {
   try {
-    const { data, error } = await supabaseAdmin!
+    const { data, error } = await db
       .from("miniapp_wishlist")
       .select("*")
       .eq("wallet_address", walletAddress)
@@ -43,14 +38,11 @@ async function handleGet(res: NextApiResponse, walletAddress: string) {
   }
 }
 
-async function handleAdd(req: NextApiRequest, res: NextApiResponse, walletAddress: string) {
+async function handleAdd(db: SupabaseClient, walletAddress: string, req: NextApiRequest, res: NextApiResponse) {
   const { app_id } = req.body;
-  if (!app_id) {
-    return res.status(400).json({ error: "App ID required" });
-  }
 
   try {
-    const { data, error } = await supabaseAdmin!
+    const { data, error } = await db
       .from("miniapp_wishlist")
       .upsert({ wallet_address: walletAddress, app_id }, { onConflict: "wallet_address,app_id" })
       .select()
@@ -64,15 +56,11 @@ async function handleAdd(req: NextApiRequest, res: NextApiResponse, walletAddres
   }
 }
 
-async function handleRemove(req: NextApiRequest, res: NextApiResponse, walletAddress: string) {
+async function handleRemove(db: SupabaseClient, walletAddress: string, req: NextApiRequest, res: NextApiResponse) {
   const { app_id } = req.body;
-  if (!app_id) {
-    return res.status(400).json({ error: "App ID required" });
-  }
 
   try {
-    await supabaseAdmin!.from("miniapp_wishlist").delete().eq("wallet_address", walletAddress).eq("app_id", app_id);
-
+    await db.from("miniapp_wishlist").delete().eq("wallet_address", walletAddress).eq("app_id", app_id);
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("Remove from wishlist error:", error);

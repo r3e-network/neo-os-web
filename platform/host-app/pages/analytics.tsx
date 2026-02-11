@@ -73,19 +73,39 @@ export default function AnalyticsPage() {
   );
 }
 
-export const getServerSideProps = async () => ({ props: {} });
-
-function AnalyticsDashboard({ analytics, t, locale }: { analytics: UserAnalytics; t: (key: string) => string; locale: string }) {
+function AnalyticsDashboard({
+  analytics,
+  t,
+  locale,
+}: {
+  analytics: UserAnalytics;
+  t: (key: string) => string;
+  locale: string;
+}) {
   const { summary, activity, appBreakdown } = analytics;
 
   return (
     <div className="space-y-8">
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title={t("analytics.totalTransactions")} value={summary.totalTx} change={12} icon={<Activity size={16} />} />
-        <StatCard title={t("analytics.totalVolume")} value={`${summary.totalVolume} GAS`} change={8} icon={<Wallet size={16} />} />
+        <StatCard
+          title={t("analytics.totalTransactions")}
+          value={summary.totalTx}
+          change={12}
+          icon={<Activity size={16} />}
+        />
+        <StatCard
+          title={t("analytics.totalVolume")}
+          value={`${summary.totalVolume} GAS`}
+          change={8}
+          icon={<Wallet size={16} />}
+        />
         <StatCard title={t("analytics.appsUsed")} value={summary.appsUsed} icon={<LayoutGrid size={16} />} />
-        <StatCard title={t("analytics.activeDays")} value={activity.filter((a) => a.txCount > 0).length} icon={<Clock size={16} />} />
+        <StatCard
+          title={t("analytics.activeDays")}
+          value={activity.filter((a) => a.txCount > 0).length}
+          icon={<Clock size={16} />}
+        />
       </div>
 
       {/* Charts Row */}

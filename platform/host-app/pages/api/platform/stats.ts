@@ -5,10 +5,10 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
-import { getNeoBurgerStats } from "../../../lib/neoburger";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getNeoBurgerStats } from "@/lib/neoburger";
 // Chain ID must be provided by caller - no environment defaults
-import miniappsData from "../../../data/miniapps.json";
+import miniappsData from "@/data/miniapps.json";
 
 // Calculate total apps from miniapps.json
 function getTotalAppsCount(): number {

@@ -22,7 +22,18 @@ import {
   Pie,
   Legend,
 } from "recharts";
-import { Users, Activity, Wallet, LayoutGrid, TrendingUp, Loader2, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import {
+  Users,
+  Activity,
+  Wallet,
+  LayoutGrid,
+  TrendingUp,
+  Loader2,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn, formatNumber, formatTimeAgo } from "@/lib/utils";
 
 interface PlatformStats {
@@ -59,7 +70,6 @@ export default function EnhancedStatsPage() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [events, setEvents] = useState<RecentEvent[]>([]);
   const [loading, setLoading] = useState(true);
-
 
   useEffect(() => {
     async function fetchData() {
@@ -287,9 +297,7 @@ export default function EnhancedStatsPage() {
               <CardTitle className="text-erobo-ink dark:text-white">
                 {t("statsPage.categoryDistribution") || "Category Distribution"}
               </CardTitle>
-              <CardDescription>
-                {t("statsPage.categoryDistributionDesc") || "MiniApps by category"}
-              </CardDescription>
+              <CardDescription>{t("statsPage.categoryDistributionDesc") || "MiniApps by category"}</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
               {loading ? (
@@ -341,9 +349,7 @@ export default function EnhancedStatsPage() {
               <CardTitle className="text-erobo-ink dark:text-white">
                 {t("statsPage.chainDistribution") || "Chain Distribution"}
               </CardTitle>
-              <CardDescription>
-                {t("statsPage.chainDistributionDesc") || "Activity by blockchain"}
-              </CardDescription>
+              <CardDescription>{t("statsPage.chainDistributionDesc") || "Activity by blockchain"}</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
               {loading ? (
@@ -422,7 +428,8 @@ export default function EnhancedStatsPage() {
                           {event.method || "invokefunction"}
                         </p>
                         <p className="text-xs text-erobo-ink-soft/70 dark:text-gray-400">
-                          {t("statsPage.contract")}: {event.contract || "Unknown"} ({event.contractAddress?.slice(0, 6)}...
+                          {t("statsPage.contract")}: {event.contract || "Unknown"} ({event.contractAddress?.slice(0, 6)}
+                          ...
                           {event.contractAddress?.slice(-4)})
                         </p>
                       </div>
@@ -449,7 +456,7 @@ export default function EnhancedStatsPage() {
 interface StatSummaryCardProps {
   title: string;
   value: string | number;
-  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
+  icon: LucideIcon;
   color: string;
   loading?: boolean;
   trend?: number;
@@ -494,5 +501,3 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading, trend }: St
     </Card>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

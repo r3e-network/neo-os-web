@@ -5,7 +5,7 @@
  */
 
 import type { ChainId } from "../chains/types";
-import { getChainRpcUrl } from "../chain/rpc-client";
+import { getChainRpcUrl } from "../chains/rpc-functions";
 import { getChainRegistry } from "../chains/registry";
 import { isNeoN3Chain } from "../chains/types";
 
@@ -137,12 +137,7 @@ async function fetchTokenPrices(): Promise<{ neo: number; gas: number }> {
 /**
  * Invoke read-only contract method
  */
-async function invokeRead(
-  rpcUrl: string,
-  contractAddress: string,
-  method: string,
-  params: unknown[],
-): Promise<string> {
+async function invokeRead(rpcUrl: string, contractAddress: string, method: string, params: unknown[]): Promise<string> {
   const response = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { X, Code2, Rocket, Shield, Dice5, TrendingUp, ChevronRight, ExternalLink, LayoutDashboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/lib/i18n/react";
+import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
 
 const categories = ["gaming", "defi", "social", "nft", "governance", "utility"] as const;
 
@@ -98,9 +99,10 @@ export default function DeveloperPage() {
         }
       }
 
+      const authHeaders = await getWalletAuthHeaders();
       const res = await fetch("/api/miniapps/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
           ...form,
           build_url: form.build_url.trim() || undefined,
@@ -293,7 +295,7 @@ export default function DeveloperPage() {
               Get started quickly with these code examples
             </p>
           </div>
-          
+
           <div className="grid gap-8 lg:grid-cols-2">
             {/* Wallet Integration */}
             <motion.div
@@ -755,5 +757,3 @@ const secret = await sdk.secrets.get("api_key");`}</code>
     </Layout>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

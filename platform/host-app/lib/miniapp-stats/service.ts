@@ -5,9 +5,15 @@
 
 import type { MiniAppStats, MiniAppLiveStatus } from "./types";
 import { statsCache, CACHE_TTL } from "./collector";
-import { supabase, isSupabaseConfigured } from "../supabase";
-import { getLotteryState, getContractStats } from "../chain";
+import { supabaseAdmin, isSupabaseConfigured } from "../supabase";
+import { getLotteryState, getContractStats } from "../chains/contract-queries";
 import type { ChainId } from "../chains/types";
+
+/** Get DB client — all functions guard with isSupabaseConfigured first */
+function db() {
+  if (!supabaseAdmin) throw new Error("Database not configured");
+  return supabaseAdmin;
+}
 
 /**
  * Ensure stats record exists for an app-chain combination (lazy creation)
@@ -17,7 +23,7 @@ export async function ensureStatsExist(appId: string, chainId: ChainId): Promise
   if (!isSupabaseConfigured) return false;
 
   try {
-    const { data, error } = await supabase.rpc("ensure_miniapp_stats_exist", {
+    const { data, error } = await db().rpc("ensure_miniapp_stats_exist", {
       p_app_id: appId,
       p_chain_id: chainId,
     });
@@ -49,7 +55,7 @@ export async function getAggregatedMiniAppStats(appId: string): Promise<MiniAppS
   if (!isSupabaseConfigured) return null;
 
   // Fetch stats from all chains for this app
-  const { data } = await supabase.from("miniapp_stats").select("*").eq("app_id", appId);
+  const { data } = await db().from("miniapp_stats").select("*").eq("app_id", appId);
 
   if (!data || data.length === 0) return null;
 
@@ -160,7 +166,7 @@ export async function getBatchStats(appIds: string[], chainId: ChainId): Promise
     return result;
   }
 
-  const { data, error } = await supabase.from("miniapp_stats").select("*").in("app_id", appIds).eq("chain_id", chainId);
+  const { data, error } = await db().from("miniapp_stats").select("*").in("app_id", appIds).eq("chain_id", chainId);
 
   if (error) {
     console.error("Failed to fetch batch stats:", error);
@@ -209,7 +215,7 @@ export async function getAggregatedBatchStats(appIds: string[]): Promise<Record<
   }
 
   // Fetch only uncached apps from database
-  const { data, error } = await supabase.from("miniapp_stats").select("*").in("app_id", uncachedAppIds);
+  const { data, error } = await db().from("miniapp_stats").select("*").in("app_id", uncachedAppIds);
 
   if (error) {
     console.error("Failed to fetch aggregated batch stats:", error);
@@ -307,8 +313,8 @@ export async function getLiveStatus(
       status.tvl = stats.totalValueLocked;
       status.volume24h = stats.totalValueLocked;
     }
-  } catch {
-    // Return partial status on error
+  } catch (err) {
+    console.warn("getLiveStatus partial failure:", err);
   }
 
   return status;

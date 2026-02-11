@@ -130,7 +130,7 @@ export function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-white/60 dark:border-white/10 bg-white/90 dark:bg-[#0b0c16] px-4 py-4 shadow-lg">
+        <div className="md:hidden border-t border-white/60 dark:border-white/10 bg-white/90 dark:bg-erobo-bg-dark px-4 py-4 shadow-lg">
           <div className="mb-4">
             <SearchAutocomplete className="w-full" />
           </div>

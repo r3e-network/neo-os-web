@@ -2,16 +2,16 @@ import { getWalletService } from "@/lib/wallet/wallet-service-impl";
 
 describe("WalletServiceImpl getBalance (Neo)", () => {
   it("uses Neo adapter balance for extension wallets", async () => {
-    const service = getWalletService() as {
-    _account: { address: string; publicKey: string };
-    _providerType: string;
-    _extensionProvider: string;
-    _chainId: string;
-    neoAdapters: {
-      neoline: { getBalance: jest.Mock };
+    const service = getWalletService() as unknown as {
+      _account: { address: string; publicKey: string };
+      _providerType: string;
+      _extensionProvider: string;
+      _chainId: string;
+      neoAdapters: {
+        neoline: { getBalance: jest.Mock };
+      };
+      getBalance: () => Promise<unknown>;
     };
-    getBalance: () => Promise<unknown>;
-  };
     service._account = { address: "NdzC4b1Bq9m2b8nQzX6H9y9Zq7x5P1tK2a", publicKey: "pub" };
     service._providerType = "extension";
     service._extensionProvider = "neoline";

@@ -1,86 +1,99 @@
+/**
+ * Forum Threads API
+ * GET: List threads for a miniapp (with category filter, pagination)
+ * POST: Create a new thread (requires wallet auth)
+ */
+
+import { createHandler } from "@/lib/api";
 import type { NextApiRequest, NextApiResponse } from "next";
-import type { ForumThread } from "@/components/features/forum/types";
+import type { HandlerContext } from "@/lib/api/types";
 
-// In-memory store (replace with Supabase in production)
-const threadsStore: Map<string, ForumThread[]> = new Map();
-let threadIdCounter = 1;
+export default createHandler({
+  auth: "wallet",
+  methods: {
+    GET: {
+      rateLimit: "api",
+      handler: async (req: NextApiRequest, res: NextApiResponse, ctx: HandlerContext) => {
+        const { appId } = req.query;
+        if (!appId || typeof appId !== "string") {
+          return res.status(400).json({ error: "Missing appId" });
+        }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { appId } = req.query;
+        const category = req.query.category as string | undefined;
+        const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+        const offset = parseInt(req.query.offset as string) || 0;
 
-  if (!appId || typeof appId !== "string") {
-    return res.status(400).json({ error: "Missing appId" });
-  }
+        let query = ctx.db.from("forum_threads").select("*", { count: "exact" }).eq("app_id", appId);
 
-  if (req.method === "GET") {
-    return getThreads(appId, req, res);
-  }
+        if (category) {
+          query = query.eq("category", category);
+        }
 
-  if (req.method === "POST") {
-    return createThread(appId, req, res);
-  }
+        // Pinned first, then by last activity
+        query = query
+          .order("is_pinned", { ascending: false })
+          .order("last_reply_at", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .range(offset, offset + limit - 1);
 
-  return res.status(405).json({ error: "Method not allowed" });
-}
+        const { data, error, count } = await query;
 
-function getThreads(appId: string, req: NextApiRequest, res: NextApiResponse) {
-  const category = req.query.category as string | undefined;
-  const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
-  const offset = parseInt(req.query.offset as string) || 0;
+        if (error) {
+          console.error("[Forum] threads list error:", error);
+          return res.status(500).json({ error: "Failed to fetch threads" });
+        }
 
-  let threads = threadsStore.get(appId) || [];
+        const total = count ?? 0;
+        return res.status(200).json({
+          threads: data ?? [],
+          hasMore: offset + limit < total,
+          total,
+        });
+      },
+    },
+    POST: {
+      rateLimit: "write",
+      handler: async (req: NextApiRequest, res: NextApiResponse, ctx: HandlerContext) => {
+        const { appId } = req.query;
+        if (!appId || typeof appId !== "string") {
+          return res.status(400).json({ error: "Missing appId" });
+        }
 
-  if (category) {
-    threads = threads.filter((t) => t.category === category);
-  }
+        const { title, content, category } = req.body;
+        if (!title?.trim() || !content?.trim()) {
+          return res.status(400).json({ error: "Missing required fields" });
+        }
 
-  // Sort: pinned first, then by last activity
-  threads.sort((a, b) => {
-    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
-    const dateA = new Date(a.last_reply_at || a.created_at).getTime();
-    const dateB = new Date(b.last_reply_at || b.created_at).getTime();
-    return dateB - dateA;
-  });
+        const address = ctx.address!;
+        const now = new Date().toISOString();
 
-  const paginated = threads.slice(offset, offset + limit);
+        const { data, error } = await ctx.db
+          .from("forum_threads")
+          .insert({
+            app_id: appId,
+            author_id: address,
+            author_name: `${address.slice(0, 6)}...${address.slice(-4)}`,
+            title: title.trim().slice(0, 200),
+            content: content.trim().slice(0, 5000),
+            category: category || "general",
+            reply_count: 0,
+            view_count: 0,
+            is_pinned: false,
+            is_locked: false,
+            created_at: now,
+            updated_at: now,
+            last_reply_at: null,
+          })
+          .select()
+          .single();
 
-  return res.status(200).json({
-    threads: paginated,
-    hasMore: offset + limit < threads.length,
-    total: threads.length,
-  });
-}
+        if (error) {
+          console.error("[Forum] thread create error:", error);
+          return res.status(500).json({ error: "Failed to create thread" });
+        }
 
-function createThread(appId: string, req: NextApiRequest, res: NextApiResponse) {
-  const { wallet, title, content, category } = req.body;
-
-  if (!wallet || !title?.trim() || !content?.trim()) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  if (!threadsStore.has(appId)) {
-    threadsStore.set(appId, []);
-  }
-
-  const now = new Date().toISOString();
-  const thread: ForumThread = {
-    id: `thread-${threadIdCounter++}`,
-    app_id: appId,
-    author_id: wallet,
-    author_name: `${wallet.slice(0, 6)}...${wallet.slice(-4)}`,
-    title: title.trim().slice(0, 200),
-    content: content.trim().slice(0, 5000),
-    category: category || "general",
-    reply_count: 0,
-    view_count: 0,
-    is_pinned: false,
-    is_locked: false,
-    created_at: now,
-    updated_at: now,
-    last_reply_at: null,
-  };
-
-  threadsStore.get(appId)!.push(thread);
-
-  return res.status(201).json({ thread });
-}
+        return res.status(201).json({ thread: data });
+      },
+    },
+  },
+});

@@ -3,8 +3,8 @@
  * Handles account creation, verification, and linking operations
  */
 
-import { randomBytes, pbkdf2Sync } from "crypto";
-import { supabase } from "@/lib/supabase";
+import { randomBytes, pbkdf2Sync, timingSafeEqual } from "crypto";
+import { supabaseAdmin } from "@/lib/supabase";
 import type { ChainId } from "@/lib/chains/types";
 import type {
   NeoHubAccount,
@@ -15,6 +15,12 @@ import type {
   NeoAccountRow,
   ChainAccountRow,
 } from "./types";
+
+/** Get DB client or throw — all functions in this module require service-role access */
+function db() {
+  if (!supabaseAdmin) throw new Error("Database not configured");
+  return supabaseAdmin;
+}
 
 const PASSWORD_ITERATIONS = 100000;
 const PASSWORD_KEY_LENGTH = 64;
@@ -36,14 +42,17 @@ export function hashPassword(password: string, salt?: string): { hash: string; s
  */
 export function verifyPassword(password: string, storedHash: string, salt: string): boolean {
   const { hash } = hashPassword(password, salt);
-  return hash === storedHash;
+  const a = Buffer.from(hash, "hex");
+  const b = Buffer.from(storedHash, "hex");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 /**
  * Get NeoHub account by ID
  */
 export async function getNeoHubAccount(accountId: string): Promise<NeoHubAccount | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db()
     .from("neohub_accounts")
     .select("id, display_name, avatar_url, created_at, updated_at, last_login_at")
     .eq("id", accountId)
@@ -68,20 +77,12 @@ export async function getFullNeoHubAccount(accountId: string): Promise<NeoHubAcc
   const account = await getNeoHubAccount(accountId);
   if (!account) return null;
 
-  // Get linked identities
-  const { data: identities } = await supabase.from("linked_identities").select("*").eq("neohub_account_id", accountId);
-
-  // Get linked Neo accounts
-  const { data: neoAccounts } = await supabase
-    .from("linked_neo_accounts")
-    .select("*")
-    .eq("neohub_account_id", accountId);
-
-  // Get linked chain accounts (multi-chain)
-  const { data: chainAccounts } = await supabase
-    .from("linked_chain_accounts")
-    .select("*")
-    .eq("neohub_account_id", accountId);
+  // Fetch all linked data in parallel (eliminates N+1 sequential queries)
+  const [{ data: identities }, { data: neoAccounts }, { data: chainAccounts }] = await Promise.all([
+    db().from("linked_identities").select("*").eq("neohub_account_id", accountId),
+    db().from("linked_neo_accounts").select("*").eq("neohub_account_id", accountId),
+    db().from("linked_chain_accounts").select("*").eq("neohub_account_id", accountId),
+  ]);
 
   return {
     ...account,
@@ -101,7 +102,6 @@ export async function getFullNeoHubAccount(accountId: string): Promise<NeoHubAcc
   };
 }
 
- 
 function mapNeoAccount(row: NeoAccountRow): LinkedNeoAccount {
   return {
     id: row.id,
@@ -113,7 +113,6 @@ function mapNeoAccount(row: NeoAccountRow): LinkedNeoAccount {
   };
 }
 
- 
 function mapChainAccount(row: ChainAccountRow): LinkedChainAccount {
   return {
     id: row.id,
@@ -131,7 +130,7 @@ function mapChainAccount(row: ChainAccountRow): LinkedChainAccount {
  * Verify NeoHub account password
  */
 export async function verifyAccountPassword(accountId: string, password: string): Promise<boolean> {
-  const { data } = await supabase
+  const { data } = await db()
     .from("neohub_accounts")
     .select("password_hash, password_salt")
     .eq("id", accountId)
@@ -148,22 +147,15 @@ export async function verifyAccountPassword(accountId: string, password: string)
 export async function linkNeoAccount(params: LinkNeoAccountParams): Promise<LinkedNeoAccount> {
   const { neohubAccountId, address, publicKey, encryptedPrivateKey, salt, iv, tag, iterations } = params;
 
-  // Check if this is the first Neo account (make it primary)
-  const { count } = await supabase
-    .from("linked_neo_accounts")
-    .select("*", { count: "exact", head: true })
-    .eq("neohub_account_id", neohubAccountId);
-
-  const isPrimary = (count || 0) === 0;
-
-  // Insert linked Neo account
-  const { data: neoAccount, error: neoError } = await supabase
+  // Insert with is_primary=false first to avoid TOCTOU race.
+  // A concurrent insert can no longer cause two primaries.
+  const { data: neoAccount, error: neoError } = await db()
     .from("linked_neo_accounts")
     .insert({
       neohub_account_id: neohubAccountId,
       address,
       public_key: publicKey,
-      is_primary: isPrimary,
+      is_primary: false,
     })
     .select()
     .single();
@@ -172,8 +164,19 @@ export async function linkNeoAccount(params: LinkNeoAccountParams): Promise<Link
     throw new Error(`Failed to link Neo account: ${neoError?.message}`);
   }
 
+  // Promote to primary only if no other primary exists (atomic conditional update)
+  const { count } = await db()
+    .from("linked_neo_accounts")
+    .select("*", { count: "exact", head: true })
+    .eq("neohub_account_id", neohubAccountId)
+    .eq("is_primary", true);
+
+  if ((count || 0) === 0) {
+    await db().from("linked_neo_accounts").update({ is_primary: true }).eq("id", neoAccount.id).eq("is_primary", false);
+  }
+
   // Store encrypted key
-  const { error: keyError } = await supabase.from("encrypted_keys").insert({
+  const { error: keyError } = await db().from("encrypted_keys").insert({
     neohub_account_id: neohubAccountId,
     wallet_address: address,
     address,
@@ -185,7 +188,7 @@ export async function linkNeoAccount(params: LinkNeoAccountParams): Promise<Link
 
   if (keyError) {
     // Rollback
-    await supabase.from("linked_neo_accounts").delete().eq("id", neoAccount.id);
+    await db().from("linked_neo_accounts").delete().eq("id", neoAccount.id);
     throw new Error(`Failed to store encrypted key: ${keyError.message}`);
   }
 
@@ -210,7 +213,7 @@ export async function unlinkIdentity(
   }
 
   // Check if can unlink (must have at least 1 remaining)
-  const { data: canUnlink } = await supabase.rpc("can_unlink_identity", {
+  const { data: canUnlink } = await db().rpc("can_unlink_identity", {
     p_neohub_account_id: neohubAccountId,
     p_identity_id: identityId,
   });
@@ -220,14 +223,10 @@ export async function unlinkIdentity(
   }
 
   // Get identity info for logging
-  const { data: identity } = await supabase
-    .from("linked_identities")
-    .select("provider")
-    .eq("id", identityId)
-    .single();
+  const { data: identity } = await db().from("linked_identities").select("provider").eq("id", identityId).single();
 
   // Delete identity
-  const { error } = await supabase.from("linked_identities").delete().eq("id", identityId);
+  const { error } = await db().from("linked_identities").delete().eq("id", identityId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -255,7 +254,7 @@ export async function unlinkNeoAccount(
   }
 
   // Check if can unlink
-  const { data: canUnlink } = await supabase.rpc("can_unlink_neo_account", {
+  const { data: canUnlink } = await db().rpc("can_unlink_neo_account", {
     p_neohub_account_id: neohubAccountId,
     p_neo_account_id: neoAccountId,
   });
@@ -265,19 +264,15 @@ export async function unlinkNeoAccount(
   }
 
   // Get Neo account info for logging
-  const { data: neoAccount } = await supabase
-    .from("linked_neo_accounts")
-    .select("address")
-    .eq("id", neoAccountId)
-    .single();
+  const { data: neoAccount } = await db().from("linked_neo_accounts").select("address").eq("id", neoAccountId).single();
 
   // Delete encrypted key
   if (neoAccount) {
-    await supabase.from("encrypted_keys").delete().eq("wallet_address", neoAccount.address);
+    await db().from("encrypted_keys").delete().eq("wallet_address", neoAccount.address);
   }
 
   // Delete Neo account link
-  const { error } = await supabase.from("linked_neo_accounts").delete().eq("id", neoAccountId);
+  const { error } = await db().from("linked_neo_accounts").delete().eq("id", neoAccountId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -306,7 +301,7 @@ export async function changePassword(
   const { hash, salt } = hashPassword(newPassword);
 
   // Update password
-  const { error } = await supabase
+  const { error } = await db()
     .from("neohub_accounts")
     .update({
       password_hash: hash,
@@ -334,7 +329,7 @@ async function logAccountChange(
   ipAddress?: string,
   userAgent?: string,
 ): Promise<void> {
-  await supabase.from("account_change_log").insert({
+  await db().from("account_change_log").insert({
     neohub_account_id: neohubAccountId,
     change_type: changeType,
     change_details: changeDetails,
@@ -347,7 +342,7 @@ async function logAccountChange(
  * Get encrypted key for Neo account
  */
 export async function getEncryptedKey(address: string) {
-  const { data } = await supabase.from("encrypted_keys").select("*").eq("wallet_address", address).single();
+  const { data } = await db().from("encrypted_keys").select("*").eq("wallet_address", address).single();
 
   return data;
 }
@@ -356,5 +351,5 @@ export async function getEncryptedKey(address: string) {
  * Update last login timestamp
  */
 export async function updateLastLogin(neohubAccountId: string): Promise<void> {
-  await supabase.from("neohub_accounts").update({ last_login_at: new Date().toISOString() }).eq("id", neohubAccountId);
+  await db().from("neohub_accounts").update({ last_login_at: new Date().toISOString() }).eq("id", neohubAccountId);
 }

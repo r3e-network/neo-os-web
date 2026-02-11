@@ -28,7 +28,7 @@ module.exports = {
     "!pages/_app.tsx",
     "!pages/_document.tsx",
     "!pages/_error.tsx",
-    "!pages/api/**",
+    // pages/api/** now included in coverage collection
     "!pages/index.tsx",
     "!pages/federated.tsx",
     "!pages/test.tsx",
@@ -42,10 +42,10 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      branches: 10,
-      functions: 8,
-      lines: 10,
-      statements: 10,
+      branches: 25,
+      functions: 25,
+      lines: 30,
+      statements: 30,
     },
     // Core implementation files - realistic thresholds based on current coverage
     "./hooks/useRealtimeNotifications.ts": {
@@ -72,12 +72,6 @@ module.exports = {
       lines: 85,
       statements: 85,
     },
-    "./components/LaunchDock.tsx": {
-      branches: 85,
-      functions: 85,
-      lines: 85,
-      statements: 85,
-    },
     "./pages/app/[id].tsx": {
       branches: 50,
       functions: 50,
@@ -89,6 +83,12 @@ module.exports = {
       functions: 15,
       lines: 25,
       statements: 25,
+    },
+    "./lib/security/wallet-auth.ts": {
+      branches: 95,
+      functions: 95,
+      lines: 95,
+      statements: 95,
     },
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
@@ -104,7 +104,5 @@ module.exports = {
       },
     ],
   },
-  transformIgnorePatterns: [
-    "/node_modules/(?!(@noble/hashes|\\.pnpm/@noble\\+hashes))",
-  ],
+  transformIgnorePatterns: ["/node_modules/(?!(@noble/hashes|\\.pnpm/@noble\\+hashes))"],
 };

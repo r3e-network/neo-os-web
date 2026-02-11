@@ -1,36 +1,26 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHandler } from "@/lib/api";
+import { updatePreferencesBody } from "@/lib/schemas";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!isSupabaseConfigured) {
-    return res.status(503).json({ error: "Database not configured" });
-  }
+export default createHandler({
+  auth: "wallet",
+  methods: {
+    GET: (req, res, ctx) => getPreferences(ctx.db, ctx.address!, res),
+    PUT: {
+      handler: (req, res, ctx) => updatePreferences(ctx.db, ctx.address!, req, res),
+      schema: updatePreferencesBody,
+    },
+  },
+});
 
-  const { wallet } = req.query;
-
-  if (!wallet || typeof wallet !== "string") {
-    return res.status(400).json({ error: "Missing wallet address" });
-  }
-
-  if (req.method === "GET") {
-    return getPreferences(wallet, res);
-  }
-
-  if (req.method === "PUT") {
-    return updatePreferences(wallet, req, res);
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
-
-async function getPreferences(wallet: string, res: NextApiResponse) {
-  const { data, error } = await supabase.from("user_preferences").select("*").eq("wallet_address", wallet).single();
+async function getPreferences(db: SupabaseClient, wallet: string, res: NextApiResponse) {
+  const { data, error } = await db.from("user_preferences").select("*").eq("wallet_address", wallet).single();
 
   if (error && error.code !== "PGRST116") {
     return res.status(500).json({ error: "Failed to fetch preferences" });
   }
 
-  // Return defaults if no preferences exist
   const defaults = {
     wallet_address: wallet,
     preferred_categories: [],
@@ -42,19 +32,13 @@ async function getPreferences(wallet: string, res: NextApiResponse) {
   return res.status(200).json({ preferences: data || defaults });
 }
 
-async function updatePreferences(wallet: string, req: NextApiRequest, res: NextApiResponse) {
+async function updatePreferences(db: SupabaseClient, wallet: string, req: NextApiRequest, res: NextApiResponse) {
   const { preferred_categories, notification_settings, theme, language } = req.body;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("user_preferences")
     .upsert(
-      {
-        wallet_address: wallet,
-        preferred_categories,
-        notification_settings,
-        theme,
-        language,
-      },
+      { wallet_address: wallet, preferred_categories, notification_settings, theme, language },
       { onConflict: "wallet_address" },
     )
     .select()

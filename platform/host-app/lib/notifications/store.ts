@@ -4,6 +4,7 @@
 
 import { create } from "zustand";
 import type { Notification } from "@/pages/api/notifications";
+import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
 
 interface NotificationState {
   notifications: Notification[];
@@ -53,11 +54,12 @@ export const useNotificationStore = create<NotificationStore>((set, _get) => ({
     if (!wallet || ids.length === 0) return;
 
     try {
+      const authHeaders = await getWalletAuthHeaders();
       await fetch("/api/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-wallet-address": wallet,
+          ...authHeaders,
         },
         body: JSON.stringify({ ids }),
       });
@@ -67,8 +69,8 @@ export const useNotificationStore = create<NotificationStore>((set, _get) => ({
         notifications: state.notifications.map((n) => (ids.includes(n.id) ? { ...n, read: true } : n)),
         unreadCount: Math.max(0, state.unreadCount - ids.length),
       }));
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.warn("markAsRead failed:", err);
     }
   },
 
@@ -76,11 +78,12 @@ export const useNotificationStore = create<NotificationStore>((set, _get) => ({
     if (!wallet) return;
 
     try {
+      const authHeaders = await getWalletAuthHeaders();
       await fetch("/api/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-wallet-address": wallet,
+          ...authHeaders,
         },
         body: JSON.stringify({ all: true }),
       });
@@ -89,8 +92,8 @@ export const useNotificationStore = create<NotificationStore>((set, _get) => ({
         notifications: state.notifications.map((n) => ({ ...n, read: true })),
         unreadCount: 0,
       }));
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.warn("markAllAsRead failed:", err);
     }
   },
 

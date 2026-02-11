@@ -1,32 +1,23 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHandler } from "@/lib/api";
+import { generateReportBody } from "@/lib/schemas";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!isSupabaseConfigured) {
-    return res.status(503).json({ error: "Database not configured" });
-  }
+export default createHandler({
+  auth: "wallet",
+  methods: {
+    GET: (req, res, ctx) => getReports(ctx.db, ctx.address!, req, res),
+    POST: {
+      handler: (req, res, ctx) => generateReport(ctx.db, ctx.address!, req, res),
+      schema: generateReportBody,
+    },
+  },
+});
 
-  const { wallet } = req.query;
-
-  if (!wallet || typeof wallet !== "string") {
-    return res.status(400).json({ error: "Missing wallet address" });
-  }
-
-  if (req.method === "GET") {
-    return getReports(wallet, req, res);
-  }
-
-  if (req.method === "POST") {
-    return generateReport(wallet, req, res);
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
-
-async function getReports(wallet: string, req: NextApiRequest, res: NextApiResponse) {
+async function getReports(db: SupabaseClient, wallet: string, req: NextApiRequest, res: NextApiResponse) {
   const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("usage_reports")
     .select("*")
     .eq("wallet_address", wallet)
@@ -40,29 +31,18 @@ async function getReports(wallet: string, req: NextApiRequest, res: NextApiRespo
   return res.status(200).json({ reports: data || [] });
 }
 
-async function generateReport(wallet: string, req: NextApiRequest, res: NextApiResponse) {
+async function generateReport(db: SupabaseClient, wallet: string, req: NextApiRequest, res: NextApiResponse) {
   const { report_type, date_from, date_to } = req.body;
 
-  if (!report_type || !date_from || !date_to) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  // Generate report data (simplified)
   const reportData = {
     total_executions: 0,
     total_gas_used: 0,
     apps_used: [],
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("usage_reports")
-    .insert({
-      wallet_address: wallet,
-      report_type,
-      date_from,
-      date_to,
-      data: reportData,
-    })
+    .insert({ wallet_address: wallet, report_type, date_from, date_to, data: reportData })
     .select()
     .single();
 

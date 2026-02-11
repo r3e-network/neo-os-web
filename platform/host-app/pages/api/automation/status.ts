@@ -1,12 +1,21 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { requireWalletAuth } from "@/lib/security/wallet-auth";
 import type { TaskStatusResponse } from "@/lib/db/types";
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<TaskStatusResponse>) {
   if (req.method !== "GET") {
     return res.status(405).json({ task: null, schedule: null, recentLogs: [] });
+  }
+
+  if (!isSupabaseConfigured || !supabaseAdmin) {
+    return res.status(503).json({ task: null, schedule: null, recentLogs: [] });
+  }
+
+  // SECURITY: Verify wallet ownership via cryptographic signature
+  const auth = requireWalletAuth(req.headers);
+  if (!auth.ok) {
+    return res.status(auth.status).json({ task: null, schedule: null, recentLogs: [] });
   }
 
   try {
@@ -17,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     }
 
     // Get task
-    const { data: task } = await supabase
+    const { data: task } = await supabaseAdmin
       .from("automation_tasks")
       .select("*")
       .eq("app_id", appId)
@@ -29,10 +38,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     }
 
     // Get schedule
-    const { data: schedule } = await supabase.from("automation_schedules").select("*").eq("task_id", task.id).single();
+    const { data: schedule } = await supabaseAdmin
+      .from("automation_schedules")
+      .select("*")
+      .eq("task_id", task.id)
+      .single();
 
     // Get recent logs
-    const { data: logs } = await supabase
+    const { data: logs } = await supabaseAdmin
       .from("automation_logs")
       .select("*")
       .eq("task_id", task.id)

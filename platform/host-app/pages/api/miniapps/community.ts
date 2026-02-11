@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { fetchCommunityApps, type RegistryStatusFilter } from "../../../lib/community-apps";
+import { fetchCommunityApps, type RegistryStatusFilter } from "@/lib/community-apps";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {

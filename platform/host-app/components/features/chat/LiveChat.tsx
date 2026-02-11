@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageCircle, Send, X, Users, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
 import type { ChatMessage } from "./types";
 
 interface LiveChatProps {
@@ -89,11 +90,11 @@ export function LiveChat({ appId, walletAddress, userName, mode = "floating" }: 
     setInputValue("");
 
     try {
+      const authHeaders = await getWalletAuthHeaders();
       await fetch(`/api/chat/${appId}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
-          wallet: walletAddress,
           content: newMessage.content,
         }),
       });

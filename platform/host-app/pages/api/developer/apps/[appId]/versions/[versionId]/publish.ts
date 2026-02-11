@@ -4,6 +4,7 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase";
+import { requireWalletAuth } from "@/lib/security/wallet-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -14,10 +15,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Database not configured" });
   }
 
-  const developerAddress = req.headers["x-developer-address"] as string;
-  if (!developerAddress) {
-    return res.status(401).json({ error: "Developer address required" });
+  // SECURITY: Verify wallet ownership via cryptographic signature
+  const auth = requireWalletAuth(req.headers);
+  if (!auth.ok) {
+    return res.status(auth.status).json({ error: auth.error });
   }
+  const developerAddress = auth.address;
 
   const { appId, versionId } = req.query;
 

@@ -5,7 +5,7 @@
  * All data comes from Supabase - no mock/fallback data
  */
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 type HallOfFameCategory = "people" | "community" | "developer";
 type Period = "day" | "week" | "month" | "all";
@@ -95,7 +95,6 @@ async function loadEntries(): Promise<HallOfFameEntry[]> {
   }
 }
 
-
 async function loadPeriodScores(period: Period): Promise<Record<string, number>> {
   const start = getPeriodStart(period);
   if (!start) return {};
@@ -121,14 +120,12 @@ async function loadPeriodScores(period: Period): Promise<Record<string, number>>
   return totals;
 }
 
-
 export function invalidateCache() {
   cachedEntries = null;
   cacheTimestamp = 0;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }

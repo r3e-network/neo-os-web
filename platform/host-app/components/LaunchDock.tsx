@@ -33,14 +33,12 @@ export function LaunchDock({
   };
 
   const networkStatus = getNetworkStatus();
-  const walletDisplay = wallet.connected
-    ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
-    : "No Wallet";
+  const walletDisplay = wallet.connected ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}` : "No Wallet";
 
   const walletDotColor = wallet.connected ? "bg-neo" : "bg-red-500";
 
   return (
-    <div className="fixed top-0 left-0 right-0 h-14 bg-white/70 dark:bg-[#0b0c16]/90 backdrop-blur-xl border-b border-white/60 dark:border-white/10 flex items-center px-4 gap-4 z-[9999] shadow-sm">
+    <div className="fixed top-0 left-0 right-0 h-14 bg-white/70 dark:bg-erobo-bg-dark/90 backdrop-blur-xl border-b border-white/60 dark:border-white/10 flex items-center px-4 gap-4 z-[9999] shadow-sm">
       <div className="flex items-center gap-2">
         <button
           onClick={onBack}
@@ -60,12 +58,7 @@ export function LaunchDock({
 
       <div className="flex items-center gap-2 md:gap-4">
         {/* Network Selector */}
-        {wallet.connected && (
-          <NetworkSelector
-            compact
-            allowedChainIds={supportedChainIds}
-          />
-        )}
+        {wallet.connected && <NetworkSelector compact allowedChainIds={supportedChainIds} />}
 
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/70 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">
           <div className={cn("w-1.5 h-1.5 rounded-full", walletDotColor)} />

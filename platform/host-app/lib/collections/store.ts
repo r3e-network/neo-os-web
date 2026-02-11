@@ -3,6 +3,7 @@
  */
 
 import { create } from "zustand";
+import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
 
 interface CollectionState {
   collections: Set<string>;
@@ -50,11 +51,12 @@ export const useCollectionStore = create<CollectionStore>((set, get) => ({
     if (!walletAddress) return false;
 
     try {
+      const authHeaders = await getWalletAuthHeaders();
       const res = await fetch("/api/collections", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-wallet-address": walletAddress,
+          ...authHeaders,
         },
         body: JSON.stringify({ appId }),
       });
@@ -75,9 +77,10 @@ export const useCollectionStore = create<CollectionStore>((set, get) => ({
     if (!walletAddress) return false;
 
     try {
+      const authHeaders = await getWalletAuthHeaders();
       const res = await fetch(`/api/collections/${appId}`, {
         method: "DELETE",
-        headers: { "x-wallet-address": walletAddress },
+        headers: authHeaders,
       });
 
       if (!res.ok) return false;

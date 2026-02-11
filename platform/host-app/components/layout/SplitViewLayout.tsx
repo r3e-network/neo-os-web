@@ -19,7 +19,7 @@ export function SplitViewLayout({
   rightPanel,
   leftWidth = 420,
   rightWidth = 520,
-  _mobileBreakpoint = 1024,
+  mobileBreakpoint: _mobileBreakpoint = 1024,
 }: SplitViewLayoutProps) {
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false);
   const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false);

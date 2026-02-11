@@ -22,8 +22,8 @@ export function MiniAppCard({ app, stats, onClick }: Props) {
             alt={`${app.name} banner`}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-neo/10', 'to-purple-500/10');
+              e.currentTarget.style.display = "none";
+              e.currentTarget.parentElement?.classList.add("bg-gradient-to-br", "from-neo/10", "to-purple-500/10");
             }}
           />
         ) : (
@@ -40,13 +40,11 @@ export function MiniAppCard({ app, stats, onClick }: Props) {
 
       <div className="p-5 pt-0 flex flex-col flex-1">
         {/* App Icon - Overlapping Banner */}
-        <div className="-mt-9 mb-3 relative z-10 w-16 h-16 rounded-xl bg-white dark:bg-[#1a1b26] border-[3px] border-white dark:border-[#1a1b26] shadow-md overflow-hidden group-hover:scale-105 transition-transform duration-300">
-          {app.icon && (app.icon.startsWith('/') || app.icon.startsWith('http')) ? (
+        <div className="-mt-9 mb-3 relative z-10 w-16 h-16 rounded-xl bg-white dark:bg-erobo-bg-card border-[3px] border-white dark:border-erobo-bg-card shadow-md overflow-hidden group-hover:scale-105 transition-transform duration-300">
+          {app.icon && (app.icon.startsWith("/") || app.icon.startsWith("http")) ? (
             <img src={app.icon} alt="icon" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-3xl">
-              {app.icon}
-            </div>
+            <div className="w-full h-full flex items-center justify-center text-3xl">{app.icon}</div>
           )}
         </div>
 
